@@ -1,66 +1,54 @@
 "use client";
 
-import { useState } from "react";
-import { LoginForm, SignUpForm } from "../components/auth-forms";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { AuthCard } from "../components/auth/auth-card";
+import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { authClient } from "../lib/auth-client";
+import { usePublicSettings } from "../lib/use-public-settings";
 
 export default function Home() {
-  const { data: session, isPending: isLoading } = authClient.useSession();
-  const [activeForm, setActiveForm] = useState<"login" | "signup">("login");
+  const router = useRouter();
+  const { data: session, isPending: sessionLoading } = authClient.useSession();
+  const { settings, isLoading: settingsLoading } = usePublicSettings();
+
+  useEffect(() => {
+    if (session?.user) {
+      router.push("/libraries");
+    }
+  }, [session, router]);
+
+  const isLoading = sessionLoading || settingsLoading;
 
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        Loading...
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
 
-  if (session) {
+  // Already authenticated, will redirect
+  if (session?.user) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-md mx-auto text-center">
-          <h1 className="text-3xl font-bold mb-4">Welcome!</h1>
-          <p className="mb-4">You are signed in as: {session.user?.email}</p>
-          <button
-            onClick={() => authClient.signOut()}
-            className="bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700"
-          >
-            Sign Out
-          </button>
-        </div>
+      <div className="flex min-h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-center mb-8">
-        <div className="bg-gray-100 p-1 rounded-lg">
-          <button
-            onClick={() => setActiveForm("login")}
-            className={`px-4 py-2 rounded-md ${
-              activeForm === "login"
-                ? "bg-white shadow-sm"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => setActiveForm("signup")}
-            className={`px-4 py-2 rounded-md ${
-              activeForm === "signup"
-                ? "bg-white shadow-sm"
-                : "text-gray-600 hover:text-gray-800"
-            }`}
-          >
-            Sign Up
-          </button>
-        </div>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+      {/* Ambient background glow */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute left-1/2 top-1/2 h-[600px] w-[600px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute left-1/3 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/5 blur-2xl" />
       </div>
 
-      {activeForm === "login" ? <LoginForm /> : <SignUpForm />}
+      {/* Auth card */}
+      <div className="relative z-10">
+        <AuthCard signupsEnabled={settings?.signupsEnabled ?? false} />
+      </div>
     </div>
   );
 }
