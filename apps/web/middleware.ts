@@ -17,5 +17,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/libraries/:path*"],
+  matcher: ["/libraries/:path*", "/settings/:path*"],
 };
