@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authClient } from "./lib/auth-client";
 
-export async function middleware(req: NextRequest) {
-  const session = authClient.getSession();
-  const sessionData = (await session).data;
+export function middleware(req: NextRequest) {
+  // Check for better-auth session cookie
+  // Better-auth stores session in a cookie named "better-auth.session_token"
+  const sessionToken = req.cookies.get("better-auth.session_token");
 
-  const isAuthenticated = !!sessionData?.user;
+  const isAuthenticated = !!sessionToken?.value;
 
   if (!isAuthenticated) {
     const url = req.nextUrl.clone();
