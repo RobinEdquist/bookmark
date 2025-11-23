@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoginForm } from "./login-form";
 import { SignupForm } from "./signup-form";
@@ -27,11 +33,13 @@ export function AuthCard({ signupsEnabled }: AuthCardProps) {
       </CardHeader>
       <CardContent>
         {signupsEnabled && (
-          <div className="mb-6 flex rounded-lg bg-muted p-1">
+          <nav className="mb-6 flex rounded-lg bg-muted p-1" role="tablist">
             <Button
               variant={activeTab === "login" ? "default" : "ghost"}
               className="flex-1"
               onClick={() => setActiveTab("login")}
+              role="tab"
+              aria-selected={activeTab === "login"}
             >
               Sign In
             </Button>
@@ -39,10 +47,12 @@ export function AuthCard({ signupsEnabled }: AuthCardProps) {
               variant={activeTab === "signup" ? "default" : "ghost"}
               className="flex-1"
               onClick={() => setActiveTab("signup")}
+              role="tab"
+              aria-selected={activeTab === "signup"}
             >
               Sign Up
             </Button>
-          </div>
+          </nav>
         )}
 
         {activeTab === "login" || !signupsEnabled ? (
