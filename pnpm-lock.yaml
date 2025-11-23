@@ -129,6 +129,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@repo/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       better-auth:
         specifier: ^1.4.1
         version: 1.4.1(next@16.0.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -141,6 +144,9 @@ importers:
       react-dom:
         specifier: ^19.2.0
         version: 19.2.0(react@19.2.0)
+      sonner:
+        specifier: ^1.7.4
+        version: 1.7.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
     devDependencies:
       '@repo/eslint-config':
         specifier: workspace:*
@@ -210,6 +216,43 @@ importers:
         version: 8.46.3(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.2)
 
   packages/typescript-config: {}
+
+  packages/ui:
+    dependencies:
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      react:
+        specifier: ^19.0.0
+        version: 19.2.0
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.0(react@19.2.0)
+      sonner:
+        specifier: ^1.7.4
+        version: 1.7.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      tailwind-merge:
+        specifier: ^2.6.0
+        version: 2.6.0
+    devDependencies:
+      '@repo/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@repo/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      '@types/react':
+        specifier: 19.2.2
+        version: 19.2.2
+      '@types/react-dom':
+        specifier: 19.2.2
+        version: 19.2.2(@types/react@19.2.2)
+      typescript:
+        specifier: 5.9.2
+        version: 5.9.2
 
 packages:
 
@@ -2210,6 +2253,9 @@ packages:
   cjs-module-lexer@2.1.1:
     resolution: {integrity: sha512-+CmxIZ/L2vNcEfvNtLdU0ZQ6mbq3FZnwAP2PPTiKP+1QOoKwlKlPgb8UKV0Dds7QVaMnHm+FwSft2VB0s/SLjQ==}
 
+  class-variance-authority@0.7.1:
+    resolution: {integrity: sha512-Ka+9Trutv7G8M6WT6SeiRWz792K5qEqIGEGzXKhAE6xOWAY6pPH8U+9IY3oCMv6kqTmLsv7Xh/2w2RigkePMsg==}
+
   cli-cursor@3.1.0:
     resolution: {integrity: sha512-I/zHAwsKf9FqGoXM4WWRACob9+SNukZTd94DWF57E4toouRulbCxcUh6RKUEOQlYTHJnzkPMySvPNaaSLNfLZw==}
     engines: {node: '>=8'}
@@ -2236,6 +2282,10 @@ packages:
   clone@1.0.4:
     resolution: {integrity: sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==}
     engines: {node: '>=0.8'}
+
+  clsx@2.1.1:
+    resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
+    engines: {node: '>=6'}
 
   co@4.6.0:
     resolution: {integrity: sha512-QVb0dM5HvG+uaxitm8wONl7jltx8dqhfU33DcqtOZcLSVIKSDDLDi7+0LbAKiyI8hD9u42m2YxXSkMGWThaecQ==}
@@ -4161,6 +4211,12 @@ packages:
     resolution: {integrity: sha512-g9Q1haeby36OSStwb4ntCGGGaKsaVSjQ68fBxoQcutl5fS1vuY18H3wSt3jFyFtrkx+Kz0V1G85A4MyAdDMi2Q==}
     engines: {node: '>=8'}
 
+  sonner@1.7.4:
+    resolution: {integrity: sha512-DIS8z4PfJRbIyfVFDVnK9rO3eYDtse4Omcm6bt0oEr5/jtLgysmjuBl1frJ9E/EQZrFmKx2A8m/s5s9CRXIzhw==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^18.0.0 || ^19.0.0 || ^19.0.0-rc
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -4318,6 +4374,9 @@ packages:
   synckit@0.11.11:
     resolution: {integrity: sha512-MeQTA1r0litLUf0Rp/iisCaL8761lKAZHaimlbGK4j0HysC4PLfqygQj9srcs0m2RdtDYnF8UuYyKpbjHYp7Jw==}
     engines: {node: ^14.18.0 || >=16.0.0}
+
+  tailwind-merge@2.6.0:
+    resolution: {integrity: sha512-P+Vu1qXfzediirmHOC3xKGAYeZtPcV9g76X+xg2FD4tYgR71ewMA35Y3sCz3zhiN/dwefRpJX0yBcgwi1fXNQA==}
 
   tailwindcss@4.1.17:
     resolution: {integrity: sha512-j9Ee2YjuQqYT9bbRTfTZht9W/ytp5H+jJpZKiYdP/bpnXARAuELt9ofP0lPnmHjbga7SNQIxdTAXCmtKVYjN+Q==}
@@ -4517,6 +4576,7 @@ packages:
   typescript@5.9.2:
     resolution: {integrity: sha512-CWBzXQrc/qOkhidw1OzBTQuYRbfyxDXJMVJ1XNwUHGROVmuaeiEm3OslpZ1RV96d7SKKjZKrSJu3+t/xlw3R9A==}
     engines: {node: '>=14.17'}
+    hasBin: true
 
   typescript@5.9.3:
     resolution: {integrity: sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw==}
@@ -6754,6 +6814,10 @@ snapshots:
 
   cjs-module-lexer@2.1.1: {}
 
+  class-variance-authority@0.7.1:
+    dependencies:
+      clsx: 2.1.1
+
   cli-cursor@3.1.0:
     dependencies:
       restore-cursor: 3.1.0
@@ -6777,6 +6841,8 @@ snapshots:
       wrap-ansi: 7.0.0
 
   clone@1.0.4: {}
+
+  clsx@2.1.1: {}
 
   co@4.6.0: {}
 
@@ -8969,6 +9035,11 @@ snapshots:
 
   slash@3.0.0: {}
 
+  sonner@1.7.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+
   source-map-js@1.2.1: {}
 
   source-map-support@0.5.13:
@@ -9144,6 +9215,8 @@ snapshots:
   synckit@0.11.11:
     dependencies:
       '@pkgr/core': 0.2.9
+
+  tailwind-merge@2.6.0: {}
 
   tailwindcss@4.1.17: {}
 

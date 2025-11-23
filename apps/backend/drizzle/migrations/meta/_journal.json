@@ -8,6 +8,13 @@
       "when": 1763906558402,
       "tag": "0000_add_auth_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1763926305143,
+      "tag": "0001_conscious_zemo",
+      "breakpoints": true
     }
   ]
 }
