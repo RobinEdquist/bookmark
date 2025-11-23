@@ -1,5 +1,5 @@
 {
-  "name": "my-turborepo",
+  "name": "simple-audiobook-vault",
   "private": true,
   "scripts": {
     "build": "turbo run build",
