@@ -1,0 +1,20 @@
+{
+  "appName": "Simple Audiobook Vault",
+  "loading": "Loading...",
+  "error": {
+    "generic": "An error occurred",
+    "connection": "Connection error. Please try again.",
+    "notFound": "Not found"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back"
+  },
+  "nav": {
+    "settings": "Settings",
+    "signOut": "Sign Out"
+  }
+}

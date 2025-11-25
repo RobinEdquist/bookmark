@@ -1,0 +1,43 @@
+{
+  "title": "Settings",
+  "description": "Manage your application settings",
+  "backToLibraries": "Back to Libraries",
+  "tabs": {
+    "libraries": "Libraries",
+    "users": "Users",
+    "authentication": "Authentication",
+    "appearance": "Appearance"
+  },
+  "libraries": {
+    "title": "Libraries",
+    "description": "Manage your audiobook libraries",
+    "comingSoon": "Library management features coming soon."
+  },
+  "users": {
+    "title": "User Management",
+    "description": "Manage users and their permissions",
+    "comingSoon": "User management features coming soon."
+  },
+  "authentication": {
+    "title": "Authentication",
+    "description": "Configure how users can access your audiobook vault",
+    "signups": {
+      "label": "Allow Sign-ups",
+      "description": "When disabled, only existing users can sign in",
+      "enabled": "Sign-ups enabled",
+      "disabled": "Sign-ups disabled"
+    },
+    "error": {
+      "loadFailed": "Failed to load settings. Please try again.",
+      "updateFailed": "Failed to update settings"
+    }
+  },
+  "appearance": {
+    "title": "Appearance",
+    "description": "Customize how the app looks",
+    "language": {
+      "label": "Language",
+      "description": "Choose your preferred language"
+    }
+  }
+}

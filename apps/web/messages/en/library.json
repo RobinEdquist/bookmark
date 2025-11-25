@@ -1,0 +1,9 @@
+{
+  "title": "Your Libraries",
+  "welcome": "Welcome back, {name}!",
+  "card": {
+    "title": "Libraries",
+    "description": "Manage your audiobook collections",
+    "empty": "Your audiobook libraries will appear here."
+  }
+}
