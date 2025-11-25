@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
@@ -11,6 +12,8 @@ import { authClient } from "../../lib/auth-client";
 
 export function SignupForm() {
   const router = useRouter();
+  const t = useTranslations("auth.signup");
+  const tCommon = useTranslations("common");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -29,18 +32,18 @@ export function SignupForm() {
 
       if (result.error) {
         if (result.error.message?.includes("already exists")) {
-          toast.error("An account with this email already exists");
+          toast.error(t("error.emailExists"));
         } else if (result.error.message?.includes("disabled") || result.error.message?.includes("closed")) {
-          toast.error("Signups are currently closed");
+          toast.error(t("error.signupsClosed"));
         } else {
-          toast.error(result.error.message || "Failed to create account");
+          toast.error(result.error.message || t("error.generic"));
         }
         return;
       }
 
       router.push("/libraries");
-    } catch (error) {
-      toast.error("Connection error. Please try again.");
+    } catch {
+      toast.error(tCommon("error.connection"));
     } finally {
       setIsLoading(false);
     }
@@ -49,11 +52,11 @@ export function SignupForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="name">Name</Label>
+        <Label htmlFor="name">{t("nameLabel")}</Label>
         <Input
           id="name"
           type="text"
-          placeholder="Your name"
+          placeholder={t("namePlaceholder")}
           value={name}
           onChange={(e) => setName(e.target.value)}
           required
@@ -62,11 +65,11 @@ export function SignupForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signup-email">Email</Label>
+        <Label htmlFor="signup-email">{t("emailLabel")}</Label>
         <Input
           id="signup-email"
           type="email"
-          placeholder="you@example.com"
+          placeholder={t("emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -74,11 +77,11 @@ export function SignupForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="signup-password">Password</Label>
+        <Label htmlFor="signup-password">{t("passwordLabel")}</Label>
         <Input
           id="signup-password"
           type="password"
-          placeholder="••••••••"
+          placeholder={t("passwordPlaceholder")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -90,10 +93,10 @@ export function SignupForm() {
         {isLoading ? (
           <>
             <LoadingSpinner size="sm" />
-            Creating account...
+            {t("submitting")}
           </>
         ) : (
-          "Create Account"
+          t("submit")
         )}
       </Button>
     </form>

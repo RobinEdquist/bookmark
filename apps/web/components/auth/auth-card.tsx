@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Card,
   CardContent,
@@ -18,17 +19,19 @@ interface AuthCardProps {
 
 export function AuthCard({ signupsEnabled }: AuthCardProps) {
   const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const t = useTranslations("auth");
+  const tCommon = useTranslations("common");
 
   return (
     <Card className="w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm">
       <CardHeader className="text-center">
         <CardTitle className="text-3xl font-bold tracking-tight">
-          Simple Audiobook Vault
+          {tCommon("appName")}
         </CardTitle>
         <CardDescription>
           {activeTab === "login"
-            ? "Welcome back! Sign in to access your library."
-            : "Create an account to get started."}
+            ? t("login.description")
+            : t("signup.description")}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -41,7 +44,7 @@ export function AuthCard({ signupsEnabled }: AuthCardProps) {
               role="tab"
               aria-selected={activeTab === "login"}
             >
-              Sign In
+              {t("tabs.signIn")}
             </Button>
             <Button
               variant={activeTab === "signup" ? "default" : "ghost"}
@@ -50,7 +53,7 @@ export function AuthCard({ signupsEnabled }: AuthCardProps) {
               role="tab"
               aria-selected={activeTab === "signup"}
             >
-              Sign Up
+              {t("tabs.signUp")}
             </Button>
           </nav>
         )}

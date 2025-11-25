@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
@@ -11,6 +12,8 @@ import { authClient } from "../../lib/auth-client";
 
 export function LoginForm() {
   const router = useRouter();
+  const t = useTranslations("auth.login");
+  const tCommon = useTranslations("common");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -26,13 +29,13 @@ export function LoginForm() {
       });
 
       if (result.error) {
-        toast.error("Invalid email or password");
+        toast.error(t("error.invalid"));
         return;
       }
 
       router.push("/libraries");
-    } catch (error) {
-      toast.error("Connection error. Please try again.");
+    } catch {
+      toast.error(tCommon("error.connection"));
     } finally {
       setIsLoading(false);
     }
@@ -41,11 +44,11 @@ export function LoginForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t("emailLabel")}</Label>
         <Input
           id="email"
           type="email"
-          placeholder="you@example.com"
+          placeholder={t("emailPlaceholder")}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -54,11 +57,11 @@ export function LoginForm() {
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t("passwordLabel")}</Label>
         <Input
           id="password"
           type="password"
-          placeholder="••••••••"
+          placeholder={t("passwordPlaceholder")}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -69,10 +72,10 @@ export function LoginForm() {
         {isLoading ? (
           <>
             <LoadingSpinner size="sm" />
-            Signing in...
+            {t("submitting")}
           </>
         ) : (
-          "Sign In"
+          t("submit")
         )}
       </Button>
     </form>
