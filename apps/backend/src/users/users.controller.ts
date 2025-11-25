@@ -1,4 +1,4 @@
-import { Controller, Get, Inject } from '@nestjs/common';
+import { Controller, Get, Patch, Body, Inject } from '@nestjs/common';
 import {
   AllowAnonymous,
   Session,
@@ -7,11 +7,14 @@ import {
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from '../auth/schema';
+import { UsersService } from './users.service';
+import type { UpdateLanguageDto } from './dto/update-language.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(
     @Inject(DATABASE_CONNECTION) private db: NodePgDatabase<typeof schema>,
+    private readonly usersService: UsersService,
   ) {}
 
   @Get('session')
@@ -27,5 +30,22 @@ export class UsersController {
       .from(schema.user)
       .limit(1);
     return { setupCompleted: users.length > 0 };
+  }
+
+  @Patch('me/language')
+  async updateLanguage(
+    @Session() session: UserSession,
+    @Body() dto: UpdateLanguageDto,
+  ): Promise<{ success: boolean }> {
+    await this.usersService.updateLanguage(session.user.id, dto.language);
+    return { success: true };
+  }
+
+  @Get('me/language')
+  async getLanguage(
+    @Session() session: UserSession,
+  ): Promise<{ language: string }> {
+    const language = await this.usersService.getLanguage(session.user.id);
+    return { language };
   }
 }
