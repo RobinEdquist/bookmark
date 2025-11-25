@@ -1,0 +1,9 @@
+{
+  "title": "Dina bibliotek",
+  "welcome": "Välkommen tillbaka, {name}!",
+  "card": {
+    "title": "Bibliotek",
+    "description": "Hantera dina ljudbokssamlingar",
+    "empty": "Dina ljudboksbibliotek kommer att visas här."
+  }
+}

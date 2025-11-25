@@ -1,0 +1,43 @@
+{
+  "title": "Inställningar",
+  "description": "Hantera dina applikationsinställningar",
+  "backToLibraries": "Tillbaka till bibliotek",
+  "tabs": {
+    "libraries": "Bibliotek",
+    "users": "Användare",
+    "authentication": "Autentisering",
+    "appearance": "Utseende"
+  },
+  "libraries": {
+    "title": "Bibliotek",
+    "description": "Hantera dina ljudboksbibliotek",
+    "comingSoon": "Bibliotekshantering kommer snart."
+  },
+  "users": {
+    "title": "Användarhantering",
+    "description": "Hantera användare och deras behörigheter",
+    "comingSoon": "Användarhantering kommer snart."
+  },
+  "authentication": {
+    "title": "Autentisering",
+    "description": "Konfigurera hur användare kan komma åt ditt ljudboksvalv",
+    "signups": {
+      "label": "Tillåt registrering",
+      "description": "När inaktiverad kan endast befintliga användare logga in",
+      "enabled": "Registrering aktiverad",
+      "disabled": "Registrering inaktiverad"
+    },
+    "error": {
+      "loadFailed": "Kunde inte ladda inställningar. Försök igen.",
+      "updateFailed": "Kunde inte uppdatera inställningar"
+    }
+  },
+  "appearance": {
+    "title": "Utseende",
+    "description": "Anpassa hur appen ser ut",
+    "language": {
+      "label": "Språk",
+      "description": "Välj ditt föredragna språk"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "appName": "Simple Audiobook Vault",
+  "loading": "Laddar...",
+  "error": {
+    "generic": "Ett fel uppstod",
+    "connection": "Anslutningsfel. Försök igen.",
+    "notFound": "Hittades inte"
+  },
+  "actions": {
+    "save": "Spara",
+    "cancel": "Avbryt",
+    "delete": "Ta bort",
+    "edit": "Redigera",
+    "back": "Tillbaka"
+  },
+  "nav": {
+    "settings": "Inställningar",
+    "signOut": "Logga ut"
+  }
+}
