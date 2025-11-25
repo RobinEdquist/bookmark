@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
 import { authClient } from "../../lib/auth-client";
 
 export default function LibrariesPage() {
+  const t = useTranslations("library");
+  const tCommon = useTranslations("common");
   const { data: session } = authClient.useSession();
   const user = session?.user as { role?: string } | undefined;
   const isAdmin = user?.role === "admin";
@@ -20,33 +23,33 @@ export default function LibrariesPage() {
       <div className="mx-auto max-w-4xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Your Libraries</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground">
-              Welcome back, {session?.user?.name || session?.user?.email}!
+              {t("welcome", { name: session?.user?.name || session?.user?.email })}
             </p>
           </div>
           <nav className="flex items-center gap-2">
             {isAdmin && (
               <Button variant="outline" asChild>
-                <Link href="/settings">Settings</Link>
+                <Link href="/settings">{tCommon("nav.settings")}</Link>
               </Button>
             )}
             <Button variant="outline" onClick={handleSignOut}>
-              Sign Out
+              {tCommon("nav.signOut")}
             </Button>
           </nav>
         </header>
 
         <Card>
           <CardHeader>
-            <CardTitle>Libraries</CardTitle>
+            <CardTitle>{t("card.title")}</CardTitle>
             <CardDescription>
-              Manage your audiobook collections
+              {t("card.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              Your audiobook libraries will appear here.
+              {t("card.empty")}
             </p>
           </CardContent>
         </Card>
