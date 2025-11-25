@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { ThemeProvider } from "../components/providers/theme-provider";
 import { QueryProvider } from "../components/providers/query-provider";
+import { IntlProvider } from "../components/providers/intl-provider";
 import { Toaster } from "@repo/ui/components/ui/sonner";
 
 const geistSans = localFont({
@@ -19,18 +21,23 @@ export const metadata: Metadata = {
   description: "Your personal audiobook library",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <QueryProvider>
           <ThemeProvider>
-            {children}
-            <Toaster />
+            <IntlProvider locale={locale} messages={messages}>
+              {children}
+              <Toaster />
+            </IntlProvider>
           </ThemeProvider>
         </QueryProvider>
       </body>
