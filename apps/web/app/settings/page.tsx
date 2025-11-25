@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { Button } from "@repo/ui/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -13,6 +14,7 @@ import { authClient } from "../../lib/auth-client";
 
 export default function SettingsPage() {
   const router = useRouter();
+  const t = useTranslations("settings");
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user as { role?: string } | undefined;
   const isAdmin = user?.role === "admin";
@@ -36,21 +38,21 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-2xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground">
-              Manage your application settings
+              {t("description")}
             </p>
           </div>
           <Button variant="outline" asChild>
-            <Link href="/libraries">Back to Libraries</Link>
+            <Link href="/libraries">{t("backToLibraries")}</Link>
           </Button>
         </header>
 
         <Tabs defaultValue="libraries">
           <TabsList>
-            <TabsTrigger value="libraries">Libraries</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="authentication">Authentication</TabsTrigger>
+            <TabsTrigger value="libraries">{t("tabs.libraries")}</TabsTrigger>
+            <TabsTrigger value="users">{t("tabs.users")}</TabsTrigger>
+            <TabsTrigger value="authentication">{t("tabs.authentication")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="libraries">

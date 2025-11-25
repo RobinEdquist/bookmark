@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   Card,
@@ -14,15 +15,16 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { useSettings } from "../../lib/use-settings";
 
 export function AuthenticationSettings() {
+  const t = useTranslations("settings.authentication");
   const { settings, isLoading, error, updateSettings, isUpdating } = useSettings();
 
   const handleSignupsToggle = async (enabled: boolean) => {
     try {
       await updateSettings({ signupsEnabled: enabled });
-      toast.success(enabled ? "Sign-ups enabled" : "Sign-ups disabled");
+      toast.success(enabled ? t("signups.enabled") : t("signups.disabled"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to update settings"
+        err instanceof Error ? err.message : t("error.updateFailed")
       );
     }
   };
@@ -42,7 +44,7 @@ export function AuthenticationSettings() {
       <Card className="border-destructive">
         <CardContent className="p-6">
           <p className="text-destructive">
-            Failed to load settings. Please try again.
+            {t("error.loadFailed")}
           </p>
         </CardContent>
       </Card>
@@ -52,19 +54,19 @@ export function AuthenticationSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Authentication</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <CardDescription>
-          Configure how users can access your audiobook vault
+          {t("description")}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <fieldset className="flex items-center justify-between rounded-lg border p-4">
           <div className="space-y-0.5">
             <Label htmlFor="signups-enabled" className="text-base font-medium">
-              Allow Sign-ups
+              {t("signups.label")}
             </Label>
             <p className="text-sm text-muted-foreground">
-              When disabled, only existing users can sign in
+              {t("signups.description")}
             </p>
           </div>
           <Switch

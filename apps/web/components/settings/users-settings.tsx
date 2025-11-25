@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Card,
   CardContent,
@@ -9,15 +10,17 @@ import {
 } from "@repo/ui/components/ui/card";
 
 export function UsersSettings() {
+  const t = useTranslations("settings.users");
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>User Management</CardTitle>
-        <CardDescription>Manage users and their permissions</CardDescription>
+        <CardTitle>{t("title")}</CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          User management features coming soon.
+          {t("comingSoon")}
         </p>
       </CardContent>
     </Card>

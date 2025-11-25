@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import {
   Card,
   CardContent,
@@ -9,15 +10,17 @@ import {
 } from "@repo/ui/components/ui/card";
 
 export function LibrariesSettings() {
+  const t = useTranslations("settings.libraries");
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Libraries</CardTitle>
-        <CardDescription>Manage your audiobook libraries</CardDescription>
+        <CardTitle>{t("title")}</CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground">
-          Library management features coming soon.
+          {t("comingSoon")}
         </p>
       </CardContent>
     </Card>
