@@ -10,10 +10,11 @@ import { createAuthMiddleware } from 'better-auth/api';
 import { DATABASE_CONNECTION } from './database/database-connection.constants';
 import { UsersModule } from './users/users.module';
 import { AppSettingsModule } from './app-settings/app-settings.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { count } from 'drizzle-orm';
 import { user } from './auth/schema';
 import { SignupGuard } from './auth/signup.guard';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
 @Module({
   imports: [
@@ -64,6 +65,10 @@ import { SignupGuard } from './auth/signup.guard';
     {
       provide: APP_GUARD,
       useClass: SignupGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
 })
