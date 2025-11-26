@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { LibrariesSettings } from "../../components/settings/libraries-settings";
 import { UsersSettings } from "../../components/settings/users-settings";
-import { AuthenticationSettings } from "../../components/settings/authentication-settings";
 import { AppearanceSettings } from "../../components/settings/appearance-settings";
 import { authClient } from "../../lib/auth-client";
 
@@ -36,7 +35,7 @@ export default function SettingsPage() {
 
   return (
     <main className="min-h-screen p-8">
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
@@ -53,7 +52,6 @@ export default function SettingsPage() {
           <TabsList>
             <TabsTrigger value="libraries">{t("tabs.libraries")}</TabsTrigger>
             <TabsTrigger value="users">{t("tabs.users")}</TabsTrigger>
-            <TabsTrigger value="authentication">{t("tabs.authentication")}</TabsTrigger>
             <TabsTrigger value="appearance">{t("tabs.appearance")}</TabsTrigger>
           </TabsList>
 
@@ -63,10 +61,6 @@ export default function SettingsPage() {
 
           <TabsContent value="users">
             <UsersSettings />
-          </TabsContent>
-
-          <TabsContent value="authentication">
-            <AuthenticationSettings />
           </TabsContent>
 
           <TabsContent value="appearance">

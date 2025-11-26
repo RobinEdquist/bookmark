@@ -20,6 +20,7 @@ import { CreateUserDialog } from "./create-user-dialog";
 import { EditUserDialog } from "./edit-user-dialog";
 import { BanUserDialog } from "./ban-user-dialog";
 import { DeleteUserDialog } from "./delete-user-dialog";
+import { AuthenticationSettings } from "./authentication-settings";
 
 export function UsersSettings() {
   const t = useTranslations("settings.users");
@@ -79,7 +80,9 @@ export function UsersSettings() {
   }
 
   return (
-    <>
+    <div className="space-y-6">
+      <AuthenticationSettings />
+
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -132,6 +135,6 @@ export function UsersSettings() {
         open={deleteDialogOpen}
         onOpenChange={setDeleteDialogOpen}
       />
-    </>
+    </div>
   );
 }
