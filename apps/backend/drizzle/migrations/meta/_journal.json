@@ -36,6 +36,13 @@
       "when": 1764190616105,
       "tag": "0004_magenta_slipstream",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1764198861883,
+      "tag": "0005_sleepy_maximus",
+      "breakpoints": true
     }
   ]
 }
