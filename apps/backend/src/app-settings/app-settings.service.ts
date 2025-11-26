@@ -30,7 +30,7 @@ export class AppSettingsService {
     return settings[0];
   }
 
-  async updateSettings(updates: { signupsEnabled?: boolean }) {
+  async updateSettings(updates: { signupsEnabled?: boolean; libraryPath?: string }) {
     const [updated] = await this.db
       .update(schema.appSettings)
       .set(updates)
@@ -52,5 +52,10 @@ export class AppSettingsService {
   async isSignupEnabled(): Promise<boolean> {
     const settings = await this.getSettings();
     return settings.signupsEnabled;
+  }
+
+  async getLibraryPath(): Promise<string | null> {
+    const settings = await this.getSettings();
+    return settings.libraryPath;
   }
 }
