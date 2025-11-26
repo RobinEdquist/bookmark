@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 
 export interface UserPermissions {
   canEditMetadata: boolean;
@@ -130,6 +130,7 @@ export function useUsers(search?: string) {
   return useQuery({
     queryKey: ["users", search],
     queryFn: () => fetchUsers(search),
+    placeholderData: keepPreviousData,
   });
 }
 

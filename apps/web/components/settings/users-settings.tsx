@@ -32,8 +32,11 @@ export function UsersSettings() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const { data: session } = authClient.useSession();
-  const { data, isLoading, error } = useUsers(search || undefined);
+  const { data, isLoading, isFetching, error } = useUsers(search || undefined);
   const unbanUser = useUnbanUser();
+
+  // Only show full loading state on initial load, not during search
+  const isInitialLoading = isLoading && !data;
 
   const handleEdit = (user: User) => {
     setSelectedUser(user);
@@ -59,7 +62,7 @@ export function UsersSettings() {
     setDeleteDialogOpen(true);
   };
 
-  if (isLoading) {
+  if (isInitialLoading) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-8">
@@ -96,12 +99,18 @@ export function UsersSettings() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Input
-            placeholder={t("searchPlaceholder")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
-          />
+          <div className="relative max-w-sm">
+            <Input
+              placeholder={t("searchPlaceholder")}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {isFetching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <LoadingSpinner size="sm" className="text-muted-foreground" />
+              </div>
+            )}
+          </div>
           <UserTable
             users={data?.users ?? []}
             onEdit={handleEdit}
