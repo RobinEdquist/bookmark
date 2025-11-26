@@ -20,7 +20,7 @@ export default function LibrariesPage() {
 
   return (
     <main className="min-h-screen p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
