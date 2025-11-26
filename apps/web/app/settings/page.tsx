@@ -10,6 +10,7 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { LibrariesSettings } from "../../components/settings/libraries-settings";
 import { UsersSettings } from "../../components/settings/users-settings";
 import { AuthenticationSettings } from "../../components/settings/authentication-settings";
+import { AppearanceSettings } from "../../components/settings/appearance-settings";
 import { authClient } from "../../lib/auth-client";
 
 export default function SettingsPage() {
@@ -53,6 +54,7 @@ export default function SettingsPage() {
             <TabsTrigger value="libraries">{t("tabs.libraries")}</TabsTrigger>
             <TabsTrigger value="users">{t("tabs.users")}</TabsTrigger>
             <TabsTrigger value="authentication">{t("tabs.authentication")}</TabsTrigger>
+            <TabsTrigger value="appearance">{t("tabs.appearance")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="libraries">
@@ -65,6 +67,10 @@ export default function SettingsPage() {
 
           <TabsContent value="authentication">
             <AuthenticationSettings />
+          </TabsContent>
+
+          <TabsContent value="appearance">
+            <AppearanceSettings />
           </TabsContent>
         </Tabs>
       </div>
