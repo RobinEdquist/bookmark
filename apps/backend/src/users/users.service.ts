@@ -1,7 +1,7 @@
 import { Injectable, Inject, NotFoundException, ForbiddenException, ConflictException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, ilike, or } from 'drizzle-orm';
-import * as bcrypt from 'bcrypt';
+import { hashPassword } from 'better-auth/crypto';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as authSchema from '../auth/schema';
 import * as userSchema from './schema';
@@ -69,8 +69,8 @@ export class UsersService {
       throw new ConflictException('Email already exists');
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    // Hash password using better-auth's hashing function
+    const passwordHash = await hashPassword(dto.password);
 
     // Generate user ID
     const userId = crypto.randomUUID();
