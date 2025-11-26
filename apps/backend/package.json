@@ -27,6 +27,8 @@
     "@thallesp/nestjs-better-auth": "^2.1.0",
     "@types/pg": "^8.15.6",
     "better-auth": "^1.4.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
     "drizzle-kit": "^0.31.7",
     "drizzle-orm": "^0.44.7",
     "pg": "^8.16.3",
