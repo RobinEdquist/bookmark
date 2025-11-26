@@ -1,0 +1,93 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+import { motion } from "motion/react";
+import { AudiobookCard } from "./audiobook-card";
+import type { AudiobookListItem } from "../../lib/use-audiobooks";
+
+interface AudiobookGridProps {
+  audiobooks: AudiobookListItem[];
+  isLoading?: boolean;
+  error?: Error | null;
+}
+
+function AudiobookSkeleton() {
+  return (
+    <div className="flex flex-col">
+      <div className="aspect-square animate-pulse rounded-xl bg-muted" />
+      <div className="mt-3 space-y-2">
+        <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+        <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+      </div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  const t = useTranslations("audiobooks.empty");
+
+  return (
+    <motion.div
+      className="flex flex-col items-center justify-center py-16 text-center"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <motion.div
+        className="mb-4 text-6xl"
+        animate={{ y: [0, -5, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+      >
+        📚
+      </motion.div>
+      <h3 className="text-lg font-medium">{t("title")}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
+    </motion.div>
+  );
+}
+
+export function AudiobookGrid({ audiobooks, isLoading, error }: AudiobookGridProps) {
+  const t = useTranslations("audiobooks");
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <p className="text-destructive">{t("error")}</p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-6">
+        {Array.from({ length: 12 }).map((_, i) => (
+          <AudiobookSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
+  if (audiobooks.length === 0) {
+    return <EmptyState />;
+  }
+
+  return (
+    <motion.div
+      className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-6"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: 0.05,
+          },
+        },
+      }}
+    >
+      {audiobooks.map((audiobook) => (
+        <AudiobookCard key={audiobook.id} audiobook={audiobook} />
+      ))}
+    </motion.div>
+  );
+}
