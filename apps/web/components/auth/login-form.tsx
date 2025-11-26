@@ -33,6 +33,17 @@ export function LoginForm() {
         return;
       }
 
+      // Sync language from server to cookie
+      try {
+        const langRes = await fetch("/api/users/me/language", { credentials: "include" });
+        if (langRes.ok) {
+          const { language } = await langRes.json();
+          document.cookie = `locale=${language}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`;
+        }
+      } catch {
+        // Ignore - not critical
+      }
+
       router.push("/libraries");
     } catch {
       toast.error(tCommon("error.connection"));
