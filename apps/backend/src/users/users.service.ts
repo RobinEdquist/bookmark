@@ -119,7 +119,7 @@ export class UsersService {
     if (!isAdmin && dto.blacklistedTags && dto.blacklistedTags.length > 0) {
       await this.db
         .insert(userSchema.userBlacklistedTags)
-        .values(dto.blacklistedTags.map((tag) => ({ userId, tag })));
+        .values(dto.blacklistedTags.map((tagId) => ({ userId, tagId })));
     }
 
     return this.findById(userId);
@@ -218,7 +218,7 @@ export class UsersService {
         if (dto.blacklistedTags.length > 0) {
           await this.db
             .insert(userSchema.userBlacklistedTags)
-            .values(dto.blacklistedTags.map((tag) => ({ userId, tag })));
+            .values(dto.blacklistedTags.map((tagId) => ({ userId, tagId })));
         }
       }
     }
@@ -317,11 +317,11 @@ export class UsersService {
 
   async getBlacklistedTags(userId: string): Promise<string[]> {
     const tags = await this.db
-      .select({ tag: userSchema.userBlacklistedTags.tag })
+      .select({ tagId: userSchema.userBlacklistedTags.tagId })
       .from(userSchema.userBlacklistedTags)
       .where(eq(userSchema.userBlacklistedTags.userId, userId));
 
-    return tags.map((t) => t.tag);
+    return tags.map((t) => t.tagId);
   }
 
   private async toUserResponse(
