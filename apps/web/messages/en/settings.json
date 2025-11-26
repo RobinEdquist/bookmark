@@ -16,7 +16,87 @@
   "users": {
     "title": "User Management",
     "description": "Manage users and their permissions",
-    "comingSoon": "User management features coming soon."
+    "searchPlaceholder": "Search users...",
+    "createUser": "Create User",
+    "noUsers": "No users found",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "banned": "Banned"
+    },
+    "role": {
+      "admin": "Admin",
+      "user": "User"
+    },
+    "actions": {
+      "edit": "Edit",
+      "ban": "Ban",
+      "unban": "Unban",
+      "delete": "Delete",
+      "cancel": "Cancel"
+    },
+    "createDialog": {
+      "title": "Create User",
+      "description": "Add a new user to the system",
+      "name": "Name",
+      "namePlaceholder": "John Doe",
+      "email": "Email",
+      "emailPlaceholder": "john@example.com",
+      "password": "Temporary Password",
+      "passwordPlaceholder": "Enter password",
+      "passwordHint": "User will use this to log in initially",
+      "makeAdmin": "Make Admin",
+      "permissions": "Permissions",
+      "canEditMetadata": "Can edit audiobook metadata",
+      "canUploadAudiobooks": "Can upload audiobooks",
+      "canDeleteAudiobooks": "Can delete audiobooks",
+      "canGenerateApiKeys": "Can generate API keys",
+      "blacklistedTags": "Blacklisted Tags",
+      "blacklistedTagsPlaceholder": "Enter tags separated by commas",
+      "create": "Create User",
+      "creating": "Creating..."
+    },
+    "editDialog": {
+      "title": "Edit User",
+      "description": "Update user details and permissions",
+      "save": "Save Changes",
+      "saving": "Saving..."
+    },
+    "banDialog": {
+      "title": "Ban User",
+      "description": "This will prevent the user from logging in",
+      "reason": "Reason (optional)",
+      "reasonPlaceholder": "Violation of terms...",
+      "expires": "Expires (optional)",
+      "permanent": "Permanent",
+      "confirm": "Ban User",
+      "banning": "Banning..."
+    },
+    "deleteDialog": {
+      "title": "Delete User",
+      "description": "Are you sure you want to delete this user? This action cannot be undone.",
+      "confirm": "Delete User",
+      "deleting": "Deleting..."
+    },
+    "toast": {
+      "createSuccess": "User created successfully",
+      "createError": "Failed to create user",
+      "updateSuccess": "User updated successfully",
+      "updateError": "Failed to update user",
+      "banSuccess": "User banned successfully",
+      "banError": "Failed to ban user",
+      "unbanSuccess": "User unbanned successfully",
+      "unbanError": "Failed to unban user",
+      "deleteSuccess": "User deleted successfully",
+      "deleteError": "Failed to delete user"
+    }
   },
   "authentication": {
     "title": "Authentication",

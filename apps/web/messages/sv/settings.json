@@ -16,7 +16,87 @@
   "users": {
     "title": "Användarhantering",
     "description": "Hantera användare och deras behörigheter",
-    "comingSoon": "Användarhantering kommer snart."
+    "searchPlaceholder": "Sök användare...",
+    "createUser": "Skapa användare",
+    "noUsers": "Inga användare hittades",
+    "table": {
+      "name": "Namn",
+      "email": "E-post",
+      "role": "Roll",
+      "status": "Status",
+      "created": "Skapad",
+      "actions": "Åtgärder"
+    },
+    "status": {
+      "active": "Aktiv",
+      "banned": "Avstängd"
+    },
+    "role": {
+      "admin": "Admin",
+      "user": "Användare"
+    },
+    "actions": {
+      "edit": "Redigera",
+      "ban": "Stäng av",
+      "unban": "Aktivera",
+      "delete": "Ta bort",
+      "cancel": "Avbryt"
+    },
+    "createDialog": {
+      "title": "Skapa användare",
+      "description": "Lägg till en ny användare i systemet",
+      "name": "Namn",
+      "namePlaceholder": "Anna Andersson",
+      "email": "E-post",
+      "emailPlaceholder": "anna@exempel.se",
+      "password": "Tillfälligt lösenord",
+      "passwordPlaceholder": "Ange lösenord",
+      "passwordHint": "Användaren loggar in med detta initialt",
+      "makeAdmin": "Gör till admin",
+      "permissions": "Behörigheter",
+      "canEditMetadata": "Kan redigera ljudboksmetadata",
+      "canUploadAudiobooks": "Kan ladda upp ljudböcker",
+      "canDeleteAudiobooks": "Kan ta bort ljudböcker",
+      "canGenerateApiKeys": "Kan generera API-nycklar",
+      "blacklistedTags": "Blockerade taggar",
+      "blacklistedTagsPlaceholder": "Ange taggar separerade med komma",
+      "create": "Skapa användare",
+      "creating": "Skapar..."
+    },
+    "editDialog": {
+      "title": "Redigera användare",
+      "description": "Uppdatera användaruppgifter och behörigheter",
+      "save": "Spara ändringar",
+      "saving": "Sparar..."
+    },
+    "banDialog": {
+      "title": "Stäng av användare",
+      "description": "Detta förhindrar användaren från att logga in",
+      "reason": "Anledning (valfritt)",
+      "reasonPlaceholder": "Brott mot villkor...",
+      "expires": "Upphör (valfritt)",
+      "permanent": "Permanent",
+      "confirm": "Stäng av användare",
+      "banning": "Stänger av..."
+    },
+    "deleteDialog": {
+      "title": "Ta bort användare",
+      "description": "Är du säker på att du vill ta bort denna användare? Detta kan inte ångras.",
+      "confirm": "Ta bort användare",
+      "deleting": "Tar bort..."
+    },
+    "toast": {
+      "createSuccess": "Användare skapad",
+      "createError": "Kunde inte skapa användare",
+      "updateSuccess": "Användare uppdaterad",
+      "updateError": "Kunde inte uppdatera användare",
+      "banSuccess": "Användare avstängd",
+      "banError": "Kunde inte stänga av användare",
+      "unbanSuccess": "Användare aktiverad",
+      "unbanError": "Kunde inte aktivera användare",
+      "deleteSuccess": "Användare borttagen",
+      "deleteError": "Kunde inte ta bort användare"
+    }
   },
   "authentication": {
     "title": "Autentisering",

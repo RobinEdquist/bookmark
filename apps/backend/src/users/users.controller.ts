@@ -1,14 +1,27 @@
-import { Controller, Get, Patch, Body, Inject } from '@nestjs/common';
 import {
-  AllowAnonymous,
-  Session,
-  type UserSession,
-} from '@thallesp/nestjs-better-auth';
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+  Inject,
+} from '@nestjs/common';
+import { AllowAnonymous, Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from '../auth/schema';
 import { UsersService } from './users.service';
+import { AdminGuard } from '../common/guards/admin.guard';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto, BanUserDto } from './dto/update-user.dto';
 import type { UpdateLanguageDto } from './dto/update-language.dto';
+import type { UserResponse, UserListResponse } from './dto/user-response.dto';
 
 @Controller('users')
 export class UsersController {
@@ -16,6 +29,64 @@ export class UsersController {
     @Inject(DATABASE_CONNECTION) private db: NodePgDatabase<typeof schema>,
     private readonly usersService: UsersService,
   ) {}
+
+  // ===== Admin Endpoints =====
+
+  @Get()
+  @UseGuards(AdminGuard)
+  async findAll(@Query('search') search?: string): Promise<UserListResponse> {
+    return this.usersService.findAll(search);
+  }
+
+  @Get(':id')
+  @UseGuards(AdminGuard)
+  async findOne(@Param('id') id: string): Promise<UserResponse> {
+    return this.usersService.findById(id);
+  }
+
+  @Post()
+  @UseGuards(AdminGuard)
+  async create(@Body() dto: CreateUserDto): Promise<UserResponse> {
+    return this.usersService.create(dto);
+  }
+
+  @Patch(':id')
+  @UseGuards(AdminGuard)
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @Session() session: UserSession,
+  ): Promise<UserResponse> {
+    return this.usersService.update(id, dto, session.user.id);
+  }
+
+  @Post(':id/ban')
+  @UseGuards(AdminGuard)
+  async ban(
+    @Param('id') id: string,
+    @Body() dto: BanUserDto,
+    @Session() session: UserSession,
+  ): Promise<UserResponse> {
+    return this.usersService.ban(id, dto, session.user.id);
+  }
+
+  @Post(':id/unban')
+  @UseGuards(AdminGuard)
+  async unban(@Param('id') id: string): Promise<UserResponse> {
+    return this.usersService.unban(id);
+  }
+
+  @Delete(':id')
+  @UseGuards(AdminGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async delete(
+    @Param('id') id: string,
+    @Session() session: UserSession,
+  ): Promise<void> {
+    return this.usersService.delete(id, session.user.id);
+  }
+
+  // ===== Public/Self Endpoints =====
 
   @Get('session')
   getSession(@Session() session: UserSession) {
@@ -42,10 +113,13 @@ export class UsersController {
   }
 
   @Get('me/language')
-  async getLanguage(
-    @Session() session: UserSession,
-  ): Promise<{ language: string }> {
+  async getLanguage(@Session() session: UserSession): Promise<{ language: string }> {
     const language = await this.usersService.getLanguage(session.user.id);
     return { language };
+  }
+
+  @Get('me/permissions')
+  async getMyPermissions(@Session() session: UserSession) {
+    return this.usersService.getPermissions(session.user.id);
   }
 }
