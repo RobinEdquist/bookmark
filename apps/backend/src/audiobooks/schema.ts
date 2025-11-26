@@ -232,3 +232,100 @@ export const audiobookTags = pgTable(
     index('audiobook_tags_tag_id_idx').on(table.tagId),
   ],
 );
+
+// Relations
+export const audiobooksRelations = relations(audiobooks, ({ many }) => ({
+  files: many(audiobookFiles),
+  chapters: many(chapters),
+  authors: many(audiobookAuthors),
+  narrators: many(audiobookNarrators),
+  series: many(audiobookSeries),
+  genres: many(audiobookGenres),
+  tags: many(audiobookTags),
+}));
+
+export const audiobookFilesRelations = relations(audiobookFiles, ({ one }) => ({
+  audiobook: one(audiobooks, {
+    fields: [audiobookFiles.audiobookId],
+    references: [audiobooks.id],
+  }),
+}));
+
+export const chaptersRelations = relations(chapters, ({ one }) => ({
+  audiobook: one(audiobooks, {
+    fields: [chapters.audiobookId],
+    references: [audiobooks.id],
+  }),
+}));
+
+export const peopleRelations = relations(people, ({ many }) => ({
+  authorOf: many(audiobookAuthors),
+  narratorOf: many(audiobookNarrators),
+}));
+
+export const audiobookAuthorsRelations = relations(audiobookAuthors, ({ one }) => ({
+  audiobook: one(audiobooks, {
+    fields: [audiobookAuthors.audiobookId],
+    references: [audiobooks.id],
+  }),
+  person: one(people, {
+    fields: [audiobookAuthors.personId],
+    references: [people.id],
+  }),
+}));
+
+export const audiobookNarratorsRelations = relations(audiobookNarrators, ({ one }) => ({
+  audiobook: one(audiobooks, {
+    fields: [audiobookNarrators.audiobookId],
+    references: [audiobooks.id],
+  }),
+  person: one(people, {
+    fields: [audiobookNarrators.personId],
+    references: [people.id],
+  }),
+}));
+
+export const seriesRelations = relations(series, ({ many }) => ({
+  audiobooks: many(audiobookSeries),
+}));
+
+export const audiobookSeriesRelations = relations(audiobookSeries, ({ one }) => ({
+  audiobook: one(audiobooks, {
+    fields: [audiobookSeries.audiobookId],
+    references: [audiobooks.id],
+  }),
+  series: one(series, {
+    fields: [audiobookSeries.seriesId],
+    references: [series.id],
+  }),
+}));
+
+export const genresRelations = relations(genres, ({ many }) => ({
+  audiobooks: many(audiobookGenres),
+}));
+
+export const audiobookGenresRelations = relations(audiobookGenres, ({ one }) => ({
+  audiobook: one(audiobooks, {
+    fields: [audiobookGenres.audiobookId],
+    references: [audiobooks.id],
+  }),
+  genre: one(genres, {
+    fields: [audiobookGenres.genreId],
+    references: [genres.id],
+  }),
+}));
+
+export const tagsRelations = relations(tags, ({ many }) => ({
+  audiobooks: many(audiobookTags),
+}));
+
+export const audiobookTagsRelations = relations(audiobookTags, ({ one }) => ({
+  audiobook: one(audiobooks, {
+    fields: [audiobookTags.audiobookId],
+    references: [audiobooks.id],
+  }),
+  tag: one(tags, {
+    fields: [audiobookTags.tagId],
+    references: [tags.id],
+  }),
+}));
