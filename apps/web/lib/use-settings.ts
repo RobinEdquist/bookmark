@@ -5,12 +5,14 @@ import { queryKeys } from "./query-keys";
 
 export interface Settings {
   signupsEnabled: boolean;
+  libraryPath: string | null;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface UpdateSettingsDto {
   signupsEnabled?: boolean;
+  libraryPath?: string;
 }
 
 async function fetchSettings(): Promise<Settings> {
