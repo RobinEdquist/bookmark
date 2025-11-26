@@ -24,4 +24,8 @@ export const queryKeys = {
     byLibrary: (libraryId: string) =>
       [...queryKeys.audiobooks.all, "library", libraryId] as const,
   },
+  filesystem: {
+    all: ["filesystem"] as const,
+    browse: (path: string) => [...queryKeys.filesystem.all, "browse", path] as const,
+  },
 } as const;
