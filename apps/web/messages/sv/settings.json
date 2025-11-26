@@ -11,7 +11,31 @@
   "libraries": {
     "title": "Bibliotek",
     "description": "Hantera dina ljudboksbibliotek",
-    "comingSoon": "Bibliotekshantering kommer snart."
+    "comingSoon": "Bibliotekshantering kommer snart.",
+    "libraryPath": {
+      "label": "Bibliotekssökväg",
+      "description": "Mappen där dina ljudböcker finns",
+      "notConfigured": "Ej konfigurerad",
+      "browse": "Bläddra",
+      "toast": {
+        "updateSuccess": "Bibliotekssökväg uppdaterad",
+        "updateError": "Kunde inte uppdatera bibliotekssökväg"
+      }
+    },
+    "folderPicker": {
+      "title": "Välj biblioteksmapp",
+      "description": "Välj mappen där dina ljudböcker finns",
+      "emptyFolder": "Mappen är tom",
+      "createFolder": "Skapa mapp",
+      "createFolderPlaceholder": "Nytt mappnamn",
+      "creating": "Skapar...",
+      "cancel": "Avbryt",
+      "select": "Välj denna mapp",
+      "error": {
+        "browse": "Kunde inte bläddra i mappen",
+        "create": "Kunde inte skapa mapp"
+      }
+    }
   },
   "users": {
     "title": "Användarhantering",

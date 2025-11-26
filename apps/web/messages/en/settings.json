@@ -11,7 +11,31 @@
   "libraries": {
     "title": "Libraries",
     "description": "Manage your audiobook libraries",
-    "comingSoon": "Library management features coming soon."
+    "comingSoon": "Library management features coming soon.",
+    "libraryPath": {
+      "label": "Library Path",
+      "description": "The folder where your audiobooks are stored",
+      "notConfigured": "Not configured",
+      "browse": "Browse",
+      "toast": {
+        "updateSuccess": "Library path updated",
+        "updateError": "Failed to update library path"
+      }
+    },
+    "folderPicker": {
+      "title": "Select Library Folder",
+      "description": "Choose the folder where your audiobooks are stored",
+      "emptyFolder": "This folder is empty",
+      "createFolder": "Create Folder",
+      "createFolderPlaceholder": "New folder name",
+      "creating": "Creating...",
+      "cancel": "Cancel",
+      "select": "Select This Folder",
+      "error": {
+        "browse": "Failed to browse directory",
+        "create": "Failed to create folder"
+      }
+    }
   },
   "users": {
     "title": "User Management",
