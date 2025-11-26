@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
@@ -15,7 +15,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/ui/dialog";
+import { MultiSelect } from "@repo/ui/components/ui/multi-select";
 import { useCreateUser } from "../../lib/use-users";
+import { useTags } from "../../lib/use-tags";
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -25,6 +27,7 @@ interface CreateUserDialogProps {
 export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
   const t = useTranslations("settings.users");
   const createUser = useCreateUser();
+  const { data: availableTags = [] } = useTags();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -34,7 +37,18 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
   const [canUploadAudiobooks, setCanUploadAudiobooks] = useState(false);
   const [canDeleteAudiobooks, setCanDeleteAudiobooks] = useState(false);
   const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
-  const [blacklistedTags, setBlacklistedTags] = useState("");
+  const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
+
+  // Admins have all permissions and no blacklisted tags
+  useEffect(() => {
+    if (isAdmin) {
+      setCanEditMetadata(true);
+      setCanUploadAudiobooks(true);
+      setCanDeleteAudiobooks(true);
+      setCanGenerateApiKeys(true);
+      setBlacklistedTags([]);
+    }
+  }, [isAdmin]);
 
   const resetForm = () => {
     setName("");
@@ -45,7 +59,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
     setCanUploadAudiobooks(false);
     setCanDeleteAudiobooks(false);
     setCanGenerateApiKeys(false);
-    setBlacklistedTags("");
+    setBlacklistedTags([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -61,10 +75,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
         canUploadAudiobooks,
         canDeleteAudiobooks,
         canGenerateApiKeys,
-        blacklistedTags: blacklistedTags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean),
+        blacklistedTags,
       });
       toast.success(t("toast.createSuccess"));
       resetForm();
@@ -124,12 +135,20 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
           </div>
 
           <div className="flex items-center justify-between rounded-lg border p-3">
-            <Label htmlFor="isAdmin">{t("createDialog.makeAdmin")}</Label>
-            <Switch
-              id="isAdmin"
-              checked={isAdmin}
-              onCheckedChange={setIsAdmin}
-            />
+            <Label htmlFor="isAdmin">{t("createDialog.role")}</Label>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm ${!isAdmin ? "font-medium" : "text-muted-foreground"}`}>
+                {t("createDialog.roleUser")}
+              </span>
+              <Switch
+                id="isAdmin"
+                checked={isAdmin}
+                onCheckedChange={setIsAdmin}
+              />
+              <span className={`text-sm ${isAdmin ? "font-medium" : "text-muted-foreground"}`}>
+                {t("createDialog.roleAdmin")}
+              </span>
+            </div>
           </div>
 
           <div className="space-y-3">
@@ -143,6 +162,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   id="canEditMetadata"
                   checked={canEditMetadata}
                   onCheckedChange={setCanEditMetadata}
+                  disabled={isAdmin}
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
@@ -153,6 +173,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   id="canUploadAudiobooks"
                   checked={canUploadAudiobooks}
                   onCheckedChange={setCanUploadAudiobooks}
+                  disabled={isAdmin}
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
@@ -163,6 +184,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   id="canDeleteAudiobooks"
                   checked={canDeleteAudiobooks}
                   onCheckedChange={setCanDeleteAudiobooks}
+                  disabled={isAdmin}
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
@@ -173,22 +195,25 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   id="canGenerateApiKeys"
                   checked={canGenerateApiKeys}
                   onCheckedChange={setCanGenerateApiKeys}
+                  disabled={isAdmin}
                 />
               </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="blacklistedTags">
-              {t("createDialog.blacklistedTags")}
-            </Label>
-            <Input
-              id="blacklistedTags"
-              value={blacklistedTags}
-              onChange={(e) => setBlacklistedTags(e.target.value)}
-              placeholder={t("createDialog.blacklistedTagsPlaceholder")}
-            />
-          </div>
+          {!isAdmin && (
+            <div className="space-y-2">
+              <Label>{t("createDialog.blacklistedTags")}</Label>
+              <MultiSelect
+                options={availableTags}
+                selected={blacklistedTags}
+                onChange={setBlacklistedTags}
+                placeholder={t("createDialog.blacklistedTagsPlaceholder")}
+                searchPlaceholder={t("createDialog.searchTags")}
+                emptyText={t("createDialog.noTagsAvailable")}
+              />
+            </div>
+          )}
 
           <DialogFooter>
             <Button

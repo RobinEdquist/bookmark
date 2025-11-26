@@ -93,17 +93,18 @@ export class UsersService {
       password: passwordHash,
     });
 
-    // Create permissions
+    // Create permissions (admins have all permissions)
+    const isAdmin = dto.isAdmin ?? false;
     await this.db.insert(userSchema.userPermissions).values({
       userId,
-      canEditMetadata: dto.canEditMetadata ?? false,
-      canUploadAudiobooks: dto.canUploadAudiobooks ?? false,
-      canDeleteAudiobooks: dto.canDeleteAudiobooks ?? false,
-      canGenerateApiKeys: dto.canGenerateApiKeys ?? false,
+      canEditMetadata: isAdmin ? true : (dto.canEditMetadata ?? false),
+      canUploadAudiobooks: isAdmin ? true : (dto.canUploadAudiobooks ?? false),
+      canDeleteAudiobooks: isAdmin ? true : (dto.canDeleteAudiobooks ?? false),
+      canGenerateApiKeys: isAdmin ? true : (dto.canGenerateApiKeys ?? false),
     });
 
-    // Create blacklisted tags
-    if (dto.blacklistedTags && dto.blacklistedTags.length > 0) {
+    // Create blacklisted tags (admins have no blacklisted tags)
+    if (!isAdmin && dto.blacklistedTags && dto.blacklistedTags.length > 0) {
       await this.db.insert(userSchema.userBlacklistedTags).values(
         dto.blacklistedTags.map((tag) => ({ userId, tag })),
       );
@@ -120,6 +121,9 @@ export class UsersService {
       throw new ForbiddenException('Cannot remove your own admin role');
     }
 
+    // Determine if user will be admin after update
+    const willBeAdmin = dto.isAdmin !== undefined ? dto.isAdmin : user.role === 'admin';
+
     // Update user fields
     const userUpdates: Partial<typeof authSchema.user.$inferInsert> = {};
     if (dto.name !== undefined) userUpdates.name = dto.name;
@@ -134,33 +138,61 @@ export class UsersService {
         .where(eq(authSchema.user.id, userId));
     }
 
-    // Update permissions
-    const permUpdates: Partial<typeof userSchema.userPermissions.$inferInsert> = {};
-    if (dto.canEditMetadata !== undefined) permUpdates.canEditMetadata = dto.canEditMetadata;
-    if (dto.canUploadAudiobooks !== undefined) permUpdates.canUploadAudiobooks = dto.canUploadAudiobooks;
-    if (dto.canDeleteAudiobooks !== undefined) permUpdates.canDeleteAudiobooks = dto.canDeleteAudiobooks;
-    if (dto.canGenerateApiKeys !== undefined) permUpdates.canGenerateApiKeys = dto.canGenerateApiKeys;
-
-    if (Object.keys(permUpdates).length > 0) {
+    // Update permissions (admins have all permissions)
+    if (willBeAdmin) {
+      // Force all permissions to true for admins
       await this.db
         .insert(userSchema.userPermissions)
-        .values({ userId, ...permUpdates })
+        .values({
+          userId,
+          canEditMetadata: true,
+          canUploadAudiobooks: true,
+          canDeleteAudiobooks: true,
+          canGenerateApiKeys: true,
+        })
         .onConflictDoUpdate({
           target: userSchema.userPermissions.userId,
-          set: permUpdates,
+          set: {
+            canEditMetadata: true,
+            canUploadAudiobooks: true,
+            canDeleteAudiobooks: true,
+            canGenerateApiKeys: true,
+          },
         });
-    }
 
-    // Update blacklisted tags
-    if (dto.blacklistedTags !== undefined) {
+      // Clear blacklisted tags for admins
       await this.db
         .delete(userSchema.userBlacklistedTags)
         .where(eq(userSchema.userBlacklistedTags.userId, userId));
+    } else {
+      // Update permissions for non-admin users
+      const permUpdates: Partial<typeof userSchema.userPermissions.$inferInsert> = {};
+      if (dto.canEditMetadata !== undefined) permUpdates.canEditMetadata = dto.canEditMetadata;
+      if (dto.canUploadAudiobooks !== undefined) permUpdates.canUploadAudiobooks = dto.canUploadAudiobooks;
+      if (dto.canDeleteAudiobooks !== undefined) permUpdates.canDeleteAudiobooks = dto.canDeleteAudiobooks;
+      if (dto.canGenerateApiKeys !== undefined) permUpdates.canGenerateApiKeys = dto.canGenerateApiKeys;
 
-      if (dto.blacklistedTags.length > 0) {
-        await this.db.insert(userSchema.userBlacklistedTags).values(
-          dto.blacklistedTags.map((tag) => ({ userId, tag })),
-        );
+      if (Object.keys(permUpdates).length > 0) {
+        await this.db
+          .insert(userSchema.userPermissions)
+          .values({ userId, ...permUpdates })
+          .onConflictDoUpdate({
+            target: userSchema.userPermissions.userId,
+            set: permUpdates,
+          });
+      }
+
+      // Update blacklisted tags for non-admin users
+      if (dto.blacklistedTags !== undefined) {
+        await this.db
+          .delete(userSchema.userBlacklistedTags)
+          .where(eq(userSchema.userBlacklistedTags.userId, userId));
+
+        if (dto.blacklistedTags.length > 0) {
+          await this.db.insert(userSchema.userBlacklistedTags).values(
+            dto.blacklistedTags.map((tag) => ({ userId, tag })),
+          );
+        }
       }
     }
 
