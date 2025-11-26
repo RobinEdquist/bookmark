@@ -6,6 +6,7 @@ export const appSettings = pgTable(
   {
     id: text('id').primaryKey().default('app_settings'),
     signupsEnabled: boolean('signups_enabled').notNull().default(true),
+    libraryPath: text('library_path'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
