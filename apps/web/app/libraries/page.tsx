@@ -25,7 +25,7 @@ export default function LibrariesPage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-muted-foreground">
-              {t("welcome", { name: session?.user?.name || session?.user?.email })}
+              {t("welcome", { name: session?.user?.name ?? session?.user?.email ?? "" })}
             </p>
           </div>
           <nav className="flex items-center gap-2">

@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@repo/ui/components/ui/select";
 import { useLocale } from "../../lib/use-locale";
+import type { Locale } from "../../i18n/config";
 
 const languageNames: Record<string, string> = {
   en: "English",
@@ -45,7 +46,7 @@ export function AppearanceSettings() {
           </div>
           <Select
             value={locale}
-            onValueChange={(value) => setLocale(value as typeof locale)}
+            onValueChange={(value: string) => setLocale(value as Locale)}
             disabled={isUpdating}
           >
             <SelectTrigger className="w-[180px]" id="language">
