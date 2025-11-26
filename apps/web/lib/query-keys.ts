@@ -18,11 +18,15 @@ export const queryKeys = {
   },
   audiobooks: {
     all: ["audiobooks"] as const,
-    list: (filters?: { libraryId?: string; search?: string }) =>
-      [...queryKeys.audiobooks.all, "list", filters] as const,
+    list: (filters?: {
+      search?: string;
+      genreId?: string;
+      seriesId?: string;
+      language?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.audiobooks.all, "list", filters] as const,
     detail: (id: string) => [...queryKeys.audiobooks.all, "detail", id] as const,
-    byLibrary: (libraryId: string) =>
-      [...queryKeys.audiobooks.all, "library", libraryId] as const,
   },
   filesystem: {
     all: ["filesystem"] as const,
