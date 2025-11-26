@@ -1,6 +1,7 @@
 import { pgTable, text, boolean, timestamp, uuid, index } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { user } from '../auth/schema';
+import { tags } from '../audiobooks/schema';
 
 export const userPermissions = pgTable('user_permissions', {
   userId: text('user_id')
@@ -24,11 +25,14 @@ export const userBlacklistedTags = pgTable(
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    tag: text('tag').notNull(),
+    tagId: uuid('tag_id')
+      .notNull()
+      .references(() => tags.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
     index('user_blacklisted_tags_user_id_idx').on(table.userId),
+    index('user_blacklisted_tags_tag_id_idx').on(table.tagId),
   ],
 );
 
@@ -43,5 +47,9 @@ export const userBlacklistedTagsRelations = relations(userBlacklistedTags, ({ on
   user: one(user, {
     fields: [userBlacklistedTags.userId],
     references: [user.id],
+  }),
+  tag: one(tags, {
+    fields: [userBlacklistedTags.tagId],
+    references: [tags.id],
   }),
 }));
