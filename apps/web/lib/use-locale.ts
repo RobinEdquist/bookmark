@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLocale as useNextIntlLocale } from "next-intl";
 import { locales, type Locale, isValidLocale } from "../i18n/config";
 
 async function fetchLanguage(): Promise<string> {
@@ -39,11 +40,14 @@ async function updateLanguage(language: string): Promise<void> {
 
 export function useLocale() {
   const queryClient = useQueryClient();
+  // Use next-intl's locale as the initial value to avoid flash of wrong locale
+  const nextIntlLocale = useNextIntlLocale();
 
-  const { data: locale = "en", isLoading } = useQuery({
+  const { data: locale = nextIntlLocale, isLoading } = useQuery({
     queryKey: ["locale"],
     queryFn: fetchLanguage,
     staleTime: Infinity,
+    initialData: nextIntlLocale,
   });
 
   const mutation = useMutation({
