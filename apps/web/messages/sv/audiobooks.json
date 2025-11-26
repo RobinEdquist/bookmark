@@ -1,0 +1,28 @@
+{
+  "title": "Bibliotek",
+  "empty": {
+    "title": "Ditt bibliotek är tomt",
+    "description": "Lägg till ljudböcker genom att skanna din biblioteksmapp"
+  },
+  "loading": "Laddar ljudböcker...",
+  "error": "Kunde inte ladda ljudböcker",
+  "card": {
+    "by": "av {author}",
+    "bookInSeries": "Bok {order} i {series}"
+  },
+  "filters": {
+    "search": "Sök ljudböcker...",
+    "genre": "Genre",
+    "series": "Serie",
+    "language": "Språk",
+    "allGenres": "Alla genrer",
+    "allSeries": "Alla serier",
+    "allLanguages": "Alla språk"
+  },
+  "sort": {
+    "label": "Sortera efter",
+    "title": "Titel",
+    "dateAdded": "Datum tillagt",
+    "author": "Författare"
+  }
+}

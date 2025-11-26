@@ -1,0 +1,28 @@
+{
+  "title": "Library",
+  "empty": {
+    "title": "Your library is empty",
+    "description": "Add audiobooks by scanning your library folder"
+  },
+  "loading": "Loading audiobooks...",
+  "error": "Failed to load audiobooks",
+  "card": {
+    "by": "by {author}",
+    "bookInSeries": "Book {order} in {series}"
+  },
+  "filters": {
+    "search": "Search audiobooks...",
+    "genre": "Genre",
+    "series": "Series",
+    "language": "Language",
+    "allGenres": "All Genres",
+    "allSeries": "All Series",
+    "allLanguages": "All Languages"
+  },
+  "sort": {
+    "label": "Sort by",
+    "title": "Title",
+    "dateAdded": "Date Added",
+    "author": "Author"
+  }
+}

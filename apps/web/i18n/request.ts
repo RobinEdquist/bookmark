@@ -14,6 +14,7 @@ export default getRequestConfig(async () => {
       auth: (await import(`../messages/${locale}/auth.json`)).default,
       settings: (await import(`../messages/${locale}/settings.json`)).default,
       library: (await import(`../messages/${locale}/library.json`)).default,
+      audiobooks: (await import(`../messages/${locale}/audiobooks.json`)).default,
     },
   };
 });
