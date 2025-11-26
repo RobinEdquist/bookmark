@@ -3,15 +3,17 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Button } from "@repo/ui/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
+import { AudiobookGrid } from "../../components/audiobooks/audiobook-grid";
+import { useAudiobooks } from "../../lib/use-audiobooks";
 import { authClient } from "../../lib/auth-client";
 
 export default function LibrariesPage() {
-  const t = useTranslations("library");
+  const t = useTranslations("audiobooks");
   const tCommon = useTranslations("common");
   const { data: session } = authClient.useSession();
   const user = session?.user as { role?: string } | undefined;
   const isAdmin = user?.role === "admin";
+  const { data, isLoading, error } = useAudiobooks();
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -20,13 +22,10 @@ export default function LibrariesPage() {
 
   return (
     <main className="min-h-screen p-8">
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-8">
         <header className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-            <p className="text-muted-foreground">
-              {t("welcome", { name: session?.user?.name ?? session?.user?.email ?? "" })}
-            </p>
           </div>
           <nav className="flex items-center gap-2">
             {isAdmin && (
@@ -40,19 +39,11 @@ export default function LibrariesPage() {
           </nav>
         </header>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("card.title")}</CardTitle>
-            <CardDescription>
-              {t("card.description")}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground">
-              {t("card.empty")}
-            </p>
-          </CardContent>
-        </Card>
+        <AudiobookGrid
+          audiobooks={data?.audiobooks ?? []}
+          isLoading={isLoading}
+          error={error}
+        />
       </div>
     </main>
   );
