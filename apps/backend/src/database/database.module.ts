@@ -5,6 +5,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as authSchema from '../auth/schema';
 import * as appSettingsSchema from '../app-settings/schema';
+import * as audiobooksSchema from '../audiobooks/schema';
+import * as importErrorsSchema from '../import-errors/schema';
 
 @Global()
 @Module({
@@ -18,7 +20,12 @@ import * as appSettingsSchema from '../app-settings/schema';
           connectionString: configService.getOrThrow<string>('DATABASE_URL'),
         });
         return drizzle(pool, {
-          schema: { ...authSchema, ...appSettingsSchema },
+          schema: {
+            ...authSchema,
+            ...appSettingsSchema,
+            ...audiobooksSchema,
+            ...importErrorsSchema,
+          },
         });
       },
       inject: [ConfigService],
