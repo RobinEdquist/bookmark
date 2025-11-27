@@ -17,6 +17,11 @@ import { relations } from 'drizzle-orm';
 // Enums
 export const coverSourceEnum = pgEnum('cover_source', ['embedded', 'uploaded']);
 export const chapterSourceEnum = pgEnum('chapter_source', ['embedded', 'manual', 'external']);
+export const audiobookStatusEnum = pgEnum('audiobook_status', [
+  'available',
+  'missing',
+  'importing',
+]);
 
 // Core audiobook table
 export const audiobooks = pgTable(
@@ -36,6 +41,8 @@ export const audiobooks = pgTable(
     coverSource: coverSourceEnum('cover_source'),
     filePath: text('file_path').notNull(), // root directory
     isExplicit: boolean('is_explicit').notNull().default(false),
+    status: audiobookStatusEnum('status').notNull().default('available'),
+    missingAt: timestamp('missing_at'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -47,6 +54,7 @@ export const audiobooks = pgTable(
     index('audiobooks_subtitle_idx').on(table.subtitle),
     index('audiobooks_created_at_idx').on(table.createdAt),
     index('audiobooks_language_idx').on(table.language),
+    index('audiobooks_status_idx').on(table.status),
   ],
 );
 
