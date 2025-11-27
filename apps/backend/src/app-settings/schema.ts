@@ -1,5 +1,38 @@
-import { pgTable, text, timestamp, boolean, check } from 'drizzle-orm/pg-core';
+// apps/backend/src/app-settings/schema.ts
+import { pgTable, text, timestamp, boolean, check, jsonb } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
+
+export type MetadataSource = 'manual' | 'embedded' | 'hardcover' | 'filename' | 'folder_image';
+
+export interface MetadataFieldPriority {
+  title: MetadataSource[];
+  subtitle: MetadataSource[];
+  author: MetadataSource[];
+  narrator: MetadataSource[];
+  description: MetadataSource[];
+  publisher: MetadataSource[];
+  publishedDate: MetadataSource[];
+  language: MetadataSource[];
+  genres: MetadataSource[];
+  series: MetadataSource[];
+  seriesOrder: MetadataSource[];
+  cover: MetadataSource[];
+}
+
+export const DEFAULT_METADATA_PRIORITY: MetadataFieldPriority = {
+  title: ['manual', 'embedded', 'filename'],
+  subtitle: ['manual', 'embedded'],
+  author: ['manual', 'embedded', 'filename'],
+  narrator: ['manual', 'embedded'],
+  description: ['manual', 'embedded'],
+  publisher: ['manual', 'embedded'],
+  publishedDate: ['manual', 'embedded'],
+  language: ['manual', 'embedded'],
+  genres: ['manual', 'embedded'],
+  series: ['manual', 'embedded', 'filename'],
+  seriesOrder: ['manual', 'embedded', 'filename'],
+  cover: ['manual', 'embedded', 'folder_image'],
+};
 
 export const appSettings = pgTable(
   'app_settings',
@@ -7,6 +40,8 @@ export const appSettings = pgTable(
     id: text('id').primaryKey().default('app_settings'),
     signupsEnabled: boolean('signups_enabled').notNull().default(true),
     libraryPath: text('library_path'),
+    watcherEnabled: boolean('watcher_enabled').notNull().default(true),
+    metadataPriority: jsonb('metadata_priority').$type<MetadataFieldPriority>(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
