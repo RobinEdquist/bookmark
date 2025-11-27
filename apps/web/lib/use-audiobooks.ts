@@ -1,17 +1,54 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
 export interface AudiobookAuthor {
   id: string;
   name: string;
+  imageUrl?: string | null;
+}
+
+export interface AudiobookNarrator {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
 }
 
 export interface AudiobookSeries {
   id: string;
   name: string;
   order: string;
+}
+
+export interface AudiobookGenre {
+  id: string;
+  name: string;
+}
+
+export interface AudiobookTag {
+  id: string;
+  name: string;
+}
+
+export interface AudiobookFile {
+  id: string;
+  filePath: string;
+  fileName: string;
+  order: number;
+  duration: number;
+  format: string;
+  bitrate: number | null;
+  sampleRate: number | null;
+  sizeBytes: number;
+}
+
+export interface AudiobookChapter {
+  id: string;
+  title: string;
+  startTime: number;
+  endTime: number | null;
+  order: number;
 }
 
 export interface AudiobookListItem {
@@ -23,6 +60,31 @@ export interface AudiobookListItem {
   createdAt: string;
   authors: AudiobookAuthor[];
   series: AudiobookSeries[];
+}
+
+export interface AudiobookDetail {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  publisher: string | null;
+  language: string | null;
+  publishedDate: string | null;
+  isbn: string | null;
+  asin: string | null;
+  duration: number | null;
+  coverUrl: string | null;
+  isExplicit: boolean;
+  status: "available" | "missing" | "importing";
+  createdAt: string;
+  updatedAt: string;
+  authors: AudiobookAuthor[];
+  narrators: AudiobookNarrator[];
+  series: AudiobookSeries[];
+  genres: AudiobookGenre[];
+  tags: AudiobookTag[];
+  files: AudiobookFile[];
+  chapters: AudiobookChapter[];
 }
 
 export interface AudiobookFilters {
@@ -65,5 +127,79 @@ export function useAudiobooks(filters: AudiobookFilters = {}) {
   return useQuery({
     queryKey: queryKeys.audiobooks.list(filters),
     queryFn: () => fetchAudiobooks(filters),
+  });
+}
+
+async function fetchAudiobook(id: string): Promise<AudiobookDetail> {
+  const response = await fetch(`/api/audiobooks/${id}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch audiobook");
+  }
+
+  return response.json();
+}
+
+export function useAudiobook(id: string) {
+  return useQuery({
+    queryKey: queryKeys.audiobooks.detail(id),
+    queryFn: () => fetchAudiobook(id),
+    enabled: !!id,
+  });
+}
+
+export interface UpdateAudiobookData {
+  title?: string;
+  subtitle?: string;
+  description?: string;
+  publisher?: string;
+  language?: string;
+  publishedDate?: string;
+  isbn?: string;
+  asin?: string;
+  isExplicit?: boolean;
+  authorNames?: string[];
+  narratorNames?: string[];
+  genreNames?: string[];
+  tagNames?: string[];
+}
+
+async function updateAudiobook(
+  id: string,
+  data: UpdateAudiobookData
+): Promise<AudiobookDetail> {
+  const response = await fetch(`/api/audiobooks/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update audiobook");
+  }
+
+  return response.json();
+}
+
+export function useUpdateAudiobook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateAudiobookData }) =>
+      updateAudiobook(id, data),
+    onSuccess: (updatedAudiobook) => {
+      // Update the detail cache
+      queryClient.setQueryData(
+        queryKeys.audiobooks.detail(updatedAudiobook.id),
+        updatedAudiobook
+      );
+      // Invalidate the list to reflect changes
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+    },
   });
 }

@@ -70,7 +70,7 @@ export class FileWatcherService implements OnModuleDestroy {
 
   private handleFileAdd(filePath: string): void {
     this.logger.debug(`File added: ${filePath}`);
-    this.importQueue.queueFile(filePath);
+    this.importQueue.queueFile(filePath, this.currentPath!);
   }
 
   private handleDirAdd(dirPath: string): void {

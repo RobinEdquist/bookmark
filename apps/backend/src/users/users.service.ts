@@ -292,6 +292,22 @@ export class UsersService {
   }
 
   async getPermissions(userId: string): Promise<UserPermissionsResponse> {
+    // Check if user is admin - admins have all permissions
+    const userRecord = await this.db
+      .select({ role: authSchema.user.role })
+      .from(authSchema.user)
+      .where(eq(authSchema.user.id, userId))
+      .limit(1);
+
+    if (userRecord.length > 0 && userRecord[0].role === 'admin') {
+      return {
+        canEditMetadata: true,
+        canUploadAudiobooks: true,
+        canDeleteAudiobooks: true,
+        canGenerateApiKeys: true,
+      };
+    }
+
     const perms = await this.db
       .select()
       .from(userSchema.userPermissions)

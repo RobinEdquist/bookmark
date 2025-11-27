@@ -3,7 +3,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as mm from 'music-metadata';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { randomUUID } from 'crypto';
 
 export interface ExtractedMetadata {
   title?: string;
@@ -17,7 +16,7 @@ export interface ExtractedMetadata {
   genres?: string[];
   series?: string;
   seriesOrder?: string;
-  coverPath?: string;
+  hasEmbeddedCover?: boolean;
   duration?: number;
   format?: string;
   bitrate?: number;
@@ -37,12 +36,6 @@ export interface AudioFileInfo {
 @Injectable()
 export class EmbeddedMetadataProvider {
   private readonly logger = new Logger(EmbeddedMetadataProvider.name);
-  private readonly coversDir: string;
-
-  constructor() {
-    // Default covers directory - should be configurable
-    this.coversDir = process.env.COVERS_DIR || '/data/covers';
-  }
 
   async extractMetadata(filePath: string): Promise<ExtractedMetadata> {
     try {
@@ -60,20 +53,12 @@ export class EmbeddedMetadataProvider {
         language: common.language || undefined,
         genres: common.genre || undefined,
         series: common.grouping || undefined,
+        hasEmbeddedCover: common.picture && common.picture.length > 0,
         duration: format.duration ? Math.round(format.duration) : undefined,
         format: format.container || undefined,
         bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
         sampleRate: format.sampleRate || undefined,
       };
-
-      // Extract cover art if present
-      if (common.picture && common.picture.length > 0) {
-        try {
-          result.coverPath = await this.saveCover(common.picture[0]);
-        } catch (coverError) {
-          this.logger.warn(`Failed to extract cover from ${filePath}: ${coverError}`);
-        }
-      }
 
       return result;
     } catch (error) {
@@ -126,16 +111,22 @@ export class EmbeddedMetadataProvider {
     }
   }
 
-  private async saveCover(picture: mm.IPicture): Promise<string> {
-    // Ensure covers directory exists
-    await fs.mkdir(this.coversDir, { recursive: true });
+  async extractCover(filePath: string): Promise<{ data: Buffer; mimeType: string } | null> {
+    try {
+      const metadata = await mm.parseFile(filePath);
+      const picture = metadata.common.picture?.[0];
 
-    const extension = picture.format?.split('/')[1] || 'jpg';
-    const filename = `${randomUUID()}.${extension}`;
-    const coverPath = path.join(this.coversDir, filename);
+      if (!picture) {
+        return null;
+      }
 
-    await fs.writeFile(coverPath, picture.data);
-
-    return `/api/covers/${filename}`;
+      return {
+        data: Buffer.from(picture.data),
+        mimeType: picture.format || 'image/jpeg',
+      };
+    } catch (error) {
+      this.logger.warn(`Failed to extract cover from ${filePath}: ${error}`);
+      return null;
+    }
   }
 }

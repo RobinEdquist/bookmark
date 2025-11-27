@@ -8,7 +8,8 @@
   "error": "Failed to load audiobooks",
   "card": {
     "by": "by {author}",
-    "bookInSeries": "Book {order} in {series}"
+    "bookInSeries": "Book {order} in {series}",
+    "edit": "Edit"
   },
   "filters": {
     "search": "Search audiobooks...",
@@ -24,5 +25,51 @@
     "title": "Title",
     "dateAdded": "Date Added",
     "author": "Author"
+  },
+  "detail": {
+    "error": "Failed to load audiobook",
+    "backToLibrary": "Back to Library",
+    "play": "Play",
+    "edit": "Edit",
+    "author": "Author",
+    "narrator": "Narrator",
+    "duration": "Duration",
+    "published": "Published",
+    "description": "Description",
+    "chapters": "Chapters",
+    "bookInSeries": "Book {order} in {series}"
+  },
+  "edit": {
+    "title": "Edit Audiobook",
+    "save": "Save Changes",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "success": "Audiobook updated successfully",
+    "error": "Failed to update audiobook",
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Enter title",
+      "subtitle": "Subtitle",
+      "subtitlePlaceholder": "Enter subtitle",
+      "authors": "Authors",
+      "authorsPlaceholder": "Author names",
+      "narrators": "Narrators",
+      "narratorsPlaceholder": "Narrator names",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter description",
+      "publisher": "Publisher",
+      "publisherPlaceholder": "Publisher name",
+      "language": "Language",
+      "languagePlaceholder": "e.g. English",
+      "publishedYear": "Year",
+      "publishedYearPlaceholder": "e.g. 2023",
+      "genres": "Genres",
+      "genresPlaceholder": "Genre names",
+      "tags": "Tags",
+      "tagsPlaceholder": "Tag names",
+      "explicit": "Explicit Content",
+      "explicitDescription": "Mark this audiobook as containing explicit content",
+      "commaSeparated": "Separate multiple values with commas"
+    }
   }
 }

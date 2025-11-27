@@ -126,6 +126,20 @@ async function deleteUser(id: string): Promise<void> {
   }
 }
 
+async function fetchMyPermissions(): Promise<UserPermissions> {
+  const res = await fetch("/api/users/me/permissions", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to fetch permissions");
+  return res.json();
+}
+
+export function useMyPermissions() {
+  return useQuery({
+    queryKey: ["users", "me", "permissions"],
+    queryFn: fetchMyPermissions,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
 export function useUsers(search?: string) {
   return useQuery({
     queryKey: ["users", search],

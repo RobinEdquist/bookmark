@@ -47,12 +47,12 @@ export class ImportQueueService implements OnModuleDestroy {
     }
   }
 
-  queueFile(filePath: string): void {
+  queueFile(filePath: string, libraryPath: string): void {
     if (!isAudioFile(filePath)) {
       return;
     }
 
-    const audiobookRoot = this.determineAudiobookRoot(filePath);
+    const audiobookRoot = this.determineAudiobookRoot(filePath, libraryPath);
     this.addToPending(audiobookRoot, filePath);
   }
 
@@ -79,10 +79,16 @@ export class ImportQueueService implements OnModuleDestroy {
     }
   }
 
-  private determineAudiobookRoot(filePath: string): string {
-    // The parent directory is the audiobook root for multi-file audiobooks
-    // For single files, we'll detect this during processing
-    return path.dirname(filePath);
+  private determineAudiobookRoot(filePath: string, libraryPath: string): string {
+    const parentDir = path.dirname(filePath);
+
+    // If the file is directly in the library root, treat it as its own audiobook
+    // Otherwise, group by parent directory for multi-file audiobooks
+    if (parentDir === libraryPath) {
+      return filePath; // Single file audiobook in library root
+    }
+
+    return parentDir; // Multi-file audiobook in subdirectory
   }
 
   private async processStableImports(): Promise<void> {

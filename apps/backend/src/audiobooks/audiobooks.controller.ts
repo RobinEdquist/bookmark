@@ -1,5 +1,16 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Patch,
+  Param,
+  Query,
+  Body,
+  Header,
+  NotFoundException,
+  StreamableFile,
+} from '@nestjs/common';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
+import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
 
 @Controller('audiobooks')
 export class AudiobooksController {
@@ -34,5 +45,24 @@ export class AudiobooksController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.audiobooksService.findById(id);
+  }
+
+  @Patch(':id')
+  async update(@Param('id') id: string, @Body() dto: UpdateAudiobookDto) {
+    return this.audiobooksService.update(id, dto);
+  }
+
+  @Get(':id/cover')
+  @Header('Cache-Control', 'public, max-age=86400')
+  async getCover(@Param('id') id: string) {
+    const cover = await this.audiobooksService.getCover(id);
+
+    if (!cover) {
+      throw new NotFoundException('Cover not found');
+    }
+
+    return new StreamableFile(cover.data, {
+      type: cover.mimeType,
+    });
   }
 }

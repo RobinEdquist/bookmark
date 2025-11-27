@@ -8,7 +8,8 @@
   "error": "Kunde inte ladda ljudböcker",
   "card": {
     "by": "av {author}",
-    "bookInSeries": "Bok {order} i {series}"
+    "bookInSeries": "Bok {order} i {series}",
+    "edit": "Redigera"
   },
   "filters": {
     "search": "Sök ljudböcker...",
@@ -24,5 +25,51 @@
     "title": "Titel",
     "dateAdded": "Datum tillagt",
     "author": "Författare"
+  },
+  "detail": {
+    "error": "Kunde inte ladda ljudbok",
+    "backToLibrary": "Tillbaka till biblioteket",
+    "play": "Spela",
+    "edit": "Redigera",
+    "author": "Författare",
+    "narrator": "Uppläsare",
+    "duration": "Längd",
+    "published": "Publicerad",
+    "description": "Beskrivning",
+    "chapters": "Kapitel",
+    "bookInSeries": "Bok {order} i {series}"
+  },
+  "edit": {
+    "title": "Redigera ljudbok",
+    "save": "Spara ändringar",
+    "saving": "Sparar...",
+    "cancel": "Avbryt",
+    "success": "Ljudboken har uppdaterats",
+    "error": "Kunde inte uppdatera ljudboken",
+    "fields": {
+      "title": "Titel",
+      "titlePlaceholder": "Ange titel",
+      "subtitle": "Undertitel",
+      "subtitlePlaceholder": "Ange undertitel",
+      "authors": "Författare",
+      "authorsPlaceholder": "Författarnamn",
+      "narrators": "Uppläsare",
+      "narratorsPlaceholder": "Uppläsarnamn",
+      "description": "Beskrivning",
+      "descriptionPlaceholder": "Ange beskrivning",
+      "publisher": "Förlag",
+      "publisherPlaceholder": "Förlagsnamn",
+      "language": "Språk",
+      "languagePlaceholder": "t.ex. Svenska",
+      "publishedYear": "År",
+      "publishedYearPlaceholder": "t.ex. 2023",
+      "genres": "Genrer",
+      "genresPlaceholder": "Genrenamn",
+      "tags": "Taggar",
+      "tagsPlaceholder": "Taggnamn",
+      "explicit": "Explicit innehåll",
+      "explicitDescription": "Markera denna ljudbok som innehållande explicit innehåll",
+      "commaSeparated": "Separera flera värden med kommatecken"
+    }
   }
 }

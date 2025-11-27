@@ -59,6 +59,9 @@ export class AudiobookImporterService {
       // Determine title from metadata or folder/file name
       const title = metadata.title || this.inferTitleFromPath(unit.path, unit.type);
 
+      // Convert year-only publishedDate to full date format (PostgreSQL date type requires YYYY-MM-DD)
+      const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
+
       // Create audiobook record
       const [audiobook] = await this.db
         .insert(audiobooksSchema.audiobooks)
@@ -68,10 +71,10 @@ export class AudiobookImporterService {
           description: metadata.description,
           publisher: metadata.publisher,
           language: metadata.language,
-          publishedDate: metadata.publishedDate,
+          publishedDate,
           duration: totalDuration,
-          coverUrl: metadata.coverPath,
-          coverSource: metadata.coverPath ? 'embedded' : undefined,
+          // For embedded covers, don't store a URL - extract on-demand from audio file
+          coverSource: metadata.hasEmbeddedCover ? 'embedded' : undefined,
           filePath: unit.path,
           status: 'available',
         })
@@ -140,6 +143,18 @@ export class AudiobookImporterService {
     }
     // Use folder name
     return path.basename(audiobookPath);
+  }
+
+  private normalizePublishedDate(dateString: string | undefined): string | undefined {
+    if (!dateString) return undefined;
+
+    // If it's just a year (4 digits), convert to YYYY-01-01
+    if (/^\d{4}$/.test(dateString)) {
+      return `${dateString}-01-01`;
+    }
+
+    // If already a valid date format, return as-is
+    return dateString;
   }
 
   private async createOrLinkPerson(

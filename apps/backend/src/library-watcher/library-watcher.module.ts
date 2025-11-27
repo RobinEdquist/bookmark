@@ -20,6 +20,6 @@ import { EmbeddedMetadataProvider } from './metadata/embedded-metadata.provider'
     ImportQueueService,
     EmbeddedMetadataProvider,
   ],
-  exports: [LibraryWatcherService],
+  exports: [LibraryWatcherService, EmbeddedMetadataProvider],
 })
 export class LibraryWatcherModule {}
