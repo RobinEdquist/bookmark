@@ -1,8 +1,10 @@
+// apps/backend/src/app-settings/app-settings.service.ts
 import { Inject, Injectable } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import { eq } from 'drizzle-orm';
+import { DEFAULT_METADATA_PRIORITY, MetadataFieldPriority } from './schema';
 
 @Injectable()
 export class AppSettingsService {
@@ -19,7 +21,6 @@ export class AppSettingsService {
       .limit(1);
 
     if (settings.length === 0) {
-      // Create default settings row
       const [newSettings] = await this.db
         .insert(schema.appSettings)
         .values({ id: 'app_settings' })
@@ -30,7 +31,12 @@ export class AppSettingsService {
     return settings[0];
   }
 
-  async updateSettings(updates: { signupsEnabled?: boolean; libraryPath?: string }) {
+  async updateSettings(updates: {
+    signupsEnabled?: boolean;
+    libraryPath?: string;
+    watcherEnabled?: boolean;
+    metadataPriority?: MetadataFieldPriority;
+  }) {
     const [updated] = await this.db
       .update(schema.appSettings)
       .set(updates)
@@ -38,7 +44,6 @@ export class AppSettingsService {
       .returning();
 
     if (!updated) {
-      // Settings row doesn't exist yet, create it with updates
       const [newSettings] = await this.db
         .insert(schema.appSettings)
         .values({ id: 'app_settings', ...updates })
@@ -57,5 +62,15 @@ export class AppSettingsService {
   async getLibraryPath(): Promise<string | null> {
     const settings = await this.getSettings();
     return settings.libraryPath;
+  }
+
+  async isWatcherEnabled(): Promise<boolean> {
+    const settings = await this.getSettings();
+    return settings.watcherEnabled;
+  }
+
+  async getMetadataPriority(): Promise<MetadataFieldPriority> {
+    const settings = await this.getSettings();
+    return settings.metadataPriority || DEFAULT_METADATA_PRIORITY;
   }
 }
