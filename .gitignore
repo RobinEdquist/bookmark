@@ -27,6 +27,9 @@ out/
 build
 dist
 
+# Generated files
+apps/backend/covers/
+
 
 # Debug
 npm-debug.log*
