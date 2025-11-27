@@ -8,6 +8,8 @@ import { UsersModule } from './users/users.module';
 import { AppSettingsModule } from './app-settings/app-settings.module';
 import { FilesystemModule } from './filesystem/filesystem.module';
 import { AudiobooksModule } from './audiobooks/audiobooks.module';
+import { ImportErrorsModule } from './import-errors/import-errors.module';
+import { LibraryWatcherModule } from './library-watcher/library-watcher.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -28,6 +30,8 @@ import { createAuthInstance } from './auth/auth.provider';
     AppSettingsModule,
     FilesystemModule,
     AudiobooksModule,
+    ImportErrorsModule,
+    LibraryWatcherModule,
   ],
   controllers: [],
   providers: [
