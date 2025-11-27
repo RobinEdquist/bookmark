@@ -43,6 +43,13 @@
       "when": 1764198861883,
       "tag": "0005_sleepy_maximus",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1764203851370,
+      "tag": "0006_opposite_fabian_cortez",
+      "breakpoints": true
     }
   ]
 }
