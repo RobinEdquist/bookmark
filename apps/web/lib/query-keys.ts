@@ -37,4 +37,8 @@ export const queryKeys = {
     all: ["filesystem"] as const,
     browse: (path: string) => [...queryKeys.filesystem.all, "browse", path] as const,
   },
+  hardcover: {
+    all: ["hardcover"] as const,
+    status: () => [...queryKeys.hardcover.all, "status"] as const,
+  },
 } as const;
