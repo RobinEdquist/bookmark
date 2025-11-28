@@ -6,7 +6,6 @@ import * as schema from '../app-settings/schema';
 import { eq } from 'drizzle-orm';
 
 const HARDCOVER_API_URL = 'https://api.hardcover.app/v1/graphql';
-const HARDCOVER_TIMEOUT = 30000;
 
 @Injectable()
 export class HardcoverService {
@@ -20,7 +19,6 @@ export class HardcoverService {
       headers: {
         authorization: apiKey,
       },
-      timeout: HARDCOVER_TIMEOUT,
     });
   }
 
