@@ -6,7 +6,8 @@
     "libraries": "Libraries",
     "users": "Users",
     "authentication": "Authentication",
-    "appearance": "Appearance"
+    "appearance": "Appearance",
+    "integrations": "Integrations"
   },
   "libraries": {
     "title": "Libraries",
@@ -146,6 +147,35 @@
     "language": {
       "label": "Language",
       "description": "Choose your preferred language"
+    }
+  },
+  "integrations": {
+    "title": "Integrations",
+    "description": "Connect external services for metadata and enrichment",
+    "hardcover": {
+      "title": "Hardcover",
+      "description": "Connect to Hardcover to fetch book metadata, ratings, and cover art",
+      "notConnected": "Not connected",
+      "connected": "Connected",
+      "apiKeyLabel": "API Key",
+      "apiKeyPlaceholder": "Enter your Hardcover API key",
+      "apiKeyHelp": "Get your API key from",
+      "saveAndValidate": "Save & Validate",
+      "validating": "Validating...",
+      "disconnect": "Disconnect",
+      "disconnecting": "Disconnecting...",
+      "searchPlaceholder": "Search for a book...",
+      "search": "Search",
+      "searching": "Searching...",
+      "searchResults": "Search Results",
+      "noResults": "No results found",
+      "toast": {
+        "connected": "Connected to Hardcover",
+        "connectionFailed": "Failed to connect",
+        "disconnected": "Disconnected from Hardcover",
+        "disconnectFailed": "Failed to disconnect",
+        "searchFailed": "Search failed"
+      }
     }
   }
 }

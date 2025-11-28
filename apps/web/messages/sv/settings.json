@@ -6,7 +6,8 @@
     "libraries": "Bibliotek",
     "users": "Användare",
     "authentication": "Autentisering",
-    "appearance": "Utseende"
+    "appearance": "Utseende",
+    "integrations": "Integrationer"
   },
   "libraries": {
     "title": "Bibliotek",
@@ -146,6 +147,35 @@
     "language": {
       "label": "Språk",
       "description": "Välj ditt föredragna språk"
+    }
+  },
+  "integrations": {
+    "title": "Integrationer",
+    "description": "Anslut externa tjänster för metadata och berikning",
+    "hardcover": {
+      "title": "Hardcover",
+      "description": "Anslut till Hardcover för att hämta bokmetadata, betyg och omslagsbilder",
+      "notConnected": "Ej ansluten",
+      "connected": "Ansluten",
+      "apiKeyLabel": "API-nyckel",
+      "apiKeyPlaceholder": "Ange din Hardcover API-nyckel",
+      "apiKeyHelp": "Hämta din API-nyckel från",
+      "saveAndValidate": "Spara och validera",
+      "validating": "Validerar...",
+      "disconnect": "Koppla från",
+      "disconnecting": "Kopplar från...",
+      "searchPlaceholder": "Sök efter en bok...",
+      "search": "Sök",
+      "searching": "Söker...",
+      "searchResults": "Sökresultat",
+      "noResults": "Inga resultat hittades",
+      "toast": {
+        "connected": "Ansluten till Hardcover",
+        "connectionFailed": "Anslutningen misslyckades",
+        "disconnected": "Frånkopplad från Hardcover",
+        "disconnectFailed": "Frånkoppling misslyckades",
+        "searchFailed": "Sökningen misslyckades"
+      }
     }
   }
 }
