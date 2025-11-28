@@ -580,4 +580,62 @@ export class AudiobooksService {
 
     return narrators;
   }
+
+  async refreshChapters(id: string): Promise<{ count: number }> {
+    // Verify audiobook exists
+    const audiobook = await this.db
+      .select()
+      .from(schema.audiobooks)
+      .where(eq(schema.audiobooks.id, id))
+      .limit(1);
+
+    if (audiobook.length === 0) {
+      throw new NotFoundException('Audiobook not found');
+    }
+
+    // Get audiobook files
+    const files = await this.db
+      .select()
+      .from(schema.audiobookFiles)
+      .where(eq(schema.audiobookFiles.audiobookId, id))
+      .orderBy(asc(schema.audiobookFiles.order));
+
+    if (files.length === 0) {
+      return { count: 0 };
+    }
+
+    // Delete existing chapters
+    await this.db
+      .delete(schema.chapters)
+      .where(eq(schema.chapters.audiobookId, id));
+
+    // Extract chapters from each file
+    let totalChapters = 0;
+    let timeOffset = 0;
+
+    for (const file of files) {
+      const extractedChapters = await this.metadataProvider.extractChapters(file.filePath);
+
+      if (extractedChapters.length > 0) {
+        // Insert chapters with proper ordering and time offset for multi-file audiobooks
+        await this.db.insert(schema.chapters).values(
+          extractedChapters.map((chap, index) => ({
+            audiobookId: id,
+            title: chap.title,
+            startTime: chap.startTime + timeOffset,
+            endTime: chap.endTime ? chap.endTime + timeOffset : null,
+            order: totalChapters + index + 1,
+            source: 'embedded' as const,
+          })),
+        );
+
+        totalChapters += extractedChapters.length;
+      }
+
+      // Add file duration to offset for next file
+      timeOffset += file.duration;
+    }
+
+    return { count: totalChapters };
+  }
 }

@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Param,
   Query,
@@ -75,6 +76,11 @@ export class AudiobooksController {
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateAudiobookDto) {
     return this.audiobooksService.update(id, dto);
+  }
+
+  @Post(':id/refresh-chapters')
+  async refreshChapters(@Param('id') id: string) {
+    return this.audiobooksService.refreshChapters(id);
   }
 
   @Get(':id/cover')

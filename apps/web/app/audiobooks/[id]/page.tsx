@@ -4,10 +4,16 @@ import { use, useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@repo/ui/components/ui/accordion";
 import { useAudiobook } from "../../../lib/use-audiobooks";
 import { useMyPermissions } from "../../../lib/use-users";
 import { EditAudiobookDialog } from "../../../components/audiobooks/edit-audiobook-dialog";
@@ -44,6 +50,7 @@ export default function AudiobookDetailPage({
   const [editOpen, setEditOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  const [chaptersOpen, setChaptersOpen] = useState<string | undefined>(undefined);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -132,6 +139,28 @@ export default function AudiobookDetailPage({
             <Button size="lg" className="w-full">
               {t("play")}
             </Button>
+
+            {/* Genres and Tags */}
+            {(audiobook.genres.length > 0 || audiobook.tags.length > 0) && (
+              <div className="flex flex-wrap gap-2">
+                {audiobook.genres.map((genre) => (
+                  <span
+                    key={genre.id}
+                    className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
+                  >
+                    {genre.name}
+                  </span>
+                ))}
+                {audiobook.tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Details */}
@@ -256,59 +285,68 @@ export default function AudiobookDetailPage({
               </div>
             )}
 
-            {/* Genres and Tags */}
-            {(audiobook.genres.length > 0 || audiobook.tags.length > 0) && (
-              <div className="flex flex-wrap gap-2">
-                {audiobook.genres.map((genre) => (
-                  <span
-                    key={genre.id}
-                    className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-                  >
-                    {genre.name}
-                  </span>
-                ))}
-                {audiobook.tags.map((tag) => (
-                  <span
-                    key={tag.id}
-                    className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
-                  >
-                    {tag.name}
-                  </span>
-                ))}
-              </div>
-            )}
-
             {/* Chapters */}
-            {audiobook.chapters.length > 0 && (
-              <div>
-                <h3 className="mb-3 flex items-center gap-2 font-semibold">
-                  <BookOpen className="h-4 w-4" />
-                  {t("chapters")} ({audiobook.chapters.length})
-                </h3>
-                <div className="rounded-lg border border-border/50">
-                  {audiobook.chapters.map((chapter, index) => (
-                    <div
-                      key={chapter.id}
-                      className={`flex items-center justify-between px-4 py-3 ${
-                        index !== audiobook.chapters.length - 1
-                          ? "border-b border-border/50"
-                          : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-sm text-muted-foreground">
-                          {index + 1}
-                        </span>
-                        <span className="text-sm">{chapter.title}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {formatChapterTime(chapter.startTime)}
-                      </span>
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              value={chaptersOpen}
+              onValueChange={setChaptersOpen}
+            >
+              <AccordionItem value="chapters" className="border-b-0">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="flex items-center gap-2 font-semibold">
+                    <BookOpen className="h-4 w-4" />
+                    {t("chapters")} ({audiobook.chapters.length})
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  {audiobook.chapters.length > 0 ? (
+                    <div className="rounded-lg border border-border/50 mt-2 overflow-hidden">
+                      <AnimatePresence mode="sync">
+                        {chaptersOpen === "chapters" && audiobook.chapters.map((chapter, index) => {
+                          // Calculate stagger delay - cap it to avoid too long delays for many chapters
+                          const staggerDelay = Math.min(index * 0.03, 0.5);
+
+                          return (
+                            <motion.div
+                              key={chapter.id}
+                              initial={{ opacity: 0, x: -12 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -12 }}
+                              transition={{
+                                duration: 0.2,
+                                delay: staggerDelay,
+                                ease: [0.32, 0.72, 0, 1],
+                              }}
+                              className={`flex items-center justify-between px-4 py-3 ${
+                                index !== audiobook.chapters.length - 1
+                                  ? "border-b border-border/50"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm text-muted-foreground">
+                                  {index + 1}
+                                </span>
+                                <span className="text-sm">{chapter.title}</span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">
+                                {formatChapterTime(chapter.startTime)}
+                              </span>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  ) : (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {t("noChapters")}
+                    </p>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </motion.div>
       </div>

@@ -3,6 +3,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as mm from 'music-metadata';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 export interface ExtractedMetadata {
   title?: string;
@@ -84,29 +88,76 @@ export class EmbeddedMetadataProvider {
 
   async extractChapters(filePath: string): Promise<Array<{ title: string; startTime: number; endTime?: number }>> {
     try {
-      const metadata = await mm.parseFile(filePath);
-      const chapters = metadata.native?.['ID3v2.4']?.filter((tag) => tag.id === 'CHAP') || [];
+      // Parse with includeChapters: true for M4B/MP4 chapter support
+      const metadata = await mm.parseFile(filePath, { includeChapters: true });
+      const sampleRate = metadata.format.sampleRate || 44100;
 
-      if (chapters.length === 0) {
-        // Try M4B chapter format
-        const m4bChapters = metadata.native?.['iTunes']?.filter((tag) => tag.id === '----:com.apple.iTunes:CHAPTER') || [];
-        // M4B chapter parsing would go here - simplified for now
-        if (m4bChapters.length > 0) {
-          this.logger.debug(`Found ${m4bChapters.length} M4B chapters (parsing not yet implemented)`);
+      // Check format.chapters (works for M4B/M4A/MP4 files with chapter tracks)
+      if (metadata.format.chapters && metadata.format.chapters.length > 0) {
+        this.logger.debug(`Found ${metadata.format.chapters.length} chapters via format.chapters`);
+        return metadata.format.chapters.map((chap, index: number) => ({
+          title: chap.title || `Chapter ${index + 1}`,
+          // Convert sampleOffset to seconds
+          startTime: Math.round(chap.sampleOffset / sampleRate),
+          endTime: undefined, // format.chapters doesn't have endTime, it's implicit from next chapter
+        }));
+      }
+
+      // Try ID3v2.4 CHAP tags (for MP3 files with chapters)
+      const id3Chapters = metadata.native?.['ID3v2.4']?.filter((tag) => tag.id === 'CHAP') || [];
+      if (id3Chapters.length > 0) {
+        this.logger.debug(`Found ${id3Chapters.length} chapters via ID3v2.4 CHAP tags`);
+        return id3Chapters.map((chap, index: number) => {
+          const value = chap.value as { startTime: number; endTime?: number; title?: string };
+          return {
+            title: value.title || `Chapter ${index + 1}`,
+            startTime: Math.round(value.startTime / 1000), // Convert ms to seconds
+            endTime: value.endTime ? Math.round(value.endTime / 1000) : undefined,
+          };
+        });
+      }
+
+      // Fallback: Try ffprobe for M4B/M4A files (handles more chapter formats)
+      const ext = path.extname(filePath).toLowerCase();
+      if (['.m4b', '.m4a', '.mp4'].includes(ext)) {
+        const ffprobeChapters = await this.extractChaptersWithFfprobe(filePath);
+        if (ffprobeChapters.length > 0) {
+          return ffprobeChapters;
         }
+      }
+
+      this.logger.debug(`No chapters found in ${path.basename(filePath)}`);
+      return [];
+    } catch (error) {
+      this.logger.warn(`Failed to extract chapters from ${filePath}: ${error}`);
+      return [];
+    }
+  }
+
+  private async extractChaptersWithFfprobe(filePath: string): Promise<Array<{ title: string; startTime: number; endTime?: number }>> {
+    try {
+      const { stdout } = await execAsync(
+        `ffprobe -v quiet -print_format json -show_chapters "${filePath.replace(/"/g, '\\"')}"`,
+        { maxBuffer: 10 * 1024 * 1024 } // 10MB buffer for large files
+      );
+
+      const data = JSON.parse(stdout);
+
+      if (!data.chapters || data.chapters.length === 0) {
+        this.logger.debug(`ffprobe found no chapters in ${path.basename(filePath)}`);
         return [];
       }
 
-      return chapters.map((chap, index: number) => {
-        const value = chap.value as { startTime: number; endTime?: number; title?: string };
-        return {
-          title: value.title || `Chapter ${index + 1}`,
-          startTime: Math.round(value.startTime / 1000), // Convert ms to seconds
-          endTime: value.endTime ? Math.round(value.endTime / 1000) : undefined,
-        };
-      });
+      this.logger.debug(`Found ${data.chapters.length} chapters via ffprobe`);
+
+      return data.chapters.map((chap: { start_time?: string; end_time?: string; tags?: { title?: string } }, index: number) => ({
+        title: chap.tags?.title || `Chapter ${index + 1}`,
+        startTime: Math.round(parseFloat(chap.start_time || '0')),
+        endTime: chap.end_time ? Math.round(parseFloat(chap.end_time)) : undefined,
+      }));
     } catch (error) {
-      this.logger.warn(`Failed to extract chapters from ${filePath}: ${error}`);
+      // ffprobe not installed or failed - this is expected on some systems
+      this.logger.debug(`ffprobe chapter extraction failed for ${path.basename(filePath)}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return [];
     }
   }

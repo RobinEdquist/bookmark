@@ -39,6 +39,10 @@
     "showMore": "Visa mer",
     "showLess": "Visa mindre",
     "chapters": "Kapitel",
+    "noChapters": "Inga kapitel hittades. Försök uppdatera för att extrahera kapitel från ljudfilen.",
+    "refreshChapters": "Uppdatera",
+    "chaptersRefreshed": "Hittade {count} kapitel",
+    "chaptersRefreshError": "Kunde inte uppdatera kapitel",
     "bookInSeries": "Bok {order} i {series}"
   },
   "edit": {

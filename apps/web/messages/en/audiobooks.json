@@ -39,6 +39,10 @@
     "showMore": "Show more",
     "showLess": "Show less",
     "chapters": "Chapters",
+    "noChapters": "No chapters found. Try refreshing to extract chapters from the audio file.",
+    "refreshChapters": "Refresh",
+    "chaptersRefreshed": "Found {count} chapters",
+    "chaptersRefreshError": "Failed to refresh chapters",
     "bookInSeries": "Book {order} in {series}"
   },
   "edit": {

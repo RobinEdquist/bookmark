@@ -204,6 +204,31 @@ export function useUpdateAudiobook() {
   });
 }
 
+async function refreshChapters(id: string): Promise<{ count: number }> {
+  const response = await fetch(`/api/audiobooks/${id}/refresh-chapters`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to refresh chapters");
+  }
+
+  return response.json();
+}
+
+export function useRefreshChapters() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => refreshChapters(id),
+    onSuccess: (_, id) => {
+      // Invalidate the audiobook detail to refetch with new chapters
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(id) });
+    },
+  });
+}
+
 export interface Person {
   id: string;
   name: string;
