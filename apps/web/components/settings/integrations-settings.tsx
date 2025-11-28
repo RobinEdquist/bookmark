@@ -181,7 +181,7 @@ export function IntegrationsSettings() {
                   </Button>
                 </div>
 
-                {searchResult && (
+                {searchResult !== null && (
                   <div className="space-y-2">
                     <Label>{t("hardcover.searchResults")}</Label>
                     <pre className="max-h-96 overflow-auto rounded-lg bg-muted p-4 text-xs">
