@@ -27,6 +27,11 @@ export const queryKeys = {
       sortOrder?: string;
     }) => [...queryKeys.audiobooks.all, "list", filters] as const,
     detail: (id: string) => [...queryKeys.audiobooks.all, "detail", id] as const,
+    authors: (search?: string) => [...queryKeys.audiobooks.all, "authors", search] as const,
+    narrators: (search?: string) => [...queryKeys.audiobooks.all, "narrators", search] as const,
+    publishers: (search?: string) => [...queryKeys.audiobooks.all, "publishers", search] as const,
+    genres: (search?: string) => [...queryKeys.audiobooks.all, "genres", search] as const,
+    tags: (search?: string) => [...queryKeys.audiobooks.all, "tags", search] as const,
   },
   filesystem: {
     all: ["filesystem"] as const,

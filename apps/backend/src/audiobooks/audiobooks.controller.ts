@@ -42,6 +42,31 @@ export class AudiobooksController {
     return this.audiobooksService.findAll(filters);
   }
 
+  @Get('authors')
+  async getAuthors(@Query('search') search?: string) {
+    return this.audiobooksService.getAuthors(search);
+  }
+
+  @Get('narrators')
+  async getNarrators(@Query('search') search?: string) {
+    return this.audiobooksService.getNarrators(search);
+  }
+
+  @Get('publishers')
+  async getPublishers(@Query('search') search?: string) {
+    return this.audiobooksService.getPublishers(search);
+  }
+
+  @Get('genres')
+  async getGenres(@Query('search') search?: string) {
+    return this.audiobooksService.getGenres(search);
+  }
+
+  @Get('tags')
+  async getTags(@Query('search') search?: string) {
+    return this.audiobooksService.getTags(search);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.audiobooksService.findById(id);

@@ -203,3 +203,123 @@ export function useUpdateAudiobook() {
     },
   });
 }
+
+export interface Person {
+  id: string;
+  name: string;
+}
+
+async function fetchAuthors(search?: string): Promise<Person[]> {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+
+  const response = await fetch(`/api/audiobooks/authors?${params}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch authors");
+  }
+
+  return response.json();
+}
+
+export function useAuthors(search?: string) {
+  return useQuery({
+    queryKey: queryKeys.audiobooks.authors(search),
+    queryFn: () => fetchAuthors(search),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+async function fetchNarrators(search?: string): Promise<Person[]> {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+
+  const response = await fetch(`/api/audiobooks/narrators?${params}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch narrators");
+  }
+
+  return response.json();
+}
+
+export function useNarrators(search?: string) {
+  return useQuery({
+    queryKey: queryKeys.audiobooks.narrators(search),
+    queryFn: () => fetchNarrators(search),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+async function fetchPublishers(search?: string): Promise<string[]> {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+
+  const response = await fetch(`/api/audiobooks/publishers?${params}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch publishers");
+  }
+
+  return response.json();
+}
+
+export function usePublishers(search?: string) {
+  return useQuery({
+    queryKey: queryKeys.audiobooks.publishers(search),
+    queryFn: () => fetchPublishers(search),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+async function fetchGenres(search?: string): Promise<{ id: string; name: string }[]> {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+
+  const response = await fetch(`/api/audiobooks/genres?${params}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch genres");
+  }
+
+  return response.json();
+}
+
+export function useGenres(search?: string) {
+  return useQuery({
+    queryKey: queryKeys.audiobooks.genres(search),
+    queryFn: () => fetchGenres(search),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+async function fetchTags(search?: string): Promise<{ id: string; name: string }[]> {
+  const params = new URLSearchParams();
+  if (search) params.set("search", search);
+
+  const response = await fetch(`/api/audiobooks/tags?${params}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch tags");
+  }
+
+  return response.json();
+}
+
+export function useTags(search?: string) {
+  return useQuery({
+    queryKey: queryKeys.audiobooks.tags(search),
+    queryFn: () => fetchTags(search),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}

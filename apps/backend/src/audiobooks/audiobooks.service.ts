@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, ilike, or, desc, asc, SQL, and, inArray } from 'drizzle-orm';
+import { eq, ilike, or, desc, asc, SQL, and, inArray, isNotNull } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -467,5 +467,117 @@ export class AudiobooksService {
         tagId: tag.id,
       });
     }
+  }
+
+  async getGenres(search?: string): Promise<{ id: string; name: string }[]> {
+    const conditions: SQL[] = [];
+
+    if (search) {
+      conditions.push(ilike(schema.genres.name, `%${search}%`));
+    }
+
+    const genres = await this.db
+      .select({
+        id: schema.genres.id,
+        name: schema.genres.name,
+      })
+      .from(schema.genres)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(schema.genres.name))
+      .limit(50);
+
+    return genres;
+  }
+
+  async getTags(search?: string): Promise<{ id: string; name: string }[]> {
+    const conditions: SQL[] = [];
+
+    if (search) {
+      conditions.push(ilike(schema.tags.name, `%${search}%`));
+    }
+
+    const tags = await this.db
+      .select({
+        id: schema.tags.id,
+        name: schema.tags.name,
+      })
+      .from(schema.tags)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(schema.tags.name))
+      .limit(50);
+
+    return tags;
+  }
+
+  async getPublishers(search?: string): Promise<string[]> {
+    const conditions: SQL[] = [];
+
+    // Only get non-null publishers
+    conditions.push(isNotNull(schema.audiobooks.publisher));
+
+    if (search) {
+      conditions.push(ilike(schema.audiobooks.publisher, `%${search}%`));
+    }
+
+    const publishers = await this.db
+      .selectDistinct({
+        publisher: schema.audiobooks.publisher,
+      })
+      .from(schema.audiobooks)
+      .where(and(...conditions))
+      .orderBy(asc(schema.audiobooks.publisher))
+      .limit(50);
+
+    return publishers.map((p) => p.publisher!);
+  }
+
+  async getAuthors(search?: string): Promise<{ id: string; name: string }[]> {
+    const conditions: SQL[] = [];
+
+    if (search) {
+      conditions.push(ilike(schema.people.name, `%${search}%`));
+    }
+
+    // Get people who are authors (linked via audiobookAuthors)
+    const authors = await this.db
+      .selectDistinct({
+        id: schema.people.id,
+        name: schema.people.name,
+      })
+      .from(schema.people)
+      .innerJoin(
+        schema.audiobookAuthors,
+        eq(schema.people.id, schema.audiobookAuthors.personId),
+      )
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(schema.people.name))
+      .limit(50);
+
+    return authors;
+  }
+
+  async getNarrators(search?: string): Promise<{ id: string; name: string }[]> {
+    const conditions: SQL[] = [];
+
+    if (search) {
+      conditions.push(ilike(schema.people.name, `%${search}%`));
+    }
+
+    // Get people who are narrators (linked via audiobookNarrators)
+    const narrators = await this.db
+      .selectDistinct({
+        id: schema.people.id,
+        name: schema.people.name,
+      })
+      .from(schema.people)
+      .innerJoin(
+        schema.audiobookNarrators,
+        eq(schema.people.id, schema.audiobookNarrators.personId),
+      )
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(schema.people.name))
+      .limit(50);
+
+    return narrators;
   }
 }

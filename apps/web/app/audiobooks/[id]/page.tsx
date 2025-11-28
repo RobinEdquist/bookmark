@@ -1,11 +1,11 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { useAudiobook } from "../../../lib/use-audiobooks";
@@ -42,8 +42,17 @@ export default function AudiobookDetailPage({
   const { data: audiobook, isLoading, error } = useAudiobook(id);
   const { data: permissions } = useMyPermissions();
   const [editOpen, setEditOpen] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  const descriptionRef = useRef<HTMLDivElement>(null);
 
   const canEdit = permissions?.canEditMetadata ?? false;
+
+  useEffect(() => {
+    if (descriptionRef.current) {
+      setDescriptionOverflows(descriptionRef.current.scrollHeight > 200);
+    }
+  }, [audiobook?.description]);
 
   if (isLoading) {
     return (
@@ -202,9 +211,48 @@ export default function AudiobookDetailPage({
             {audiobook.description && (
               <div>
                 <h3 className="mb-2 font-semibold">{t("description")}</h3>
-                <p className="whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
-                  {audiobook.description}
-                </p>
+                <div className="relative">
+                  <motion.div
+                    ref={descriptionRef}
+                    className="text-sm leading-relaxed text-muted-foreground [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_strong]:font-semibold [&_em]:italic overflow-hidden"
+                    initial={false}
+                    animate={{
+                      height: descriptionExpanded
+                        ? descriptionRef.current?.scrollHeight ?? "auto"
+                        : descriptionOverflows
+                          ? 200
+                          : "auto",
+                    }}
+                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                    dangerouslySetInnerHTML={{ __html: audiobook.description }}
+                  />
+                  <motion.div
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent"
+                    initial={false}
+                    animate={{ opacity: descriptionOverflows && !descriptionExpanded ? 1 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  />
+                </div>
+                {descriptionOverflows && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="mt-2 h-auto px-0 py-1 text-primary hover:bg-transparent hover:text-primary/80"
+                    onClick={() => setDescriptionExpanded(!descriptionExpanded)}
+                  >
+                    {descriptionExpanded ? (
+                      <>
+                        {t("showLess")}
+                        <ChevronUp className="ml-1 h-4 w-4" />
+                      </>
+                    ) : (
+                      <>
+                        {t("showMore")}
+                        <ChevronDown className="ml-1 h-4 w-4" />
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             )}
 
