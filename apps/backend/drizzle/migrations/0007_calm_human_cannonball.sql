@@ -1,0 +1,1 @@
+ALTER TABLE "app_settings" ADD COLUMN "hardcover_api_key" text;
