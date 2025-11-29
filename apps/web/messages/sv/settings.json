@@ -164,17 +164,39 @@
       "validating": "Validerar...",
       "disconnect": "Koppla från",
       "disconnecting": "Kopplar från...",
-      "searchPlaceholder": "Sök efter en bok...",
+      "searchPlaceholder": "Sökfråga...",
       "search": "Sök",
       "searching": "Söker...",
       "searchResults": "Sökresultat",
       "noResults": "Inga resultat hittades",
+      "autoSync": {
+        "label": "Auto-synk vid import",
+        "description": "Hämta automatiskt metadata från Hardcover när nya ljudböcker importeras"
+      },
+      "syncQueue": {
+        "title": "Synkkö",
+        "description": "Status för automatisk Hardcover-synkronisering",
+        "pending": "{count} väntande",
+        "failed": "{count} misslyckade",
+        "reviewLabel": "Misslyckade synkningar som kräver granskning",
+        "unknownAudiobook": "Okänd ljudbok",
+        "unknownError": "Okänt fel",
+        "linkManually": "Länka manuellt",
+        "dismiss": "Avfärda",
+        "toast": {
+          "dismissed": "Objekt avfärdat",
+          "dismissFailed": "Kunde inte avfärda objekt"
+        }
+      },
       "toast": {
         "connected": "Ansluten till Hardcover",
         "connectionFailed": "Anslutningen misslyckades",
         "disconnected": "Frånkopplad från Hardcover",
         "disconnectFailed": "Frånkoppling misslyckades",
-        "searchFailed": "Sökningen misslyckades"
+        "searchFailed": "Sökningen misslyckades",
+        "autoSyncEnabled": "Auto-synk aktiverad",
+        "autoSyncDisabled": "Auto-synk inaktiverad",
+        "autoSyncFailed": "Kunde inte uppdatera auto-synk-inställning"
       }
     }
   }

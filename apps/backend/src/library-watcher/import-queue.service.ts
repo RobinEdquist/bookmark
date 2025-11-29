@@ -8,6 +8,7 @@ import { isAudioFile } from './utils/audio-file.utils';
 
 interface PendingImport {
   path: string;
+  libraryPath: string;
   firstSeen: Date;
   lastActivity: Date;
   files: Set<string>;
@@ -53,14 +54,14 @@ export class ImportQueueService implements OnModuleDestroy {
     }
 
     const audiobookRoot = this.determineAudiobookRoot(filePath, libraryPath);
-    this.addToPending(audiobookRoot, filePath);
+    this.addToPending(audiobookRoot, filePath, libraryPath);
   }
 
-  queueDirectory(dirPath: string): void {
-    this.addToPending(dirPath, dirPath);
+  queueDirectory(dirPath: string, libraryPath: string): void {
+    this.addToPending(dirPath, dirPath, libraryPath);
   }
 
-  private addToPending(audiobookRoot: string, filePath: string): void {
+  private addToPending(audiobookRoot: string, filePath: string, libraryPath: string): void {
     const existing = this.pendingImports.get(audiobookRoot);
 
     if (existing && existing.status === 'collecting') {
@@ -70,6 +71,7 @@ export class ImportQueueService implements OnModuleDestroy {
     } else if (!existing) {
       this.pendingImports.set(audiobookRoot, {
         path: audiobookRoot,
+        libraryPath,
         firstSeen: new Date(),
         lastActivity: new Date(),
         files: new Set([filePath]),
@@ -127,14 +129,14 @@ export class ImportQueueService implements OnModuleDestroy {
       const unit = await this.audiobookDetector.detectSingleUnit(pending.path);
 
       if (unit) {
-        await this.audiobookImporter.importAudiobook(unit);
+        await this.audiobookImporter.importAudiobook(unit, pending.libraryPath);
       } else {
         // Check if individual files in the root should be separate audiobooks
         for (const filePath of pending.files) {
           if (isAudioFile(filePath)) {
             const fileUnit = await this.audiobookDetector.detectSingleUnit(filePath);
             if (fileUnit) {
-              await this.audiobookImporter.importAudiobook(fileUnit);
+              await this.audiobookImporter.importAudiobook(fileUnit, pending.libraryPath);
             }
           }
         }

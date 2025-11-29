@@ -1,0 +1,1 @@
+ALTER TABLE "hardcover_books" ADD COLUMN "slug" text NOT NULL;

@@ -58,8 +58,12 @@ export interface AudiobookListItem {
   duration: number | null;
   coverUrl: string | null;
   createdAt: string;
+  status: "available" | "missing" | "importing";
   authors: AudiobookAuthor[];
   series: AudiobookSeries[];
+  hardcoverLinked: boolean;
+  hardcoverRating: number | null;
+  hardcoverRatingsCount: number | null;
 }
 
 export interface AudiobookDetail {
@@ -346,5 +350,34 @@ export function useTags(search?: string) {
     queryKey: queryKeys.audiobooks.tags(search),
     queryFn: () => fetchTags(search),
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+async function deleteAudiobook(id: string, deleteFiles: boolean): Promise<void> {
+  const params = new URLSearchParams();
+  params.set("deleteFiles", String(deleteFiles));
+
+  const response = await fetch(`/api/audiobooks/${id}?${params}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete audiobook");
+  }
+}
+
+export function useDeleteAudiobook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, deleteFiles }: { id: string; deleteFiles: boolean }) =>
+      deleteAudiobook(id, deleteFiles),
+    onSuccess: (_, { id }) => {
+      // Invalidate the list
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+      // Remove from detail cache
+      queryClient.removeQueries({ queryKey: queryKeys.audiobooks.detail(id) });
+    },
   });
 }

@@ -43,6 +43,9 @@ export const appSettings = pgTable(
     watcherEnabled: boolean('watcher_enabled').notNull().default(true),
     metadataPriority: jsonb('metadata_priority').$type<MetadataFieldPriority>(),
     hardcoverApiKey: text('hardcover_api_key'),
+    hardcoverAutoSyncOnImport: boolean('hardcover_auto_sync_on_import')
+      .notNull()
+      .default(false),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

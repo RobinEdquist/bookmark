@@ -9,7 +9,31 @@
   "card": {
     "by": "av {author}",
     "bookInSeries": "Bok {order} i {series}",
-    "edit": "Redigera"
+    "edit": "Redigera",
+    "delete": "Ta bort",
+    "syncWithHardcover": "Länka till Hardcover",
+    "unlinkFromHardcover": "Avlänka från Hardcover",
+    "linkedToHardcover": "Länkad till Hardcover",
+    "rating": "{rating} ({count})",
+    "missing": "Fil saknas",
+    "missingDescription": "Ljudfilen för denna ljudbok kunde inte hittas"
+  },
+  "deleteDialog": {
+    "title": "Ta bort ljudbok",
+    "description": "Är du säker på att du vill ta bort \"{title}\"?",
+    "keepFiles": {
+      "label": "Behåll filer på disken",
+      "description": "Ljudboken tas bort från biblioteket men filerna finns kvar på din disk."
+    },
+    "deleteFiles": {
+      "label": "Ta bort filer permanent",
+      "description": "Ljudboken och alla dess filer kommer att tas bort permanent. Detta kan inte ångras."
+    },
+    "cancel": "Avbryt",
+    "confirm": "Ta bort",
+    "deleting": "Tar bort...",
+    "success": "Ljudboken har tagits bort",
+    "error": "Kunde inte ta bort ljudboken"
   },
   "filters": {
     "search": "Sök ljudböcker...",
@@ -31,6 +55,7 @@
     "backToLibrary": "Tillbaka till biblioteket",
     "play": "Spela",
     "edit": "Redigera",
+    "syncWithHardcover": "Synka med Hardcover",
     "author": "Författare",
     "narrator": "Uppläsare",
     "duration": "Längd",
@@ -43,7 +68,43 @@
     "refreshChapters": "Uppdatera",
     "chaptersRefreshed": "Hittade {count} kapitel",
     "chaptersRefreshError": "Kunde inte uppdatera kapitel",
-    "bookInSeries": "Bok {order} i {series}"
+    "bookInSeries": "Bok {order} i {series}",
+    "files": "Filer",
+    "noFiles": "Inga filer hittades för denna ljudbok."
+  },
+  "hardcoverSync": {
+    "title": "Länka till Hardcover",
+    "description": "Välj en bok från Hardcover att länka med \"{title}\"",
+    "resultsCount": "{count, plural, one {# resultat hittat} other {# resultat hittade}}",
+    "noResults": "Inga matchande böcker hittades på Hardcover",
+    "error": "Kunde inte söka på Hardcover",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "pageInfo": "Sida {current} av {total}",
+    "cancel": "Avbryt",
+    "link": "Länka bok",
+    "linking": "Länkar...",
+    "toast": {
+      "linked": "Länkad till Hardcover",
+      "linkFailed": "Kunde inte länka ljudbok"
+    }
+  },
+  "hardcoverLink": {
+    "title": "Hardcover",
+    "description": "Länkad bokmetadata från Hardcover",
+    "unlink": "Avlänka",
+    "unlinking": "Avlänkar...",
+    "ratings": "betyg",
+    "genres": "Genrer",
+    "moods": "Stämningar",
+    "tags": "Taggar",
+    "contentWarnings": "Innehållsvarningar",
+    "more": "till",
+    "viewOnHardcover": "Visa på Hardcover",
+    "toast": {
+      "unlinked": "Avlänkad från Hardcover",
+      "unlinkFailed": "Kunde inte avlänka ljudbok"
+    }
   },
   "edit": {
     "title": "Redigera ljudbok",

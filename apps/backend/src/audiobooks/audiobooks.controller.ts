@@ -3,12 +3,15 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Query,
   Body,
   Header,
   NotFoundException,
   StreamableFile,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
@@ -95,5 +98,14 @@ export class AudiobooksController {
     return new StreamableFile(cover.data, {
       type: cover.mimeType,
     });
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async delete(
+    @Param('id') id: string,
+    @Query('deleteFiles') deleteFiles?: string,
+  ) {
+    await this.audiobooksService.delete(id, deleteFiles === 'true');
   }
 }

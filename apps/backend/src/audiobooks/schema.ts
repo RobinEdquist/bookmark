@@ -21,6 +21,7 @@ export const audiobookStatusEnum = pgEnum('audiobook_status', [
   'available',
   'missing',
   'importing',
+  'hidden',
 ]);
 
 // Core audiobook table
@@ -241,8 +242,12 @@ export const audiobookTags = pgTable(
   ],
 );
 
+// Forward import for hardcover relation (avoids circular dependency)
+// The actual table is defined in ../hardcover/schema.ts
+import { hardcoverBooks } from '../hardcover/schema';
+
 // Relations
-export const audiobooksRelations = relations(audiobooks, ({ many }) => ({
+export const audiobooksRelations = relations(audiobooks, ({ many, one }) => ({
   files: many(audiobookFiles),
   chapters: many(chapters),
   authors: many(audiobookAuthors),
@@ -250,6 +255,10 @@ export const audiobooksRelations = relations(audiobooks, ({ many }) => ({
   series: many(audiobookSeries),
   genres: many(audiobookGenres),
   tags: many(audiobookTags),
+  hardcoverBook: one(hardcoverBooks, {
+    fields: [audiobooks.id],
+    references: [hardcoverBooks.audiobookId],
+  }),
 }));
 
 export const audiobookFilesRelations = relations(audiobookFiles, ({ one }) => ({

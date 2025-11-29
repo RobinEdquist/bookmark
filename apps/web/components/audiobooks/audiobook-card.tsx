@@ -5,17 +5,25 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil } from "lucide-react";
+import { MoreVertical, Pencil, Star, AlertTriangle, Trash2 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import type { AudiobookListItem } from "../../lib/use-audiobooks";
+import { useDeleteAudiobook } from "../../lib/use-audiobooks";
 import { useMyPermissions } from "../../lib/use-users";
+import { useHardcoverStatus, useHardcoverUnlinkAudiobook } from "../../lib/use-hardcover";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { queryKeys } from "../../lib/query-keys";
 import { EditAudiobookDialog } from "./edit-audiobook-dialog";
+import { HardcoverSyncDialog } from "./hardcover-sync-dialog";
+import { DeleteAudiobookDialog } from "./delete-audiobook-dialog";
 
 interface AudiobookCardProps {
   audiobook: AudiobookListItem;
@@ -23,10 +31,47 @@ interface AudiobookCardProps {
 
 export function AudiobookCard({ audiobook }: AudiobookCardProps) {
   const t = useTranslations("audiobooks.card");
+  const tLink = useTranslations("audiobooks.hardcoverLink");
+  const tDelete = useTranslations("audiobooks.deleteDialog");
   const [editOpen, setEditOpen] = useState(false);
+  const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
+  const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
+  const { unlinkAudiobook, isUnlinking } = useHardcoverUnlinkAudiobook();
+  const { mutateAsync: deleteAudiobook, isPending: isDeleting } = useDeleteAudiobook();
+  const queryClient = useQueryClient();
 
   const canEdit = permissions?.canEditMetadata ?? false;
+  const canDelete = permissions?.canDeleteAudiobooks ?? false;
+  const showDropdown = canEdit || canDelete || isHardcoverConfigured;
+  const isLinkedToHardcover = audiobook.hardcoverLinked;
+  const isMissing = audiobook.status === "missing";
+
+  const handleUnlink = async () => {
+    try {
+      await unlinkAudiobook(audiobook.id);
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+      toast.success(tLink("toast.unlinked"));
+    } catch {
+      toast.error(tLink("toast.unlinkFailed"));
+    }
+  };
+
+  const handleDelete = async () => {
+    // If missing, delete immediately without confirmation
+    if (isMissing) {
+      try {
+        await deleteAudiobook({ id: audiobook.id, deleteFiles: false });
+        toast.success(tDelete("success"));
+      } catch {
+        toast.error(tDelete("error"));
+      }
+    } else {
+      // Show confirmation dialog for non-missing audiobooks
+      setDeleteOpen(true);
+    }
+  };
 
   const primaryAuthor = audiobook.authors[0]?.name;
   const primarySeries = audiobook.series[0];
@@ -61,13 +106,52 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
                 src={audiobook.coverUrl}
                 alt={audiobook.title}
                 fill
-                className="object-cover"
+                className={`object-cover ${isMissing ? "opacity-50 grayscale" : ""}`}
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
                 unoptimized={audiobook.coverUrl.startsWith("/api/")}
               />
             ) : (
-              <div className="flex h-full items-center justify-center bg-muted">
+              <div className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50" : ""}`}>
                 <span className="text-4xl text-muted-foreground">📚</span>
+              </div>
+            )}
+            {/* Missing status overlay */}
+            {isMissing && (
+              <div
+                className="absolute inset-0 flex items-center justify-center bg-destructive/20"
+                title={t("missingDescription")}
+              >
+                <div className="rounded-full bg-destructive p-2 shadow-lg">
+                  <AlertTriangle className="h-6 w-6 text-destructive-foreground" />
+                </div>
+              </div>
+            )}
+            {isLinkedToHardcover && (
+              <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                {audiobook.hardcoverRating !== null && (
+                  <div
+                    className="flex items-center gap-0.5 rounded-full bg-background/90 px-1.5 py-1 text-xs font-medium shadow-sm backdrop-blur-sm"
+                    title={t("rating", {
+                      rating: audiobook.hardcoverRating.toFixed(1),
+                      count: audiobook.hardcoverRatingsCount ?? 0,
+                    })}
+                  >
+                    <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                    <span>{audiobook.hardcoverRating.toFixed(1)}</span>
+                  </div>
+                )}
+                <div
+                  className="rounded-full bg-background/90 p-1.5 shadow-sm backdrop-blur-sm"
+                  title={t("linkedToHardcover")}
+                >
+                  <Image
+                    src="/hardcover.svg"
+                    alt="Hardcover"
+                    width={14}
+                    height={14}
+                    className="dark:invert"
+                  />
+                </div>
               </div>
             )}
           </motion.div>
@@ -95,7 +179,7 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
             </div>
           </Link>
 
-          {canEdit && (
+          {showDropdown && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -107,10 +191,48 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                  <Pencil className="h-4 w-4" />
-                  {t("edit")}
-                </DropdownMenuItem>
+                {canEdit && (
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-4 w-4" />
+                    {t("edit")}
+                  </DropdownMenuItem>
+                )}
+                {canEdit && isHardcoverConfigured && <DropdownMenuSeparator />}
+                {isHardcoverConfigured && !isLinkedToHardcover && (
+                  <DropdownMenuItem onClick={() => setHardcoverSyncOpen(true)}>
+                    <Image
+                      src="/hardcover.svg"
+                      alt="Hardcover"
+                      width={16}
+                      height={16}
+                      className="dark:invert"
+                    />
+                    {t("syncWithHardcover")}
+                  </DropdownMenuItem>
+                )}
+                {isHardcoverConfigured && isLinkedToHardcover && (
+                  <DropdownMenuItem onClick={handleUnlink} disabled={isUnlinking}>
+                    <Image
+                      src="/hardcover.svg"
+                      alt="Hardcover"
+                      width={16}
+                      height={16}
+                      className="dark:invert"
+                    />
+                    {isUnlinking ? tLink("unlinking") : t("unlinkFromHardcover")}
+                  </DropdownMenuItem>
+                )}
+                {canDelete && (canEdit || isHardcoverConfigured) && <DropdownMenuSeparator />}
+                {canDelete && (
+                  <DropdownMenuItem
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {isDeleting ? tDelete("deleting") : t("delete")}
+                  </DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -122,6 +244,24 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
           audiobook={audiobook}
           open={editOpen}
           onOpenChange={setEditOpen}
+        />
+      )}
+
+      {isHardcoverConfigured && (
+        <HardcoverSyncDialog
+          audiobookId={audiobook.id}
+          audiobookTitle={audiobook.title}
+          open={hardcoverSyncOpen}
+          onOpenChange={setHardcoverSyncOpen}
+        />
+      )}
+
+      {canDelete && (
+        <DeleteAudiobookDialog
+          audiobookId={audiobook.id}
+          audiobookTitle={audiobook.title}
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
         />
       )}
     </>

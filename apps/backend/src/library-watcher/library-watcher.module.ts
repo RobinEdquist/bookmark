@@ -8,8 +8,10 @@ import { AudiobookDetectorService } from './audiobook-detector.service';
 import { AudiobookImporterService } from './audiobook-importer.service';
 import { ImportQueueService } from './import-queue.service';
 import { EmbeddedMetadataProvider } from './metadata/embedded-metadata.provider';
+import { HardcoverModule } from '../hardcover/hardcover.module';
 
 @Module({
+  imports: [HardcoverModule],
   controllers: [LibraryWatcherController],
   providers: [
     LibraryWatcherService,

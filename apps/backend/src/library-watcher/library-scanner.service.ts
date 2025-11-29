@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import * as fs from 'fs/promises';
+import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import { AudiobookDetectorService } from './audiobook-detector.service';
@@ -12,6 +13,7 @@ export interface ScanResult {
   added: number;
   missing: number;
   restored: number;
+  deleted: number;
   errors: Array<{ path: string; error: string }>;
 }
 
@@ -40,6 +42,7 @@ export class LibraryScannerService {
       added: 0,
       missing: 0,
       restored: 0,
+      deleted: 0,
       errors: [],
     };
 
@@ -64,7 +67,6 @@ export class LibraryScannerService {
 
     for (let i = 0; i < existingAudiobooks.length; i++) {
       const audiobook = existingAudiobooks[i];
-      const exists = await this.pathExists(audiobook.filePath);
 
       this.updateProgress({
         phase: 'reconciling',
@@ -72,6 +74,22 @@ export class LibraryScannerService {
         processed: i + 1,
         currentFile: audiobook.filePath,
       });
+
+      // Resolve relative path to absolute for filesystem check
+      const absolutePath = path.join(libraryPath, audiobook.filePath);
+      const exists = await this.pathExists(absolutePath);
+
+      // Handle hidden audiobooks: if files are gone, delete from DB entirely
+      if (audiobook.status === 'hidden') {
+        if (!exists) {
+          await this.deleteAudiobookFromDb(audiobook.id);
+          result.deleted++;
+          this.logger.debug(
+            `Deleted hidden audiobook (files missing): ${audiobook.filePath}`,
+          );
+        }
+        continue;
+      }
 
       if (!exists && audiobook.status !== 'missing') {
         await this.db
@@ -93,10 +111,14 @@ export class LibraryScannerService {
     // Phase 2: Scan for new audiobooks
     this.updateProgress({ phase: 'scanning', total: 0, processed: 0 });
 
+    // existingPaths are relative (from DB), convert detected unit paths to relative for comparison
     const existingPaths = new Set(existingAudiobooks.map((a) => a.filePath));
     const detectedUnits = await this.audiobookDetector.detectAudiobookUnits(libraryPath);
 
-    const newUnits = detectedUnits.filter((unit) => !existingPaths.has(unit.path));
+    const newUnits = detectedUnits.filter((unit) => {
+      const relativeUnitPath = path.relative(libraryPath, unit.path);
+      return !existingPaths.has(relativeUnitPath);
+    });
 
     this.updateProgress({
       phase: 'importing',
@@ -115,7 +137,7 @@ export class LibraryScannerService {
       });
 
       try {
-        const id = await this.audiobookImporter.importAudiobook(unit);
+        const id = await this.audiobookImporter.importAudiobook(unit, libraryPath);
         if (id) {
           result.added++;
         }
@@ -135,7 +157,7 @@ export class LibraryScannerService {
     this.currentProgress = null;
 
     this.logger.log(
-      `Reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.errors.length} errors`,
+      `Reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
     );
 
     return result;
@@ -148,6 +170,13 @@ export class LibraryScannerService {
     } catch {
       return false;
     }
+  }
+
+  private async deleteAudiobookFromDb(id: string): Promise<void> {
+    // Delete the audiobook - related records are deleted via ON DELETE CASCADE
+    await this.db
+      .delete(audiobooksSchema.audiobooks)
+      .where(eq(audiobooksSchema.audiobooks.id, id));
   }
 
   private updateProgress(progress: ScanProgress): void {

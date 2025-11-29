@@ -1,0 +1,1 @@
+ALTER TABLE "app_settings" ADD COLUMN "hardcover_auto_sync_on_import" boolean DEFAULT false NOT NULL;

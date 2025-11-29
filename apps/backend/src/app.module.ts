@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -19,6 +20,7 @@ import { createAuthInstance } from './auth/auth.provider';
 @Module({
   imports: [
     ConfigModule.forRoot(),
+    ScheduleModule.forRoot(),
     DatabaseModule,
     AuthModule.forRootAsync({
       imports: [DatabaseModule, ConfigModule],

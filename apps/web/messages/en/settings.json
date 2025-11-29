@@ -164,17 +164,39 @@
       "validating": "Validating...",
       "disconnect": "Disconnect",
       "disconnecting": "Disconnecting...",
-      "searchPlaceholder": "Search for a book...",
+      "searchPlaceholder": "Query...",
       "search": "Search",
       "searching": "Searching...",
       "searchResults": "Search Results",
       "noResults": "No results found",
+      "autoSync": {
+        "label": "Auto-sync on import",
+        "description": "Automatically fetch metadata from Hardcover when new audiobooks are imported"
+      },
+      "syncQueue": {
+        "title": "Sync Queue",
+        "description": "Status of automatic Hardcover syncing",
+        "pending": "{count} pending",
+        "failed": "{count} failed",
+        "reviewLabel": "Failed syncs requiring review",
+        "unknownAudiobook": "Unknown audiobook",
+        "unknownError": "Unknown error",
+        "linkManually": "Link manually",
+        "dismiss": "Dismiss",
+        "toast": {
+          "dismissed": "Item dismissed",
+          "dismissFailed": "Failed to dismiss item"
+        }
+      },
       "toast": {
         "connected": "Connected to Hardcover",
         "connectionFailed": "Failed to connect",
         "disconnected": "Disconnected from Hardcover",
         "disconnectFailed": "Failed to disconnect",
-        "searchFailed": "Search failed"
+        "searchFailed": "Search failed",
+        "autoSyncEnabled": "Auto-sync enabled",
+        "autoSyncDisabled": "Auto-sync disabled",
+        "autoSyncFailed": "Failed to update auto-sync setting"
       }
     }
   }

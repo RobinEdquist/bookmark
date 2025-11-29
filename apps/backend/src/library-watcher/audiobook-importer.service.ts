@@ -8,6 +8,7 @@ import * as audiobooksSchema from '../audiobooks/schema';
 import { EmbeddedMetadataProvider, AudioFileInfo } from './metadata/embedded-metadata.provider';
 import { AudiobookDetectorService, AudiobookUnit } from './audiobook-detector.service';
 import { ImportErrorsService } from '../import-errors/import-errors.service';
+import { HardcoverService } from '../hardcover/hardcover.service';
 
 @Injectable()
 export class AudiobookImporterService {
@@ -19,17 +20,24 @@ export class AudiobookImporterService {
     private metadataProvider: EmbeddedMetadataProvider,
     private audiobookDetector: AudiobookDetectorService,
     private importErrorsService: ImportErrorsService,
+    private hardcoverService: HardcoverService,
   ) {}
 
-  async importAudiobook(unit: AudiobookUnit): Promise<string | null> {
+  async importAudiobook(
+    unit: AudiobookUnit,
+    libraryPath: string,
+  ): Promise<string | null> {
     const primaryFile = unit.files[0];
 
+    // Convert paths to be relative to the library folder
+    const relativeUnitPath = path.relative(libraryPath, unit.path);
+
     try {
-      // Check if already exists
+      // Check if already exists (using relative path)
       const existing = await this.db
         .select({ id: audiobooksSchema.audiobooks.id })
         .from(audiobooksSchema.audiobooks)
-        .where(eq(audiobooksSchema.audiobooks.filePath, unit.path))
+        .where(eq(audiobooksSchema.audiobooks.filePath, relativeUnitPath))
         .limit(1);
 
       if (existing.length > 0) {
@@ -62,7 +70,7 @@ export class AudiobookImporterService {
       // Convert year-only publishedDate to full date format (PostgreSQL date type requires YYYY-MM-DD)
       const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
 
-      // Create audiobook record
+      // Create audiobook record (storing relative path)
       const [audiobook] = await this.db
         .insert(audiobooksSchema.audiobooks)
         .values({
@@ -75,17 +83,18 @@ export class AudiobookImporterService {
           duration: totalDuration,
           // For embedded covers, don't store a URL - extract on-demand from audio file
           coverSource: metadata.hasEmbeddedCover ? 'embedded' : undefined,
-          filePath: unit.path,
+          filePath: relativeUnitPath,
           status: 'available',
         })
         .returning();
 
-      // Create file records
+      // Create file records (storing relative paths)
       for (let i = 0; i < fileInfos.length; i++) {
         const fileInfo = fileInfos[i];
+        const relativeFilePath = path.relative(libraryPath, fileInfo.filePath);
         await this.db.insert(audiobooksSchema.audiobookFiles).values({
           audiobookId: audiobook.id,
-          filePath: fileInfo.filePath,
+          filePath: relativeFilePath,
           fileName: fileInfo.fileName,
           order: i,
           duration: fileInfo.duration,
@@ -122,6 +131,19 @@ export class AudiobookImporterService {
 
       // Clear any previous errors for this path
       await this.importErrorsService.clearResolvedByPath(unit.path);
+
+      // Queue for Hardcover auto-sync if enabled
+      try {
+        const autoSyncEnabled = await this.hardcoverService.getAutoSyncOnImport();
+        if (autoSyncEnabled) {
+          await this.hardcoverService.addToSyncQueue(audiobook.id);
+        }
+      } catch (error) {
+        // Don't fail import if queue addition fails
+        this.logger.warn(
+          `Failed to queue audiobook ${audiobook.id} for Hardcover sync: ${error}`,
+        );
+      }
 
       this.logger.log(`Imported audiobook: ${title} (${audiobook.id})`);
       return audiobook.id;

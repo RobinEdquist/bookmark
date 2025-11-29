@@ -40,5 +40,10 @@ export const queryKeys = {
   hardcover: {
     all: ["hardcover"] as const,
     status: () => [...queryKeys.hardcover.all, "status"] as const,
+    link: (audiobookId: string) =>
+      [...queryKeys.hardcover.all, "link", audiobookId] as const,
+    search: (audiobookId: string, page?: number) =>
+      [...queryKeys.hardcover.all, "search", audiobookId, page] as const,
+    queueStatus: () => [...queryKeys.hardcover.all, "queue", "status"] as const,
   },
 } as const;

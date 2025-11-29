@@ -1,12 +1,14 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, ilike, or, desc, asc, SQL, and, inArray, isNotNull } from 'drizzle-orm';
+import { eq, ne, ilike, or, desc, asc, SQL, and, inArray, isNotNull } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
+import * as hardcoverSchema from '../hardcover/schema';
 import { EmbeddedMetadataProvider } from '../library-watcher/metadata/embedded-metadata.provider';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
+import { AppSettingsService } from '../app-settings/app-settings.service';
 
 export interface AudiobookListItem {
   id: string;
@@ -15,8 +17,12 @@ export interface AudiobookListItem {
   duration: number | null;
   coverUrl: string | null;
   createdAt: Date;
+  status: 'available' | 'missing' | 'importing';
   authors: { id: string; name: string }[];
   series: { id: string; name: string; order: string }[];
+  hardcoverLinked: boolean;
+  hardcoverRating: number | null;
+  hardcoverRatingsCount: number | null;
 }
 
 export interface AudiobookFilters {
@@ -37,7 +43,19 @@ export class AudiobooksService {
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<typeof schema>,
     private metadataProvider: EmbeddedMetadataProvider,
+    private appSettingsService: AppSettingsService,
   ) {}
+
+  /**
+   * Convert a relative file path (stored in DB) to an absolute path using the library path
+   */
+  private async resolveFilePath(relativePath: string): Promise<string> {
+    const libraryPath = await this.appSettingsService.getLibraryPath();
+    if (!libraryPath) {
+      throw new Error('Library path not configured');
+    }
+    return path.join(libraryPath, relativePath);
+  }
 
   async findAll(
     filters: AudiobookFilters = {},
@@ -53,6 +71,9 @@ export class AudiobooksService {
 
     // Build where conditions
     const conditions: SQL[] = [];
+
+    // Always exclude hidden audiobooks
+    conditions.push(ne(schema.audiobooks.status, 'hidden'));
 
     if (search) {
       conditions.push(
@@ -91,6 +112,34 @@ export class AudiobooksService {
       .limit(limit)
       .offset(offset);
 
+    // Get all audiobook IDs for batch fetching
+    const audiobookIds = audiobooks.map((ab) => ab.id);
+
+    // Batch fetch hardcover links with rating data
+    const hardcoverLinks =
+      audiobookIds.length > 0
+        ? await this.db
+            .select({
+              audiobookId: hardcoverSchema.hardcoverBooks.audiobookId,
+              rating: hardcoverSchema.hardcoverBooks.rating,
+              ratingsCount: hardcoverSchema.hardcoverBooks.ratingsCount,
+            })
+            .from(hardcoverSchema.hardcoverBooks)
+            .where(
+              inArray(hardcoverSchema.hardcoverBooks.audiobookId, audiobookIds),
+            )
+        : [];
+
+    const hardcoverDataMap = new Map(
+      hardcoverLinks.map((l) => [
+        l.audiobookId,
+        {
+          rating: l.rating ? parseFloat(l.rating) : null,
+          ratingsCount: l.ratingsCount,
+        },
+      ]),
+    );
+
     // Fetch authors and series for each audiobook
     const result: AudiobookListItem[] = await Promise.all(
       audiobooks.map(async (ab) => {
@@ -120,6 +169,8 @@ export class AudiobooksService {
           )
           .where(eq(schema.audiobookSeries.audiobookId, ab.id));
 
+        const hardcoverData = hardcoverDataMap.get(ab.id);
+
         return {
           id: ab.id,
           title: ab.title,
@@ -127,8 +178,13 @@ export class AudiobooksService {
           duration: ab.duration,
           coverUrl: this.getCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
           createdAt: ab.createdAt,
+          // Hidden audiobooks are filtered out in the query, so status is never 'hidden' here
+          status: ab.status as 'available' | 'missing' | 'importing',
           authors,
           series: seriesData,
+          hardcoverLinked: !!hardcoverData,
+          hardcoverRating: hardcoverData?.rating ?? null,
+          hardcoverRatingsCount: hardcoverData?.ratingsCount ?? null,
         };
       }),
     );
@@ -262,7 +318,9 @@ export class AudiobooksService {
     // If there's an external cover file stored next to the audiobook
     if (coverUrl && coverSource !== 'embedded') {
       try {
-        const data = await fs.readFile(coverUrl);
+        // coverUrl is stored as relative path, resolve it
+        const absoluteCoverPath = await this.resolveFilePath(coverUrl);
+        const data = await fs.readFile(absoluteCoverPath);
         const ext = path.extname(coverUrl).toLowerCase();
         const mimeType =
           ext === '.png'
@@ -287,11 +345,14 @@ export class AudiobooksService {
         .limit(1);
 
       if (files.length > 0) {
-        return this.metadataProvider.extractCover(files[0].filePath);
+        // filePath is stored as relative, resolve to absolute
+        const absoluteFilePath = await this.resolveFilePath(files[0].filePath);
+        return this.metadataProvider.extractCover(absoluteFilePath);
       }
 
       // Fallback: if filePath is the audio file itself (single-file audiobook)
-      return this.metadataProvider.extractCover(filePath);
+      const absoluteAudiobookPath = await this.resolveFilePath(filePath);
+      return this.metadataProvider.extractCover(absoluteAudiobookPath);
     }
 
     return null;
@@ -614,7 +675,9 @@ export class AudiobooksService {
     let timeOffset = 0;
 
     for (const file of files) {
-      const extractedChapters = await this.metadataProvider.extractChapters(file.filePath);
+      // Resolve relative path to absolute
+      const absoluteFilePath = await this.resolveFilePath(file.filePath);
+      const extractedChapters = await this.metadataProvider.extractChapters(absoluteFilePath);
 
       if (extractedChapters.length > 0) {
         // Insert chapters with proper ordering and time offset for multi-file audiobooks
@@ -637,5 +700,61 @@ export class AudiobooksService {
     }
 
     return { count: totalChapters };
+  }
+
+  async delete(id: string, deleteFiles: boolean): Promise<void> {
+    // Get audiobook details first
+    const audiobook = await this.db
+      .select({
+        id: schema.audiobooks.id,
+        filePath: schema.audiobooks.filePath,
+        status: schema.audiobooks.status,
+      })
+      .from(schema.audiobooks)
+      .where(eq(schema.audiobooks.id, id))
+      .limit(1);
+
+    if (audiobook.length === 0) {
+      throw new NotFoundException('Audiobook not found');
+    }
+
+    const { filePath, status } = audiobook[0];
+
+    // Determine if we should fully delete from DB:
+    // - If deleteFiles is true (user wants to delete files)
+    // - If status is 'missing' (files are already gone, no point keeping record)
+    const shouldDeleteFromDb = deleteFiles || status === 'missing';
+
+    if (shouldDeleteFromDb) {
+      // Delete files from disk if requested and not already missing
+      if (deleteFiles && status !== 'missing') {
+        try {
+          const absolutePath = await this.resolveFilePath(filePath);
+          const stat = await fs.stat(absolutePath);
+
+          if (stat.isDirectory()) {
+            // Delete entire directory for multi-file audiobooks
+            await fs.rm(absolutePath, { recursive: true, force: true });
+          } else {
+            // Delete single file
+            await fs.unlink(absolutePath);
+          }
+        } catch (error) {
+          // Log but continue with DB deletion if file removal fails
+          console.error(`Failed to delete files for audiobook ${id}:`, error);
+        }
+      }
+
+      // Delete the audiobook - related records are deleted via ON DELETE CASCADE
+      await this.db
+        .delete(schema.audiobooks)
+        .where(eq(schema.audiobooks.id, id));
+    } else {
+      // Keep files but hide from library
+      await this.db
+        .update(schema.audiobooks)
+        .set({ status: 'hidden' })
+        .where(eq(schema.audiobooks.id, id));
+    }
   }
 }

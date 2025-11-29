@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -16,7 +16,10 @@ import {
 } from "@repo/ui/components/ui/accordion";
 import { useAudiobook } from "../../../lib/use-audiobooks";
 import { useMyPermissions } from "../../../lib/use-users";
+import { useHardcoverStatus } from "../../../lib/use-hardcover";
 import { EditAudiobookDialog } from "../../../components/audiobooks/edit-audiobook-dialog";
+import { HardcoverSyncDialog } from "../../../components/audiobooks/hardcover-sync-dialog";
+import { HardcoverLinkCard } from "../../../components/audiobooks/hardcover-link-card";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "—";
@@ -38,6 +41,13 @@ function formatChapterTime(seconds: number): string {
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
 export default function AudiobookDetailPage({
   params,
 }: {
@@ -47,10 +57,13 @@ export default function AudiobookDetailPage({
   const t = useTranslations("audiobooks.detail");
   const { data: audiobook, isLoading, error } = useAudiobook(id);
   const { data: permissions } = useMyPermissions();
+  const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const [editOpen, setEditOpen] = useState(false);
+  const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState<string | undefined>(undefined);
+  const [filesOpen, setFilesOpen] = useState<string | undefined>(undefined);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -98,6 +111,22 @@ export default function AudiobookDetailPage({
             </Link>
           </Button>
           <h1 className="flex-1 truncate text-lg font-medium">{audiobook.title}</h1>
+          {isHardcoverConfigured && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setHardcoverSyncOpen(true)}
+              title={t("syncWithHardcover")}
+            >
+              <Image
+                src="/hardcover.svg"
+                alt="Hardcover"
+                width={20}
+                height={20}
+                className="dark:invert"
+              />
+            </Button>
+          )}
           {canEdit && (
             <Button
               variant="ghost"
@@ -160,6 +189,11 @@ export default function AudiobookDetailPage({
                   </span>
                 ))}
               </div>
+            )}
+
+            {/* Hardcover Link */}
+            {isHardcoverConfigured && (
+              <HardcoverLinkCard audiobookId={id} />
             )}
           </div>
 
@@ -347,6 +381,82 @@ export default function AudiobookDetailPage({
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
+
+            {/* Files */}
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              value={filesOpen}
+              onValueChange={setFilesOpen}
+            >
+              <AccordionItem value="files" className="border-b-0">
+                <AccordionTrigger className="hover:no-underline">
+                  <span className="flex items-center gap-2 font-semibold">
+                    <FileAudio className="h-4 w-4" />
+                    {t("files")} ({audiobook.files.length})
+                  </span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  {audiobook.files.length > 0 ? (
+                    <div className="rounded-lg border border-border/50 mt-2 overflow-hidden">
+                      <AnimatePresence mode="sync">
+                        {filesOpen === "files" && audiobook.files.map((file, index) => {
+                          const staggerDelay = Math.min(index * 0.03, 0.5);
+
+                          return (
+                            <motion.div
+                              key={file.id}
+                              initial={{ opacity: 0, x: -12 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -12 }}
+                              transition={{
+                                duration: 0.2,
+                                delay: staggerDelay,
+                                ease: [0.32, 0.72, 0, 1],
+                              }}
+                              className={`px-4 py-3 ${
+                                index !== audiobook.files.length - 1
+                                  ? "border-b border-border/50"
+                                  : ""
+                              }`}
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-sm font-medium" title={file.filePath}>
+                                    {file.fileName}
+                                  </p>
+                                  <p className="truncate text-xs text-muted-foreground" title={file.filePath}>
+                                    {file.filePath}
+                                  </p>
+                                </div>
+                                <div className="shrink-0 text-right">
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatDuration(file.duration)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatFileSize(file.sizeBytes)}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
+                                <span>{file.format.toUpperCase()}</span>
+                                {file.bitrate && <span>{Math.round(file.bitrate / 1000)} kbps</span>}
+                                {file.sampleRate && <span>{(file.sampleRate / 1000).toFixed(1)} kHz</span>}
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {t("noFiles")}
+                    </p>
+                  )}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
         </motion.div>
       </div>
@@ -356,6 +466,15 @@ export default function AudiobookDetailPage({
           audiobook={audiobook}
           open={editOpen}
           onOpenChange={setEditOpen}
+        />
+      )}
+
+      {isHardcoverConfigured && (
+        <HardcoverSyncDialog
+          audiobookId={id}
+          audiobookTitle={audiobook.title}
+          open={hardcoverSyncOpen}
+          onOpenChange={setHardcoverSyncOpen}
         />
       )}
     </main>

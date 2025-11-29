@@ -74,10 +74,10 @@ export function EditAudiobookDialog({
   const { data: existingGenres = [] } = useGenres();
   const { data: existingTags = [] } = useTags();
 
-  // For list items, fetch full details
+  // For list items, fetch full details only when dialog is open
   const isListItem = audiobook && !("description" in audiobook);
   const { data: fullAudiobook } = useAudiobook(
-    isListItem && audiobook ? audiobook.id : ""
+    isListItem && audiobook && open ? audiobook.id : ""
   );
 
   const audiobookData = isListItem ? fullAudiobook : (audiobook as AudiobookDetail);

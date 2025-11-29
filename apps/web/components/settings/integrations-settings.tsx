@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ExternalLink, Check, X } from "lucide-react";
+import { ExternalLink, Check, X, AlertCircle, Clock, Trash2, Link as LinkIcon } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -15,22 +16,33 @@ import {
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
+import { Switch } from "@repo/ui/components/ui/switch";
+import { Badge } from "@repo/ui/components/ui/badge";
 import {
   useHardcoverStatus,
   useHardcoverConnect,
   useHardcoverDisconnect,
   useHardcoverSearch,
+  useHardcoverAutoSync,
+  useHardcoverQueueStatus,
+  useHardcoverDismissFailedItem,
+  type FailedSyncItem,
 } from "../../lib/use-hardcover";
+import { HardcoverSyncDialog } from "../audiobooks/hardcover-sync-dialog";
 
 export function IntegrationsSettings() {
   const t = useTranslations("settings.integrations");
-  const { isConfigured, isLoading } = useHardcoverStatus();
+  const { isConfigured, autoSyncOnImport, isLoading } = useHardcoverStatus();
   const { connect, isConnecting } = useHardcoverConnect();
   const { disconnect, isDisconnecting } = useHardcoverDisconnect();
   const { search, isSearching, searchResult, clearResult } = useHardcoverSearch();
+  const { setAutoSync, isUpdating: isUpdatingAutoSync } = useHardcoverAutoSync();
+  const { pendingCount, failedCount, failedItems } = useHardcoverQueueStatus();
+  const { dismissItem, isDismissing } = useHardcoverDismissFailedItem();
 
   const [apiKey, setApiKey] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [syncDialogItem, setSyncDialogItem] = useState<FailedSyncItem | null>(null);
 
   const handleConnect = async () => {
     try {
@@ -64,11 +76,53 @@ export function IntegrationsSettings() {
     if (!searchQuery.trim()) return;
 
     try {
-      await search(searchQuery);
+      await search({ query: searchQuery });
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : t("hardcover.toast.searchFailed")
       );
+    }
+  };
+
+  const handleAutoSyncToggle = async (enabled: boolean) => {
+    try {
+      await setAutoSync(enabled);
+      toast.success(
+        enabled
+          ? t("hardcover.toast.autoSyncEnabled")
+          : t("hardcover.toast.autoSyncDisabled")
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("hardcover.toast.autoSyncFailed")
+      );
+    }
+  };
+
+  const handleDismissItem = async (id: string) => {
+    try {
+      await dismissItem(id);
+      toast.success(t("hardcover.syncQueue.toast.dismissed"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("hardcover.syncQueue.toast.dismissFailed")
+      );
+    }
+  };
+
+  const handleManualLink = (item: FailedSyncItem) => {
+    setSyncDialogItem(item);
+  };
+
+  const handleSyncDialogClose = () => {
+    setSyncDialogItem(null);
+  };
+
+  const handleSyncDialogSuccess = async () => {
+    setSyncDialogItem(null);
+    // Dismiss the failed item after successful manual link
+    if (syncDialogItem) {
+      await dismissItem(syncDialogItem.id);
     }
   };
 
@@ -164,6 +218,108 @@ export function IntegrationsSettings() {
                 </Button>
               </div>
 
+              <fieldset className="flex items-center justify-between rounded-lg border p-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="auto-sync-enabled" className="text-base font-medium">
+                    {t("hardcover.autoSync.label")}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t("hardcover.autoSync.description")}
+                  </p>
+                </div>
+                <Switch
+                  id="auto-sync-enabled"
+                  checked={autoSyncOnImport}
+                  onCheckedChange={handleAutoSyncToggle}
+                  disabled={isUpdatingAutoSync}
+                  aria-describedby="auto-sync-description"
+                />
+              </fieldset>
+
+              {/* Sync Queue Status */}
+              {(pendingCount > 0 || failedCount > 0) && (
+                <div className="rounded-lg border p-4 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{t("hardcover.syncQueue.title")}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {t("hardcover.syncQueue.description")}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {pendingCount > 0 && (
+                        <Badge variant="secondary" className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {t("hardcover.syncQueue.pending", { count: pendingCount })}
+                        </Badge>
+                      )}
+                      {failedCount > 0 && (
+                        <Badge variant="destructive" className="flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          {t("hardcover.syncQueue.failed", { count: failedCount })}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Failed Items List */}
+                  {failedItems.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>{t("hardcover.syncQueue.reviewLabel")}</Label>
+                      <div className="space-y-2 max-h-96 overflow-y-auto">
+                        {failedItems.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center gap-3 rounded-lg border bg-card p-3"
+                          >
+                            {item.audiobook?.coverUrl ? (
+                              <Image
+                                src={item.audiobook.coverUrl}
+                                alt={item.audiobook.title}
+                                width={48}
+                                height={48}
+                                className="rounded object-cover"
+                              />
+                            ) : (
+                              <div className="h-12 w-12 rounded bg-muted flex items-center justify-center">
+                                <AlertCircle className="h-5 w-5 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">
+                                {item.audiobook?.title || t("hardcover.syncQueue.unknownAudiobook")}
+                              </p>
+                              <p className="text-sm text-destructive truncate">
+                                {item.errorMessage || t("hardcover.syncQueue.unknownError")}
+                              </p>
+                            </div>
+                            <div className="flex gap-2 shrink-0">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleManualLink(item)}
+                                title={t("hardcover.syncQueue.linkManually")}
+                              >
+                                <LinkIcon className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDismissItem(item.id)}
+                                disabled={isDismissing}
+                                title={t("hardcover.syncQueue.dismiss")}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div className="flex gap-2">
                   <Input
@@ -194,6 +350,17 @@ export function IntegrationsSettings() {
           )}
         </CardContent>
       </Card>
+
+      {/* Manual Link Dialog */}
+      {syncDialogItem?.audiobook && (
+        <HardcoverSyncDialog
+          audiobookId={syncDialogItem.audiobook.id}
+          audiobookTitle={syncDialogItem.audiobook.title}
+          open={!!syncDialogItem}
+          onOpenChange={(open) => !open && handleSyncDialogClose()}
+          onSuccess={handleSyncDialogSuccess}
+        />
+      )}
     </div>
   );
 }
