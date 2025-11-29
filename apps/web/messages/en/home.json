@@ -1,0 +1,23 @@
+{
+  "stats": {
+    "audiobooks": "Audiobooks",
+    "totalDuration": "Total Duration",
+    "series": "Series",
+    "authors": "Authors"
+  },
+  "continueListening": {
+    "title": "Continue Listening",
+    "emptyTitle": "Ready to start?",
+    "emptyDescription": "Pick an audiobook from your library to begin listening.",
+    "browseLibrary": "Browse Library"
+  },
+  "recentlyAdded": {
+    "title": "Recently Added",
+    "seeAll": "See all"
+  },
+  "recentlyUpdatedSeries": {
+    "title": "Recently Updated Series",
+    "seeAll": "See all",
+    "bookCount": "{count, plural, one {# book} other {# books}}"
+  }
+}

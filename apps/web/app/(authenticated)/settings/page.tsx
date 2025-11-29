@@ -20,7 +20,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!isPending && !isAdmin) {
-      router.replace("/libraries");
+      router.replace("/home");
     }
   }, [isPending, isAdmin, router]);
 

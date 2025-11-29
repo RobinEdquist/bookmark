@@ -16,6 +16,17 @@ export const queryKeys = {
       [...queryKeys.libraries.all, "list", filters] as const,
     detail: (id: string) => [...queryKeys.libraries.all, "detail", id] as const,
   },
+  library: {
+    all: ["library"] as const,
+    stats: () => [...queryKeys.library.all, "stats"] as const,
+  },
+  series: {
+    all: ["series"] as const,
+    list: (filters?: { limit?: number; offset?: number }) =>
+      [...queryKeys.series.all, "list", filters] as const,
+    recentlyUpdated: (limit?: number) =>
+      [...queryKeys.series.all, "recently-updated", limit] as const,
+  },
   audiobooks: {
     all: ["audiobooks"] as const,
     list: (filters?: {

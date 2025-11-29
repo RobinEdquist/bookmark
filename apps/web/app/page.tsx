@@ -29,7 +29,7 @@ export default function Home() {
 
   useEffect(() => {
     if (session?.user) {
-      router.push("/libraries");
+      router.push("/home");
     }
   }, [session, router]);
 

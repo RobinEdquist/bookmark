@@ -1,0 +1,23 @@
+{
+  "stats": {
+    "audiobooks": "Ljudböcker",
+    "totalDuration": "Total speltid",
+    "series": "Serier",
+    "authors": "Författare"
+  },
+  "continueListening": {
+    "title": "Fortsätt lyssna",
+    "emptyTitle": "Redo att börja?",
+    "emptyDescription": "Välj en ljudbok från ditt bibliotek för att börja lyssna.",
+    "browseLibrary": "Bläddra i biblioteket"
+  },
+  "recentlyAdded": {
+    "title": "Nyligen tillagda",
+    "seeAll": "Visa alla"
+  },
+  "recentlyUpdatedSeries": {
+    "title": "Nyligen uppdaterade serier",
+    "seeAll": "Visa alla",
+    "bookCount": "{count, plural, one {# bok} other {# böcker}}"
+  }
+}

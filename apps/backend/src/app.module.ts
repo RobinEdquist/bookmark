@@ -12,6 +12,8 @@ import { AudiobooksModule } from './audiobooks/audiobooks.module';
 import { ImportErrorsModule } from './import-errors/import-errors.module';
 import { LibraryWatcherModule } from './library-watcher/library-watcher.module';
 import { HardcoverModule } from './hardcover/hardcover.module';
+import { LibraryModule } from './library/library.module';
+import { SeriesModule } from './series/series.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -36,6 +38,8 @@ import { createAuthInstance } from './auth/auth.provider';
     ImportErrorsModule,
     LibraryWatcherModule,
     HardcoverModule,
+    LibraryModule,
+    SeriesModule,
   ],
   controllers: [],
   providers: [

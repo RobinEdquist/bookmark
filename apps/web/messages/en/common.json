@@ -14,6 +14,7 @@
     "back": "Back"
   },
   "nav": {
+    "home": "Home",
     "library": "Library",
     "settings": "Settings",
     "signOut": "Sign Out"

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Library, Settings, LogOut } from "lucide-react";
+import { Home, Library, Settings, LogOut } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
@@ -14,6 +14,7 @@ interface SidebarProps {
 }
 
 const navItems = [
+  { href: "/home", icon: Home, labelKey: "home" },
   { href: "/libraries", icon: Library, labelKey: "library" },
 ] as const;
 
@@ -35,7 +36,7 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
       {/* Header */}
       <div className="flex h-16 items-center border-b px-6">
         <Link
-          href="/libraries"
+          href="/home"
           className="text-lg font-semibold tracking-tight"
           onClick={handleNavClick}
         >
