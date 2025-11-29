@@ -131,6 +131,7 @@ export function useAudiobooks(filters: AudiobookFilters = {}) {
   return useQuery({
     queryKey: queryKeys.audiobooks.list(filters),
     queryFn: () => fetchAudiobooks(filters),
+    placeholderData: (previousData) => previousData,
   });
 }
 

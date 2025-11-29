@@ -6,7 +6,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, ne, ilike, or, desc, asc, SQL, and, inArray, isNotNull } from 'drizzle-orm';
+import { eq, ne, ilike, or, desc, asc, SQL, and, inArray, isNotNull, exists, sql } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import sharp from 'sharp';
@@ -83,12 +83,41 @@ export class AudiobooksService {
     conditions.push(ne(schema.audiobooks.status, 'hidden'));
 
     if (search) {
-      conditions.push(
-        or(
-          ilike(schema.audiobooks.title, `%${search}%`),
-          ilike(schema.audiobooks.subtitle, `%${search}%`),
-        )!,
+      const searchPattern = `%${search}%`;
+
+      // Search in title and subtitle
+      const titleMatch = ilike(schema.audiobooks.title, searchPattern);
+      const subtitleMatch = ilike(schema.audiobooks.subtitle, searchPattern);
+
+      // Search in authors (via audiobookAuthors -> people)
+      const authorMatch = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(schema.audiobookAuthors)
+          .innerJoin(schema.people, eq(schema.audiobookAuthors.personId, schema.people.id))
+          .where(
+            and(
+              eq(schema.audiobookAuthors.audiobookId, schema.audiobooks.id),
+              ilike(schema.people.name, searchPattern),
+            ),
+          ),
       );
+
+      // Search in series (via audiobookSeries -> series)
+      const seriesMatch = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(schema.audiobookSeries)
+          .innerJoin(schema.series, eq(schema.audiobookSeries.seriesId, schema.series.id))
+          .where(
+            and(
+              eq(schema.audiobookSeries.audiobookId, schema.audiobooks.id),
+              ilike(schema.series.name, searchPattern),
+            ),
+          ),
+      );
+
+      conditions.push(or(titleMatch, subtitleMatch, authorMatch, seriesMatch)!);
     }
 
     if (language) {
