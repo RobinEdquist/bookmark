@@ -11,6 +11,7 @@
     "bookInSeries": "Book {order} in {series}",
     "edit": "Edit",
     "delete": "Delete",
+    "changeCover": "Change cover",
     "syncWithHardcover": "Link to Hardcover",
     "unlinkFromHardcover": "Unlink from Hardcover",
     "linkedToHardcover": "Linked to Hardcover",
@@ -55,6 +56,7 @@
     "backToLibrary": "Back to Library",
     "play": "Play",
     "edit": "Edit",
+    "changeCover": "Change cover",
     "syncWithHardcover": "Sync with Hardcover",
     "author": "Author",
     "narrator": "Narrator",
@@ -104,6 +106,34 @@
     "toast": {
       "unlinked": "Unlinked from Hardcover",
       "unlinkFailed": "Failed to unlink audiobook"
+    }
+  },
+  "changeCover": {
+    "title": "Change Cover",
+    "description": "Update the cover image for \"{title}\"",
+    "tabs": {
+      "upload": "Upload",
+      "url": "From URL"
+    },
+    "upload": {
+      "dropzone": "Click or drag and drop to upload",
+      "formats": "JPG, PNG, or WebP (max 2 MB)"
+    },
+    "url": {
+      "label": "Image URL",
+      "placeholder": "https://example.com/cover.jpg",
+      "preview": "Preview"
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "success": "Cover updated successfully",
+    "errors": {
+      "invalidType": "Invalid file type. Please use JPG, PNG, or WebP.",
+      "tooLarge": "File is too large. Maximum size is 2 MB.",
+      "invalidUrl": "Please enter a valid URL",
+      "loadFailed": "Failed to load image from URL",
+      "failed": "Failed to update cover"
     }
   },
   "edit": {

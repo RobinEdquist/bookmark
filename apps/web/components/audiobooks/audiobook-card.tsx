@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, Star, AlertTriangle, Trash2 } from "lucide-react";
+import { MoreVertical, Pencil, Star, AlertTriangle, Trash2, ImageIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ import { queryKeys } from "../../lib/query-keys";
 import { EditAudiobookDialog } from "./edit-audiobook-dialog";
 import { HardcoverSyncDialog } from "./hardcover-sync-dialog";
 import { DeleteAudiobookDialog } from "./delete-audiobook-dialog";
+import { ChangeCoverDialog } from "./change-cover-dialog";
 
 interface AudiobookCardProps {
   audiobook: AudiobookListItem;
@@ -36,6 +37,7 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
   const [editOpen, setEditOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const { unlinkAudiobook, isUnlinking } = useHardcoverUnlinkAudiobook();
@@ -197,6 +199,12 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
                     {t("edit")}
                   </DropdownMenuItem>
                 )}
+                {canEdit && (
+                  <DropdownMenuItem onClick={() => setChangeCoverOpen(true)}>
+                    <ImageIcon className="h-4 w-4" />
+                    {t("changeCover")}
+                  </DropdownMenuItem>
+                )}
                 {canEdit && isHardcoverConfigured && <DropdownMenuSeparator />}
                 {isHardcoverConfigured && !isLinkedToHardcover && (
                   <DropdownMenuItem onClick={() => setHardcoverSyncOpen(true)}>
@@ -262,6 +270,16 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
           audiobookTitle={audiobook.title}
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
+        />
+      )}
+
+      {canEdit && (
+        <ChangeCoverDialog
+          audiobookId={audiobook.id}
+          audiobookTitle={audiobook.title}
+          currentCoverUrl={audiobook.coverUrl}
+          open={changeCoverOpen}
+          onOpenChange={setChangeCoverOpen}
         />
       )}
     </>

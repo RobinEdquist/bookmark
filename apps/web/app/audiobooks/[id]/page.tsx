@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -20,6 +20,7 @@ import { useHardcoverStatus } from "../../../lib/use-hardcover";
 import { EditAudiobookDialog } from "../../../components/audiobooks/edit-audiobook-dialog";
 import { HardcoverSyncDialog } from "../../../components/audiobooks/hardcover-sync-dialog";
 import { HardcoverLinkCard } from "../../../components/audiobooks/hardcover-link-card";
+import { ChangeCoverDialog } from "../../../components/audiobooks/change-cover-dialog";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "—";
@@ -60,6 +61,7 @@ export default function AudiobookDetailPage({
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const [editOpen, setEditOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
+  const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState<string | undefined>(undefined);
@@ -131,7 +133,18 @@ export default function AudiobookDetailPage({
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setChangeCoverOpen(true)}
+              title={t("changeCover")}
+            >
+              <ImageIcon className="h-5 w-5" />
+            </Button>
+          )}
+          {canEdit && (
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setEditOpen(true)}
+              title={t("edit")}
             >
               <Pencil className="h-5 w-5" />
             </Button>
@@ -475,6 +488,16 @@ export default function AudiobookDetailPage({
           audiobookTitle={audiobook.title}
           open={hardcoverSyncOpen}
           onOpenChange={setHardcoverSyncOpen}
+        />
+      )}
+
+      {canEdit && (
+        <ChangeCoverDialog
+          audiobookId={id}
+          audiobookTitle={audiobook.title}
+          currentCoverUrl={audiobook.coverUrl}
+          open={changeCoverOpen}
+          onOpenChange={setChangeCoverOpen}
         />
       )}
     </main>

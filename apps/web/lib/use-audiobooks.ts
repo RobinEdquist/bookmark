@@ -381,3 +381,46 @@ export function useDeleteAudiobook() {
     },
   });
 }
+
+interface UpdateCoverParams {
+  audiobookId: string;
+  file?: File;
+  url?: string;
+}
+
+async function updateCover({ audiobookId, file, url }: UpdateCoverParams): Promise<{ coverUrl: string }> {
+  const formData = new FormData();
+
+  if (file) {
+    formData.append("file", file);
+  } else if (url) {
+    formData.append("url", url);
+  }
+
+  const response = await fetch(`/api/audiobooks/${audiobookId}/cover`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to update cover");
+  }
+
+  return response.json();
+}
+
+export function useUpdateCover() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateCover,
+    onSuccess: (_, { audiobookId }) => {
+      // Invalidate the list to refresh cover thumbnails
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+      // Invalidate the detail to refresh cover
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(audiobookId) });
+    },
+  });
+}

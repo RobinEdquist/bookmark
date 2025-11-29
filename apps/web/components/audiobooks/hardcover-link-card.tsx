@@ -138,7 +138,7 @@ export function HardcoverLinkCard({ audiobookId }: HardcoverLinkCardProps) {
               {t("genres")}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {link.genres.slice(0, 5).map((genre) => (
+              {link.genres.map((genre) => (
                 <span
                   key={genre}
                   className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
@@ -146,11 +146,6 @@ export function HardcoverLinkCard({ audiobookId }: HardcoverLinkCardProps) {
                   {genre}
                 </span>
               ))}
-              {link.genres.length > 5 && (
-                <span className="text-xs text-muted-foreground">
-                  +{link.genres.length - 5} {t("more")}
-                </span>
-              )}
             </div>
           </div>
         )}
@@ -163,7 +158,7 @@ export function HardcoverLinkCard({ audiobookId }: HardcoverLinkCardProps) {
               {t("moods")}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {link.moods.slice(0, 5).map((mood) => (
+              {link.moods.map((mood) => (
                 <span
                   key={mood}
                   className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
@@ -171,11 +166,6 @@ export function HardcoverLinkCard({ audiobookId }: HardcoverLinkCardProps) {
                   {mood}
                 </span>
               ))}
-              {link.moods.length > 5 && (
-                <span className="text-xs text-muted-foreground">
-                  +{link.moods.length - 5} {t("more")}
-                </span>
-              )}
             </div>
           </div>
         )}
@@ -188,7 +178,7 @@ export function HardcoverLinkCard({ audiobookId }: HardcoverLinkCardProps) {
               {t("tags")}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {link.tags.slice(0, 5).map((tag) => (
+              {link.tags.map((tag) => (
                 <span
                   key={tag}
                   className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
@@ -196,11 +186,6 @@ export function HardcoverLinkCard({ audiobookId }: HardcoverLinkCardProps) {
                   {tag}
                 </span>
               ))}
-              {link.tags.length > 5 && (
-                <span className="text-xs text-muted-foreground">
-                  +{link.tags.length - 5} {t("more")}
-                </span>
-              )}
             </div>
           </div>
         )}

@@ -12,9 +12,14 @@ import {
   StreamableFile,
   HttpCode,
   HttpStatus,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
+import { UpdateCoverDto } from './dto/update-cover.dto';
 
 @Controller('audiobooks')
 export class AudiobooksController {
@@ -84,6 +89,42 @@ export class AudiobooksController {
   @Post(':id/refresh-chapters')
   async refreshChapters(@Param('id') id: string) {
     return this.audiobooksService.refreshChapters(id);
+  }
+
+  @Post(':id/cover')
+  @UseInterceptors(FileInterceptor('file'))
+  async updateCover(
+    @Param('id') id: string,
+    @UploadedFile() file?: Express.Multer.File,
+    @Body() body?: UpdateCoverDto,
+  ) {
+    // Either file or URL must be provided
+    if (!file && !body?.url) {
+      throw new BadRequestException('Either file or url must be provided');
+    }
+
+    if (file && body?.url) {
+      throw new BadRequestException('Provide either file or url, not both');
+    }
+
+    if (file) {
+      // Validate file size (2 MB)
+      if (file.size > 2 * 1024 * 1024) {
+        throw new BadRequestException('File size must be less than 2 MB');
+      }
+
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+      if (!allowedTypes.includes(file.mimetype)) {
+        throw new BadRequestException(
+          'Invalid file type. Allowed: JPG, PNG, WebP',
+        );
+      }
+
+      return this.audiobooksService.updateCoverFromFile(id, file.buffer);
+    } else {
+      return this.audiobooksService.updateCoverFromUrl(id, body!.url!);
+    }
   }
 
   @Get(':id/cover')

@@ -1,8 +1,15 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, ne, ilike, or, desc, asc, SQL, and, inArray, isNotNull } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import sharp from 'sharp';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import * as hardcoverSchema from '../hardcover/schema';
@@ -700,6 +707,116 @@ export class AudiobooksService {
     }
 
     return { count: totalChapters };
+  }
+
+  async updateCoverFromFile(
+    id: string,
+    buffer: Buffer,
+  ): Promise<{ coverUrl: string }> {
+    return this.processAndSaveCover(id, buffer);
+  }
+
+  async updateCoverFromUrl(
+    id: string,
+    url: string,
+  ): Promise<{ coverUrl: string }> {
+    // Fetch the image from URL
+    let response: Response;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'SimpleAudiobookVault/1.0',
+        },
+      });
+
+      clearTimeout(timeout);
+    } catch (error) {
+      throw new UnprocessableEntityException(
+        `Failed to fetch image from URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+
+    if (!response.ok) {
+      throw new UnprocessableEntityException(
+        `Failed to fetch image: HTTP ${response.status}`,
+      );
+    }
+
+    // Validate content type
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.startsWith('image/')) {
+      throw new BadRequestException('URL does not point to an image');
+    }
+
+    // Check content length if available
+    const contentLength = response.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
+      throw new BadRequestException('Image size exceeds 2 MB limit');
+    }
+
+    // Read the response body
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Double-check size after download
+    if (buffer.length > 2 * 1024 * 1024) {
+      throw new BadRequestException('Image size exceeds 2 MB limit');
+    }
+
+    return this.processAndSaveCover(id, buffer);
+  }
+
+  private async processAndSaveCover(
+    id: string,
+    buffer: Buffer,
+  ): Promise<{ coverUrl: string }> {
+    // Get audiobook to find library path
+    const audiobook = await this.db
+      .select({
+        filePath: schema.audiobooks.filePath,
+      })
+      .from(schema.audiobooks)
+      .where(eq(schema.audiobooks.id, id))
+      .limit(1);
+
+    if (audiobook.length === 0) {
+      throw new NotFoundException('Audiobook not found');
+    }
+
+    // Process image with sharp
+    let processedBuffer: Buffer;
+    try {
+      processedBuffer = await sharp(buffer)
+        .resize(1000, 1000, {
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+    } catch {
+      throw new BadRequestException('Invalid image file');
+    }
+
+    // Resolve the audiobook's library path and save cover
+    const absolutePath = await this.resolveFilePath(audiobook[0].filePath);
+    const coverPath = path.join(absolutePath, 'cover.jpg');
+
+    await fs.writeFile(coverPath, processedBuffer);
+
+    // Update database
+    await this.db
+      .update(schema.audiobooks)
+      .set({
+        coverUrl: 'cover.jpg',
+        coverSource: 'uploaded',
+      })
+      .where(eq(schema.audiobooks.id, id));
+
+    return { coverUrl: `/api/audiobooks/${id}/cover` };
   }
 
   async delete(id: string, deleteFiles: boolean): Promise<void> {

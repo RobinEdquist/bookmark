@@ -11,6 +11,7 @@
     "bookInSeries": "Bok {order} i {series}",
     "edit": "Redigera",
     "delete": "Ta bort",
+    "changeCover": "Ändra omslag",
     "syncWithHardcover": "Länka till Hardcover",
     "unlinkFromHardcover": "Avlänka från Hardcover",
     "linkedToHardcover": "Länkad till Hardcover",
@@ -55,6 +56,7 @@
     "backToLibrary": "Tillbaka till biblioteket",
     "play": "Spela",
     "edit": "Redigera",
+    "changeCover": "Ändra omslag",
     "syncWithHardcover": "Synka med Hardcover",
     "author": "Författare",
     "narrator": "Uppläsare",
@@ -104,6 +106,34 @@
     "toast": {
       "unlinked": "Avlänkad från Hardcover",
       "unlinkFailed": "Kunde inte avlänka ljudbok"
+    }
+  },
+  "changeCover": {
+    "title": "Ändra omslag",
+    "description": "Uppdatera omslagsbilden för \"{title}\"",
+    "tabs": {
+      "upload": "Ladda upp",
+      "url": "Från URL"
+    },
+    "upload": {
+      "dropzone": "Klicka eller dra och släpp för att ladda upp",
+      "formats": "JPG, PNG eller WebP (max 2 MB)"
+    },
+    "url": {
+      "label": "Bild-URL",
+      "placeholder": "https://example.com/omslag.jpg",
+      "preview": "Förhandsgranska"
+    },
+    "cancel": "Avbryt",
+    "save": "Spara",
+    "saving": "Sparar...",
+    "success": "Omslaget har uppdaterats",
+    "errors": {
+      "invalidType": "Ogiltig filtyp. Använd JPG, PNG eller WebP.",
+      "tooLarge": "Filen är för stor. Maxstorlek är 2 MB.",
+      "invalidUrl": "Ange en giltig URL",
+      "loadFailed": "Kunde inte ladda bilden från URL",
+      "failed": "Kunde inte uppdatera omslaget"
     }
   },
   "edit": {
