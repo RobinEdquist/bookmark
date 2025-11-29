@@ -2,16 +2,14 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Button } from "@repo/ui/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
-import { LibrariesSettings } from "../../components/settings/libraries-settings";
-import { UsersSettings } from "../../components/settings/users-settings";
-import { AppearanceSettings } from "../../components/settings/appearance-settings";
-import { IntegrationsSettings } from "../../components/settings/integrations-settings";
-import { authClient } from "../../lib/auth-client";
+import { LibrariesSettings } from "../../../components/settings/libraries-settings";
+import { UsersSettings } from "../../../components/settings/users-settings";
+import { AppearanceSettings } from "../../../components/settings/appearance-settings";
+import { IntegrationsSettings } from "../../../components/settings/integrations-settings";
+import { authClient } from "../../../lib/auth-client";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -28,25 +26,20 @@ export default function SettingsPage() {
 
   if (isPending || !isAdmin) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
+      <div className="flex h-full items-center justify-center">
         <LoadingSpinner size="lg" className="text-primary" />
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen p-8">
+    <div className="p-8">
       <div className="mx-auto max-w-5xl space-y-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-            <p className="text-muted-foreground">
-              {t("description")}
-            </p>
-          </div>
-          <Button variant="outline" asChild>
-            <Link href="/libraries">{t("backToLibraries")}</Link>
-          </Button>
+        <header>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground">
+            {t("description")}
+          </p>
         </header>
 
         <Tabs defaultValue="libraries">
@@ -74,6 +67,6 @@ export default function SettingsPage() {
           </TabsContent>
         </Tabs>
       </div>
-    </main>
+    </div>
   );
 }

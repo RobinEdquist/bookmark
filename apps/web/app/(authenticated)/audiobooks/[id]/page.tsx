@@ -14,13 +14,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@repo/ui/components/ui/accordion";
-import { useAudiobook } from "../../../lib/use-audiobooks";
-import { useMyPermissions } from "../../../lib/use-users";
-import { useHardcoverStatus } from "../../../lib/use-hardcover";
-import { EditAudiobookDialog } from "../../../components/audiobooks/edit-audiobook-dialog";
-import { HardcoverSyncDialog } from "../../../components/audiobooks/hardcover-sync-dialog";
-import { HardcoverLinkCard } from "../../../components/audiobooks/hardcover-link-card";
-import { ChangeCoverDialog } from "../../../components/audiobooks/change-cover-dialog";
+import { useAudiobook } from "../../../../lib/use-audiobooks";
+import { useMyPermissions } from "../../../../lib/use-users";
+import { useHardcoverStatus } from "../../../../lib/use-hardcover";
+import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audiobook-dialog";
+import { HardcoverSyncDialog } from "../../../../components/audiobooks/hardcover-sync-dialog";
+import { HardcoverLinkCard } from "../../../../components/audiobooks/hardcover-link-card";
+import { ChangeCoverDialog } from "../../../../components/audiobooks/change-cover-dialog";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "—";

@@ -14,6 +14,7 @@
     "back": "Tillbaka"
   },
   "nav": {
+    "library": "Bibliotek",
     "settings": "Inställningar",
     "signOut": "Logga ut"
   }
