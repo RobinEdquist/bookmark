@@ -85,7 +85,6 @@ export function HardcoverSyncDialog({
               alt="Hardcover"
               width={24}
               height={24}
-              className="dark:invert"
             />
             {t("title")}
           </DialogTitle>

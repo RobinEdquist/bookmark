@@ -151,7 +151,6 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
                     alt="Hardcover"
                     width={14}
                     height={14}
-                    className="dark:invert"
                   />
                 </div>
               </div>
@@ -213,7 +212,6 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
                       alt="Hardcover"
                       width={16}
                       height={16}
-                      className="dark:invert"
                     />
                     {t("syncWithHardcover")}
                   </DropdownMenuItem>
@@ -225,7 +223,6 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
                       alt="Hardcover"
                       width={16}
                       height={16}
-                      className="dark:invert"
                     />
                     {isUnlinking ? tLink("unlinking") : t("unlinkFromHardcover")}
                   </DropdownMenuItem>

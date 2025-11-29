@@ -125,7 +125,6 @@ export default function AudiobookDetailPage({
                 alt="Hardcover"
                 width={20}
                 height={20}
-                className="dark:invert"
               />
             </Button>
           )}

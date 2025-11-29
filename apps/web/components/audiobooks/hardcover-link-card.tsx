@@ -64,7 +64,6 @@ export function HardcoverLinkCard({ audiobookId }: HardcoverLinkCardProps) {
               alt="Hardcover"
               width={20}
               height={20}
-              className="dark:invert"
             />
             {t("title")}
           </CardTitle>
