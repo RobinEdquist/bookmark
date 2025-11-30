@@ -6,7 +6,7 @@
     "description": "Anpassa hur appen ser ut",
     "theme": {
       "label": "Tema",
-      "description": "Välj ditt föredragna tema"
+      "description": "Välj ditt föredragna färgtema"
     },
     "language": {
       "label": "Språk",

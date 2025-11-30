@@ -27,6 +27,17 @@ const languageNames: Record<string, string> = {
 
 const themeNames: Record<string, string> = {
   default: "Default",
+  "tokyo-night": "Tokyo Night",
+  "tokyo-storm": "Tokyo Storm",
+  "tokyo-moon": "Tokyo Moon",
+  "tokyo-day": "Tokyo Day",
+  synthwave: "SynthWave '84",
+  "catppuccin-mocha": "Catppuccin Mocha",
+  "catppuccin-macchiato": "Catppuccin Macchiato",
+  "catppuccin-frappe": "Catppuccin Frappé",
+  "catppuccin-latte": "Catppuccin Latte",
+  "yin-yang": "Yin & Yang",
+  "yang-yin": "Yang & Yin",
 };
 
 export function AppearanceSettings() {

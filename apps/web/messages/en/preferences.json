@@ -6,7 +6,7 @@
     "description": "Customize how the app looks",
     "theme": {
       "label": "Theme",
-      "description": "Choose your preferred theme"
+      "description": "Choose your preferred color theme"
     },
     "language": {
       "label": "Language",

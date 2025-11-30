@@ -20,8 +20,8 @@ import { UsersService } from './users.service';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto, BanUserDto } from './dto/update-user.dto';
-import type { UpdateLanguageDto } from './dto/update-language.dto';
-import type { UpdateThemeDto } from './dto/update-theme.dto';
+import { UpdateLanguageDto } from './dto/update-language.dto';
+import { UpdateThemeDto } from './dto/update-theme.dto';
 import type { UserResponse, UserListResponse } from './dto/user-response.dto';
 
 @Controller('users')

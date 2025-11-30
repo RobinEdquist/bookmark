@@ -3,7 +3,20 @@
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-export const themes = ["default"] as const;
+export const themes = [
+  "default",
+  "tokyo-night",
+  "tokyo-storm",
+  "tokyo-moon",
+  "tokyo-day",
+  "synthwave",
+  "catppuccin-mocha",
+  "catppuccin-macchiato",
+  "catppuccin-frappe",
+  "catppuccin-latte",
+  "yin-yang",
+  "yang-yin",
+] as const;
 export type Theme = (typeof themes)[number];
 
 export function isValidTheme(theme: string): theme is Theme {
