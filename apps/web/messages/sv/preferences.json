@@ -1,0 +1,12 @@
+{
+  "title": "Inställningar",
+  "description": "Anpassa dina personliga inställningar",
+  "appearance": {
+    "title": "Utseende",
+    "description": "Anpassa hur appen ser ut",
+    "language": {
+      "label": "Språk",
+      "description": "Välj ditt föredragna språk"
+    }
+  }
+}

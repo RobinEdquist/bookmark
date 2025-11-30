@@ -1,0 +1,12 @@
+{
+  "title": "Preferences",
+  "description": "Customize your personal settings",
+  "appearance": {
+    "title": "Appearance",
+    "description": "Customize how the app looks",
+    "language": {
+      "label": "Language",
+      "description": "Choose your preferred language"
+    }
+  }
+}

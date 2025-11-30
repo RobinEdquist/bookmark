@@ -25,7 +25,7 @@ const languageNames: Record<string, string> = {
 };
 
 export function AppearanceSettings() {
-  const t = useTranslations("settings.appearance");
+  const t = useTranslations("preferences.appearance");
   const { locale, setLocale, isUpdating, locales } = useLocale();
 
   return (
