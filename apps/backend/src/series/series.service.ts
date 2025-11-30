@@ -156,7 +156,7 @@ export class SeriesService {
   private getCoverUrl(
     id: string,
     coverUrl: string | null,
-    coverSource: 'embedded' | 'uploaded' | null,
+    coverSource: 'embedded' | 'uploaded' | 'filesystem' | null,
   ): string | null {
     if (coverSource || coverUrl) {
       return `/api/audiobooks/${id}/cover`;

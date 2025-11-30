@@ -6,6 +6,7 @@ import * as appSettingsSchema from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as hardcoverSchema from './schema';
 import { eq, asc, and } from 'drizzle-orm';
+import { AppEventsService } from '../events/app-events.service';
 
 type CombinedSchema = typeof appSettingsSchema &
   typeof audiobooksSchema &
@@ -49,6 +50,7 @@ export interface HardcoverBookDocument {
   content_warnings: string[];
   contribution_types: string[];
   contributions: HardcoverContribution[];
+  description: string;
   featured_series: HardcoverFeaturedSeries;
   genres: string[];
   has_audiobook: boolean;
@@ -135,6 +137,7 @@ export class HardcoverService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<CombinedSchema>,
+    private appEvents: AppEventsService,
   ) {}
 
   private createClient(apiKey: string): GraphQLClient {
@@ -423,6 +426,7 @@ export class HardcoverService {
       hardcoverId: hardcoverBook.id,
       slug: hardcoverBook.slug,
       title: hardcoverBook.title,
+      description: hardcoverBook.description || null,
       authorNames: hardcoverBook.author_names || [],
       contentWarnings: hardcoverBook.content_warnings || [],
       featuredSeriesName: hardcoverBook.featured_series?.name || null,
@@ -459,6 +463,7 @@ export class HardcoverService {
         .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, audiobookId))
         .limit(1);
 
+      this.appEvents.hardcoverSyncCompleted(audiobookId);
       return updated[0];
     } else {
       // Insert new link
@@ -467,6 +472,7 @@ export class HardcoverService {
         .values(insertData)
         .returning();
 
+      this.appEvents.hardcoverSyncCompleted(audiobookId);
       return inserted[0];
     }
   }
@@ -487,6 +493,8 @@ export class HardcoverService {
     await this.db
       .delete(hardcoverSchema.hardcoverBooks)
       .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, audiobookId));
+
+    this.appEvents.audiobookUpdated(audiobookId);
   }
 
   // ============ Sync Queue Methods ============

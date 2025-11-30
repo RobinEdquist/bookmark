@@ -161,6 +161,7 @@ export class HardcoverController {
       compilation: false,
       contribution_types: [],
       contributions: [],
+      description: '',
       has_audiobook: false,
       has_ebook: false,
       lists_count: 0,
