@@ -10,6 +10,7 @@ import { AudiobookDetectorService, AudiobookUnit } from './audiobook-detector.se
 import { ImportErrorsService } from '../import-errors/import-errors.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
 import { AppEventsService } from '../events/app-events.service';
+import { WsEventsService } from '../events/ws-events.service';
 
 @Injectable()
 export class AudiobookImporterService {
@@ -23,6 +24,7 @@ export class AudiobookImporterService {
     private importErrorsService: ImportErrorsService,
     private hardcoverService: HardcoverService,
     private appEvents: AppEventsService,
+    private wsEvents: WsEventsService,
   ) {}
 
   async importAudiobook(
@@ -180,6 +182,7 @@ export class AudiobookImporterService {
 
       this.logger.log(`Imported audiobook: ${title} (${audiobook.id})`);
       this.appEvents.audiobookCreated(audiobook.id);
+      this.wsEvents.audiobookCreated(audiobook.id);
       return audiobook.id;
     } catch (error) {
       this.logger.error(`Failed to import audiobook at ${unit.path}: ${error}`);

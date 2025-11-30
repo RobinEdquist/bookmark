@@ -5,8 +5,9 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as appSettingsSchema from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as hardcoverSchema from './schema';
-import { eq, asc, and } from 'drizzle-orm';
+import { eq, asc, and, count } from 'drizzle-orm';
 import { AppEventsService } from '../events/app-events.service';
+import { WsEventsService } from '../events/ws-events.service';
 
 type CombinedSchema = typeof appSettingsSchema &
   typeof audiobooksSchema &
@@ -138,6 +139,7 @@ export class HardcoverService {
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<CombinedSchema>,
     private appEvents: AppEventsService,
+    private wsEvents: WsEventsService,
   ) {}
 
   private createClient(apiKey: string): GraphQLClient {
@@ -527,6 +529,28 @@ export class HardcoverService {
     });
 
     this.logger.log(`Added audiobook ${audiobookId} to Hardcover sync queue`);
+
+    // Emit updated status
+    this.emitHardcoverSyncStatus();
+  }
+
+  /**
+   * Emit current hardcover sync status to all connected WebSocket clients
+   */
+  private async emitHardcoverSyncStatus(): Promise<void> {
+    try {
+      const [pendingCount, failedItems] = await Promise.all([
+        this.getPendingQueueCount(),
+        this.getFailedQueueItems(),
+      ]);
+
+      this.wsEvents.hardcoverSyncStatusUpdated({
+        pendingCount,
+        failedCount: failedItems.length,
+      });
+    } catch (error) {
+      this.logger.error(`Failed to emit hardcover sync status: ${error}`);
+    }
   }
 
   async getNextPendingFromQueue(): Promise<

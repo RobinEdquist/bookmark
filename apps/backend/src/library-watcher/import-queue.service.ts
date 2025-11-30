@@ -178,8 +178,14 @@ export class ImportQueueService implements OnModuleDestroy {
     return this.pendingImports.size;
   }
 
-  getPendingPaths(): string[] {
-    return Array.from(this.pendingImports.keys());
+  /**
+   * Get folder names (not full paths) for pending imports
+   */
+  getPendingNames(): string[] {
+    return Array.from(this.pendingImports.keys()).map((fullPath) => {
+      // Extract just the folder/file name from the path
+      return path.basename(fullPath);
+    });
   }
 
   /**
@@ -188,7 +194,7 @@ export class ImportQueueService implements OnModuleDestroy {
   private emitImportStatus(): void {
     this.wsEvents.importStatusUpdated({
       pendingCount: this.getPendingCount(),
-      pendingPaths: this.getPendingPaths(),
+      pendingNames: this.getPendingNames(),
     });
   }
 }

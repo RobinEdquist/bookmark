@@ -57,20 +57,16 @@ export function TasksIndicator() {
                 <div className="text-sm text-muted-foreground">
                   {t("audiobooks", { count: importCount })}
                 </div>
-                {importStatus.pendingPaths.length > 0 && (
+                {importStatus.pendingNames.length > 0 && (
                   <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                    {importStatus.pendingPaths.slice(0, 3).map((path) => {
-                      // Extract just the folder name from the path
-                      const folderName = path.split("/").pop() || path;
-                      return (
-                        <li key={path} className="truncate" title={path}>
-                          • {folderName}
-                        </li>
-                      );
-                    })}
-                    {importStatus.pendingPaths.length > 3 && (
+                    {importStatus.pendingNames.slice(0, 3).map((name, index) => (
+                      <li key={index} className="truncate">
+                        • {name}
+                      </li>
+                    ))}
+                    {importStatus.pendingNames.length > 3 && (
                       <li className="text-muted-foreground/70">
-                        +{importStatus.pendingPaths.length - 3} {t("more")}
+                        +{importStatus.pendingNames.length - 3} {t("more")}
                       </li>
                     )}
                   </ul>

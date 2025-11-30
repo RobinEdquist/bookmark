@@ -21,7 +21,7 @@ export class TasksController {
     return {
       import: {
         pendingCount: this.importQueueService.getPendingCount(),
-        pendingPaths: this.importQueueService.getPendingPaths(),
+        pendingNames: this.importQueueService.getPendingNames(),
       },
       hardcoverSync: {
         pendingCount: pendingHardcoverCount,

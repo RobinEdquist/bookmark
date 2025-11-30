@@ -10,7 +10,7 @@ export interface WSEvent {
 
 export interface ImportTaskStatus {
   pendingCount: number;
-  pendingPaths: string[];
+  pendingNames: string[];
 }
 
 export interface HardcoverTaskStatus {
