@@ -1,0 +1,1 @@
+ALTER TABLE "user_audiobook_progress" ADD COLUMN "is_hidden" boolean DEFAULT false NOT NULL;

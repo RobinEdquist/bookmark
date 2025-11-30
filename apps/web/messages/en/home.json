@@ -9,7 +9,11 @@
     "title": "Continue Listening",
     "emptyTitle": "Ready to start?",
     "emptyDescription": "Pick an audiobook from your library to begin listening.",
-    "browseLibrary": "Browse Library"
+    "browseLibrary": "Browse Library",
+    "hide": "Hide from Continue Listening",
+    "hiding": "Hiding...",
+    "hideSuccess": "Hidden from Continue Listening",
+    "hideError": "Failed to hide audiobook"
   },
   "recentlyAdded": {
     "title": "Recently Added",

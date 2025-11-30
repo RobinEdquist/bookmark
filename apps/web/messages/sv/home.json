@@ -9,7 +9,11 @@
     "title": "Fortsätt lyssna",
     "emptyTitle": "Redo att börja?",
     "emptyDescription": "Välj en ljudbok från ditt bibliotek för att börja lyssna.",
-    "browseLibrary": "Bläddra i biblioteket"
+    "browseLibrary": "Bläddra i biblioteket",
+    "hide": "Dölj från Fortsätt lyssna",
+    "hiding": "Döljer...",
+    "hideSuccess": "Dold från Fortsätt lyssna",
+    "hideError": "Kunde inte dölja ljudboken"
   },
   "recentlyAdded": {
     "title": "Nyligen tillagda",

@@ -122,6 +122,7 @@ export class ProgressService {
           currentPosition: dto.position,
           completed: isCompleted,
           completedAt: isCompleted ? new Date() : sql`${progressSchema.userAudiobookProgress.completedAt}`,
+          isHidden: false, // Reset hidden when user plays again
           updatedAt: new Date(),
         },
       })
@@ -180,7 +181,12 @@ export class ProgressService {
         audiobookSchema.audiobooks,
         eq(progressSchema.userAudiobookProgress.audiobookId, audiobookSchema.audiobooks.id),
       )
-      .where(eq(progressSchema.userAudiobookProgress.userId, userId))
+      .where(
+        and(
+          eq(progressSchema.userAudiobookProgress.userId, userId),
+          eq(progressSchema.userAudiobookProgress.isHidden, false),
+        ),
+      )
       .orderBy(desc(progressSchema.userAudiobookProgress.updatedAt));
 
     return results.map(({ progress, audiobook }) => ({
@@ -303,5 +309,24 @@ export class ProgressService {
       },
       recentlyPlayed,
     };
+  }
+
+  /**
+   * Hide an audiobook from "continue listening"
+   */
+  async hideProgress(userId: string, audiobookId: string): Promise<void> {
+    const result = await this.db
+      .update(progressSchema.userAudiobookProgress)
+      .set({ isHidden: true })
+      .where(
+        and(
+          eq(progressSchema.userAudiobookProgress.userId, userId),
+          eq(progressSchema.userAudiobookProgress.audiobookId, audiobookId),
+        ),
+      );
+
+    if (result.rowCount === 0) {
+      throw new NotFoundException('Progress record not found');
+    }
   }
 }

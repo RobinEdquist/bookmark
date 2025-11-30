@@ -29,6 +29,7 @@ export const userAudiobookProgress = pgTable(
     currentPosition: integer('current_position').notNull().default(0), // seconds into audiobook
     completed: boolean('completed').notNull().default(false),
     completedAt: timestamp('completed_at'),
+    isHidden: boolean('is_hidden').notNull().default(false), // hidden from "continue listening"
     startedAt: timestamp('started_at').defaultNow().notNull(), // when user first played
     updatedAt: timestamp('updated_at')
       .defaultNow()

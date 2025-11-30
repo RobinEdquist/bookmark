@@ -86,4 +86,15 @@ export class ProgressController {
   ): Promise<{ id: string; durationSeconds: number }> {
     return this.progressService.createSession(session.user.id, audiobookId, dto);
   }
+
+  /**
+   * Hide an audiobook from "continue listening"
+   */
+  @Post(':audiobookId/hide')
+  async hideProgress(
+    @Param('audiobookId') audiobookId: string,
+    @Session() session: UserSession,
+  ): Promise<void> {
+    return this.progressService.hideProgress(session.user.id, audiobookId);
+  }
 }

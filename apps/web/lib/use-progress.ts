@@ -14,12 +14,10 @@ interface ProgressWithAudiobook extends AudiobookProgress {
   audiobook: {
     id: string;
     title: string;
-    subtitle: string | null;
     coverUrl: string | null;
     duration: number | null;
-    authors: { id: string; name: string }[];
-    narrators: { id: string; name: string }[];
   };
+  progressPercent: number;
 }
 
 interface ListeningStats {
@@ -138,6 +136,35 @@ export function useUpdateProgress() {
       // Invalidate the list to ensure consistency
       queryClient.invalidateQueries({
         queryKey: queryKeys.progress.list(),
+      });
+    },
+  });
+}
+
+async function hideProgress(audiobookId: string): Promise<void> {
+  const response = await fetch(`/api/progress/${audiobookId}/hide`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to hide progress");
+  }
+}
+
+export function useHideProgress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (audiobookId: string) => hideProgress(audiobookId),
+    onSuccess: () => {
+      // Invalidate the list to remove the hidden item
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.progress.list(),
+      });
+      // Also invalidate stats since recentlyPlayed uses getAllProgress
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.progress.stats(),
       });
     },
   });

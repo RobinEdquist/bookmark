@@ -120,6 +120,13 @@
       "when": 1764464241193,
       "tag": "0016_regular_hedge_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1764531016411,
+      "tag": "0017_illegal_sway",
+      "breakpoints": true
     }
   ]
 }
