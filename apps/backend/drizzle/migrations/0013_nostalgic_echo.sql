@@ -1,0 +1,1 @@
+ALTER TYPE "public"."cover_source" ADD VALUE 'filesystem';

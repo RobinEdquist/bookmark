@@ -11,11 +11,12 @@ import {
   index,
   numeric,
   primaryKey,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Enums
-export const coverSourceEnum = pgEnum('cover_source', ['embedded', 'uploaded']);
+export const coverSourceEnum = pgEnum('cover_source', ['embedded', 'uploaded', 'filesystem']);
 export const chapterSourceEnum = pgEnum('chapter_source', ['embedded', 'manual', 'external']);
 export const audiobookStatusEnum = pgEnum('audiobook_status', [
   'available',
@@ -44,6 +45,7 @@ export const audiobooks = pgTable(
     isExplicit: boolean('is_explicit').notNull().default(false),
     status: audiobookStatusEnum('status').notNull().default('available'),
     missingAt: timestamp('missing_at'),
+    manualFields: jsonb('manual_fields').$type<string[]>().default([]),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

@@ -1,0 +1,1 @@
+ALTER TABLE "audiobooks" ADD COLUMN "manual_fields" jsonb DEFAULT '[]'::jsonb;

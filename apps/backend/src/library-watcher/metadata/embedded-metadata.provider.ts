@@ -180,4 +180,29 @@ export class EmbeddedMetadataProvider {
       return null;
     }
   }
+
+  /**
+   * Find a cover image file in the given folder
+   * Returns the full path to the first image file found, or null if none
+   */
+  async findCoverInFolder(folderPath: string): Promise<string | null> {
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+
+    try {
+      const files = await fs.readdir(folderPath);
+      const imageFile = files.find((file) =>
+        imageExtensions.includes(path.extname(file).toLowerCase()),
+      );
+
+      if (imageFile) {
+        this.logger.debug(`Found cover image in folder: ${imageFile}`);
+        return path.join(folderPath, imageFile);
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.warn(`Failed to scan folder for cover image: ${error}`);
+      return null;
+    }
+  }
 }

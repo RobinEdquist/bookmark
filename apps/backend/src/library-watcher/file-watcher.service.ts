@@ -2,6 +2,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import * as chokidar from 'chokidar';
 import { ImportQueueService } from './import-queue.service';
+import { LibraryScannerService } from './library-scanner.service';
 
 @Injectable()
 export class FileWatcherService implements OnModuleDestroy {
@@ -9,7 +10,10 @@ export class FileWatcherService implements OnModuleDestroy {
   private watcher: chokidar.FSWatcher | null = null;
   private currentPath: string | null = null;
 
-  constructor(private importQueue: ImportQueueService) {}
+  constructor(
+    private importQueue: ImportQueueService,
+    private libraryScanner: LibraryScannerService,
+  ) {}
 
   async onModuleDestroy() {
     await this.stopWatching();
@@ -80,13 +84,12 @@ export class FileWatcherService implements OnModuleDestroy {
 
   private handleFileRemove(filePath: string): void {
     this.logger.debug(`File removed: ${filePath}`);
-    // File removal handling will be done during reconciliation
-    // Real-time removal tracking could be added here if needed
+    this.libraryScanner.handlePathRemoved(filePath, this.currentPath!);
   }
 
   private handleDirRemove(dirPath: string): void {
     this.logger.debug(`Directory removed: ${dirPath}`);
-    // Directory removal handling will be done during reconciliation
+    this.libraryScanner.handlePathRemoved(dirPath, this.currentPath!);
   }
 
   private handleError(error: Error): void {

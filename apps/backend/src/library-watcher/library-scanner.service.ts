@@ -1,13 +1,14 @@
 // apps/backend/src/library-watcher/library-scanner.service.ts
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import { AudiobookDetectorService } from './audiobook-detector.service';
 import { AudiobookImporterService } from './audiobook-importer.service';
+import { AppEventsService } from '../events/app-events.service';
 
 export interface ScanResult {
   added: number;
@@ -35,6 +36,7 @@ export class LibraryScannerService {
     private db: NodePgDatabase<typeof audiobooksSchema>,
     private audiobookDetector: AudiobookDetectorService,
     private audiobookImporter: AudiobookImporterService,
+    private appEvents: AppEventsService,
   ) {}
 
   async runReconciliationScan(libraryPath: string): Promise<ScanResult> {
@@ -47,6 +49,7 @@ export class LibraryScannerService {
     };
 
     this.logger.log(`Starting reconciliation scan of ${libraryPath}`);
+    this.appEvents.libraryScanStarted();
 
     // Phase 1: Check existing DB entries against filesystem
     this.updateProgress({ phase: 'reconciling', total: 0, processed: 0 });
@@ -160,6 +163,7 @@ export class LibraryScannerService {
       `Reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
     );
 
+    this.appEvents.libraryScanCompleted();
     return result;
   }
 
@@ -195,5 +199,43 @@ export class LibraryScannerService {
 
   isScanning(): boolean {
     return this.currentProgress !== null;
+  }
+
+  async handlePathRemoved(removedPath: string, libraryPath: string): Promise<void> {
+    const relativePath = path.relative(libraryPath, removedPath);
+
+    // Find audiobook that matches this path (could be exact match or parent folder)
+    const audiobooks = await this.db
+      .select({
+        id: audiobooksSchema.audiobooks.id,
+        filePath: audiobooksSchema.audiobooks.filePath,
+        status: audiobooksSchema.audiobooks.status,
+      })
+      .from(audiobooksSchema.audiobooks)
+      .where(
+        or(
+          eq(audiobooksSchema.audiobooks.filePath, relativePath),
+          sql`${audiobooksSchema.audiobooks.filePath} LIKE ${relativePath + '/%'}`,
+        ),
+      );
+
+    for (const audiobook of audiobooks) {
+      if (audiobook.status === 'hidden') {
+        // Hidden audiobook - delete from database
+        await this.deleteAudiobookFromDb(audiobook.id);
+        this.logger.log(
+          `Deleted hidden audiobook (files removed): ${audiobook.filePath}`,
+        );
+        this.appEvents.audiobookDeleted(audiobook.id);
+      } else {
+        // Non-hidden - mark as missing
+        await this.db
+          .update(audiobooksSchema.audiobooks)
+          .set({ status: 'missing', missingAt: new Date() })
+          .where(eq(audiobooksSchema.audiobooks.id, audiobook.id));
+        this.logger.log(`Marked audiobook as missing: ${audiobook.filePath}`);
+        this.appEvents.audiobookUpdated(audiobook.id);
+      }
+    }
   }
 }

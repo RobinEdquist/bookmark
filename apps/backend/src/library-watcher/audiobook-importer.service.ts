@@ -9,6 +9,7 @@ import { EmbeddedMetadataProvider, AudioFileInfo } from './metadata/embedded-met
 import { AudiobookDetectorService, AudiobookUnit } from './audiobook-detector.service';
 import { ImportErrorsService } from '../import-errors/import-errors.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
+import { AppEventsService } from '../events/app-events.service';
 
 @Injectable()
 export class AudiobookImporterService {
@@ -21,6 +22,7 @@ export class AudiobookImporterService {
     private audiobookDetector: AudiobookDetectorService,
     private importErrorsService: ImportErrorsService,
     private hardcoverService: HardcoverService,
+    private appEvents: AppEventsService,
   ) {}
 
   async importAudiobook(
@@ -54,6 +56,25 @@ export class AudiobookImporterService {
       // Extract metadata from primary file
       const metadata = await this.metadataProvider.extractMetadata(primaryFile);
 
+      // Determine cover source: embedded takes priority, then check filesystem
+      let coverSource: 'embedded' | 'filesystem' | undefined = undefined;
+      let coverUrl: string | undefined = undefined;
+
+      if (metadata.hasEmbeddedCover) {
+        coverSource = 'embedded';
+      } else {
+        // Check for cover image file in the audiobook folder
+        const filesystemCover =
+          await this.metadataProvider.findCoverInFolder(unit.path);
+        if (filesystemCover) {
+          coverSource = 'filesystem';
+          coverUrl = path.basename(filesystemCover); // Store just the filename
+          this.logger.debug(
+            `Using filesystem cover for ${unit.path}: ${coverUrl}`,
+          );
+        }
+      }
+
       // Get file info for all files
       const fileInfos: AudioFileInfo[] = [];
       for (const file of unit.files) {
@@ -81,8 +102,8 @@ export class AudiobookImporterService {
           language: metadata.language,
           publishedDate,
           duration: totalDuration,
-          // For embedded covers, don't store a URL - extract on-demand from audio file
-          coverSource: metadata.hasEmbeddedCover ? 'embedded' : undefined,
+          coverSource,
+          coverUrl,
           filePath: relativeUnitPath,
           status: 'available',
         })
@@ -105,8 +126,20 @@ export class AudiobookImporterService {
         });
       }
 
-      // Extract and create chapters (from primary file for M4B)
-      const chapters = await this.metadataProvider.extractChapters(primaryFile);
+      // Extract chapters from primary file (works for M4B with embedded chapters)
+      let chapters = await this.metadataProvider.extractChapters(primaryFile);
+      let chapterSource: 'embedded' | 'external' = 'embedded';
+
+      // If no embedded chapters and multi-file audiobook, generate from files
+      if (chapters.length === 0 && unit.type === 'multi-file' && fileInfos.length > 1) {
+        chapters = this.generateChaptersFromFiles(fileInfos);
+        chapterSource = 'external';
+        this.logger.debug(
+          `Generated ${chapters.length} chapters from files for ${unit.path}`,
+        );
+      }
+
+      // Create chapter records
       for (let i = 0; i < chapters.length; i++) {
         const chapter = chapters[i];
         await this.db.insert(audiobooksSchema.chapters).values({
@@ -115,7 +148,7 @@ export class AudiobookImporterService {
           startTime: chapter.startTime,
           endTime: chapter.endTime,
           order: i,
-          source: 'embedded',
+          source: chapterSource,
         });
       }
 
@@ -146,6 +179,7 @@ export class AudiobookImporterService {
       }
 
       this.logger.log(`Imported audiobook: ${title} (${audiobook.id})`);
+      this.appEvents.audiobookCreated(audiobook.id);
       return audiobook.id;
     } catch (error) {
       this.logger.error(`Failed to import audiobook at ${unit.path}: ${error}`);
@@ -177,6 +211,27 @@ export class AudiobookImporterService {
 
     // If already a valid date format, return as-is
     return dateString;
+  }
+
+  /**
+   * Generate chapters from individual audio files for multi-file audiobooks
+   * Each file becomes a chapter with cumulative timing
+   */
+  private generateChaptersFromFiles(
+    fileInfos: AudioFileInfo[],
+  ): Array<{ title: string; startTime: number; endTime: number }> {
+    let cumulativeTime = 0;
+
+    return fileInfos.map((file) => {
+      const startTime = cumulativeTime;
+      const endTime = cumulativeTime + file.duration;
+      cumulativeTime = endTime;
+
+      // Extract chapter title from filename (remove extension)
+      const title = path.basename(file.fileName, path.extname(file.fileName));
+
+      return { title, startTime, endTime };
+    });
   }
 
   private async createOrLinkPerson(
