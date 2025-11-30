@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -213,6 +213,40 @@ export default function AudiobookDetailPage({
                 </>
               )}
             </Button>
+
+            {/* Progress indicator */}
+            {progress && progress.position > 0 && audiobook.duration && (
+              <div
+                className="space-y-1.5"
+                title={t("progress.timeOf", {
+                  current: formatDuration(progress.position),
+                  total: formatDuration(audiobook.duration),
+                })}
+              >
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, Math.round((progress.position / audiobook.duration) * 100))}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                  {progress.completed ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <span>{t("progress.completed")}</span>
+                    </>
+                  ) : (
+                    <span>
+                      {t("progress.percentage", {
+                        percentage: Math.round((progress.position / audiobook.duration) * 100),
+                      })}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Genres and Tags */}
             {(audiobook.genres.length > 0 || audiobook.tags.length > 0) && (
