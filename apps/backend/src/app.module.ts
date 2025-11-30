@@ -14,6 +14,8 @@ import { LibraryWatcherModule } from './library-watcher/library-watcher.module';
 import { HardcoverModule } from './hardcover/hardcover.module';
 import { LibraryModule } from './library/library.module';
 import { SeriesModule } from './series/series.module';
+import { EventsModule } from './events/events.module';
+import { ProgressModule } from './progress/progress.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -40,6 +42,8 @@ import { createAuthInstance } from './auth/auth.provider';
     HardcoverModule,
     LibraryModule,
     SeriesModule,
+    EventsModule,
+    ProgressModule,
   ],
   controllers: [],
   providers: [
