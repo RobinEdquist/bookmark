@@ -3,9 +3,27 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
+export type MetadataSource = "manual" | "embedded" | "hardcover" | "filename" | "folder_image";
+
+export interface MetadataFieldPriority {
+  title: MetadataSource[];
+  subtitle: MetadataSource[];
+  author: MetadataSource[];
+  narrator: MetadataSource[];
+  description: MetadataSource[];
+  publisher: MetadataSource[];
+  publishedDate: MetadataSource[];
+  language: MetadataSource[];
+  genres: MetadataSource[];
+  series: MetadataSource[];
+  seriesOrder: MetadataSource[];
+  cover: MetadataSource[];
+}
+
 export interface Settings {
   signupsEnabled: boolean;
   libraryPath: string | null;
+  metadataPriority: MetadataFieldPriority;
   createdAt: string;
   updatedAt: string;
 }
@@ -13,6 +31,7 @@ export interface Settings {
 export interface UpdateSettingsDto {
   signupsEnabled?: boolean;
   libraryPath?: string;
+  metadataPriority?: MetadataFieldPriority;
 }
 
 async function fetchSettings(): Promise<Settings> {

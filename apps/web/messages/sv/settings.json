@@ -36,6 +36,30 @@
         "browse": "Kunde inte bläddra i mappen",
         "create": "Kunde inte skapa mapp"
       }
+    },
+    "metadataPriority": {
+      "title": "Metadataprioritet",
+      "description": "Konfigurera prioritetsordningen för varje metadatafält. Högre poster har företräde när data finns tillgänglig från flera källor.",
+      "fields": {
+        "title": "Titel",
+        "subtitle": "Undertitel",
+        "author": "Författare",
+        "narrator": "Inläsare",
+        "description": "Beskrivning",
+        "series": "Serie"
+      },
+      "alwaysFirst": "Alltid först",
+      "sources": {
+        "manual": "Manuell redigering",
+        "embedded": "Inbäddad metadata",
+        "hardcover": "Hardcover",
+        "filename": "Filnamn",
+        "folder_image": "Mappbild"
+      },
+      "toast": {
+        "updateSuccess": "Metadataprioritet uppdaterad",
+        "updateError": "Kunde inte uppdatera metadataprioritet"
+      }
     }
   },
   "users": {

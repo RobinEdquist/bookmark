@@ -5,12 +5,14 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import { eq } from 'drizzle-orm';
 import { DEFAULT_METADATA_PRIORITY, MetadataFieldPriority } from './schema';
+import { AppEventsService } from '../events/app-events.service';
 
 @Injectable()
 export class AppSettingsService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<typeof schema>,
+    private appEvents: AppEventsService,
   ) {}
 
   async getSettings() {
@@ -48,9 +50,11 @@ export class AppSettingsService {
         .insert(schema.appSettings)
         .values({ id: 'app_settings', ...updates })
         .returning();
+      this.appEvents.settingsUpdated();
       return newSettings;
     }
 
+    this.appEvents.settingsUpdated();
     return updated;
   }
 

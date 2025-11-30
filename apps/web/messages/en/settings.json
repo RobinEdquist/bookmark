@@ -36,6 +36,30 @@
         "browse": "Failed to browse directory",
         "create": "Failed to create folder"
       }
+    },
+    "metadataPriority": {
+      "title": "Metadata Priority",
+      "description": "Configure the priority order for each metadata field. Higher items take precedence when data is available from multiple sources.",
+      "fields": {
+        "title": "Title",
+        "subtitle": "Subtitle",
+        "author": "Author",
+        "narrator": "Narrator",
+        "description": "Description",
+        "series": "Series"
+      },
+      "alwaysFirst": "Always first",
+      "sources": {
+        "manual": "Manual Edit",
+        "embedded": "Embedded Metadata",
+        "hardcover": "Hardcover",
+        "filename": "Filename",
+        "folder_image": "Folder Image"
+      },
+      "toast": {
+        "updateSuccess": "Metadata priority updated",
+        "updateError": "Failed to update metadata priority"
+      }
     }
   },
   "users": {

@@ -20,18 +20,18 @@ export interface MetadataFieldPriority {
 }
 
 export const DEFAULT_METADATA_PRIORITY: MetadataFieldPriority = {
-  title: ['manual', 'embedded', 'filename'],
-  subtitle: ['manual', 'embedded'],
-  author: ['manual', 'embedded', 'filename'],
+  title: ['manual', 'embedded', 'hardcover', 'filename'],
+  subtitle: ['manual', 'embedded', 'hardcover'],
+  author: ['manual', 'embedded', 'hardcover', 'filename'],
   narrator: ['manual', 'embedded'],
-  description: ['manual', 'embedded'],
-  publisher: ['manual', 'embedded'],
-  publishedDate: ['manual', 'embedded'],
+  description: ['manual', 'embedded', 'hardcover'],
+  publisher: ['manual', 'embedded', 'hardcover'],
+  publishedDate: ['manual', 'embedded', 'hardcover'],
   language: ['manual', 'embedded'],
-  genres: ['manual', 'embedded'],
-  series: ['manual', 'embedded', 'filename'],
-  seriesOrder: ['manual', 'embedded', 'filename'],
-  cover: ['manual', 'embedded', 'folder_image'],
+  genres: ['manual', 'embedded', 'hardcover'],
+  series: ['manual', 'embedded', 'hardcover', 'filename'],
+  seriesOrder: ['manual', 'embedded', 'hardcover', 'filename'],
+  cover: ['manual', 'embedded', 'hardcover', 'folder_image'],
 };
 
 export const appSettings = pgTable(

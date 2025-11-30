@@ -10,10 +10,15 @@ import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { AppSettingsService } from './app-settings.service';
 import { Roles, RolesGuard } from '../auth/roles.guard';
 import * as fs from 'fs/promises';
+import {
+  MetadataFieldPriority,
+  DEFAULT_METADATA_PRIORITY,
+} from './schema';
 
 interface UpdateSettingsDto {
   signupsEnabled?: boolean;
   libraryPath?: string;
+  metadataPriority?: MetadataFieldPriority;
 }
 
 @Controller('settings')
@@ -35,6 +40,7 @@ export class AppSettingsController {
     return {
       signupsEnabled: settings.signupsEnabled,
       libraryPath: settings.libraryPath,
+      metadataPriority: settings.metadataPriority || DEFAULT_METADATA_PRIORITY,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };
@@ -44,7 +50,11 @@ export class AppSettingsController {
   @UseGuards(RolesGuard)
   @Roles('admin')
   async updateSettings(@Body() dto: UpdateSettingsDto) {
-    if (dto.signupsEnabled === undefined && dto.libraryPath === undefined) {
+    if (
+      dto.signupsEnabled === undefined &&
+      dto.libraryPath === undefined &&
+      dto.metadataPriority === undefined
+    ) {
       throw new BadRequestException('No settings provided to update');
     }
 
@@ -62,15 +72,21 @@ export class AppSettingsController {
       }
     }
 
-    const updates: { signupsEnabled?: boolean; libraryPath?: string } = {};
+    const updates: {
+      signupsEnabled?: boolean;
+      libraryPath?: string;
+      metadataPriority?: MetadataFieldPriority;
+    } = {};
     if (dto.signupsEnabled !== undefined) updates.signupsEnabled = dto.signupsEnabled;
     if (dto.libraryPath !== undefined) updates.libraryPath = dto.libraryPath;
+    if (dto.metadataPriority !== undefined) updates.metadataPriority = dto.metadataPriority;
 
     const settings = await this.appSettingsService.updateSettings(updates);
 
     return {
       signupsEnabled: settings.signupsEnabled,
       libraryPath: settings.libraryPath,
+      metadataPriority: settings.metadataPriority || DEFAULT_METADATA_PRIORITY,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };
