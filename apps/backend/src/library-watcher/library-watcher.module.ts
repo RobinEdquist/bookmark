@@ -22,6 +22,6 @@ import { HardcoverModule } from '../hardcover/hardcover.module';
     ImportQueueService,
     EmbeddedMetadataProvider,
   ],
-  exports: [LibraryWatcherService, EmbeddedMetadataProvider],
+  exports: [LibraryWatcherService, EmbeddedMetadataProvider, ImportQueueService],
 })
 export class LibraryWatcherModule {}

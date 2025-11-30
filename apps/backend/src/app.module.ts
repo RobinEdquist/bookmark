@@ -16,6 +16,7 @@ import { LibraryModule } from './library/library.module';
 import { SeriesModule } from './series/series.module';
 import { EventsModule } from './events/events.module';
 import { ProgressModule } from './progress/progress.module';
+import { TasksModule } from './tasks/tasks.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -44,6 +45,7 @@ import { createAuthInstance } from './auth/auth.provider';
     SeriesModule,
     EventsModule,
     ProgressModule,
+    TasksModule,
   ],
   controllers: [],
   providers: [
