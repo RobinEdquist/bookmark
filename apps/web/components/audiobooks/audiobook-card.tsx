@@ -28,9 +28,13 @@ import { ChangeCoverDialog } from "./change-cover-dialog";
 
 interface AudiobookCardProps {
   audiobook: AudiobookListItem;
+  /** Called when user wants to edit this audiobook (for shared dialog) */
+  onEdit?: () => void;
+  /** If true, the card won't render its own edit dialog */
+  externalEditDialog?: boolean;
 }
 
-export function AudiobookCard({ audiobook }: AudiobookCardProps) {
+export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: AudiobookCardProps) {
   const t = useTranslations("audiobooks.card");
   const tLink = useTranslations("audiobooks.hardcoverLink");
   const tDelete = useTranslations("audiobooks.deleteDialog");
@@ -174,7 +178,7 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
 
               {primaryAuthor && (
                 <p className="line-clamp-1 text-xs text-muted-foreground">
-                  {t("by", { author: primaryAuthor })}
+                  {primaryAuthor}
                 </p>
               )}
             </div>
@@ -193,7 +197,13 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {canEdit && (
-                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                  <DropdownMenuItem onClick={() => {
+                    if (onEdit) {
+                      onEdit();
+                    } else {
+                      setEditOpen(true);
+                    }
+                  }}>
                     <Pencil className="h-4 w-4" />
                     {t("edit")}
                   </DropdownMenuItem>
@@ -244,7 +254,7 @@ export function AudiobookCard({ audiobook }: AudiobookCardProps) {
         </div>
       </motion.article>
 
-      {canEdit && (
+      {canEdit && !externalEditDialog && (
         <EditAudiobookDialog
           audiobook={audiobook}
           open={editOpen}

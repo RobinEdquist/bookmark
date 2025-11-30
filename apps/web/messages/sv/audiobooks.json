@@ -7,7 +7,6 @@
   "loading": "Laddar ljudböcker...",
   "error": "Kunde inte ladda ljudböcker",
   "card": {
-    "by": "av {author}",
     "bookInSeries": "Bok {order} i {series}",
     "edit": "Redigera",
     "delete": "Ta bort",
@@ -74,7 +73,12 @@
     "chaptersRefreshError": "Kunde inte uppdatera kapitel",
     "bookInSeries": "Bok {order} i {series}",
     "files": "Filer",
-    "noFiles": "Inga filer hittades för denna ljudbok."
+    "noFiles": "Inga filer hittades för denna ljudbok.",
+    "progress": {
+      "percentage": "{percentage}% avklarat",
+      "timeOf": "{current} av {total}",
+      "completed": "Avslutad"
+    }
   },
   "hardcoverSync": {
     "title": "Länka till Hardcover",
@@ -140,9 +144,12 @@
   },
   "edit": {
     "title": "Redigera ljudbok",
-    "save": "Spara ändringar",
+    "save": "Spara",
+    "saveAndClose": "Spara & stäng",
     "saving": "Sparar...",
     "cancel": "Avbryt",
+    "previous": "Föregående ljudbok",
+    "next": "Nästa ljudbok",
     "success": "Ljudboken har uppdaterats",
     "error": "Kunde inte uppdatera ljudboken",
     "fields": {

@@ -1,8 +1,11 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import { AudiobookCard } from "./audiobook-card";
+import { EditAudiobookDialog } from "./edit-audiobook-dialog";
+import { useMyPermissions } from "../../lib/use-users";
 import type { AudiobookListItem } from "../../lib/use-audiobooks";
 
 interface AudiobookGridProps {
@@ -48,6 +51,23 @@ function EmptyState() {
 
 export function AudiobookGrid({ audiobooks, isLoading, error }: AudiobookGridProps) {
   const t = useTranslations("audiobooks");
+  const { data: permissions } = useMyPermissions();
+  const canEdit = permissions?.canEditMetadata ?? false;
+
+  // Shared edit dialog state for navigation between audiobooks
+  const [editingAudiobookId, setEditingAudiobookId] = useState<string | null>(null);
+  const editingAudiobook = editingAudiobookId
+    ? audiobooks.find((a) => a.id === editingAudiobookId) ?? null
+    : null;
+  const audiobookIds = audiobooks.map((a) => a.id);
+
+  const handleOpenEdit = useCallback((audiobookId: string) => {
+    setEditingAudiobookId(audiobookId);
+  }, []);
+
+  const handleNavigate = useCallback((audiobookId: string) => {
+    setEditingAudiobookId(audiobookId);
+  }, []);
 
   if (error) {
     return (
@@ -72,22 +92,42 @@ export function AudiobookGrid({ audiobooks, isLoading, error }: AudiobookGridPro
   }
 
   return (
-    <motion.div
-      className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-6"
-      initial="hidden"
-      animate="visible"
-      variants={{
-        hidden: {},
-        visible: {
-          transition: {
-            staggerChildren: 0.05,
+    <>
+      <motion.div
+        className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-6"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: {},
+          visible: {
+            transition: {
+              staggerChildren: 0.05,
+            },
           },
-        },
-      }}
-    >
-      {audiobooks.map((audiobook) => (
-        <AudiobookCard key={audiobook.id} audiobook={audiobook} />
-      ))}
-    </motion.div>
+        }}
+      >
+        {audiobooks.map((audiobook) => (
+          <AudiobookCard
+            key={audiobook.id}
+            audiobook={audiobook}
+            onEdit={() => handleOpenEdit(audiobook.id)}
+            externalEditDialog
+          />
+        ))}
+      </motion.div>
+
+      {/* Shared edit dialog with navigation */}
+      {canEdit && (
+        <EditAudiobookDialog
+          audiobook={editingAudiobook}
+          open={editingAudiobookId !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingAudiobookId(null);
+          }}
+          audiobookIds={audiobookIds}
+          onNavigate={handleNavigate}
+        />
+      )}
+    </>
   );
 }

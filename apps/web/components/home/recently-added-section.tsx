@@ -1,18 +1,39 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useAudiobooks } from "../../lib/use-audiobooks";
+import { useMyPermissions } from "../../lib/use-users";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
 import { AudiobookCard } from "../audiobooks/audiobook-card";
+import { EditAudiobookDialog } from "../audiobooks/edit-audiobook-dialog";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
 export function RecentlyAddedSection() {
   const t = useTranslations("home.recentlyAdded");
+  const { data: permissions } = useMyPermissions();
+  const canEdit = permissions?.canEditMetadata ?? false;
   const { data, isLoading } = useAudiobooks({
     sortBy: "createdAt",
     sortOrder: "desc",
     limit: 12,
   });
+
+  // Shared edit dialog state for navigation between audiobooks
+  const [editingAudiobookId, setEditingAudiobookId] = useState<string | null>(null);
+  const audiobooks = data?.audiobooks ?? [];
+  const editingAudiobook = editingAudiobookId
+    ? audiobooks.find((a) => a.id === editingAudiobookId) ?? null
+    : null;
+  const audiobookIds = audiobooks.map((a) => a.id);
+
+  const handleOpenEdit = useCallback((audiobookId: string) => {
+    setEditingAudiobookId(audiobookId);
+  }, []);
+
+  const handleNavigate = useCallback((audiobookId: string) => {
+    setEditingAudiobookId(audiobookId);
+  }, []);
 
   if (isLoading) {
     return (
@@ -39,16 +60,35 @@ export function RecentlyAddedSection() {
   }
 
   return (
-    <HorizontalScrollRow
-      title={t("title")}
-      seeAllHref="/libraries?sortBy=createdAt&sortOrder=desc"
-      seeAllLabel={t("seeAll")}
-    >
-      {data.audiobooks.map((audiobook) => (
-        <div key={audiobook.id} className="w-40 shrink-0">
-          <AudiobookCard audiobook={audiobook} />
-        </div>
-      ))}
-    </HorizontalScrollRow>
+    <>
+      <HorizontalScrollRow
+        title={t("title")}
+        seeAllHref="/libraries?sortBy=createdAt&sortOrder=desc"
+        seeAllLabel={t("seeAll")}
+      >
+        {data.audiobooks.map((audiobook) => (
+          <div key={audiobook.id} className="w-40 shrink-0">
+            <AudiobookCard
+              audiobook={audiobook}
+              onEdit={() => handleOpenEdit(audiobook.id)}
+              externalEditDialog
+            />
+          </div>
+        ))}
+      </HorizontalScrollRow>
+
+      {/* Shared edit dialog with navigation */}
+      {canEdit && (
+        <EditAudiobookDialog
+          audiobook={editingAudiobook}
+          open={editingAudiobookId !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingAudiobookId(null);
+          }}
+          audiobookIds={audiobookIds}
+          onNavigate={handleNavigate}
+        />
+      )}
+    </>
   );
 }

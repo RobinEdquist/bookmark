@@ -7,7 +7,6 @@
   "loading": "Loading audiobooks...",
   "error": "Failed to load audiobooks",
   "card": {
-    "by": "by {author}",
     "bookInSeries": "Book {order} in {series}",
     "edit": "Edit",
     "delete": "Delete",
@@ -74,7 +73,12 @@
     "chaptersRefreshError": "Failed to refresh chapters",
     "bookInSeries": "Book {order} in {series}",
     "files": "Files",
-    "noFiles": "No files found for this audiobook."
+    "noFiles": "No files found for this audiobook.",
+    "progress": {
+      "percentage": "{percentage}% complete",
+      "timeOf": "{current} of {total}",
+      "completed": "Completed"
+    }
   },
   "hardcoverSync": {
     "title": "Link to Hardcover",
@@ -140,9 +144,12 @@
   },
   "edit": {
     "title": "Edit Audiobook",
-    "save": "Save Changes",
+    "save": "Save",
+    "saveAndClose": "Save & Close",
     "saving": "Saving...",
     "cancel": "Cancel",
+    "previous": "Previous audiobook",
+    "next": "Next audiobook",
     "success": "Audiobook updated successfully",
     "error": "Failed to update audiobook",
     "fields": {

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -59,12 +60,18 @@ interface EditAudiobookDialogProps {
   audiobook: AudiobookListItem | AudiobookDetail | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** List of audiobook IDs for next/previous navigation */
+  audiobookIds?: string[];
+  /** Callback when navigating to a different audiobook */
+  onNavigate?: (audiobookId: string) => void;
 }
 
 export function EditAudiobookDialog({
   audiobook,
   open,
   onOpenChange,
+  audiobookIds,
+  onNavigate,
 }: EditAudiobookDialogProps) {
   const t = useTranslations("audiobooks.edit");
   const updateAudiobook = useUpdateAudiobook();
@@ -117,6 +124,53 @@ export function EditAudiobookDialog({
     label: t.name,
   }));
 
+  // Navigation logic
+  const currentIndex = audiobook && audiobookIds
+    ? audiobookIds.indexOf(audiobook.id)
+    : -1;
+  const hasPrevious = currentIndex > 0;
+  const hasNext = currentIndex >= 0 && currentIndex < (audiobookIds?.length ?? 0) - 1;
+
+  const handlePrevious = useCallback(() => {
+    if (hasPrevious && audiobookIds && onNavigate) {
+      const prevId = audiobookIds[currentIndex - 1];
+      if (prevId) onNavigate(prevId);
+    }
+  }, [hasPrevious, audiobookIds, currentIndex, onNavigate]);
+
+  const handleNext = useCallback(() => {
+    if (hasNext && audiobookIds && onNavigate) {
+      const nextId = audiobookIds[currentIndex + 1];
+      if (nextId) onNavigate(nextId);
+    }
+  }, [hasNext, audiobookIds, currentIndex, onNavigate]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!open) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle if not focused on an input element
+      const target = e.target as HTMLElement;
+      const isInputFocused = target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable;
+
+      if (isInputFocused) return;
+
+      if (e.key === "ArrowLeft" && hasPrevious) {
+        e.preventDefault();
+        handlePrevious();
+      } else if (e.key === "ArrowRight" && hasNext) {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [open, hasPrevious, hasNext, handlePrevious, handleNext]);
+
   // Reset form when audiobook changes
   useEffect(() => {
     if (audiobookData) {
@@ -139,9 +193,7 @@ export function EditAudiobookDialog({
     }
   }, [audiobookData]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSave = async (closeAfterSave: boolean) => {
     if (!audiobookData) return;
 
     try {
@@ -164,22 +216,69 @@ export function EditAudiobookDialog({
       });
 
       toast.success(t("success"));
-      onOpenChange(false);
+      if (closeAfterSave) {
+        onOpenChange(false);
+      }
     } catch {
       toast.error(t("error"));
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleSave(true);
+  };
+
   const isLoading = updateAudiobook.isPending || Boolean(isListItem && !fullAudiobook);
+
+  const showNavigation = audiobookIds && audiobookIds.length > 1 && onNavigate;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-2xl">
+        <DialogHeader className="shrink-0 border-b px-6 py-4">
+          <div className="flex items-center gap-2">
+            <DialogTitle className="flex-1">
+              {t("title")}
+              {showNavigation && (
+                <span className="ml-2 text-sm font-normal text-muted-foreground">
+                  ({currentIndex + 1} / {audiobookIds.length})
+                </span>
+              )}
+            </DialogTitle>
+
+            {/* Navigation buttons after title */}
+            {showNavigation && (
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handlePrevious}
+                  disabled={!hasPrevious || isLoading}
+                  title={t("previous")}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0"
+                  onClick={handleNext}
+                  disabled={!hasNext || isLoading}
+                  title={t("next")}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
           {/* Title and Subtitle */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
@@ -357,8 +456,9 @@ export function EditAudiobookDialog({
               />
             </div>
           </div>
+          </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t px-6 py-4">
             <Button
               type="button"
               variant="outline"
@@ -367,8 +467,16 @@ export function EditAudiobookDialog({
             >
               {t("cancel")}
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => handleSave(false)}
+              disabled={isLoading}
+            >
               {isLoading ? t("saving") : t("save")}
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? t("saving") : t("saveAndClose")}
             </Button>
           </DialogFooter>
         </form>
