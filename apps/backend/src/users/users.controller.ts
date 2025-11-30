@@ -21,6 +21,7 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto, BanUserDto } from './dto/update-user.dto';
 import type { UpdateLanguageDto } from './dto/update-language.dto';
+import type { UpdateThemeDto } from './dto/update-theme.dto';
 import type { UserResponse, UserListResponse } from './dto/user-response.dto';
 
 @Controller('users')
@@ -121,5 +122,20 @@ export class UsersController {
   @Get('me/permissions')
   async getMyPermissions(@Session() session: UserSession) {
     return this.usersService.getPermissions(session.user.id);
+  }
+
+  @Patch('me/theme')
+  async updateTheme(
+    @Session() session: UserSession,
+    @Body() dto: UpdateThemeDto,
+  ): Promise<{ success: boolean }> {
+    await this.usersService.updateTheme(session.user.id, dto.theme);
+    return { success: true };
+  }
+
+  @Get('me/theme')
+  async getTheme(@Session() session: UserSession): Promise<{ theme: string }> {
+    const theme = await this.usersService.getTheme(session.user.id);
+    return { theme };
   }
 }

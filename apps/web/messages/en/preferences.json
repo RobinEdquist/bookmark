@@ -4,6 +4,10 @@
   "appearance": {
     "title": "Appearance",
     "description": "Customize how the app looks",
+    "theme": {
+      "label": "Theme",
+      "description": "Choose your preferred theme"
+    },
     "language": {
       "label": "Language",
       "description": "Choose your preferred language"

@@ -4,6 +4,10 @@
   "appearance": {
     "title": "Utseende",
     "description": "Anpassa hur appen ser ut",
+    "theme": {
+      "label": "Tema",
+      "description": "Välj ditt föredragna tema"
+    },
     "language": {
       "label": "Språk",
       "description": "Välj ditt föredragna språk"

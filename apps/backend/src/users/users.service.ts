@@ -380,4 +380,21 @@ export class UsersService {
 
     return result[0]?.language ?? 'en';
   }
+
+  async updateTheme(userId: string, theme: string): Promise<void> {
+    await this.db
+      .update(authSchema.user)
+      .set({ theme })
+      .where(eq(authSchema.user.id, userId));
+  }
+
+  async getTheme(userId: string): Promise<string> {
+    const result = await this.db
+      .select({ theme: authSchema.user.theme })
+      .from(authSchema.user)
+      .where(eq(authSchema.user.id, userId))
+      .limit(1);
+
+    return result[0]?.theme ?? 'default';
+  }
 }

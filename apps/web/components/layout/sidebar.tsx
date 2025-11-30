@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Home, Library, Settings, LogOut } from "lucide-react";
+import { Home, Library, Settings, User, LogOut } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
@@ -83,6 +83,19 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
             {t("nav.settings")}
           </Link>
         )}
+        <Link
+          href="/preferences"
+          onClick={handleNavClick}
+          className={cn(
+            "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+            pathname === "/preferences" || pathname.startsWith("/preferences/")
+              ? "bg-primary/10 text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          )}
+        >
+          <User className="h-5 w-5" />
+          {t("nav.preferences")}
+        </Link>
         <Button
           variant="ghost"
           className="w-full justify-start gap-3 px-3 text-muted-foreground hover:bg-muted hover:text-foreground"

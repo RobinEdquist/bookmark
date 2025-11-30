@@ -127,6 +127,13 @@
       "when": 1764531016411,
       "tag": "0017_illegal_sway",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1764535454416,
+      "tag": "0018_square_johnny_blaze",
+      "breakpoints": true
     }
   ]
 }
