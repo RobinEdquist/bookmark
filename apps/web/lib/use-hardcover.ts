@@ -494,7 +494,7 @@ export function useHardcoverQueueStatus() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: queryKeys.hardcover.queueStatus(),
     queryFn: fetchQueueStatus,
-    refetchInterval: 5000, // Poll every 5 seconds to show live updates
+    staleTime: Infinity, // Data is pushed via WebSocket
   });
 
   return {

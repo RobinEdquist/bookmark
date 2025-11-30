@@ -1,11 +1,13 @@
 import { Global, Module } from '@nestjs/common';
-import { EventsController } from './events.controller';
+import { ConfigModule } from '@nestjs/config';
 import { AppEventsService } from './app-events.service';
+import { EventsGateway } from './events.gateway';
+import { WsEventsService } from './ws-events.service';
 
-@Global() // Make AppEventsService available throughout the app
+@Global() // Make event services available throughout the app
 @Module({
-  controllers: [EventsController],
-  providers: [AppEventsService],
-  exports: [AppEventsService],
+  imports: [ConfigModule],
+  providers: [AppEventsService, EventsGateway, WsEventsService],
+  exports: [AppEventsService, WsEventsService],
 })
 export class EventsModule {}

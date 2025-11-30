@@ -6,8 +6,8 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { Sidebar } from "../../components/layout/sidebar";
 import { MobileNav } from "../../components/layout/mobile-nav";
 import { PlayerBar } from "../../components/player/player-bar";
+import { WebSocketProvider } from "../../components/providers/websocket-provider";
 import { authClient } from "../../lib/auth-client";
-import { useSSE } from "../../lib/use-sse";
 
 export default function AuthenticatedLayout({
   children,
@@ -19,9 +19,6 @@ export default function AuthenticatedLayout({
   const user = session?.user as { role?: string } | undefined;
   const isAdmin = user?.role === "admin";
   const isAuthenticated = !isPending && !!session?.user;
-
-  // Connect to SSE for real-time cache invalidation when authenticated
-  useSSE(isAuthenticated);
 
   useEffect(() => {
     if (!isPending && !session?.user) {
@@ -44,29 +41,29 @@ export default function AuthenticatedLayout({
   }
 
   return (
-    <div className="flex h-screen flex-col">
-      <div className="flex flex-1 overflow-hidden">
-        {/* Desktop sidebar */}
-        <div className="hidden lg:block">
-          <Sidebar isAdmin={isAdmin} />
+    <WebSocketProvider enabled={isAuthenticated}>
+      <div className="flex h-screen flex-col">
+        <div className="flex flex-1 overflow-hidden">
+          {/* Desktop sidebar */}
+          <div className="hidden lg:block">
+            <Sidebar isAdmin={isAdmin} />
+          </div>
+
+          {/* Main content */}
+          <div className="flex flex-1 flex-col overflow-hidden">
+            {/* Mobile header */}
+            <header className="flex h-16 items-center border-b px-4 lg:hidden">
+              <MobileNav isAdmin={isAdmin} />
+            </header>
+
+            {/* Page content */}
+            <main className="flex-1 overflow-auto">{children}</main>
+          </div>
         </div>
 
-        {/* Main content */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          {/* Mobile header */}
-          <header className="flex h-16 items-center border-b px-4 lg:hidden">
-            <MobileNav isAdmin={isAdmin} />
-          </header>
-
-          {/* Page content */}
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
-        </div>
+        {/* Audio player bar - in document flow, not fixed */}
+        <PlayerBar />
       </div>
-
-      {/* Audio player bar - in document flow, not fixed */}
-      <PlayerBar />
-    </div>
+    </WebSocketProvider>
   );
 }
