@@ -55,6 +55,8 @@
     "error": "Failed to load audiobook",
     "backToLibrary": "Back to Library",
     "play": "Play",
+    "pause": "Pause",
+    "resume": "Resume",
     "edit": "Edit",
     "changeCover": "Change cover",
     "syncWithHardcover": "Sync with Hardcover",

@@ -56,3 +56,11 @@ export function formatDurationShort(seconds: number | null): string {
 
   return `${hours}h ${minutes}m`;
 }
+
+/**
+ * Format a duration in seconds to hours only (e.g., "142 hours")
+ */
+export function formatDurationHours(seconds: number): string {
+  const hours = Math.round(seconds / 3600);
+  return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+}

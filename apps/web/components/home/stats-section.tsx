@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useLibraryStats } from "../../lib/use-library-stats";
-import { formatDurationLong } from "../../lib/format-duration";
+import { formatDurationHours } from "../../lib/format-duration";
 import { StatsCard } from "./stats-card";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
@@ -26,7 +26,7 @@ export function StatsSection() {
 
   const stats = [
     { value: data.audiobookCount, label: t("audiobooks") },
-    { value: formatDurationLong(data.totalDuration), label: t("totalDuration") },
+    { value: formatDurationHours(data.totalDuration), label: t("totalDuration") },
     { value: data.seriesCount, label: t("series") },
     { value: data.authorCount, label: t("authors") },
   ];

@@ -55,6 +55,8 @@
     "error": "Kunde inte ladda ljudbok",
     "backToLibrary": "Tillbaka till biblioteket",
     "play": "Spela",
+    "pause": "Pausa",
+    "resume": "Fortsätt",
     "edit": "Redigera",
     "changeCover": "Ändra omslag",
     "syncWithHardcover": "Synka med Hardcover",

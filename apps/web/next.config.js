@@ -7,7 +7,8 @@ const nextConfig = {
   rewrites() {
     return [
       {
-        source: "/api/:path*",
+        // Exclude /api/events - handled by route handler for SSE streaming
+        source: "/api/:path((?!events).*)",
         destination: `${process.env.API_URL}/api/:path*`,
       },
     ];
