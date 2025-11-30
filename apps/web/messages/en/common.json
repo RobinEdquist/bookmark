@@ -18,5 +18,17 @@
     "library": "Library",
     "settings": "Settings",
     "signOut": "Sign Out"
+  },
+  "tasks": {
+    "title": "Background Tasks",
+    "running": "{count, plural, =0 {No tasks} =1 {1 task running} other {# tasks running}}",
+    "importing": "Importing Audiobooks",
+    "audiobooks": "{count, plural, =1 {1 audiobook} other {# audiobooks}}",
+    "hardcoverSync": "Hardcover Sync",
+    "pending": "{count, plural, =1 {1 pending} other {# pending}}",
+    "failed": "{count, plural, =1 {1 failed} other {# failed}}",
+    "viewFailed": "View failed items",
+    "noTasks": "No tasks running",
+    "more": "more"
   }
 }

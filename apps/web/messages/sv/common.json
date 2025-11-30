@@ -18,5 +18,17 @@
     "library": "Bibliotek",
     "settings": "Inställningar",
     "signOut": "Logga ut"
+  },
+  "tasks": {
+    "title": "Bakgrundsuppgifter",
+    "running": "{count, plural, =0 {Inga uppgifter} =1 {1 uppgift körs} other {# uppgifter körs}}",
+    "importing": "Importerar ljudböcker",
+    "audiobooks": "{count, plural, =1 {1 ljudbok} other {# ljudböcker}}",
+    "hardcoverSync": "Hardcover-synk",
+    "pending": "{count, plural, =1 {1 väntande} other {# väntande}}",
+    "failed": "{count, plural, =1 {1 misslyckad} other {# misslyckade}}",
+    "viewFailed": "Visa misslyckade",
+    "noTasks": "Inga uppgifter körs",
+    "more": "till"
   }
 }

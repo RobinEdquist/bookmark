@@ -64,4 +64,10 @@ export const queryKeys = {
       [...queryKeys.progress.all, "detail", audiobookId] as const,
     stats: () => [...queryKeys.progress.all, "stats"] as const,
   },
+  tasks: {
+    all: ["tasks"] as const,
+    status: () => [...queryKeys.tasks.all, "status"] as const,
+    import: () => [...queryKeys.tasks.all, "import"] as const,
+    hardcover: () => [...queryKeys.tasks.all, "hardcover"] as const,
+  },
 } as const;

@@ -7,6 +7,7 @@ import { Home, Library, Settings, LogOut } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
+import { TasksIndicator } from "./tasks-indicator";
 
 interface SidebarProps {
   isAdmin: boolean;
@@ -66,6 +67,9 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
           );
         })}
       </nav>
+
+      {/* Tasks indicator */}
+      <TasksIndicator />
 
       {/* Bottom actions */}
       <div className="border-t p-4 space-y-1">
