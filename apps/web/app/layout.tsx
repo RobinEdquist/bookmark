@@ -5,6 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "../components/providers/theme-provider";
 import { QueryProvider } from "../components/providers/query-provider";
 import { IntlProvider } from "../components/providers/intl-provider";
+import { PlayerProvider } from "../components/providers/player-provider";
 import { Toaster } from "@repo/ui/components/ui/sonner";
 
 const geistSans = localFont({
@@ -35,8 +36,10 @@ export default async function RootLayout({
         <QueryProvider>
           <ThemeProvider>
             <IntlProvider locale={locale} messages={messages}>
-              {children}
-              <Toaster />
+              <PlayerProvider>
+                {children}
+                <Toaster />
+              </PlayerProvider>
             </IntlProvider>
           </ThemeProvider>
         </QueryProvider>

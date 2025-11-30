@@ -1,0 +1,17 @@
+{
+  "play": "Spela",
+  "pause": "Pausa",
+  "skipBackward": "Hoppa tillbaka {seconds} sekunder",
+  "skipForward": "Hoppa framåt {seconds} sekunder",
+  "previousChapter": "Föregående kapitel",
+  "nextChapter": "Nästa kapitel",
+  "speed": "Uppspelningshastighet",
+  "volume": "Volym",
+  "mute": "Ljud av",
+  "unmute": "Ljud på",
+  "close": "Stäng spelaren",
+  "loading": "Laddar...",
+  "error": "Kunde inte ladda ljudet",
+  "chapter": "Kapitel",
+  "currentTime": "{current} / {total}"
+}

@@ -1,0 +1,17 @@
+{
+  "play": "Play",
+  "pause": "Pause",
+  "skipBackward": "Skip back {seconds} seconds",
+  "skipForward": "Skip forward {seconds} seconds",
+  "previousChapter": "Previous chapter",
+  "nextChapter": "Next chapter",
+  "speed": "Playback speed",
+  "volume": "Volume",
+  "mute": "Mute",
+  "unmute": "Unmute",
+  "close": "Close player",
+  "loading": "Loading...",
+  "error": "Failed to load audio",
+  "chapter": "Chapter",
+  "currentTime": "{current} / {total}"
+}

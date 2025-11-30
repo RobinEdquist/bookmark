@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -17,6 +17,8 @@ import {
 import { useAudiobook } from "../../../../lib/use-audiobooks";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
+import { useProgress } from "../../../../lib/use-progress";
+import { usePlayer } from "../../../../components/providers/player-provider";
 import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audiobook-dialog";
 import { HardcoverSyncDialog } from "../../../../components/audiobooks/hardcover-sync-dialog";
 import { HardcoverLinkCard } from "../../../../components/audiobooks/hardcover-link-card";
@@ -57,8 +59,10 @@ export default function AudiobookDetailPage({
   const { id } = use(params);
   const t = useTranslations("audiobooks.detail");
   const { data: audiobook, isLoading, error } = useAudiobook(id);
+  const { data: progress } = useProgress(id);
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
+  const { audiobook: currentlyPlaying, isPlaying, play, pause, resume } = usePlayer();
   const [editOpen, setEditOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
@@ -69,6 +73,25 @@ export default function AudiobookDetailPage({
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const canEdit = permissions?.canEditMetadata ?? false;
+  const isCurrentlyPlaying = currentlyPlaying?.id === id && isPlaying;
+  const isThisAudiobookLoaded = currentlyPlaying?.id === id;
+
+  const handlePlayPause = () => {
+    if (!audiobook) return;
+
+    if (isThisAudiobookLoaded) {
+      // This audiobook is already loaded, toggle play/pause
+      if (isPlaying) {
+        pause();
+      } else {
+        resume();
+      }
+    } else {
+      // Start playing this audiobook from saved progress or beginning
+      const startPosition = progress?.position ?? 0;
+      play(audiobook, startPosition);
+    }
+  };
 
   useEffect(() => {
     if (descriptionRef.current) {
@@ -177,8 +200,18 @@ export default function AudiobookDetailPage({
               )}
             </div>
 
-            <Button size="lg" className="w-full">
-              {t("play")}
+            <Button size="lg" className="w-full" onClick={handlePlayPause}>
+              {isCurrentlyPlaying ? (
+                <>
+                  <Pause className="mr-2 h-5 w-5" />
+                  {t("pause")}
+                </>
+              ) : (
+                <>
+                  <Play className="mr-2 h-5 w-5" />
+                  {progress && progress.position > 0 ? t("resume") : t("play")}
+                </>
+              )}
             </Button>
 
             {/* Genres and Tags */}
