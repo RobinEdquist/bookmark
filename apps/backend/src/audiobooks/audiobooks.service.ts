@@ -16,6 +16,8 @@ import * as hardcoverSchema from '../hardcover/schema';
 import { EmbeddedMetadataProvider } from '../library-watcher/metadata/embedded-metadata.provider';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
+import { AppEventsService } from '../events/app-events.service';
+import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
 
 export interface AudiobookListItem {
   id: string;
@@ -51,6 +53,7 @@ export class AudiobooksService {
     private db: NodePgDatabase<typeof schema>,
     private metadataProvider: EmbeddedMetadataProvider,
     private appSettingsService: AppSettingsService,
+    private appEvents: AppEventsService,
   ) {}
 
   /**
@@ -62,6 +65,55 @@ export class AudiobooksService {
       throw new Error('Library path not configured');
     }
     return path.join(libraryPath, relativePath);
+  }
+
+  /**
+   * Resolve a field value based on metadata priority settings.
+   * Manual edits always take priority, then follows the configured order.
+   * Returns the first non-empty value according to priority order.
+   */
+  private resolveFieldByPriority<T>(
+    fieldName: keyof MetadataFieldPriority,
+    sources: {
+      manual: T | null | undefined;
+      embedded: T | null | undefined;
+      hardcover: T | null | undefined;
+    },
+    priority: MetadataSource[],
+    manualFields: string[],
+  ): T | null {
+    // Manual edits always take priority
+    if (manualFields.includes(fieldName)) {
+      const value = sources.manual;
+      if (this.hasValue(value)) return value;
+    }
+
+    // Then follow the configured priority order (excluding 'manual' since we already checked it)
+    for (const source of priority) {
+      if (source === 'manual') {
+        // Already checked above
+        continue;
+      } else if (source === 'embedded') {
+        const value = sources.embedded;
+        if (this.hasValue(value)) return value;
+      } else if (source === 'hardcover') {
+        const value = sources.hardcover;
+        if (this.hasValue(value)) return value;
+      }
+      // 'filename' and 'folder_image' sources are only relevant during import
+    }
+    // Fallback: return embedded (which is the original DB value)
+    return sources.embedded ?? null;
+  }
+
+  /**
+   * Check if a value is non-empty (not null, undefined, empty string, or empty array)
+   */
+  private hasValue<T>(value: T | null | undefined): value is T {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string' && value.trim() === '') return false;
+    if (Array.isArray(value) && value.length === 0) return false;
+    return true;
   }
 
   async findAll(
@@ -240,90 +292,227 @@ export class AudiobooksService {
     }
 
     const ab = audiobook[0];
+    const manualFields = (ab.manualFields as string[]) || [];
 
-    // Fetch all related data
-    const [files, chapters, authors, narrators, seriesData, genres, tags] =
-      await Promise.all([
-        this.db
-          .select()
-          .from(schema.audiobookFiles)
-          .where(eq(schema.audiobookFiles.audiobookId, id))
-          .orderBy(asc(schema.audiobookFiles.order)),
-        this.db
-          .select()
-          .from(schema.chapters)
-          .where(eq(schema.chapters.audiobookId, id))
-          .orderBy(asc(schema.chapters.order)),
-        this.db
-          .select({
-            id: schema.people.id,
-            name: schema.people.name,
-            imageUrl: schema.people.imageUrl,
-          })
-          .from(schema.audiobookAuthors)
-          .innerJoin(
-            schema.people,
-            eq(schema.audiobookAuthors.personId, schema.people.id),
-          )
-          .where(eq(schema.audiobookAuthors.audiobookId, id))
-          .orderBy(asc(schema.audiobookAuthors.order)),
-        this.db
-          .select({
-            id: schema.people.id,
-            name: schema.people.name,
-            imageUrl: schema.people.imageUrl,
-          })
-          .from(schema.audiobookNarrators)
-          .innerJoin(
-            schema.people,
-            eq(schema.audiobookNarrators.personId, schema.people.id),
-          )
-          .where(eq(schema.audiobookNarrators.audiobookId, id))
-          .orderBy(asc(schema.audiobookNarrators.order)),
-        this.db
-          .select({
-            id: schema.series.id,
-            name: schema.series.name,
-            order: schema.audiobookSeries.order,
-          })
-          .from(schema.audiobookSeries)
-          .innerJoin(
-            schema.series,
-            eq(schema.audiobookSeries.seriesId, schema.series.id),
-          )
-          .where(eq(schema.audiobookSeries.audiobookId, id)),
-        this.db
-          .select({ id: schema.genres.id, name: schema.genres.name })
-          .from(schema.audiobookGenres)
-          .innerJoin(
-            schema.genres,
-            eq(schema.audiobookGenres.genreId, schema.genres.id),
-          )
-          .where(eq(schema.audiobookGenres.audiobookId, id)),
-        this.db
-          .select({ id: schema.tags.id, name: schema.tags.name })
-          .from(schema.audiobookTags)
-          .innerJoin(schema.tags, eq(schema.audiobookTags.tagId, schema.tags.id))
-          .where(eq(schema.audiobookTags.audiobookId, id)),
-      ]);
-
-    return {
-      ...ab,
-      coverUrl: this.getCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
+    // Fetch all related data including Hardcover data and priority settings
+    const [
       files,
       chapters,
       authors,
       narrators,
-      series: seriesData,
+      seriesData,
       genres,
       tags,
+      hardcoverData,
+      metadataPriority,
+    ] = await Promise.all([
+      this.db
+        .select()
+        .from(schema.audiobookFiles)
+        .where(eq(schema.audiobookFiles.audiobookId, id))
+        .orderBy(asc(schema.audiobookFiles.order)),
+      this.db
+        .select()
+        .from(schema.chapters)
+        .where(eq(schema.chapters.audiobookId, id))
+        .orderBy(asc(schema.chapters.order)),
+      this.db
+        .select({
+          id: schema.people.id,
+          name: schema.people.name,
+          imageUrl: schema.people.imageUrl,
+        })
+        .from(schema.audiobookAuthors)
+        .innerJoin(
+          schema.people,
+          eq(schema.audiobookAuthors.personId, schema.people.id),
+        )
+        .where(eq(schema.audiobookAuthors.audiobookId, id))
+        .orderBy(asc(schema.audiobookAuthors.order)),
+      this.db
+        .select({
+          id: schema.people.id,
+          name: schema.people.name,
+          imageUrl: schema.people.imageUrl,
+        })
+        .from(schema.audiobookNarrators)
+        .innerJoin(
+          schema.people,
+          eq(schema.audiobookNarrators.personId, schema.people.id),
+        )
+        .where(eq(schema.audiobookNarrators.audiobookId, id))
+        .orderBy(asc(schema.audiobookNarrators.order)),
+      this.db
+        .select({
+          id: schema.series.id,
+          name: schema.series.name,
+          order: schema.audiobookSeries.order,
+        })
+        .from(schema.audiobookSeries)
+        .innerJoin(
+          schema.series,
+          eq(schema.audiobookSeries.seriesId, schema.series.id),
+        )
+        .where(eq(schema.audiobookSeries.audiobookId, id)),
+      this.db
+        .select({ id: schema.genres.id, name: schema.genres.name })
+        .from(schema.audiobookGenres)
+        .innerJoin(
+          schema.genres,
+          eq(schema.audiobookGenres.genreId, schema.genres.id),
+        )
+        .where(eq(schema.audiobookGenres.audiobookId, id)),
+      this.db
+        .select({ id: schema.tags.id, name: schema.tags.name })
+        .from(schema.audiobookTags)
+        .innerJoin(schema.tags, eq(schema.audiobookTags.tagId, schema.tags.id))
+        .where(eq(schema.audiobookTags.audiobookId, id)),
+      this.db
+        .select()
+        .from(hardcoverSchema.hardcoverBooks)
+        .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, id))
+        .limit(1),
+      this.appSettingsService.getMetadataPriority(),
+    ]);
+
+    const hc = hardcoverData[0] || null;
+
+    // Apply priority-based merging for each field
+    // For scalar fields, use the helper. For relations, we need special handling.
+
+    // Title - always required, fallback to embedded
+    const resolvedTitle = this.resolveFieldByPriority(
+      'title',
+      { manual: ab.title, embedded: ab.title, hardcover: hc?.title },
+      metadataPriority.title,
+      manualFields,
+    ) || ab.title;
+
+    // Subtitle
+    const resolvedSubtitle = this.resolveFieldByPriority(
+      'subtitle',
+      { manual: ab.subtitle, embedded: ab.subtitle, hardcover: null }, // Hardcover doesn't have subtitle
+      metadataPriority.subtitle,
+      manualFields,
+    );
+
+    // Description
+    const resolvedDescription = this.resolveFieldByPriority(
+      'description',
+      { manual: ab.description, embedded: ab.description, hardcover: hc?.description },
+      metadataPriority.description,
+      manualFields,
+    );
+
+    // Publisher
+    const resolvedPublisher = this.resolveFieldByPriority(
+      'publisher',
+      { manual: ab.publisher, embedded: ab.publisher, hardcover: null }, // Hardcover doesn't have publisher
+      metadataPriority.publisher,
+      manualFields,
+    );
+
+    // Published Date
+    const resolvedPublishedDate = this.resolveFieldByPriority(
+      'publishedDate',
+      { manual: ab.publishedDate, embedded: ab.publishedDate, hardcover: null },
+      metadataPriority.publishedDate,
+      manualFields,
+    );
+
+    // Language
+    const resolvedLanguage = this.resolveFieldByPriority(
+      'language',
+      { manual: ab.language, embedded: ab.language, hardcover: null },
+      metadataPriority.language,
+      manualFields,
+    );
+
+    // Authors - need to handle as array of names
+    const embeddedAuthorNames = authors.map((a) => a.name);
+    const hardcoverAuthorNames = hc?.authorNames || [];
+    const resolvedAuthorNames = this.resolveFieldByPriority(
+      'author',
+      {
+        manual: embeddedAuthorNames,
+        embedded: embeddedAuthorNames,
+        hardcover: hardcoverAuthorNames,
+      },
+      metadataPriority.author,
+      manualFields,
+    ) || embeddedAuthorNames;
+
+    // If hardcover authors win, we need to create virtual author objects
+    const resolvedAuthors = resolvedAuthorNames === hardcoverAuthorNames && hc
+      ? hardcoverAuthorNames.map((name, idx) => ({
+          id: `hc-author-${idx}`,
+          name,
+          imageUrl: null,
+        }))
+      : authors;
+
+    // Genres - keep audiobook genres separate from Hardcover genres
+    // Audiobook genres come from embedded metadata or manual edits only
+    // Hardcover genres are returned separately in the hardcover object
+    const resolvedGenres = genres;
+
+    // Series - Hardcover provides featured series
+    const embeddedSeriesNames = seriesData.map((s) => s.name);
+    const hardcoverSeriesName = hc?.featuredSeriesName ? [hc.featuredSeriesName] : [];
+    const resolvedSeriesNames = this.resolveFieldByPriority(
+      'series',
+      {
+        manual: embeddedSeriesNames,
+        embedded: embeddedSeriesNames,
+        hardcover: hardcoverSeriesName,
+      },
+      metadataPriority.series,
+      manualFields,
+    ) || embeddedSeriesNames;
+
+    // If hardcover series wins, create virtual series object
+    const resolvedSeries = resolvedSeriesNames === hardcoverSeriesName && hc?.featuredSeriesName
+      ? [{
+          id: `hc-series-0`,
+          name: hc.featuredSeriesName,
+          order: hc.featuredSeriesPosition || '0',
+        }]
+      : seriesData;
+
+    return {
+      ...ab,
+      title: resolvedTitle,
+      subtitle: resolvedSubtitle,
+      description: resolvedDescription,
+      publisher: resolvedPublisher,
+      publishedDate: resolvedPublishedDate,
+      language: resolvedLanguage,
+      coverUrl: this.getCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
+      files,
+      chapters,
+      authors: resolvedAuthors,
+      narrators, // Hardcover doesn't have narrators
+      series: resolvedSeries,
+      genres: resolvedGenres,
+      tags, // Tags are user-created, not from metadata sources
+      // Include hardcover data for display (separate from audiobook data)
+      hardcover: hc ? {
+        id: hc.hardcoverId,
+        slug: hc.slug,
+        rating: hc.rating ? parseFloat(hc.rating) : null,
+        ratingsCount: hc.ratingsCount,
+        imageUrl: hc.imageUrl,
+        genres: hc.genres,
+        moods: hc.moods,
+        contentWarnings: hc.contentWarnings,
+      } : null,
     };
   }
 
   private getCoverUrl(
     id: string,
     coverUrl: string | null,
-    coverSource: 'embedded' | 'uploaded' | null,
+    coverSource: 'embedded' | 'uploaded' | 'filesystem' | null,
   ): string | null {
     // Always return consistent URL pattern for API/mobile compatibility
     if (coverSource || coverUrl) {
@@ -351,11 +540,13 @@ export class AudiobooksService {
 
     const { filePath, coverSource, coverUrl } = audiobook[0];
 
-    // If there's an external cover file stored next to the audiobook
-    if (coverUrl && coverSource !== 'embedded') {
+    // If there's an external cover file (uploaded or filesystem)
+    if (coverUrl && (coverSource === 'uploaded' || coverSource === 'filesystem')) {
       try {
-        // coverUrl is stored as relative path, resolve it
-        const absoluteCoverPath = await this.resolveFilePath(coverUrl);
+        // coverUrl stores just the filename (e.g., 'cover.jpg')
+        // Join it with the audiobook's filePath to get the full relative path
+        const relativeCoverPath = path.join(filePath, coverUrl);
+        const absoluteCoverPath = await this.resolveFilePath(relativeCoverPath);
         const data = await fs.readFile(absoluteCoverPath);
         const ext = path.extname(coverUrl).toLowerCase();
         const mimeType =
@@ -363,7 +554,9 @@ export class AudiobooksService {
             ? 'image/png'
             : ext === '.webp'
               ? 'image/webp'
-              : 'image/jpeg';
+              : ext === '.gif'
+                ? 'image/gif'
+                : 'image/jpeg';
         return { data, mimeType };
       } catch {
         // Fall through to try embedded
@@ -395,9 +588,12 @@ export class AudiobooksService {
   }
 
   async update(id: string, dto: UpdateAudiobookDto) {
-    // Verify audiobook exists
+    // Verify audiobook exists and get current manualFields
     const existing = await this.db
-      .select({ id: schema.audiobooks.id })
+      .select({
+        id: schema.audiobooks.id,
+        manualFields: schema.audiobooks.manualFields,
+      })
       .from(schema.audiobooks)
       .where(eq(schema.audiobooks.id, id))
       .limit(1);
@@ -406,22 +602,53 @@ export class AudiobooksService {
       throw new NotFoundException('Audiobook not found');
     }
 
+    // Track which fields are being manually edited
+    const currentManualFields = (existing[0].manualFields as string[]) || [];
+    const newManualFields = new Set(currentManualFields);
+
     // Update basic fields
     const updateData: Partial<typeof schema.audiobooks.$inferInsert> = {};
 
-    if (dto.title !== undefined) updateData.title = dto.title;
-    if (dto.subtitle !== undefined) updateData.subtitle = dto.subtitle || null;
-    if (dto.description !== undefined)
+    if (dto.title !== undefined) {
+      updateData.title = dto.title;
+      newManualFields.add('title');
+    }
+    if (dto.subtitle !== undefined) {
+      updateData.subtitle = dto.subtitle || null;
+      newManualFields.add('subtitle');
+    }
+    if (dto.description !== undefined) {
       updateData.description = dto.description || null;
-    if (dto.publisher !== undefined) updateData.publisher = dto.publisher || null;
-    if (dto.language !== undefined) updateData.language = dto.language || null;
-    if (dto.publishedDate !== undefined)
+      newManualFields.add('description');
+    }
+    if (dto.publisher !== undefined) {
+      updateData.publisher = dto.publisher || null;
+      newManualFields.add('publisher');
+    }
+    if (dto.language !== undefined) {
+      updateData.language = dto.language || null;
+      newManualFields.add('language');
+    }
+    if (dto.publishedDate !== undefined) {
       updateData.publishedDate = dto.publishedDate || null;
-    if (dto.isbn !== undefined) updateData.isbn = dto.isbn || null;
-    if (dto.asin !== undefined) updateData.asin = dto.asin || null;
-    if (dto.isExplicit !== undefined) updateData.isExplicit = dto.isExplicit;
+      newManualFields.add('publishedDate');
+    }
+    if (dto.isbn !== undefined) {
+      updateData.isbn = dto.isbn || null;
+      newManualFields.add('isbn');
+    }
+    if (dto.asin !== undefined) {
+      updateData.asin = dto.asin || null;
+      newManualFields.add('asin');
+    }
+    if (dto.isExplicit !== undefined) {
+      updateData.isExplicit = dto.isExplicit;
+      newManualFields.add('isExplicit');
+    }
 
+    // Always update manualFields if we have any updates
     if (Object.keys(updateData).length > 0) {
+      updateData.manualFields = Array.from(newManualFields);
       await this.db
         .update(schema.audiobooks)
         .set(updateData)
@@ -436,6 +663,7 @@ export class AudiobooksService {
         'author',
         schema.audiobookAuthors,
       );
+      newManualFields.add('author');
     }
 
     // Update narrators if provided
@@ -446,11 +674,13 @@ export class AudiobooksService {
         'narrator',
         schema.audiobookNarrators,
       );
+      newManualFields.add('narrator');
     }
 
     // Update genres if provided
     if (dto.genreNames !== undefined) {
       await this.updateGenres(id, dto.genreNames);
+      newManualFields.add('genres');
     }
 
     // Update tags if provided
@@ -458,7 +688,22 @@ export class AudiobooksService {
       await this.updateTags(id, dto.tagNames);
     }
 
-    return this.findById(id);
+    // Update manualFields for relation changes (if not already updated above)
+    const relationFieldsChanged =
+      dto.authorNames !== undefined ||
+      dto.narratorNames !== undefined ||
+      dto.genreNames !== undefined;
+
+    if (relationFieldsChanged && Object.keys(updateData).length === 0) {
+      await this.db
+        .update(schema.audiobooks)
+        .set({ manualFields: Array.from(newManualFields) })
+        .where(eq(schema.audiobooks.id, id));
+    }
+
+    const result = await this.findById(id);
+    this.appEvents.audiobookUpdated(id);
+    return result;
   }
 
   private async updatePeopleRelation(
@@ -845,6 +1090,7 @@ export class AudiobooksService {
       })
       .where(eq(schema.audiobooks.id, id));
 
+    this.appEvents.audiobookUpdated(id);
     return { coverUrl: `/api/audiobooks/${id}/cover` };
   }
 
@@ -895,12 +1141,102 @@ export class AudiobooksService {
       await this.db
         .delete(schema.audiobooks)
         .where(eq(schema.audiobooks.id, id));
+
+      this.appEvents.audiobookDeleted(id);
     } else {
       // Keep files but hide from library
       await this.db
         .update(schema.audiobooks)
         .set({ status: 'hidden' })
         .where(eq(schema.audiobooks.id, id));
+
+      this.appEvents.audiobookUpdated(id);
     }
+  }
+
+  /**
+   * Get streaming information for an audiobook at a specific position.
+   * Handles multi-file audiobooks by finding the correct file and offset.
+   */
+  async getStreamInfo(
+    id: string,
+    positionSeconds: number = 0,
+  ): Promise<{
+    filePath: string;
+    mimeType: string;
+    fileSize: number;
+    offsetInFile: number;
+    fileDuration: number;
+    totalDuration: number;
+    fileIndex: number;
+    fileStartPosition: number; // cumulative position where this file starts
+  }> {
+    // Get audiobook files ordered by sequence
+    const files = await this.db
+      .select()
+      .from(schema.audiobookFiles)
+      .where(eq(schema.audiobookFiles.audiobookId, id))
+      .orderBy(asc(schema.audiobookFiles.order));
+
+    if (files.length === 0) {
+      throw new NotFoundException('Audiobook has no audio files');
+    }
+
+    // Calculate total duration
+    const totalDuration = files.reduce((sum, f) => sum + f.duration, 0);
+
+    // Clamp position to valid range
+    const clampedPosition = Math.max(0, Math.min(positionSeconds, totalDuration));
+
+    // Find which file contains the requested position
+    let cumulative = 0;
+    let targetFile = files[0];
+    let fileIndex = 0;
+    let fileStartPosition = 0;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (clampedPosition < cumulative + file.duration) {
+        targetFile = file;
+        fileIndex = i;
+        fileStartPosition = cumulative;
+        break;
+      }
+      cumulative += file.duration;
+      // If we've gone through all files, use the last one
+      if (i === files.length - 1) {
+        targetFile = file;
+        fileIndex = i;
+        fileStartPosition = cumulative - file.duration;
+      }
+    }
+
+    // Calculate offset within the file
+    const offsetInFile = clampedPosition - fileStartPosition;
+
+    // Resolve absolute path
+    const absolutePath = await this.resolveFilePath(targetFile.filePath);
+
+    // Determine MIME type from format
+    const mimeTypes: Record<string, string> = {
+      mp3: 'audio/mpeg',
+      m4a: 'audio/mp4',
+      m4b: 'audio/mp4',
+      ogg: 'audio/ogg',
+      flac: 'audio/flac',
+      wav: 'audio/wav',
+    };
+    const mimeType = mimeTypes[targetFile.format.toLowerCase()] || 'audio/mpeg';
+
+    return {
+      filePath: absolutePath,
+      mimeType,
+      fileSize: targetFile.sizeBytes,
+      offsetInFile,
+      fileDuration: targetFile.duration,
+      totalDuration,
+      fileIndex,
+      fileStartPosition,
+    };
   }
 }

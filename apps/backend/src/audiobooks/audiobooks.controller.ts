@@ -8,6 +8,8 @@ import {
   Query,
   Body,
   Header,
+  Headers,
+  Res,
   NotFoundException,
   StreamableFile,
   HttpCode,
@@ -15,11 +17,15 @@ import {
   UseInterceptors,
   UploadedFile,
   BadRequestException,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import * as express from 'express';
+import * as fs from 'fs';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
 import { UpdateCoverDto } from './dto/update-cover.dto';
+import { AuthGuard } from '../common/guards/auth.guard';
 
 @Controller('audiobooks')
 export class AudiobooksController {
@@ -139,6 +145,80 @@ export class AudiobooksController {
     return new StreamableFile(cover.data, {
       type: cover.mimeType,
     });
+  }
+
+  /**
+   * Stream audio for an audiobook with seek support.
+   * Supports HTTP Range requests for efficient seeking.
+   *
+   * Query params:
+   * - position: Start position in seconds (for seek-by-time)
+   */
+  @Get(':id/stream')
+  @UseGuards(AuthGuard)
+  async stream(
+    @Param('id') id: string,
+    @Query('position') positionParam: string | undefined,
+    @Headers('range') rangeHeader: string | undefined,
+    @Res() res: express.Response,
+  ) {
+    const position = positionParam ? parseInt(positionParam, 10) : 0;
+
+    // Get stream info (finds correct file and offset for position)
+    const streamInfo = await this.audiobooksService.getStreamInfo(id, position);
+
+    // Get file stats
+    const stat = fs.statSync(streamInfo.filePath);
+    const fileSize = stat.size;
+
+    // Calculate byte offset from time offset
+    // Approximate: (offsetInFile / fileDuration) * fileSize
+    // This is an approximation since audio files aren't perfectly linear
+    const estimatedByteOffset = streamInfo.offsetInFile > 0
+      ? Math.floor((streamInfo.offsetInFile / streamInfo.fileDuration) * fileSize)
+      : 0;
+
+    // Custom headers for frontend to track position
+    res.setHeader('X-Audiobook-Total-Duration', streamInfo.totalDuration.toString());
+    res.setHeader('X-File-Duration', streamInfo.fileDuration.toString());
+    res.setHeader('X-File-Index', streamInfo.fileIndex.toString());
+    res.setHeader('X-File-Start-Position', streamInfo.fileStartPosition.toString());
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Type', streamInfo.mimeType);
+
+    // Handle HTTP Range requests (for seeking within buffered content)
+    if (rangeHeader) {
+      const parts = rangeHeader.replace(/bytes=/, '').split('-');
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunkSize = end - start + 1;
+
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      res.setHeader('Content-Length', chunkSize.toString());
+
+      const stream = fs.createReadStream(streamInfo.filePath, { start, end });
+      stream.pipe(res);
+    } else if (estimatedByteOffset > 0) {
+      // Seek by time: start from estimated byte position
+      const end = fileSize - 1;
+      const chunkSize = end - estimatedByteOffset + 1;
+
+      res.status(206);
+      res.setHeader('Content-Range', `bytes ${estimatedByteOffset}-${end}/${fileSize}`);
+      res.setHeader('Content-Length', chunkSize.toString());
+
+      const stream = fs.createReadStream(streamInfo.filePath, {
+        start: estimatedByteOffset,
+        end
+      });
+      stream.pipe(res);
+    } else {
+      // Stream from beginning
+      res.setHeader('Content-Length', fileSize.toString());
+      const stream = fs.createReadStream(streamInfo.filePath);
+      stream.pipe(res);
+    }
   }
 
   @Delete(':id')
