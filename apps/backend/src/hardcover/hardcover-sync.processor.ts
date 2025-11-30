@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { HardcoverService } from './hardcover.service';
+import { WsEventsService } from '../events/ws-events.service';
 
 const PROCESS_INTERVAL_MS = 5000; // Check for new items every 5 seconds
 const THROTTLE_DELAY_MS = 3000; // 3 second delay between API requests
@@ -11,7 +12,10 @@ export class HardcoverSyncProcessor implements OnModuleInit {
   private isProcessing = false;
   private lastProcessTime = 0;
 
-  constructor(private readonly hardcoverService: HardcoverService) {}
+  constructor(
+    private readonly hardcoverService: HardcoverService,
+    private readonly wsEvents: WsEventsService,
+  ) {}
 
   onModuleInit() {
     this.logger.log('Hardcover sync processor initialized');
@@ -115,6 +119,25 @@ export class HardcoverSyncProcessor implements OnModuleInit {
       );
     } finally {
       this.isProcessing = false;
+      // Emit hardcover status after processing
+      this.emitHardcoverStatus().catch((err) =>
+        this.logger.error(`Failed to emit hardcover status: ${err}`),
+      );
     }
+  }
+
+  /**
+   * Emit current hardcover sync status to all connected WebSocket clients
+   */
+  private async emitHardcoverStatus(): Promise<void> {
+    const [pendingCount, failedItems] = await Promise.all([
+      this.hardcoverService.getPendingQueueCount(),
+      this.hardcoverService.getFailedQueueItems(),
+    ]);
+
+    this.wsEvents.hardcoverSyncStatusUpdated({
+      pendingCount,
+      failedCount: failedItems.length,
+    });
   }
 }

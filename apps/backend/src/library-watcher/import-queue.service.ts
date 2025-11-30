@@ -5,6 +5,7 @@ import * as path from 'path';
 import { AudiobookDetectorService } from './audiobook-detector.service';
 import { AudiobookImporterService } from './audiobook-importer.service';
 import { isAudioFile } from './utils/audio-file.utils';
+import { WsEventsService } from '../events/ws-events.service';
 
 interface PendingImport {
   path: string;
@@ -28,6 +29,7 @@ export class ImportQueueService implements OnModuleDestroy {
   constructor(
     private audiobookDetector: AudiobookDetectorService,
     private audiobookImporter: AudiobookImporterService,
+    private wsEvents: WsEventsService,
   ) {
     this.startProcessing();
   }
@@ -78,6 +80,8 @@ export class ImportQueueService implements OnModuleDestroy {
         status: 'collecting',
       });
       this.logger.debug(`New pending import: ${audiobookRoot}`);
+      // Emit import status when new import is added
+      this.emitImportStatus();
     }
   }
 
@@ -145,6 +149,8 @@ export class ImportQueueService implements OnModuleDestroy {
       this.logger.error(`Failed to process import ${pending.path}: ${error}`);
     } finally {
       this.pendingImports.delete(pending.path);
+      // Emit import status when import completes
+      this.emitImportStatus();
     }
   }
 
@@ -174,5 +180,15 @@ export class ImportQueueService implements OnModuleDestroy {
 
   getPendingPaths(): string[] {
     return Array.from(this.pendingImports.keys());
+  }
+
+  /**
+   * Emit current import task status to all connected WebSocket clients
+   */
+  private emitImportStatus(): void {
+    this.wsEvents.importStatusUpdated({
+      pendingCount: this.getPendingCount(),
+      pendingPaths: this.getPendingPaths(),
+    });
   }
 }
