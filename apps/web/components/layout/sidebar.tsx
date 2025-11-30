@@ -8,6 +8,7 @@ import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
 import { TasksIndicator } from "./tasks-indicator";
+import { AppLogo } from "./app-logo";
 
 interface SidebarProps {
   isAdmin: boolean;
@@ -35,14 +36,8 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
   return (
     <aside className="flex h-full w-60 flex-col border-r bg-muted/30">
       {/* Header */}
-      <div className="flex h-16 items-center border-b px-6">
-        <Link
-          href="/home"
-          className="text-lg font-semibold tracking-tight"
-          onClick={handleNavClick}
-        >
-          {t("appName")}
-        </Link>
+      <div className="flex h-16 items-center border-b px-4">
+        <AppLogo onClick={handleNavClick} />
       </div>
 
       {/* Navigation */}

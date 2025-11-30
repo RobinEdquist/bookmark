@@ -16,6 +16,11 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
 });
+const neonderthaw = localFont({
+  src: "./fonts/Neonderthaw-Regular.ttf",
+  variable: "--font-neonderthaw",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Simple Audiobook Vault",
@@ -32,7 +37,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} className="dark" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${neonderthaw.variable} font-sans antialiased`}>
         <QueryProvider>
           <ThemeProvider>
             <IntlProvider locale={locale} messages={messages}>
