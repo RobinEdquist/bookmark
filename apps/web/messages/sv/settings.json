@@ -11,21 +11,41 @@
   },
   "libraries": {
     "title": "Bibliotek",
-    "description": "Hantera dina ljudboksbibliotek",
+    "description": "Hantera dina ljudboks- och e-boksbibliotek",
     "comingSoon": "Bibliotekshantering kommer snart.",
-    "libraryPath": {
-      "label": "Bibliotekssökväg",
+    "audiobookLibrary": {
+      "label": "Ljudboksbibliotek",
       "description": "Mappen där dina ljudböcker finns",
       "notConfigured": "Ej konfigurerad",
       "browse": "Bläddra",
+      "remove": "Ta bort bibliotekssökväg",
       "toast": {
-        "updateSuccess": "Bibliotekssökväg uppdaterad",
-        "updateError": "Kunde inte uppdatera bibliotekssökväg"
+        "updateSuccess": "Ljudboksbibliotekssökväg uppdaterad",
+        "updateError": "Kunde inte uppdatera ljudboksbibliotekssökväg",
+        "removeSuccess": "Ljudboksbibliotekssökväg borttagen",
+        "removeError": "Kunde inte ta bort ljudboksbibliotekssökväg"
+      }
+    },
+    "ebookLibrary": {
+      "label": "E-boksbibliotek",
+      "description": "Mappen där dina e-böcker finns",
+      "notConfigured": "Ej konfigurerad",
+      "browse": "Bläddra",
+      "remove": "Ta bort bibliotekssökväg",
+      "toast": {
+        "updateSuccess": "E-boksbibliotekssökväg uppdaterad",
+        "updateError": "Kunde inte uppdatera e-boksbibliotekssökväg",
+        "removeSuccess": "E-boksbibliotekssökväg borttagen",
+        "removeError": "Kunde inte ta bort e-boksbibliotekssökväg"
       }
     },
     "folderPicker": {
       "title": "Välj biblioteksmapp",
-      "description": "Välj mappen där dina ljudböcker finns",
+      "description": "Välj mappen för ditt bibliotek",
+      "audiobookTitle": "Välj ljudboksbibliotek",
+      "audiobookDescription": "Välj mappen där dina ljudböcker finns",
+      "ebookTitle": "Välj e-boksbibliotek",
+      "ebookDescription": "Välj mappen där dina e-böcker finns",
       "emptyFolder": "Mappen är tom",
       "createFolder": "Skapa mapp",
       "createFolderPlaceholder": "Nytt mappnamn",

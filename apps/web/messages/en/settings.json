@@ -11,21 +11,41 @@
   },
   "libraries": {
     "title": "Libraries",
-    "description": "Manage your audiobook libraries",
+    "description": "Manage your audiobook and ebook libraries",
     "comingSoon": "Library management features coming soon.",
-    "libraryPath": {
-      "label": "Library Path",
+    "audiobookLibrary": {
+      "label": "Audiobook Library",
       "description": "The folder where your audiobooks are stored",
       "notConfigured": "Not configured",
       "browse": "Browse",
+      "remove": "Remove library path",
       "toast": {
-        "updateSuccess": "Library path updated",
-        "updateError": "Failed to update library path"
+        "updateSuccess": "Audiobook library path updated",
+        "updateError": "Failed to update audiobook library path",
+        "removeSuccess": "Audiobook library path removed",
+        "removeError": "Failed to remove audiobook library path"
+      }
+    },
+    "ebookLibrary": {
+      "label": "Ebook Library",
+      "description": "The folder where your ebooks are stored",
+      "notConfigured": "Not configured",
+      "browse": "Browse",
+      "remove": "Remove library path",
+      "toast": {
+        "updateSuccess": "Ebook library path updated",
+        "updateError": "Failed to update ebook library path",
+        "removeSuccess": "Ebook library path removed",
+        "removeError": "Failed to remove ebook library path"
       }
     },
     "folderPicker": {
       "title": "Select Library Folder",
-      "description": "Choose the folder where your audiobooks are stored",
+      "description": "Choose the folder for your library",
+      "audiobookTitle": "Select Audiobook Library",
+      "audiobookDescription": "Choose the folder where your audiobooks are stored",
+      "ebookTitle": "Select Ebook Library",
+      "ebookDescription": "Choose the folder where your ebooks are stored",
       "emptyFolder": "This folder is empty",
       "createFolder": "Create Folder",
       "createFolderPlaceholder": "New folder name",

@@ -22,7 +22,8 @@ export interface MetadataFieldPriority {
 
 export interface Settings {
   signupsEnabled: boolean;
-  libraryPath: string | null;
+  audiobookLibraryPath: string | null;
+  ebookLibraryPath: string | null;
   metadataPriority: MetadataFieldPriority;
   createdAt: string;
   updatedAt: string;
@@ -30,7 +31,8 @@ export interface Settings {
 
 export interface UpdateSettingsDto {
   signupsEnabled?: boolean;
-  libraryPath?: string;
+  audiobookLibraryPath?: string | null;
+  ebookLibraryPath?: string | null;
   metadataPriority?: MetadataFieldPriority;
 }
 
@@ -77,6 +79,8 @@ export function useSettings() {
       queryClient.setQueryData(queryKeys.settings.private(), newSettings);
       // Invalidate all settings queries (includes public)
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.all });
+      // Invalidate library availability (sidebar nav depends on library paths)
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.availability() });
     },
   });
 

@@ -35,7 +35,8 @@ export class AppSettingsService {
 
   async updateSettings(updates: {
     signupsEnabled?: boolean;
-    libraryPath?: string;
+    audiobookLibraryPath?: string | null;
+    ebookLibraryPath?: string | null;
     watcherEnabled?: boolean;
     metadataPriority?: MetadataFieldPriority;
   }) {
@@ -63,9 +64,14 @@ export class AppSettingsService {
     return settings.signupsEnabled;
   }
 
-  async getLibraryPath(): Promise<string | null> {
+  async getAudiobookLibraryPath(): Promise<string | null> {
     const settings = await this.getSettings();
-    return settings.libraryPath;
+    return settings.audiobookLibraryPath;
+  }
+
+  async getEbookLibraryPath(): Promise<string | null> {
+    const settings = await this.getSettings();
+    return settings.ebookLibraryPath;
   }
 
   async isWatcherEnabled(): Promise<boolean> {

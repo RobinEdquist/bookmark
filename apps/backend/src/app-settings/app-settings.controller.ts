@@ -17,7 +17,8 @@ import {
 
 interface UpdateSettingsDto {
   signupsEnabled?: boolean;
-  libraryPath?: string;
+  audiobookLibraryPath?: string | null;
+  ebookLibraryPath?: string | null;
   metadataPriority?: MetadataFieldPriority;
 }
 
@@ -39,7 +40,8 @@ export class AppSettingsController {
     const settings = await this.appSettingsService.getSettings();
     return {
       signupsEnabled: settings.signupsEnabled,
-      libraryPath: settings.libraryPath,
+      audiobookLibraryPath: settings.audiobookLibraryPath,
+      ebookLibraryPath: settings.ebookLibraryPath,
       metadataPriority: settings.metadataPriority || DEFAULT_METADATA_PRIORITY,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
@@ -52,43 +54,56 @@ export class AppSettingsController {
   async updateSettings(@Body() dto: UpdateSettingsDto) {
     if (
       dto.signupsEnabled === undefined &&
-      dto.libraryPath === undefined &&
+      dto.audiobookLibraryPath === undefined &&
+      dto.ebookLibraryPath === undefined &&
       dto.metadataPriority === undefined
     ) {
       throw new BadRequestException('No settings provided to update');
     }
 
-    // Validate libraryPath if provided
-    if (dto.libraryPath !== undefined) {
-      try {
-        const stats = await fs.stat(dto.libraryPath);
-        if (!stats.isDirectory()) {
-          throw new BadRequestException('Path is not a directory');
-        }
-        await fs.access(dto.libraryPath, fs.constants.R_OK);
-      } catch (error) {
-        if (error instanceof BadRequestException) throw error;
-        throw new BadRequestException('Path does not exist or is not accessible');
-      }
+    // Validate audiobookLibraryPath if provided (null is allowed to clear the path)
+    if (dto.audiobookLibraryPath !== undefined && dto.audiobookLibraryPath !== null) {
+      await this.validateLibraryPath(dto.audiobookLibraryPath);
+    }
+
+    // Validate ebookLibraryPath if provided (null is allowed to clear the path)
+    if (dto.ebookLibraryPath !== undefined && dto.ebookLibraryPath !== null) {
+      await this.validateLibraryPath(dto.ebookLibraryPath);
     }
 
     const updates: {
       signupsEnabled?: boolean;
-      libraryPath?: string;
+      audiobookLibraryPath?: string | null;
+      ebookLibraryPath?: string | null;
       metadataPriority?: MetadataFieldPriority;
     } = {};
     if (dto.signupsEnabled !== undefined) updates.signupsEnabled = dto.signupsEnabled;
-    if (dto.libraryPath !== undefined) updates.libraryPath = dto.libraryPath;
+    if (dto.audiobookLibraryPath !== undefined) updates.audiobookLibraryPath = dto.audiobookLibraryPath;
+    if (dto.ebookLibraryPath !== undefined) updates.ebookLibraryPath = dto.ebookLibraryPath;
     if (dto.metadataPriority !== undefined) updates.metadataPriority = dto.metadataPriority;
 
     const settings = await this.appSettingsService.updateSettings(updates);
 
     return {
       signupsEnabled: settings.signupsEnabled,
-      libraryPath: settings.libraryPath,
+      audiobookLibraryPath: settings.audiobookLibraryPath,
+      ebookLibraryPath: settings.ebookLibraryPath,
       metadataPriority: settings.metadataPriority || DEFAULT_METADATA_PRIORITY,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };
+  }
+
+  private async validateLibraryPath(path: string): Promise<void> {
+    try {
+      const stats = await fs.stat(path);
+      if (!stats.isDirectory()) {
+        throw new BadRequestException('Path is not a directory');
+      }
+      await fs.access(path, fs.constants.R_OK);
+    } catch (error) {
+      if (error instanceof BadRequestException) throw error;
+      throw new BadRequestException('Path does not exist or is not accessible');
+    }
   }
 }

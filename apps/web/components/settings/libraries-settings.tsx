@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Folder, ChevronUp, ChevronDown, GripVertical } from "lucide-react";
+import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -110,15 +110,49 @@ function PriorityItem({ field, sources, onMove, t, isUpdating }: PriorityItemPro
 export function LibrariesSettings() {
   const t = useTranslations("settings.libraries");
   const { settings, isLoading, error, updateSettings, isUpdating } = useSettings();
-  const [folderPickerOpen, setFolderPickerOpen] = useState(false);
+  const [audiobookFolderPickerOpen, setAudiobookFolderPickerOpen] = useState(false);
+  const [ebookFolderPickerOpen, setEbookFolderPickerOpen] = useState(false);
 
-  const handleSelectPath = async (path: string) => {
+  const handleSelectAudiobookPath = async (path: string) => {
     try {
-      await updateSettings({ libraryPath: path });
-      toast.success(t("libraryPath.toast.updateSuccess"));
+      await updateSettings({ audiobookLibraryPath: path });
+      toast.success(t("audiobookLibrary.toast.updateSuccess"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("libraryPath.toast.updateError")
+        err instanceof Error ? err.message : t("audiobookLibrary.toast.updateError")
+      );
+    }
+  };
+
+  const handleSelectEbookPath = async (path: string) => {
+    try {
+      await updateSettings({ ebookLibraryPath: path });
+      toast.success(t("ebookLibrary.toast.updateSuccess"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("ebookLibrary.toast.updateError")
+      );
+    }
+  };
+
+  const handleRemoveAudiobookPath = async () => {
+    try {
+      await updateSettings({ audiobookLibraryPath: null });
+      toast.success(t("audiobookLibrary.toast.removeSuccess"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("audiobookLibrary.toast.removeError")
+      );
+    }
+  };
+
+  const handleRemoveEbookPath = async () => {
+    try {
+      await updateSettings({ ebookLibraryPath: null });
+      toast.success(t("ebookLibrary.toast.removeSuccess"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("ebookLibrary.toast.removeError")
       );
     }
   };
@@ -186,28 +220,82 @@ export function LibrariesSettings() {
           <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Audiobook Library Path */}
           <fieldset className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <Label className="text-base font-medium">
-                {t("libraryPath.label")}
+              <Label className="text-base font-medium flex items-center gap-2">
+                <Headphones className="h-4 w-4" />
+                {t("audiobookLibrary.label")}
               </Label>
               <p className="text-sm text-muted-foreground">
-                {t("libraryPath.description")}
+                {t("audiobookLibrary.description")}
               </p>
               <div className="flex items-center gap-2 pt-1">
                 <Folder className="h-4 w-4 text-muted-foreground" />
                 <code className="text-sm bg-muted px-2 py-0.5 rounded">
-                  {settings?.libraryPath || t("libraryPath.notConfigured")}
+                  {settings?.audiobookLibraryPath || t("audiobookLibrary.notConfigured")}
                 </code>
               </div>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => setFolderPickerOpen(true)}
-              disabled={isUpdating}
-            >
-              {t("libraryPath.browse")}
-            </Button>
+            <div className="flex items-center gap-2">
+              {settings?.audiobookLibraryPath && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRemoveAudiobookPath}
+                  disabled={isUpdating}
+                  title={t("audiobookLibrary.remove")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => setAudiobookFolderPickerOpen(true)}
+                disabled={isUpdating}
+              >
+                {t("audiobookLibrary.browse")}
+              </Button>
+            </div>
+          </fieldset>
+
+          {/* Ebook Library Path */}
+          <fieldset className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label className="text-base font-medium flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
+                {t("ebookLibrary.label")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("ebookLibrary.description")}
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <Folder className="h-4 w-4 text-muted-foreground" />
+                <code className="text-sm bg-muted px-2 py-0.5 rounded">
+                  {settings?.ebookLibraryPath || t("ebookLibrary.notConfigured")}
+                </code>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {settings?.ebookLibraryPath && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleRemoveEbookPath}
+                  disabled={isUpdating}
+                  title={t("ebookLibrary.remove")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => setEbookFolderPickerOpen(true)}
+                disabled={isUpdating}
+              >
+                {t("ebookLibrary.browse")}
+              </Button>
+            </div>
           </fieldset>
         </CardContent>
       </Card>
@@ -235,10 +323,20 @@ export function LibrariesSettings() {
       </Card>
 
       <FolderPickerDialog
-        open={folderPickerOpen}
-        onOpenChange={setFolderPickerOpen}
-        onSelect={handleSelectPath}
-        initialPath={settings?.libraryPath || undefined}
+        open={audiobookFolderPickerOpen}
+        onOpenChange={setAudiobookFolderPickerOpen}
+        onSelect={handleSelectAudiobookPath}
+        initialPath={settings?.audiobookLibraryPath || undefined}
+        title={t("folderPicker.audiobookTitle")}
+        description={t("folderPicker.audiobookDescription")}
+      />
+      <FolderPickerDialog
+        open={ebookFolderPickerOpen}
+        onOpenChange={setEbookFolderPickerOpen}
+        onSelect={handleSelectEbookPath}
+        initialPath={settings?.ebookLibraryPath || undefined}
+        title={t("folderPicker.ebookTitle")}
+        description={t("folderPicker.ebookDescription")}
       />
     </div>
   );
