@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Home, Library, Settings, User, LogOut } from "lucide-react";
+import { Home, Headphones, BookOpen, Settings, User, LogOut } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
+import { useLibraryAvailability } from "../../lib/use-library-availability";
 import { TasksIndicator } from "./tasks-indicator";
 import { AppLogo } from "./app-logo";
 
@@ -15,14 +16,10 @@ interface SidebarProps {
   onNavigate?: () => void;
 }
 
-const navItems = [
-  { href: "/home", icon: Home, labelKey: "home" },
-  { href: "/libraries", icon: Library, labelKey: "library" },
-] as const;
-
 export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
   const t = useTranslations("common");
   const pathname = usePathname();
+  const { data: availability } = useLibraryAvailability();
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -33,6 +30,13 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
     onNavigate?.();
   };
 
+  // Build nav items based on library availability
+  const navItems = [
+    { href: "/home", icon: Home, labelKey: "home", show: true },
+    { href: "/audiobooks", icon: Headphones, labelKey: "audiobooks", show: availability?.audiobooks ?? false },
+    { href: "/ebooks", icon: BookOpen, labelKey: "ebooks", show: availability?.ebooks ?? false },
+  ];
+
   return (
     <aside className="flex h-full w-60 flex-col border-r bg-muted/30">
       {/* Header */}
@@ -42,25 +46,27 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 p-4">
-        {navItems.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              {t(`nav.${item.labelKey}`)}
-            </Link>
-          );
-        })}
+        {navItems
+          .filter((item) => item.show)
+          .map((item) => {
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={handleNavClick}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                {t(`nav.${item.labelKey}`)}
+              </Link>
+            );
+          })}
       </nav>
 
       {/* Tasks indicator */}

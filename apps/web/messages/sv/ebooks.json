@@ -1,0 +1,143 @@
+{
+  "title": "E-böcker",
+  "empty": {
+    "title": "Inga e-böcker hittades",
+    "description": "Lägg till e-böcker genom att skanna din e-boksmapp"
+  },
+  "loading": "Laddar e-böcker...",
+  "error": "Kunde inte ladda e-böcker",
+  "card": {
+    "bookInSeries": "Bok {order} i {series}",
+    "edit": "Redigera",
+    "delete": "Ta bort",
+    "download": "Ladda ner",
+    "changeCover": "Ändra omslag",
+    "missing": "Fil saknas",
+    "missingDescription": "E-bokfilen kunde inte hittas"
+  },
+  "deleteDialog": {
+    "title": "Ta bort e-bok",
+    "description": "Är du säker på att du vill ta bort \"{title}\"?",
+    "keepFiles": {
+      "label": "Behåll filer på disken",
+      "description": "E-boken tas bort från biblioteket men filerna finns kvar på din disk."
+    },
+    "deleteFiles": {
+      "label": "Ta bort filer permanent",
+      "description": "E-boken och dess fil kommer att tas bort permanent. Detta kan inte ångras."
+    },
+    "cancel": "Avbryt",
+    "confirm": "Ta bort",
+    "deleting": "Tar bort...",
+    "success": "E-boken har tagits bort",
+    "error": "Kunde inte ta bort e-boken"
+  },
+  "filters": {
+    "search": "Sök e-böcker...",
+    "genre": "Genre",
+    "series": "Serie",
+    "language": "Språk",
+    "allGenres": "Alla genrer",
+    "allSeries": "Alla serier",
+    "allLanguages": "Alla språk"
+  },
+  "sort": {
+    "label": "Sortera efter",
+    "title": "Titel",
+    "dateAdded": "Datum tillagt",
+    "author": "Författare"
+  },
+  "detail": {
+    "error": "Kunde inte ladda e-bok",
+    "backToLibrary": "Tillbaka till biblioteket",
+    "download": "Ladda ner",
+    "edit": "Redigera",
+    "changeCover": "Ändra omslag",
+    "author": "Författare",
+    "pages": "Sidor",
+    "published": "Publicerad",
+    "description": "Beskrivning",
+    "showMore": "Visa mer",
+    "showLess": "Visa mindre",
+    "bookInSeries": "Bok {order} i {series}",
+    "fileInfo": "Fil",
+    "additionalInfo": "Ytterligare information",
+    "publisher": "Förlag",
+    "isbn": "ISBN",
+    "language": "Språk"
+  },
+  "changeCover": {
+    "title": "Ändra omslag",
+    "description": "Uppdatera omslagsbilden för \"{title}\"",
+    "tabs": {
+      "upload": "Ladda upp",
+      "url": "Från URL"
+    },
+    "upload": {
+      "dropzone": "Klicka eller dra och släpp för att ladda upp",
+      "formats": "JPG, PNG eller WebP (max 2 MB)"
+    },
+    "url": {
+      "label": "Bild-URL",
+      "placeholder": "https://example.com/omslag.jpg",
+      "preview": "Förhandsgranska"
+    },
+    "cancel": "Avbryt",
+    "save": "Spara",
+    "saving": "Sparar...",
+    "success": "Omslaget har uppdaterats",
+    "errors": {
+      "invalidType": "Ogiltig filtyp. Använd JPG, PNG eller WebP.",
+      "tooLarge": "Filen är för stor. Maxstorlek är 2 MB.",
+      "invalidUrl": "Ange en giltig URL",
+      "loadFailed": "Kunde inte ladda bilden från URL",
+      "failed": "Kunde inte uppdatera omslaget"
+    }
+  },
+  "edit": {
+    "title": "Redigera e-bok",
+    "save": "Spara",
+    "saveAndClose": "Spara & stäng",
+    "saving": "Sparar...",
+    "cancel": "Avbryt",
+    "previous": "Föregående e-bok",
+    "next": "Nästa e-bok",
+    "success": "E-boken har uppdaterats",
+    "error": "Kunde inte uppdatera e-boken",
+    "fields": {
+      "title": "Titel",
+      "titlePlaceholder": "Ange titel",
+      "subtitle": "Undertitel",
+      "subtitlePlaceholder": "Ange undertitel",
+      "authors": "Författare",
+      "authorsPlaceholder": "Välj författare...",
+      "searchAuthors": "Sök författare...",
+      "noAuthorsFound": "Inga författare hittades.",
+      "createAuthor": "Lägg till",
+      "description": "Beskrivning",
+      "descriptionPlaceholder": "Ange beskrivning",
+      "publisher": "Förlag",
+      "publisherPlaceholder": "Välj förlag...",
+      "searchPublisher": "Sök förlag...",
+      "noPublishersFound": "Inga förlag hittades.",
+      "createPublisher": "Lägg till",
+      "language": "Språk",
+      "languagePlaceholder": "Välj språk",
+      "noLanguage": "Inget",
+      "publishedYear": "År",
+      "publishedYearPlaceholder": "t.ex. 2023",
+      "isbn": "ISBN",
+      "isbnPlaceholder": "t.ex. 978-3-16-148410-0",
+      "genres": "Genrer",
+      "genresPlaceholder": "Välj genrer...",
+      "searchGenres": "Sök genrer...",
+      "noGenresFound": "Inga genrer hittades.",
+      "createGenre": "Lägg till",
+      "tags": "Taggar",
+      "tagsPlaceholder": "Välj taggar...",
+      "searchTags": "Sök taggar...",
+      "noTagsFound": "Inga taggar hittades.",
+      "createTag": "Lägg till"
+    }
+  }
+}

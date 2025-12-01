@@ -21,6 +21,8 @@ interface FolderPickerDialogProps {
   onOpenChange: (open: boolean) => void;
   onSelect: (path: string) => void;
   initialPath?: string;
+  title?: string;
+  description?: string;
 }
 
 export function FolderPickerDialog({
@@ -28,6 +30,8 @@ export function FolderPickerDialog({
   onOpenChange,
   onSelect,
   initialPath,
+  title,
+  description,
 }: FolderPickerDialogProps) {
   const t = useTranslations("settings.libraries.folderPicker");
   const [currentPath, setCurrentPath] = useState<string | undefined>(initialPath);
@@ -92,8 +96,8 @@ export function FolderPickerDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
-          <DialogDescription>{t("description")}</DialogDescription>
+          <DialogTitle>{title ?? t("title")}</DialogTitle>
+          <DialogDescription>{description ?? t("description")}</DialogDescription>
         </DialogHeader>
 
         {/* Breadcrumb navigation */}

@@ -46,6 +46,7 @@ export class WsEventsService {
 
   private getRoom(eventType: string): string | null {
     if (eventType.startsWith('audiobook.')) return 'audiobooks';
+    if (eventType.startsWith('ebook.')) return 'ebooks';
     if (eventType.startsWith('series.')) return 'series';
     if (eventType.startsWith('library.')) return 'library';
     if (eventType.startsWith('hardcover.')) return 'hardcover';
@@ -65,6 +66,19 @@ export class WsEventsService {
 
   audiobookDeleted(id: string): void {
     this.emit({ type: 'audiobook.deleted', entityId: id });
+  }
+
+  // Ebook events
+  ebookCreated(id: string): void {
+    this.emit({ type: 'ebook.created', entityId: id });
+  }
+
+  ebookUpdated(id: string): void {
+    this.emit({ type: 'ebook.updated', entityId: id });
+  }
+
+  ebookDeleted(id: string): void {
+    this.emit({ type: 'ebook.deleted', entityId: id });
   }
 
   // Series events

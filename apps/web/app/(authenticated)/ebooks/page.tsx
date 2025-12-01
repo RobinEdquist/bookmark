@@ -4,16 +4,16 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Search, X, Loader2 } from "lucide-react";
 import { Input } from "@repo/ui/components/ui/input";
-import { AudiobookGrid } from "../../../components/audiobooks/audiobook-grid";
-import { useAudiobooks } from "../../../lib/use-audiobooks";
+import { EbookGrid } from "../../../components/ebooks/ebook-grid";
+import { useEbooks } from "../../../lib/use-ebooks";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
 
-export default function LibrariesPage() {
-  const t = useTranslations("audiobooks");
+export default function EbooksPage() {
+  const t = useTranslations("ebooks");
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
-  const { data, isLoading, isFetching, error } = useAudiobooks({
+  const { data, isLoading, isFetching, error } = useEbooks({
     search: debouncedSearch || undefined,
   });
 
@@ -53,8 +53,8 @@ export default function LibrariesPage() {
           </div>
         </header>
 
-        <AudiobookGrid
-          audiobooks={data?.audiobooks ?? []}
+        <EbookGrid
+          ebooks={data?.ebooks ?? []}
           isLoading={showSkeletons}
           error={error}
         />

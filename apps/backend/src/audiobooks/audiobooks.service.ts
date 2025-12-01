@@ -57,14 +57,14 @@ export class AudiobooksService {
   ) {}
 
   /**
-   * Convert a relative file path (stored in DB) to an absolute path using the library path
+   * Convert a relative file path (stored in DB) to an absolute path using the audiobook library path
    */
   private async resolveFilePath(relativePath: string): Promise<string> {
-    const libraryPath = await this.appSettingsService.getLibraryPath();
-    if (!libraryPath) {
-      throw new Error('Library path not configured');
+    const audiobookLibraryPath = await this.appSettingsService.getAudiobookLibraryPath();
+    if (!audiobookLibraryPath) {
+      throw new Error('Audiobook library path not configured');
     }
-    return path.join(libraryPath, relativePath);
+    return path.join(audiobookLibraryPath, relativePath);
   }
 
   /**

@@ -14,9 +14,12 @@ import {
   jsonb,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
+import { coverSourceEnum } from '../database/shared-enums';
+
+// Re-export for backwards compatibility
+export { coverSourceEnum };
 
 // Enums
-export const coverSourceEnum = pgEnum('cover_source', ['embedded', 'uploaded', 'filesystem']);
 export const chapterSourceEnum = pgEnum('chapter_source', ['embedded', 'manual', 'external']);
 export const audiobookStatusEnum = pgEnum('audiobook_status', [
   'available',
@@ -244,9 +247,10 @@ export const audiobookTags = pgTable(
   ],
 );
 
-// Forward import for hardcover relation (avoids circular dependency)
-// The actual table is defined in ../hardcover/schema.ts
+// Forward imports for relations (avoids circular dependency)
+// The actual tables are defined in their respective schema files
 import { hardcoverBooks } from '../hardcover/schema';
+import { ebookAuthors, ebookSeries } from '../ebooks/schema';
 
 // Relations
 export const audiobooksRelations = relations(audiobooks, ({ many, one }) => ({
@@ -280,6 +284,7 @@ export const chaptersRelations = relations(chapters, ({ one }) => ({
 export const peopleRelations = relations(people, ({ many }) => ({
   authorOf: many(audiobookAuthors),
   narratorOf: many(audiobookNarrators),
+  ebookAuthorOf: many(ebookAuthors),
 }));
 
 export const audiobookAuthorsRelations = relations(audiobookAuthors, ({ one }) => ({
@@ -306,6 +311,7 @@ export const audiobookNarratorsRelations = relations(audiobookNarrators, ({ one 
 
 export const seriesRelations = relations(series, ({ many }) => ({
   audiobooks: many(audiobookSeries),
+  ebooks: many(ebookSeries),
 }));
 
 export const audiobookSeriesRelations = relations(audiobookSeries, ({ one }) => ({

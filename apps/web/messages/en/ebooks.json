@@ -1,0 +1,143 @@
+{
+  "title": "Ebooks",
+  "empty": {
+    "title": "No ebooks found",
+    "description": "Add ebooks by scanning your ebook library folder"
+  },
+  "loading": "Loading ebooks...",
+  "error": "Failed to load ebooks",
+  "card": {
+    "bookInSeries": "Book {order} in {series}",
+    "edit": "Edit",
+    "delete": "Delete",
+    "download": "Download",
+    "changeCover": "Change cover",
+    "missing": "File missing",
+    "missingDescription": "The ebook file could not be found"
+  },
+  "deleteDialog": {
+    "title": "Delete Ebook",
+    "description": "Are you sure you want to delete \"{title}\"?",
+    "keepFiles": {
+      "label": "Keep files on disk",
+      "description": "The ebook will be removed from the library but the files will remain on your disk."
+    },
+    "deleteFiles": {
+      "label": "Delete files permanently",
+      "description": "The ebook and its file will be permanently deleted. This cannot be undone."
+    },
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "deleting": "Deleting...",
+    "success": "Ebook deleted successfully",
+    "error": "Failed to delete ebook"
+  },
+  "filters": {
+    "search": "Search ebooks...",
+    "genre": "Genre",
+    "series": "Series",
+    "language": "Language",
+    "allGenres": "All Genres",
+    "allSeries": "All Series",
+    "allLanguages": "All Languages"
+  },
+  "sort": {
+    "label": "Sort by",
+    "title": "Title",
+    "dateAdded": "Date Added",
+    "author": "Author"
+  },
+  "detail": {
+    "error": "Failed to load ebook",
+    "backToLibrary": "Back to Library",
+    "download": "Download",
+    "edit": "Edit",
+    "changeCover": "Change cover",
+    "author": "Author",
+    "pages": "Pages",
+    "published": "Published",
+    "description": "Description",
+    "showMore": "Show more",
+    "showLess": "Show less",
+    "bookInSeries": "Book {order} in {series}",
+    "fileInfo": "File",
+    "additionalInfo": "Additional Information",
+    "publisher": "Publisher",
+    "isbn": "ISBN",
+    "language": "Language"
+  },
+  "changeCover": {
+    "title": "Change Cover",
+    "description": "Update the cover image for \"{title}\"",
+    "tabs": {
+      "upload": "Upload",
+      "url": "From URL"
+    },
+    "upload": {
+      "dropzone": "Click or drag and drop to upload",
+      "formats": "JPG, PNG, or WebP (max 2 MB)"
+    },
+    "url": {
+      "label": "Image URL",
+      "placeholder": "https://example.com/cover.jpg",
+      "preview": "Preview"
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "success": "Cover updated successfully",
+    "errors": {
+      "invalidType": "Invalid file type. Please use JPG, PNG, or WebP.",
+      "tooLarge": "File is too large. Maximum size is 2 MB.",
+      "invalidUrl": "Please enter a valid URL",
+      "loadFailed": "Failed to load image from URL",
+      "failed": "Failed to update cover"
+    }
+  },
+  "edit": {
+    "title": "Edit Ebook",
+    "save": "Save",
+    "saveAndClose": "Save & Close",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "previous": "Previous ebook",
+    "next": "Next ebook",
+    "success": "Ebook updated successfully",
+    "error": "Failed to update ebook",
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Enter title",
+      "subtitle": "Subtitle",
+      "subtitlePlaceholder": "Enter subtitle",
+      "authors": "Authors",
+      "authorsPlaceholder": "Select authors...",
+      "searchAuthors": "Search authors...",
+      "noAuthorsFound": "No authors found.",
+      "createAuthor": "Add",
+      "description": "Description",
+      "descriptionPlaceholder": "Enter description",
+      "publisher": "Publisher",
+      "publisherPlaceholder": "Select publisher...",
+      "searchPublisher": "Search publishers...",
+      "noPublishersFound": "No publishers found.",
+      "createPublisher": "Add",
+      "language": "Language",
+      "languagePlaceholder": "Select language",
+      "noLanguage": "None",
+      "publishedYear": "Year",
+      "publishedYearPlaceholder": "e.g. 2023",
+      "isbn": "ISBN",
+      "isbnPlaceholder": "e.g. 978-3-16-148410-0",
+      "genres": "Genres",
+      "genresPlaceholder": "Select genres...",
+      "searchGenres": "Search genres...",
+      "noGenresFound": "No genres found.",
+      "createGenre": "Add",
+      "tags": "Tags",
+      "tagsPlaceholder": "Select tags...",
+      "searchTags": "Search tags...",
+      "noTagsFound": "No tags found.",
+      "createTag": "Add"
+    }
+  }
+}

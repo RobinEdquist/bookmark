@@ -19,6 +19,7 @@ export const queryKeys = {
   library: {
     all: ["library"] as const,
     stats: () => [...queryKeys.library.all, "stats"] as const,
+    availability: () => [...queryKeys.library.all, "availability"] as const,
   },
   series: {
     all: ["series"] as const,
@@ -43,6 +44,22 @@ export const queryKeys = {
     publishers: (search?: string) => [...queryKeys.audiobooks.all, "publishers", search] as const,
     genres: (search?: string) => [...queryKeys.audiobooks.all, "genres", search] as const,
     tags: (search?: string) => [...queryKeys.audiobooks.all, "tags", search] as const,
+  },
+  ebooks: {
+    all: ["ebooks"] as const,
+    list: (filters?: {
+      search?: string;
+      genreId?: string;
+      seriesId?: string;
+      language?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.ebooks.all, "list", filters] as const,
+    detail: (id: string) => [...queryKeys.ebooks.all, "detail", id] as const,
+    authors: (search?: string) => [...queryKeys.ebooks.all, "authors", search] as const,
+    publishers: (search?: string) => [...queryKeys.ebooks.all, "publishers", search] as const,
+    genres: (search?: string) => [...queryKeys.ebooks.all, "genres", search] as const,
+    tags: (search?: string) => [...queryKeys.ebooks.all, "tags", search] as const,
   },
   filesystem: {
     all: ["filesystem"] as const,

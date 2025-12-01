@@ -15,7 +15,8 @@
   },
   "nav": {
     "home": "Hem",
-    "library": "Bibliotek",
+    "audiobooks": "Ljudböcker",
+    "ebooks": "E-böcker",
     "settings": "Inställningar",
     "preferences": "Preferenser",
     "signOut": "Logga ut"

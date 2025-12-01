@@ -76,4 +76,17 @@ export class AppEventsService {
   settingsUpdated(): void {
     this.emit({ type: 'settings.updated' });
   }
+
+  // Ebook events
+  ebookCreated(id: string): void {
+    this.emit({ type: 'ebook.created', entityId: id });
+  }
+
+  ebookUpdated(id: string): void {
+    this.emit({ type: 'ebook.updated', entityId: id });
+  }
+
+  ebookDeleted(id: string): void {
+    this.emit({ type: 'ebook.deleted', entityId: id });
+  }
 }

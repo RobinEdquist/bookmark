@@ -21,4 +21,13 @@ export class LibraryWatcherController {
       result,
     };
   }
+
+  @Post('scan-ebooks')
+  async triggerEbookScan() {
+    const result = await this.libraryWatcherService.manualEbookScan();
+    return {
+      success: true,
+      result,
+    };
+  }
 }

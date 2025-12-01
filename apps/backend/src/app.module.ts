@@ -9,6 +9,7 @@ import { UsersModule } from './users/users.module';
 import { AppSettingsModule } from './app-settings/app-settings.module';
 import { FilesystemModule } from './filesystem/filesystem.module';
 import { AudiobooksModule } from './audiobooks/audiobooks.module';
+import { EbooksModule } from './ebooks/ebooks.module';
 import { ImportErrorsModule } from './import-errors/import-errors.module';
 import { LibraryWatcherModule } from './library-watcher/library-watcher.module';
 import { HardcoverModule } from './hardcover/hardcover.module';
@@ -38,6 +39,7 @@ import { createAuthInstance } from './auth/auth.provider';
     AppSettingsModule,
     FilesystemModule,
     AudiobooksModule,
+    EbooksModule,
     ImportErrorsModule,
     LibraryWatcherModule,
     HardcoverModule,

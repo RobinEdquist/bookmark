@@ -15,7 +15,8 @@
   },
   "nav": {
     "home": "Home",
-    "library": "Library",
+    "audiobooks": "Audiobooks",
+    "ebooks": "Ebooks",
     "settings": "Settings",
     "preferences": "Preferences",
     "signOut": "Sign Out"

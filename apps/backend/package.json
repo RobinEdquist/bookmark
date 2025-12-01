@@ -42,6 +42,7 @@
     "cookie": "^1.1.1",
     "drizzle-kit": "^0.31.7",
     "drizzle-orm": "^0.44.7",
+    "epub2": "^3.0.2",
     "graphql": "^16.12.0",
     "graphql-request": "^7.3.5",
     "music-metadata": "^11.10.3",
