@@ -14,7 +14,7 @@ pnpm format                 # Format with Prettier
 
 # Database
 cd apps/backend
-pnpm db:generate            # Generate migrations from schema changes
+npx drizzle-kit generate --name=<migration_name>  # Generate migrations (ALWAYS use descriptive names!)
 pnpm db:migrate             # Run migrations
 pnpm db:studio              # Open Drizzle Studio
 
@@ -402,6 +402,22 @@ export class AudiobooksService {
   }
 }
 ```
+
+### Database Migrations
+
+**IMPORTANT:** Always use `drizzle-kit` directly with a descriptive `--name` flag when generating migrations:
+
+```bash
+# ✅ Good: Descriptive migration names
+npx drizzle-kit generate --name=init
+npx drizzle-kit generate --name=add_user_preferences
+npx drizzle-kit generate --name=rename_library_path_to_audiobook
+
+# ❌ Bad: Using pnpm db:generate (creates random names like "chubby_puppet_master")
+pnpm db:generate
+```
+
+Migration names should describe what the migration does (e.g., `init`, `add_user_permissions`, `rename_column_x_to_y`).
 
 ### Database Schema Patterns
 
