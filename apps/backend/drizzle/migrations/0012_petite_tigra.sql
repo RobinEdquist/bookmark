@@ -1,1 +1,0 @@
-ALTER TYPE "public"."audiobook_status" ADD VALUE 'hidden';

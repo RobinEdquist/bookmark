@@ -1,1 +1,0 @@
-ALTER TABLE "hardcover_books" ADD COLUMN "description" text;
