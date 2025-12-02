@@ -16,6 +16,7 @@ import {
 import { relations } from 'drizzle-orm';
 import { coverSourceEnum } from '../database/shared-enums';
 import { people, series, genres, tags } from '../audiobooks/schema';
+import { hardcoverEbookLinks } from '../hardcover/schema';
 
 // Ebook-specific status enum
 export const ebookStatusEnum = pgEnum('ebook_status', [
@@ -139,11 +140,15 @@ export const ebookTags = pgTable(
 );
 
 // Relations
-export const ebooksRelations = relations(ebooks, ({ many }) => ({
+export const ebooksRelations = relations(ebooks, ({ many, one }) => ({
   authors: many(ebookAuthors),
   series: many(ebookSeries),
   genres: many(ebookGenres),
   tags: many(ebookTags),
+  hardcoverLink: one(hardcoverEbookLinks, {
+    fields: [ebooks.id],
+    references: [hardcoverEbookLinks.ebookId],
+  }),
 }));
 
 export const ebookAuthorsRelations = relations(ebookAuthors, ({ one }) => ({
