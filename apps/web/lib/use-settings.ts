@@ -24,6 +24,7 @@ export interface Settings {
   signupsEnabled: boolean;
   audiobookLibraryPath: string | null;
   ebookLibraryPath: string | null;
+  opdsEnabled: boolean;
   metadataPriority: MetadataFieldPriority;
   createdAt: string;
   updatedAt: string;
@@ -33,6 +34,7 @@ export interface UpdateSettingsDto {
   signupsEnabled?: boolean;
   audiobookLibraryPath?: string | null;
   ebookLibraryPath?: string | null;
+  opdsEnabled?: boolean;
   metadataPriority?: MetadataFieldPriority;
 }
 
