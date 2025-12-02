@@ -39,6 +39,19 @@
         "removeError": "Kunde inte ta bort e-boksbibliotekssökväg"
       }
     },
+    "opds": {
+      "label": "OPDS-flöde",
+      "description": "OPDS (Open Publication Distribution System) gör att e-boksläsare som KOReader, Moon+ Reader och Calibre kan bläddra och ladda ner e-böcker direkt från ditt bibliotek. För att ansluta, ange valfritt användarnamn (t.ex. din e-post) och använd din API-nyckel som lösenord när du konfigurerar OPDS-flödet i din läsapp.",
+      "feedUrl": "Flödes-URL",
+      "copy": "Kopiera URL",
+      "authHint": "Använd valfritt användarnamn och din API-nyckel som lösenord för att autentisera.",
+      "toast": {
+        "enabled": "OPDS-flöde aktiverat",
+        "disabled": "OPDS-flöde inaktiverat",
+        "error": "Kunde inte uppdatera OPDS-inställning",
+        "copied": "Flödes-URL kopierad till urklipp"
+      }
+    },
     "folderPicker": {
       "title": "Välj biblioteksmapp",
       "description": "Välj mappen för ditt bibliotek",
