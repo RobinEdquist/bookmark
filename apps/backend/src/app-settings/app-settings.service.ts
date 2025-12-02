@@ -39,6 +39,7 @@ export class AppSettingsService {
     ebookLibraryPath?: string | null;
     watcherEnabled?: boolean;
     metadataPriority?: MetadataFieldPriority;
+    opdsEnabled?: boolean;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)
@@ -82,5 +83,10 @@ export class AppSettingsService {
   async getMetadataPriority(): Promise<MetadataFieldPriority> {
     const settings = await this.getSettings();
     return settings.metadataPriority || DEFAULT_METADATA_PRIORITY;
+  }
+
+  async isOpdsEnabled(): Promise<boolean> {
+    const settings = await this.getSettings();
+    return settings.opdsEnabled;
   }
 }

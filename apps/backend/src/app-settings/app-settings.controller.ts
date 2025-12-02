@@ -20,6 +20,7 @@ interface UpdateSettingsDto {
   audiobookLibraryPath?: string | null;
   ebookLibraryPath?: string | null;
   metadataPriority?: MetadataFieldPriority;
+  opdsEnabled?: boolean;
 }
 
 @Controller('settings')
@@ -42,6 +43,7 @@ export class AppSettingsController {
       signupsEnabled: settings.signupsEnabled,
       audiobookLibraryPath: settings.audiobookLibraryPath,
       ebookLibraryPath: settings.ebookLibraryPath,
+      opdsEnabled: settings.opdsEnabled,
       metadataPriority: settings.metadataPriority || DEFAULT_METADATA_PRIORITY,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
@@ -56,7 +58,8 @@ export class AppSettingsController {
       dto.signupsEnabled === undefined &&
       dto.audiobookLibraryPath === undefined &&
       dto.ebookLibraryPath === undefined &&
-      dto.metadataPriority === undefined
+      dto.metadataPriority === undefined &&
+      dto.opdsEnabled === undefined
     ) {
       throw new BadRequestException('No settings provided to update');
     }
@@ -76,11 +79,13 @@ export class AppSettingsController {
       audiobookLibraryPath?: string | null;
       ebookLibraryPath?: string | null;
       metadataPriority?: MetadataFieldPriority;
+      opdsEnabled?: boolean;
     } = {};
     if (dto.signupsEnabled !== undefined) updates.signupsEnabled = dto.signupsEnabled;
     if (dto.audiobookLibraryPath !== undefined) updates.audiobookLibraryPath = dto.audiobookLibraryPath;
     if (dto.ebookLibraryPath !== undefined) updates.ebookLibraryPath = dto.ebookLibraryPath;
     if (dto.metadataPriority !== undefined) updates.metadataPriority = dto.metadataPriority;
+    if (dto.opdsEnabled !== undefined) updates.opdsEnabled = dto.opdsEnabled;
 
     const settings = await this.appSettingsService.updateSettings(updates);
 
@@ -88,6 +93,7 @@ export class AppSettingsController {
       signupsEnabled: settings.signupsEnabled,
       audiobookLibraryPath: settings.audiobookLibraryPath,
       ebookLibraryPath: settings.ebookLibraryPath,
+      opdsEnabled: settings.opdsEnabled,
       metadataPriority: settings.metadataPriority || DEFAULT_METADATA_PRIORITY,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
