@@ -8,7 +8,7 @@ import {
   UseGuards,
   NotFoundException,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import * as express from 'express';
 import { OpdsService } from './opds.service';
 import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
 
@@ -17,19 +17,19 @@ import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
 export class OpdsController {
   constructor(private readonly opdsService: OpdsService) {}
 
-  private getBaseUrl(req: Request): string {
+  private getBaseUrl(req: express.Request): string {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
     const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
     return `${protocol}://${host}/api/ebooks/opds`;
   }
 
-  private sendXml(res: Response, xml: string): void {
+  private sendXml(res: express.Response, xml: string): void {
     res.setHeader('Content-Type', 'application/atom+xml; charset=utf-8');
     res.send(xml);
   }
 
   @Get()
-  async getRootCatalog(@Req() req: Request, @Res() res: Response) {
+  async getRootCatalog(@Req() req: express.Request, @Res() res: express.Response) {
     const baseUrl = this.getBaseUrl(req);
     const xml = await this.opdsService.buildRootCatalog(baseUrl);
     this.sendXml(res, xml);
@@ -37,8 +37,8 @@ export class OpdsController {
 
   @Get('all')
   async getAllEbooks(
-    @Req() req: Request,
-    @Res() res: Response,
+    @Req() req: express.Request,
+    @Res() res: express.Response,
     @Query('page') page?: string,
   ) {
     const baseUrl = this.getBaseUrl(req);
@@ -48,7 +48,7 @@ export class OpdsController {
   }
 
   @Get('authors')
-  async getAuthors(@Req() req: Request, @Res() res: Response) {
+  async getAuthors(@Req() req: express.Request, @Res() res: express.Response) {
     const baseUrl = this.getBaseUrl(req);
     const xml = await this.opdsService.buildAuthorsNavigationFeed(baseUrl);
     this.sendXml(res, xml);
@@ -56,8 +56,8 @@ export class OpdsController {
 
   @Get('authors/:id')
   async getAuthorEbooks(
-    @Req() req: Request,
-    @Res() res: Response,
+    @Req() req: express.Request,
+    @Res() res: express.Response,
     @Param('id') id: string,
   ) {
     const baseUrl = this.getBaseUrl(req);
@@ -70,7 +70,7 @@ export class OpdsController {
   }
 
   @Get('series')
-  async getSeries(@Req() req: Request, @Res() res: Response) {
+  async getSeries(@Req() req: express.Request, @Res() res: express.Response) {
     const baseUrl = this.getBaseUrl(req);
     const xml = await this.opdsService.buildSeriesNavigationFeed(baseUrl);
     this.sendXml(res, xml);
@@ -78,8 +78,8 @@ export class OpdsController {
 
   @Get('series/:id')
   async getSeriesEbooks(
-    @Req() req: Request,
-    @Res() res: Response,
+    @Req() req: express.Request,
+    @Res() res: express.Response,
     @Param('id') id: string,
   ) {
     const baseUrl = this.getBaseUrl(req);
