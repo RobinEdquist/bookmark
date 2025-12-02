@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X } from "lucide-react";
+import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X, Rss, Copy, Check } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -14,6 +14,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Label } from "@repo/ui/components/ui/label";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
+import { Switch } from "@repo/ui/components/ui/switch";
 import { FolderPickerDialog } from "./folder-picker-dialog";
 import {
   useSettings,
@@ -112,6 +113,7 @@ export function LibrariesSettings() {
   const { settings, isLoading, error, updateSettings, isUpdating } = useSettings();
   const [audiobookFolderPickerOpen, setAudiobookFolderPickerOpen] = useState(false);
   const [ebookFolderPickerOpen, setEbookFolderPickerOpen] = useState(false);
+  const [opdsCopied, setOpdsCopied] = useState(false);
 
   const handleSelectAudiobookPath = async (path: string) => {
     try {
@@ -155,6 +157,25 @@ export function LibrariesSettings() {
         err instanceof Error ? err.message : t("ebookLibrary.toast.removeError")
       );
     }
+  };
+
+  const handleToggleOpds = async (enabled: boolean) => {
+    try {
+      await updateSettings({ opdsEnabled: enabled });
+      toast.success(enabled ? t("opds.toast.enabled") : t("opds.toast.disabled"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("opds.toast.error")
+      );
+    }
+  };
+
+  const handleCopyOpdsUrl = async () => {
+    const url = `${window.location.origin}/api/ebooks/opds`;
+    await navigator.clipboard.writeText(url);
+    setOpdsCopied(true);
+    setTimeout(() => setOpdsCopied(false), 2000);
+    toast.success(t("opds.toast.copied"));
   };
 
   const handleMoveSource = useCallback(
@@ -296,6 +317,48 @@ export function LibrariesSettings() {
                 {t("ebookLibrary.browse")}
               </Button>
             </div>
+          </fieldset>
+
+          {/* OPDS Feed */}
+          <fieldset className="rounded-lg border p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium flex items-center gap-2">
+                  <Rss className="h-4 w-4" />
+                  {t("opds.label")}
+                </Label>
+                <p className="text-sm text-muted-foreground max-w-lg">
+                  {t("opds.description")}
+                </p>
+              </div>
+              <Switch
+                checked={settings?.opdsEnabled ?? false}
+                onCheckedChange={handleToggleOpds}
+                disabled={isUpdating || !settings?.ebookLibraryPath}
+              />
+            </div>
+
+            {settings?.opdsEnabled && (
+              <div className="space-y-2 pt-2 border-t">
+                <Label className="text-sm text-muted-foreground">{t("opds.feedUrl")}</Label>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 text-sm bg-muted px-3 py-2 rounded overflow-x-auto">
+                    {typeof window !== 'undefined' ? `${window.location.origin}/api/ebooks/opds` : '/api/ebooks/opds'}
+                  </code>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopyOpdsUrl}
+                    title={t("opds.copy")}
+                  >
+                    {opdsCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {t("opds.authHint")}
+                </p>
+              </div>
+            )}
           </fieldset>
         </CardContent>
       </Card>
