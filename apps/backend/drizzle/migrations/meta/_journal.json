@@ -15,6 +15,13 @@
       "when": 1764547893196,
       "tag": "0001_add_ebooks",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764682023206,
+      "tag": "0002_add_opds_enabled",
+      "breakpoints": true
     }
   ]
 }

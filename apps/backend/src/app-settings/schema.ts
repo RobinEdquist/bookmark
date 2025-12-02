@@ -47,6 +47,7 @@ export const appSettings = pgTable(
     hardcoverAutoSyncOnImport: boolean('hardcover_auto_sync_on_import')
       .notNull()
       .default(false),
+    opdsEnabled: boolean('opds_enabled').notNull().default(false),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
