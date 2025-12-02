@@ -22,6 +22,20 @@
       "when": 1764682023206,
       "tag": "0002_add_opds_enabled",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764707168469,
+      "tag": "0003_add_api_key_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1764719983149,
+      "tag": "0004_normalize_hardcover_schema",
+      "breakpoints": true
     }
   ]
 }
