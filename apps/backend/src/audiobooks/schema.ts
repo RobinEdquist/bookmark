@@ -249,7 +249,7 @@ export const audiobookTags = pgTable(
 
 // Forward imports for relations (avoids circular dependency)
 // The actual tables are defined in their respective schema files
-import { hardcoverBooks } from '../hardcover/schema';
+import { hardcoverAudiobookLinks } from '../hardcover/schema';
 import { ebookAuthors, ebookSeries } from '../ebooks/schema';
 
 // Relations
@@ -261,9 +261,9 @@ export const audiobooksRelations = relations(audiobooks, ({ many, one }) => ({
   series: many(audiobookSeries),
   genres: many(audiobookGenres),
   tags: many(audiobookTags),
-  hardcoverBook: one(hardcoverBooks, {
+  hardcoverLink: one(hardcoverAudiobookLinks, {
     fields: [audiobooks.id],
-    references: [hardcoverBooks.audiobookId],
+    references: [hardcoverAudiobookLinks.audiobookId],
   }),
 }));
 
