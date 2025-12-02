@@ -8,9 +8,11 @@ import {
   index,
   jsonb,
   pgEnum,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { audiobooks } from '../audiobooks/schema';
+import { ebooks } from '../ebooks/schema';
 
 // Enum for sync queue status
 export const hardcoverSyncStatusEnum = pgEnum('hardcover_sync_status', [
@@ -19,17 +21,13 @@ export const hardcoverSyncStatusEnum = pgEnum('hardcover_sync_status', [
   'failed',
 ]);
 
-// Hardcover book metadata linked to audiobooks
+// Hardcover book metadata (standalone, not linked to specific media)
 export const hardcoverBooks = pgTable(
   'hardcover_books',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    audiobookId: uuid('audiobook_id')
-      .notNull()
-      .unique()
-      .references(() => audiobooks.id, { onDelete: 'cascade' }),
-    hardcoverId: text('hardcover_id').notNull(), // Hardcover's book ID
-    slug: text('slug').notNull(), // Hardcover's book slug for URL
+    hardcoverId: text('hardcover_id').notNull(),
+    slug: text('slug').notNull(),
     title: text('title').notNull(),
     description: text('description'),
     authorNames: jsonb('author_names').$type<string[]>().notNull().default([]),
@@ -57,27 +55,59 @@ export const hardcoverBooks = pgTable(
       .notNull(),
   },
   (table) => [
-    index('hardcover_books_audiobook_id_idx').on(table.audiobookId),
-    index('hardcover_books_hardcover_id_idx').on(table.hardcoverId),
+    uniqueIndex('hardcover_books_hardcover_id_idx').on(table.hardcoverId),
   ],
 );
 
-export const hardcoverBooksRelations = relations(hardcoverBooks, ({ one }) => ({
-  audiobook: one(audiobooks, {
-    fields: [hardcoverBooks.audiobookId],
-    references: [audiobooks.id],
-  }),
-}));
+// Junction: audiobook -> hardcover book
+export const hardcoverAudiobookLinks = pgTable(
+  'hardcover_audiobook_links',
+  {
+    audiobookId: uuid('audiobook_id')
+      .primaryKey()
+      .references(() => audiobooks.id, { onDelete: 'cascade' }),
+    hardcoverBookId: uuid('hardcover_book_id')
+      .notNull()
+      .references(() => hardcoverBooks.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('hardcover_audiobook_links_hardcover_book_id_idx').on(
+      table.hardcoverBookId,
+    ),
+  ],
+);
 
-// Queue for auto-syncing audiobooks with Hardcover
+// Junction: ebook -> hardcover book
+export const hardcoverEbookLinks = pgTable(
+  'hardcover_ebook_links',
+  {
+    ebookId: uuid('ebook_id')
+      .primaryKey()
+      .references(() => ebooks.id, { onDelete: 'cascade' }),
+    hardcoverBookId: uuid('hardcover_book_id')
+      .notNull()
+      .references(() => hardcoverBooks.id, { onDelete: 'cascade' }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('hardcover_ebook_links_hardcover_book_id_idx').on(
+      table.hardcoverBookId,
+    ),
+  ],
+);
+
+// Queue for auto-syncing media with Hardcover
 export const hardcoverSyncQueue = pgTable(
   'hardcover_sync_queue',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    audiobookId: uuid('audiobook_id')
-      .notNull()
-      .unique()
-      .references(() => audiobooks.id, { onDelete: 'cascade' }),
+    audiobookId: uuid('audiobook_id').references(() => audiobooks.id, {
+      onDelete: 'cascade',
+    }),
+    ebookId: uuid('ebook_id').references(() => ebooks.id, {
+      onDelete: 'cascade',
+    }),
     status: hardcoverSyncStatusEnum('status').notNull().default('pending'),
     errorMessage: text('error_message'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -89,7 +119,43 @@ export const hardcoverSyncQueue = pgTable(
   (table) => [
     index('hardcover_sync_queue_status_idx').on(table.status),
     index('hardcover_sync_queue_created_at_idx').on(table.createdAt),
+    index('hardcover_sync_queue_audiobook_id_idx').on(table.audiobookId),
+    index('hardcover_sync_queue_ebook_id_idx').on(table.ebookId),
   ],
+);
+
+// Relations
+export const hardcoverBooksRelations = relations(hardcoverBooks, ({ many }) => ({
+  audiobookLinks: many(hardcoverAudiobookLinks),
+  ebookLinks: many(hardcoverEbookLinks),
+}));
+
+export const hardcoverAudiobookLinksRelations = relations(
+  hardcoverAudiobookLinks,
+  ({ one }) => ({
+    audiobook: one(audiobooks, {
+      fields: [hardcoverAudiobookLinks.audiobookId],
+      references: [audiobooks.id],
+    }),
+    hardcoverBook: one(hardcoverBooks, {
+      fields: [hardcoverAudiobookLinks.hardcoverBookId],
+      references: [hardcoverBooks.id],
+    }),
+  }),
+);
+
+export const hardcoverEbookLinksRelations = relations(
+  hardcoverEbookLinks,
+  ({ one }) => ({
+    ebook: one(ebooks, {
+      fields: [hardcoverEbookLinks.ebookId],
+      references: [ebooks.id],
+    }),
+    hardcoverBook: one(hardcoverBooks, {
+      fields: [hardcoverEbookLinks.hardcoverBookId],
+      references: [hardcoverBooks.id],
+    }),
+  }),
 );
 
 export const hardcoverSyncQueueRelations = relations(
@@ -98,6 +164,10 @@ export const hardcoverSyncQueueRelations = relations(
     audiobook: one(audiobooks, {
       fields: [hardcoverSyncQueue.audiobookId],
       references: [audiobooks.id],
+    }),
+    ebook: one(ebooks, {
+      fields: [hardcoverSyncQueue.ebookId],
+      references: [ebooks.id],
     }),
   }),
 );
