@@ -39,6 +39,19 @@
         "removeError": "Failed to remove ebook library path"
       }
     },
+    "opds": {
+      "label": "OPDS Feed",
+      "description": "OPDS (Open Publication Distribution System) allows e-reader apps like KOReader, Moon+ Reader, and Calibre to browse and download ebooks directly from your library. To connect, enter any username (e.g., your email) and use your API token as the password when configuring the OPDS feed in your reader app.",
+      "feedUrl": "Feed URL",
+      "copy": "Copy URL",
+      "authHint": "Use any username and your API token as the password to authenticate.",
+      "toast": {
+        "enabled": "OPDS feed enabled",
+        "disabled": "OPDS feed disabled",
+        "error": "Failed to update OPDS setting",
+        "copied": "Feed URL copied to clipboard"
+      }
+    },
     "folderPicker": {
       "title": "Select Library Folder",
       "description": "Choose the folder for your library",
