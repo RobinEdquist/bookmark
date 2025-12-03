@@ -10,8 +10,11 @@ import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { useEbook } from "../../../../lib/use-ebooks";
 import { useMyPermissions } from "../../../../lib/use-users";
+import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { EditEbookDialog } from "../../../../components/ebooks/edit-ebook-dialog";
 import { ChangeEbookCoverDialog } from "../../../../components/ebooks/change-ebook-cover-dialog";
+import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
+import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -29,8 +32,10 @@ export default function EbookDetailPage({
   const t = useTranslations("ebooks.detail");
   const { data: ebook, isLoading, error } = useEbook(id);
   const { data: permissions } = useMyPermissions();
+  const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const [editOpen, setEditOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
+  const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
@@ -38,7 +43,7 @@ export default function EbookDetailPage({
   const canEdit = permissions?.canEditMetadata ?? false;
 
   const handleDownload = () => {
-    window.open(`/api/ebooks/${id}/file`, "_blank");
+    window.open(`/api/ebooks/${id}/download`, "_blank");
   };
 
   useEffect(() => {
@@ -83,6 +88,21 @@ export default function EbookDetailPage({
             </Link>
           </Button>
           <h1 className="flex-1 truncate text-lg font-medium">{ebook.title}</h1>
+          {isHardcoverConfigured && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setHardcoverSyncOpen(true)}
+              title={t("syncWithHardcover")}
+            >
+              <Image
+                src="/hardcover.svg"
+                alt="Hardcover"
+                width={20}
+                height={20}
+              />
+            </Button>
+          )}
           {canEdit && (
             <Button
               variant="ghost"
@@ -157,6 +177,11 @@ export default function EbookDetailPage({
                   </span>
                 ))}
               </div>
+            )}
+
+            {/* Hardcover Link */}
+            {isHardcoverConfigured && (
+              <HardcoverLinkCard mediaType="ebook" mediaId={id} />
             )}
           </div>
 
@@ -329,6 +354,16 @@ export default function EbookDetailPage({
           currentCoverUrl={ebook.coverUrl}
           open={changeCoverOpen}
           onOpenChange={setChangeCoverOpen}
+        />
+      )}
+
+      {isHardcoverConfigured && (
+        <HardcoverSyncDialog
+          mediaType="ebook"
+          mediaId={id}
+          mediaTitle={ebook.title}
+          open={hardcoverSyncOpen}
+          onOpenChange={setHardcoverSyncOpen}
         />
       )}
     </main>
