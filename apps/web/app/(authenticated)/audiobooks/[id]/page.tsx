@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -20,8 +20,8 @@ import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { useProgress } from "../../../../lib/use-progress";
 import { usePlayer } from "../../../../components/providers/player-provider";
 import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audiobook-dialog";
-import { HardcoverSyncDialog } from "../../../../components/audiobooks/hardcover-sync-dialog";
-import { HardcoverLinkCard } from "../../../../components/audiobooks/hardcover-link-card";
+import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
+import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
 import { ChangeCoverDialog } from "../../../../components/audiobooks/change-cover-dialog";
 
 function formatDuration(seconds: number | null): string {
@@ -91,6 +91,10 @@ export default function AudiobookDetailPage({
       const startPosition = progress?.position ?? 0;
       play(audiobook, startPosition);
     }
+  };
+
+  const handleDownload = () => {
+    window.open(`/api/audiobooks/${id}/download`, "_blank");
   };
 
   useEffect(() => {
@@ -171,6 +175,14 @@ export default function AudiobookDetailPage({
               <Pencil className="h-5 w-5" />
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDownload}
+            title={t("download")}
+          >
+            <Download className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
@@ -272,7 +284,7 @@ export default function AudiobookDetailPage({
 
             {/* Hardcover Link */}
             {isHardcoverConfigured && (
-              <HardcoverLinkCard audiobookId={id} />
+              <HardcoverLinkCard mediaType="audiobook" mediaId={id} />
             )}
           </div>
 
@@ -550,8 +562,9 @@ export default function AudiobookDetailPage({
 
       {isHardcoverConfigured && (
         <HardcoverSyncDialog
-          audiobookId={id}
-          audiobookTitle={audiobook.title}
+          mediaType="audiobook"
+          mediaId={id}
+          mediaTitle={audiobook.title}
           open={hardcoverSyncOpen}
           onOpenChange={setHardcoverSyncOpen}
         />
