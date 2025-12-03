@@ -190,6 +190,85 @@ export class HardcoverController {
     await this.hardcoverService.unlinkAudiobookFromHardcover(audiobookId);
   }
 
+  // ============ Ebook Endpoints ============
+
+  @Get('search/ebook/:id')
+  async searchByEbook(
+    @Param('id') ebookId: string,
+    @Query('page') page?: string,
+    @Query('perPage') perPage?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const perPageNum = perPage ? parseInt(perPage, 10) : 10;
+
+    const result = await this.hardcoverService.searchByMediaIdPaginated(
+      'ebook',
+      ebookId,
+      pageNum,
+      perPageNum,
+    );
+
+    if (!result.success) {
+      throw new BadRequestException(result.error);
+    }
+
+    return {
+      query: result.query,
+      ...result.data,
+    };
+  }
+
+  @Get('ebook-link/:ebookId')
+  async getEbookLink(@Param('ebookId') ebookId: string) {
+    const link = await this.hardcoverService.getHardcoverLink('ebook', ebookId);
+    return { link };
+  }
+
+  @Post('ebook-link/:ebookId')
+  @HttpCode(HttpStatus.OK)
+  async linkEbook(
+    @Param('ebookId') ebookId: string,
+    @Body() dto: LinkAudiobookDto, // Same DTO structure works for ebooks
+  ) {
+    if (!dto.hardcoverBook || !dto.hardcoverBook.id || !dto.hardcoverBook.slug) {
+      throw new BadRequestException('Hardcover book data with id and slug is required');
+    }
+
+    const hardcoverBook = {
+      activities_count: 0,
+      alternative_titles: [],
+      compilation: false,
+      contribution_types: [],
+      contributions: [],
+      description: '',
+      has_audiobook: false,
+      has_ebook: false,
+      lists_count: 0,
+      prompts_count: 0,
+      reviews_count: 0,
+      series_names: [],
+      users_count: 0,
+      users_read_count: 0,
+      ...dto.hardcoverBook,
+    };
+
+    const link = await this.hardcoverService.linkMediaToHardcover(
+      'ebook',
+      ebookId,
+      hardcoverBook as Parameters<
+        typeof this.hardcoverService.linkMediaToHardcover
+      >[2],
+    );
+
+    return { success: true, link };
+  }
+
+  @Delete('ebook-link/:ebookId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async unlinkEbook(@Param('ebookId') ebookId: string) {
+    await this.hardcoverService.unlinkMedia('ebook', ebookId);
+  }
+
   // ============ Sync Queue Endpoints ============
 
   @Get('queue/status')
