@@ -2,7 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { admin } from 'better-auth/plugins';
+import { admin, apiKey } from 'better-auth/plugins';
 import { createAuthMiddleware } from 'better-auth/api';
 import { count } from 'drizzle-orm';
 import { user } from './schema';
@@ -28,6 +28,10 @@ export function createAuthInstance(
     plugins: [
       admin({
         defaultRole: 'user',
+      }),
+      apiKey({
+        defaultPrefix: 'bkmrk',
+        enableMetadata: true,
       }),
     ],
     hooks: {

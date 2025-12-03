@@ -7,11 +7,15 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AppSettingsService } from '../../app-settings/app-settings.service';
+import { ApiKeysService } from '../../api-keys/api-keys.service';
 import { auth } from '../../auth/auth';
 
 @Injectable()
 export class OpdsAuthGuard implements CanActivate {
-  constructor(private readonly appSettingsService: AppSettingsService) {}
+  constructor(
+    private readonly appSettingsService: AppSettingsService,
+    private readonly apiKeysService: ApiKeysService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
@@ -53,6 +57,16 @@ export class OpdsAuthGuard implements CanActivate {
 
       // Attach user info to request for potential future use
       (request as any).apiKeyUser = result.key;
+
+      // Track usage with IP address
+      if (result.key) {
+        const clientIp =
+          (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+          request.ip ||
+          'unknown';
+        await this.apiKeysService.updateKeyUsage(result.key.id, clientIp);
+      }
+
       return true;
     } catch (error) {
       response.setHeader('WWW-Authenticate', 'Basic realm="OPDS"');

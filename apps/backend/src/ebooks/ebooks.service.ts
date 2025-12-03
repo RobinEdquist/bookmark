@@ -16,6 +16,7 @@ import * as audiobookSchema from '../audiobooks/schema';
 import { UpdateEbookDto } from './dto/update-ebook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
+import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadata.provider';
 
 export interface EbookListItem {
   id: string;
@@ -48,6 +49,7 @@ export class EbooksService {
     private db: NodePgDatabase<typeof schema>,
     private appSettingsService: AppSettingsService,
     private appEvents: AppEventsService,
+    private ebookMetadataProvider: EbookMetadataProvider,
   ) {}
 
   /**
@@ -312,9 +314,12 @@ export class EbooksService {
 
     // Try to extract embedded cover from the EPUB
     if (coverSource === 'embedded') {
-      // Get the ebook metadata provider (will be injected later)
-      // For now, return null - we'll implement this when we have the metadata provider
-      return null;
+      try {
+        const absolutePath = await this.resolveFilePath(filePath);
+        return await this.ebookMetadataProvider.extractCoverFromFile(absolutePath);
+      } catch {
+        return null;
+      }
     }
 
     return null;

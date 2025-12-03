@@ -2,9 +2,17 @@
 
 import { useTranslations } from "next-intl";
 import { AppearanceSettings } from "../../../components/settings/appearance-settings";
+import { ApiKeysSettings } from "../../../components/settings/api-keys-settings";
+import { useMyPermissions } from "../../../lib/use-users";
+import { authClient } from "../../../lib/auth-client";
 
 export default function PreferencesPage() {
   const t = useTranslations("preferences");
+  const { data: session } = authClient.useSession();
+  const { data: permissions } = useMyPermissions();
+
+  const isAdmin = session?.user?.role === "admin";
+  const canGenerateApiKeys = isAdmin || permissions?.canGenerateApiKeys;
 
   return (
     <div className="p-8">
@@ -15,6 +23,8 @@ export default function PreferencesPage() {
         </header>
 
         <AppearanceSettings />
+
+        {canGenerateApiKeys && <ApiKeysSettings />}
       </div>
     </div>
   );

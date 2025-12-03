@@ -39,6 +39,7 @@ export function UserTable({
             <th className="px-4 py-3 text-left font-medium">{t("table.role")}</th>
             <th className="px-4 py-3 text-left font-medium">{t("table.status")}</th>
             <th className="px-4 py-3 text-left font-medium">{t("table.created")}</th>
+            <th className="px-4 py-3 text-left font-medium">{t("table.apiKey")}</th>
             <th className="px-4 py-3 text-right font-medium">{t("table.actions")}</th>
           </tr>
         </thead>
@@ -82,6 +83,24 @@ export function UserTable({
               </td>
               <td className="px-4 py-3 text-muted-foreground">
                 {new Date(user.createdAt).toLocaleDateString()}
+              </td>
+              <td className="px-4 py-3">
+                {user.apiKey?.hasKey ? (
+                  <div className="flex flex-col">
+                    <span className="inline-flex w-fit rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-600">
+                      {t("apiKey.active")}
+                    </span>
+                    {user.apiKey.lastUsed && (
+                      <span className="mt-1 text-xs text-muted-foreground">
+                        {t("apiKey.lastUsed")}: {new Date(user.apiKey.lastUsed).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="inline-flex rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                    {t("apiKey.none")}
+                  </span>
+                )}
               </td>
               <td className="px-4 py-3">
                 <div className="flex justify-end gap-2">

@@ -18,6 +18,7 @@ import { SeriesModule } from './series/series.module';
 import { EventsModule } from './events/events.module';
 import { ProgressModule } from './progress/progress.module';
 import { TasksModule } from './tasks/tasks.module';
+import { ApiKeysModule } from './api-keys/api-keys.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -48,6 +49,7 @@ import { createAuthInstance } from './auth/auth.provider';
     EventsModule,
     ProgressModule,
     TasksModule,
+    ApiKeysModule,
   ],
   controllers: [],
   providers: [

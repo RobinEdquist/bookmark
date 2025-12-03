@@ -5,6 +5,12 @@ export interface UserPermissionsResponse {
   canGenerateApiKeys: boolean;
 }
 
+export interface ApiKeyInfo {
+  hasKey: boolean;
+  lastUsed: string | null;
+  lastIp: string | null;
+}
+
 export interface UserResponse {
   id: string;
   name: string;
@@ -17,6 +23,7 @@ export interface UserResponse {
   createdAt: string;
   permissions: UserPermissionsResponse;
   blacklistedTags: string[];
+  apiKey: ApiKeyInfo | null;
 }
 
 export interface UserListResponse {

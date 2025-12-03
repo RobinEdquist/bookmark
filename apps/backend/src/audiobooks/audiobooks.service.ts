@@ -207,15 +207,25 @@ export class AudiobooksService {
     const hardcoverLinks =
       audiobookIds.length > 0
         ? await this.db
-            .select()
-            .from(hardcoverSchema.hardcoverBooks)
+            .select({
+              audiobookId: hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+              hardcoverBook: hardcoverSchema.hardcoverBooks,
+            })
+            .from(hardcoverSchema.hardcoverAudiobookLinks)
+            .innerJoin(
+              hardcoverSchema.hardcoverBooks,
+              eq(
+                hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+                hardcoverSchema.hardcoverBooks.id,
+              ),
+            )
             .where(
-              inArray(hardcoverSchema.hardcoverBooks.audiobookId, audiobookIds),
+              inArray(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, audiobookIds),
             )
         : [];
 
     const hardcoverDataMap = new Map(
-      hardcoverLinks.map((l) => [l.audiobookId, l]),
+      hardcoverLinks.map((l) => [l.audiobookId, l.hardcoverBook]),
     );
 
     // Get metadata priority settings
@@ -424,14 +434,23 @@ export class AudiobooksService {
         .innerJoin(schema.tags, eq(schema.audiobookTags.tagId, schema.tags.id))
         .where(eq(schema.audiobookTags.audiobookId, id)),
       this.db
-        .select()
-        .from(hardcoverSchema.hardcoverBooks)
-        .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, id))
+        .select({
+          hardcoverBook: hardcoverSchema.hardcoverBooks,
+        })
+        .from(hardcoverSchema.hardcoverAudiobookLinks)
+        .innerJoin(
+          hardcoverSchema.hardcoverBooks,
+          eq(
+            hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+            hardcoverSchema.hardcoverBooks.id,
+          ),
+        )
+        .where(eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, id))
         .limit(1),
       this.appSettingsService.getMetadataPriority(),
     ]);
 
-    const hc = hardcoverData[0] || null;
+    const hc = hardcoverData[0]?.hardcoverBook || null;
 
     // Apply priority-based merging for each field
     // For scalar fields, use the helper. For relations, we need special handling.
@@ -1208,6 +1227,117 @@ export class AudiobooksService {
 
       this.appEvents.audiobookUpdated(id);
     }
+  }
+
+  /**
+   * Get download information for an audiobook.
+   * Returns either a single file path (for single-file audiobooks with embedded cover)
+   * or information needed to create a ZIP archive (for multi-file or separate cover).
+   */
+  async getDownloadInfo(id: string): Promise<{
+    isZip: boolean;
+    filePath?: string;
+    files?: Array<{ filePath: string; fileName: string }>;
+    coverPath?: string;
+    fileName: string;
+    mimeType: string;
+    fileSize?: number;
+  }> {
+    // Get audiobook with cover info
+    const audiobook = await this.db
+      .select({
+        id: schema.audiobooks.id,
+        title: schema.audiobooks.title,
+        filePath: schema.audiobooks.filePath,
+        coverUrl: schema.audiobooks.coverUrl,
+        coverSource: schema.audiobooks.coverSource,
+      })
+      .from(schema.audiobooks)
+      .where(eq(schema.audiobooks.id, id))
+      .limit(1);
+
+    if (audiobook.length === 0) {
+      throw new NotFoundException('Audiobook not found');
+    }
+
+    const ab = audiobook[0];
+
+    // Get audiobook files
+    const files = await this.db
+      .select({
+        filePath: schema.audiobookFiles.filePath,
+        fileName: schema.audiobookFiles.fileName,
+        format: schema.audiobookFiles.format,
+        sizeBytes: schema.audiobookFiles.sizeBytes,
+      })
+      .from(schema.audiobookFiles)
+      .where(eq(schema.audiobookFiles.audiobookId, id))
+      .orderBy(asc(schema.audiobookFiles.order));
+
+    if (files.length === 0) {
+      throw new NotFoundException('Audiobook has no audio files');
+    }
+
+    // Check if cover is separate (not embedded in audio file)
+    const hasSeparateCover =
+      ab.coverSource === 'filesystem' || ab.coverSource === 'uploaded';
+
+    // Resolve cover path if separate
+    let coverPath: string | undefined;
+    if (hasSeparateCover && ab.coverUrl) {
+      try {
+        const relativeCoverPath = path.join(ab.filePath, ab.coverUrl);
+        coverPath = await this.resolveFilePath(relativeCoverPath);
+        // Verify file exists
+        await fs.access(coverPath);
+      } catch {
+        coverPath = undefined; // Cover file not found, skip it
+      }
+    }
+
+    // Single file with embedded cover - direct download
+    if (files.length === 1 && !hasSeparateCover) {
+      const file = files[0];
+      const absolutePath = await this.resolveFilePath(file.filePath);
+
+      const mimeTypes: Record<string, string> = {
+        mp3: 'audio/mpeg',
+        m4a: 'audio/mp4',
+        m4b: 'audio/mp4',
+        ogg: 'audio/ogg',
+        flac: 'audio/flac',
+        wav: 'audio/wav',
+      };
+
+      return {
+        isZip: false,
+        filePath: absolutePath,
+        fileName: file.fileName,
+        mimeType: mimeTypes[file.format.toLowerCase()] || 'audio/mpeg',
+        fileSize: file.sizeBytes,
+      };
+    }
+
+    // Multiple files OR separate cover - ZIP download
+    // Sanitize title for filename
+    const sanitizedTitle = ab.title
+      .replace(/[<>:"/\\|?*\x00-\x1f]/g, '') // Remove invalid filename chars
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim()
+      .substring(0, 200); // Limit length
+
+    return {
+      isZip: true,
+      files: await Promise.all(
+        files.map(async (f) => ({
+          filePath: await this.resolveFilePath(f.filePath),
+          fileName: f.fileName,
+        })),
+      ),
+      coverPath,
+      fileName: `${sanitizedTitle}.zip`,
+      mimeType: 'application/zip',
+    };
   }
 
   /**

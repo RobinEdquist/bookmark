@@ -114,6 +114,7 @@ export class EventsGateway
     // Join all event rooms
     client.join([
       'audiobooks',
+      'ebooks',
       'series',
       'library',
       'hardcover',

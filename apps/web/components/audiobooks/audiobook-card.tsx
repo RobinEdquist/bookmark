@@ -22,7 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "../../lib/query-keys";
 import { EditAudiobookDialog } from "./edit-audiobook-dialog";
-import { HardcoverSyncDialog } from "./hardcover-sync-dialog";
+import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
 import { DeleteAudiobookDialog } from "./delete-audiobook-dialog";
 import { ChangeCoverDialog } from "./change-cover-dialog";
 
@@ -264,8 +264,9 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
 
       {isHardcoverConfigured && (
         <HardcoverSyncDialog
-          audiobookId={audiobook.id}
-          audiobookTitle={audiobook.title}
+          mediaType="audiobook"
+          mediaId={audiobook.id}
+          mediaTitle={audiobook.title}
           open={hardcoverSyncOpen}
           onOpenChange={setHardcoverSyncOpen}
         />

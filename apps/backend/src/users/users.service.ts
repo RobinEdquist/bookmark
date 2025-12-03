@@ -7,11 +7,12 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, ilike, or, SQL } from 'drizzle-orm';
+import { eq, ilike, or, and, SQL } from 'drizzle-orm';
 import { hashPassword } from 'better-auth/crypto';
 import { randomUUID } from 'crypto';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as authSchema from '../auth/schema';
+import { apiKey } from '../auth/api-key.schema';
 import * as userSchema from './schema';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto, BanUserDto } from './dto/update-user.dto';
@@ -21,7 +22,7 @@ import type {
   UserPermissionsResponse,
 } from './dto/user-response.dto';
 
-type Schema = typeof authSchema & typeof userSchema;
+type Schema = typeof authSchema & typeof userSchema & { apiKey: typeof apiKey };
 
 @Injectable()
 export class UsersService {
@@ -340,12 +341,38 @@ export class UsersService {
     return tags.map((t) => t.tagId);
   }
 
+  async getApiKeyInfo(
+    userId: string,
+  ): Promise<{ hasKey: boolean; lastUsed: string | null; lastIp: string | null } | null> {
+    const keys = await this.db
+      .select({
+        id: apiKey.id,
+        lastRequest: apiKey.lastRequest,
+        metadata: apiKey.metadata,
+      })
+      .from(apiKey)
+      .where(and(eq(apiKey.userId, userId), eq(apiKey.enabled, true)))
+      .limit(1);
+
+    if (keys.length === 0) return null;
+
+    const key = keys[0];
+    const metadata = key.metadata ? JSON.parse(key.metadata) : {};
+
+    return {
+      hasKey: true,
+      lastUsed: key.lastRequest?.toISOString() ?? null,
+      lastIp: metadata.lastIp ?? null,
+    };
+  }
+
   private async toUserResponse(
     user: typeof authSchema.user.$inferSelect,
   ): Promise<UserResponse> {
-    const [permissions, blacklistedTags] = await Promise.all([
+    const [permissions, blacklistedTags, apiKeyInfo] = await Promise.all([
       this.getPermissions(user.id),
       this.getBlacklistedTags(user.id),
+      this.getApiKeyInfo(user.id),
     ]);
 
     return {
@@ -360,6 +387,7 @@ export class UsersService {
       createdAt: user.createdAt.toISOString(),
       permissions,
       blacklistedTags,
+      apiKey: apiKeyInfo,
     };
   }
 

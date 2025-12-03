@@ -18,6 +18,7 @@ import {
 import { MultiSelect } from "@repo/ui/components/ui/multi-select";
 import { useUpdateUser, type User } from "../../lib/use-users";
 import { useTags } from "../../lib/use-tags";
+import { useRevokeUserApiKey } from "../../lib/use-api-keys";
 
 interface EditUserDialogProps {
   user: User | null;
@@ -28,6 +29,7 @@ interface EditUserDialogProps {
 export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
   const t = useTranslations("settings.users");
   const updateUser = useUpdateUser();
+  const revokeUserApiKey = useRevokeUserApiKey();
   const { data: availableTags = [] } = useTags();
 
   const [name, setName] = useState("");
@@ -197,6 +199,59 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 searchPlaceholder={t("createDialog.searchTags")}
                 emptyText={t("createDialog.noTagsAvailable")}
               />
+            </div>
+          )}
+
+          {user?.apiKey?.hasKey && (
+            <div className="space-y-2">
+              <Label>{t("apiKeySection.title")}</Label>
+              <div className="rounded-lg border p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {t("apiKeySection.status")}
+                  </span>
+                  <span className="inline-flex rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-600">
+                    {t("apiKeySection.active")}
+                  </span>
+                </div>
+                {user.apiKey.lastUsed && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {t("apiKeySection.lastUsed")}
+                    </span>
+                    <span className="text-sm">
+                      {new Date(user.apiKey.lastUsed).toLocaleDateString()}
+                    </span>
+                  </div>
+                )}
+                {user.apiKey.lastIp && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {t("apiKeySection.lastIp")}
+                    </span>
+                    <span className="text-sm font-mono">{user.apiKey.lastIp}</span>
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-2 w-full text-destructive hover:text-destructive"
+                  onClick={async () => {
+                    try {
+                      await revokeUserApiKey.mutateAsync(user.id);
+                      toast.success(t("apiKeySection.revokeSuccess"));
+                    } catch {
+                      toast.error(t("apiKeySection.revokeError"));
+                    }
+                  }}
+                  disabled={revokeUserApiKey.isPending}
+                >
+                  {revokeUserApiKey.isPending
+                    ? t("apiKeySection.revoking")
+                    : t("apiKeySection.revoke")}
+                </Button>
+              </div>
             </div>
           )}
 

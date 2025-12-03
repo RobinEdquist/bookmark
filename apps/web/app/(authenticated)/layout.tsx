@@ -16,8 +16,7 @@ export default function AuthenticatedLayout({
 }) {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
-  const user = session?.user as { role?: string } | undefined;
-  const isAdmin = user?.role === "admin";
+  const isAdmin = session?.user?.role === "admin";
   const isAuthenticated = !isPending && !!session?.user;
 
   useEffect(() => {

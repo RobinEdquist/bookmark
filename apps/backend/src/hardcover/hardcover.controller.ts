@@ -139,7 +139,7 @@ export class HardcoverController {
 
   @Get('link/:audiobookId')
   async getLink(@Param('audiobookId') audiobookId: string) {
-    const link = await this.hardcoverService.getHardcoverLink(audiobookId);
+    const link = await this.hardcoverService.getHardcoverLink('audiobook', audiobookId);
     return { link };
   }
 

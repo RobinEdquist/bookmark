@@ -48,9 +48,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           // If specific audiobook, also invalidate its hardcover link
           if (entityId) {
             queryClient.invalidateQueries({
-              queryKey: queryKeys.hardcover.link(entityId),
+              queryKey: queryKeys.hardcover.link('audiobook', entityId),
             });
           }
+          break;
+
+        // Ebook events invalidate all ebook queries
+        case type.startsWith("ebook."):
+          queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+          // Invalidate library stats since counts may have changed
+          queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
           break;
 
         // Series events invalidate series queries
@@ -60,10 +67,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
           break;
 
-        // Library scan events invalidate library stats and audiobooks
+        // Library scan events invalidate library stats, audiobooks, and ebooks
         case type.startsWith("library.scan."):
           queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
           queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
           queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
           break;
 
@@ -72,10 +80,15 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({ queryKey: queryKeys.hardcover.all });
           // Invalidate audiobook lists since linked status/rating may have changed
           queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+          // Invalidate ebook lists since linked status/rating may have changed
+          queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
           if (entityId) {
-            // Invalidate the specific audiobook that was linked
+            // Invalidate the specific media that was linked
             queryClient.invalidateQueries({
               queryKey: queryKeys.audiobooks.detail(entityId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.ebooks.detail(entityId),
             });
           }
           break;

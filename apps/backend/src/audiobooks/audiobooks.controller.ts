@@ -22,6 +22,8 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as express from 'express';
 import * as fs from 'fs';
+import * as path from 'path';
+import archiver from 'archiver';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
 import { UpdateCoverDto } from './dto/update-cover.dto';
@@ -218,6 +220,52 @@ export class AudiobooksController {
       res.setHeader('Content-Length', fileSize.toString());
       const stream = fs.createReadStream(streamInfo.filePath);
       stream.pipe(res);
+    }
+  }
+
+  /**
+   * Download audiobook files.
+   * Single file with embedded cover: returns the audio file directly.
+   * Multiple files or separate cover: returns a ZIP archive.
+   */
+  @Get(':id/download')
+  @UseGuards(AuthGuard)
+  async download(@Param('id') id: string, @Res() res: express.Response) {
+    const downloadInfo = await this.audiobooksService.getDownloadInfo(id);
+
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${encodeURIComponent(downloadInfo.fileName)}"`,
+    );
+    res.setHeader('Content-Type', downloadInfo.mimeType);
+
+    if (!downloadInfo.isZip) {
+      // Single file with embedded cover - stream directly
+      res.setHeader('Content-Length', downloadInfo.fileSize!.toString());
+      const stream = fs.createReadStream(downloadInfo.filePath!);
+      stream.pipe(res);
+    } else {
+      // Multiple files or separate cover - create ZIP on-the-fly
+      const archive = archiver('zip', { zlib: { level: 0 } }); // No compression for audio
+
+      archive.on('error', (err) => {
+        res.status(500).send({ error: err.message });
+      });
+
+      archive.pipe(res);
+
+      // Add audio files
+      for (const file of downloadInfo.files!) {
+        archive.file(file.filePath, { name: file.fileName });
+      }
+
+      // Add cover image if separate
+      if (downloadInfo.coverPath) {
+        const coverExt = path.extname(downloadInfo.coverPath);
+        archive.file(downloadInfo.coverPath, { name: `cover${coverExt}` });
+      }
+
+      await archive.finalize();
     }
   }
 

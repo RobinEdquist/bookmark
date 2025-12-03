@@ -1,17 +1,17 @@
 // apps/backend/src/library-watcher/__tests__/library-watcher.integration.spec.ts
 import { Test, TestingModule } from '@nestjs/testing';
-import { AudiobookDetectorService } from '../audiobook-detector.service';
+import { MediaDetectorService } from '../media-detector.service';
 import { isAudioFile, AUDIO_EXTENSIONS } from '../utils/audio-file.utils';
 
-describe('AudiobookDetector', () => {
-  let detector: AudiobookDetectorService;
+describe('MediaDetectorService', () => {
+  let detector: MediaDetectorService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AudiobookDetectorService],
+      providers: [MediaDetectorService],
     }).compile();
 
-    detector = module.get<AudiobookDetectorService>(AudiobookDetectorService);
+    detector = module.get<MediaDetectorService>(MediaDetectorService);
   });
 
   it('should be defined', () => {

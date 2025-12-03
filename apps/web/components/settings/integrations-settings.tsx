@@ -28,7 +28,7 @@ import {
   useHardcoverDismissFailedItem,
   type FailedSyncItem,
 } from "../../lib/use-hardcover";
-import { HardcoverSyncDialog } from "../audiobooks/hardcover-sync-dialog";
+import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
 
 export function IntegrationsSettings() {
   const t = useTranslations("settings.integrations");
@@ -354,8 +354,9 @@ export function IntegrationsSettings() {
       {/* Manual Link Dialog */}
       {syncDialogItem?.audiobook && (
         <HardcoverSyncDialog
-          audiobookId={syncDialogItem.audiobook.id}
-          audiobookTitle={syncDialogItem.audiobook.title}
+          mediaType="audiobook"
+          mediaId={syncDialogItem.audiobook.id}
+          mediaTitle={syncDialogItem.audiobook.title}
           open={!!syncDialogItem}
           onOpenChange={(open) => !open && handleSyncDialogClose()}
           onSuccess={handleSyncDialogSuccess}

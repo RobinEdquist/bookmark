@@ -1,4 +1,4 @@
-// apps/backend/src/library-watcher/audiobook-detector.service.ts
+// apps/backend/src/library-watcher/media-detector.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -10,11 +10,25 @@ export interface AudiobookUnit {
   files: string[];
 }
 
-@Injectable()
-export class AudiobookDetectorService {
-  private readonly logger = new Logger(AudiobookDetectorService.name);
+export interface EbookUnit {
+  path: string;
+  fileName: string;
+}
 
-  async detectAudiobookUnits(libraryPath: string): Promise<AudiobookUnit[]> {
+const EBOOK_EXTENSIONS = ['.epub'];
+
+function isEbookFile(fileName: string): boolean {
+  const ext = path.extname(fileName).toLowerCase();
+  return EBOOK_EXTENSIONS.includes(ext);
+}
+
+@Injectable()
+export class MediaDetectorService {
+  private readonly logger = new Logger(MediaDetectorService.name);
+
+  // ===== AUDIOBOOK DETECTION =====
+
+  async scanLibraryForAudiobooks(libraryPath: string): Promise<AudiobookUnit[]> {
     const units: AudiobookUnit[] = [];
 
     const scan = async (currentPath: string): Promise<void> => {
@@ -30,26 +44,22 @@ export class AudiobookDetectorService {
       const subdirs = entries.filter((e) => e.isDirectory() && !e.name.startsWith('.'));
 
       if (audioFiles.length > 0) {
-        // This folder contains audio files - it's an audiobook unit
         const files = audioFiles
           .map((f) => path.join(currentPath, f.name))
-          .sort(); // Sort for consistent ordering
+          .sort();
 
         units.push({
           type: files.length === 1 ? 'single-file' : 'multi-file',
           path: currentPath,
           files,
         });
-        // Don't recurse into subdirs - this folder is the audiobook
       } else {
-        // No audio files here - recurse into subdirectories
         for (const subdir of subdirs) {
           await scan(path.join(currentPath, subdir.name));
         }
       }
     };
 
-    // Check for single audio files directly in the library root
     try {
       const rootEntries = await fs.readdir(libraryPath, { withFileTypes: true });
 
@@ -74,7 +84,7 @@ export class AudiobookDetectorService {
     return units;
   }
 
-  async detectSingleUnit(filePath: string): Promise<AudiobookUnit | null> {
+  async detectAudiobook(filePath: string): Promise<AudiobookUnit | null> {
     try {
       const stats = await fs.stat(filePath);
 
@@ -104,15 +114,64 @@ export class AudiobookDetectorService {
 
       return null;
     } catch (error) {
-      this.logger.warn(`Failed to detect audiobook unit at ${filePath}: ${error}`);
+      this.logger.warn(`Failed to detect audiobook at ${filePath}: ${error}`);
       return null;
     }
   }
 
-  determineAudiobookRoot(filePath: string): string {
-    // For a file, check if its parent directory contains multiple audio files
-    // If so, the parent is the audiobook root; otherwise, the file itself is
-    const parentDir = path.dirname(filePath);
-    return parentDir;
+  // ===== EBOOK DETECTION =====
+
+  async scanLibraryForEbooks(libraryPath: string): Promise<EbookUnit[]> {
+    const units: EbookUnit[] = [];
+
+    const scan = async (currentPath: string): Promise<void> => {
+      let entries: Awaited<ReturnType<typeof fs.readdir>>;
+      try {
+        entries = await fs.readdir(currentPath, { withFileTypes: true });
+      } catch (error) {
+        this.logger.warn(`Cannot read directory ${currentPath}: ${error}`);
+        return;
+      }
+
+      for (const entry of entries) {
+        const entryPath = path.join(currentPath, entry.name);
+
+        if (entry.isFile() && isEbookFile(entry.name)) {
+          units.push({
+            path: entryPath,
+            fileName: entry.name,
+          });
+        } else if (entry.isDirectory() && !entry.name.startsWith('.')) {
+          await scan(entryPath);
+        }
+      }
+    };
+
+    try {
+      await scan(libraryPath);
+    } catch (error) {
+      this.logger.error(`Failed to scan library path ${libraryPath}: ${error}`);
+      throw error;
+    }
+
+    return units;
+  }
+
+  async detectEbook(filePath: string): Promise<EbookUnit | null> {
+    try {
+      const stats = await fs.stat(filePath);
+
+      if (stats.isFile() && isEbookFile(filePath)) {
+        return {
+          path: filePath,
+          fileName: path.basename(filePath),
+        };
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.warn(`Failed to detect ebook at ${filePath}: ${error}`);
+      return null;
+    }
   }
 }

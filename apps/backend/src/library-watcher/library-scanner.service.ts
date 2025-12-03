@@ -6,9 +6,11 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
-import { AudiobookDetectorService } from './audiobook-detector.service';
-import { AudiobookImporterService } from './audiobook-importer.service';
+import * as ebooksSchema from '../ebooks/schema';
+import { MediaDetectorService } from './media-detector.service';
+import { MediaImporterService } from './media-importer.service';
 import { AppEventsService } from '../events/app-events.service';
+import { LibraryType } from './file-watcher.service';
 
 export interface ScanResult {
   added: number;
@@ -33,13 +35,15 @@ export class LibraryScannerService {
 
   constructor(
     @Inject(DATABASE_CONNECTION)
-    private db: NodePgDatabase<typeof audiobooksSchema>,
-    private audiobookDetector: AudiobookDetectorService,
-    private audiobookImporter: AudiobookImporterService,
+    private db: NodePgDatabase<typeof audiobooksSchema & typeof ebooksSchema>,
+    private mediaDetector: MediaDetectorService,
+    private mediaImporter: MediaImporterService,
     private appEvents: AppEventsService,
   ) {}
 
-  async runReconciliationScan(libraryPath: string): Promise<ScanResult> {
+  // ===== AUDIOBOOK SCANNING =====
+
+  async scanAudiobookLibrary(libraryPath: string): Promise<ScanResult> {
     const result: ScanResult = {
       added: 0,
       missing: 0,
@@ -48,7 +52,7 @@ export class LibraryScannerService {
       errors: [],
     };
 
-    this.logger.log(`Starting reconciliation scan of ${libraryPath}`);
+    this.logger.log(`Starting audiobook reconciliation scan of ${libraryPath}`);
     this.appEvents.libraryScanStarted();
 
     // Phase 1: Check existing DB entries against filesystem
@@ -78,11 +82,9 @@ export class LibraryScannerService {
         currentFile: audiobook.filePath,
       });
 
-      // Resolve relative path to absolute for filesystem check
       const absolutePath = path.join(libraryPath, audiobook.filePath);
       const exists = await this.pathExists(absolutePath);
 
-      // Handle hidden audiobooks: if files are gone, delete from DB entirely
       if (audiobook.status === 'hidden') {
         if (!exists) {
           await this.deleteAudiobookFromDb(audiobook.id);
@@ -114,9 +116,8 @@ export class LibraryScannerService {
     // Phase 2: Scan for new audiobooks
     this.updateProgress({ phase: 'scanning', total: 0, processed: 0 });
 
-    // existingPaths are relative (from DB), convert detected unit paths to relative for comparison
     const existingPaths = new Set(existingAudiobooks.map((a) => a.filePath));
-    const detectedUnits = await this.audiobookDetector.detectAudiobookUnits(libraryPath);
+    const detectedUnits = await this.mediaDetector.scanLibraryForAudiobooks(libraryPath);
 
     const newUnits = detectedUnits.filter((unit) => {
       const relativeUnitPath = path.relative(libraryPath, unit.path);
@@ -140,7 +141,7 @@ export class LibraryScannerService {
       });
 
       try {
-        const id = await this.audiobookImporter.importAudiobook(unit, libraryPath);
+        const id = await this.mediaImporter.importAudiobook(unit, libraryPath);
         if (id) {
           result.added++;
         }
@@ -160,12 +161,214 @@ export class LibraryScannerService {
     this.currentProgress = null;
 
     this.logger.log(
-      `Reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
+      `Audiobook reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
     );
 
     this.appEvents.libraryScanCompleted();
     return result;
   }
+
+  // ===== EBOOK SCANNING =====
+
+  async scanEbookLibrary(libraryPath: string): Promise<ScanResult> {
+    const result: ScanResult = {
+      added: 0,
+      missing: 0,
+      restored: 0,
+      deleted: 0,
+      errors: [],
+    };
+
+    this.logger.log(`Starting ebook reconciliation scan of ${libraryPath}`);
+
+    // Phase 1: Check existing DB entries against filesystem
+    this.updateProgress({ phase: 'reconciling', total: 0, processed: 0 });
+
+    const existingEbooks = await this.db
+      .select({
+        id: ebooksSchema.ebooks.id,
+        filePath: ebooksSchema.ebooks.filePath,
+        status: ebooksSchema.ebooks.status,
+      })
+      .from(ebooksSchema.ebooks);
+
+    this.updateProgress({
+      phase: 'reconciling',
+      total: existingEbooks.length,
+      processed: 0,
+    });
+
+    for (let i = 0; i < existingEbooks.length; i++) {
+      const ebook = existingEbooks[i];
+
+      this.updateProgress({
+        phase: 'reconciling',
+        total: existingEbooks.length,
+        processed: i + 1,
+        currentFile: ebook.filePath,
+      });
+
+      const absolutePath = path.join(libraryPath, ebook.filePath);
+      const exists = await this.pathExists(absolutePath);
+
+      if (ebook.status === 'hidden') {
+        if (!exists) {
+          await this.deleteEbookFromDb(ebook.id);
+          result.deleted++;
+          this.logger.debug(
+            `Deleted hidden ebook (files missing): ${ebook.filePath}`,
+          );
+        }
+        continue;
+      }
+
+      if (!exists && ebook.status !== 'missing') {
+        await this.db
+          .update(ebooksSchema.ebooks)
+          .set({ status: 'missing', missingAt: new Date() })
+          .where(eq(ebooksSchema.ebooks.id, ebook.id));
+        result.missing++;
+        this.logger.debug(`Marked as missing: ${ebook.filePath}`);
+      } else if (exists && ebook.status === 'missing') {
+        await this.db
+          .update(ebooksSchema.ebooks)
+          .set({ status: 'available', missingAt: null })
+          .where(eq(ebooksSchema.ebooks.id, ebook.id));
+        result.restored++;
+        this.logger.debug(`Restored from missing: ${ebook.filePath}`);
+      }
+    }
+
+    // Phase 2: Scan for new ebooks
+    this.updateProgress({ phase: 'scanning', total: 0, processed: 0 });
+
+    const existingPaths = new Set(existingEbooks.map((e) => e.filePath));
+    const detectedUnits = await this.mediaDetector.scanLibraryForEbooks(libraryPath);
+
+    const newUnits = detectedUnits.filter((unit) => {
+      const relativeUnitPath = path.relative(libraryPath, unit.path);
+      return !existingPaths.has(relativeUnitPath);
+    });
+
+    this.updateProgress({
+      phase: 'importing',
+      total: newUnits.length,
+      processed: 0,
+    });
+
+    for (let i = 0; i < newUnits.length; i++) {
+      const unit = newUnits[i];
+
+      this.updateProgress({
+        phase: 'importing',
+        total: newUnits.length,
+        processed: i,
+        currentFile: unit.path,
+      });
+
+      try {
+        const id = await this.mediaImporter.importEbook(unit, libraryPath);
+        if (id) {
+          result.added++;
+        }
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        result.errors.push({ path: unit.path, error: errorMessage });
+        this.logger.error(`Failed to import ${unit.path}: ${errorMessage}`);
+      }
+    }
+
+    this.updateProgress({
+      phase: 'importing',
+      total: newUnits.length,
+      processed: newUnits.length,
+    });
+
+    this.currentProgress = null;
+
+    this.logger.log(
+      `Ebook reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
+    );
+
+    return result;
+  }
+
+  // ===== PATH REMOVAL HANDLING =====
+
+  async handlePathRemoved(removedPath: string, libraryPath: string, libraryType: LibraryType): Promise<void> {
+    if (libraryType === 'audiobook') {
+      await this.handleAudiobookPathRemoved(removedPath, libraryPath);
+    } else {
+      await this.handleEbookPathRemoved(removedPath, libraryPath);
+    }
+  }
+
+  private async handleAudiobookPathRemoved(removedPath: string, libraryPath: string): Promise<void> {
+    const relativePath = path.relative(libraryPath, removedPath);
+
+    const audiobooks = await this.db
+      .select({
+        id: audiobooksSchema.audiobooks.id,
+        filePath: audiobooksSchema.audiobooks.filePath,
+        status: audiobooksSchema.audiobooks.status,
+      })
+      .from(audiobooksSchema.audiobooks)
+      .where(
+        or(
+          eq(audiobooksSchema.audiobooks.filePath, relativePath),
+          sql`${audiobooksSchema.audiobooks.filePath} LIKE ${relativePath + '/%'}`,
+        ),
+      );
+
+    for (const audiobook of audiobooks) {
+      if (audiobook.status === 'hidden') {
+        await this.deleteAudiobookFromDb(audiobook.id);
+        this.logger.log(
+          `Deleted hidden audiobook (files removed): ${audiobook.filePath}`,
+        );
+        this.appEvents.audiobookDeleted(audiobook.id);
+      } else {
+        await this.db
+          .update(audiobooksSchema.audiobooks)
+          .set({ status: 'missing', missingAt: new Date() })
+          .where(eq(audiobooksSchema.audiobooks.id, audiobook.id));
+        this.logger.log(`Marked audiobook as missing: ${audiobook.filePath}`);
+        this.appEvents.audiobookUpdated(audiobook.id);
+      }
+    }
+  }
+
+  private async handleEbookPathRemoved(removedPath: string, libraryPath: string): Promise<void> {
+    const relativePath = path.relative(libraryPath, removedPath);
+
+    const ebooks = await this.db
+      .select({
+        id: ebooksSchema.ebooks.id,
+        filePath: ebooksSchema.ebooks.filePath,
+        status: ebooksSchema.ebooks.status,
+      })
+      .from(ebooksSchema.ebooks)
+      .where(eq(ebooksSchema.ebooks.filePath, relativePath));
+
+    for (const ebook of ebooks) {
+      if (ebook.status === 'hidden') {
+        await this.deleteEbookFromDb(ebook.id);
+        this.logger.log(
+          `Deleted hidden ebook (files removed): ${ebook.filePath}`,
+        );
+        this.appEvents.ebookDeleted(ebook.id);
+      } else {
+        await this.db
+          .update(ebooksSchema.ebooks)
+          .set({ status: 'missing', missingAt: new Date() })
+          .where(eq(ebooksSchema.ebooks.id, ebook.id));
+        this.logger.log(`Marked ebook as missing: ${ebook.filePath}`);
+        this.appEvents.ebookUpdated(ebook.id);
+      }
+    }
+  }
+
+  // ===== HELPERS =====
 
   private async pathExists(filePath: string): Promise<boolean> {
     try {
@@ -177,10 +380,15 @@ export class LibraryScannerService {
   }
 
   private async deleteAudiobookFromDb(id: string): Promise<void> {
-    // Delete the audiobook - related records are deleted via ON DELETE CASCADE
     await this.db
       .delete(audiobooksSchema.audiobooks)
       .where(eq(audiobooksSchema.audiobooks.id, id));
+  }
+
+  private async deleteEbookFromDb(id: string): Promise<void> {
+    await this.db
+      .delete(ebooksSchema.ebooks)
+      .where(eq(ebooksSchema.ebooks.id, id));
   }
 
   private updateProgress(progress: ScanProgress): void {
@@ -199,43 +407,5 @@ export class LibraryScannerService {
 
   isScanning(): boolean {
     return this.currentProgress !== null;
-  }
-
-  async handlePathRemoved(removedPath: string, libraryPath: string): Promise<void> {
-    const relativePath = path.relative(libraryPath, removedPath);
-
-    // Find audiobook that matches this path (could be exact match or parent folder)
-    const audiobooks = await this.db
-      .select({
-        id: audiobooksSchema.audiobooks.id,
-        filePath: audiobooksSchema.audiobooks.filePath,
-        status: audiobooksSchema.audiobooks.status,
-      })
-      .from(audiobooksSchema.audiobooks)
-      .where(
-        or(
-          eq(audiobooksSchema.audiobooks.filePath, relativePath),
-          sql`${audiobooksSchema.audiobooks.filePath} LIKE ${relativePath + '/%'}`,
-        ),
-      );
-
-    for (const audiobook of audiobooks) {
-      if (audiobook.status === 'hidden') {
-        // Hidden audiobook - delete from database
-        await this.deleteAudiobookFromDb(audiobook.id);
-        this.logger.log(
-          `Deleted hidden audiobook (files removed): ${audiobook.filePath}`,
-        );
-        this.appEvents.audiobookDeleted(audiobook.id);
-      } else {
-        // Non-hidden - mark as missing
-        await this.db
-          .update(audiobooksSchema.audiobooks)
-          .set({ status: 'missing', missingAt: new Date() })
-          .where(eq(audiobooksSchema.audiobooks.id, audiobook.id));
-        this.logger.log(`Marked audiobook as missing: ${audiobook.filePath}`);
-        this.appEvents.audiobookUpdated(audiobook.id);
-      }
-    }
   }
 }

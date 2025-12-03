@@ -158,7 +158,7 @@ export class MediaImporterService {
       try {
         const autoSyncEnabled = await this.hardcoverService.getAutoSyncOnImport();
         if (autoSyncEnabled) {
-          await this.hardcoverService.addToSyncQueue(audiobook.id);
+          await this.hardcoverService.addToSyncQueue('audiobook', audiobook.id);
         }
       } catch (error) {
         this.logger.warn(`Failed to queue audiobook ${audiobook.id} for Hardcover sync: ${error}`);

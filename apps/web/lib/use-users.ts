@@ -9,6 +9,12 @@ export interface UserPermissions {
   canGenerateApiKeys: boolean;
 }
 
+export interface ApiKeyInfo {
+  hasKey: boolean;
+  lastUsed: string | null;
+  lastIp: string | null;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -21,6 +27,7 @@ export interface User {
   createdAt: string;
   permissions: UserPermissions;
   blacklistedTags: string[];
+  apiKey: ApiKeyInfo | null;
 }
 
 export interface CreateUserInput {
