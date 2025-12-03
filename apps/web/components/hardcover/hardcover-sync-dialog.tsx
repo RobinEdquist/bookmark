@@ -16,13 +16,15 @@ import {
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
   useHardcoverSearchPaginated,
-  useHardcoverLinkAudiobook,
+  useHardcoverLinkMedia,
   type HardcoverBookDocument,
+  type MediaType,
 } from "../../lib/use-hardcover";
 
 interface HardcoverSyncDialogProps {
-  audiobookId: string;
-  audiobookTitle: string;
+  mediaType: MediaType;
+  mediaId: string;
+  mediaTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -31,30 +33,32 @@ interface HardcoverSyncDialogProps {
 const ITEMS_PER_PAGE = 5;
 
 export function HardcoverSyncDialog({
-  audiobookId,
-  audiobookTitle,
+  mediaType,
+  mediaId,
+  mediaTitle,
   open,
   onOpenChange,
   onSuccess,
 }: HardcoverSyncDialogProps) {
-  const t = useTranslations("audiobooks.hardcoverSync");
+  const t = useTranslations("common.hardcoverSync");
   const [page, setPage] = useState(1);
   const [selectedBook, setSelectedBook] = useState<HardcoverBookDocument | null>(null);
 
   const { data, isLoading, error } = useHardcoverSearchPaginated(
-    audiobookId,
+    mediaType,
+    mediaId,
     page,
     ITEMS_PER_PAGE,
     open
   );
 
-  const { linkAudiobook, isLinking } = useHardcoverLinkAudiobook();
+  const { linkMedia, isLinking } = useHardcoverLinkMedia();
 
   const handleSelect = async () => {
     if (!selectedBook) return;
 
     try {
-      await linkAudiobook({ audiobookId, hardcoverBook: selectedBook });
+      await linkMedia({ mediaType, mediaId, hardcoverBook: selectedBook });
       toast.success(t("toast.linked"));
       onOpenChange(false);
       onSuccess?.();
@@ -89,7 +93,7 @@ export function HardcoverSyncDialog({
             {t("title")}
           </DialogTitle>
           <DialogDescription>
-            {t("description", { title: audiobookTitle })}
+            {t("description", { title: mediaTitle })}
           </DialogDescription>
         </DialogHeader>
 
@@ -142,7 +146,7 @@ export function HardcoverSyncDialog({
                           />
                         ) : (
                           <div className="flex h-full items-center justify-center text-2xl">
-                            📚
+                            {mediaType === "audiobook" ? "🎧" : "📖"}
                           </div>
                         )}
                       </div>
