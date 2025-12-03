@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
-import { HardcoverService } from './hardcover.service';
+import { HardcoverService, MediaType } from './hardcover.service';
 import { WsEventsService } from '../events/ws-events.service';
 
 const PROCESS_INTERVAL_MS = 5000; // Check for new items every 5 seconds
@@ -50,26 +50,37 @@ export class HardcoverSyncProcessor implements OnModuleInit {
       return;
     }
 
+    // Determine media type from queue item
+    const mediaType: MediaType = queueItem.audiobookId ? 'audiobook' : 'ebook';
+    const mediaId = queueItem.audiobookId || queueItem.ebookId;
+
+    if (!mediaId) {
+      this.logger.error(`Queue item ${queueItem.id} has no audiobookId or ebookId`);
+      await this.hardcoverService.removeFromQueue(queueItem.id);
+      return;
+    }
+
     this.isProcessing = true;
     this.lastProcessTime = now;
 
     try {
       this.logger.log(
-        `Processing sync queue item ${queueItem.id} for audiobook ${queueItem.audiobookId}`,
+        `Processing sync queue item ${queueItem.id} for ${mediaType} ${mediaId}`,
       );
 
       // Mark as processing
       await this.hardcoverService.markQueueItemProcessing(queueItem.id);
 
-      // Search Hardcover for this audiobook
-      const searchResult = await this.hardcoverService.searchByAudiobookId(
-        queueItem.audiobookId,
+      // Search Hardcover for this media
+      const searchResult = await this.hardcoverService.searchByMediaId(
+        mediaType,
+        mediaId,
       );
 
       if (!searchResult.success) {
         // API error - mark as failed
         this.logger.warn(
-          `Hardcover search failed for audiobook ${queueItem.audiobookId}: ${searchResult.error}`,
+          `Hardcover search failed for ${mediaType} ${mediaId}: ${searchResult.error}`,
         );
         await this.hardcoverService.markQueueItemFailed(
           queueItem.id,
@@ -83,7 +94,7 @@ export class HardcoverSyncProcessor implements OnModuleInit {
       if (hits.length === 0) {
         // No results found - mark as failed
         this.logger.log(
-          `No Hardcover results found for audiobook ${queueItem.audiobookId}`,
+          `No Hardcover results found for ${mediaType} ${mediaId}`,
         );
         await this.hardcoverService.markQueueItemFailed(
           queueItem.id,
@@ -95,11 +106,12 @@ export class HardcoverSyncProcessor implements OnModuleInit {
       // Auto-link first result
       const firstMatch = hits[0].document;
       this.logger.log(
-        `Auto-linking audiobook ${queueItem.audiobookId} to Hardcover book "${firstMatch.title}" (${firstMatch.id})`,
+        `Auto-linking ${mediaType} ${mediaId} to Hardcover book "${firstMatch.title}" (${firstMatch.id})`,
       );
 
-      await this.hardcoverService.linkAudiobookToHardcover(
-        queueItem.audiobookId,
+      await this.hardcoverService.linkMediaToHardcover(
+        mediaType,
+        mediaId,
         firstMatch,
       );
 
@@ -107,7 +119,7 @@ export class HardcoverSyncProcessor implements OnModuleInit {
       await this.hardcoverService.removeFromQueue(queueItem.id);
 
       this.logger.log(
-        `Successfully synced audiobook ${queueItem.audiobookId} with Hardcover`,
+        `Successfully synced ${mediaType} ${mediaId} with Hardcover`,
       );
     } catch (error) {
       this.logger.error(
