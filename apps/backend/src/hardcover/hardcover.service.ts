@@ -4,6 +4,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as appSettingsSchema from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
+import * as ebooksSchema from '../ebooks/schema';
 import * as hardcoverSchema from './schema';
 import { eq, asc, and, count } from 'drizzle-orm';
 import { AppEventsService } from '../events/app-events.service';
@@ -11,7 +12,10 @@ import { WsEventsService } from '../events/ws-events.service';
 
 type CombinedSchema = typeof appSettingsSchema &
   typeof audiobooksSchema &
+  typeof ebooksSchema &
   typeof hardcoverSchema;
+
+export type MediaType = 'audiobook' | 'ebook';
 
 const HARDCOVER_API_URL = 'https://api.hardcover.app/v1/graphql';
 
@@ -299,6 +303,81 @@ export class HardcoverService {
     }
   }
 
+  /**
+   * Find existing hardcover book by hardcoverId or create new one
+   */
+  private async findOrCreateHardcoverBook(
+    hardcoverBook: HardcoverBookDocument,
+  ): Promise<typeof hardcoverSchema.hardcoverBooks.$inferSelect> {
+    // Check if book already exists
+    const existing = await this.db
+      .select()
+      .from(hardcoverSchema.hardcoverBooks)
+      .where(eq(hardcoverSchema.hardcoverBooks.hardcoverId, hardcoverBook.id))
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Update with latest data
+      await this.db
+        .update(hardcoverSchema.hardcoverBooks)
+        .set({
+          slug: hardcoverBook.slug,
+          title: hardcoverBook.title,
+          description: hardcoverBook.description || null,
+          authorNames: hardcoverBook.author_names || [],
+          contentWarnings: hardcoverBook.content_warnings || [],
+          featuredSeriesName: hardcoverBook.featured_series?.name || null,
+          featuredSeriesPosition: hardcoverBook.featured_series?.position
+            ? String(hardcoverBook.featured_series.position)
+            : null,
+          genres: hardcoverBook.genres || [],
+          imageUrl: hardcoverBook.image?.url || null,
+          isbns: hardcoverBook.isbns || [],
+          moods: hardcoverBook.moods || [],
+          rating: hardcoverBook.rating ? String(hardcoverBook.rating) : null,
+          ratingsCount: hardcoverBook.ratings_count || null,
+          tags: hardcoverBook.tags || [],
+          syncedAt: new Date(),
+        })
+        .where(eq(hardcoverSchema.hardcoverBooks.id, existing[0].id));
+
+      const [updated] = await this.db
+        .select()
+        .from(hardcoverSchema.hardcoverBooks)
+        .where(eq(hardcoverSchema.hardcoverBooks.id, existing[0].id))
+        .limit(1);
+
+      return updated;
+    }
+
+    // Create new book
+    const [inserted] = await this.db
+      .insert(hardcoverSchema.hardcoverBooks)
+      .values({
+        hardcoverId: hardcoverBook.id,
+        slug: hardcoverBook.slug,
+        title: hardcoverBook.title,
+        description: hardcoverBook.description || null,
+        authorNames: hardcoverBook.author_names || [],
+        contentWarnings: hardcoverBook.content_warnings || [],
+        featuredSeriesName: hardcoverBook.featured_series?.name || null,
+        featuredSeriesPosition: hardcoverBook.featured_series?.position
+          ? String(hardcoverBook.featured_series.position)
+          : null,
+        genres: hardcoverBook.genres || [],
+        imageUrl: hardcoverBook.image?.url || null,
+        isbns: hardcoverBook.isbns || [],
+        moods: hardcoverBook.moods || [],
+        rating: hardcoverBook.rating ? String(hardcoverBook.rating) : null,
+        ratingsCount: hardcoverBook.ratings_count || null,
+        tags: hardcoverBook.tags || [],
+        syncedAt: new Date(),
+      })
+      .returning();
+
+    return inserted;
+  }
+
   async searchByAudiobookId(audiobookId: string): Promise<{
     success: boolean;
     data?: HardcoverSearchResponse;
@@ -407,130 +486,380 @@ export class HardcoverService {
     };
   }
 
+  async linkMediaToHardcover(
+    mediaType: MediaType,
+    mediaId: string,
+    hardcoverBook: HardcoverBookDocument,
+  ): Promise<typeof hardcoverSchema.hardcoverBooks.$inferSelect> {
+    // Verify media exists
+    if (mediaType === 'audiobook') {
+      const audiobook = await this.db
+        .select({ id: audiobooksSchema.audiobooks.id })
+        .from(audiobooksSchema.audiobooks)
+        .where(eq(audiobooksSchema.audiobooks.id, mediaId))
+        .limit(1);
+
+      if (audiobook.length === 0) {
+        throw new NotFoundException('Audiobook not found');
+      }
+    } else {
+      const ebook = await this.db
+        .select({ id: ebooksSchema.ebooks.id })
+        .from(ebooksSchema.ebooks)
+        .where(eq(ebooksSchema.ebooks.id, mediaId))
+        .limit(1);
+
+      if (ebook.length === 0) {
+        throw new NotFoundException('Ebook not found');
+      }
+    }
+
+    // Find or create hardcover book
+    const hcBook = await this.findOrCreateHardcoverBook(hardcoverBook);
+
+    // Create or update junction link
+    if (mediaType === 'audiobook') {
+      // Delete existing link if any
+      await this.db
+        .delete(hardcoverSchema.hardcoverAudiobookLinks)
+        .where(
+          eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, mediaId),
+        );
+
+      // Create new link
+      await this.db.insert(hardcoverSchema.hardcoverAudiobookLinks).values({
+        audiobookId: mediaId,
+        hardcoverBookId: hcBook.id,
+      });
+
+      this.appEvents.hardcoverSyncCompleted(mediaId);
+    } else {
+      // Delete existing link if any
+      await this.db
+        .delete(hardcoverSchema.hardcoverEbookLinks)
+        .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, mediaId));
+
+      // Create new link
+      await this.db.insert(hardcoverSchema.hardcoverEbookLinks).values({
+        ebookId: mediaId,
+        hardcoverBookId: hcBook.id,
+      });
+
+      this.appEvents.ebookUpdated(mediaId);
+    }
+
+    return hcBook;
+  }
+
+  // Keep old method as alias for backward compatibility during transition
   async linkAudiobookToHardcover(
     audiobookId: string,
     hardcoverBook: HardcoverBookDocument,
   ): Promise<typeof hardcoverSchema.hardcoverBooks.$inferSelect> {
-    // Check if audiobook exists
-    const audiobook = await this.db
-      .select({ id: audiobooksSchema.audiobooks.id })
-      .from(audiobooksSchema.audiobooks)
-      .where(eq(audiobooksSchema.audiobooks.id, audiobookId))
-      .limit(1);
-
-    if (audiobook.length === 0) {
-      throw new NotFoundException('Audiobook not found');
-    }
-
-    // Upsert the hardcover book link
-    const insertData = {
-      audiobookId,
-      hardcoverId: hardcoverBook.id,
-      slug: hardcoverBook.slug,
-      title: hardcoverBook.title,
-      description: hardcoverBook.description || null,
-      authorNames: hardcoverBook.author_names || [],
-      contentWarnings: hardcoverBook.content_warnings || [],
-      featuredSeriesName: hardcoverBook.featured_series?.name || null,
-      featuredSeriesPosition: hardcoverBook.featured_series?.position
-        ? String(hardcoverBook.featured_series.position)
-        : null,
-      genres: hardcoverBook.genres || [],
-      imageUrl: hardcoverBook.image?.url || null,
-      isbns: hardcoverBook.isbns || [],
-      moods: hardcoverBook.moods || [],
-      rating: hardcoverBook.rating ? String(hardcoverBook.rating) : null,
-      ratingsCount: hardcoverBook.ratings_count || null,
-      tags: hardcoverBook.tags || [],
-      syncedAt: new Date(),
-    };
-
-    // Try to update first, if no rows affected then insert
-    const existingLink = await this.db
-      .select({ id: hardcoverSchema.hardcoverBooks.id })
-      .from(hardcoverSchema.hardcoverBooks)
-      .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, audiobookId))
-      .limit(1);
-
-    if (existingLink.length > 0) {
-      // Update existing link
-      await this.db
-        .update(hardcoverSchema.hardcoverBooks)
-        .set(insertData)
-        .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, audiobookId));
-
-      const updated = await this.db
-        .select()
-        .from(hardcoverSchema.hardcoverBooks)
-        .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, audiobookId))
-        .limit(1);
-
-      this.appEvents.hardcoverSyncCompleted(audiobookId);
-      return updated[0];
-    } else {
-      // Insert new link
-      const inserted = await this.db
-        .insert(hardcoverSchema.hardcoverBooks)
-        .values(insertData)
-        .returning();
-
-      this.appEvents.hardcoverSyncCompleted(audiobookId);
-      return inserted[0];
-    }
+    return this.linkMediaToHardcover('audiobook', audiobookId, hardcoverBook);
   }
 
   async getHardcoverLink(
-    audiobookId: string,
+    mediaType: MediaType,
+    mediaId: string,
   ): Promise<typeof hardcoverSchema.hardcoverBooks.$inferSelect | null> {
-    const link = await this.db
-      .select()
-      .from(hardcoverSchema.hardcoverBooks)
-      .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, audiobookId))
-      .limit(1);
+    if (mediaType === 'audiobook') {
+      const link = await this.db
+        .select({
+          hardcoverBook: hardcoverSchema.hardcoverBooks,
+        })
+        .from(hardcoverSchema.hardcoverAudiobookLinks)
+        .innerJoin(
+          hardcoverSchema.hardcoverBooks,
+          eq(
+            hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+            hardcoverSchema.hardcoverBooks.id,
+          ),
+        )
+        .where(
+          eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, mediaId),
+        )
+        .limit(1);
 
-    return link[0] || null;
+      return link[0]?.hardcoverBook || null;
+    } else {
+      const link = await this.db
+        .select({
+          hardcoverBook: hardcoverSchema.hardcoverBooks,
+        })
+        .from(hardcoverSchema.hardcoverEbookLinks)
+        .innerJoin(
+          hardcoverSchema.hardcoverBooks,
+          eq(
+            hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+            hardcoverSchema.hardcoverBooks.id,
+          ),
+        )
+        .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, mediaId))
+        .limit(1);
+
+      return link[0]?.hardcoverBook || null;
+    }
   }
 
-  async unlinkAudiobookFromHardcover(audiobookId: string): Promise<void> {
-    await this.db
-      .delete(hardcoverSchema.hardcoverBooks)
-      .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, audiobookId));
+  // Keep old method as alias
+  async getAudiobookHardcoverLink(
+    audiobookId: string,
+  ): Promise<typeof hardcoverSchema.hardcoverBooks.$inferSelect | null> {
+    return this.getHardcoverLink('audiobook', audiobookId);
+  }
 
-    this.appEvents.audiobookUpdated(audiobookId);
+  async unlinkMedia(mediaType: MediaType, mediaId: string): Promise<void> {
+    if (mediaType === 'audiobook') {
+      await this.db
+        .delete(hardcoverSchema.hardcoverAudiobookLinks)
+        .where(
+          eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, mediaId),
+        );
+
+      this.appEvents.audiobookUpdated(mediaId);
+    } else {
+      await this.db
+        .delete(hardcoverSchema.hardcoverEbookLinks)
+        .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, mediaId));
+
+      this.appEvents.ebookUpdated(mediaId);
+    }
+
+    // TODO: Could clean up orphaned hardcover_books here if desired
+  }
+
+  // Keep old method as alias
+  async unlinkAudiobookFromHardcover(audiobookId: string): Promise<void> {
+    return this.unlinkMedia('audiobook', audiobookId);
+  }
+
+  async searchByMediaId(
+    mediaType: MediaType,
+    mediaId: string,
+  ): Promise<{
+    success: boolean;
+    data?: HardcoverSearchResponse;
+    query?: string;
+    error?: string;
+  }> {
+    let title: string;
+    let subtitle: string | null;
+    let authorNames: string[];
+
+    if (mediaType === 'audiobook') {
+      const audiobook = await this.db
+        .select({
+          title: audiobooksSchema.audiobooks.title,
+          subtitle: audiobooksSchema.audiobooks.subtitle,
+        })
+        .from(audiobooksSchema.audiobooks)
+        .where(eq(audiobooksSchema.audiobooks.id, mediaId))
+        .limit(1);
+
+      if (audiobook.length === 0) {
+        throw new NotFoundException('Audiobook not found');
+      }
+
+      title = audiobook[0].title;
+      subtitle = audiobook[0].subtitle;
+
+      const authors = await this.db
+        .select({ name: audiobooksSchema.people.name })
+        .from(audiobooksSchema.audiobookAuthors)
+        .innerJoin(
+          audiobooksSchema.people,
+          eq(audiobooksSchema.audiobookAuthors.personId, audiobooksSchema.people.id),
+        )
+        .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, mediaId))
+        .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
+
+      authorNames = authors.map((a) => a.name);
+    } else {
+      const ebook = await this.db
+        .select({
+          title: ebooksSchema.ebooks.title,
+          subtitle: ebooksSchema.ebooks.subtitle,
+        })
+        .from(ebooksSchema.ebooks)
+        .where(eq(ebooksSchema.ebooks.id, mediaId))
+        .limit(1);
+
+      if (ebook.length === 0) {
+        throw new NotFoundException('Ebook not found');
+      }
+
+      title = ebook[0].title;
+      subtitle = ebook[0].subtitle;
+
+      const authors = await this.db
+        .select({ name: audiobooksSchema.people.name })
+        .from(ebooksSchema.ebookAuthors)
+        .innerJoin(
+          audiobooksSchema.people,
+          eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
+        )
+        .where(eq(ebooksSchema.ebookAuthors.ebookId, mediaId))
+        .orderBy(asc(ebooksSchema.ebookAuthors.order));
+
+      authorNames = authors.map((a) => a.name);
+    }
+
+    const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
+    const searchQuery = authorNames.length > 0
+      ? `${fullTitle} ${authorNames.join(' ')}`
+      : fullTitle;
+
+    const result = await this.searchBooks(searchQuery);
+
+    return {
+      ...result,
+      query: searchQuery,
+    };
+  }
+
+  async searchByMediaIdPaginated(
+    mediaType: MediaType,
+    mediaId: string,
+    page: number = 1,
+    perPage: number = 10,
+  ): Promise<{
+    success: boolean;
+    data?: HardcoverSearchResponse;
+    query?: string;
+    error?: string;
+  }> {
+    let title: string;
+    let subtitle: string | null;
+    let authorNames: string[];
+
+    if (mediaType === 'audiobook') {
+      const audiobook = await this.db
+        .select({
+          title: audiobooksSchema.audiobooks.title,
+          subtitle: audiobooksSchema.audiobooks.subtitle,
+        })
+        .from(audiobooksSchema.audiobooks)
+        .where(eq(audiobooksSchema.audiobooks.id, mediaId))
+        .limit(1);
+
+      if (audiobook.length === 0) {
+        throw new NotFoundException('Audiobook not found');
+      }
+
+      title = audiobook[0].title;
+      subtitle = audiobook[0].subtitle;
+
+      const authors = await this.db
+        .select({ name: audiobooksSchema.people.name })
+        .from(audiobooksSchema.audiobookAuthors)
+        .innerJoin(
+          audiobooksSchema.people,
+          eq(audiobooksSchema.audiobookAuthors.personId, audiobooksSchema.people.id),
+        )
+        .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, mediaId))
+        .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
+
+      authorNames = authors.map((a) => a.name);
+    } else {
+      const ebook = await this.db
+        .select({
+          title: ebooksSchema.ebooks.title,
+          subtitle: ebooksSchema.ebooks.subtitle,
+        })
+        .from(ebooksSchema.ebooks)
+        .where(eq(ebooksSchema.ebooks.id, mediaId))
+        .limit(1);
+
+      if (ebook.length === 0) {
+        throw new NotFoundException('Ebook not found');
+      }
+
+      title = ebook[0].title;
+      subtitle = ebook[0].subtitle;
+
+      const authors = await this.db
+        .select({ name: audiobooksSchema.people.name })
+        .from(ebooksSchema.ebookAuthors)
+        .innerJoin(
+          audiobooksSchema.people,
+          eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
+        )
+        .where(eq(ebooksSchema.ebookAuthors.ebookId, mediaId))
+        .orderBy(asc(ebooksSchema.ebookAuthors.order));
+
+      authorNames = authors.map((a) => a.name);
+    }
+
+    const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
+    const searchQuery = authorNames.length > 0
+      ? `${fullTitle} ${authorNames.join(' ')}`
+      : fullTitle;
+
+    const result = await this.searchBooks(searchQuery, page, perPage);
+
+    return {
+      ...result,
+      query: searchQuery,
+    };
   }
 
   // ============ Sync Queue Methods ============
 
-  async addToSyncQueue(audiobookId: string): Promise<void> {
+  async addToSyncQueue(
+    mediaType: MediaType,
+    mediaId: string,
+  ): Promise<void> {
     // Check if already in queue or already linked
-    const [existingQueue, existingLink] = await Promise.all([
-      this.db
-        .select({ id: hardcoverSchema.hardcoverSyncQueue.id })
-        .from(hardcoverSchema.hardcoverSyncQueue)
-        .where(eq(hardcoverSchema.hardcoverSyncQueue.audiobookId, audiobookId))
-        .limit(1),
-      this.db
-        .select({ id: hardcoverSchema.hardcoverBooks.id })
-        .from(hardcoverSchema.hardcoverBooks)
-        .where(eq(hardcoverSchema.hardcoverBooks.audiobookId, audiobookId))
-        .limit(1),
-    ]);
+    if (mediaType === 'audiobook') {
+      const [existingQueue, existingLink] = await Promise.all([
+        this.db
+          .select({ id: hardcoverSchema.hardcoverSyncQueue.id })
+          .from(hardcoverSchema.hardcoverSyncQueue)
+          .where(eq(hardcoverSchema.hardcoverSyncQueue.audiobookId, mediaId))
+          .limit(1),
+        this.db
+          .select({ audiobookId: hardcoverSchema.hardcoverAudiobookLinks.audiobookId })
+          .from(hardcoverSchema.hardcoverAudiobookLinks)
+          .where(eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, mediaId))
+          .limit(1),
+      ]);
 
-    if (existingQueue.length > 0 || existingLink.length > 0) {
-      this.logger.debug(
-        `Audiobook ${audiobookId} already in queue or linked, skipping`,
-      );
-      return;
+      if (existingQueue.length > 0 || existingLink.length > 0) {
+        this.logger.debug(`Audiobook ${mediaId} already in queue or linked, skipping`);
+        return;
+      }
+
+      await this.db.insert(hardcoverSchema.hardcoverSyncQueue).values({
+        audiobookId: mediaId,
+        status: 'pending',
+      });
+    } else {
+      const [existingQueue, existingLink] = await Promise.all([
+        this.db
+          .select({ id: hardcoverSchema.hardcoverSyncQueue.id })
+          .from(hardcoverSchema.hardcoverSyncQueue)
+          .where(eq(hardcoverSchema.hardcoverSyncQueue.ebookId, mediaId))
+          .limit(1),
+        this.db
+          .select({ ebookId: hardcoverSchema.hardcoverEbookLinks.ebookId })
+          .from(hardcoverSchema.hardcoverEbookLinks)
+          .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, mediaId))
+          .limit(1),
+      ]);
+
+      if (existingQueue.length > 0 || existingLink.length > 0) {
+        this.logger.debug(`Ebook ${mediaId} already in queue or linked, skipping`);
+        return;
+      }
+
+      await this.db.insert(hardcoverSchema.hardcoverSyncQueue).values({
+        ebookId: mediaId,
+        status: 'pending',
+      });
     }
 
-    await this.db.insert(hardcoverSchema.hardcoverSyncQueue).values({
-      audiobookId,
-      status: 'pending',
-    });
-
-    this.logger.log(`Added audiobook ${audiobookId} to Hardcover sync queue`);
-
-    // Emit updated status
+    this.logger.log(`Added ${mediaType} ${mediaId} to Hardcover sync queue`);
     this.emitHardcoverSyncStatus();
   }
 
@@ -589,11 +918,13 @@ export class HardcoverService {
   async getFailedQueueItems(): Promise<
     {
       id: string;
-      audiobookId: string;
+      audiobookId: string | null;
+      ebookId: string | null;
       errorMessage: string | null;
       createdAt: Date;
-      audiobook: {
+      media: {
         id: string;
+        type: MediaType;
         title: string;
         subtitle: string | null;
         coverUrl: string | null;
@@ -604,39 +935,74 @@ export class HardcoverService {
       .select({
         id: hardcoverSchema.hardcoverSyncQueue.id,
         audiobookId: hardcoverSchema.hardcoverSyncQueue.audiobookId,
+        ebookId: hardcoverSchema.hardcoverSyncQueue.ebookId,
         errorMessage: hardcoverSchema.hardcoverSyncQueue.errorMessage,
         createdAt: hardcoverSchema.hardcoverSyncQueue.createdAt,
-        audiobookTitle: audiobooksSchema.audiobooks.title,
-        audiobookSubtitle: audiobooksSchema.audiobooks.subtitle,
-        audiobookCoverUrl: audiobooksSchema.audiobooks.coverUrl,
       })
       .from(hardcoverSchema.hardcoverSyncQueue)
-      .leftJoin(
-        audiobooksSchema.audiobooks,
-        eq(
-          hardcoverSchema.hardcoverSyncQueue.audiobookId,
-          audiobooksSchema.audiobooks.id,
-        ),
-      )
       .where(eq(hardcoverSchema.hardcoverSyncQueue.status, 'failed'))
       .orderBy(asc(hardcoverSchema.hardcoverSyncQueue.createdAt));
 
-    return items.map((item) => ({
-      id: item.id,
-      audiobookId: item.audiobookId,
-      errorMessage: item.errorMessage,
-      createdAt: item.createdAt,
-      audiobook: item.audiobookTitle
-        ? {
-            id: item.audiobookId,
-            title: item.audiobookTitle,
-            subtitle: item.audiobookSubtitle,
-            coverUrl: item.audiobookCoverUrl
-              ? `/api/audiobooks/${item.audiobookId}/cover`
-              : null,
+    const result = await Promise.all(
+      items.map(async (item) => {
+        let media: {
+          id: string;
+          type: MediaType;
+          title: string;
+          subtitle: string | null;
+          coverUrl: string | null;
+        } | null = null;
+
+        if (item.audiobookId) {
+          const audiobook = await this.db
+            .select({
+              id: audiobooksSchema.audiobooks.id,
+              title: audiobooksSchema.audiobooks.title,
+              subtitle: audiobooksSchema.audiobooks.subtitle,
+            })
+            .from(audiobooksSchema.audiobooks)
+            .where(eq(audiobooksSchema.audiobooks.id, item.audiobookId))
+            .limit(1);
+
+          if (audiobook.length > 0) {
+            media = {
+              id: audiobook[0].id,
+              type: 'audiobook',
+              title: audiobook[0].title,
+              subtitle: audiobook[0].subtitle,
+              coverUrl: `/api/audiobooks/${audiobook[0].id}/cover`,
+            };
           }
-        : null,
-    }));
+        } else if (item.ebookId) {
+          const ebook = await this.db
+            .select({
+              id: ebooksSchema.ebooks.id,
+              title: ebooksSchema.ebooks.title,
+              subtitle: ebooksSchema.ebooks.subtitle,
+            })
+            .from(ebooksSchema.ebooks)
+            .where(eq(ebooksSchema.ebooks.id, item.ebookId))
+            .limit(1);
+
+          if (ebook.length > 0) {
+            media = {
+              id: ebook[0].id,
+              type: 'ebook',
+              title: ebook[0].title,
+              subtitle: ebook[0].subtitle,
+              coverUrl: `/api/ebooks/${ebook[0].id}/cover`,
+            };
+          }
+        }
+
+        return {
+          ...item,
+          media,
+        };
+      }),
+    );
+
+    return result;
   }
 
   async getPendingQueueCount(): Promise<number> {
