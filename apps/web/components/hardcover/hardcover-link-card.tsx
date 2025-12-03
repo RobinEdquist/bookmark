@@ -15,21 +15,23 @@ import {
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
   useHardcoverLink,
-  useHardcoverUnlinkAudiobook,
+  useHardcoverUnlinkMedia,
+  type MediaType,
 } from "../../lib/use-hardcover";
 
 interface HardcoverLinkCardProps {
-  audiobookId: string;
+  mediaType: MediaType;
+  mediaId: string;
 }
 
-export function HardcoverLinkCard({ audiobookId }: HardcoverLinkCardProps) {
-  const t = useTranslations("audiobooks.hardcoverLink");
-  const { link, isLoading } = useHardcoverLink(audiobookId);
-  const { unlinkAudiobook, isUnlinking } = useHardcoverUnlinkAudiobook();
+export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps) {
+  const t = useTranslations("common.hardcoverLink");
+  const { link, isLoading } = useHardcoverLink(mediaType, mediaId);
+  const { unlinkMedia, isUnlinking } = useHardcoverUnlinkMedia();
 
   const handleUnlink = async () => {
     try {
-      await unlinkAudiobook(audiobookId);
+      await unlinkMedia({ mediaType, mediaId });
       toast.success(t("toast.unlinked"));
     } catch (err) {
       toast.error(
