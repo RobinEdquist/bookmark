@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download } from "lucide-react";
+import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download, Star } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -43,6 +43,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
   const canDelete = permissions?.canDeleteAudiobooks ?? false; // Use same permission for now
   const showDropdown = canEdit || canDelete;
   const isMissing = ebook.status === "missing";
+  const isLinkedToHardcover = ebook.hardcoverLinked;
 
   const handleDelete = async () => {
     // If missing, delete immediately without confirmation
@@ -114,6 +115,35 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
               >
                 <div className="rounded-full bg-destructive p-2 shadow-lg">
                   <AlertTriangle className="h-6 w-6 text-destructive-foreground" />
+                </div>
+              </div>
+            )}
+            {/* Hardcover rating badge */}
+            {isLinkedToHardcover && (
+              <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                {ebook.hardcoverRating !== null && (
+                  <div
+                    className="flex items-center gap-0.5 rounded-full bg-background/90 px-1.5 py-1 text-xs font-medium shadow-sm backdrop-blur-sm"
+                    title={t("rating", {
+                      rating: ebook.hardcoverRating.toFixed(1),
+                      count: ebook.hardcoverRatingsCount ?? 0,
+                    })}
+                  >
+                    <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                    <span>{ebook.hardcoverRating.toFixed(1)}</span>
+                  </div>
+                )}
+                <div
+                  className="rounded-full bg-background/90 p-1 shadow-sm backdrop-blur-sm"
+                  title={t("linkedToHardcover")}
+                >
+                  <Image
+                    src="/hardcover.svg"
+                    alt="Hardcover"
+                    width={14}
+                    height={14}
+                    className="opacity-80"
+                  />
                 </div>
               </div>
             )}

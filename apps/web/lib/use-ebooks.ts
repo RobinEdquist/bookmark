@@ -35,6 +35,9 @@ export interface EbookListItem {
   status: "available" | "missing" | "hidden";
   authors: EbookAuthor[];
   series: EbookSeries[];
+  hardcoverLinked: boolean;
+  hardcoverRating: number | null;
+  hardcoverRatingsCount: number | null;
 }
 
 export interface EbookDetail {

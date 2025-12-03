@@ -13,7 +13,9 @@
     "download": "Ladda ner",
     "changeCover": "Ändra omslag",
     "missing": "Fil saknas",
-    "missingDescription": "E-bokfilen kunde inte hittas"
+    "missingDescription": "E-bokfilen kunde inte hittas",
+    "linkedToHardcover": "Länkad till Hardcover",
+    "rating": "{rating} ({count})"
   },
   "deleteDialog": {
     "title": "Ta bort e-bok",

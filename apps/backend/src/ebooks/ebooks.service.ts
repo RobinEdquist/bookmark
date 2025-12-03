@@ -13,6 +13,7 @@ import sharp from 'sharp';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
+import * as hardcoverSchema from '../hardcover/schema';
 import { UpdateEbookDto } from './dto/update-ebook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
@@ -28,6 +29,9 @@ export interface EbookListItem {
   status: 'available' | 'missing' | 'importing';
   authors: { id: string; name: string }[];
   series: { id: string; name: string; order: string }[];
+  hardcoverLinked: boolean;
+  hardcoverRating: number | null;
+  hardcoverRatingsCount: number | null;
 }
 
 export interface EbookFilters {
@@ -147,34 +151,52 @@ export class EbooksService {
       .limit(limit)
       .offset(offset);
 
-    // Fetch authors and series for each ebook
+    // Fetch authors, series, and Hardcover data for each ebook
     const result: EbookListItem[] = await Promise.all(
       ebooks.map(async (eb) => {
-        const authors = await this.db
-          .select({
-            id: audiobookSchema.people.id,
-            name: audiobookSchema.people.name,
-          })
-          .from(schema.ebookAuthors)
-          .innerJoin(
-            audiobookSchema.people,
-            eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
-          )
-          .where(eq(schema.ebookAuthors.ebookId, eb.id))
-          .orderBy(asc(schema.ebookAuthors.order));
+        const [authors, seriesData, hardcoverData] = await Promise.all([
+          this.db
+            .select({
+              id: audiobookSchema.people.id,
+              name: audiobookSchema.people.name,
+            })
+            .from(schema.ebookAuthors)
+            .innerJoin(
+              audiobookSchema.people,
+              eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
+            )
+            .where(eq(schema.ebookAuthors.ebookId, eb.id))
+            .orderBy(asc(schema.ebookAuthors.order)),
+          this.db
+            .select({
+              id: audiobookSchema.series.id,
+              name: audiobookSchema.series.name,
+              order: schema.ebookSeries.order,
+            })
+            .from(schema.ebookSeries)
+            .innerJoin(
+              audiobookSchema.series,
+              eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
+            )
+            .where(eq(schema.ebookSeries.ebookId, eb.id)),
+          this.db
+            .select({
+              rating: hardcoverSchema.hardcoverBooks.rating,
+              ratingsCount: hardcoverSchema.hardcoverBooks.ratingsCount,
+            })
+            .from(hardcoverSchema.hardcoverEbookLinks)
+            .innerJoin(
+              hardcoverSchema.hardcoverBooks,
+              eq(
+                hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+                hardcoverSchema.hardcoverBooks.id,
+              ),
+            )
+            .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, eb.id))
+            .limit(1),
+        ]);
 
-        const seriesData = await this.db
-          .select({
-            id: audiobookSchema.series.id,
-            name: audiobookSchema.series.name,
-            order: schema.ebookSeries.order,
-          })
-          .from(schema.ebookSeries)
-          .innerJoin(
-            audiobookSchema.series,
-            eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
-          )
-          .where(eq(schema.ebookSeries.ebookId, eb.id));
+        const hc = hardcoverData[0] || null;
 
         return {
           id: eb.id,
@@ -186,6 +208,9 @@ export class EbooksService {
           status: eb.status as 'available' | 'missing' | 'importing',
           authors,
           series: seriesData,
+          hardcoverLinked: !!hc,
+          hardcoverRating: hc?.rating ? parseFloat(hc.rating) : null,
+          hardcoverRatingsCount: hc?.ratingsCount ?? null,
         };
       }),
     );

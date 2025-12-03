@@ -13,7 +13,9 @@
     "download": "Download",
     "changeCover": "Change cover",
     "missing": "File missing",
-    "missingDescription": "The ebook file could not be found"
+    "missingDescription": "The ebook file could not be found",
+    "linkedToHardcover": "Linked to Hardcover",
+    "rating": "{rating} ({count})"
   },
   "deleteDialog": {
     "title": "Delete Ebook",

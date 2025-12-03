@@ -271,8 +271,10 @@ export class MediaImporterService {
       // Queue for Hardcover auto-sync
       try {
         const autoSyncEnabled = await this.hardcoverService.getAutoSyncOnImport();
+        this.logger.debug(`Hardcover auto-sync enabled: ${autoSyncEnabled}`);
         if (autoSyncEnabled) {
           await this.hardcoverService.addToSyncQueue('ebook', ebook.id);
+          this.logger.log(`Queued ebook ${ebook.id} for Hardcover sync`);
         }
       } catch (error) {
         this.logger.warn(`Failed to queue ebook ${ebook.id} for Hardcover sync: ${error}`);

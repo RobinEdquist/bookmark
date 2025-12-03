@@ -85,22 +85,21 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
 
       <CardContent className="space-y-4">
         {/* Book info row */}
-        <div className="flex gap-4">
+        <div className="flex items-start gap-4">
           {/* Cover thumbnail */}
           {link.imageUrl && (
-            <div className="relative h-24 w-16 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-              <Image
-                src={link.imageUrl}
-                alt={link.title}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
+            <Image
+              src={link.imageUrl}
+              alt={link.title}
+              width={64}
+              height={96}
+              className="flex-shrink-0 rounded-md object-contain max-h-24"
+              unoptimized
+            />
           )}
 
           {/* Title and metadata */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 py-0.5">
             <h4 className="font-medium line-clamp-2">{link.title}</h4>
 
             {link.authorNames.length > 0 && (

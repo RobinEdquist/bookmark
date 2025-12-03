@@ -128,7 +128,7 @@ export default function EbookDetailPage({
 
       <div className="mx-auto max-w-7xl px-6 py-8">
         <motion.div
-          className="grid gap-8 lg:grid-cols-[240px_1fr]"
+          className="grid gap-8 lg:grid-cols-[280px_1fr]"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
