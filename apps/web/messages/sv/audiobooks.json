@@ -57,6 +57,7 @@
     "pause": "Pausa",
     "resume": "Fortsätt",
     "edit": "Redigera",
+    "download": "Ladda ner",
     "changeCover": "Ändra omslag",
     "syncWithHardcover": "Synka med Hardcover",
     "author": "Författare",
@@ -78,40 +79,6 @@
       "percentage": "{percentage}% avklarat",
       "timeOf": "{current} av {total}",
       "completed": "Avslutad"
-    }
-  },
-  "hardcoverSync": {
-    "title": "Länka till Hardcover",
-    "description": "Välj en bok från Hardcover att länka med \"{title}\"",
-    "resultsCount": "{count, plural, one {# resultat hittat} other {# resultat hittade}}",
-    "noResults": "Inga matchande böcker hittades på Hardcover",
-    "error": "Kunde inte söka på Hardcover",
-    "previous": "Föregående",
-    "next": "Nästa",
-    "pageInfo": "Sida {current} av {total}",
-    "cancel": "Avbryt",
-    "link": "Länka bok",
-    "linking": "Länkar...",
-    "toast": {
-      "linked": "Länkad till Hardcover",
-      "linkFailed": "Kunde inte länka ljudbok"
-    }
-  },
-  "hardcoverLink": {
-    "title": "Hardcover",
-    "description": "Länkad bokmetadata från Hardcover",
-    "unlink": "Avlänka",
-    "unlinking": "Avlänkar...",
-    "ratings": "betyg",
-    "genres": "Genrer",
-    "moods": "Stämningar",
-    "tags": "Taggar",
-    "contentWarnings": "Innehållsvarningar",
-    "more": "till",
-    "viewOnHardcover": "Visa på Hardcover",
-    "toast": {
-      "unlinked": "Avlänkad från Hardcover",
-      "unlinkFailed": "Kunde inte avlänka ljudbok"
     }
   },
   "changeCover": {

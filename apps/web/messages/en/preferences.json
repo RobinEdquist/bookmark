@@ -12,5 +12,37 @@
       "label": "Language",
       "description": "Choose your preferred language"
     }
+  },
+  "apiKeys": {
+    "title": "API Key",
+    "description": "Manage your API key for OPDS access",
+    "keyLabel": "Your API Key",
+    "lastUsed": "Last used",
+    "created": "Created",
+    "never": "Never",
+    "noKey": "You don't have an API key yet. Generate one to use with OPDS readers.",
+    "generate": "Generate API Key",
+    "regenerate": "Regenerate",
+    "revoke": "Revoke",
+    "revokeSuccess": "API key revoked successfully",
+    "errors": {
+      "createFailed": "Failed to create API key",
+      "revokeFailed": "Failed to revoke API key"
+    },
+    "createdDialog": {
+      "title": "API Key Created",
+      "warning": "Copy this key now. You won't be able to see it again!",
+      "instructions": "Use this key as your password when connecting to OPDS. Your username is your email address.",
+      "done": "Done"
+    },
+    "revokeDialog": {
+      "title": "Revoke API Key",
+      "description": "Are you sure you want to revoke this API key? Any OPDS readers using this key will no longer be able to access your library.",
+      "regenerateTitle": "Regenerate API Key",
+      "regenerateDescription": "This will revoke your current API key and create a new one. Any OPDS readers using the old key will need to be updated.",
+      "cancel": "Cancel",
+      "confirm": "Revoke",
+      "regenerateConfirm": "Regenerate"
+    }
   }
 }

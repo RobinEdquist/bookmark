@@ -107,7 +107,24 @@
       "role": "Roll",
       "status": "Status",
       "created": "Skapad",
+      "apiKey": "API-nyckel",
       "actions": "Åtgärder"
+    },
+    "apiKey": {
+      "active": "Aktiv",
+      "none": "Ingen",
+      "lastUsed": "Senast använd"
+    },
+    "apiKeySection": {
+      "title": "API-nyckel",
+      "status": "Status",
+      "active": "Aktiv",
+      "lastUsed": "Senast använd",
+      "lastIp": "Senaste IP",
+      "revoke": "Återkalla API-nyckel",
+      "revoking": "Återkallar...",
+      "revokeSuccess": "API-nyckel återkallad",
+      "revokeError": "Kunde inte återkalla API-nyckel"
     },
     "status": {
       "active": "Aktiv",

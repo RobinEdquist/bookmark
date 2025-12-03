@@ -12,5 +12,37 @@
       "label": "Språk",
       "description": "Välj ditt föredragna språk"
     }
+  },
+  "apiKeys": {
+    "title": "API-nyckel",
+    "description": "Hantera din API-nyckel för OPDS-åtkomst",
+    "keyLabel": "Din API-nyckel",
+    "lastUsed": "Senast använd",
+    "created": "Skapad",
+    "never": "Aldrig",
+    "noKey": "Du har ingen API-nyckel ännu. Generera en för att använda med OPDS-läsare.",
+    "generate": "Generera API-nyckel",
+    "regenerate": "Återskapa",
+    "revoke": "Återkalla",
+    "revokeSuccess": "API-nyckeln återkallades",
+    "errors": {
+      "createFailed": "Kunde inte skapa API-nyckel",
+      "revokeFailed": "Kunde inte återkalla API-nyckel"
+    },
+    "createdDialog": {
+      "title": "API-nyckel skapad",
+      "warning": "Kopiera denna nyckel nu. Du kommer inte kunna se den igen!",
+      "instructions": "Använd denna nyckel som ditt lösenord när du ansluter till OPDS. Ditt användarnamn är din e-postadress.",
+      "done": "Klar"
+    },
+    "revokeDialog": {
+      "title": "Återkalla API-nyckel",
+      "description": "Är du säker på att du vill återkalla denna API-nyckel? OPDS-läsare som använder denna nyckel kommer inte längre kunna komma åt ditt bibliotek.",
+      "regenerateTitle": "Återskapa API-nyckel",
+      "regenerateDescription": "Detta kommer återkalla din nuvarande API-nyckel och skapa en ny. OPDS-läsare som använder den gamla nyckeln måste uppdateras.",
+      "cancel": "Avbryt",
+      "confirm": "Återkalla",
+      "regenerateConfirm": "Återskapa"
+    }
   }
 }

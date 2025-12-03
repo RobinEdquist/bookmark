@@ -32,5 +32,39 @@
     "viewFailed": "Visa misslyckade",
     "noTasks": "Inga uppgifter körs",
     "more": "till"
+  },
+  "hardcoverSync": {
+    "title": "Länka till Hardcover",
+    "description": "Välj en bok från Hardcover att länka med \"{title}\"",
+    "resultsCount": "{count, plural, one {# resultat hittades} other {# resultat hittades}}",
+    "noResults": "Inga matchande böcker hittades på Hardcover",
+    "error": "Kunde inte söka på Hardcover",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "pageInfo": "Sida {current} av {total}",
+    "cancel": "Avbryt",
+    "link": "Länka bok",
+    "linking": "Länkar...",
+    "toast": {
+      "linked": "Länkad till Hardcover",
+      "linkFailed": "Kunde inte länka"
+    }
+  },
+  "hardcoverLink": {
+    "title": "Hardcover",
+    "description": "Länkad bokmetadata från Hardcover",
+    "unlink": "Ta bort länk",
+    "unlinking": "Tar bort länk...",
+    "ratings": "betyg",
+    "genres": "Genrer",
+    "moods": "Stämningar",
+    "tags": "Taggar",
+    "contentWarnings": "Innehållsvarningar",
+    "more": "mer",
+    "viewOnHardcover": "Visa på Hardcover",
+    "toast": {
+      "unlinked": "Länk till Hardcover borttagen",
+      "unlinkFailed": "Kunde inte ta bort länk"
+    }
   }
 }

@@ -107,7 +107,24 @@
       "role": "Role",
       "status": "Status",
       "created": "Created",
+      "apiKey": "API Key",
       "actions": "Actions"
+    },
+    "apiKey": {
+      "active": "Active",
+      "none": "None",
+      "lastUsed": "Last used"
+    },
+    "apiKeySection": {
+      "title": "API Key",
+      "status": "Status",
+      "active": "Active",
+      "lastUsed": "Last used",
+      "lastIp": "Last IP",
+      "revoke": "Revoke API Key",
+      "revoking": "Revoking...",
+      "revokeSuccess": "API key revoked",
+      "revokeError": "Failed to revoke API key"
     },
     "status": {
       "active": "Active",

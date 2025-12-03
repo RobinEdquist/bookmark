@@ -32,5 +32,39 @@
     "viewFailed": "View failed items",
     "noTasks": "No tasks running",
     "more": "more"
+  },
+  "hardcoverSync": {
+    "title": "Link to Hardcover",
+    "description": "Select a book from Hardcover to link with \"{title}\"",
+    "resultsCount": "{count, plural, one {# result found} other {# results found}}",
+    "noResults": "No matching books found on Hardcover",
+    "error": "Failed to search Hardcover",
+    "previous": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {current} of {total}",
+    "cancel": "Cancel",
+    "link": "Link Book",
+    "linking": "Linking...",
+    "toast": {
+      "linked": "Successfully linked to Hardcover",
+      "linkFailed": "Failed to link"
+    }
+  },
+  "hardcoverLink": {
+    "title": "Hardcover",
+    "description": "Linked book metadata from Hardcover",
+    "unlink": "Unlink",
+    "unlinking": "Unlinking...",
+    "ratings": "ratings",
+    "genres": "Genres",
+    "moods": "Moods",
+    "tags": "Tags",
+    "contentWarnings": "Content Warnings",
+    "more": "more",
+    "viewOnHardcover": "View on Hardcover",
+    "toast": {
+      "unlinked": "Unlinked from Hardcover",
+      "unlinkFailed": "Failed to unlink"
+    }
   }
 }
