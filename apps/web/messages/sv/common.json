@@ -67,5 +67,19 @@
       "unlinked": "Länk till Hardcover borttagen",
       "unlinkFailed": "Kunde inte ta bort länk"
     }
+  },
+  "sort": {
+    "label": "Sortera",
+    "title": "Titel",
+    "dateAdded": "Datum tillagd",
+    "author": "Författare",
+    "rating": "Betyg",
+    "series": "Serie",
+    "asc": "A-Ö",
+    "desc": "Ö-A",
+    "newest": "Nyast",
+    "oldest": "Äldst",
+    "highest": "Högst",
+    "lowest": "Lägst"
   }
 }

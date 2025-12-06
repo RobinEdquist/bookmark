@@ -67,5 +67,19 @@
       "unlinked": "Unlinked from Hardcover",
       "unlinkFailed": "Failed to unlink"
     }
+  },
+  "sort": {
+    "label": "Sort",
+    "title": "Title",
+    "dateAdded": "Date Added",
+    "author": "Author",
+    "rating": "Rating",
+    "series": "Series",
+    "asc": "A-Z",
+    "desc": "Z-A",
+    "newest": "Newest",
+    "oldest": "Oldest",
+    "highest": "Highest",
+    "lowest": "Lowest"
   }
 }
