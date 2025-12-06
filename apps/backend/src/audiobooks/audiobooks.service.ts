@@ -41,7 +41,7 @@ export interface AudiobookFilters {
   seriesId?: string;
   authorId?: string;
   language?: string;
-  sortBy?: 'title' | 'createdAt' | 'author';
+  sortBy?: 'title' | 'createdAt' | 'author' | 'rating' | 'series';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
@@ -188,17 +188,47 @@ export class AudiobooksService {
       .where(whereClause);
     const total = countResult.length;
 
-    // Get audiobooks with sorting
-    const orderBy =
-      sortOrder === 'asc'
-        ? asc(schema.audiobooks[sortBy === 'author' ? 'title' : sortBy])
-        : desc(schema.audiobooks[sortBy === 'author' ? 'title' : sortBy]);
+    // Build order by clause based on sortBy
+    let orderByClause: SQL;
+
+    switch (sortBy) {
+      case 'title':
+        orderByClause = sortOrder === 'asc'
+          ? asc(schema.audiobooks.title)
+          : desc(schema.audiobooks.title);
+        break;
+      case 'createdAt':
+        orderByClause = sortOrder === 'asc'
+          ? asc(schema.audiobooks.createdAt)
+          : desc(schema.audiobooks.createdAt);
+        break;
+      case 'author':
+        // Sort by title as fallback since author is a relation
+        orderByClause = sortOrder === 'asc'
+          ? asc(schema.audiobooks.title)
+          : desc(schema.audiobooks.title);
+        break;
+      case 'rating':
+        // Will be handled after fetching Hardcover data
+        orderByClause = sortOrder === 'asc'
+          ? asc(schema.audiobooks.createdAt)
+          : desc(schema.audiobooks.createdAt);
+        break;
+      case 'series':
+        // Will be handled after fetching series data
+        orderByClause = sortOrder === 'asc'
+          ? asc(schema.audiobooks.title)
+          : desc(schema.audiobooks.title);
+        break;
+      default:
+        orderByClause = desc(schema.audiobooks.createdAt);
+    }
 
     const audiobooks = await this.db
       .select()
       .from(schema.audiobooks)
       .where(whereClause)
-      .orderBy(orderBy)
+      .orderBy(orderByClause)
       .limit(limit)
       .offset(offset);
 
@@ -344,6 +374,34 @@ export class AudiobooksService {
         };
       }),
     );
+
+    // Apply client-side sorting for rating and series
+    if (sortBy === 'rating') {
+      result.sort((a, b) => {
+        const ratingA = a.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
+        const ratingB = b.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
+        return sortOrder === 'desc' ? ratingB - ratingA : ratingA - ratingB;
+      });
+    } else if (sortBy === 'series') {
+      result.sort((a, b) => {
+        const seriesA = a.series[0]?.name ?? '';
+        const seriesB = b.series[0]?.name ?? '';
+        if (!seriesA && !seriesB) return 0;
+        if (!seriesA) return sortOrder === 'asc' ? 1 : -1;
+        if (!seriesB) return sortOrder === 'asc' ? -1 : 1;
+        return sortOrder === 'asc'
+          ? seriesA.localeCompare(seriesB)
+          : seriesB.localeCompare(seriesA);
+      });
+    } else if (sortBy === 'author') {
+      result.sort((a, b) => {
+        const authorA = a.authors[0]?.name ?? '';
+        const authorB = b.authors[0]?.name ?? '';
+        return sortOrder === 'asc'
+          ? authorA.localeCompare(authorB)
+          : authorB.localeCompare(authorA);
+      });
+    }
 
     return { audiobooks: result, total };
   }
