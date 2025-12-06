@@ -41,7 +41,7 @@ export interface EbookFilters {
   seriesId?: string;
   authorId?: string;
   language?: string;
-  sortBy?: 'title' | 'createdAt' | 'author';
+  sortBy?: 'title' | 'createdAt' | 'author' | 'rating' | 'series';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
   offset?: number;
@@ -139,17 +139,37 @@ export class EbooksService {
       .where(whereClause);
     const total = countResult.length;
 
-    // Get ebooks with sorting
-    const orderBy =
-      sortOrder === 'asc'
-        ? asc(schema.ebooks[sortBy === 'author' ? 'title' : sortBy])
-        : desc(schema.ebooks[sortBy === 'author' ? 'title' : sortBy]);
+    // Build order by clause based on sortBy
+    let orderByClause: SQL;
+
+    switch (sortBy) {
+      case 'title':
+        orderByClause = sortOrder === 'asc'
+          ? asc(schema.ebooks.title)
+          : desc(schema.ebooks.title);
+        break;
+      case 'createdAt':
+        orderByClause = sortOrder === 'asc'
+          ? asc(schema.ebooks.createdAt)
+          : desc(schema.ebooks.createdAt);
+        break;
+      case 'author':
+      case 'rating':
+      case 'series':
+        // These require post-processing, use createdAt as initial order
+        orderByClause = sortOrder === 'asc'
+          ? asc(schema.ebooks.createdAt)
+          : desc(schema.ebooks.createdAt);
+        break;
+      default:
+        orderByClause = desc(schema.ebooks.createdAt);
+    }
 
     const ebooks = await this.db
       .select()
       .from(schema.ebooks)
       .where(whereClause)
-      .orderBy(orderBy)
+      .orderBy(orderByClause)
       .limit(limit)
       .offset(offset);
 
@@ -216,6 +236,34 @@ export class EbooksService {
         };
       }),
     );
+
+    // Apply client-side sorting for author, rating, and series
+    if (sortBy === 'rating') {
+      result.sort((a, b) => {
+        const ratingA = a.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
+        const ratingB = b.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
+        return sortOrder === 'desc' ? ratingB - ratingA : ratingA - ratingB;
+      });
+    } else if (sortBy === 'series') {
+      result.sort((a, b) => {
+        const seriesA = a.series[0]?.name ?? '';
+        const seriesB = b.series[0]?.name ?? '';
+        if (!seriesA && !seriesB) return 0;
+        if (!seriesA) return sortOrder === 'asc' ? 1 : -1;
+        if (!seriesB) return sortOrder === 'asc' ? -1 : 1;
+        return sortOrder === 'asc'
+          ? seriesA.localeCompare(seriesB)
+          : seriesB.localeCompare(seriesA);
+      });
+    } else if (sortBy === 'author') {
+      result.sort((a, b) => {
+        const authorA = a.authors[0]?.name ?? '';
+        const authorB = b.authors[0]?.name ?? '';
+        return sortOrder === 'asc'
+          ? authorA.localeCompare(authorB)
+          : authorB.localeCompare(authorA);
+      });
+    }
 
     return { ebooks: result, total };
   }
