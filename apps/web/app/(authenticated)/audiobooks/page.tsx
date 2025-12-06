@@ -7,14 +7,19 @@ import { Input } from "@repo/ui/components/ui/input";
 import { AudiobookGrid } from "../../../components/audiobooks/audiobook-grid";
 import { useAudiobooks } from "../../../lib/use-audiobooks";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
+import { SortSelect } from "../../../components/library/sort-select";
+import { useSortPreference } from "../../../lib/use-sort-preference";
 
 export default function AudiobooksPage() {
   const t = useTranslations("audiobooks");
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const { sortBy, sortOrder, setSortField, isLoaded } = useSortPreference("audiobooks");
   const { data, isLoading, isFetching, error } = useAudiobooks({
     search: debouncedSearch || undefined,
+    sortBy,
+    sortOrder,
   });
 
   // Show spinner when search is pending (query differs from debounced) or fetching
@@ -51,6 +56,11 @@ export default function AudiobooksPage() {
               </button>
             )}
           </div>
+          <SortSelect
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={setSortField}
+          />
         </header>
 
         <AudiobookGrid
