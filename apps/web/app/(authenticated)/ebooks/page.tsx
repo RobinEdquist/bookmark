@@ -7,14 +7,19 @@ import { Input } from "@repo/ui/components/ui/input";
 import { EbookGrid } from "../../../components/ebooks/ebook-grid";
 import { useEbooks } from "../../../lib/use-ebooks";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
+import { SortSelect } from "../../../components/library/sort-select";
+import { useSortPreference } from "../../../lib/use-sort-preference";
 
 export default function EbooksPage() {
   const t = useTranslations("ebooks");
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const { sortBy, sortOrder, setSortField, isLoaded } = useSortPreference("ebooks");
   const { data, isLoading, isFetching, error } = useEbooks({
     search: debouncedSearch || undefined,
+    sortBy,
+    sortOrder,
   });
 
   // Show spinner when search is pending (query differs from debounced) or fetching
@@ -51,6 +56,11 @@ export default function EbooksPage() {
               </button>
             )}
           </div>
+          <SortSelect
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={setSortField}
+          />
         </header>
 
         <EbookGrid
