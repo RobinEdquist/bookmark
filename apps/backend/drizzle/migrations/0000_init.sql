@@ -1,6 +1,7 @@
 CREATE TYPE "public"."audiobook_status" AS ENUM('available', 'missing', 'importing', 'hidden');--> statement-breakpoint
 CREATE TYPE "public"."chapter_source" AS ENUM('embedded', 'manual', 'external');--> statement-breakpoint
-CREATE TYPE "public"."cover_source" AS ENUM('embedded', 'uploaded', 'filesystem');--> statement-breakpoint
+CREATE TYPE "public"."cover_source" AS ENUM('embedded', 'uploaded');--> statement-breakpoint
+CREATE TYPE "public"."ebook_status" AS ENUM('available', 'missing', 'importing', 'hidden');--> statement-breakpoint
 CREATE TYPE "public"."hardcover_sync_status" AS ENUM('pending', 'processing', 'failed');--> statement-breakpoint
 CREATE TYPE "public"."import_error_status" AS ENUM('pending', 'retrying', 'resolved', 'ignored');--> statement-breakpoint
 CREATE TABLE "app_settings" (
@@ -12,6 +13,7 @@ CREATE TABLE "app_settings" (
 	"metadata_priority" jsonb,
 	"hardcover_api_key" text,
 	"hardcover_auto_sync_on_import" boolean DEFAULT false NOT NULL,
+	"opds_enabled" boolean DEFAULT false NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "single_row" CHECK ("app_settings"."id" = 'app_settings')
@@ -184,9 +186,65 @@ CREATE TABLE "verification" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "ebook_authors" (
+	"ebook_id" uuid NOT NULL,
+	"person_id" uuid NOT NULL,
+	"order" integer DEFAULT 0 NOT NULL,
+	CONSTRAINT "ebook_authors_ebook_id_person_id_pk" PRIMARY KEY("ebook_id","person_id")
+);
+--> statement-breakpoint
+CREATE TABLE "ebook_genres" (
+	"ebook_id" uuid NOT NULL,
+	"genre_id" uuid NOT NULL,
+	CONSTRAINT "ebook_genres_ebook_id_genre_id_pk" PRIMARY KEY("ebook_id","genre_id")
+);
+--> statement-breakpoint
+CREATE TABLE "ebook_series" (
+	"ebook_id" uuid NOT NULL,
+	"series_id" uuid NOT NULL,
+	"order" numeric(5, 1) NOT NULL,
+	CONSTRAINT "ebook_series_ebook_id_series_id_pk" PRIMARY KEY("ebook_id","series_id")
+);
+--> statement-breakpoint
+CREATE TABLE "ebook_tags" (
+	"ebook_id" uuid NOT NULL,
+	"tag_id" uuid NOT NULL,
+	CONSTRAINT "ebook_tags_ebook_id_tag_id_pk" PRIMARY KEY("ebook_id","tag_id")
+);
+--> statement-breakpoint
+CREATE TABLE "ebooks" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"title" text NOT NULL,
+	"subtitle" text,
+	"description" text,
+	"publisher" text,
+	"language" text,
+	"published_date" date,
+	"isbn" text,
+	"asin" text,
+	"page_count" integer,
+	"cover_url" text,
+	"cover_source" "cover_source",
+	"file_path" text NOT NULL,
+	"file_name" text NOT NULL,
+	"size_bytes" bigint NOT NULL,
+	"format" text DEFAULT 'epub' NOT NULL,
+	"is_explicit" boolean DEFAULT false NOT NULL,
+	"status" "ebook_status" DEFAULT 'available' NOT NULL,
+	"missing_at" timestamp,
+	"manual_fields" jsonb DEFAULT '[]'::jsonb,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "hardcover_audiobook_links" (
+	"audiobook_id" uuid PRIMARY KEY NOT NULL,
+	"hardcover_book_id" uuid NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "hardcover_books" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"audiobook_id" uuid NOT NULL,
 	"hardcover_id" text NOT NULL,
 	"slug" text NOT NULL,
 	"title" text NOT NULL,
@@ -204,18 +262,23 @@ CREATE TABLE "hardcover_books" (
 	"tags" jsonb DEFAULT '[]'::jsonb NOT NULL,
 	"synced_at" timestamp DEFAULT now() NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "hardcover_books_audiobook_id_unique" UNIQUE("audiobook_id")
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "hardcover_ebook_links" (
+	"ebook_id" uuid PRIMARY KEY NOT NULL,
+	"hardcover_book_id" uuid NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "hardcover_sync_queue" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"audiobook_id" uuid NOT NULL,
+	"audiobook_id" uuid,
+	"ebook_id" uuid,
 	"status" "hardcover_sync_status" DEFAULT 'pending' NOT NULL,
 	"error_message" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "hardcover_sync_queue_audiobook_id_unique" UNIQUE("audiobook_id")
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "import_errors" (
@@ -275,6 +338,30 @@ CREATE TABLE "user_permissions" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "api_key" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text,
+	"start" text,
+	"prefix" text,
+	"key" text NOT NULL,
+	"user_id" text NOT NULL,
+	"remaining" integer,
+	"refill_amount" integer,
+	"refill_interval" integer,
+	"last_refill_at" timestamp,
+	"enabled" boolean DEFAULT true NOT NULL,
+	"rate_limit_enabled" boolean,
+	"rate_limit_time_window" integer,
+	"rate_limit_max" integer,
+	"request_count" integer,
+	"last_request" timestamp,
+	"expires_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	"permissions" text,
+	"metadata" text
+);
+--> statement-breakpoint
 ALTER TABLE "audiobook_authors" ADD CONSTRAINT "audiobook_authors_audiobook_id_audiobooks_id_fk" FOREIGN KEY ("audiobook_id") REFERENCES "public"."audiobooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "audiobook_authors" ADD CONSTRAINT "audiobook_authors_person_id_people_id_fk" FOREIGN KEY ("person_id") REFERENCES "public"."people"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "audiobook_files" ADD CONSTRAINT "audiobook_files_audiobook_id_audiobooks_id_fk" FOREIGN KEY ("audiobook_id") REFERENCES "public"."audiobooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -289,8 +376,20 @@ ALTER TABLE "audiobook_tags" ADD CONSTRAINT "audiobook_tags_tag_id_tags_id_fk" F
 ALTER TABLE "chapters" ADD CONSTRAINT "chapters_audiobook_id_audiobooks_id_fk" FOREIGN KEY ("audiobook_id") REFERENCES "public"."audiobooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "hardcover_books" ADD CONSTRAINT "hardcover_books_audiobook_id_audiobooks_id_fk" FOREIGN KEY ("audiobook_id") REFERENCES "public"."audiobooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ebook_authors" ADD CONSTRAINT "ebook_authors_ebook_id_ebooks_id_fk" FOREIGN KEY ("ebook_id") REFERENCES "public"."ebooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ebook_authors" ADD CONSTRAINT "ebook_authors_person_id_people_id_fk" FOREIGN KEY ("person_id") REFERENCES "public"."people"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ebook_genres" ADD CONSTRAINT "ebook_genres_ebook_id_ebooks_id_fk" FOREIGN KEY ("ebook_id") REFERENCES "public"."ebooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ebook_genres" ADD CONSTRAINT "ebook_genres_genre_id_genres_id_fk" FOREIGN KEY ("genre_id") REFERENCES "public"."genres"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ebook_series" ADD CONSTRAINT "ebook_series_ebook_id_ebooks_id_fk" FOREIGN KEY ("ebook_id") REFERENCES "public"."ebooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ebook_series" ADD CONSTRAINT "ebook_series_series_id_series_id_fk" FOREIGN KEY ("series_id") REFERENCES "public"."series"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ebook_tags" ADD CONSTRAINT "ebook_tags_ebook_id_ebooks_id_fk" FOREIGN KEY ("ebook_id") REFERENCES "public"."ebooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "ebook_tags" ADD CONSTRAINT "ebook_tags_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hardcover_audiobook_links" ADD CONSTRAINT "hardcover_audiobook_links_audiobook_id_audiobooks_id_fk" FOREIGN KEY ("audiobook_id") REFERENCES "public"."audiobooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hardcover_audiobook_links" ADD CONSTRAINT "hardcover_audiobook_links_hardcover_book_id_hardcover_books_id_fk" FOREIGN KEY ("hardcover_book_id") REFERENCES "public"."hardcover_books"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hardcover_ebook_links" ADD CONSTRAINT "hardcover_ebook_links_ebook_id_ebooks_id_fk" FOREIGN KEY ("ebook_id") REFERENCES "public"."ebooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hardcover_ebook_links" ADD CONSTRAINT "hardcover_ebook_links_hardcover_book_id_hardcover_books_id_fk" FOREIGN KEY ("hardcover_book_id") REFERENCES "public"."hardcover_books"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "hardcover_sync_queue" ADD CONSTRAINT "hardcover_sync_queue_audiobook_id_audiobooks_id_fk" FOREIGN KEY ("audiobook_id") REFERENCES "public"."audiobooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "hardcover_sync_queue" ADD CONSTRAINT "hardcover_sync_queue_ebook_id_ebooks_id_fk" FOREIGN KEY ("ebook_id") REFERENCES "public"."ebooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "import_errors" ADD CONSTRAINT "import_errors_ignored_by_user_id_fk" FOREIGN KEY ("ignored_by") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "listening_sessions" ADD CONSTRAINT "listening_sessions_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "listening_sessions" ADD CONSTRAINT "listening_sessions_audiobook_id_audiobooks_id_fk" FOREIGN KEY ("audiobook_id") REFERENCES "public"."audiobooks"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -299,6 +398,7 @@ ALTER TABLE "user_audiobook_progress" ADD CONSTRAINT "user_audiobook_progress_au
 ALTER TABLE "user_blacklisted_tags" ADD CONSTRAINT "user_blacklisted_tags_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_blacklisted_tags" ADD CONSTRAINT "user_blacklisted_tags_tag_id_tags_id_fk" FOREIGN KEY ("tag_id") REFERENCES "public"."tags"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_permissions" ADD CONSTRAINT "user_permissions_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "api_key" ADD CONSTRAINT "api_key_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "audiobook_authors_audiobook_id_idx" ON "audiobook_authors" USING btree ("audiobook_id");--> statement-breakpoint
 CREATE INDEX "audiobook_authors_person_id_idx" ON "audiobook_authors" USING btree ("person_id");--> statement-breakpoint
 CREATE INDEX "audiobook_files_audiobook_id_idx" ON "audiobook_files" USING btree ("audiobook_id");--> statement-breakpoint
@@ -321,10 +421,26 @@ CREATE INDEX "series_name_idx" ON "series" USING btree ("name");--> statement-br
 CREATE INDEX "account_userId_idx" ON "account" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");--> statement-breakpoint
-CREATE INDEX "hardcover_books_audiobook_id_idx" ON "hardcover_books" USING btree ("audiobook_id");--> statement-breakpoint
-CREATE INDEX "hardcover_books_hardcover_id_idx" ON "hardcover_books" USING btree ("hardcover_id");--> statement-breakpoint
+CREATE INDEX "ebook_authors_ebook_id_idx" ON "ebook_authors" USING btree ("ebook_id");--> statement-breakpoint
+CREATE INDEX "ebook_authors_person_id_idx" ON "ebook_authors" USING btree ("person_id");--> statement-breakpoint
+CREATE INDEX "ebook_genres_ebook_id_idx" ON "ebook_genres" USING btree ("ebook_id");--> statement-breakpoint
+CREATE INDEX "ebook_genres_genre_id_idx" ON "ebook_genres" USING btree ("genre_id");--> statement-breakpoint
+CREATE INDEX "ebook_series_ebook_id_idx" ON "ebook_series" USING btree ("ebook_id");--> statement-breakpoint
+CREATE INDEX "ebook_series_series_id_idx" ON "ebook_series" USING btree ("series_id");--> statement-breakpoint
+CREATE INDEX "ebook_tags_ebook_id_idx" ON "ebook_tags" USING btree ("ebook_id");--> statement-breakpoint
+CREATE INDEX "ebook_tags_tag_id_idx" ON "ebook_tags" USING btree ("tag_id");--> statement-breakpoint
+CREATE INDEX "ebooks_title_idx" ON "ebooks" USING btree ("title");--> statement-breakpoint
+CREATE INDEX "ebooks_subtitle_idx" ON "ebooks" USING btree ("subtitle");--> statement-breakpoint
+CREATE INDEX "ebooks_created_at_idx" ON "ebooks" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "ebooks_language_idx" ON "ebooks" USING btree ("language");--> statement-breakpoint
+CREATE INDEX "ebooks_status_idx" ON "ebooks" USING btree ("status");--> statement-breakpoint
+CREATE INDEX "hardcover_audiobook_links_hardcover_book_id_idx" ON "hardcover_audiobook_links" USING btree ("hardcover_book_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "hardcover_books_hardcover_id_idx" ON "hardcover_books" USING btree ("hardcover_id");--> statement-breakpoint
+CREATE INDEX "hardcover_ebook_links_hardcover_book_id_idx" ON "hardcover_ebook_links" USING btree ("hardcover_book_id");--> statement-breakpoint
 CREATE INDEX "hardcover_sync_queue_status_idx" ON "hardcover_sync_queue" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "hardcover_sync_queue_created_at_idx" ON "hardcover_sync_queue" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "hardcover_sync_queue_audiobook_id_idx" ON "hardcover_sync_queue" USING btree ("audiobook_id");--> statement-breakpoint
+CREATE INDEX "hardcover_sync_queue_ebook_id_idx" ON "hardcover_sync_queue" USING btree ("ebook_id");--> statement-breakpoint
 CREATE INDEX "import_errors_status_idx" ON "import_errors" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "import_errors_file_path_idx" ON "import_errors" USING btree ("file_path");--> statement-breakpoint
 CREATE INDEX "listening_sessions_user_started_idx" ON "listening_sessions" USING btree ("user_id","started_at");--> statement-breakpoint
@@ -333,4 +449,5 @@ CREATE INDEX "user_audiobook_progress_user_id_idx" ON "user_audiobook_progress" 
 CREATE INDEX "user_audiobook_progress_audiobook_id_idx" ON "user_audiobook_progress" USING btree ("audiobook_id");--> statement-breakpoint
 CREATE INDEX "user_audiobook_progress_updated_at_idx" ON "user_audiobook_progress" USING btree ("updated_at");--> statement-breakpoint
 CREATE INDEX "user_blacklisted_tags_user_id_idx" ON "user_blacklisted_tags" USING btree ("user_id");--> statement-breakpoint
-CREATE INDEX "user_blacklisted_tags_tag_id_idx" ON "user_blacklisted_tags" USING btree ("tag_id");
+CREATE INDEX "user_blacklisted_tags_tag_id_idx" ON "user_blacklisted_tags" USING btree ("tag_id");--> statement-breakpoint
+CREATE INDEX "api_key_user_id_idx" ON "api_key" USING btree ("user_id");

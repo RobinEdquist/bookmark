@@ -1,5 +1,5 @@
 {
-  "id": "b4aee49a-d204-4415-a018-d1ebaac0d414",
+  "id": "1af1388b-bc46-46d8-be23-739913696160",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -55,6 +55,13 @@
         },
         "hardcover_auto_sync_on_import": {
           "name": "hardcover_auto_sync_on_import",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "opds_enabled": {
+          "name": "opds_enabled",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
@@ -1599,6 +1606,688 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.ebook_authors": {
+      "name": "ebook_authors",
+      "schema": "",
+      "columns": {
+        "ebook_id": {
+          "name": "ebook_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "person_id": {
+          "name": "person_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {
+        "ebook_authors_ebook_id_idx": {
+          "name": "ebook_authors_ebook_id_idx",
+          "columns": [
+            {
+              "expression": "ebook_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ebook_authors_person_id_idx": {
+          "name": "ebook_authors_person_id_idx",
+          "columns": [
+            {
+              "expression": "person_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ebook_authors_ebook_id_ebooks_id_fk": {
+          "name": "ebook_authors_ebook_id_ebooks_id_fk",
+          "tableFrom": "ebook_authors",
+          "tableTo": "ebooks",
+          "columnsFrom": [
+            "ebook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ebook_authors_person_id_people_id_fk": {
+          "name": "ebook_authors_person_id_people_id_fk",
+          "tableFrom": "ebook_authors",
+          "tableTo": "people",
+          "columnsFrom": [
+            "person_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "ebook_authors_ebook_id_person_id_pk": {
+          "name": "ebook_authors_ebook_id_person_id_pk",
+          "columns": [
+            "ebook_id",
+            "person_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ebook_genres": {
+      "name": "ebook_genres",
+      "schema": "",
+      "columns": {
+        "ebook_id": {
+          "name": "ebook_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "genre_id": {
+          "name": "genre_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "ebook_genres_ebook_id_idx": {
+          "name": "ebook_genres_ebook_id_idx",
+          "columns": [
+            {
+              "expression": "ebook_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ebook_genres_genre_id_idx": {
+          "name": "ebook_genres_genre_id_idx",
+          "columns": [
+            {
+              "expression": "genre_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ebook_genres_ebook_id_ebooks_id_fk": {
+          "name": "ebook_genres_ebook_id_ebooks_id_fk",
+          "tableFrom": "ebook_genres",
+          "tableTo": "ebooks",
+          "columnsFrom": [
+            "ebook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ebook_genres_genre_id_genres_id_fk": {
+          "name": "ebook_genres_genre_id_genres_id_fk",
+          "tableFrom": "ebook_genres",
+          "tableTo": "genres",
+          "columnsFrom": [
+            "genre_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "ebook_genres_ebook_id_genre_id_pk": {
+          "name": "ebook_genres_ebook_id_genre_id_pk",
+          "columns": [
+            "ebook_id",
+            "genre_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ebook_series": {
+      "name": "ebook_series",
+      "schema": "",
+      "columns": {
+        "ebook_id": {
+          "name": "ebook_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "series_id": {
+          "name": "series_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order": {
+          "name": "order",
+          "type": "numeric(5, 1)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "ebook_series_ebook_id_idx": {
+          "name": "ebook_series_ebook_id_idx",
+          "columns": [
+            {
+              "expression": "ebook_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ebook_series_series_id_idx": {
+          "name": "ebook_series_series_id_idx",
+          "columns": [
+            {
+              "expression": "series_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ebook_series_ebook_id_ebooks_id_fk": {
+          "name": "ebook_series_ebook_id_ebooks_id_fk",
+          "tableFrom": "ebook_series",
+          "tableTo": "ebooks",
+          "columnsFrom": [
+            "ebook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ebook_series_series_id_series_id_fk": {
+          "name": "ebook_series_series_id_series_id_fk",
+          "tableFrom": "ebook_series",
+          "tableTo": "series",
+          "columnsFrom": [
+            "series_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "ebook_series_ebook_id_series_id_pk": {
+          "name": "ebook_series_ebook_id_series_id_pk",
+          "columns": [
+            "ebook_id",
+            "series_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ebook_tags": {
+      "name": "ebook_tags",
+      "schema": "",
+      "columns": {
+        "ebook_id": {
+          "name": "ebook_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "ebook_tags_ebook_id_idx": {
+          "name": "ebook_tags_ebook_id_idx",
+          "columns": [
+            {
+              "expression": "ebook_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ebook_tags_tag_id_idx": {
+          "name": "ebook_tags_tag_id_idx",
+          "columns": [
+            {
+              "expression": "tag_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "ebook_tags_ebook_id_ebooks_id_fk": {
+          "name": "ebook_tags_ebook_id_ebooks_id_fk",
+          "tableFrom": "ebook_tags",
+          "tableTo": "ebooks",
+          "columnsFrom": [
+            "ebook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "ebook_tags_tag_id_tags_id_fk": {
+          "name": "ebook_tags_tag_id_tags_id_fk",
+          "tableFrom": "ebook_tags",
+          "tableTo": "tags",
+          "columnsFrom": [
+            "tag_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "ebook_tags_ebook_id_tag_id_pk": {
+          "name": "ebook_tags_ebook_id_tag_id_pk",
+          "columns": [
+            "ebook_id",
+            "tag_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ebooks": {
+      "name": "ebooks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subtitle": {
+          "name": "subtitle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "publisher": {
+          "name": "publisher",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "published_date": {
+          "name": "published_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "isbn": {
+          "name": "isbn",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "asin": {
+          "name": "asin",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "page_count": {
+          "name": "page_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_url": {
+          "name": "cover_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cover_source": {
+          "name": "cover_source",
+          "type": "cover_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "format": {
+          "name": "format",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'epub'"
+        },
+        "is_explicit": {
+          "name": "is_explicit",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "status": {
+          "name": "status",
+          "type": "ebook_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'available'"
+        },
+        "missing_at": {
+          "name": "missing_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "manual_fields": {
+          "name": "manual_fields",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'[]'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ebooks_title_idx": {
+          "name": "ebooks_title_idx",
+          "columns": [
+            {
+              "expression": "title",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ebooks_subtitle_idx": {
+          "name": "ebooks_subtitle_idx",
+          "columns": [
+            {
+              "expression": "subtitle",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ebooks_created_at_idx": {
+          "name": "ebooks_created_at_idx",
+          "columns": [
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ebooks_language_idx": {
+          "name": "ebooks_language_idx",
+          "columns": [
+            {
+              "expression": "language",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ebooks_status_idx": {
+          "name": "ebooks_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.hardcover_audiobook_links": {
+      "name": "hardcover_audiobook_links",
+      "schema": "",
+      "columns": {
+        "audiobook_id": {
+          "name": "audiobook_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "hardcover_book_id": {
+          "name": "hardcover_book_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "hardcover_audiobook_links_hardcover_book_id_idx": {
+          "name": "hardcover_audiobook_links_hardcover_book_id_idx",
+          "columns": [
+            {
+              "expression": "hardcover_book_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "hardcover_audiobook_links_audiobook_id_audiobooks_id_fk": {
+          "name": "hardcover_audiobook_links_audiobook_id_audiobooks_id_fk",
+          "tableFrom": "hardcover_audiobook_links",
+          "tableTo": "audiobooks",
+          "columnsFrom": [
+            "audiobook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "hardcover_audiobook_links_hardcover_book_id_hardcover_books_id_fk": {
+          "name": "hardcover_audiobook_links_hardcover_book_id_hardcover_books_id_fk",
+          "tableFrom": "hardcover_audiobook_links",
+          "tableTo": "hardcover_books",
+          "columnsFrom": [
+            "hardcover_book_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.hardcover_books": {
       "name": "hardcover_books",
       "schema": "",
@@ -1609,12 +2298,6 @@
           "primaryKey": true,
           "notNull": true,
           "default": "gen_random_uuid()"
-        },
-        "audiobook_id": {
-          "name": "audiobook_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
         },
         "hardcover_id": {
           "name": "hardcover_id",
@@ -1735,26 +2418,59 @@
         }
       },
       "indexes": {
-        "hardcover_books_audiobook_id_idx": {
-          "name": "hardcover_books_audiobook_id_idx",
-          "columns": [
-            {
-              "expression": "audiobook_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "hardcover_books_hardcover_id_idx": {
           "name": "hardcover_books_hardcover_id_idx",
           "columns": [
             {
               "expression": "hardcover_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.hardcover_ebook_links": {
+      "name": "hardcover_ebook_links",
+      "schema": "",
+      "columns": {
+        "ebook_id": {
+          "name": "ebook_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "hardcover_book_id": {
+          "name": "hardcover_book_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "hardcover_ebook_links_hardcover_book_id_idx": {
+          "name": "hardcover_ebook_links_hardcover_book_id_idx",
+          "columns": [
+            {
+              "expression": "hardcover_book_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1767,12 +2483,25 @@
         }
       },
       "foreignKeys": {
-        "hardcover_books_audiobook_id_audiobooks_id_fk": {
-          "name": "hardcover_books_audiobook_id_audiobooks_id_fk",
-          "tableFrom": "hardcover_books",
-          "tableTo": "audiobooks",
+        "hardcover_ebook_links_ebook_id_ebooks_id_fk": {
+          "name": "hardcover_ebook_links_ebook_id_ebooks_id_fk",
+          "tableFrom": "hardcover_ebook_links",
+          "tableTo": "ebooks",
           "columnsFrom": [
-            "audiobook_id"
+            "ebook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "hardcover_ebook_links_hardcover_book_id_hardcover_books_id_fk": {
+          "name": "hardcover_ebook_links_hardcover_book_id_hardcover_books_id_fk",
+          "tableFrom": "hardcover_ebook_links",
+          "tableTo": "hardcover_books",
+          "columnsFrom": [
+            "hardcover_book_id"
           ],
           "columnsTo": [
             "id"
@@ -1782,15 +2511,7 @@
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "hardcover_books_audiobook_id_unique": {
-          "name": "hardcover_books_audiobook_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "audiobook_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1810,7 +2531,13 @@
           "name": "audiobook_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "ebook_id": {
+          "name": "ebook_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         },
         "status": {
           "name": "status",
@@ -1871,6 +2598,36 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "hardcover_sync_queue_audiobook_id_idx": {
+          "name": "hardcover_sync_queue_audiobook_id_idx",
+          "columns": [
+            {
+              "expression": "audiobook_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "hardcover_sync_queue_ebook_id_idx": {
+          "name": "hardcover_sync_queue_ebook_id_idx",
+          "columns": [
+            {
+              "expression": "ebook_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -1886,18 +2643,23 @@
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
+        },
+        "hardcover_sync_queue_ebook_id_ebooks_id_fk": {
+          "name": "hardcover_sync_queue_ebook_id_ebooks_id_fk",
+          "tableFrom": "hardcover_sync_queue",
+          "tableTo": "ebooks",
+          "columnsFrom": [
+            "ebook_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "hardcover_sync_queue_audiobook_id_unique": {
-          "name": "hardcover_sync_queue_audiobook_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "audiobook_id"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -2497,6 +3259,178 @@
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
+    },
+    "public.api_key": {
+      "name": "api_key",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "start": {
+          "name": "start",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prefix": {
+          "name": "prefix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "key": {
+          "name": "key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "remaining": {
+          "name": "remaining",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refill_amount": {
+          "name": "refill_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "refill_interval": {
+          "name": "refill_interval",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_refill_at": {
+          "name": "last_refill_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "rate_limit_enabled": {
+          "name": "rate_limit_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate_limit_time_window": {
+          "name": "rate_limit_time_window",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rate_limit_max": {
+          "name": "rate_limit_max",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "request_count": {
+          "name": "request_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_request": {
+          "name": "last_request",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "permissions": {
+          "name": "permissions",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "api_key_user_id_idx": {
+          "name": "api_key_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "api_key_user_id_user_id_fk": {
+          "name": "api_key_user_id_user_id_fk",
+          "tableFrom": "api_key",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
     }
   },
   "enums": {
@@ -2524,8 +3458,17 @@
       "schema": "public",
       "values": [
         "embedded",
-        "uploaded",
-        "filesystem"
+        "uploaded"
+      ]
+    },
+    "public.ebook_status": {
+      "name": "ebook_status",
+      "schema": "public",
+      "values": [
+        "available",
+        "missing",
+        "importing",
+        "hidden"
       ]
     },
     "public.hardcover_sync_status": {

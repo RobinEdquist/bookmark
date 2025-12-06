@@ -1,1 +1,0 @@
-ALTER TABLE "app_settings" ADD COLUMN "opds_enabled" boolean DEFAULT false NOT NULL;

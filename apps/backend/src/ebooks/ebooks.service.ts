@@ -17,6 +17,7 @@ import * as hardcoverSchema from '../hardcover/schema';
 import { UpdateEbookDto } from './dto/update-ebook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
+import { AppDataService } from '../app-data/app-data.service';
 import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadata.provider';
 
 export interface EbookListItem {
@@ -53,6 +54,7 @@ export class EbooksService {
     private db: NodePgDatabase<typeof schema>,
     private appSettingsService: AppSettingsService,
     private appEvents: AppEventsService,
+    private appDataService: AppDataService,
     private ebookMetadataProvider: EbookMetadataProvider,
   ) {}
 
@@ -313,25 +315,13 @@ export class EbooksService {
 
     const { filePath, coverSource, coverUrl } = ebook[0];
 
-    // If there's an external cover file (uploaded or filesystem)
-    if (coverUrl && (coverSource === 'uploaded' || coverSource === 'filesystem')) {
+    // If cover was uploaded, read from app data directory
+    if (coverSource === 'uploaded' && coverUrl) {
       try {
-        // coverUrl stores just the filename (e.g., 'cover.jpg')
-        // For ebooks, the cover is stored alongside the epub file
-        const dir = path.dirname(filePath);
-        const relativeCoverPath = path.join(dir, coverUrl);
-        const absoluteCoverPath = await this.resolveFilePath(relativeCoverPath);
-        const data = await fs.readFile(absoluteCoverPath);
-        const ext = path.extname(coverUrl).toLowerCase();
-        const mimeType =
-          ext === '.png'
-            ? 'image/png'
-            : ext === '.webp'
-              ? 'image/webp'
-              : ext === '.gif'
-                ? 'image/gif'
-                : 'image/jpeg';
-        return { data, mimeType };
+        const coverPath = this.appDataService.getEbookCoverPath(id);
+        const data = await fs.readFile(coverPath);
+        // Uploaded covers are always saved as JPEG
+        return { data, mimeType: 'image/jpeg' };
       } catch {
         // Fall through to try embedded
       }
@@ -667,10 +657,10 @@ export class EbooksService {
     id: string,
     buffer: Buffer,
   ): Promise<{ coverUrl: string }> {
-    // Get ebook to find library path
+    // Verify ebook exists
     const ebook = await this.db
       .select({
-        filePath: schema.ebooks.filePath,
+        id: schema.ebooks.id,
       })
       .from(schema.ebooks)
       .where(eq(schema.ebooks.id, id))
@@ -694,18 +684,15 @@ export class EbooksService {
       throw new BadRequestException('Invalid image file');
     }
 
-    // Resolve the ebook's directory and save cover
-    const ebookDir = path.dirname(ebook[0].filePath);
-    const absoluteDir = await this.resolveFilePath(ebookDir);
-    const coverPath = path.join(absoluteDir, 'cover.jpg');
-
+    // Save cover to app data directory
+    const coverPath = this.appDataService.getEbookCoverPath(id);
     await fs.writeFile(coverPath, processedBuffer);
 
     // Update database
     await this.db
       .update(schema.ebooks)
       .set({
-        coverUrl: 'cover.jpg',
+        coverUrl: `${id}.jpg`,
         coverSource: 'uploaded',
       })
       .where(eq(schema.ebooks.id, id));

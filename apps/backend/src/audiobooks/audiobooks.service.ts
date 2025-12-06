@@ -17,6 +17,7 @@ import { EmbeddedMetadataProvider } from '../library-watcher/metadata/embedded-m
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
+import { AppDataService } from '../app-data/app-data.service';
 import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
 
 export interface AudiobookListItem {
@@ -54,6 +55,7 @@ export class AudiobooksService {
     private metadataProvider: EmbeddedMetadataProvider,
     private appSettingsService: AppSettingsService,
     private appEvents: AppEventsService,
+    private appDataService: AppDataService,
   ) {}
 
   /**
@@ -615,24 +617,13 @@ export class AudiobooksService {
 
     const { filePath, coverSource, coverUrl } = audiobook[0];
 
-    // If there's an external cover file (uploaded or filesystem)
-    if (coverUrl && (coverSource === 'uploaded' || coverSource === 'filesystem')) {
+    // If cover was uploaded, read from app data directory
+    if (coverSource === 'uploaded' && coverUrl) {
       try {
-        // coverUrl stores just the filename (e.g., 'cover.jpg')
-        // Join it with the audiobook's filePath to get the full relative path
-        const relativeCoverPath = path.join(filePath, coverUrl);
-        const absoluteCoverPath = await this.resolveFilePath(relativeCoverPath);
-        const data = await fs.readFile(absoluteCoverPath);
-        const ext = path.extname(coverUrl).toLowerCase();
-        const mimeType =
-          ext === '.png'
-            ? 'image/png'
-            : ext === '.webp'
-              ? 'image/webp'
-              : ext === '.gif'
-                ? 'image/gif'
-                : 'image/jpeg';
-        return { data, mimeType };
+        const coverPath = this.appDataService.getAudiobookCoverPath(id);
+        const data = await fs.readFile(coverPath);
+        // Uploaded covers are always saved as JPEG
+        return { data, mimeType: 'image/jpeg' };
       } catch {
         // Fall through to try embedded
       }
@@ -1123,10 +1114,10 @@ export class AudiobooksService {
     id: string,
     buffer: Buffer,
   ): Promise<{ coverUrl: string }> {
-    // Get audiobook to find library path
+    // Verify audiobook exists
     const audiobook = await this.db
       .select({
-        filePath: schema.audiobooks.filePath,
+        id: schema.audiobooks.id,
       })
       .from(schema.audiobooks)
       .where(eq(schema.audiobooks.id, id))
@@ -1150,17 +1141,15 @@ export class AudiobooksService {
       throw new BadRequestException('Invalid image file');
     }
 
-    // Resolve the audiobook's library path and save cover
-    const absolutePath = await this.resolveFilePath(audiobook[0].filePath);
-    const coverPath = path.join(absolutePath, 'cover.jpg');
-
+    // Save cover to app data directory
+    const coverPath = this.appDataService.getAudiobookCoverPath(id);
     await fs.writeFile(coverPath, processedBuffer);
 
     // Update database
     await this.db
       .update(schema.audiobooks)
       .set({
-        coverUrl: 'cover.jpg',
+        coverUrl: `${id}.jpg`,
         coverSource: 'uploaded',
       })
       .where(eq(schema.audiobooks.id, id));
@@ -1278,16 +1267,14 @@ export class AudiobooksService {
       throw new NotFoundException('Audiobook has no audio files');
     }
 
-    // Check if cover is separate (not embedded in audio file)
-    const hasSeparateCover =
-      ab.coverSource === 'filesystem' || ab.coverSource === 'uploaded';
+    // Check if cover is uploaded (stored in app data)
+    const hasUploadedCover = ab.coverSource === 'uploaded';
 
-    // Resolve cover path if separate
+    // Resolve cover path if uploaded
     let coverPath: string | undefined;
-    if (hasSeparateCover && ab.coverUrl) {
+    if (hasUploadedCover && ab.coverUrl) {
       try {
-        const relativeCoverPath = path.join(ab.filePath, ab.coverUrl);
-        coverPath = await this.resolveFilePath(relativeCoverPath);
+        coverPath = this.appDataService.getAudiobookCoverPath(ab.id);
         // Verify file exists
         await fs.access(coverPath);
       } catch {
@@ -1296,7 +1283,7 @@ export class AudiobooksService {
     }
 
     // Single file with embedded cover - direct download
-    if (files.length === 1 && !hasSeparateCover) {
+    if (files.length === 1 && !hasUploadedCover) {
       const file = files[0];
       const absolutePath = await this.resolveFilePath(file.filePath);
 

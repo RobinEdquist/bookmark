@@ -62,18 +62,14 @@ export class MediaImporterService {
       const metadata = await this.audioMetadataProvider.extractMetadata(primaryFile);
 
       // Determine cover source
-      let coverSource: 'embedded' | 'filesystem' | undefined = undefined;
+      let coverSource: 'embedded' | undefined = undefined;
       let coverUrl: string | undefined = undefined;
 
       if (metadata.hasEmbeddedCover) {
         coverSource = 'embedded';
-      } else {
-        const filesystemCover = await this.audioMetadataProvider.findCoverInFolder(unit.path);
-        if (filesystemCover) {
-          coverSource = 'filesystem';
-          coverUrl = path.basename(filesystemCover);
-        }
       }
+      // Note: Filesystem covers are no longer imported as 'filesystem'.
+      // They will be migrated to app data storage by a separate migration task.
 
       // Get file info for all files
       const fileInfos: AudioFileInfo[] = [];
@@ -208,26 +204,14 @@ export class MediaImporterService {
       const stats = await fs.stat(unit.path);
 
       // Determine cover source
-      let coverSource: 'embedded' | 'filesystem' | undefined = undefined;
+      let coverSource: 'embedded' | undefined = undefined;
       let coverUrl: string | undefined = undefined;
 
       if (metadata.cover) {
         coverSource = 'embedded';
-      } else {
-        const dir = path.dirname(unit.path);
-        const coverFiles = ['cover.jpg', 'cover.jpeg', 'cover.png', 'cover.webp'];
-        for (const coverFile of coverFiles) {
-          const coverPath = path.join(dir, coverFile);
-          try {
-            await fs.access(coverPath);
-            coverSource = 'filesystem';
-            coverUrl = coverFile;
-            break;
-          } catch {
-            // File doesn't exist
-          }
-        }
       }
+      // Note: Filesystem covers are no longer imported as 'filesystem'.
+      // They will be migrated to app data storage by a separate migration task.
 
       const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
 
