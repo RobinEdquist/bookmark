@@ -15,9 +15,10 @@
   },
   "nav": {
     "home": "Hem",
-    "audiobooks": "Ljudböcker",
-    "ebooks": "E-böcker",
-    "settings": "Inställningar",
+    "audiobooks": "Ljudbocker",
+    "ebooks": "E-bocker",
+    "eReader": "E-bokslasare",
+    "settings": "Installningar",
     "preferences": "Preferenser",
     "signOut": "Logga ut"
   },

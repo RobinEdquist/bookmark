@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Home, Headphones, BookOpen, Settings, User, LogOut } from "lucide-react";
+import { Home, Headphones, BookOpen, TabletSmartphone, Settings, User, LogOut } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
@@ -35,6 +35,7 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
     { href: "/home", icon: Home, labelKey: "home", show: true },
     { href: "/audiobooks", icon: Headphones, labelKey: "audiobooks", show: availability?.audiobooks ?? false },
     { href: "/ebooks", icon: BookOpen, labelKey: "ebooks", show: availability?.ebooks ?? false },
+    { href: "/e-reader", icon: TabletSmartphone, labelKey: "eReader", show: availability?.opds ?? false },
   ];
 
   return (

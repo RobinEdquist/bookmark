@@ -5,6 +5,7 @@ import { AppSettingsService } from '../app-settings/app-settings.service';
 export interface LibraryAvailability {
   audiobooks: boolean;
   ebooks: boolean;
+  opds: boolean;
 }
 
 @Controller('library')
@@ -25,6 +26,7 @@ export class LibraryController {
     return {
       audiobooks: !!settings.audiobookLibraryPath,
       ebooks: !!settings.ebookLibraryPath,
+      opds: !!settings.opdsEnabled,
     };
   }
 }

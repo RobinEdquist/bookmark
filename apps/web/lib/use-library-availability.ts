@@ -6,6 +6,7 @@ import { queryKeys } from "./query-keys";
 export interface LibraryAvailability {
   audiobooks: boolean;
   ebooks: boolean;
+  opds: boolean;
 }
 
 async function fetchLibraryAvailability(): Promise<LibraryAvailability> {

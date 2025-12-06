@@ -1,0 +1,55 @@
+{
+  "title": "E-Reader (OPDS)",
+  "description": "Connect your e-reader or reading app to download ebooks directly from your library using OPDS.",
+  "urlCopied": "Feed URL copied to clipboard",
+  "feedUrl": {
+    "title": "OPDS Feed URL",
+    "description": "Add this URL to your e-reader or reading app to access your ebook library.",
+    "copy": "Copy URL"
+  },
+  "auth": {
+    "title": "Authentication",
+    "description": "OPDS requires authentication to access your library. You'll need an API key to connect.",
+    "step1": "Go to Preferences and generate an API key if you haven't already.",
+    "step2": "When your e-reader asks for credentials, enter any username (e.g., your email).",
+    "step3": "Use your API key as the password.",
+    "goToPreferences": "Go to Preferences"
+  },
+  "setup": {
+    "title": "Setup Instructions",
+    "description": "Follow these instructions to connect your e-reader or reading app.",
+    "kindle": {
+      "title": "Kindle (via KOReader)",
+      "step1": "Install KOReader on your Kindle (requires jailbreak).",
+      "step2": "Open KOReader and go to Search → OPDS catalog.",
+      "step3": "Add a new catalog with the OPDS URL above.",
+      "step4": "Enter any username and your API key as the password when prompted."
+    },
+    "kobo": {
+      "title": "Kobo (via KOReader)",
+      "step1": "Install KOReader on your Kobo device.",
+      "step2": "Open KOReader and go to Search → OPDS catalog.",
+      "step3": "Add a new catalog with the OPDS URL above.",
+      "step4": "Enter any username and your API key as the password when prompted."
+    },
+    "ios": {
+      "title": "iOS (iPhone/iPad)",
+      "step1": "Download an OPDS-compatible app like Panels, Marvin, or Yomu.",
+      "step2": "In the app, look for an option to add an OPDS catalog or library.",
+      "step3": "Enter the OPDS URL above.",
+      "step4": "Enter any username and your API key as the password when prompted."
+    },
+    "android": {
+      "title": "Android",
+      "step1": "Download an OPDS-compatible app like Moon+ Reader, FBReader, or Librera.",
+      "step2": "In the app, find the option to add an OPDS/network library.",
+      "step3": "Enter the OPDS URL above.",
+      "step4": "Enter any username and your API key as the password when prompted."
+    }
+  },
+  "learnMore": {
+    "title": "What is OPDS?",
+    "description": "OPDS (Open Publication Distribution System) is an open standard for distributing digital publications. It allows e-reader apps to browse, search, and download ebooks directly from compatible servers like Simple Audiobook Vault.",
+    "link": "Learn more about OPDS"
+  }
+}
