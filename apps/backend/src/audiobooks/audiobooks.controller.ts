@@ -40,7 +40,7 @@ export class AudiobooksController {
     @Query('seriesId') seriesId?: string,
     @Query('authorId') authorId?: string,
     @Query('language') language?: string,
-    @Query('sortBy') sortBy?: 'title' | 'createdAt' | 'author',
+    @Query('sortBy') sortBy?: 'title' | 'createdAt' | 'author' | 'rating' | 'series',
     @Query('sortOrder') sortOrder?: 'asc' | 'desc',
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
