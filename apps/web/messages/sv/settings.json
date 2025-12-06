@@ -273,5 +273,227 @@
         "autoSyncFailed": "Kunde inte uppdatera auto-synk-inställning"
       }
     }
+  },
+  "restore": {
+    "title": "Återställ från AudioBookShelf",
+    "description": "Importera ditt bibliotek och data från en AudioBookShelf-säkerhetskopia",
+    "wizard": {
+      "title": "Återställ från AudioBookShelf",
+      "description": "Följ stegen nedan för att importera ditt AudioBookShelf-bibliotek",
+      "cancel": "Avbryt återställning",
+      "cancelSuccess": "Återställning avbruten",
+      "cancelError": "Kunde inte avbryta återställning"
+    },
+    "common": {
+      "cancel": "Avbryt",
+      "next": "Nästa",
+      "back": "Tillbaka",
+      "loading": "Laddar...",
+      "error": "Ett fel uppstod",
+      "sessionNotFound": "Session hittades inte"
+    },
+    "upload": {
+      "title": "Ladda upp säkerhetskopia",
+      "description": "Ladda upp din AudioBookShelf-säkerhetskopia för att påbörja återställningsprocessen",
+      "prerequisites": {
+        "title": "Innan du börjar",
+        "description": "Säkerställ att du har slutfört följande steg innan du startar återställningsprocessen.",
+        "backup": {
+          "title": "Skapa en AudioBookShelf-säkerhetskopia",
+          "description": "I AudioBookShelf, gå till Inställningar → Säkerhetskopior och skapa en ny säkerhetskopia. Ladda ner .audiobookshelf-filen till din dator."
+        },
+        "files": {
+          "title": "Se till att dina ljudboksfiler är tillgängliga",
+          "description": "Dina ljudboksfiler måste vara tillgängliga från denna server på samma sökvägar (eller så måste du mappa sökvägarna under importen). SAV läser ljudfiler direkt från disk."
+        },
+        "users": {
+          "title": "Skapa användarkonton i SAV",
+          "description": "Om du vill importera lyssningsframsteg måste användarna redan finnas i SAV. Skapa de användarkonton som behövs innan du startar återställningen."
+        },
+        "diskSpace": {
+          "title": "Se till att det finns tillräckligt med diskutrymme",
+          "description": "Säkerhetskopian kommer att extraheras tillfälligt. Se till att du har tillräckligt med diskutrymme för säkerhetskopian plus extraktion (ungefär 2x säkerhetskopians storlek)."
+        },
+        "required": "Krävs",
+        "checklist": {
+          "title": "Snabb checklista",
+          "item1": "Jag har skapat och laddat ner en AudioBookShelf .audiobookshelf-fil",
+          "item2": "Mina ljudboksfiler är tillgängliga från denna server",
+          "item3": "Jag har skapat användarkonton för import av framsteg (om det behövs)"
+        }
+      },
+      "dropzoneTitle": "Släpp din säkerhetskopia här eller klicka för att bläddra",
+      "dropzoneDescription": "Välj en .audiobookshelf-fil från AudioBookShelf",
+      "maxFileSize": "Maximal filstorlek: {maxSize}",
+      "clearFile": "Rensa fil",
+      "uploadButton": "Ladda upp och fortsätt",
+      "uploading": "Laddar upp...",
+      "success": "Säkerhetskopia uppladdad",
+      "infoTitle": "Innan du börjar:",
+      "infoPoint1": "Den här guiden hjälper dig att återställa din AudioBookShelf-data",
+      "infoPoint2": "Säkerhetskopian måste vara en .audiobookshelf-fil från AudioBookShelf",
+      "infoPoint3": "Befintliga ljudböcker kan bevaras eller skrivas över",
+      "errors": {
+        "invalidFileType": "Välj en giltig .audiobookshelf-fil",
+        "fileTooLarge": "Filen är för stor. Maximal storlek är {maxSize}",
+        "uploadFailed": "Kunde inte ladda upp säkerhetskopia"
+      }
+    },
+    "library": {
+      "title": "Välj bibliotek",
+      "description": "Välj vilket AudioBookShelf-bibliotek som ska återställas",
+      "selectLabel": "Välj ett bibliotek att återställa",
+      "folders": "{count} mappar",
+      "infoTitle": "Biblioteksval:",
+      "infoPoint1": "Välj det AudioBookShelf-bibliotek du vill importera",
+      "infoPoint2": "Endast ett bibliotek kan importeras åt gången",
+      "infoPoint3": "Alla mappar inom det valda biblioteket kommer att importeras",
+      "back": "Tillbaka",
+      "nextButton": "Nästa: Konfigurera sökvägar",
+      "selecting": "Väljer...",
+      "success": "Bibliotek valt",
+      "startOver": "Börja om",
+      "errors": {
+        "noSession": "Ingen session hittades. Ladda upp en säkerhetskopia först.",
+        "loadFailed": "Kunde inte ladda säkerhetskopia",
+        "selectFailed": "Kunde inte välja bibliotek",
+        "noLibraries": "Inga bibliotek hittades i säkerhetskopian",
+        "noLibrariesDescription": "Den uppladdade säkerhetskopian innehåller inga bibliotek. Ladda upp en giltig AudioBookShelf-säkerhetskopia."
+      }
+    },
+    "paths": {
+      "title": "Konfigurera sökvägar",
+      "description": "Mappa AudioBookShelf-bibliotekssökvägen till din Simple Audiobook Vault-sökväg",
+      "absPathLabel": "AudioBookShelf-bibliotekssökväg",
+      "absPathDescription": "Detta är var dina ljudböcker var lagrade i AudioBookShelf",
+      "savPathLabel": "Simple Audiobook Vault-bibliotekssökväg",
+      "savPathDescription": "Ange var dina ljudböcker för närvarande är lagrade på detta system",
+      "infoTitle": "Sökvägsmappning:",
+      "infoPoint1": "AudioBookShelf-sökvägen kommer att ersättas med SAV-sökvägen i alla databasposter",
+      "infoPoint2": "Se till att dina ljudböcker är tillgängliga på den nya sökvägen",
+      "infoPoint3": "Fil- och mappstrukturen bör vara densamma som i AudioBookShelf",
+      "back": "Tillbaka",
+      "nextButton": "Nästa: Mappa användare",
+      "saving": "Sparar...",
+      "success": "Sökvägsmappning sparad",
+      "startOver": "Börja om",
+      "errors": {
+        "noSession": "Ingen session hittades. Ladda upp en säkerhetskopia först.",
+        "loadFailed": "Kunde inte ladda säkerhetskopia",
+        "saveFailed": "Kunde inte spara sökvägsmappning",
+        "noLibrarySelected": "Inget bibliotek valt",
+        "noLibrarySelectedDescription": "Gå tillbaka och välj ett bibliotek att återställa."
+      }
+    },
+    "users": {
+      "title": "Mappa användare",
+      "description": "Mappa AudioBookShelf-användare till Simple Audiobook Vault-användare för att importera lyssningsframsteg",
+      "absUserLabel": "AudioBookShelf-användare",
+      "savUserLabel": "Simple Audiobook Vault-användare",
+      "skipUser": "Hoppa över denna användare",
+      "progressInfo": "{count} framstegsposter totalt",
+      "inProgressInfo": "{count} pågående",
+      "finishedInfo": "{count} avslutade",
+      "skipWarning": "Framsteg för denna användare kommer inte att importeras",
+      "unmappedWarning": "Vissa användare med framsteg är inte mappade. Deras lyssningsframsteg kommer inte att importeras.",
+      "noUsersFound": "Inga användare med lyssningsframsteg hittades i säkerhetskopian",
+      "nextButton": "Nästa: Alternativ",
+      "saving": "Sparar...",
+      "errors": {
+        "noSession": "Ingen session hittades",
+        "loadFailed": "Kunde inte ladda session eller användare",
+        "saveFailed": "Kunde inte spara användarmappningar"
+      }
+    },
+    "options": {
+      "title": "Importalternativ",
+      "description": "Välj vilken data som ska importeras från din AudioBookShelf-säkerhetskopia",
+      "importProgress": {
+        "label": "Importera lyssningsframsteg",
+        "description": "Importera användares uppspelningspositioner och slutförandestatus för mappade användare. Detta inkluderar aktuell position, avslutade böcker och bokmärken."
+      },
+      "importCovers": {
+        "label": "Importera ljudboksomslag",
+        "description": "Kopiera omslagsbilder från AudioBookShelf-säkerhetskopian till ditt Simple Audiobook Vault-bibliotek. Omslag kommer att lagras i appdatamappen."
+      },
+      "importAuthorImages": {
+        "label": "Importera författarbilder",
+        "description": "Kopiera författar- och inläsarprofilbilder från AudioBookShelf-säkerhetskopian. Dessa kommer att lagras i appdatamappen."
+      },
+      "overwriteExisting": {
+        "label": "Skriv över befintliga ljudböcker",
+        "description": "Ersätt metadata för ljudböcker som redan finns i ditt bibliotek (matchas via filsökväg). Detta kommer att skriva över titlar, beskrivningar, omslag och annan metadata."
+      },
+      "overwriteWarning": "Befintlig ljudboksmetadata och omslag kommer att ersättas med data från AudioBookShelf-säkerhetskopian. Denna åtgärd kan inte ångras. Se till att du har en säkerhetskopia av din nuvarande data om det behövs.",
+      "nextButton": "Nästa: Förhandsgranska",
+      "saving": "Sparar...",
+      "errors": {
+        "noSession": "Ingen session hittades",
+        "loadFailed": "Kunde inte ladda session",
+        "saveFailed": "Kunde inte spara återställningsalternativ"
+      }
+    },
+    "preview": {
+      "title": "Importförhandsgranskning",
+      "description": "Granska vad som kommer att importeras från din AudioBookShelf-säkerhetskopia",
+      "stats": {
+        "audiobooks": "Ljudböcker",
+        "toImport": "att importera",
+        "skipped": "{count} överhoppade",
+        "authors": "Författare",
+        "narrators": "Inläsare",
+        "people": "personer",
+        "series": "Serier",
+        "genres": "Genrer",
+        "chapters": "Kapitel",
+        "progress": "Framsteg",
+        "records": "poster",
+        "usersSkipped": "{count} användare överhoppade",
+        "covers": "Omslag",
+        "authorImages": "Författarbilder",
+        "images": "bilder"
+      },
+      "sampleImport": "Exempel på ljudböcker att importera ({count})",
+      "sampleSkip": "Ljudböcker att hoppa över ({count})",
+      "skipReason": "Anledning: {reason}",
+      "expectedPath": "Förväntad sökväg: {path}",
+      "warnings": "Varningar",
+      "startImport": "Starta import",
+      "starting": "Startar...",
+      "generatingPreview": "Genererar förhandsgranskning...",
+      "errors": {
+        "noSession": "Ingen session hittades",
+        "loadFailed": "Kunde inte ladda förhandsgranskning",
+        "startFailed": "Kunde inte starta import"
+      }
+    },
+    "import": {
+      "title": "Importerar data",
+      "titleComplete": "Import slutförd",
+      "titleFailed": "Import misslyckades",
+      "description": "Stäng inte denna sida. Importen pågår.",
+      "descriptionComplete": "Din AudioBookShelf-data har importerats!",
+      "descriptionFailed": "Importen misslyckades och alla ändringar har återställts.",
+      "progress": "Framsteg",
+      "currentOperation": "Pågående operation",
+      "preparingImport": "Förbereder import...",
+      "reconnecting": "Återansluter till servern...",
+      "itemsProcessed": "Objekt bearbetade",
+      "totalItems": "Totalt antal objekt",
+      "errors": "Fel",
+      "importError": "Importfel",
+      "completedTitle": "Import slutförd!",
+      "completedDescription": "Din AudioBookShelf-data har importerats. Omdirigerar till ditt bibliotek...",
+      "goToLibrary": "Gå till bibliotek",
+      "rolledBackTitle": "Ändringar återställda",
+      "rolledBackDescription": "Importen avbröts eller misslyckades, och alla ändringar har återställts. Ingen data ändrades.",
+      "tryAgain": "Försök igen",
+      "backToSettings": "Tillbaka till inställningar",
+      "startOver": "Börja om",
+      "errors": {
+        "noSession": "Ingen session hittades",
+        "loadFailed": "Kunde inte ladda session"
+      }
+    }
   }
 }

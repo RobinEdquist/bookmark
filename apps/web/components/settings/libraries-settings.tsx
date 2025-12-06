@@ -3,7 +3,8 @@
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X, Rss, Copy, Check } from "lucide-react";
+import Link from "next/link";
+import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X, Rss, Copy, Check, Upload } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -110,6 +111,7 @@ function PriorityItem({ field, sources, onMove, t, isUpdating }: PriorityItemPro
 
 export function LibrariesSettings() {
   const t = useTranslations("settings.libraries");
+  const tRestore = useTranslations("settings.restore");
   const { settings, isLoading, error, updateSettings, isUpdating } = useSettings();
   const [audiobookFolderPickerOpen, setAudiobookFolderPickerOpen] = useState(false);
   const [ebookFolderPickerOpen, setEbookFolderPickerOpen] = useState(false);
@@ -382,6 +384,25 @@ export function LibrariesSettings() {
               />
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Restore from AudioBookShelf Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Upload className="h-5 w-5" />
+            {tRestore("title")}
+          </CardTitle>
+          <CardDescription>{tRestore("description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button asChild>
+            <Link href="/settings/restore">
+              <Upload className="mr-2 h-4 w-4" />
+              {tRestore("title")}
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 

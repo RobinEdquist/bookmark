@@ -356,13 +356,23 @@ export class UsersService {
 
     if (keys.length === 0) return null;
 
-    const key = keys[0];
-    const metadata = key.metadata ? JSON.parse(key.metadata) : {};
+    const key = keys[0]!;
+    let metadata: Record<string, unknown> = {};
+    if (key.metadata) {
+      try {
+        const parsed = JSON.parse(key.metadata);
+        if (parsed && typeof parsed === 'object') {
+          metadata = parsed;
+        }
+      } catch {
+        // Invalid JSON, use empty object
+      }
+    }
 
     return {
       hasKey: true,
       lastUsed: key.lastRequest?.toISOString() ?? null,
-      lastIp: metadata.lastIp ?? null,
+      lastIp: (metadata.lastIp as string) ?? null,
     };
   }
 

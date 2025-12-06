@@ -4,6 +4,7 @@ import {
   Post,
   Delete,
   Param,
+  Headers,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -12,6 +13,7 @@ import { Session, AuthService, type UserSession } from '@thallesp/nestjs-better-
 import { ApiKeysService } from './api-keys.service';
 import { ApiKeyPermissionGuard } from '../common/guards/api-key-permission.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
+import type { IncomingHttpHeaders } from 'http';
 
 @Controller('api-keys')
 export class ApiKeysController {
@@ -40,8 +42,14 @@ export class ApiKeysController {
   async revokeApiKey(
     @Param('id') id: string,
     @Session() session: UserSession,
+    @Headers() headers: IncomingHttpHeaders,
   ) {
-    return this.apiKeysService.revokeApiKey(id, session.user.id, this.authService.instance);
+    return this.apiKeysService.revokeApiKey(
+      id,
+      session.user.id,
+      this.authService.instance,
+      headers,
+    );
   }
 
   // ===== Admin Endpoints =====
@@ -56,6 +64,6 @@ export class ApiKeysController {
   @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   async revokeUserApiKey(@Param('userId') userId: string) {
-    return this.apiKeysService.revokeUserApiKeyByUserId(userId, this.authService.instance);
+    return this.apiKeysService.revokeUserApiKeyByUserId(userId);
   }
 }

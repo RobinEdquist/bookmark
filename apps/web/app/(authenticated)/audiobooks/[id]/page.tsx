@@ -116,7 +116,7 @@ export default function AudiobookDetailPage({
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-destructive">{t("error")}</p>
         <Button variant="outline" asChild>
-          <Link href="/libraries">
+          <Link href="/audiobooks">
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t("backToLibrary")}
           </Link>
@@ -135,7 +135,7 @@ export default function AudiobookDetailPage({
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/libraries">
+            <Link href="/audiobooks">
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

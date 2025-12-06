@@ -17,7 +17,7 @@ import { LibraryWatcherModule } from '../library-watcher/library-watcher.module'
     ApiKeysModule,
     forwardRef(() => LibraryWatcherModule),
   ],
-  controllers: [EbooksController, OpdsController],
+  controllers: [OpdsController, EbooksController],
   providers: [EbooksService, OpdsService],
   exports: [EbooksService],
 })

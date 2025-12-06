@@ -1,6 +1,7 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and } from 'drizzle-orm';
+import { IncomingHttpHeaders } from 'http';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { apiKey } from '../auth/api-key.schema';
 import * as authSchema from '../auth/schema';
@@ -34,8 +35,18 @@ export class ApiKeysService {
 
     if (keys.length === 0) return null;
 
-    const key = keys[0];
-    const metadata = key.metadata ? JSON.parse(key.metadata) : {};
+    const key = keys[0]!;
+    let metadata: Record<string, unknown> = {};
+    if (key.metadata) {
+      try {
+        const parsed = JSON.parse(key.metadata);
+        if (parsed && typeof parsed === 'object') {
+          metadata = parsed;
+        }
+      } catch {
+        // Invalid JSON, use empty object
+      }
+    }
 
     return {
       id: key.id,
@@ -43,7 +54,7 @@ export class ApiKeysService {
       start: key.start,
       createdAt: key.createdAt,
       lastRequest: key.lastRequest,
-      lastIp: metadata.lastIp || null,
+      lastIp: (metadata.lastIp as string) || null,
     };
   }
 
@@ -52,7 +63,7 @@ export class ApiKeysService {
     authInstance: any,
   ): Promise<ApiKeyCreateResponse> {
     // Revoke any existing keys first
-    await this.revokeAllUserKeys(userId, authInstance);
+    await this.revokeAllUserKeys(userId);
 
     // Create new key via Better Auth
     const result = await authInstance.api.createApiKey({
@@ -75,8 +86,9 @@ export class ApiKeysService {
     keyId: string,
     userId: string,
     authInstance: any,
+    headers: IncomingHttpHeaders,
   ): Promise<{ success: boolean }> {
-    // Verify key belongs to user
+    // Verify key belongs to user first
     const keys = await this.db
       .select({ id: apiKey.id })
       .from(apiKey)
@@ -87,30 +99,27 @@ export class ApiKeysService {
       throw new NotFoundException('API key not found');
     }
 
-    await authInstance.api.deleteApiKey({ body: { keyId } });
+    // Use Better Auth API with the request headers for authentication
+    await authInstance.api.deleteApiKey({
+      body: { keyId },
+      headers,
+    });
+
     return { success: true };
   }
 
-  async revokeUserApiKeyByUserId(
-    userId: string,
-    authInstance: any,
-  ): Promise<{ success: boolean }> {
-    await this.revokeAllUserKeys(userId, authInstance);
+  /**
+   * Admin-only: Revoke all API keys for a user.
+   * Uses direct DB deletion since admin doesn't own the keys and
+   * Better Auth's deleteApiKey requires the key owner's session.
+   */
+  async revokeUserApiKeyByUserId(userId: string): Promise<{ success: boolean }> {
+    await this.revokeAllUserKeys(userId);
     return { success: true };
   }
 
-  private async revokeAllUserKeys(
-    userId: string,
-    authInstance: any,
-  ): Promise<void> {
-    const existingKeys = await this.db
-      .select({ id: apiKey.id })
-      .from(apiKey)
-      .where(eq(apiKey.userId, userId));
-
-    for (const key of existingKeys) {
-      await authInstance.api.deleteApiKey({ body: { keyId: key.id } });
-    }
+  private async revokeAllUserKeys(userId: string): Promise<void> {
+    await this.db.delete(apiKey).where(eq(apiKey.userId, userId));
   }
 
   async updateKeyUsage(keyId: string, ip: string): Promise<void> {

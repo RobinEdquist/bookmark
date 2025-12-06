@@ -273,5 +273,227 @@
         "autoSyncFailed": "Failed to update auto-sync setting"
       }
     }
+  },
+  "restore": {
+    "title": "Restore from AudioBookShelf",
+    "description": "Import your library and data from an AudioBookShelf backup",
+    "wizard": {
+      "title": "Restore from AudioBookShelf",
+      "description": "Follow the steps below to import your AudioBookShelf library",
+      "cancel": "Cancel Restore",
+      "cancelSuccess": "Restore cancelled",
+      "cancelError": "Failed to cancel restore"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "next": "Next",
+      "back": "Back",
+      "loading": "Loading...",
+      "error": "An error occurred",
+      "sessionNotFound": "Session not found"
+    },
+    "upload": {
+      "title": "Upload Backup",
+      "description": "Upload your AudioBookShelf backup file to begin the restore process",
+      "prerequisites": {
+        "title": "Before You Begin",
+        "description": "Please ensure you have completed the following steps before starting the restore process.",
+        "backup": {
+          "title": "Create an AudioBookShelf backup",
+          "description": "In AudioBookShelf, go to Settings → Backups and create a new backup. Download the .audiobookshelf backup file to your computer."
+        },
+        "files": {
+          "title": "Ensure your audiobook files are accessible",
+          "description": "Your audiobook files must be accessible from this server at the same paths (or you'll need to map the paths during import). SAV reads audio files directly from disk."
+        },
+        "users": {
+          "title": "Create user accounts in SAV",
+          "description": "If you want to import listening progress, the users must already exist in SAV. Create any needed user accounts before starting the restore."
+        },
+        "diskSpace": {
+          "title": "Ensure sufficient disk space",
+          "description": "The backup file will be temporarily extracted. Ensure you have enough disk space for the backup file plus extraction (roughly 2x the backup size)."
+        },
+        "required": "Required",
+        "checklist": {
+          "title": "Quick Checklist",
+          "item1": "I have created and downloaded an AudioBookShelf .audiobookshelf backup file",
+          "item2": "My audiobook files are accessible from this server",
+          "item3": "I have created user accounts for progress import (if needed)"
+        }
+      },
+      "dropzoneTitle": "Drop your backup file here or click to browse",
+      "dropzoneDescription": "Select an .audiobookshelf backup file from AudioBookShelf",
+      "maxFileSize": "Maximum file size: {maxSize}",
+      "clearFile": "Clear file",
+      "uploadButton": "Upload & Continue",
+      "uploading": "Uploading...",
+      "success": "Backup uploaded successfully",
+      "infoTitle": "Before you start:",
+      "infoPoint1": "This wizard will guide you through restoring your AudioBookShelf data",
+      "infoPoint2": "The backup file must be an .audiobookshelf export from AudioBookShelf",
+      "infoPoint3": "Existing audiobooks can be preserved or overwritten",
+      "errors": {
+        "invalidFileType": "Please select a valid .audiobookshelf backup file",
+        "fileTooLarge": "File is too large. Maximum size is {maxSize}",
+        "uploadFailed": "Failed to upload backup file"
+      }
+    },
+    "library": {
+      "title": "Select Library",
+      "description": "Choose which AudioBookShelf library to restore",
+      "selectLabel": "Select a library to restore",
+      "folders": "{count} folders",
+      "infoTitle": "Library Selection:",
+      "infoPoint1": "Select the AudioBookShelf library you want to import",
+      "infoPoint2": "Only one library can be imported at a time",
+      "infoPoint3": "All folders within the selected library will be imported",
+      "back": "Back",
+      "nextButton": "Next: Configure Paths",
+      "selecting": "Selecting...",
+      "success": "Library selected successfully",
+      "startOver": "Start Over",
+      "errors": {
+        "noSession": "No session found. Please upload a backup file first.",
+        "loadFailed": "Failed to load backup session",
+        "selectFailed": "Failed to select library",
+        "noLibraries": "No libraries found in backup",
+        "noLibrariesDescription": "The uploaded backup file does not contain any libraries. Please upload a valid AudioBookShelf backup."
+      }
+    },
+    "paths": {
+      "title": "Configure Paths",
+      "description": "Map the AudioBookShelf library path to your Simple Audiobook Vault path",
+      "absPathLabel": "AudioBookShelf Library Path",
+      "absPathDescription": "This is where your audiobooks were stored in AudioBookShelf",
+      "savPathLabel": "Simple Audiobook Vault Library Path",
+      "savPathDescription": "Enter where your audiobooks are currently stored on this system",
+      "infoTitle": "Path Mapping:",
+      "infoPoint1": "The AudioBookShelf path will be replaced with the SAV path in all database records",
+      "infoPoint2": "Make sure your audiobooks are accessible at the new path",
+      "infoPoint3": "File and folder structure should be the same as in AudioBookShelf",
+      "back": "Back",
+      "nextButton": "Next: Map Users",
+      "saving": "Saving...",
+      "success": "Path mapping saved successfully",
+      "startOver": "Start Over",
+      "errors": {
+        "noSession": "No session found. Please upload a backup file first.",
+        "loadFailed": "Failed to load backup session",
+        "saveFailed": "Failed to save path mapping",
+        "noLibrarySelected": "No library selected",
+        "noLibrarySelectedDescription": "Please go back and select a library to restore."
+      }
+    },
+    "users": {
+      "title": "Map Users",
+      "description": "Map AudioBookShelf users to Simple Audiobook Vault users to import listening progress",
+      "absUserLabel": "AudioBookShelf User",
+      "savUserLabel": "Simple Audiobook Vault User",
+      "skipUser": "Skip this user",
+      "progressInfo": "{count} total progress records",
+      "inProgressInfo": "{count} in progress",
+      "finishedInfo": "{count} finished",
+      "skipWarning": "Progress for this user will not be imported",
+      "unmappedWarning": "Some users with progress are not mapped. Their listening progress will not be imported.",
+      "noUsersFound": "No users found in backup with listening progress",
+      "nextButton": "Next: Options",
+      "saving": "Saving...",
+      "errors": {
+        "noSession": "No session found",
+        "loadFailed": "Failed to load session or users",
+        "saveFailed": "Failed to save user mappings"
+      }
+    },
+    "options": {
+      "title": "Import Options",
+      "description": "Choose what data to import from your AudioBookShelf backup",
+      "importProgress": {
+        "label": "Import listening progress",
+        "description": "Import user playback positions and completion status for mapped users. This includes current position, finished books, and bookmarks."
+      },
+      "importCovers": {
+        "label": "Import audiobook covers",
+        "description": "Copy cover images from the AudioBookShelf backup to your Simple Audiobook Vault library. Covers will be stored in the app data folder."
+      },
+      "importAuthorImages": {
+        "label": "Import author images",
+        "description": "Copy author and narrator profile images from the AudioBookShelf backup. These will be stored in the app data folder."
+      },
+      "overwriteExisting": {
+        "label": "Overwrite existing audiobooks",
+        "description": "Replace metadata for audiobooks that already exist in your library (matched by file path). This will overwrite titles, descriptions, covers, and other metadata."
+      },
+      "overwriteWarning": "Existing audiobook metadata and covers will be replaced with data from the AudioBookShelf backup. This action cannot be undone. Make sure you have a backup of your current data if needed.",
+      "nextButton": "Next: Preview",
+      "saving": "Saving...",
+      "errors": {
+        "noSession": "No session found",
+        "loadFailed": "Failed to load session",
+        "saveFailed": "Failed to save restore options"
+      }
+    },
+    "preview": {
+      "title": "Import Preview",
+      "description": "Review what will be imported from your AudioBookShelf backup",
+      "stats": {
+        "audiobooks": "Audiobooks",
+        "toImport": "to import",
+        "skipped": "{count} skipped",
+        "authors": "Authors",
+        "narrators": "Narrators",
+        "people": "people",
+        "series": "Series",
+        "genres": "Genres",
+        "chapters": "Chapters",
+        "progress": "Progress",
+        "records": "records",
+        "usersSkipped": "{count} user(s) skipped",
+        "covers": "Covers",
+        "authorImages": "Author Images",
+        "images": "images"
+      },
+      "sampleImport": "Sample Audiobooks to Import ({count})",
+      "sampleSkip": "Audiobooks to Skip ({count})",
+      "skipReason": "Reason: {reason}",
+      "expectedPath": "Expected path: {path}",
+      "warnings": "Warnings",
+      "startImport": "Start Import",
+      "starting": "Starting...",
+      "generatingPreview": "Generating preview...",
+      "errors": {
+        "noSession": "No session found",
+        "loadFailed": "Failed to load preview",
+        "startFailed": "Failed to start import"
+      }
+    },
+    "import": {
+      "title": "Importing Data",
+      "titleComplete": "Import Complete",
+      "titleFailed": "Import Failed",
+      "description": "Please do not close this page. The import is in progress.",
+      "descriptionComplete": "Your AudioBookShelf data has been successfully imported!",
+      "descriptionFailed": "The import failed and all changes have been rolled back.",
+      "progress": "Progress",
+      "currentOperation": "Current Operation",
+      "preparingImport": "Preparing import...",
+      "reconnecting": "Reconnecting to server...",
+      "itemsProcessed": "Items Processed",
+      "totalItems": "Total Items",
+      "errors": "Errors",
+      "importError": "Import Error",
+      "completedTitle": "Import Complete!",
+      "completedDescription": "Your AudioBookShelf data has been successfully imported. Redirecting to your library...",
+      "goToLibrary": "Go to Library",
+      "rolledBackTitle": "Changes Rolled Back",
+      "rolledBackDescription": "The import was cancelled or failed, and all changes have been rolled back. No data was modified.",
+      "tryAgain": "Try Again",
+      "backToSettings": "Back to Settings",
+      "startOver": "Start Over",
+      "errors": {
+        "noSession": "No session found",
+        "loadFailed": "Failed to load session"
+      }
+    }
   }
 }

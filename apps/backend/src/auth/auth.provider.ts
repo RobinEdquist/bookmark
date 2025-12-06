@@ -5,7 +5,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin, apiKey } from 'better-auth/plugins';
 import { createAuthMiddleware } from 'better-auth/api';
 import { count } from 'drizzle-orm';
-import { user } from './schema';
+import * as schema from './schema';
 
 /**
  * Creates a better-auth instance with admin plugin.
@@ -24,13 +24,14 @@ export function createAuthInstance(
     },
     database: drizzleAdapter(database, {
       provider: 'pg',
+      schema,
     }),
     plugins: [
       admin({
         defaultRole: 'user',
       }),
       apiKey({
-        defaultPrefix: 'bkmrk',
+        defaultPrefix: 'bkmrk_',
         enableMetadata: true,
       }),
     ],
@@ -41,7 +42,7 @@ export function createAuthInstance(
           if (newSession) {
             const [result] = await database
               .select({ count: count() })
-              .from(user);
+              .from(schema.user);
             if (result.count === 1) {
               await ctx.context.internalAdapter.updateUser(
                 newSession.user.id,

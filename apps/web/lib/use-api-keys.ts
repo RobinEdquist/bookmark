@@ -24,7 +24,8 @@ async function fetchMyApiKey(): Promise<ApiKeyInfo | null> {
   if (res.status === 404) return null;
   if (!res.ok) throw new Error("Failed to fetch API key");
   const data = await res.json();
-  return data;
+  // Backend returns null with 200 status when no key exists
+  return data ?? null;
 }
 
 async function createApiKey(): Promise<ApiKeyCreated> {
@@ -66,6 +67,8 @@ export function useRevokeApiKey() {
   return useMutation({
     mutationFn: revokeApiKey,
     onSuccess: () => {
+      // Set the data to null immediately, then invalidate to refetch
+      queryClient.setQueryData(["api-keys", "me"], null);
       queryClient.invalidateQueries({ queryKey: ["api-keys"] });
     },
   });

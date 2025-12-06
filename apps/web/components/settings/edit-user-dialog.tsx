@@ -40,6 +40,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const [canDeleteAudiobooks, setCanDeleteAudiobooks] = useState(false);
   const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
   const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
+  const [hasApiKey, setHasApiKey] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -51,6 +52,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       setCanDeleteAudiobooks(user.permissions.canDeleteAudiobooks);
       setCanGenerateApiKeys(user.permissions.canGenerateApiKeys);
       setBlacklistedTags(user.blacklistedTags);
+      setHasApiKey(user.apiKey?.hasKey ?? false);
     }
   }, [user]);
 
@@ -202,7 +204,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
             </div>
           )}
 
-          {user?.apiKey?.hasKey && (
+          {hasApiKey && user?.apiKey && (
             <div className="space-y-2">
               <Label>{t("apiKeySection.title")}</Label>
               <div className="rounded-lg border p-3 space-y-2">
@@ -240,6 +242,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                   onClick={async () => {
                     try {
                       await revokeUserApiKey.mutateAsync(user.id);
+                      setHasApiKey(false);
                       toast.success(t("apiKeySection.revokeSuccess"));
                     } catch {
                       toast.error(t("apiKeySection.revokeError"));
