@@ -37,6 +37,7 @@
     "archiver": "^7.0.1",
     "bcrypt": "^6.0.0",
     "better-auth": "^1.4.1",
+    "better-sqlite3": "^12.5.0",
     "chokidar": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
@@ -51,7 +52,8 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
     "sharp": "^0.34.5",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "unzipper": "^0.12.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
@@ -61,12 +63,14 @@
     "@nestjs/testing": "^11.0.1",
     "@types/archiver": "^7.0.0",
     "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/cookie": "^1.0.0",
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/multer": "^2.0.0",
     "@types/node": "^22.10.7",
     "@types/supertest": "^6.0.2",
+    "@types/unzipper": "^0.10.11",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",

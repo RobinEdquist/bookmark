@@ -87,4 +87,11 @@ export const queryKeys = {
     import: () => [...queryKeys.tasks.all, "import"] as const,
     hardcover: () => [...queryKeys.tasks.all, "hardcover"] as const,
   },
+  restore: {
+    all: ["restore"] as const,
+    session: (sessionId: string) => [...queryKeys.restore.all, "session", sessionId] as const,
+    preview: (sessionId: string) => [...queryKeys.restore.all, "preview", sessionId] as const,
+    savUsers: () => [...queryKeys.restore.all, "sav-users"] as const,
+    progress: (sessionId: string) => [...queryKeys.restore.all, "progress", sessionId] as const,
+  },
 } as const;

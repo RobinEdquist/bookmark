@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { AppDataModule } from './app-data/app-data.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -19,6 +20,8 @@ import { EventsModule } from './events/events.module';
 import { ProgressModule } from './progress/progress.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
+import { PeopleModule } from './people/people.module';
+import { RestoreModule } from './restore/restore.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -28,6 +31,7 @@ import { createAuthInstance } from './auth/auth.provider';
   imports: [
     ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
+    AppDataModule,
     DatabaseModule,
     AuthModule.forRootAsync({
       imports: [DatabaseModule, ConfigModule],
@@ -50,6 +54,8 @@ import { createAuthInstance } from './auth/auth.provider';
     ProgressModule,
     TasksModule,
     ApiKeysModule,
+    PeopleModule,
+    RestoreModule,
   ],
   controllers: [],
   providers: [
