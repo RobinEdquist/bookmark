@@ -1,4 +1,5 @@
 import { Module, forwardRef } from '@nestjs/common';
+import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { EbooksController } from './ebooks.controller';
 import { EbooksService } from './ebooks.service';
 import { OpdsController } from './opds.controller';
@@ -15,6 +16,7 @@ import { LibraryWatcherModule } from '../library-watcher/library-watcher.module'
     AppSettingsModule,
     EventsModule,
     ApiKeysModule,
+    AuthModule,
     forwardRef(() => LibraryWatcherModule),
   ],
   controllers: [OpdsController, EbooksController],

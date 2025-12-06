@@ -8,6 +8,8 @@ export interface LibraryStats {
   totalDuration: number;
   seriesCount: number;
   authorCount: number;
+  ebookCount: number;
+  totalPages: number;
 }
 
 async function fetchLibraryStats(): Promise<LibraryStats> {

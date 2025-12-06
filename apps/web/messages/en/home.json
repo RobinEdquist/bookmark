@@ -2,6 +2,8 @@
   "stats": {
     "audiobooks": "Audiobooks",
     "totalDuration": "Total Duration",
+    "ebooks": "Ebooks",
+    "totalPages": "Total Pages",
     "series": "Series",
     "authors": "Authors"
   },

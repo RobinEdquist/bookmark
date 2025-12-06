@@ -6,15 +6,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { AuthService } from '@thallesp/nestjs-better-auth';
 import { AppSettingsService } from '../../app-settings/app-settings.service';
 import { ApiKeysService } from '../../api-keys/api-keys.service';
-import { auth } from '../../auth/auth';
 
 @Injectable()
 export class OpdsAuthGuard implements CanActivate {
   constructor(
     private readonly appSettingsService: AppSettingsService,
     private readonly apiKeysService: ApiKeysService,
+    private readonly authService: AuthService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -46,7 +47,9 @@ export class OpdsAuthGuard implements CanActivate {
 
     // Verify API token using Better Auth
     try {
-      const result = await auth.api.verifyApiKey({
+      // Cast to any because AuthService.instance doesn't expose apiKey plugin methods in types
+      const authInstance = this.authService.instance as any;
+      const result = await authInstance.api.verifyApiKey({
         body: { key: apiToken },
       });
 
