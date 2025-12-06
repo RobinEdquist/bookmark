@@ -96,7 +96,7 @@ export interface AudiobookFilters {
   genreId?: string;
   seriesId?: string;
   language?: string;
-  sortBy?: "title" | "createdAt" | "author";
+  sortBy?: "title" | "createdAt" | "author" | "rating" | "series";
   sortOrder?: "asc" | "desc";
   limit?: number;
   offset?: number;
