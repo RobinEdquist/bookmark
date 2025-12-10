@@ -3,7 +3,7 @@
 #
 # Traefik Integration:
 #   This configuration integrates with an external Traefik instance.
-#   Set TRAEFIK_ENABLED=true and configure TRAEFIK_HOST to enable.
+#   Configure PUBLIC_URL to your domain (e.g., https://bookmark.example.com)
 
 services:
   # ==========================================================================
@@ -43,12 +43,10 @@ services:
       # Database
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-bookmark}
 
-      # Better Auth
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://backend:3000}
+      # Public URL - used for auth callbacks, CORS, etc.
+      BETTER_AUTH_URL: ${PUBLIC_URL:?PUBLIC_URL is required}
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required}
-
-      # Frontend URL (for CORS)
-      UI_URL: ${UI_URL:-http://localhost:3001}
+      UI_URL: ${PUBLIC_URL}
 
       # Application
       NODE_ENV: production
@@ -95,16 +93,20 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
       args:
+        # Build-time: internal URL for SSR API calls
         API_URL: http://backend:3000
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+        # Build-time: public URL for browser API calls
+        NEXT_PUBLIC_API_URL: ${PUBLIC_URL}
     container_name: bookmark-frontend
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_healthy
     environment:
+      # Runtime: internal URL for SSR API calls (Next.js rewrites)
       API_URL: http://backend:3000
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
+      # Runtime: public URL for browser API calls
+      NEXT_PUBLIC_API_URL: ${PUBLIC_URL}
       NODE_ENV: production
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001"]
