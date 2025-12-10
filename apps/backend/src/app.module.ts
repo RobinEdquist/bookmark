@@ -22,6 +22,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { PeopleModule } from './people/people.module';
 import { RestoreModule } from './restore/restore.module';
+import { HealthModule } from './health/health.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
@@ -56,6 +57,7 @@ import { createAuthInstance } from './auth/auth.provider';
     ApiKeysModule,
     PeopleModule,
     RestoreModule,
+    HealthModule,
   ],
   controllers: [],
   providers: [
