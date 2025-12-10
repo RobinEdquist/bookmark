@@ -22,7 +22,6 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 # Copy all package.json files for workspace resolution
 COPY apps/web/package.json ./apps/web/
 COPY packages/ui/package.json ./packages/ui/
-COPY packages/shared/package.json ./packages/shared/ 2>/dev/null || true
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 
