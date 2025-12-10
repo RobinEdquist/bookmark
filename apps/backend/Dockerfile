@@ -59,22 +59,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install pnpm for production install
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
 WORKDIR /app
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copy built application
+# Copy built application and package files
 COPY --from=builder /app/apps/backend/dist ./dist
 COPY --from=builder /app/apps/backend/package.json ./
 COPY --from=builder /app/apps/backend/drizzle ./drizzle
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/backend/node_modules ./apps_node_modules
 
-# Merge node_modules (backend-specific deps override workspace deps)
-RUN cp -r ./apps_node_modules/* ./node_modules/ 2>/dev/null || true && \
-    rm -rf ./apps_node_modules
+# Install production dependencies only
+RUN pnpm install --prod
 
 # Create data directory
 RUN mkdir -p /data && chown -R nestjs:nodejs /data
