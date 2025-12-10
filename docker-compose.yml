@@ -1,4 +1,4 @@
-# Docker Compose configuration for Simple Audiobook Vault
+# Docker Compose configuration for Bookmark
 # For use with Komodo or standalone Docker Compose deployment
 #
 # Traefik Integration:
@@ -11,21 +11,21 @@ services:
   # ==========================================================================
   postgres:
     image: postgres:16-alpine
-    container_name: sav-postgres
+    container_name: bookmark-postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-audiobook_vault}
+      POSTGRES_DB: ${POSTGRES_DB:-bookmark}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-audiobook_vault}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bookmark}"]
       interval: 10s
       timeout: 5s
       retries: 5
     networks:
-      - sav-network
+      - bookmark-network
 
   # ==========================================================================
   # Backend API (NestJS)
@@ -34,14 +34,14 @@ services:
     build:
       context: .
       dockerfile: apps/backend/Dockerfile
-    container_name: sav-backend
+    container_name: bookmark-backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-audiobook_vault}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-bookmark}
 
       # Better Auth
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://backend:3000}
@@ -76,19 +76,19 @@ services:
       start_period: 30s
       retries: 3
     networks:
-      - sav-network
+      - bookmark-network
       - proxy
     labels:
       # Traefik configuration
       - "traefik.enable=true"
       # API router - handles /api/* requests
-      - "traefik.http.routers.sav-api.entryPoints=https"
-      - "traefik.http.routers.sav-api.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.sav-api.middlewares=local-only@file"
-      - "traefik.http.routers.sav-api.tls=true"
-      - "traefik.http.routers.sav-api.tls.certResolver=cloudflare"
-      - "traefik.http.routers.sav-api.service=sav-api"
-      - "traefik.http.services.sav-api.loadBalancer.server.port=3000"
+      - "traefik.http.routers.bookmark-api.entryPoints=https"
+      - "traefik.http.routers.bookmark-api.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.bookmark-api.middlewares=local-only@file"
+      - "traefik.http.routers.bookmark-api.tls=true"
+      - "traefik.http.routers.bookmark-api.tls.certResolver=cloudflare"
+      - "traefik.http.routers.bookmark-api.service=bookmark-api"
+      - "traefik.http.services.bookmark-api.loadBalancer.server.port=3000"
 
   # ==========================================================================
   # Frontend Web App (Next.js)
@@ -100,7 +100,7 @@ services:
       args:
         API_URL: http://backend:3000
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
-    container_name: sav-frontend
+    container_name: bookmark-frontend
     restart: unless-stopped
     depends_on:
       backend:
@@ -119,37 +119,37 @@ services:
       start_period: 10s
       retries: 3
     networks:
-      - sav-network
+      - bookmark-network
       - proxy
     labels:
       # Traefik configuration
       - "traefik.enable=true"
       # Frontend router - handles all other requests
-      - "traefik.http.routers.sav-frontend.entryPoints=https"
-      - "traefik.http.routers.sav-frontend.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`)"
-      - "traefik.http.routers.sav-frontend.middlewares=local-only@file"
-      - "traefik.http.routers.sav-frontend.tls=true"
-      - "traefik.http.routers.sav-frontend.tls.certResolver=cloudflare"
-      - "traefik.http.routers.sav-frontend.service=sav-frontend"
-      - "traefik.http.services.sav-frontend.loadBalancer.server.port=3001"
+      - "traefik.http.routers.bookmark-frontend.entryPoints=https"
+      - "traefik.http.routers.bookmark-frontend.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`)"
+      - "traefik.http.routers.bookmark-frontend.middlewares=local-only@file"
+      - "traefik.http.routers.bookmark-frontend.tls=true"
+      - "traefik.http.routers.bookmark-frontend.tls.certResolver=cloudflare"
+      - "traefik.http.routers.bookmark-frontend.service=bookmark-frontend"
+      - "traefik.http.services.bookmark-frontend.loadBalancer.server.port=3001"
       # Lower priority so /api routes go to backend
-      - "traefik.http.routers.sav-frontend.priority=1"
+      - "traefik.http.routers.bookmark-frontend.priority=1"
 
 # =============================================================================
 # Volumes
 # =============================================================================
 volumes:
   postgres_data:
-    name: sav-postgres-data
+    name: bookmark-postgres-data
   app_data:
-    name: sav-app-data
+    name: bookmark-app-data
 
 # =============================================================================
 # Networks
 # =============================================================================
 networks:
-  sav-network:
-    name: sav-network
+  bookmark-network:
+    name: bookmark-network
     driver: bridge
   # External Traefik network
   proxy:
