@@ -1,86 +1,82 @@
 # Backend Dockerfile - NestJS API
-# Multi-stage build for optimized production image
+# Multi-stage build using turbo prune for optimized monorepo builds
+# Based on: https://www.bstefanski.com/blog/turborepo-nestjs-prisma-dockerfile
 
 # =============================================================================
-# Stage 1: Base image with pnpm
+# Stage 1: Base image with pnpm and turbo
 # =============================================================================
 FROM node:22-slim AS base
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
 
-# Install system dependencies required for native modules and media processing
+RUN corepack enable && \
+    pnpm install turbo --global
+
+WORKDIR /app
+
+# =============================================================================
+# Stage 2: Prune the monorepo for backend only
+# =============================================================================
+FROM base AS builder
+
+COPY . .
+RUN turbo prune --scope=backend --docker
+
+# =============================================================================
+# Stage 3: Install dependencies and build
+# =============================================================================
+FROM base AS installer
+
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# =============================================================================
-# Stage 2: Install dependencies
-# =============================================================================
-FROM base AS deps
+# Copy pruned lockfile and workspace config
+COPY --from=builder /app/out/json/ .
+COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=builder /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Copy workspace configuration
-COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
-
-# Copy all package.json files for workspace resolution
-COPY apps/backend/package.json ./apps/backend/
-COPY packages/typescript-config/package.json ./packages/typescript-config/
-
-# Install all dependencies
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# =============================================================================
-# Stage 3: Build the application
-# =============================================================================
-FROM base AS builder
-
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
-
-# Copy source code
-COPY apps/backend ./apps/backend
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
+# Copy pruned source code
+COPY --from=builder /app/out/full/ .
+COPY turbo.json turbo.json
 
 # Build the backend
-WORKDIR /app/apps/backend
-RUN pnpm build
-WORKDIR /app
+RUN turbo run build --filter=backend
 
 # =============================================================================
 # Stage 4: Production image
 # =============================================================================
 FROM node:22-slim AS runner
 
-# Install runtime dependencies only
+# Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     curl \
+    openssl \
     && rm -rf /var/lib/apt/lists/*
-
-# Install pnpm for production install
-RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 WORKDIR /app
 
-# Create non-root user for security
+# Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
-# Copy built application and package files
-COPY --from=builder /app/apps/backend/dist ./dist
-COPY --from=builder /app/apps/backend/package.json ./
-COPY --from=builder /app/apps/backend/drizzle ./drizzle
-
-# Install production dependencies only
-RUN pnpm install --prod
+# Copy entire pruned app with node_modules intact (preserves pnpm symlinks)
+COPY --from=installer --chown=nestjs:nodejs /app ./
 
 # Create data directory
 RUN mkdir -p /data && chown -R nestjs:nodejs /data
 
-# Switch to non-root user
 USER nestjs
+
+WORKDIR /app/apps/backend
 
 # Environment defaults
 ENV NODE_ENV=production
@@ -93,4 +89,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || exit 1
 
-CMD ["node", "dist/src/main"]
+CMD ["node", "dist/src/main.js"]
