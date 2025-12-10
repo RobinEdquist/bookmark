@@ -18,7 +18,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-bookmark}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ${DATA_PATH:-/mnt/user/appdata/bookmark}/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bookmark}"]
       interval: 10s
@@ -59,7 +59,7 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
     volumes:
       # Application data (covers, cache, etc.)
-      - app_data:/data
+      - ${DATA_PATH:-/mnt/user/appdata/bookmark}/data:/data
       # Audiobook library - mount your media folder here
       - ${AUDIOBOOK_LIBRARY_PATH:-./media/audiobooks}:/library/audiobooks:ro
       # Ebook library - mount your media folder here
@@ -130,15 +130,6 @@ services:
       - "traefik.http.services.bookmark-frontend.loadBalancer.server.port=3001"
       # Lower priority so /api routes go to backend
       - "traefik.http.routers.bookmark-frontend.priority=1"
-
-# =============================================================================
-# Volumes
-# =============================================================================
-volumes:
-  postgres_data:
-    name: bookmark-postgres-data
-  app_data:
-    name: bookmark-app-data
 
 # =============================================================================
 # Networks
