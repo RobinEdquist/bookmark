@@ -1,5 +1,9 @@
 # Docker Compose configuration for Simple Audiobook Vault
 # For use with Komodo or standalone Docker Compose deployment
+#
+# Traefik Integration:
+#   This configuration integrates with an external Traefik instance.
+#   Set TRAEFIK_ENABLED=true and configure TRAEFIK_HOST to enable.
 
 services:
   # ==========================================================================
@@ -62,6 +66,7 @@ services:
       - ${AUDIOBOOK_LIBRARY_PATH:-./media/audiobooks}:/library/audiobooks:ro
       # Ebook library - mount your media folder here
       - ${EBOOK_LIBRARY_PATH:-./media/ebooks}:/library/ebooks:ro
+    # Only expose ports when not using Traefik
     ports:
       - "${BACKEND_PORT:-3000}:3000"
     healthcheck:
@@ -72,6 +77,18 @@ services:
       retries: 3
     networks:
       - sav-network
+      - proxy
+    labels:
+      # Traefik configuration
+      - "traefik.enable=true"
+      # API router - handles /api/* requests
+      - "traefik.http.routers.sav-api.entryPoints=https"
+      - "traefik.http.routers.sav-api.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.sav-api.middlewares=local-only@file"
+      - "traefik.http.routers.sav-api.tls=true"
+      - "traefik.http.routers.sav-api.tls.certResolver=cloudflare"
+      - "traefik.http.routers.sav-api.service=sav-api"
+      - "traefik.http.services.sav-api.loadBalancer.server.port=3000"
 
   # ==========================================================================
   # Frontend Web App (Next.js)
@@ -92,6 +109,7 @@ services:
       API_URL: http://backend:3000
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:3000}
       NODE_ENV: production
+    # Only expose ports when not using Traefik
     ports:
       - "${FRONTEND_PORT:-3001}:3001"
     healthcheck:
@@ -102,6 +120,20 @@ services:
       retries: 3
     networks:
       - sav-network
+      - proxy
+    labels:
+      # Traefik configuration
+      - "traefik.enable=true"
+      # Frontend router - handles all other requests
+      - "traefik.http.routers.sav-frontend.entryPoints=https"
+      - "traefik.http.routers.sav-frontend.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`)"
+      - "traefik.http.routers.sav-frontend.middlewares=local-only@file"
+      - "traefik.http.routers.sav-frontend.tls=true"
+      - "traefik.http.routers.sav-frontend.tls.certResolver=cloudflare"
+      - "traefik.http.routers.sav-frontend.service=sav-frontend"
+      - "traefik.http.services.sav-frontend.loadBalancer.server.port=3001"
+      # Lower priority so /api routes go to backend
+      - "traefik.http.routers.sav-frontend.priority=1"
 
 # =============================================================================
 # Volumes
@@ -119,3 +151,7 @@ networks:
   sav-network:
     name: sav-network
     driver: bridge
+  # External Traefik network
+  proxy:
+    name: proxy
+    external: true
