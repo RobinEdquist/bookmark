@@ -11,10 +11,7 @@ import { AppSettingsService } from './app-settings.service';
 import { Roles, RolesGuard } from '../auth/roles.guard';
 import { OidcConfigService } from '../auth/oidc-config.service';
 import * as fs from 'fs/promises';
-import {
-  MetadataFieldPriority,
-  DEFAULT_METADATA_PRIORITY,
-} from './schema';
+import { MetadataFieldPriority, DEFAULT_METADATA_PRIORITY } from './schema';
 
 interface UpdateSettingsDto {
   signupsEnabled?: boolean;
@@ -91,8 +88,13 @@ export class AppSettingsController {
     }
 
     // Validate emailPasswordEnabled - can't disable if OIDC is not configured
-    if (dto.emailPasswordEnabled === false && !this.oidcConfigService.isOidcEnabled()) {
-      throw new BadRequestException('Cannot disable email/password login when OIDC is not configured');
+    if (
+      dto.emailPasswordEnabled === false &&
+      !this.oidcConfigService.isOidcEnabled()
+    ) {
+      throw new BadRequestException(
+        'Cannot disable email/password login when OIDC is not configured',
+      );
     }
 
     // Validate oidcAutoCreateUsers values
@@ -104,7 +106,10 @@ export class AppSettingsController {
     }
 
     // Validate audiobookLibraryPath if provided (null is allowed to clear the path)
-    if (dto.audiobookLibraryPath !== undefined && dto.audiobookLibraryPath !== null) {
+    if (
+      dto.audiobookLibraryPath !== undefined &&
+      dto.audiobookLibraryPath !== null
+    ) {
       await this.validateLibraryPath(dto.audiobookLibraryPath);
     }
 
@@ -123,14 +128,21 @@ export class AppSettingsController {
       emailPasswordEnabled?: boolean;
       oidcAutoCreateUsers?: string;
     } = {};
-    if (dto.signupsEnabled !== undefined) updates.signupsEnabled = dto.signupsEnabled;
-    if (dto.audiobookLibraryPath !== undefined) updates.audiobookLibraryPath = dto.audiobookLibraryPath;
-    if (dto.ebookLibraryPath !== undefined) updates.ebookLibraryPath = dto.ebookLibraryPath;
-    if (dto.metadataPriority !== undefined) updates.metadataPriority = dto.metadataPriority;
+    if (dto.signupsEnabled !== undefined)
+      updates.signupsEnabled = dto.signupsEnabled;
+    if (dto.audiobookLibraryPath !== undefined)
+      updates.audiobookLibraryPath = dto.audiobookLibraryPath;
+    if (dto.ebookLibraryPath !== undefined)
+      updates.ebookLibraryPath = dto.ebookLibraryPath;
+    if (dto.metadataPriority !== undefined)
+      updates.metadataPriority = dto.metadataPriority;
     if (dto.opdsEnabled !== undefined) updates.opdsEnabled = dto.opdsEnabled;
-    if (dto.oidcButtonText !== undefined) updates.oidcButtonText = dto.oidcButtonText;
-    if (dto.emailPasswordEnabled !== undefined) updates.emailPasswordEnabled = dto.emailPasswordEnabled;
-    if (dto.oidcAutoCreateUsers !== undefined) updates.oidcAutoCreateUsers = dto.oidcAutoCreateUsers;
+    if (dto.oidcButtonText !== undefined)
+      updates.oidcButtonText = dto.oidcButtonText;
+    if (dto.emailPasswordEnabled !== undefined)
+      updates.emailPasswordEnabled = dto.emailPasswordEnabled;
+    if (dto.oidcAutoCreateUsers !== undefined)
+      updates.oidcAutoCreateUsers = dto.oidcAutoCreateUsers;
 
     const settings = await this.appSettingsService.updateSettings(updates);
 

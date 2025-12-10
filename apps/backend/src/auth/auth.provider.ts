@@ -48,33 +48,6 @@ export function createAuthInstance(
 ) {
   const oidcConfig = getOidcConfig(configService);
 
-  const plugins = [
-    admin({
-      defaultRole: 'user',
-    }),
-    apiKey({
-      defaultPrefix: 'bkmrk_',
-      enableMetadata: true,
-    }),
-  ];
-
-  // Add genericOAuth plugin if OIDC is configured
-  if (oidcConfig) {
-    plugins.push(
-      genericOAuth({
-        config: [
-          {
-            providerId: 'oidc',
-            discoveryUrl: `${oidcConfig.issuerUrl}/.well-known/openid-configuration`,
-            clientId: oidcConfig.clientId,
-            clientSecret: oidcConfig.clientSecret,
-            scopes: ['openid', 'profile', 'email'],
-          },
-        ],
-      }),
-    );
-  }
-
   return betterAuth({
     trustedOrigins: [configService.getOrThrow<string>('UI_URL')],
     emailAndPassword: {
@@ -84,21 +57,46 @@ export function createAuthInstance(
       provider: 'pg',
       schema,
     }),
-    plugins,
+    plugins: [
+      admin({
+        defaultRole: 'user',
+      }),
+      apiKey({
+        defaultPrefix: 'bkmrk_',
+        enableMetadata: true,
+      }),
+      ...(oidcConfig
+        ? [
+            genericOAuth({
+              config: [
+                {
+                  providerId: 'oidc',
+                  discoveryUrl: `${oidcConfig.issuerUrl}/.well-known/openid-configuration`,
+                  clientId: oidcConfig.clientId,
+                  clientSecret: oidcConfig.clientSecret,
+                  scopes: ['openid', 'profile', 'email'],
+                },
+              ],
+            }),
+          ]
+        : []),
+    ],
     hooks: {
       after: createAuthMiddleware(async (ctx) => {
         // Handle first user admin promotion for both sign-up and OAuth callback
-        if (ctx.path.startsWith('/sign-up') || ctx.path.startsWith('/callback')) {
+        if (
+          ctx.path.startsWith('/sign-up') ||
+          ctx.path.startsWith('/callback')
+        ) {
           const newSession = ctx.context.newSession;
           if (newSession) {
             const [result] = await database
               .select({ count: count() })
               .from(schema.user);
             if (result.count === 1) {
-              await ctx.context.internalAdapter.updateUser(
-                newSession.user.id,
-                { role: 'admin' },
-              );
+              await ctx.context.internalAdapter.updateUser(newSession.user.id, {
+                role: 'admin',
+              });
             }
           }
         }

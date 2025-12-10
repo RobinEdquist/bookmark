@@ -20,7 +20,7 @@ export function OidcButton({ buttonText }: OidcButtonProps) {
         providerId: "oidc",
         callbackURL: "/libraries",
       });
-    } catch (error) {
+    } catch {
       toast.error("Failed to initiate SSO sign-in");
       setIsLoading(false);
     }

@@ -26,6 +26,9 @@ export interface Settings {
   ebookLibraryPath: string | null;
   opdsEnabled: boolean;
   metadataPriority: MetadataFieldPriority;
+  oidcButtonText: string;
+  emailPasswordEnabled: boolean;
+  oidcAutoCreateUsers: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -36,6 +39,9 @@ export interface UpdateSettingsDto {
   ebookLibraryPath?: string | null;
   opdsEnabled?: boolean;
   metadataPriority?: MetadataFieldPriority;
+  oidcButtonText?: string;
+  emailPasswordEnabled?: boolean;
+  oidcAutoCreateUsers?: string;
 }
 
 async function fetchSettings(): Promise<Settings> {
