@@ -29,7 +29,8 @@ export class EbookMetadataProvider {
       const metadata = epub.metadata;
 
       // Extract title - may have subtitle after a colon or dash
-      let title = metadata.title || path.basename(filePath, path.extname(filePath));
+      let title =
+        metadata.title || path.basename(filePath, path.extname(filePath));
       let subtitle: string | undefined;
 
       // Try to extract subtitle from title
@@ -47,9 +48,14 @@ export class EbookMetadataProvider {
       let authors: string[] = [];
       if (metadata.creator) {
         if (typeof metadata.creator === 'string') {
-          authors = metadata.creator.split(/[,&]/).map((a: string) => a.trim()).filter(Boolean);
+          authors = metadata.creator
+            .split(/[,&]/)
+            .map((a: string) => a.trim())
+            .filter(Boolean);
         } else if (Array.isArray(metadata.creator)) {
-          authors = metadata.creator.map((a: string) => a.trim()).filter(Boolean);
+          authors = metadata.creator
+            .map((a: string) => a.trim())
+            .filter(Boolean);
         }
       }
 
@@ -68,7 +74,10 @@ export class EbookMetadataProvider {
       } else if (metadata.identifier) {
         // Try to extract ISBN from identifier
         const identifier = metadata.identifier;
-        if (typeof identifier === 'string' && identifier.match(/^(97[89])?\d{9}[\dXx]$/)) {
+        if (
+          typeof identifier === 'string' &&
+          identifier.match(/^(97[89])?\d{9}[\dXx]$/)
+        ) {
           isbn = identifier;
         }
       }
@@ -85,7 +94,9 @@ export class EbookMetadataProvider {
         cover,
       };
     } catch (error) {
-      this.logger.error(`Failed to extract metadata from ${filePath}: ${error}`);
+      this.logger.error(
+        `Failed to extract metadata from ${filePath}: ${error}`,
+      );
       // Return minimal metadata based on filename
       const fileName = path.basename(filePath, path.extname(filePath));
       return {
@@ -95,14 +106,21 @@ export class EbookMetadataProvider {
     }
   }
 
-  private async extractCover(epub: EPub): Promise<{ data: Buffer; mimeType: string } | undefined> {
+  private async extractCover(
+    epub: EPub,
+  ): Promise<{ data: Buffer; mimeType: string } | undefined> {
     return new Promise((resolve, reject) => {
       // Try to get cover from manifest
       const coverId = epub.metadata.cover;
       if (!coverId) {
         // Try common cover IDs
         const manifest = epub.manifest;
-        const possibleCoverIds = ['cover', 'cover-image', 'coverimage', 'cover_image'];
+        const possibleCoverIds = [
+          'cover',
+          'cover-image',
+          'coverimage',
+          'cover_image',
+        ];
         let foundId: string | undefined;
 
         for (const id of possibleCoverIds) {
@@ -116,9 +134,11 @@ export class EbookMetadataProvider {
         if (!foundId) {
           for (const [id, item] of Object.entries(manifest)) {
             const itemObj = item as { 'media-type'?: string; href?: string };
-            if (itemObj['media-type']?.startsWith('image/') &&
-                (id.toLowerCase().includes('cover') ||
-                 itemObj.href?.toLowerCase().includes('cover'))) {
+            if (
+              itemObj['media-type']?.startsWith('image/') &&
+              (id.toLowerCase().includes('cover') ||
+                itemObj.href?.toLowerCase().includes('cover'))
+            ) {
               foundId = id;
               break;
             }
@@ -149,7 +169,9 @@ export class EbookMetadataProvider {
     });
   }
 
-  async extractCoverFromFile(filePath: string): Promise<{ data: Buffer; mimeType: string } | null> {
+  async extractCoverFromFile(
+    filePath: string,
+  ): Promise<{ data: Buffer; mimeType: string } | null> {
     try {
       const epub = await EPub.createAsync(filePath);
       const cover = await this.extractCover(epub);

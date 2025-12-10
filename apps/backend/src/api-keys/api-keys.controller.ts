@@ -9,7 +9,11 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { Session, AuthService, type UserSession } from '@thallesp/nestjs-better-auth';
+import {
+  Session,
+  AuthService,
+  type UserSession,
+} from '@thallesp/nestjs-better-auth';
 import { ApiKeysService } from './api-keys.service';
 import { ApiKeyPermissionGuard } from '../common/guards/api-key-permission.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
@@ -33,7 +37,10 @@ export class ApiKeysController {
   @Post()
   @UseGuards(ApiKeyPermissionGuard)
   async createApiKey(@Session() session: UserSession) {
-    return this.apiKeysService.createApiKey(session.user.id, this.authService.instance);
+    return this.apiKeysService.createApiKey(
+      session.user.id,
+      this.authService.instance,
+    );
   }
 
   @Delete(':id')

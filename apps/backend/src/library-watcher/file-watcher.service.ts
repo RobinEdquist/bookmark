@@ -30,11 +30,19 @@ export class FileWatcherService implements OnModuleDestroy {
 
   async startWatching(paths: LibraryPaths): Promise<void> {
     // Handle audiobook library
-    if (paths.audiobookPath && paths.audiobookPath !== this.currentAudiobookPath) {
+    if (
+      paths.audiobookPath &&
+      paths.audiobookPath !== this.currentAudiobookPath
+    ) {
       await this.stopAudiobookWatcher();
       this.currentAudiobookPath = paths.audiobookPath;
-      this.audiobookWatcher = this.createWatcher(paths.audiobookPath, 'audiobook');
-      this.logger.log(`Started watching audiobook library: ${paths.audiobookPath}`);
+      this.audiobookWatcher = this.createWatcher(
+        paths.audiobookPath,
+        'audiobook',
+      );
+      this.logger.log(
+        `Started watching audiobook library: ${paths.audiobookPath}`,
+      );
     } else if (!paths.audiobookPath && this.audiobookWatcher) {
       await this.stopAudiobookWatcher();
     }
@@ -64,7 +72,10 @@ export class FileWatcherService implements OnModuleDestroy {
     });
   }
 
-  private createWatcher(libraryPath: string, libraryType: LibraryType): chokidar.FSWatcher {
+  private createWatcher(
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): chokidar.FSWatcher {
     const watcher = chokidar.watch(libraryPath, {
       persistent: true,
       ignoreInitial: true,
@@ -82,10 +93,18 @@ export class FileWatcherService implements OnModuleDestroy {
     });
 
     watcher
-      .on('add', (filePath) => this.handleFileAdd(filePath, libraryPath, libraryType))
-      .on('addDir', (dirPath) => this.handleDirAdd(dirPath, libraryPath, libraryType))
-      .on('unlink', (filePath) => this.handleFileRemove(filePath, libraryPath, libraryType))
-      .on('unlinkDir', (dirPath) => this.handleDirRemove(dirPath, libraryPath, libraryType))
+      .on('add', (filePath) =>
+        this.handleFileAdd(filePath, libraryPath, libraryType),
+      )
+      .on('addDir', (dirPath) =>
+        this.handleDirAdd(dirPath, libraryPath, libraryType),
+      )
+      .on('unlink', (filePath) =>
+        this.handleFileRemove(filePath, libraryPath, libraryType),
+      )
+      .on('unlinkDir', (dirPath) =>
+        this.handleDirRemove(dirPath, libraryPath, libraryType),
+      )
       .on('error', (error) => this.handleError(error as Error, libraryType))
       .on('ready', () => this.logger.log(`${libraryType} file watcher ready`));
 
@@ -93,10 +112,7 @@ export class FileWatcherService implements OnModuleDestroy {
   }
 
   async stopWatching(): Promise<void> {
-    await Promise.all([
-      this.stopAudiobookWatcher(),
-      this.stopEbookWatcher(),
-    ]);
+    await Promise.all([this.stopAudiobookWatcher(), this.stopEbookWatcher()]);
   }
 
   async stopAudiobookWatcher(): Promise<void> {
@@ -137,22 +153,38 @@ export class FileWatcherService implements OnModuleDestroy {
     return this.currentEbookPath;
   }
 
-  private handleFileAdd(filePath: string, libraryPath: string, libraryType: LibraryType): void {
+  private handleFileAdd(
+    filePath: string,
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): void {
     this.logger.debug(`[${libraryType}] File added: ${filePath}`);
     this.importQueue.queueFile(filePath, libraryPath, libraryType);
   }
 
-  private handleDirAdd(dirPath: string, libraryPath: string, libraryType: LibraryType): void {
+  private handleDirAdd(
+    dirPath: string,
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): void {
     this.logger.debug(`[${libraryType}] Directory added: ${dirPath}`);
     this.importQueue.queueDirectory(dirPath, libraryPath, libraryType);
   }
 
-  private handleFileRemove(filePath: string, libraryPath: string, libraryType: LibraryType): void {
+  private handleFileRemove(
+    filePath: string,
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): void {
     this.logger.debug(`[${libraryType}] File removed: ${filePath}`);
     this.libraryScanner.handlePathRemoved(filePath, libraryPath, libraryType);
   }
 
-  private handleDirRemove(dirPath: string, libraryPath: string, libraryType: LibraryType): void {
+  private handleDirRemove(
+    dirPath: string,
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): void {
     this.logger.debug(`[${libraryType}] Directory removed: ${dirPath}`);
     this.libraryScanner.handlePathRemoved(dirPath, libraryPath, libraryType);
   }

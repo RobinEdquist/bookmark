@@ -12,7 +12,11 @@ import {
   HttpStatus,
   Inject,
 } from '@nestjs/common';
-import { AllowAnonymous, Session, type UserSession } from '@thallesp/nestjs-better-auth';
+import {
+  AllowAnonymous,
+  Session,
+  type UserSession,
+} from '@thallesp/nestjs-better-auth';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from '../auth/schema';
@@ -114,7 +118,9 @@ export class UsersController {
   }
 
   @Get('me/language')
-  async getLanguage(@Session() session: UserSession): Promise<{ language: string }> {
+  async getLanguage(
+    @Session() session: UserSession,
+  ): Promise<{ language: string }> {
     const language = await this.usersService.getLanguage(session.user.id);
     return { language };
   }

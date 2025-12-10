@@ -3,7 +3,11 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
 import { FileWatcherService } from './file-watcher.service';
-import { LibraryScannerService, ScanResult, ScanProgress } from './library-scanner.service';
+import {
+  LibraryScannerService,
+  ScanResult,
+  ScanProgress,
+} from './library-scanner.service';
 
 @Injectable()
 export class LibraryWatcherService implements OnModuleInit {
@@ -36,11 +40,15 @@ export class LibraryWatcherService implements OnModuleInit {
 
     // Initialize audiobook library
     if (settings.audiobookLibraryPath) {
-      this.logger.log(`Initializing audiobook library watcher for: ${settings.audiobookLibraryPath}`);
+      this.logger.log(
+        `Initializing audiobook library watcher for: ${settings.audiobookLibraryPath}`,
+      );
       await this.runAudiobookScan(settings.audiobookLibraryPath);
 
       if (settings.watcherEnabled) {
-        await this.fileWatcher.startWatchingAudiobooks(settings.audiobookLibraryPath);
+        await this.fileWatcher.startWatchingAudiobooks(
+          settings.audiobookLibraryPath,
+        );
       }
     } else {
       this.logger.log('No audiobook library path configured');
@@ -48,7 +56,9 @@ export class LibraryWatcherService implements OnModuleInit {
 
     // Initialize ebook library
     if (settings.ebookLibraryPath) {
-      this.logger.log(`Initializing ebook library watcher for: ${settings.ebookLibraryPath}`);
+      this.logger.log(
+        `Initializing ebook library watcher for: ${settings.ebookLibraryPath}`,
+      );
       await this.runEbookScan(settings.ebookLibraryPath);
 
       if (settings.watcherEnabled) {
@@ -87,8 +97,13 @@ export class LibraryWatcherService implements OnModuleInit {
   private async syncWatcherState(watcherEnabled: boolean): Promise<void> {
     if (watcherEnabled) {
       // Start watchers for configured paths if not already watching
-      if (this.currentAudiobookPath && !this.fileWatcher.isWatchingAudiobooks()) {
-        await this.fileWatcher.startWatchingAudiobooks(this.currentAudiobookPath);
+      if (
+        this.currentAudiobookPath &&
+        !this.fileWatcher.isWatchingAudiobooks()
+      ) {
+        await this.fileWatcher.startWatchingAudiobooks(
+          this.currentAudiobookPath,
+        );
       }
       if (this.currentEbookPath && !this.fileWatcher.isWatchingEbooks()) {
         await this.fileWatcher.startWatchingEbooks(this.currentEbookPath);
@@ -99,7 +114,9 @@ export class LibraryWatcherService implements OnModuleInit {
     }
   }
 
-  async onAudiobookLibraryPathChange(newPath: string | null): Promise<ScanResult | null> {
+  async onAudiobookLibraryPathChange(
+    newPath: string | null,
+  ): Promise<ScanResult | null> {
     await this.fileWatcher.stopAudiobookWatcher();
 
     if (!newPath) {
@@ -122,7 +139,9 @@ export class LibraryWatcherService implements OnModuleInit {
     return result;
   }
 
-  async onEbookLibraryPathChange(newPath: string | null): Promise<ScanResult | null> {
+  async onEbookLibraryPathChange(
+    newPath: string | null,
+  ): Promise<ScanResult | null> {
     await this.fileWatcher.stopEbookWatcher();
 
     if (!newPath) {
@@ -151,7 +170,9 @@ export class LibraryWatcherService implements OnModuleInit {
   }
 
   async runAudiobookScan(audiobookLibraryPath?: string): Promise<ScanResult> {
-    const scanPath = audiobookLibraryPath || (await this.appSettingsService.getAudiobookLibraryPath());
+    const scanPath =
+      audiobookLibraryPath ||
+      (await this.appSettingsService.getAudiobookLibraryPath());
 
     if (!scanPath) {
       throw new Error('No audiobook library path configured');
@@ -161,7 +182,8 @@ export class LibraryWatcherService implements OnModuleInit {
   }
 
   async runEbookScan(ebookLibraryPath?: string): Promise<ScanResult> {
-    const scanPath = ebookLibraryPath || (await this.appSettingsService.getEbookLibraryPath());
+    const scanPath =
+      ebookLibraryPath || (await this.appSettingsService.getEbookLibraryPath());
 
     if (!scanPath) {
       throw new Error('No ebook library path configured');

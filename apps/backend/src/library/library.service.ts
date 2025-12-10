@@ -66,7 +66,9 @@ export class LibraryService {
       audiobookCount: audiobookResult?.count ?? 0,
       totalDuration: Number(durationResult?.total ?? 0),
       seriesCount: seriesResult?.count ?? 0,
-      authorCount: Number((authorResult.rows as { count: string | number }[])[0]?.count ?? 0),
+      authorCount: Number(
+        (authorResult.rows as { count: string | number }[])[0]?.count ?? 0,
+      ),
       ebookCount: ebookResult?.count ?? 0,
       totalPages: Number(pagesResult?.total ?? 0),
     };

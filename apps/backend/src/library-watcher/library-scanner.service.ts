@@ -117,7 +117,8 @@ export class LibraryScannerService {
     this.updateProgress({ phase: 'scanning', total: 0, processed: 0 });
 
     const existingPaths = new Set(existingAudiobooks.map((a) => a.filePath));
-    const detectedUnits = await this.mediaDetector.scanLibraryForAudiobooks(libraryPath);
+    const detectedUnits =
+      await this.mediaDetector.scanLibraryForAudiobooks(libraryPath);
 
     const newUnits = detectedUnits.filter((unit) => {
       const relativeUnitPath = path.relative(libraryPath, unit.path);
@@ -146,7 +147,8 @@ export class LibraryScannerService {
           result.added++;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         result.errors.push({ path: unit.path, error: errorMessage });
         this.logger.error(`Failed to import ${unit.path}: ${errorMessage}`);
       }
@@ -243,7 +245,8 @@ export class LibraryScannerService {
     this.updateProgress({ phase: 'scanning', total: 0, processed: 0 });
 
     const existingPaths = new Set(existingEbooks.map((e) => e.filePath));
-    const detectedUnits = await this.mediaDetector.scanLibraryForEbooks(libraryPath);
+    const detectedUnits =
+      await this.mediaDetector.scanLibraryForEbooks(libraryPath);
 
     const newUnits = detectedUnits.filter((unit) => {
       const relativeUnitPath = path.relative(libraryPath, unit.path);
@@ -272,7 +275,8 @@ export class LibraryScannerService {
           result.added++;
         }
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         result.errors.push({ path: unit.path, error: errorMessage });
         this.logger.error(`Failed to import ${unit.path}: ${errorMessage}`);
       }
@@ -295,7 +299,11 @@ export class LibraryScannerService {
 
   // ===== PATH REMOVAL HANDLING =====
 
-  async handlePathRemoved(removedPath: string, libraryPath: string, libraryType: LibraryType): Promise<void> {
+  async handlePathRemoved(
+    removedPath: string,
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): Promise<void> {
     if (libraryType === 'audiobook') {
       await this.handleAudiobookPathRemoved(removedPath, libraryPath);
     } else {
@@ -303,7 +311,10 @@ export class LibraryScannerService {
     }
   }
 
-  private async handleAudiobookPathRemoved(removedPath: string, libraryPath: string): Promise<void> {
+  private async handleAudiobookPathRemoved(
+    removedPath: string,
+    libraryPath: string,
+  ): Promise<void> {
     const relativePath = path.relative(libraryPath, removedPath);
 
     const audiobooks = await this.db
@@ -338,7 +349,10 @@ export class LibraryScannerService {
     }
   }
 
-  private async handleEbookPathRemoved(removedPath: string, libraryPath: string): Promise<void> {
+  private async handleEbookPathRemoved(
+    removedPath: string,
+    libraryPath: string,
+  ): Promise<void> {
     const relativePath = path.relative(libraryPath, removedPath);
 
     const ebooks = await this.db

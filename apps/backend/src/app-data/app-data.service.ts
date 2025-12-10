@@ -9,7 +9,8 @@ export class AppDataService implements OnModuleInit {
   private readonly basePath: string;
 
   constructor(private readonly configService: ConfigService) {
-    const isProduction = this.configService.get<string>('NODE_ENV') === 'production';
+    const isProduction =
+      this.configService.get<string>('NODE_ENV') === 'production';
     const configuredPath = this.configService.get<string>('APP_DATA_PATH');
 
     // In production, APP_DATA_PATH is required (validated in main.ts)
@@ -66,15 +67,24 @@ export class AppDataService implements OnModuleInit {
   }
 
   getAudiobookCoverPath(audiobookId: string): string {
-    return path.join(this.getAudiobookCoversPath(), `${this.sanitizeId(audiobookId)}.jpg`);
+    return path.join(
+      this.getAudiobookCoversPath(),
+      `${this.sanitizeId(audiobookId)}.jpg`,
+    );
   }
 
   getEbookCoverPath(ebookId: string): string {
-    return path.join(this.getEbookCoversPath(), `${this.sanitizeId(ebookId)}.jpg`);
+    return path.join(
+      this.getEbookCoversPath(),
+      `${this.sanitizeId(ebookId)}.jpg`,
+    );
   }
 
   getPersonImagePath(personId: string): string {
-    return path.join(this.getPeopleImagesPath(), `${this.sanitizeId(personId)}.jpg`);
+    return path.join(
+      this.getPeopleImagesPath(),
+      `${this.sanitizeId(personId)}.jpg`,
+    );
   }
 
   getTempSessionPath(sessionId: string): string {

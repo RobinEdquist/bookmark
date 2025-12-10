@@ -37,7 +37,9 @@ export class OpdsAuthGuard implements CanActivate {
 
     // Decode Basic Auth (format: "Basic base64(username:password)")
     const base64Credentials = authHeader.slice(6);
-    const credentials = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+    const credentials = Buffer.from(base64Credentials, 'base64').toString(
+      'utf-8',
+    );
     const [, apiToken] = credentials.split(':');
 
     if (!apiToken) {
@@ -64,7 +66,9 @@ export class OpdsAuthGuard implements CanActivate {
       // Track usage with IP address
       if (result.key) {
         const clientIp =
-          (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
+          (request.headers['x-forwarded-for'] as string)
+            ?.split(',')[0]
+            ?.trim() ||
           request.ip ||
           'unknown';
         await this.apiKeysService.updateKeyUsage(result.key.id, clientIp);

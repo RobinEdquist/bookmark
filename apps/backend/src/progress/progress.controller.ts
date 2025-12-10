@@ -27,7 +27,9 @@ export class ProgressController {
    * Get all in-progress audiobooks for the current user
    */
   @Get()
-  async getAllProgress(@Session() session: UserSession): Promise<ProgressWithAudiobook[]> {
+  async getAllProgress(
+    @Session() session: UserSession,
+  ): Promise<ProgressWithAudiobook[]> {
     return this.progressService.getAllProgress(session.user.id);
   }
 
@@ -35,7 +37,9 @@ export class ProgressController {
    * Get listening statistics for the current user
    */
   @Get('stats')
-  async getListeningStats(@Session() session: UserSession): Promise<ListeningStats> {
+  async getListeningStats(
+    @Session() session: UserSession,
+  ): Promise<ListeningStats> {
     return this.progressService.getListeningStats(session.user.id);
   }
 
@@ -48,7 +52,10 @@ export class ProgressController {
     @Param('audiobookId') audiobookId: string,
     @Session() session: UserSession,
   ): Promise<ProgressResponse> {
-    const progress = await this.progressService.getProgress(session.user.id, audiobookId);
+    const progress = await this.progressService.getProgress(
+      session.user.id,
+      audiobookId,
+    );
     if (!progress) {
       // Return default progress - no progress is a valid state, not an error
       return {
@@ -72,7 +79,11 @@ export class ProgressController {
     @Body() dto: UpdateProgressDto,
     @Session() session: UserSession,
   ): Promise<ProgressResponse> {
-    return this.progressService.updateProgress(session.user.id, audiobookId, dto);
+    return this.progressService.updateProgress(
+      session.user.id,
+      audiobookId,
+      dto,
+    );
   }
 
   /**
@@ -84,7 +95,11 @@ export class ProgressController {
     @Body() dto: CreateSessionDto,
     @Session() session: UserSession,
   ): Promise<{ id: string; durationSeconds: number }> {
-    return this.progressService.createSession(session.user.id, audiobookId, dto);
+    return this.progressService.createSession(
+      session.user.id,
+      audiobookId,
+      dto,
+    );
   }
 
   /**

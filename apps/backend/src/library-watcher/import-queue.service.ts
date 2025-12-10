@@ -59,7 +59,11 @@ export class ImportQueueService implements OnModuleDestroy {
     }
   }
 
-  queueFile(filePath: string, libraryPath: string, libraryType: LibraryType): void {
+  queueFile(
+    filePath: string,
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): void {
     // Filter by supported file type for this library
     if (libraryType === 'audiobook' && !isAudioFile(filePath)) {
       return;
@@ -72,7 +76,11 @@ export class ImportQueueService implements OnModuleDestroy {
     this.addToPending(rootPath, filePath, libraryPath, libraryType);
   }
 
-  queueDirectory(dirPath: string, libraryPath: string, libraryType: LibraryType): void {
+  queueDirectory(
+    dirPath: string,
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): void {
     this.addToPending(dirPath, dirPath, libraryPath, libraryType);
   }
 
@@ -87,7 +95,9 @@ export class ImportQueueService implements OnModuleDestroy {
     if (existing && existing.status === 'collecting') {
       existing.lastActivity = new Date();
       existing.files.add(filePath);
-      this.logger.debug(`Updated pending ${libraryType} import: ${rootPath} (${existing.files.size} files)`);
+      this.logger.debug(
+        `Updated pending ${libraryType} import: ${rootPath} (${existing.files.size} files)`,
+      );
     } else if (!existing) {
       this.pendingImports.set(rootPath, {
         path: rootPath,
@@ -103,7 +113,11 @@ export class ImportQueueService implements OnModuleDestroy {
     }
   }
 
-  private determineRootPath(filePath: string, libraryPath: string, libraryType: LibraryType): string {
+  private determineRootPath(
+    filePath: string,
+    libraryPath: string,
+    libraryType: LibraryType,
+  ): string {
     if (libraryType === 'ebook') {
       // Ebooks are single files, so the file itself is the root
       return filePath;
@@ -137,10 +151,15 @@ export class ImportQueueService implements OnModuleDestroy {
 
   private async processImport(pending: PendingImport): Promise<void> {
     pending.status = 'processing';
-    this.logger.log(`Processing ${pending.libraryType} import: ${pending.path}`);
+    this.logger.log(
+      `Processing ${pending.libraryType} import: ${pending.path}`,
+    );
 
     try {
-      const allStable = await this.verifyFilesStable(pending.files, pending.libraryType);
+      const allStable = await this.verifyFilesStable(
+        pending.files,
+        pending.libraryType,
+      );
       if (!allStable) {
         this.logger.debug(`Files not stable yet, re-queuing: ${pending.path}`);
         pending.status = 'collecting';
@@ -154,7 +173,9 @@ export class ImportQueueService implements OnModuleDestroy {
         await this.processEbookImport(pending);
       }
     } catch (error) {
-      this.logger.error(`Failed to process ${pending.libraryType} import ${pending.path}: ${error}`);
+      this.logger.error(
+        `Failed to process ${pending.libraryType} import ${pending.path}: ${error}`,
+      );
     } finally {
       this.pendingImports.delete(pending.path);
       this.emitImportStatus();
@@ -172,7 +193,10 @@ export class ImportQueueService implements OnModuleDestroy {
         if (isAudioFile(filePath)) {
           const fileUnit = await this.mediaDetector.detectAudiobook(filePath);
           if (fileUnit) {
-            await this.mediaImporter.importAudiobook(fileUnit, pending.libraryPath);
+            await this.mediaImporter.importAudiobook(
+              fileUnit,
+              pending.libraryPath,
+            );
           }
         }
       }
@@ -187,9 +211,13 @@ export class ImportQueueService implements OnModuleDestroy {
     }
   }
 
-  private async verifyFilesStable(files: Set<string>, libraryType: LibraryType): Promise<boolean> {
+  private async verifyFilesStable(
+    files: Set<string>,
+    libraryType: LibraryType,
+  ): Promise<boolean> {
     for (const file of files) {
-      const isRelevantFile = libraryType === 'audiobook' ? isAudioFile(file) : isEbookFile(file);
+      const isRelevantFile =
+        libraryType === 'audiobook' ? isAudioFile(file) : isEbookFile(file);
       if (isRelevantFile && !(await this.isFileStable(file))) {
         return false;
       }
@@ -200,7 +228,9 @@ export class ImportQueueService implements OnModuleDestroy {
   private async isFileStable(filePath: string): Promise<boolean> {
     try {
       const stat1 = await fs.stat(filePath);
-      await new Promise((resolve) => setTimeout(resolve, this.FILE_STABLE_CHECK_MS));
+      await new Promise((resolve) =>
+        setTimeout(resolve, this.FILE_STABLE_CHECK_MS),
+      );
       const stat2 = await fs.stat(filePath);
       return stat1.size === stat2.size && stat1.mtimeMs === stat2.mtimeMs;
     } catch {

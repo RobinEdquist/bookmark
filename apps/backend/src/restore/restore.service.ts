@@ -9,7 +9,11 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import * as unzipper from 'unzipper';
 import { createReadStream } from 'fs';
-import { AbsParserService, ParsedBackup, LibraryData } from './abs-parser.service';
+import {
+  AbsParserService,
+  ParsedBackup,
+  LibraryData,
+} from './abs-parser.service';
 import { AppDataService } from '../app-data/app-data.service';
 import {
   RestoreSession,
@@ -35,7 +39,9 @@ export class RestoreService {
   /**
    * Creates a new restore session by extracting and parsing the uploaded backup file
    */
-  async createSession(uploadedFile: Express.Multer.File): Promise<RestoreSession> {
+  async createSession(
+    uploadedFile: Express.Multer.File,
+  ): Promise<RestoreSession> {
     const sessionId = randomUUID();
     this.logger.log(`[ABS-RESTORE] Starting backup upload`);
     this.logger.log(
@@ -75,7 +81,8 @@ export class RestoreService {
       session.state = RestoreSessionState.PARSING;
 
       // Parse backup details
-      const parsedBackup = await this.absParserService.parseBackupDetails(extractedPath);
+      const parsedBackup =
+        await this.absParserService.parseBackupDetails(extractedPath);
       this.parsedBackups.set(sessionId, parsedBackup);
 
       this.logger.log(
@@ -86,12 +93,16 @@ export class RestoreService {
       );
 
       for (const library of parsedBackup.libraries) {
-        this.logger.log(`[ABS-RESTORE]   - "${library.name}" (id: ${library.id})`);
+        this.logger.log(
+          `[ABS-RESTORE]   - "${library.name}" (id: ${library.id})`,
+        );
       }
 
       // Update state to mapping (ready for user to configure)
       session.state = RestoreSessionState.MAPPING;
-      this.logger.log(`[ABS-RESTORE] Session ${sessionId} ready for library selection`);
+      this.logger.log(
+        `[ABS-RESTORE] Session ${sessionId} ready for library selection`,
+      );
 
       // Clean up uploaded file
       try {
@@ -103,7 +114,8 @@ export class RestoreService {
       return session;
     } catch (error) {
       session.state = RestoreSessionState.FAILED;
-      session.errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      session.errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`[ABS-RESTORE] Session ${sessionId} failed:`, error);
 
       // Clean up on failure
@@ -115,7 +127,10 @@ export class RestoreService {
   /**
    * Extracts a ZIP file to the specified destination
    */
-  private async extractZipFile(zipPath: string, destination: string): Promise<void> {
+  private async extractZipFile(
+    zipPath: string,
+    destination: string,
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
       createReadStream(zipPath)
         .pipe(unzipper.Extract({ path: destination }))
@@ -146,7 +161,10 @@ export class RestoreService {
   /**
    * Validates that a session exists and is in the expected state
    */
-  private validateSession(sessionId: string, allowedStates: RestoreSessionState[]): RestoreSession {
+  private validateSession(
+    sessionId: string,
+    allowedStates: RestoreSessionState[],
+  ): RestoreSession {
     const session = this.sessions.get(sessionId);
     if (!session) {
       throw new NotFoundException(`Restore session ${sessionId} not found`);
@@ -164,10 +182,17 @@ export class RestoreService {
   /**
    * Sets the selected library for the restore session
    */
-  async setSelectedLibrary(sessionId: string, libraryId: string): Promise<void> {
-    const session = this.validateSession(sessionId, [RestoreSessionState.MAPPING]);
+  async setSelectedLibrary(
+    sessionId: string,
+    libraryId: string,
+  ): Promise<void> {
+    const session = this.validateSession(sessionId, [
+      RestoreSessionState.MAPPING,
+    ]);
 
-    this.logger.log(`[ABS-RESTORE] Session ${sessionId}: Selected library ${libraryId}`);
+    this.logger.log(
+      `[ABS-RESTORE] Session ${sessionId}: Selected library ${libraryId}`,
+    );
     session.selectedLibraryId = libraryId;
 
     // Parse library data to get initial counts
@@ -191,7 +216,9 @@ export class RestoreService {
       RestoreSessionState.PREVIEWING,
     ]);
 
-    this.logger.log(`[ABS-RESTORE] Session ${sessionId}: Setting path mappings`);
+    this.logger.log(
+      `[ABS-RESTORE] Session ${sessionId}: Setting path mappings`,
+    );
     for (const mapping of mappings) {
       this.logger.log(
         `[ABS-RESTORE]   - ABS: ${mapping.absPath} -> SAV: ${mapping.savPath}`,
@@ -210,14 +237,18 @@ export class RestoreService {
       RestoreSessionState.PREVIEWING,
     ]);
 
-    this.logger.log(`[ABS-RESTORE] Session ${sessionId}: Setting user mappings`);
+    this.logger.log(
+      `[ABS-RESTORE] Session ${sessionId}: Setting user mappings`,
+    );
     for (const mapping of mappings) {
       if (mapping.savUserId) {
         this.logger.log(
           `[ABS-RESTORE]   - ABS user ${mapping.absUserId} -> SAV user ${mapping.savUserId}`,
         );
       } else {
-        this.logger.log(`[ABS-RESTORE]   - ABS user ${mapping.absUserId} -> SKIP`);
+        this.logger.log(
+          `[ABS-RESTORE]   - ABS user ${mapping.absUserId} -> SKIP`,
+        );
       }
     }
 
@@ -233,10 +264,16 @@ export class RestoreService {
       RestoreSessionState.PREVIEWING,
     ]);
 
-    this.logger.log(`[ABS-RESTORE] Session ${sessionId}: Setting restore options`);
+    this.logger.log(
+      `[ABS-RESTORE] Session ${sessionId}: Setting restore options`,
+    );
     session.options = { ...session.options, ...options };
-    this.logger.log(`[ABS-RESTORE]   - Import progress: ${session.options.importProgress}`);
-    this.logger.log(`[ABS-RESTORE]   - Import covers: ${session.options.importCovers}`);
+    this.logger.log(
+      `[ABS-RESTORE]   - Import progress: ${session.options.importProgress}`,
+    );
+    this.logger.log(
+      `[ABS-RESTORE]   - Import covers: ${session.options.importCovers}`,
+    );
     this.logger.log(
       `[ABS-RESTORE]   - Import author images: ${session.options.importAuthorImages}`,
     );
@@ -313,7 +350,10 @@ export class RestoreService {
           } else {
             // Check first audio file as validation
             const firstAudioFile = audioFiles[0];
-            const audioFilePath = path.join(savPath, firstAudioFile.metadata.filename);
+            const audioFilePath = path.join(
+              savPath,
+              firstAudioFile.metadata.filename,
+            );
             try {
               await fs.access(audioFilePath);
               found = true;
@@ -394,8 +434,12 @@ export class RestoreService {
     }
 
     // Count user mappings
-    const mappedUsers = session.userMappings.filter((m) => m.savUserId !== null);
-    const skippedUsers = session.userMappings.filter((m) => m.savUserId === null);
+    const mappedUsers = session.userMappings.filter(
+      (m) => m.savUserId !== null,
+    );
+    const skippedUsers = session.userMappings.filter(
+      (m) => m.savUserId === null,
+    );
 
     // Count progress records for mapped users
     let progressRecordsToImport = 0;
@@ -476,7 +520,9 @@ export class RestoreService {
       `[ABS-RESTORE]   - ${preview.progressRecordsToImport} progress records for ${preview.usersToMap.mapped} mapped users`,
     );
     this.logger.log(`[ABS-RESTORE]   - ${preview.coversToImport} cover images`);
-    this.logger.log(`[ABS-RESTORE]   - ${preview.authorImagesToImport} author images`);
+    this.logger.log(
+      `[ABS-RESTORE]   - ${preview.authorImagesToImport} author images`,
+    );
 
     return preview;
   }
@@ -484,7 +530,10 @@ export class RestoreService {
   /**
    * Finds the matching path mapping for an ABS path
    */
-  private findPathMapping(absPath: string, mappings: PathMapping[]): PathMapping | null {
+  private findPathMapping(
+    absPath: string,
+    mappings: PathMapping[],
+  ): PathMapping | null {
     for (const mapping of mappings) {
       if (absPath.startsWith(mapping.absPath)) {
         return mapping;
@@ -516,7 +565,9 @@ export class RestoreService {
 
     this.sessions.delete(sessionId);
     this.parsedBackups.delete(sessionId);
-    this.logger.log(`[ABS-RESTORE] Session ${sessionId}: Cancelled and cleaned up`);
+    this.logger.log(
+      `[ABS-RESTORE] Session ${sessionId}: Cancelled and cleaned up`,
+    );
   }
 
   /**

@@ -150,7 +150,8 @@ export class UsersService {
     const userUpdates: Partial<typeof authSchema.user.$inferInsert> = {};
     if (dto.name !== undefined) userUpdates.name = dto.name;
     if (dto.email !== undefined) userUpdates.email = dto.email;
-    if (dto.isAdmin !== undefined) userUpdates.role = dto.isAdmin ? 'admin' : 'user';
+    if (dto.isAdmin !== undefined)
+      userUpdates.role = dto.isAdmin ? 'admin' : 'user';
 
     // Apply user updates if any
     if (Object.keys(userUpdates).length > 0) {
@@ -287,9 +288,7 @@ export class UsersService {
       .where(eq(authSchema.account.userId, userId));
 
     // Delete the user
-    await this.db
-      .delete(authSchema.user)
-      .where(eq(authSchema.user.id, userId));
+    await this.db.delete(authSchema.user).where(eq(authSchema.user.id, userId));
   }
 
   async getPermissions(userId: string): Promise<UserPermissionsResponse> {
@@ -341,9 +340,11 @@ export class UsersService {
     return tags.map((t) => t.tagId);
   }
 
-  async getApiKeyInfo(
-    userId: string,
-  ): Promise<{ hasKey: boolean; lastUsed: string | null; lastIp: string | null } | null> {
+  async getApiKeyInfo(userId: string): Promise<{
+    hasKey: boolean;
+    lastUsed: string | null;
+    lastIp: string | null;
+  } | null> {
     const keys = await this.db
       .select({
         id: apiKey.id,
@@ -356,7 +357,7 @@ export class UsersService {
 
     if (keys.length === 0) return null;
 
-    const key = keys[0]!;
+    const key = keys[0];
     let metadata: Record<string, unknown> = {};
     if (key.metadata) {
       try {

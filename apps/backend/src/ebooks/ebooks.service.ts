@@ -6,7 +6,19 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, ne, ilike, or, desc, asc, SQL, and, isNotNull, exists, sql } from 'drizzle-orm';
+import {
+  eq,
+  ne,
+  ilike,
+  or,
+  desc,
+  asc,
+  SQL,
+  and,
+  isNotNull,
+  exists,
+  sql,
+} from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import sharp from 'sharp';
@@ -62,7 +74,8 @@ export class EbooksService {
    * Convert a relative file path (stored in DB) to an absolute path using the ebook library path
    */
   private async resolveFilePath(relativePath: string): Promise<string> {
-    const ebookLibraryPath = await this.appSettingsService.getEbookLibraryPath();
+    const ebookLibraryPath =
+      await this.appSettingsService.getEbookLibraryPath();
     if (!ebookLibraryPath) {
       throw new Error('Ebook library path not configured');
     }
@@ -99,7 +112,10 @@ export class EbooksService {
         this.db
           .select({ one: sql`1` })
           .from(schema.ebookAuthors)
-          .innerJoin(audiobookSchema.people, eq(schema.ebookAuthors.personId, audiobookSchema.people.id))
+          .innerJoin(
+            audiobookSchema.people,
+            eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
+          )
           .where(
             and(
               eq(schema.ebookAuthors.ebookId, schema.ebooks.id),
@@ -113,7 +129,10 @@ export class EbooksService {
         this.db
           .select({ one: sql`1` })
           .from(schema.ebookSeries)
-          .innerJoin(audiobookSchema.series, eq(schema.ebookSeries.seriesId, audiobookSchema.series.id))
+          .innerJoin(
+            audiobookSchema.series,
+            eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
+          )
           .where(
             and(
               eq(schema.ebookSeries.ebookId, schema.ebooks.id),
@@ -144,22 +163,25 @@ export class EbooksService {
 
     switch (sortBy) {
       case 'title':
-        orderByClause = sortOrder === 'asc'
-          ? asc(schema.ebooks.title)
-          : desc(schema.ebooks.title);
+        orderByClause =
+          sortOrder === 'asc'
+            ? asc(schema.ebooks.title)
+            : desc(schema.ebooks.title);
         break;
       case 'createdAt':
-        orderByClause = sortOrder === 'asc'
-          ? asc(schema.ebooks.createdAt)
-          : desc(schema.ebooks.createdAt);
+        orderByClause =
+          sortOrder === 'asc'
+            ? asc(schema.ebooks.createdAt)
+            : desc(schema.ebooks.createdAt);
         break;
       case 'author':
       case 'rating':
       case 'series':
         // These require post-processing, use createdAt as initial order
-        orderByClause = sortOrder === 'asc'
-          ? asc(schema.ebooks.createdAt)
-          : desc(schema.ebooks.createdAt);
+        orderByClause =
+          sortOrder === 'asc'
+            ? asc(schema.ebooks.createdAt)
+            : desc(schema.ebooks.createdAt);
         break;
       default:
         orderByClause = desc(schema.ebooks.createdAt);
@@ -240,8 +262,10 @@ export class EbooksService {
     // Apply client-side sorting for author, rating, and series
     if (sortBy === 'rating') {
       result.sort((a, b) => {
-        const ratingA = a.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
-        const ratingB = b.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
+        const ratingA =
+          a.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
+        const ratingB =
+          b.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
         return sortOrder === 'desc' ? ratingB - ratingA : ratingA - ratingB;
       });
     } else if (sortBy === 'series') {
@@ -309,7 +333,10 @@ export class EbooksService {
         )
         .where(eq(schema.ebookSeries.ebookId, id)),
       this.db
-        .select({ id: audiobookSchema.genres.id, name: audiobookSchema.genres.name })
+        .select({
+          id: audiobookSchema.genres.id,
+          name: audiobookSchema.genres.name,
+        })
         .from(schema.ebookGenres)
         .innerJoin(
           audiobookSchema.genres,
@@ -317,9 +344,15 @@ export class EbooksService {
         )
         .where(eq(schema.ebookGenres.ebookId, id)),
       this.db
-        .select({ id: audiobookSchema.tags.id, name: audiobookSchema.tags.name })
+        .select({
+          id: audiobookSchema.tags.id,
+          name: audiobookSchema.tags.name,
+        })
         .from(schema.ebookTags)
-        .innerJoin(audiobookSchema.tags, eq(schema.ebookTags.tagId, audiobookSchema.tags.id))
+        .innerJoin(
+          audiobookSchema.tags,
+          eq(schema.ebookTags.tagId, audiobookSchema.tags.id),
+        )
         .where(eq(schema.ebookTags.ebookId, id)),
     ]);
 
@@ -379,7 +412,9 @@ export class EbooksService {
     if (coverSource === 'embedded') {
       try {
         const absolutePath = await this.resolveFilePath(filePath);
-        return await this.ebookMetadataProvider.extractCoverFromFile(absolutePath);
+        return await this.ebookMetadataProvider.extractCoverFromFile(
+          absolutePath,
+        );
       } catch {
         return null;
       }

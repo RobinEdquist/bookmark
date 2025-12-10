@@ -25,14 +25,19 @@ export const importErrors = pgTable(
     filePath: text('file_path').notNull(),
     errorMessage: text('error_message').notNull(),
     errorCode: text('error_code'),
-    errorDetails: jsonb('error_details').$type<{ stack?: string; context?: Record<string, unknown> }>(),
+    errorDetails: jsonb('error_details').$type<{
+      stack?: string;
+      context?: Record<string, unknown>;
+    }>(),
     status: importErrorStatusEnum('status').notNull().default('pending'),
     attemptCount: integer('attempt_count').notNull().default(1),
     firstOccurredAt: timestamp('first_occurred_at').defaultNow().notNull(),
     lastOccurredAt: timestamp('last_occurred_at').defaultNow().notNull(),
     resolvedAt: timestamp('resolved_at'),
     ignoredAt: timestamp('ignored_at'),
-    ignoredBy: text('ignored_by').references(() => user.id, { onDelete: 'set null' }),
+    ignoredBy: text('ignored_by').references(() => user.id, {
+      onDelete: 'set null',
+    }),
   },
   (table) => [
     index('import_errors_status_idx').on(table.status),

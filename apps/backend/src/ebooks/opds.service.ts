@@ -21,7 +21,10 @@ export class OpdsService {
       .replace(/'/g, '&apos;');
   }
 
-  private truncateDescription(description: string | null, maxLength = 500): string | null {
+  private truncateDescription(
+    description: string | null,
+    maxLength = 500,
+  ): string | null {
     if (!description) return null;
     // Strip HTML tags
     const text = description.replace(/<[^>]*>/g, '');
@@ -67,7 +70,11 @@ export class OpdsService {
 </feed>`;
   }
 
-  async buildAllEbooksFeed(baseUrl: string, page: number = 1, perPage: number = 20): Promise<string> {
+  async buildAllEbooksFeed(
+    baseUrl: string,
+    page: number = 1,
+    perPage: number = 20,
+  ): Promise<string> {
     const offset = (page - 1) * perPage;
 
     // Get total count
@@ -108,8 +115,14 @@ export class OpdsService {
         count: count(schema.ebookAuthors.ebookId),
       })
       .from(audiobookSchema.people)
-      .innerJoin(schema.ebookAuthors, eq(audiobookSchema.people.id, schema.ebookAuthors.personId))
-      .innerJoin(schema.ebooks, eq(schema.ebookAuthors.ebookId, schema.ebooks.id))
+      .innerJoin(
+        schema.ebookAuthors,
+        eq(audiobookSchema.people.id, schema.ebookAuthors.personId),
+      )
+      .innerJoin(
+        schema.ebooks,
+        eq(schema.ebookAuthors.ebookId, schema.ebooks.id),
+      )
       .where(eq(schema.ebooks.status, 'available'))
       .groupBy(audiobookSchema.people.id, audiobookSchema.people.name)
       .orderBy(asc(audiobookSchema.people.name));
@@ -162,9 +175,7 @@ export class OpdsService {
     const ebooks = await this.db
       .select()
       .from(schema.ebooks)
-      .where(
-        eq(schema.ebooks.status, 'available'),
-      )
+      .where(eq(schema.ebooks.status, 'available'))
       .orderBy(asc(schema.ebooks.title));
 
     // Filter to only include ebooks by this author
@@ -192,8 +203,14 @@ export class OpdsService {
         count: count(schema.ebookSeries.ebookId),
       })
       .from(audiobookSchema.series)
-      .innerJoin(schema.ebookSeries, eq(audiobookSchema.series.id, schema.ebookSeries.seriesId))
-      .innerJoin(schema.ebooks, eq(schema.ebookSeries.ebookId, schema.ebooks.id))
+      .innerJoin(
+        schema.ebookSeries,
+        eq(audiobookSchema.series.id, schema.ebookSeries.seriesId),
+      )
+      .innerJoin(
+        schema.ebooks,
+        eq(schema.ebookSeries.ebookId, schema.ebooks.id),
+      )
       .where(eq(schema.ebooks.status, 'available'))
       .groupBy(audiobookSchema.series.id, audiobookSchema.series.name)
       .orderBy(asc(audiobookSchema.series.name));
@@ -244,7 +261,10 @@ export class OpdsService {
         order: schema.ebookSeries.order,
       })
       .from(schema.ebookSeries)
-      .innerJoin(schema.ebooks, eq(schema.ebookSeries.ebookId, schema.ebooks.id))
+      .innerJoin(
+        schema.ebooks,
+        eq(schema.ebookSeries.ebookId, schema.ebooks.id),
+      )
       .where(eq(schema.ebookSeries.seriesId, seriesId))
       .orderBy(asc(schema.ebookSeries.order));
 
@@ -274,7 +294,10 @@ export class OpdsService {
       const authors = await this.db
         .select({ name: audiobookSchema.people.name })
         .from(schema.ebookAuthors)
-        .innerJoin(audiobookSchema.people, eq(schema.ebookAuthors.personId, audiobookSchema.people.id))
+        .innerJoin(
+          audiobookSchema.people,
+          eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
+        )
         .where(eq(schema.ebookAuthors.ebookId, ebook.id))
         .orderBy(asc(schema.ebookAuthors.order));
 
@@ -346,7 +369,8 @@ export class OpdsService {
     feedPath?: string;
     upLink?: string;
   }): string {
-    const { id, title, baseUrl, entries, page, totalPages, feedPath, upLink } = options;
+    const { id, title, baseUrl, entries, page, totalPages, feedPath, upLink } =
+      options;
     const updated = new Date().toISOString();
 
     let paginationLinks = '';

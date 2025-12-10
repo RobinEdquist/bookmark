@@ -176,7 +176,8 @@ export class HardcoverService {
   async getAutoSyncOnImport(): Promise<boolean> {
     const settings = await this.db
       .select({
-        autoSyncOnImport: appSettingsSchema.appSettings.hardcoverAutoSyncOnImport,
+        autoSyncOnImport:
+          appSettingsSchema.appSettings.hardcoverAutoSyncOnImport,
       })
       .from(appSettingsSchema.appSettings)
       .where(eq(appSettingsSchema.appSettings.id, 'app_settings'))
@@ -218,20 +219,28 @@ export class HardcoverService {
       const duration = Date.now() - startTime;
       if (error instanceof Error) {
         if (error.message.includes('401')) {
-          this.logger.warn(`API key validation failed: Invalid or expired API key (${duration}ms)`);
+          this.logger.warn(
+            `API key validation failed: Invalid or expired API key (${duration}ms)`,
+          );
           return { valid: false, error: 'Invalid or expired API key' };
         }
         if (error.message.includes('429')) {
-          this.logger.warn(`API key validation failed: Rate limit exceeded (${duration}ms)`);
+          this.logger.warn(
+            `API key validation failed: Rate limit exceeded (${duration}ms)`,
+          );
           return {
             valid: false,
             error: 'Rate limit exceeded, try again in a minute',
           };
         }
-        this.logger.error(`API key validation failed: ${error.message} (${duration}ms)`);
+        this.logger.error(
+          `API key validation failed: ${error.message} (${duration}ms)`,
+        );
         return { valid: false, error: error.message };
       }
-      this.logger.error(`API key validation failed: Unknown error (${duration}ms)`);
+      this.logger.error(
+        `API key validation failed: Unknown error (${duration}ms)`,
+      );
       return { valid: false, error: 'Failed to connect to Hardcover' };
     }
   }
@@ -267,7 +276,9 @@ export class HardcoverService {
       }
     `;
 
-    this.logger.log(`Searching Hardcover: query="${query}", page=${page}, perPage=${perPage}`);
+    this.logger.log(
+      `Searching Hardcover: query="${query}", page=${page}, perPage=${perPage}`,
+    );
     const startTime = Date.now();
 
     try {
@@ -279,17 +290,23 @@ export class HardcoverService {
       const duration = Date.now() - startTime;
       const hitCount = data?.search?.results?.hits?.length ?? 0;
       const totalFound = data?.search?.results?.found ?? 0;
-      this.logger.log(`Search successful: found ${totalFound} total, returned ${hitCount} hits (${duration}ms)`);
+      this.logger.log(
+        `Search successful: found ${totalFound} total, returned ${hitCount} hits (${duration}ms)`,
+      );
       return { success: true, data };
     } catch (error: unknown) {
       const duration = Date.now() - startTime;
       if (error instanceof Error) {
         if (error.message.includes('401')) {
-          this.logger.warn(`Search failed: Invalid or expired API key (${duration}ms)`);
+          this.logger.warn(
+            `Search failed: Invalid or expired API key (${duration}ms)`,
+          );
           return { success: false, error: 'Invalid or expired API key' };
         }
         if (error.message.includes('429')) {
-          this.logger.warn(`Search failed: Rate limit exceeded (${duration}ms)`);
+          this.logger.warn(
+            `Search failed: Rate limit exceeded (${duration}ms)`,
+          );
           return {
             success: false,
             error: 'Rate limit exceeded, try again in a minute',
@@ -576,9 +593,7 @@ export class HardcoverService {
             hardcoverSchema.hardcoverBooks.id,
           ),
         )
-        .where(
-          eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, mediaId),
-        )
+        .where(eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, mediaId))
         .limit(1);
 
       return link[0]?.hardcoverBook || null;
@@ -669,7 +684,10 @@ export class HardcoverService {
         .from(audiobooksSchema.audiobookAuthors)
         .innerJoin(
           audiobooksSchema.people,
-          eq(audiobooksSchema.audiobookAuthors.personId, audiobooksSchema.people.id),
+          eq(
+            audiobooksSchema.audiobookAuthors.personId,
+            audiobooksSchema.people.id,
+          ),
         )
         .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, mediaId))
         .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
@@ -706,9 +724,10 @@ export class HardcoverService {
     }
 
     const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-    const searchQuery = authorNames.length > 0
-      ? `${fullTitle} ${authorNames.join(' ')}`
-      : fullTitle;
+    const searchQuery =
+      authorNames.length > 0
+        ? `${fullTitle} ${authorNames.join(' ')}`
+        : fullTitle;
 
     const result = await this.searchBooks(searchQuery);
 
@@ -755,7 +774,10 @@ export class HardcoverService {
         .from(audiobooksSchema.audiobookAuthors)
         .innerJoin(
           audiobooksSchema.people,
-          eq(audiobooksSchema.audiobookAuthors.personId, audiobooksSchema.people.id),
+          eq(
+            audiobooksSchema.audiobookAuthors.personId,
+            audiobooksSchema.people.id,
+          ),
         )
         .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, mediaId))
         .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
@@ -792,9 +814,10 @@ export class HardcoverService {
     }
 
     const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-    const searchQuery = authorNames.length > 0
-      ? `${fullTitle} ${authorNames.join(' ')}`
-      : fullTitle;
+    const searchQuery =
+      authorNames.length > 0
+        ? `${fullTitle} ${authorNames.join(' ')}`
+        : fullTitle;
 
     const result = await this.searchBooks(searchQuery, page, perPage);
 
@@ -806,10 +829,7 @@ export class HardcoverService {
 
   // ============ Sync Queue Methods ============
 
-  async addToSyncQueue(
-    mediaType: MediaType,
-    mediaId: string,
-  ): Promise<void> {
+  async addToSyncQueue(mediaType: MediaType, mediaId: string): Promise<void> {
     // Check if already in queue or already linked
     if (mediaType === 'audiobook') {
       const [existingQueue, existingLink] = await Promise.all([
@@ -819,14 +839,20 @@ export class HardcoverService {
           .where(eq(hardcoverSchema.hardcoverSyncQueue.audiobookId, mediaId))
           .limit(1),
         this.db
-          .select({ audiobookId: hardcoverSchema.hardcoverAudiobookLinks.audiobookId })
+          .select({
+            audiobookId: hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+          })
           .from(hardcoverSchema.hardcoverAudiobookLinks)
-          .where(eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, mediaId))
+          .where(
+            eq(hardcoverSchema.hardcoverAudiobookLinks.audiobookId, mediaId),
+          )
           .limit(1),
       ]);
 
       if (existingQueue.length > 0 || existingLink.length > 0) {
-        this.logger.debug(`Audiobook ${mediaId} already in queue or linked, skipping`);
+        this.logger.debug(
+          `Audiobook ${mediaId} already in queue or linked, skipping`,
+        );
         return;
       }
 
@@ -849,7 +875,9 @@ export class HardcoverService {
       ]);
 
       if (existingQueue.length > 0 || existingLink.length > 0) {
-        this.logger.debug(`Ebook ${mediaId} already in queue or linked, skipping`);
+        this.logger.debug(
+          `Ebook ${mediaId} already in queue or linked, skipping`,
+        );
         return;
       }
 
@@ -883,7 +911,7 @@ export class HardcoverService {
   }
 
   async getNextPendingFromQueue(): Promise<
-    (typeof hardcoverSchema.hardcoverSyncQueue.$inferSelect) | null
+    typeof hardcoverSchema.hardcoverSyncQueue.$inferSelect | null
   > {
     const items = await this.db
       .select()

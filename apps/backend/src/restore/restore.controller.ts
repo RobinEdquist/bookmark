@@ -48,14 +48,16 @@ export class RestoreController {
    */
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  async uploadBackup(
-    @UploadedFile() file: Express.Multer.File,
-  ): Promise<{
+  async uploadBackup(@UploadedFile() file: Express.Multer.File): Promise<{
     success: boolean;
     session: {
       id: string;
       state: string;
-      availableLibraries?: Array<{ id: string; name: string; folders: string[] }>;
+      availableLibraries?: Array<{
+        id: string;
+        name: string;
+        folders: string[];
+      }>;
     };
   }> {
     if (!file) {
@@ -63,10 +65,16 @@ export class RestoreController {
     }
 
     // Validate file type (.audiobookshelf files are actually zip archives)
-    const isValidMime = file.mimetype === 'application/zip' || file.mimetype === 'application/octet-stream';
-    const isValidExtension = file.originalname.endsWith('.audiobookshelf') || file.originalname.endsWith('.zip');
+    const isValidMime =
+      file.mimetype === 'application/zip' ||
+      file.mimetype === 'application/octet-stream';
+    const isValidExtension =
+      file.originalname.endsWith('.audiobookshelf') ||
+      file.originalname.endsWith('.zip');
     if (!isValidMime && !isValidExtension) {
-      throw new BadRequestException('Only .audiobookshelf backup files are allowed');
+      throw new BadRequestException(
+        'Only .audiobookshelf backup files are allowed',
+      );
     }
 
     // Validate file size (500MB max)
@@ -74,18 +82,24 @@ export class RestoreController {
       throw new BadRequestException('File size must be less than 500 MB');
     }
 
-    this.logger.log(`[ABS-RESTORE-API] Received backup upload: ${file.originalname}`);
+    this.logger.log(
+      `[ABS-RESTORE-API] Received backup upload: ${file.originalname}`,
+    );
 
     try {
       const session = await this.restoreService.createSession(file);
 
       // Get available libraries from parsed backup
-      const backupDetails = await this.restoreService.getBackupDetails(session.id);
+      const backupDetails = await this.restoreService.getBackupDetails(
+        session.id,
+      );
       const availableLibraries = backupDetails
         ? backupDetails.libraries.map((lib) => ({
             id: lib.id,
             name: lib.name,
-            folders: backupDetails.libraryFolders.get(lib.id)?.map((f) => f.path) || [],
+            folders:
+              backupDetails.libraryFolders.get(lib.id)?.map((f) => f.path) ||
+              [],
           }))
         : undefined;
 
@@ -195,7 +209,9 @@ export class RestoreController {
     @Param('id') sessionId: string,
     @Body() dto: SetRestoreOptionsDto,
   ): Promise<{ success: boolean; message: string }> {
-    this.logger.log(`[ABS-RESTORE-API] Session ${sessionId}: Setting restore options`);
+    this.logger.log(
+      `[ABS-RESTORE-API] Session ${sessionId}: Setting restore options`,
+    );
 
     this.restoreService.setOptions(sessionId, dto);
 
@@ -211,7 +227,9 @@ export class RestoreController {
    */
   @Get('sessions/:id/preview')
   async getPreview(@Param('id') sessionId: string): Promise<ImportPreview> {
-    this.logger.log(`[ABS-RESTORE-API] Session ${sessionId}: Generating preview`);
+    this.logger.log(
+      `[ABS-RESTORE-API] Session ${sessionId}: Generating preview`,
+    );
 
     const preview = await this.restoreService.generatePreview(sessionId);
 
@@ -241,10 +259,15 @@ export class RestoreController {
     this.restoreImporterService
       .executeImport(session)
       .then(() => {
-        this.logger.log(`[ABS-RESTORE-API] Session ${sessionId}: Import completed successfully`);
+        this.logger.log(
+          `[ABS-RESTORE-API] Session ${sessionId}: Import completed successfully`,
+        );
       })
       .catch((error) => {
-        this.logger.error(`[ABS-RESTORE-API] Session ${sessionId}: Import failed:`, error);
+        this.logger.error(
+          `[ABS-RESTORE-API] Session ${sessionId}: Import failed:`,
+          error,
+        );
       });
 
     return {
@@ -264,7 +287,9 @@ export class RestoreController {
 
     await this.restoreService.cancelSession(sessionId);
 
-    this.logger.log(`[ABS-RESTORE-API] Session ${sessionId}: Cancelled successfully`);
+    this.logger.log(
+      `[ABS-RESTORE-API] Session ${sessionId}: Cancelled successfully`,
+    );
   }
 
   /**
@@ -272,7 +297,9 @@ export class RestoreController {
    * Get list of SAV users for mapping
    */
   @Get('sav-users')
-  async getSavUsers(): Promise<Array<{ id: string; name: string; email: string }>> {
+  async getSavUsers(): Promise<
+    Array<{ id: string; name: string; email: string }>
+  > {
     this.logger.log(`[ABS-RESTORE-API] Fetching SAV users for mapping`);
 
     const users = await this.db

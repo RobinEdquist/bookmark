@@ -125,10 +125,13 @@ export const hardcoverSyncQueue = pgTable(
 );
 
 // Relations
-export const hardcoverBooksRelations = relations(hardcoverBooks, ({ many }) => ({
-  audiobookLinks: many(hardcoverAudiobookLinks),
-  ebookLinks: many(hardcoverEbookLinks),
-}));
+export const hardcoverBooksRelations = relations(
+  hardcoverBooks,
+  ({ many }) => ({
+    audiobookLinks: many(hardcoverAudiobookLinks),
+    ebookLinks: many(hardcoverEbookLinks),
+  }),
+);
 
 export const hardcoverAudiobookLinksRelations = relations(
   hardcoverAudiobookLinks,

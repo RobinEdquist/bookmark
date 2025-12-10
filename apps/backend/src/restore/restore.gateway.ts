@@ -80,9 +80,12 @@ export class RestoreGateway
     });
 
     // Subscribe to restore events from the importer service
-    this.restoreImporterService.on('restore.progress', (progress: RestoreProgress) => {
-      this.handleProgressUpdate(progress);
-    });
+    this.restoreImporterService.on(
+      'restore.progress',
+      (progress: RestoreProgress) => {
+        this.handleProgressUpdate(progress);
+      },
+    );
 
     this.restoreImporterService.on(
       'restore.completed',
@@ -138,7 +141,9 @@ export class RestoreGateway
 
   handleConnection(client: SocketWithSession) {
     const userId = client.data.session?.user?.id;
-    this.logger.log(`Client connected to restore namespace: ${client.id} (user: ${userId})`);
+    this.logger.log(
+      `Client connected to restore namespace: ${client.id} (user: ${userId})`,
+    );
   }
 
   handleDisconnect(client: SocketWithSession) {
@@ -163,7 +168,8 @@ export class RestoreGateway
     }
 
     // Add to client's subscription set
-    client.data.subscribedSessions = client.data.subscribedSessions || new Set<string>();
+    client.data.subscribedSessions =
+      client.data.subscribedSessions || new Set<string>();
     client.data.subscribedSessions.add(sessionId);
 
     // Join room for this session
@@ -204,7 +210,9 @@ export class RestoreGateway
     // Leave room for this session
     client.leave(`session:${sessionId}`);
 
-    this.logger.log(`Client ${client.id} unsubscribed from session ${sessionId}`);
+    this.logger.log(
+      `Client ${client.id} unsubscribed from session ${sessionId}`,
+    );
 
     return {
       success: true,
@@ -217,7 +225,9 @@ export class RestoreGateway
    */
   private handleProgressUpdate(progress: RestoreProgress): void {
     // Send progress to clients subscribed to this session
-    this.server.to(`session:${progress.sessionId}`).emit('restore.progress', progress);
+    this.server
+      .to(`session:${progress.sessionId}`)
+      .emit('restore.progress', progress);
     this.logger.debug(
       `Progress update for session ${progress.sessionId}: ${progress.currentOperation} (${progress.percentage}%)`,
     );
@@ -227,7 +237,9 @@ export class RestoreGateway
    * Handle restore completion
    */
   private handleRestoreCompleted(sessionId: string): void {
-    this.server.to(`session:${sessionId}`).emit('restore.completed', { sessionId });
+    this.server
+      .to(`session:${sessionId}`)
+      .emit('restore.completed', { sessionId });
     this.logger.log(`Restore completed for session ${sessionId}`);
   }
 

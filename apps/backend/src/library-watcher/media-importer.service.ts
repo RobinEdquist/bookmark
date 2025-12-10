@@ -7,7 +7,10 @@ import * as fs from 'fs/promises';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
-import { EmbeddedMetadataProvider, AudioFileInfo } from './metadata/embedded-metadata.provider';
+import {
+  EmbeddedMetadataProvider,
+  AudioFileInfo,
+} from './metadata/embedded-metadata.provider';
 import { EbookMetadataProvider } from './metadata/ebook-metadata.provider';
 import { ImportErrorsService } from '../import-errors/import-errors.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
@@ -59,11 +62,12 @@ export class MediaImporterService {
       }
 
       // Extract metadata from primary file
-      const metadata = await this.audioMetadataProvider.extractMetadata(primaryFile);
+      const metadata =
+        await this.audioMetadataProvider.extractMetadata(primaryFile);
 
       // Determine cover source
       let coverSource: 'embedded' | undefined = undefined;
-      let coverUrl: string | undefined = undefined;
+      const coverUrl: string | undefined = undefined;
 
       if (metadata.hasEmbeddedCover) {
         coverSource = 'embedded';
@@ -79,7 +83,8 @@ export class MediaImporterService {
       }
 
       const totalDuration = fileInfos.reduce((sum, f) => sum + f.duration, 0);
-      const title = metadata.title || this.inferTitleFromPath(unit.path, unit.type);
+      const title =
+        metadata.title || this.inferTitleFromPath(unit.path, unit.type);
       const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
 
       // Create audiobook record
@@ -118,10 +123,15 @@ export class MediaImporterService {
       }
 
       // Extract chapters
-      let chapters = await this.audioMetadataProvider.extractChapters(primaryFile);
+      let chapters =
+        await this.audioMetadataProvider.extractChapters(primaryFile);
       let chapterSource: 'embedded' | 'external' = 'embedded';
 
-      if (chapters.length === 0 && unit.type === 'multi-file' && fileInfos.length > 1) {
+      if (
+        chapters.length === 0 &&
+        unit.type === 'multi-file' &&
+        fileInfos.length > 1
+      ) {
         chapters = this.generateChaptersFromFiles(fileInfos);
         chapterSource = 'external';
       }
@@ -141,10 +151,18 @@ export class MediaImporterService {
 
       // Create author/narrator links
       if (metadata.author) {
-        await this.createOrLinkAudiobookPerson(audiobook.id, metadata.author, 'author');
+        await this.createOrLinkAudiobookPerson(
+          audiobook.id,
+          metadata.author,
+          'author',
+        );
       }
       if (metadata.narrator) {
-        await this.createOrLinkAudiobookPerson(audiobook.id, metadata.narrator, 'narrator');
+        await this.createOrLinkAudiobookPerson(
+          audiobook.id,
+          metadata.narrator,
+          'narrator',
+        );
       }
 
       // Clear any previous errors
@@ -152,12 +170,15 @@ export class MediaImporterService {
 
       // Queue for Hardcover auto-sync
       try {
-        const autoSyncEnabled = await this.hardcoverService.getAutoSyncOnImport();
+        const autoSyncEnabled =
+          await this.hardcoverService.getAutoSyncOnImport();
         if (autoSyncEnabled) {
           await this.hardcoverService.addToSyncQueue('audiobook', audiobook.id);
         }
       } catch (error) {
-        this.logger.warn(`Failed to queue audiobook ${audiobook.id} for Hardcover sync: ${error}`);
+        this.logger.warn(
+          `Failed to queue audiobook ${audiobook.id} for Hardcover sync: ${error}`,
+        );
       }
 
       this.logger.log(`Imported audiobook: ${title} (${audiobook.id})`);
@@ -177,7 +198,10 @@ export class MediaImporterService {
 
   // ===== EBOOK IMPORT =====
 
-  async importEbook(unit: EbookUnit, libraryPath: string): Promise<string | null> {
+  async importEbook(
+    unit: EbookUnit,
+    libraryPath: string,
+  ): Promise<string | null> {
     const relativeFilePath = path.relative(libraryPath, unit.path);
 
     try {
@@ -200,12 +224,14 @@ export class MediaImporterService {
       }
 
       // Extract metadata from EPUB
-      const metadata = await this.ebookMetadataProvider.extractMetadata(unit.path);
+      const metadata = await this.ebookMetadataProvider.extractMetadata(
+        unit.path,
+      );
       const stats = await fs.stat(unit.path);
 
       // Determine cover source
       let coverSource: 'embedded' | undefined = undefined;
-      let coverUrl: string | undefined = undefined;
+      const coverUrl: string | undefined = undefined;
 
       if (metadata.cover) {
         coverSource = 'embedded';
@@ -254,14 +280,17 @@ export class MediaImporterService {
 
       // Queue for Hardcover auto-sync
       try {
-        const autoSyncEnabled = await this.hardcoverService.getAutoSyncOnImport();
+        const autoSyncEnabled =
+          await this.hardcoverService.getAutoSyncOnImport();
         this.logger.debug(`Hardcover auto-sync enabled: ${autoSyncEnabled}`);
         if (autoSyncEnabled) {
           await this.hardcoverService.addToSyncQueue('ebook', ebook.id);
           this.logger.log(`Queued ebook ${ebook.id} for Hardcover sync`);
         }
       } catch (error) {
-        this.logger.warn(`Failed to queue ebook ${ebook.id} for Hardcover sync: ${error}`);
+        this.logger.warn(
+          `Failed to queue ebook ${ebook.id} for Hardcover sync: ${error}`,
+        );
       }
 
       return ebook.id;
@@ -278,14 +307,19 @@ export class MediaImporterService {
 
   // ===== PRIVATE HELPERS =====
 
-  private inferTitleFromPath(audiobookPath: string, type: 'single-file' | 'multi-file'): string {
+  private inferTitleFromPath(
+    audiobookPath: string,
+    type: 'single-file' | 'multi-file',
+  ): string {
     if (type === 'single-file') {
       return path.basename(audiobookPath, path.extname(audiobookPath));
     }
     return path.basename(audiobookPath);
   }
 
-  private normalizePublishedDate(dateString: string | undefined): string | undefined {
+  private normalizePublishedDate(
+    dateString: string | undefined,
+  ): string | undefined {
     if (!dateString) return undefined;
     if (/^\d{4}$/.test(dateString)) {
       return `${dateString}-01-01`;

@@ -16,10 +16,7 @@ export class PeopleController {
 
   @Get(':id/image')
   @Header('Cache-Control', 'public, max-age=86400')
-  async getImage(
-    @Param('id') id: string,
-    @Res() res: Response,
-  ): Promise<void> {
+  async getImage(@Param('id') id: string, @Res() res: Response): Promise<void> {
     const imagePath = this.appDataService.getPersonImagePath(id);
 
     try {

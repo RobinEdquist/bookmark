@@ -36,14 +36,20 @@ export class RestoreImporterService {
   /**
    * Subscribe to restore events (progress, completed, failed)
    */
-  on(event: 'restore.progress' | 'restore.completed' | 'restore.failed', listener: (...args: any[]) => void): void {
+  on(
+    event: 'restore.progress' | 'restore.completed' | 'restore.failed',
+    listener: (...args: any[]) => void,
+  ): void {
     this.eventEmitter.on(event, listener);
   }
 
   /**
    * Unsubscribe from restore events
    */
-  off(event: 'restore.progress' | 'restore.completed' | 'restore.failed', listener: (...args: any[]) => void): void {
+  off(
+    event: 'restore.progress' | 'restore.completed' | 'restore.failed',
+    listener: (...args: any[]) => void,
+  ): void {
     this.eventEmitter.off(event, listener);
   }
 
@@ -51,7 +57,9 @@ export class RestoreImporterService {
    * Main import executor - runs the entire import process in a transaction
    */
   async executeImport(session: RestoreSession): Promise<void> {
-    this.logger.log(`[ABS-RESTORE-IMPORT] Starting import for session ${session.id}`);
+    this.logger.log(
+      `[ABS-RESTORE-IMPORT] Starting import for session ${session.id}`,
+    );
     const startTime = Date.now();
 
     if (!session.selectedLibraryId || !session.extractedPath) {
@@ -68,11 +76,18 @@ export class RestoreImporterService {
 
       // Filter audiobooks to only those that can be imported
       const importableItems = libraryData.libraryItems.filter((item) => {
-        const savPath = this.mapAbsPathToSavPath(item.path, session.pathMappings);
+        const savPath = this.mapAbsPathToSavPath(
+          item.path,
+          session.pathMappings,
+        );
         return savPath !== null;
       });
 
-      const totalItems = this.calculateTotalItems(importableItems, libraryData, session);
+      const totalItems = this.calculateTotalItems(
+        importableItems,
+        libraryData,
+        session,
+      );
       let processedItems = 0;
 
       this.logger.log(
@@ -81,7 +96,10 @@ export class RestoreImporterService {
           `${libraryData.series.length} series`,
       );
 
-      const emitProgress = (currentOperation: string, itemsProcessed?: number) => {
+      const emitProgress = (
+        currentOperation: string,
+        itemsProcessed?: number,
+      ) => {
         if (itemsProcessed !== undefined) {
           processedItems = itemsProcessed;
         }
@@ -92,7 +110,10 @@ export class RestoreImporterService {
           totalItems,
           currentOperation,
           errors: [],
-          percentage: totalItems > 0 ? Math.round((processedItems / totalItems) * 100) : 0,
+          percentage:
+            totalItems > 0
+              ? Math.round((processedItems / totalItems) * 100)
+              : 0,
         };
         this.eventEmitter.emit('restore.progress', progress);
       };
@@ -100,14 +121,20 @@ export class RestoreImporterService {
       // Execute import in a database transaction
       await this.db.transaction(async (tx) => {
         // Step 1: Import people (authors and narrators)
-        this.logger.log(`[ABS-RESTORE-IMPORT] Step 1: Importing authors and narrators`);
+        this.logger.log(
+          `[ABS-RESTORE-IMPORT] Step 1: Importing authors and narrators`,
+        );
         emitProgress('Importing authors and narrators', 0);
 
         const authorIdMap = new Map<string, string>(); // ABS author ID -> SAV person ID
         const narratorNameMap = new Map<string, string>(); // Narrator name -> SAV person ID
 
         for (const absAuthor of libraryData.authors) {
-          const savPersonId = await this.findOrCreatePerson(absAuthor.name, 'author', tx);
+          const savPersonId = await this.findOrCreatePerson(
+            absAuthor.name,
+            'author',
+            tx,
+          );
           authorIdMap.set(absAuthor.id, savPersonId);
           this.logger.debug(
             `[ABS-RESTORE-IMPORT]   - Author: ${absAuthor.name} (${absAuthor.id} -> ${savPersonId})`,
@@ -123,7 +150,11 @@ export class RestoreImporterService {
         }
 
         for (const narratorName of uniqueNarrators) {
-          const savPersonId = await this.findOrCreatePerson(narratorName, 'narrator', tx);
+          const savPersonId = await this.findOrCreatePerson(
+            narratorName,
+            'narrator',
+            tx,
+          );
           narratorNameMap.set(narratorName, savPersonId);
           this.logger.debug(
             `[ABS-RESTORE-IMPORT]   - Narrator: ${narratorName} -> ${savPersonId}`,
@@ -192,7 +223,10 @@ export class RestoreImporterService {
             continue;
           }
 
-          const savPath = this.mapAbsPathToSavPath(item.path, session.pathMappings);
+          const savPath = this.mapAbsPathToSavPath(
+            item.path,
+            session.pathMappings,
+          );
           if (!savPath) {
             this.logger.warn(
               `[ABS-RESTORE-IMPORT] Skipping ${item.title}: no path mapping`,
@@ -230,15 +264,23 @@ export class RestoreImporterService {
 
           processedItems++;
           if (importedCount % 10 === 0) {
-            emitProgress(`Importing audiobooks (${importedCount}/${importableItems.length})`, processedItems);
+            emitProgress(
+              `Importing audiobooks (${importedCount}/${importableItems.length})`,
+              processedItems,
+            );
           }
         }
 
-        emitProgress(`Imported ${importedCount} audiobooks (${skippedCount} skipped)`, processedItems);
+        emitProgress(
+          `Imported ${importedCount} audiobooks (${skippedCount} skipped)`,
+          processedItems,
+        );
 
         // Step 5: Import covers
         if (session.options.importCovers) {
-          this.logger.log(`[ABS-RESTORE-IMPORT] Step 5: Importing cover images`);
+          this.logger.log(
+            `[ABS-RESTORE-IMPORT] Step 5: Importing cover images`,
+          );
           emitProgress('Importing cover images');
 
           let coverCount = 0;
@@ -257,14 +299,18 @@ export class RestoreImporterService {
             }
           }
 
-          this.logger.log(`[ABS-RESTORE-IMPORT] Imported ${coverCount} cover images`);
+          this.logger.log(
+            `[ABS-RESTORE-IMPORT] Imported ${coverCount} cover images`,
+          );
           processedItems += coverCount;
           emitProgress('Cover images imported', processedItems);
         }
 
         // Step 6: Import author images
         if (session.options.importAuthorImages) {
-          this.logger.log(`[ABS-RESTORE-IMPORT] Step 6: Importing author images`);
+          this.logger.log(
+            `[ABS-RESTORE-IMPORT] Step 6: Importing author images`,
+          );
           emitProgress('Importing author images');
 
           let imageCount = 0;
@@ -283,14 +329,18 @@ export class RestoreImporterService {
             }
           }
 
-          this.logger.log(`[ABS-RESTORE-IMPORT] Imported ${imageCount} author images`);
+          this.logger.log(
+            `[ABS-RESTORE-IMPORT] Imported ${imageCount} author images`,
+          );
           processedItems += imageCount;
           emitProgress('Author images imported', processedItems);
         }
 
         // Step 7: Import progress
         if (session.options.importProgress) {
-          this.logger.log(`[ABS-RESTORE-IMPORT] Step 7: Importing user progress`);
+          this.logger.log(
+            `[ABS-RESTORE-IMPORT] Step 7: Importing user progress`,
+          );
           emitProgress('Importing user progress');
 
           const mappedUsers = new Map(
@@ -319,7 +369,12 @@ export class RestoreImporterService {
             }
 
             try {
-              await this.importProgress(absProgress, savUserId, savAudiobookId, tx);
+              await this.importProgress(
+                absProgress,
+                savUserId,
+                savAudiobookId,
+                tx,
+              );
               progressCount++;
             } catch (error) {
               this.logger.error(
@@ -329,20 +384,25 @@ export class RestoreImporterService {
             }
           }
 
-          this.logger.log(`[ABS-RESTORE-IMPORT] Imported ${progressCount} progress records`);
+          this.logger.log(
+            `[ABS-RESTORE-IMPORT] Imported ${progressCount} progress records`,
+          );
           processedItems += progressCount;
           emitProgress('User progress imported', processedItems);
         }
       });
 
       const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-      this.logger.log(`[ABS-RESTORE-IMPORT] Import completed in ${duration} seconds`);
+      this.logger.log(
+        `[ABS-RESTORE-IMPORT] Import completed in ${duration} seconds`,
+      );
 
       this.eventEmitter.emit('restore.completed', { sessionId: session.id });
     } catch (error) {
       this.logger.error(`[ABS-RESTORE-IMPORT] Import failed:`, error);
 
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
       this.eventEmitter.emit('restore.failed', {
         sessionId: session.id,
         error: errorMessage,
@@ -399,7 +459,9 @@ export class RestoreImporterService {
     // Progress records
     if (session.options.importProgress) {
       const mappedUserIds = new Set(
-        session.userMappings.filter((m) => m.savUserId !== null).map((m) => m.absUserId),
+        session.userMappings
+          .filter((m) => m.savUserId !== null)
+          .map((m) => m.absUserId),
       );
       total += libraryData.mediaProgresses.filter((p) =>
         mappedUserIds.has(p.userId),
@@ -564,7 +626,9 @@ export class RestoreImporterService {
         .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, audiobookId));
       await tx
         .delete(audiobooksSchema.audiobookNarrators)
-        .where(eq(audiobooksSchema.audiobookNarrators.audiobookId, audiobookId));
+        .where(
+          eq(audiobooksSchema.audiobookNarrators.audiobookId, audiobookId),
+        );
       await tx
         .delete(audiobooksSchema.audiobookSeries)
         .where(eq(audiobooksSchema.audiobookSeries.audiobookId, audiobookId));
@@ -601,7 +665,9 @@ export class RestoreImporterService {
     }
 
     // Link authors
-    const bookAuthors = libraryData.bookAuthors.filter((ba) => ba.bookId === book.id);
+    const bookAuthors = libraryData.bookAuthors.filter(
+      (ba) => ba.bookId === book.id,
+    );
     for (const bookAuthor of bookAuthors) {
       const savPersonId = authorIdMap.get(bookAuthor.authorId);
       if (savPersonId) {
@@ -629,7 +695,9 @@ export class RestoreImporterService {
     }
 
     // Link series
-    const bookSeriesList = libraryData.bookSeries.filter((bs) => bs.bookId === book.id);
+    const bookSeriesList = libraryData.bookSeries.filter(
+      (bs) => bs.bookId === book.id,
+    );
     for (const bookSeries of bookSeriesList) {
       const savSeriesId = seriesIdMap.get(bookSeries.seriesId);
       if (savSeriesId) {
@@ -696,7 +764,10 @@ export class RestoreImporterService {
     savAudiobookId: string,
     extractedPath: string,
   ): Promise<void> {
-    const sourcePath = await this.absParserService.getCoverPath(extractedPath, absBookId);
+    const sourcePath = await this.absParserService.getCoverPath(
+      extractedPath,
+      absBookId,
+    );
     if (!sourcePath) {
       throw new Error('No cover found in backup');
     }
@@ -772,7 +843,9 @@ export class RestoreImporterService {
       audiobookId: savAudiobookId,
       currentPosition: Math.floor(absProgress.currentTime),
       completed: absProgress.isFinished,
-      completedAt: absProgress.finishedAt ? new Date(absProgress.finishedAt) : null,
+      completedAt: absProgress.finishedAt
+        ? new Date(absProgress.finishedAt)
+        : null,
       isHidden: absProgress.hideFromContinueListening,
     };
 
@@ -784,7 +857,9 @@ export class RestoreImporterService {
         .where(eq(progressSchema.userAudiobookProgress.id, existing[0].id));
     } else {
       // Create new progress
-      await tx.insert(progressSchema.userAudiobookProgress).values(progressData);
+      await tx
+        .insert(progressSchema.userAudiobookProgress)
+        .values(progressData);
     }
   }
 }

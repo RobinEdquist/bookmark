@@ -37,7 +37,10 @@ export const userAudiobookProgress = pgTable(
       .notNull(),
   },
   (table) => [
-    unique('user_audiobook_progress_unique').on(table.userId, table.audiobookId),
+    unique('user_audiobook_progress_unique').on(
+      table.userId,
+      table.audiobookId,
+    ),
     index('user_audiobook_progress_user_id_idx').on(table.userId),
     index('user_audiobook_progress_audiobook_id_idx').on(table.audiobookId),
     index('user_audiobook_progress_updated_at_idx').on(table.updatedAt),
@@ -66,30 +69,39 @@ export const listeningSessions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
-    index('listening_sessions_user_started_idx').on(table.userId, table.startedAt),
+    index('listening_sessions_user_started_idx').on(
+      table.userId,
+      table.startedAt,
+    ),
     index('listening_sessions_audiobook_id_idx').on(table.audiobookId),
   ],
 );
 
 // Relations
-export const userAudiobookProgressRelations = relations(userAudiobookProgress, ({ one }) => ({
-  user: one(user, {
-    fields: [userAudiobookProgress.userId],
-    references: [user.id],
+export const userAudiobookProgressRelations = relations(
+  userAudiobookProgress,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [userAudiobookProgress.userId],
+      references: [user.id],
+    }),
+    audiobook: one(audiobooks, {
+      fields: [userAudiobookProgress.audiobookId],
+      references: [audiobooks.id],
+    }),
   }),
-  audiobook: one(audiobooks, {
-    fields: [userAudiobookProgress.audiobookId],
-    references: [audiobooks.id],
-  }),
-}));
+);
 
-export const listeningSessionsRelations = relations(listeningSessions, ({ one }) => ({
-  user: one(user, {
-    fields: [listeningSessions.userId],
-    references: [user.id],
+export const listeningSessionsRelations = relations(
+  listeningSessions,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [listeningSessions.userId],
+      references: [user.id],
+    }),
+    audiobook: one(audiobooks, {
+      fields: [listeningSessions.audiobookId],
+      references: [audiobooks.id],
+    }),
   }),
-  audiobook: one(audiobooks, {
-    fields: [listeningSessions.audiobookId],
-    references: [audiobooks.id],
-  }),
-}));
+);

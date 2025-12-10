@@ -35,7 +35,7 @@ export class ApiKeysService {
 
     if (keys.length === 0) return null;
 
-    const key = keys[0]!;
+    const key = keys[0];
     let metadata: Record<string, unknown> = {};
     if (key.metadata) {
       try {
@@ -113,7 +113,9 @@ export class ApiKeysService {
    * Uses direct DB deletion since admin doesn't own the keys and
    * Better Auth's deleteApiKey requires the key owner's session.
    */
-  async revokeUserApiKeyByUserId(userId: string): Promise<{ success: boolean }> {
+  async revokeUserApiKeyByUserId(
+    userId: string,
+  ): Promise<{ success: boolean }> {
     await this.revokeAllUserKeys(userId);
     return { success: true };
   }

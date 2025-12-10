@@ -28,7 +28,9 @@ export class MediaDetectorService {
 
   // ===== AUDIOBOOK DETECTION =====
 
-  async scanLibraryForAudiobooks(libraryPath: string): Promise<AudiobookUnit[]> {
+  async scanLibraryForAudiobooks(
+    libraryPath: string,
+  ): Promise<AudiobookUnit[]> {
     const units: AudiobookUnit[] = [];
 
     const scan = async (currentPath: string): Promise<void> => {
@@ -40,8 +42,12 @@ export class MediaDetectorService {
         return;
       }
 
-      const audioFiles = entries.filter((e) => e.isFile() && isAudioFile(e.name));
-      const subdirs = entries.filter((e) => e.isDirectory() && !e.name.startsWith('.'));
+      const audioFiles = entries.filter(
+        (e) => e.isFile() && isAudioFile(e.name),
+      );
+      const subdirs = entries.filter(
+        (e) => e.isDirectory() && !e.name.startsWith('.'),
+      );
 
       if (audioFiles.length > 0) {
         const files = audioFiles
@@ -61,7 +67,9 @@ export class MediaDetectorService {
     };
 
     try {
-      const rootEntries = await fs.readdir(libraryPath, { withFileTypes: true });
+      const rootEntries = await fs.readdir(libraryPath, {
+        withFileTypes: true,
+      });
 
       for (const entry of rootEntries) {
         const entryPath = path.join(libraryPath, entry.name);

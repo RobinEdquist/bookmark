@@ -57,7 +57,10 @@ export class ProgressService {
   /**
    * Get progress for a specific audiobook
    */
-  async getProgress(userId: string, audiobookId: string): Promise<ProgressResponse | null> {
+  async getProgress(
+    userId: string,
+    audiobookId: string,
+  ): Promise<ProgressResponse | null> {
     const [progress] = await this.db
       .select()
       .from(progressSchema.userAudiobookProgress)
@@ -121,7 +124,9 @@ export class ProgressService {
         set: {
           currentPosition: dto.position,
           completed: isCompleted,
-          completedAt: isCompleted ? new Date() : sql`${progressSchema.userAudiobookProgress.completedAt}`,
+          completedAt: isCompleted
+            ? new Date()
+            : sql`${progressSchema.userAudiobookProgress.completedAt}`,
           isHidden: false, // Reset hidden when user plays again
           updatedAt: new Date(),
         },
@@ -157,7 +162,10 @@ export class ProgressService {
         endPosition: dto.endPosition,
         durationSeconds: dto.durationSeconds,
       })
-      .returning({ id: progressSchema.listeningSessions.id, durationSeconds: progressSchema.listeningSessions.durationSeconds });
+      .returning({
+        id: progressSchema.listeningSessions.id,
+        durationSeconds: progressSchema.listeningSessions.durationSeconds,
+      });
 
     return session;
   }
@@ -179,7 +187,10 @@ export class ProgressService {
       .from(progressSchema.userAudiobookProgress)
       .innerJoin(
         audiobookSchema.audiobooks,
-        eq(progressSchema.userAudiobookProgress.audiobookId, audiobookSchema.audiobooks.id),
+        eq(
+          progressSchema.userAudiobookProgress.audiobookId,
+          audiobookSchema.audiobooks.id,
+        ),
       )
       .where(
         and(
@@ -213,7 +224,11 @@ export class ProgressService {
    */
   async getListeningStats(userId: string): Promise<ListeningStats> {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
 
     // Get week start (Sunday)
     const weekStart = new Date(todayStart);
@@ -223,7 +238,14 @@ export class ProgressService {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
     // Run all queries in parallel
-    const [todayStats, weekStats, monthStats, allTimeStats, progressStats, recentlyPlayed] = await Promise.all([
+    const [
+      todayStats,
+      weekStats,
+      monthStats,
+      allTimeStats,
+      progressStats,
+      recentlyPlayed,
+    ] = await Promise.all([
       // Today's stats
       this.db
         .select({
@@ -284,8 +306,8 @@ export class ProgressService {
         .where(eq(progressSchema.userAudiobookProgress.userId, userId)),
 
       // Recently played (limit 5, not completed)
-      this.getAllProgress(userId).then(all =>
-        all.filter(p => !p.completed).slice(0, 5)
+      this.getAllProgress(userId).then((all) =>
+        all.filter((p) => !p.completed).slice(0, 5),
       ),
     ]);
 

@@ -40,7 +40,8 @@ export class AudiobooksController {
     @Query('seriesId') seriesId?: string,
     @Query('authorId') authorId?: string,
     @Query('language') language?: string,
-    @Query('sortBy') sortBy?: 'title' | 'createdAt' | 'author' | 'rating' | 'series',
+    @Query('sortBy')
+    sortBy?: 'title' | 'createdAt' | 'author' | 'rating' | 'series',
     @Query('sortOrder') sortOrder?: 'asc' | 'desc',
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
@@ -176,15 +177,24 @@ export class AudiobooksController {
     // Calculate byte offset from time offset
     // Approximate: (offsetInFile / fileDuration) * fileSize
     // This is an approximation since audio files aren't perfectly linear
-    const estimatedByteOffset = streamInfo.offsetInFile > 0
-      ? Math.floor((streamInfo.offsetInFile / streamInfo.fileDuration) * fileSize)
-      : 0;
+    const estimatedByteOffset =
+      streamInfo.offsetInFile > 0
+        ? Math.floor(
+            (streamInfo.offsetInFile / streamInfo.fileDuration) * fileSize,
+          )
+        : 0;
 
     // Custom headers for frontend to track position
-    res.setHeader('X-Audiobook-Total-Duration', streamInfo.totalDuration.toString());
+    res.setHeader(
+      'X-Audiobook-Total-Duration',
+      streamInfo.totalDuration.toString(),
+    );
     res.setHeader('X-File-Duration', streamInfo.fileDuration.toString());
     res.setHeader('X-File-Index', streamInfo.fileIndex.toString());
-    res.setHeader('X-File-Start-Position', streamInfo.fileStartPosition.toString());
+    res.setHeader(
+      'X-File-Start-Position',
+      streamInfo.fileStartPosition.toString(),
+    );
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', streamInfo.mimeType);
 
@@ -207,12 +217,15 @@ export class AudiobooksController {
       const chunkSize = end - estimatedByteOffset + 1;
 
       res.status(206);
-      res.setHeader('Content-Range', `bytes ${estimatedByteOffset}-${end}/${fileSize}`);
+      res.setHeader(
+        'Content-Range',
+        `bytes ${estimatedByteOffset}-${end}/${fileSize}`,
+      );
       res.setHeader('Content-Length', chunkSize.toString());
 
       const stream = fs.createReadStream(streamInfo.filePath, {
         start: estimatedByteOffset,
-        end
+        end,
       });
       stream.pipe(res);
     } else {

@@ -19,7 +19,8 @@ export class OpdsController {
 
   private getBaseUrl(req: express.Request): string {
     const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
+    const host =
+      req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
     return `${protocol}://${host}/api/ebooks/opds`;
   }
 
@@ -29,7 +30,10 @@ export class OpdsController {
   }
 
   @Get()
-  async getRootCatalog(@Req() req: express.Request, @Res() res: express.Response) {
+  async getRootCatalog(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+  ) {
     const baseUrl = this.getBaseUrl(req);
     const xml = await this.opdsService.buildRootCatalog(baseUrl);
     this.sendXml(res, xml);

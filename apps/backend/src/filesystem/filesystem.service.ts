@@ -38,7 +38,8 @@ export class FilesystemService {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    const parentPath = normalizedPath === '/' ? null : path.dirname(normalizedPath);
+    const parentPath =
+      normalizedPath === '/' ? null : path.dirname(normalizedPath);
 
     return {
       currentPath: normalizedPath,
@@ -56,7 +57,9 @@ export class FilesystemService {
       throw new BadRequestException('Invalid directory name');
     }
     if (dirName.includes('/') || dirName.includes('\\')) {
-      throw new BadRequestException('Directory name cannot contain path separators');
+      throw new BadRequestException(
+        'Directory name cannot contain path separators',
+      );
     }
 
     try {

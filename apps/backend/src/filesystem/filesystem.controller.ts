@@ -8,7 +8,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Roles, RolesGuard } from '../auth/roles.guard';
-import { FilesystemService, BrowseResult, DirectoryInfo } from './filesystem.service';
+import {
+  FilesystemService,
+  BrowseResult,
+  DirectoryInfo,
+} from './filesystem.service';
 
 @Controller('filesystem')
 @UseGuards(RolesGuard)
@@ -18,7 +22,8 @@ export class FilesystemController {
 
   @Get('browse')
   async browse(@Query('path') dirPath?: string): Promise<BrowseResult> {
-    const targetPath = dirPath || (await this.filesystemService.getInitialPath());
+    const targetPath =
+      dirPath || (await this.filesystemService.getInitialPath());
     return this.filesystemService.browse(targetPath);
   }
 

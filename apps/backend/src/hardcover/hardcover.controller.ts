@@ -139,7 +139,10 @@ export class HardcoverController {
 
   @Get('link/:audiobookId')
   async getLink(@Param('audiobookId') audiobookId: string) {
-    const link = await this.hardcoverService.getHardcoverLink('audiobook', audiobookId);
+    const link = await this.hardcoverService.getHardcoverLink(
+      'audiobook',
+      audiobookId,
+    );
     return { link };
   }
 
@@ -149,8 +152,14 @@ export class HardcoverController {
     @Param('audiobookId') audiobookId: string,
     @Body() dto: LinkAudiobookDto,
   ) {
-    if (!dto.hardcoverBook || !dto.hardcoverBook.id || !dto.hardcoverBook.slug) {
-      throw new BadRequestException('Hardcover book data with id and slug is required');
+    if (
+      !dto.hardcoverBook ||
+      !dto.hardcoverBook.id ||
+      !dto.hardcoverBook.slug
+    ) {
+      throw new BadRequestException(
+        'Hardcover book data with id and slug is required',
+      );
     }
 
     // Cast to HardcoverBookDocument compatible shape
@@ -230,8 +239,14 @@ export class HardcoverController {
     @Param('ebookId') ebookId: string,
     @Body() dto: LinkAudiobookDto, // Same DTO structure works for ebooks
   ) {
-    if (!dto.hardcoverBook || !dto.hardcoverBook.id || !dto.hardcoverBook.slug) {
-      throw new BadRequestException('Hardcover book data with id and slug is required');
+    if (
+      !dto.hardcoverBook ||
+      !dto.hardcoverBook.id ||
+      !dto.hardcoverBook.slug
+    ) {
+      throw new BadRequestException(
+        'Hardcover book data with id and slug is required',
+      );
     }
 
     const hardcoverBook = {

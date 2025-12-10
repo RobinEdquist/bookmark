@@ -11,7 +11,9 @@ async function bootstrap() {
 
   if (isProduction && (!appDataPath || appDataPath.trim() === '')) {
     logger.error('APP_DATA_PATH is required in production.');
-    logger.error('Set it to a persistent storage location (e.g., APP_DATA_PATH=/data/sav)');
+    logger.error(
+      'Set it to a persistent storage location (e.g., APP_DATA_PATH=/data/sav)',
+    );
     process.exit(1);
   }
 

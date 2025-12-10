@@ -33,8 +33,12 @@ export class SeriesService {
       .select({
         seriesId: schema.series.id,
         seriesName: schema.series.name,
-        lastUpdated: sql<Date>`max(${schema.audiobooks.createdAt})`.as('last_updated'),
-        bookCount: sql<number>`count(distinct ${schema.audiobooks.id})`.as('book_count'),
+        lastUpdated: sql<Date>`max(${schema.audiobooks.createdAt})`.as(
+          'last_updated',
+        ),
+        bookCount: sql<number>`count(distinct ${schema.audiobooks.id})`.as(
+          'book_count',
+        ),
       })
       .from(schema.series)
       .innerJoin(
@@ -99,8 +103,12 @@ export class SeriesService {
       .select({
         seriesId: schema.series.id,
         seriesName: schema.series.name,
-        lastUpdated: sql<Date>`max(${schema.audiobooks.createdAt})`.as('last_updated'),
-        bookCount: sql<number>`count(distinct ${schema.audiobooks.id})`.as('book_count'),
+        lastUpdated: sql<Date>`max(${schema.audiobooks.createdAt})`.as(
+          'last_updated',
+        ),
+        bookCount: sql<number>`count(distinct ${schema.audiobooks.id})`.as(
+          'book_count',
+        ),
       })
       .from(schema.series)
       .leftJoin(

@@ -20,7 +20,11 @@ import { coverSourceEnum } from '../database/shared-enums';
 export { coverSourceEnum };
 
 // Enums
-export const chapterSourceEnum = pgEnum('chapter_source', ['embedded', 'manual', 'external']);
+export const chapterSourceEnum = pgEnum('chapter_source', [
+  'embedded',
+  'manual',
+  'external',
+]);
 export const audiobookStatusEnum = pgEnum('audiobook_status', [
   'available',
   'missing',
@@ -287,58 +291,70 @@ export const peopleRelations = relations(people, ({ many }) => ({
   ebookAuthorOf: many(ebookAuthors),
 }));
 
-export const audiobookAuthorsRelations = relations(audiobookAuthors, ({ one }) => ({
-  audiobook: one(audiobooks, {
-    fields: [audiobookAuthors.audiobookId],
-    references: [audiobooks.id],
+export const audiobookAuthorsRelations = relations(
+  audiobookAuthors,
+  ({ one }) => ({
+    audiobook: one(audiobooks, {
+      fields: [audiobookAuthors.audiobookId],
+      references: [audiobooks.id],
+    }),
+    person: one(people, {
+      fields: [audiobookAuthors.personId],
+      references: [people.id],
+    }),
   }),
-  person: one(people, {
-    fields: [audiobookAuthors.personId],
-    references: [people.id],
-  }),
-}));
+);
 
-export const audiobookNarratorsRelations = relations(audiobookNarrators, ({ one }) => ({
-  audiobook: one(audiobooks, {
-    fields: [audiobookNarrators.audiobookId],
-    references: [audiobooks.id],
+export const audiobookNarratorsRelations = relations(
+  audiobookNarrators,
+  ({ one }) => ({
+    audiobook: one(audiobooks, {
+      fields: [audiobookNarrators.audiobookId],
+      references: [audiobooks.id],
+    }),
+    person: one(people, {
+      fields: [audiobookNarrators.personId],
+      references: [people.id],
+    }),
   }),
-  person: one(people, {
-    fields: [audiobookNarrators.personId],
-    references: [people.id],
-  }),
-}));
+);
 
 export const seriesRelations = relations(series, ({ many }) => ({
   audiobooks: many(audiobookSeries),
   ebooks: many(ebookSeries),
 }));
 
-export const audiobookSeriesRelations = relations(audiobookSeries, ({ one }) => ({
-  audiobook: one(audiobooks, {
-    fields: [audiobookSeries.audiobookId],
-    references: [audiobooks.id],
+export const audiobookSeriesRelations = relations(
+  audiobookSeries,
+  ({ one }) => ({
+    audiobook: one(audiobooks, {
+      fields: [audiobookSeries.audiobookId],
+      references: [audiobooks.id],
+    }),
+    series: one(series, {
+      fields: [audiobookSeries.seriesId],
+      references: [series.id],
+    }),
   }),
-  series: one(series, {
-    fields: [audiobookSeries.seriesId],
-    references: [series.id],
-  }),
-}));
+);
 
 export const genresRelations = relations(genres, ({ many }) => ({
   audiobooks: many(audiobookGenres),
 }));
 
-export const audiobookGenresRelations = relations(audiobookGenres, ({ one }) => ({
-  audiobook: one(audiobooks, {
-    fields: [audiobookGenres.audiobookId],
-    references: [audiobooks.id],
+export const audiobookGenresRelations = relations(
+  audiobookGenres,
+  ({ one }) => ({
+    audiobook: one(audiobooks, {
+      fields: [audiobookGenres.audiobookId],
+      references: [audiobooks.id],
+    }),
+    genre: one(genres, {
+      fields: [audiobookGenres.genreId],
+      references: [genres.id],
+    }),
   }),
-  genre: one(genres, {
-    fields: [audiobookGenres.genreId],
-    references: [genres.id],
-  }),
-}));
+);
 
 export const tagsRelations = relations(tags, ({ many }) => ({
   audiobooks: many(audiobookTags),

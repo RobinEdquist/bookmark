@@ -55,7 +55,9 @@ export class HardcoverSyncProcessor implements OnModuleInit {
     const mediaId = queueItem.audiobookId || queueItem.ebookId;
 
     if (!mediaId) {
-      this.logger.error(`Queue item ${queueItem.id} has no audiobookId or ebookId`);
+      this.logger.error(
+        `Queue item ${queueItem.id} has no audiobookId or ebookId`,
+      );
       await this.hardcoverService.removeFromQueue(queueItem.id);
       return;
     }

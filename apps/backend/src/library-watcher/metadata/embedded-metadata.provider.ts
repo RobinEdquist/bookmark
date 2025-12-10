@@ -66,7 +66,9 @@ export class EmbeddedMetadataProvider {
 
       return result;
     } catch (error) {
-      this.logger.error(`Failed to extract metadata from ${filePath}: ${error}`);
+      this.logger.error(
+        `Failed to extract metadata from ${filePath}: ${error}`,
+      );
       throw error;
     }
   }
@@ -78,15 +80,21 @@ export class EmbeddedMetadataProvider {
     return {
       filePath,
       fileName: path.basename(filePath),
-      duration: metadata.format.duration ? Math.round(metadata.format.duration) : 0,
+      duration: metadata.format.duration
+        ? Math.round(metadata.format.duration)
+        : 0,
       format: metadata.format.container || path.extname(filePath).slice(1),
-      bitrate: metadata.format.bitrate ? Math.round(metadata.format.bitrate / 1000) : undefined,
+      bitrate: metadata.format.bitrate
+        ? Math.round(metadata.format.bitrate / 1000)
+        : undefined,
       sampleRate: metadata.format.sampleRate || undefined,
       sizeBytes: stats.size,
     };
   }
 
-  async extractChapters(filePath: string): Promise<Array<{ title: string; startTime: number; endTime?: number }>> {
+  async extractChapters(
+    filePath: string,
+  ): Promise<Array<{ title: string; startTime: number; endTime?: number }>> {
     try {
       // Parse with includeChapters: true for M4B/MP4 chapter support
       const metadata = await mm.parseFile(filePath, { includeChapters: true });
@@ -94,7 +102,9 @@ export class EmbeddedMetadataProvider {
 
       // Check format.chapters (works for M4B/M4A/MP4 files with chapter tracks)
       if (metadata.format.chapters && metadata.format.chapters.length > 0) {
-        this.logger.debug(`Found ${metadata.format.chapters.length} chapters via format.chapters`);
+        this.logger.debug(
+          `Found ${metadata.format.chapters.length} chapters via format.chapters`,
+        );
         return metadata.format.chapters.map((chap, index: number) => ({
           title: chap.title || `Chapter ${index + 1}`,
           // Convert sampleOffset to seconds
@@ -104,15 +114,24 @@ export class EmbeddedMetadataProvider {
       }
 
       // Try ID3v2.4 CHAP tags (for MP3 files with chapters)
-      const id3Chapters = metadata.native?.['ID3v2.4']?.filter((tag) => tag.id === 'CHAP') || [];
+      const id3Chapters =
+        metadata.native?.['ID3v2.4']?.filter((tag) => tag.id === 'CHAP') || [];
       if (id3Chapters.length > 0) {
-        this.logger.debug(`Found ${id3Chapters.length} chapters via ID3v2.4 CHAP tags`);
+        this.logger.debug(
+          `Found ${id3Chapters.length} chapters via ID3v2.4 CHAP tags`,
+        );
         return id3Chapters.map((chap, index: number) => {
-          const value = chap.value as { startTime: number; endTime?: number; title?: string };
+          const value = chap.value as {
+            startTime: number;
+            endTime?: number;
+            title?: string;
+          };
           return {
             title: value.title || `Chapter ${index + 1}`,
             startTime: Math.round(value.startTime / 1000), // Convert ms to seconds
-            endTime: value.endTime ? Math.round(value.endTime / 1000) : undefined,
+            endTime: value.endTime
+              ? Math.round(value.endTime / 1000)
+              : undefined,
           };
         });
       }
@@ -134,35 +153,54 @@ export class EmbeddedMetadataProvider {
     }
   }
 
-  private async extractChaptersWithFfprobe(filePath: string): Promise<Array<{ title: string; startTime: number; endTime?: number }>> {
+  private async extractChaptersWithFfprobe(
+    filePath: string,
+  ): Promise<Array<{ title: string; startTime: number; endTime?: number }>> {
     try {
       const { stdout } = await execAsync(
         `ffprobe -v quiet -print_format json -show_chapters "${filePath.replace(/"/g, '\\"')}"`,
-        { maxBuffer: 10 * 1024 * 1024 } // 10MB buffer for large files
+        { maxBuffer: 10 * 1024 * 1024 }, // 10MB buffer for large files
       );
 
       const data = JSON.parse(stdout);
 
       if (!data.chapters || data.chapters.length === 0) {
-        this.logger.debug(`ffprobe found no chapters in ${path.basename(filePath)}`);
+        this.logger.debug(
+          `ffprobe found no chapters in ${path.basename(filePath)}`,
+        );
         return [];
       }
 
       this.logger.debug(`Found ${data.chapters.length} chapters via ffprobe`);
 
-      return data.chapters.map((chap: { start_time?: string; end_time?: string; tags?: { title?: string } }, index: number) => ({
-        title: chap.tags?.title || `Chapter ${index + 1}`,
-        startTime: Math.round(parseFloat(chap.start_time || '0')),
-        endTime: chap.end_time ? Math.round(parseFloat(chap.end_time)) : undefined,
-      }));
+      return data.chapters.map(
+        (
+          chap: {
+            start_time?: string;
+            end_time?: string;
+            tags?: { title?: string };
+          },
+          index: number,
+        ) => ({
+          title: chap.tags?.title || `Chapter ${index + 1}`,
+          startTime: Math.round(parseFloat(chap.start_time || '0')),
+          endTime: chap.end_time
+            ? Math.round(parseFloat(chap.end_time))
+            : undefined,
+        }),
+      );
     } catch (error) {
       // ffprobe not installed or failed - this is expected on some systems
-      this.logger.debug(`ffprobe chapter extraction failed for ${path.basename(filePath)}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      this.logger.debug(
+        `ffprobe chapter extraction failed for ${path.basename(filePath)}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       return [];
     }
   }
 
-  async extractCover(filePath: string): Promise<{ data: Buffer; mimeType: string } | null> {
+  async extractCover(
+    filePath: string,
+  ): Promise<{ data: Buffer; mimeType: string } | null> {
     try {
       const metadata = await mm.parseFile(filePath);
       const picture = metadata.common.picture?.[0];
