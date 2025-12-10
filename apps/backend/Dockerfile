@@ -33,6 +33,9 @@ COPY packages/ui/package.json ./packages/ui/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 
+# Install node-gyp globally for native module compilation
+RUN pnpm add -g node-gyp
+
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
 

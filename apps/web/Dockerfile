@@ -9,6 +9,9 @@ FROM node:20-alpine AS base
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
+# Install build dependencies for native modules (sharp)
+RUN apk add --no-cache python3 make g++ vips-dev
+
 WORKDIR /app
 
 # =============================================================================
@@ -24,6 +27,9 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
+
+# Install node-gyp globally for native module compilation
+RUN pnpm add -g node-gyp
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
