@@ -4,13 +4,10 @@
 # =============================================================================
 # Stage 1: Base image with pnpm
 # =============================================================================
-FROM node:20-alpine AS base
+FROM node:22-slim AS base
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
-
-# Install build dependencies for native modules (sharp)
-RUN apk add --no-cache python3 make g++ vips-dev
 
 WORKDIR /app
 
@@ -27,9 +24,6 @@ COPY apps/web/package.json ./apps/web/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
-
-# Install node-gyp globally for native module compilation
-RUN npm install -g node-gyp
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
@@ -59,7 +53,12 @@ RUN pnpm --filter web build
 # =============================================================================
 # Stage 4: Production image
 # =============================================================================
-FROM node:20-alpine AS runner
+FROM node:22-slim AS runner
+
+# Install curl for health checks
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -87,6 +86,6 @@ EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3001 || exit 1
+    CMD curl -f http://localhost:3001 || exit 1
 
 CMD ["node", "apps/web/server.js"]

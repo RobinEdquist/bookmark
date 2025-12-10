@@ -4,18 +4,15 @@
 # =============================================================================
 # Stage 1: Base image with pnpm
 # =============================================================================
-FROM node:20-alpine AS base
+FROM node:22-slim AS base
 
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Install system dependencies required for native modules and media processing
-RUN apk add --no-cache \
-    python3 \
-    make \
-    g++ \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    vips-dev
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -32,9 +29,6 @@ COPY apps/backend/package.json ./apps/backend/
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
-
-# Install node-gyp globally for native module compilation
-RUN npm install -g node-gyp
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
@@ -58,10 +52,13 @@ RUN pnpm --filter backend build
 # =============================================================================
 # Stage 4: Production image
 # =============================================================================
-FROM node:20-alpine AS runner
+FROM node:22-slim AS runner
 
 # Install runtime dependencies only
-RUN apk add --no-cache ffmpeg vips
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -95,6 +92,6 @@ EXPOSE 3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1
+    CMD curl -f http://localhost:3000/api/health || exit 1
 
 CMD ["node", "dist/main"]
