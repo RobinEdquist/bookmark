@@ -26,8 +26,6 @@ COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
 
 # Copy all package.json files for workspace resolution
 COPY apps/backend/package.json ./apps/backend/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/eslint-config/package.json ./packages/eslint-config/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
 
 # Install all dependencies
@@ -40,14 +38,15 @@ FROM base AS builder
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules
-COPY --from=deps /app/packages ./packages
 
 # Copy source code
 COPY apps/backend ./apps/backend
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 
 # Build the backend
-RUN pnpm --filter backend build
+WORKDIR /app/apps/backend
+RUN pnpm build
+WORKDIR /app
 
 # =============================================================================
 # Stage 4: Production image
