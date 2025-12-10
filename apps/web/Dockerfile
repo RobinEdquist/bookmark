@@ -35,10 +35,10 @@ FROM base AS builder
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages ./packages
 
 # Copy source code
 COPY apps/web ./apps/web
+COPY packages ./packages
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json ./
 
 # Set build-time environment variables
