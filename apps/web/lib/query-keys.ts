@@ -3,6 +3,7 @@ export const queryKeys = {
     all: ["settings"] as const,
     public: () => [...queryKeys.settings.all, "public"] as const,
     private: () => [...queryKeys.settings.all, "private"] as const,
+    authConfig: () => [...queryKeys.settings.all, "auth-config"] as const,
   },
   users: {
     all: ["users"] as const,
