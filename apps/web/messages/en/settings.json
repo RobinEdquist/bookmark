@@ -210,6 +210,34 @@
       "enabled": "Sign-ups enabled",
       "disabled": "Sign-ups disabled"
     },
+    "emailPassword": {
+      "label": "Email/Password Login",
+      "description": "Allow users to sign in with email and password",
+      "enabled": "Email/password login enabled",
+      "disabled": "Email/password login disabled"
+    },
+    "oidc": {
+      "title": "Single Sign-On (OIDC)",
+      "description": "Configure OpenID Connect authentication",
+      "configured": "Configured",
+      "notConfigured": "Not Configured",
+      "notConfiguredHint": "OIDC is not configured. Set OIDC_ENABLED=true and configure OIDC_ISSUER_URL, OIDC_CLIENT_ID, and OIDC_CLIENT_SECRET environment variables to enable SSO.",
+      "buttonText": {
+        "label": "SSO Button Text",
+        "description": "The text displayed on the SSO sign-in button",
+        "placeholder": "Sign in with SSO",
+        "save": "Save"
+      },
+      "buttonTextUpdated": "SSO button text updated",
+      "autoCreate": {
+        "label": "Auto-create OIDC Users",
+        "description": "Control how new users are created when signing in via OIDC for the first time",
+        "auto": "Auto-create (immediate access)",
+        "pending": "Pending approval (admin must approve)",
+        "disabled": "Disabled (must pre-create user)"
+      },
+      "autoCreateUpdated": "OIDC user creation setting updated"
+    },
     "error": {
       "loadFailed": "Failed to load settings. Please try again.",
       "updateFailed": "Failed to update settings"

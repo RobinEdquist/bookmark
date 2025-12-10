@@ -203,12 +203,40 @@
   },
   "authentication": {
     "title": "Autentisering",
-    "description": "Konfigurera hur användare kan komma åt ditt ljudboksvalv",
+    "description": "Konfigurera hur användare kan komma åt din ljudbokssamling",
     "signups": {
       "label": "Tillåt registrering",
-      "description": "När inaktiverad kan endast befintliga användare logga in",
+      "description": "När inaktiverat kan endast befintliga användare logga in",
       "enabled": "Registrering aktiverad",
       "disabled": "Registrering inaktiverad"
+    },
+    "emailPassword": {
+      "label": "E-post/lösenord-inloggning",
+      "description": "Tillåt användare att logga in med e-post och lösenord",
+      "enabled": "E-post/lösenord-inloggning aktiverad",
+      "disabled": "E-post/lösenord-inloggning inaktiverad"
+    },
+    "oidc": {
+      "title": "Enkel inloggning (OIDC)",
+      "description": "Konfigurera OpenID Connect-autentisering",
+      "configured": "Konfigurerad",
+      "notConfigured": "Ej konfigurerad",
+      "notConfiguredHint": "OIDC är inte konfigurerat. Sätt OIDC_ENABLED=true och konfigurera OIDC_ISSUER_URL, OIDC_CLIENT_ID och OIDC_CLIENT_SECRET miljövariabler för att aktivera SSO.",
+      "buttonText": {
+        "label": "SSO-knapptext",
+        "description": "Texten som visas på SSO-inloggningsknappen",
+        "placeholder": "Logga in med SSO",
+        "save": "Spara"
+      },
+      "buttonTextUpdated": "SSO-knapptext uppdaterad",
+      "autoCreate": {
+        "label": "Skapa OIDC-användare automatiskt",
+        "description": "Kontrollera hur nya användare skapas när de loggar in via OIDC för första gången",
+        "auto": "Skapa automatiskt (omedelbar åtkomst)",
+        "pending": "Väntar på godkännande (admin måste godkänna)",
+        "disabled": "Inaktiverad (måste skapa användare först)"
+      },
+      "autoCreateUpdated": "OIDC-användarskapande-inställning uppdaterad"
     },
     "error": {
       "loadFailed": "Kunde inte ladda inställningar. Försök igen.",
