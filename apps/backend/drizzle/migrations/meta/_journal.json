@@ -8,6 +8,13 @@
       "when": 1764981546098,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1765330405440,
+      "tag": "0001_add-oidc-settings",
+      "breakpoints": true
     }
   ]
 }

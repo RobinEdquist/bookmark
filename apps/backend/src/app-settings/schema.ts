@@ -48,6 +48,9 @@ export const appSettings = pgTable(
       .notNull()
       .default(false),
     opdsEnabled: boolean('opds_enabled').notNull().default(false),
+    oidcButtonText: text('oidc_button_text').notNull().default('Sign in with SSO'),
+    emailPasswordEnabled: boolean('email_password_enabled').notNull().default(true),
+    oidcAutoCreateUsers: text('oidc_auto_create_users').notNull().default('auto'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

@@ -36,7 +36,7 @@ export const apiKey = pgTable(
     permissions: text('permissions'),
     metadata: text('metadata'),
   },
-  (table) => [index('api_key_user_id_idx').on(table.userId)],
+  (table) => [index('api_key_v2_user_id_idx').on(table.userId)],
 );
 
 export const apiKeyRelations = relations(apiKey, ({ one }) => ({
