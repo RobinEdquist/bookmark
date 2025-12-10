@@ -40,6 +40,9 @@ export class AppSettingsService {
     watcherEnabled?: boolean;
     metadataPriority?: MetadataFieldPriority;
     opdsEnabled?: boolean;
+    oidcButtonText?: string;
+    emailPasswordEnabled?: boolean;
+    oidcAutoCreateUsers?: string;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)
@@ -88,5 +91,20 @@ export class AppSettingsService {
   async isOpdsEnabled(): Promise<boolean> {
     const settings = await this.getSettings();
     return settings.opdsEnabled;
+  }
+
+  async getOidcButtonText(): Promise<string> {
+    const settings = await this.getSettings();
+    return settings.oidcButtonText;
+  }
+
+  async isEmailPasswordEnabled(): Promise<boolean> {
+    const settings = await this.getSettings();
+    return settings.emailPasswordEnabled;
+  }
+
+  async getOidcAutoCreateUsers(): Promise<string> {
+    const settings = await this.getSettings();
+    return settings.oidcAutoCreateUsers;
   }
 }
