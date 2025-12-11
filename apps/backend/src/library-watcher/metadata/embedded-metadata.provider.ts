@@ -37,6 +37,12 @@ export interface AudioFileInfo {
   sizeBytes: number;
 }
 
+export interface FullMetadataResult {
+  metadata: ExtractedMetadata;
+  fileInfo: AudioFileInfo;
+  chapters: Array<{ title: string; startTime: number; endTime?: number }>;
+}
+
 @Injectable()
 export class EmbeddedMetadataProvider {
   private readonly logger = new Logger(EmbeddedMetadataProvider.name);
@@ -70,6 +76,131 @@ export class EmbeddedMetadataProvider {
         `Failed to extract metadata from ${filePath}: ${error}`,
       );
       throw error;
+    }
+  }
+
+  /**
+   * Extract all metadata, file info, and chapters from a single file in one pass.
+   * This is more efficient than calling extractMetadata, getFileInfo, and extractChapters separately
+   * as it only parses the file once.
+   */
+  async extractFullMetadata(filePath: string): Promise<FullMetadataResult> {
+    try {
+      // Parse file once with chapters included
+      const mmMetadata = await mm.parseFile(filePath, { includeChapters: true });
+      const { common, format } = mmMetadata;
+      const stats = await fs.stat(filePath);
+
+      // Extract metadata
+      const metadata: ExtractedMetadata = {
+        title: common.title || undefined,
+        subtitle: common.subtitle?.[0] || undefined,
+        author: common.artist || common.albumartist || undefined,
+        narrator: common.composer?.[0] || undefined,
+        description: common.comment?.[0]?.text || undefined,
+        publisher: common.label?.[0] || undefined,
+        publishedDate: common.year?.toString() || undefined,
+        language: common.language || undefined,
+        genres: common.genre || undefined,
+        series: common.grouping || undefined,
+        hasEmbeddedCover: common.picture && common.picture.length > 0,
+        duration: format.duration ? Math.round(format.duration) : undefined,
+        format: format.container || undefined,
+        bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
+        sampleRate: format.sampleRate || undefined,
+      };
+
+      // Extract file info
+      const fileInfo: AudioFileInfo = {
+        filePath,
+        fileName: path.basename(filePath),
+        duration: format.duration ? Math.round(format.duration) : 0,
+        format: format.container || path.extname(filePath).slice(1),
+        bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
+        sampleRate: format.sampleRate || undefined,
+        sizeBytes: stats.size,
+      };
+
+      // Extract chapters from the already-parsed metadata
+      const chapters = await this.extractChaptersFromParsedMetadata(
+        mmMetadata,
+        filePath,
+      );
+
+      return { metadata, fileInfo, chapters };
+    } catch (error) {
+      this.logger.error(
+        `Failed to extract full metadata from ${filePath}: ${error}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Extract chapters from already-parsed metadata to avoid re-parsing the file.
+   */
+  private async extractChaptersFromParsedMetadata(
+    mmMetadata: mm.IAudioMetadata,
+    filePath: string,
+  ): Promise<Array<{ title: string; startTime: number; endTime?: number }>> {
+    try {
+      const sampleRate = mmMetadata.format.sampleRate || 44100;
+
+      // Check format.chapters (works for M4B/M4A/MP4 files with chapter tracks)
+      if (
+        mmMetadata.format.chapters &&
+        mmMetadata.format.chapters.length > 0
+      ) {
+        this.logger.debug(
+          `Found ${mmMetadata.format.chapters.length} chapters via format.chapters`,
+        );
+        return mmMetadata.format.chapters.map((chap, index: number) => ({
+          title: chap.title || `Chapter ${index + 1}`,
+          startTime: Math.round(chap.sampleOffset / sampleRate),
+          endTime: undefined,
+        }));
+      }
+
+      // Try ID3v2.4 CHAP tags (for MP3 files with chapters)
+      const id3Chapters =
+        mmMetadata.native?.['ID3v2.4']?.filter((tag) => tag.id === 'CHAP') ||
+        [];
+      if (id3Chapters.length > 0) {
+        this.logger.debug(
+          `Found ${id3Chapters.length} chapters via ID3v2.4 CHAP tags`,
+        );
+        return id3Chapters.map((chap, index: number) => {
+          const value = chap.value as {
+            startTime: number;
+            endTime?: number;
+            title?: string;
+          };
+          return {
+            title: value.title || `Chapter ${index + 1}`,
+            startTime: Math.round(value.startTime / 1000),
+            endTime: value.endTime
+              ? Math.round(value.endTime / 1000)
+              : undefined,
+          };
+        });
+      }
+
+      // Fallback: Try ffprobe for M4B/M4A files (handles more chapter formats)
+      const ext = path.extname(filePath).toLowerCase();
+      if (['.m4b', '.m4a', '.mp4'].includes(ext)) {
+        const ffprobeChapters = await this.extractChaptersWithFfprobe(filePath);
+        if (ffprobeChapters.length > 0) {
+          return ffprobeChapters;
+        }
+      }
+
+      this.logger.debug(`No chapters found in ${path.basename(filePath)}`);
+      return [];
+    } catch (error) {
+      this.logger.warn(
+        `Failed to extract chapters from parsed metadata: ${error}`,
+      );
+      return [];
     }
   }
 

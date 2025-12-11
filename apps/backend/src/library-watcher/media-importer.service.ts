@@ -61,9 +61,12 @@ export class MediaImporterService {
         return null;
       }
 
-      // Extract metadata from primary file
-      const metadata =
-        await this.audioMetadataProvider.extractMetadata(primaryFile);
+      // Extract all metadata from primary file in one pass (metadata, fileInfo, chapters)
+      // This avoids parsing the file 3 times
+      const primaryData =
+        await this.audioMetadataProvider.extractFullMetadata(primaryFile);
+      const { metadata, fileInfo: primaryFileInfo, chapters: primaryChapters } =
+        primaryData;
 
       // Determine cover source
       let coverSource: 'embedded' | undefined = undefined;
@@ -75,11 +78,16 @@ export class MediaImporterService {
       // Note: Filesystem covers are no longer imported as 'filesystem'.
       // They will be migrated to app data storage by a separate migration task.
 
-      // Get file info for all files
-      const fileInfos: AudioFileInfo[] = [];
-      for (const file of unit.files) {
-        const info = await this.audioMetadataProvider.getFileInfo(file);
-        fileInfos.push(info);
+      // Build file info array - primary file is already parsed, only parse additional files
+      const fileInfos: AudioFileInfo[] = [primaryFileInfo];
+      if (unit.files.length > 1) {
+        // For multi-file audiobooks, get info for remaining files
+        for (let i = 1; i < unit.files.length; i++) {
+          const info = await this.audioMetadataProvider.getFileInfo(
+            unit.files[i],
+          );
+          fileInfos.push(info);
+        }
       }
 
       const totalDuration = fileInfos.reduce((sum, f) => sum + f.duration, 0);
@@ -91,10 +99,10 @@ export class MediaImporterService {
       const [audiobook] = await this.db
         .insert(audiobooksSchema.audiobooks)
         .values({
-          title,
-          subtitle: metadata.subtitle,
-          description: metadata.description,
-          publisher: metadata.publisher,
+          title: this.sanitizeText(title) ?? title,
+          subtitle: this.sanitizeText(metadata.subtitle),
+          description: this.sanitizeText(metadata.description),
+          publisher: this.sanitizeText(metadata.publisher),
           language: metadata.language,
           publishedDate,
           duration: totalDuration,
@@ -105,26 +113,25 @@ export class MediaImporterService {
         })
         .returning();
 
-      // Create file records
-      for (let i = 0; i < fileInfos.length; i++) {
-        const fileInfo = fileInfos[i];
-        const relativeFilePath = path.relative(libraryPath, fileInfo.filePath);
-        await this.db.insert(audiobooksSchema.audiobookFiles).values({
-          audiobookId: audiobook.id,
-          filePath: relativeFilePath,
-          fileName: fileInfo.fileName,
-          order: i,
-          duration: fileInfo.duration,
-          format: fileInfo.format,
-          bitrate: fileInfo.bitrate,
-          sampleRate: fileInfo.sampleRate,
-          sizeBytes: fileInfo.sizeBytes,
-        });
+      // Create file records in a single batch insert
+      if (fileInfos.length > 0) {
+        await this.db.insert(audiobooksSchema.audiobookFiles).values(
+          fileInfos.map((fileInfo, i) => ({
+            audiobookId: audiobook.id,
+            filePath: path.relative(libraryPath, fileInfo.filePath),
+            fileName: fileInfo.fileName,
+            order: i,
+            duration: fileInfo.duration,
+            format: fileInfo.format,
+            bitrate: fileInfo.bitrate,
+            sampleRate: fileInfo.sampleRate,
+            sizeBytes: fileInfo.sizeBytes,
+          })),
+        );
       }
 
-      // Extract chapters
-      let chapters =
-        await this.audioMetadataProvider.extractChapters(primaryFile);
+      // Use chapters from the primary file extraction (already parsed)
+      let chapters = primaryChapters;
       let chapterSource: 'embedded' | 'external' = 'embedded';
 
       if (
@@ -136,17 +143,18 @@ export class MediaImporterService {
         chapterSource = 'external';
       }
 
-      // Create chapter records
-      for (let i = 0; i < chapters.length; i++) {
-        const chapter = chapters[i];
-        await this.db.insert(audiobooksSchema.chapters).values({
-          audiobookId: audiobook.id,
-          title: chapter.title,
-          startTime: chapter.startTime,
-          endTime: chapter.endTime,
-          order: i,
-          source: chapterSource,
-        });
+      // Create chapter records in a single batch insert
+      if (chapters.length > 0) {
+        await this.db.insert(audiobooksSchema.chapters).values(
+          chapters.map((chapter, i) => ({
+            audiobookId: audiobook.id,
+            title: this.sanitizeText(chapter.title) ?? chapter.title,
+            startTime: chapter.startTime,
+            endTime: chapter.endTime,
+            order: i,
+            source: chapterSource,
+          })),
+        );
       }
 
       // Create author/narrator links
@@ -245,10 +253,10 @@ export class MediaImporterService {
       const [ebook] = await this.db
         .insert(ebooksSchema.ebooks)
         .values({
-          title: metadata.title,
-          subtitle: metadata.subtitle,
-          description: metadata.description,
-          publisher: metadata.publisher,
+          title: this.sanitizeText(metadata.title) ?? metadata.title,
+          subtitle: this.sanitizeText(metadata.subtitle),
+          description: this.sanitizeText(metadata.description),
+          publisher: this.sanitizeText(metadata.publisher),
           language: metadata.language,
           publishedDate,
           isbn: metadata.isbn,
@@ -306,6 +314,25 @@ export class MediaImporterService {
   }
 
   // ===== PRIVATE HELPERS =====
+
+  /**
+   * Sanitize text fields to prevent SQL parameter binding issues
+   * Some Unicode characters (smart quotes, em-dashes) can break Drizzle ORM's parameter serialization
+   */
+  private sanitizeText(text: string | undefined): string | undefined {
+    if (!text) return undefined;
+
+    return text
+      // Replace smart/curly quotes with straight quotes
+      .replace(/[\u2018\u2019\u201A\u201B]/g, "'") // single quotes
+      .replace(/[\u201C\u201D\u201E\u201F]/g, '"') // double quotes
+      // Replace various dashes with regular hyphen
+      .replace(/[\u2013\u2014\u2015]/g, '-') // en-dash, em-dash, horizontal bar
+      // Replace ellipsis character with three dots
+      .replace(/\u2026/g, '...')
+      // Remove null bytes that might be embedded
+      .replace(/\0/g, '');
+  }
 
   private inferTitleFromPath(
     audiobookPath: string,

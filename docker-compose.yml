@@ -71,8 +71,10 @@ services:
       start_period: 30s
       retries: 3
     networks:
-      - bookmark-network
-      - proxy
+      bookmark-network:
+        priority: 1000
+      proxy:
+        priority: 100
     labels:
       # Traefik configuration
       - "traefik.enable=true"
@@ -112,8 +114,10 @@ services:
       start_period: 10s
       retries: 3
     networks:
-      - bookmark-network
-      - proxy
+      bookmark-network:
+        priority: 1000
+      proxy:
+        priority: 100
     labels:
       # Traefik configuration
       - "traefik.enable=true"

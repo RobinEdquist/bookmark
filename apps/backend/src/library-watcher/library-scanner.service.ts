@@ -4,13 +4,22 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, or, sql } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import pLimit from 'p-limit';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
-import { MediaDetectorService } from './media-detector.service';
+import {
+  MediaDetectorService,
+  AudiobookUnit,
+  EbookUnit,
+} from './media-detector.service';
 import { MediaImporterService } from './media-importer.service';
 import { AppEventsService } from '../events/app-events.service';
 import { LibraryType } from './file-watcher.service';
+
+// Configuration for parallel import processing
+const IMPORT_CONCURRENCY = 5; // Number of imports to run in parallel
+const BATCH_SIZE = 20; // Number of items per batch before yielding
 
 export interface ScanResult {
   added: number;
@@ -131,28 +140,15 @@ export class LibraryScannerService {
       processed: 0,
     });
 
-    for (let i = 0; i < newUnits.length; i++) {
-      const unit = newUnits[i];
+    // Import audiobooks in parallel batches for better performance
+    const importResults = await this.importInBatches(
+      newUnits,
+      libraryPath,
+      'audiobook',
+    );
 
-      this.updateProgress({
-        phase: 'importing',
-        total: newUnits.length,
-        processed: i,
-        currentFile: unit.path,
-      });
-
-      try {
-        const id = await this.mediaImporter.importAudiobook(unit, libraryPath);
-        if (id) {
-          result.added++;
-        }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        result.errors.push({ path: unit.path, error: errorMessage });
-        this.logger.error(`Failed to import ${unit.path}: ${errorMessage}`);
-      }
-    }
+    result.added = importResults.added;
+    result.errors.push(...importResults.errors);
 
     this.updateProgress({
       phase: 'importing',
@@ -259,28 +255,15 @@ export class LibraryScannerService {
       processed: 0,
     });
 
-    for (let i = 0; i < newUnits.length; i++) {
-      const unit = newUnits[i];
+    // Import ebooks in parallel batches for better performance
+    const importResults = await this.importInBatches(
+      newUnits,
+      libraryPath,
+      'ebook',
+    );
 
-      this.updateProgress({
-        phase: 'importing',
-        total: newUnits.length,
-        processed: i,
-        currentFile: unit.path,
-      });
-
-      try {
-        const id = await this.mediaImporter.importEbook(unit, libraryPath);
-        if (id) {
-          result.added++;
-        }
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : String(error);
-        result.errors.push({ path: unit.path, error: errorMessage });
-        this.logger.error(`Failed to import ${unit.path}: ${errorMessage}`);
-      }
-    }
+    result.added = importResults.added;
+    result.errors.push(...importResults.errors);
 
     this.updateProgress({
       phase: 'importing',
@@ -383,6 +366,70 @@ export class LibraryScannerService {
   }
 
   // ===== HELPERS =====
+
+  /**
+   * Import media items in parallel batches with concurrency control.
+   * This prevents event loop starvation and provides better performance than sequential imports.
+   */
+  private async importInBatches(
+    units: AudiobookUnit[] | EbookUnit[],
+    libraryPath: string,
+    type: 'audiobook' | 'ebook',
+  ): Promise<{ added: number; errors: Array<{ path: string; error: string }> }> {
+    const limit = pLimit(IMPORT_CONCURRENCY);
+    let added = 0;
+    const errors: Array<{ path: string; error: string }> = [];
+    let processed = 0;
+
+    // Process in batches to allow yielding to the event loop
+    for (let i = 0; i < units.length; i += BATCH_SIZE) {
+      const batch = units.slice(i, i + BATCH_SIZE);
+
+      // Process batch items in parallel with concurrency limit
+      const batchPromises = batch.map((unit) =>
+        limit(async () => {
+          try {
+            const id =
+              type === 'audiobook'
+                ? await this.mediaImporter.importAudiobook(
+                    unit as AudiobookUnit,
+                    libraryPath,
+                  )
+                : await this.mediaImporter.importEbook(
+                    unit as EbookUnit,
+                    libraryPath,
+                  );
+
+            if (id) {
+              added++;
+            }
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            errors.push({ path: unit.path, error: errorMessage });
+            this.logger.error(`Failed to import ${unit.path}: ${errorMessage}`);
+          } finally {
+            processed++;
+            // Update progress per item for responsiveness
+            this.updateProgress({
+              phase: 'importing',
+              total: units.length,
+              processed,
+              currentFile: unit.path,
+            });
+          }
+        }),
+      );
+
+      // Wait for batch to complete
+      await Promise.all(batchPromises);
+
+      // Yield to event loop between batches to prevent starvation
+      await new Promise((resolve) => setImmediate(resolve));
+    }
+
+    return { added, errors };
+  }
 
   private async pathExists(filePath: string): Promise<boolean> {
     try {
