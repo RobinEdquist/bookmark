@@ -135,6 +135,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
     const socket = io(apiUrl, {
+      path: "/api/socket.io",
       withCredentials: true,
       transports: ["websocket", "polling"],
       reconnectionAttempts: Infinity,

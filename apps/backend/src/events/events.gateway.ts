@@ -23,6 +23,7 @@ interface SocketWithSession extends Socket {
 }
 
 @WebSocketGateway({
+  path: '/api/socket.io',
   cors: {
     origin: true, // Will be configured via ConfigService
     credentials: true,
