@@ -78,7 +78,7 @@ services:
       - "traefik.enable=true"
       # API router - handles /api/* requests
       - "traefik.http.routers.bookmark-api.entryPoints=https"
-      - "traefik.http.routers.bookmark-api.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.bookmark-api.rule=Host(`${TRAEFIK_HOST:-bookmark-test.example.com}`) && PathPrefix(`/api`)"
       - "traefik.http.routers.bookmark-api.middlewares=local-only@file"
       - "traefik.http.routers.bookmark-api.tls=true"
       - "traefik.http.routers.bookmark-api.tls.certResolver=cloudflare"
@@ -118,7 +118,7 @@ services:
       - "traefik.enable=true"
       # Frontend router - handles all other requests
       - "traefik.http.routers.bookmark-frontend.entryPoints=https"
-      - "traefik.http.routers.bookmark-frontend.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`)"
+      - "traefik.http.routers.bookmark-frontend.rule=Host(`${TRAEFIK_HOST:-bookmark-test.example.com}`)"
       - "traefik.http.routers.bookmark-frontend.middlewares=local-only@file"
       - "traefik.http.routers.bookmark-frontend.tls=true"
       - "traefik.http.routers.bookmark-frontend.tls.certResolver=cloudflare"
