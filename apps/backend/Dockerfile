@@ -72,6 +72,10 @@ RUN mkdir -p /data
 
 WORKDIR /app/apps/backend
 
+# Copy entrypoint script (from installer stage which has the pruned source)
+COPY --from=installer /app/apps/backend/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Environment defaults
 ENV NODE_ENV=production
 ENV PORT=3000
@@ -83,4 +87,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || exit 1
 
-CMD ["node", "dist/src/main.js"]
+ENTRYPOINT ["docker-entrypoint.sh"]
