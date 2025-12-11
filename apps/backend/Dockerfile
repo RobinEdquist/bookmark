@@ -21,7 +21,7 @@ WORKDIR /app
 FROM base AS builder
 
 COPY . .
-RUN turbo prune --scope=backend --docker
+RUN turbo prune backend --docker
 
 # =============================================================================
 # Stage 3: Install dependencies and build
@@ -40,8 +40,8 @@ COPY --from=builder /app/out/json/ .
 COPY --from=builder /app/out/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/out/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies (using cache mount for faster rebuilds)
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --frozen-lockfile
 
 # Copy pruned source code
 COPY --from=builder /app/out/full/ .
@@ -86,7 +86,7 @@ ENV APP_DATA_PATH=/data
 EXPOSE 3000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:3000/api/health || exit 1
 
 CMD ["node", "dist/src/main.js"]

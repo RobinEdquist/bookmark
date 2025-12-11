@@ -1,9 +1,12 @@
-# Docker Compose configuration for Bookmark
-# For use with Komodo or standalone Docker Compose deployment
+# Docker Compose configuration for Bookmark - Production with Pre-built Images
+# Use this when deploying with images from a container registry
 #
-# Traefik Integration:
-#   This configuration integrates with an external Traefik instance.
-#   Configure PUBLIC_URL to your domain (e.g., https://bookmark.example.com)
+# Usage:
+#   1. Copy example.env to .env and configure
+#   2. Set registry variables (or use defaults for local builds)
+#   3. Run: docker compose -f docker-compose.prod.yml up -d
+#
+# Access the application at http://localhost:3001
 
 services:
   # ==========================================================================
@@ -18,22 +21,18 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-bookmark}
     volumes:
-      - ${DATA_PATH:-/mnt/user/appdata/bookmark}/postgres:/var/lib/postgresql/data
+      - ${DATA_PATH:-./data}/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bookmark}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - bookmark-network
 
   # ==========================================================================
   # Backend API (NestJS)
   # ==========================================================================
   backend:
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-your-org/bookmark}/backend:${IMAGE_TAG:-latest}
     container_name: bookmark-backend
     restart: unless-stopped
     depends_on:
@@ -59,7 +58,7 @@ services:
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
     volumes:
       # Application data (covers, cache, etc.)
-      - ${DATA_PATH:-/mnt/user/appdata/bookmark}/data:/data
+      - ${DATA_PATH:-./data}/app:/data
       # Audiobook library - mount your media folder here
       - ${AUDIOBOOK_LIBRARY_PATH:-./media/audiobooks}:/library/audiobooks:ro
       # Ebook library - mount your media folder here
@@ -70,31 +69,12 @@ services:
       timeout: 10s
       start_period: 30s
       retries: 3
-    networks:
-      - bookmark-network
-      - proxy
-    labels:
-      # Traefik configuration
-      - "traefik.enable=true"
-      # API router - handles /api/* requests
-      - "traefik.http.routers.bookmark-api.entryPoints=https"
-      - "traefik.http.routers.bookmark-api.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.bookmark-api.middlewares=local-only@file"
-      - "traefik.http.routers.bookmark-api.tls=true"
-      - "traefik.http.routers.bookmark-api.tls.certResolver=cloudflare"
-      - "traefik.http.routers.bookmark-api.service=bookmark-api"
-      - "traefik.http.services.bookmark-api.loadBalancer.server.port=3000"
 
   # ==========================================================================
   # Frontend Web App (Next.js)
   # ==========================================================================
   frontend:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        # Build-time: internal URL for SSR API calls (used by next.config.js rewrites)
-        API_URL: http://backend:3000
+    image: ${REGISTRY:-ghcr.io}/${IMAGE_PREFIX:-your-org/bookmark}/frontend:${IMAGE_TAG:-latest}
     container_name: bookmark-frontend
     restart: unless-stopped
     depends_on:
@@ -104,37 +84,11 @@ services:
       # Runtime: internal URL for SSR API calls (Next.js rewrites)
       API_URL: http://backend:3000
       NODE_ENV: production
+    ports:
+      - "${PORT:-3001}:3001"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3001"]
       interval: 30s
       timeout: 10s
       start_period: 10s
       retries: 3
-    networks:
-      - bookmark-network
-      - proxy
-    labels:
-      # Traefik configuration
-      - "traefik.enable=true"
-      # Frontend router - handles all other requests
-      - "traefik.http.routers.bookmark-frontend.entryPoints=https"
-      - "traefik.http.routers.bookmark-frontend.rule=Host(`${TRAEFIK_HOST:-bookmark.test.example.com}`)"
-      - "traefik.http.routers.bookmark-frontend.middlewares=local-only@file"
-      - "traefik.http.routers.bookmark-frontend.tls=true"
-      - "traefik.http.routers.bookmark-frontend.tls.certResolver=cloudflare"
-      - "traefik.http.routers.bookmark-frontend.service=bookmark-frontend"
-      - "traefik.http.services.bookmark-frontend.loadBalancer.server.port=3001"
-      # Lower priority so /api routes go to backend
-      - "traefik.http.routers.bookmark-frontend.priority=1"
-
-# =============================================================================
-# Networks
-# =============================================================================
-networks:
-  bookmark-network:
-    name: bookmark-network
-    driver: bridge
-  # External Traefik network
-  proxy:
-    name: proxy
-    external: true
