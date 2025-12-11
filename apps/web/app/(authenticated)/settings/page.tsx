@@ -17,7 +17,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const t = useTranslations("settings");
-  const { data: session, isPending } = authClient.useSession();
+  const { data: session, isPending, error } = authClient.useSession();
 
   // Get tab from query param, defaulting to "libraries"
   const tabParam = searchParams.get("tab");
@@ -27,6 +27,18 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabValue>(validTab);
   const isAdmin = session?.user?.role === "admin";
 
+  // Log settings page auth state
+  useEffect(() => {
+    console.log("[SettingsPage]", {
+      isPending,
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userRole: session?.user?.role,
+      isAdmin,
+      error: error?.message ?? null,
+    });
+  }, [isPending, session, isAdmin, error]);
+
   // Sync tab state with URL changes (e.g., browser back/forward)
   useEffect(() => {
     setActiveTab(validTab);
@@ -34,9 +46,15 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!isPending && !isAdmin) {
+      console.log("[SettingsPage] Redirecting to /home - not admin", {
+        isPending,
+        isAdmin,
+        userRole: session?.user?.role,
+        hasUser: !!session?.user,
+      });
       router.replace("/home");
     }
-  }, [isPending, isAdmin, router]);
+  }, [isPending, isAdmin, router, session?.user?.role]);
 
   if (isPending || !isAdmin) {
     return (

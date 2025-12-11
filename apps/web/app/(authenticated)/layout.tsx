@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { Sidebar } from "../../components/layout/sidebar";
 import { MobileNav } from "../../components/layout/mobile-nav";
@@ -15,15 +15,36 @@ export default function AuthenticatedLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { data: session, isPending } = authClient.useSession();
+  const pathname = usePathname();
+  const { data: session, isPending, error } = authClient.useSession();
   const isAdmin = session?.user?.role === "admin";
   const isAuthenticated = !isPending && !!session?.user;
 
+  // Log auth state changes
+  useEffect(() => {
+    console.log("[AuthenticatedLayout]", {
+      pathname,
+      isPending,
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      userRole: session?.user?.role,
+      isAdmin,
+      isAuthenticated,
+      error: error?.message ?? null,
+    });
+  }, [pathname, isPending, session, isAdmin, isAuthenticated, error]);
+
   useEffect(() => {
     if (!isPending && !session?.user) {
+      console.log("[AuthenticatedLayout] Redirecting to / - no session", {
+        pathname,
+        isPending,
+        session,
+      });
       router.push("/");
     }
-  }, [isPending, session, router]);
+  }, [isPending, session, router, pathname]);
 
   // Show loading while checking auth
   if (isPending) {
