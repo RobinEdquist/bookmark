@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
 
 export function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
 
-  // Check for better-auth session cookie
-  // Better-auth stores session in a cookie named "better-auth.session_token"
-  const sessionToken = req.cookies.get("better-auth.session_token");
+  // Use better-auth's official utility to get session cookie
+  // This handles the __Secure- prefix automatically in production (HTTPS)
+  const sessionCookie = getSessionCookie(req);
   const allCookies = req.cookies.getAll().map(c => c.name);
 
-  const isAuthenticated = !!sessionToken?.value;
+  const isAuthenticated = !!sessionCookie;
 
   console.log("[Middleware]", {
     pathname,
     isAuthenticated,
-    hasSessionToken: !!sessionToken?.value,
-    sessionTokenLength: sessionToken?.value?.length ?? 0,
+    hasSessionCookie: !!sessionCookie,
     allCookieNames: allCookies,
     url: req.url,
   });
