@@ -76,6 +76,7 @@ services:
     labels:
       # Traefik configuration
       - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
       # API router - handles /api/* requests
       - "traefik.http.routers.bookmark-api.entryPoints=https"
       - "traefik.http.routers.bookmark-api.rule=Host(`${TRAEFIK_HOST:-bookmark-test.example.com}`) && PathPrefix(`/api`)"
@@ -116,6 +117,7 @@ services:
     labels:
       # Traefik configuration
       - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
       # Frontend router - handles all other requests
       - "traefik.http.routers.bookmark-frontend.entryPoints=https"
       - "traefik.http.routers.bookmark-frontend.rule=Host(`${TRAEFIK_HOST:-bookmark-test.example.com}`)"
