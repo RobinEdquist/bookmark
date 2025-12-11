@@ -64,17 +64,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nestjs
-
 # Copy entire pruned app with node_modules intact (preserves pnpm symlinks)
-COPY --from=installer --chown=nestjs:nodejs /app ./
+COPY --from=installer /app ./
 
-# Create data directory
-RUN mkdir -p /data && chown -R nestjs:nodejs /data
-
-USER nestjs
+# Create data directory (will be owned by root, but mount will override)
+RUN mkdir -p /data
 
 WORKDIR /app/apps/backend
 
