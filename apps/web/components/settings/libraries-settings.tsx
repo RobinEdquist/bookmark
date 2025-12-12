@@ -19,6 +19,7 @@ import { Switch } from "@repo/ui/components/ui/switch";
 import { FolderPickerDialog } from "./folder-picker-dialog";
 import {
   useSettings,
+  MetadataSource,
   MetadataFieldPriority,
 } from "../../lib/use-settings";
 
