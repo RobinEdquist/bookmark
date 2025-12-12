@@ -84,9 +84,11 @@ export function createAuthInstance(
     hooks: {
       after: createAuthMiddleware(async (ctx) => {
         // Handle first user admin promotion for both sign-up and OAuth callback
+        // Note: genericOAuth uses /oauth2/callback/:providerId, not /callback/:providerId
         if (
           ctx.path.startsWith('/sign-up') ||
-          ctx.path.startsWith('/callback')
+          ctx.path.startsWith('/callback') ||
+          ctx.path.startsWith('/oauth2/callback')
         ) {
           const newSession = ctx.context.newSession;
           if (newSession) {

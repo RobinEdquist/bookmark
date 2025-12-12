@@ -37,6 +37,9 @@ Simple Audiobook Vault is a self-hosted audiobook management and streaming platf
 - Mobile-first API design for future native apps
 - Accessible and internationalized from day one
 
+**AI Assistant Guidelines:**
+- **Always verify before stating facts** - When answering questions about URLs, paths, configurations, or implementation details, search the codebase or test the actual behavior rather than assuming based on patterns or library defaults. If uncertain, say so and offer to verify.
+
 **Reference Document:** See `docs/scope.md` for the complete feature specification.
 
 ---
