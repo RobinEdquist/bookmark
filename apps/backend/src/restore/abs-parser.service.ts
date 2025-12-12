@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import Database from 'better-sqlite3';
+import {
+  WorkerPoolService,
+  getWorkerPath,
+} from '../common/worker-pool.service';
 import {
   ABSBackupDetails,
   ABSLibrary,
@@ -34,58 +37,71 @@ export interface LibraryData {
   mediaProgresses: ABSMediaProgress[];
 }
 
+// Worker returns Records instead of Maps for JSON serialization
+interface WorkerParsedBackup {
+  details: ABSBackupDetails;
+  libraries: ABSLibrary[];
+  libraryFolders: Record<string, ABSLibraryFolder[]>;
+}
+
+interface WorkerLibraryData {
+  libraryItems: ABSLibraryItem[];
+  books: Record<string, ABSBook>;
+  authors: ABSAuthor[];
+  bookAuthors: ABSBookAuthor[];
+  series: ABSSeries[];
+  bookSeries: ABSBookSeries[];
+  users: ABSUser[];
+  mediaProgresses: ABSMediaProgress[];
+}
+
+const POOL_NAME = 'abs-restore';
+
 @Injectable()
-export class AbsParserService {
+export class AbsParserService implements OnModuleInit {
   private readonly logger = new Logger(AbsParserService.name);
+
+  constructor(private readonly workerPool: WorkerPoolService) {}
+
+  async onModuleInit(): Promise<void> {
+    await this.workerPool.initializePool({
+      name: POOL_NAME,
+      workerScript: getWorkerPath(__dirname, 'abs-restore.worker'),
+      minWorkers: 1,
+      maxWorkers: 2, // Restore is infrequent, minimal workers needed
+    });
+  }
 
   async parseBackupDetails(extractedPath: string): Promise<ParsedBackup> {
     this.logger.log(`[ABS-RESTORE] Parsing backup at: ${extractedPath}`);
 
-    // Read details file
-    const detailsPath = path.join(extractedPath, 'details');
-    const detailsContent = await fs.readFile(detailsPath, 'utf-8');
-    const detailsLines = detailsContent.trim().split('\n');
-
-    const details: ABSBackupDetails = {
-      backupName: detailsLines[0] || '',
-      backupType: detailsLines[1] || 'sqlite',
-      timestamp: parseInt(detailsLines[2] || '0', 10),
-      version: detailsLines[3] || 'unknown',
-    };
-
-    this.logger.log(
-      `[ABS-RESTORE] Backup version: ${details.version}, created: ${new Date(details.timestamp).toISOString()}`,
+    const result = await this.workerPool.executeTask<WorkerParsedBackup>(
+      POOL_NAME,
+      'parseBackupDetails',
+      { extractedPath },
     );
 
-    // Open SQLite database
-    const dbPath = path.join(extractedPath, 'absdatabase.sqlite');
-    const db = new Database(dbPath, { readonly: true });
+    this.logger.log(
+      `[ABS-RESTORE] Backup version: ${result.details.version}, created: ${new Date(result.details.timestamp).toISOString()}`,
+    );
+    this.logger.log(
+      `[ABS-RESTORE] Found ${result.libraries.length} audiobook libraries`,
+    );
 
-    try {
-      // Get libraries
-      const libraries = db
-        .prepare('SELECT * FROM libraries WHERE mediaType = ?')
-        .all('book') as ABSLibrary[];
+    // Convert Record back to Map
+    const libraryFolders = new Map<string, ABSLibraryFolder[]>();
+    for (const [libraryId, folders] of Object.entries(result.libraryFolders)) {
+      libraryFolders.set(libraryId, folders);
       this.logger.log(
-        `[ABS-RESTORE] Found ${libraries.length} audiobook libraries`,
+        `[ABS-RESTORE]   - Library ${libraryId}: ${folders.length} folders`,
       );
-
-      // Get library folders for each library
-      const libraryFolders = new Map<string, ABSLibraryFolder[]>();
-      for (const library of libraries) {
-        const folders = db
-          .prepare('SELECT * FROM libraryFolders WHERE libraryId = ?')
-          .all(library.id) as ABSLibraryFolder[];
-        libraryFolders.set(library.id, folders);
-        this.logger.log(
-          `[ABS-RESTORE]   - "${library.name}": ${folders.length} folders`,
-        );
-      }
-
-      return { details, libraries, libraryFolders };
-    } finally {
-      db.close();
     }
+
+    return {
+      details: result.details,
+      libraries: result.libraries,
+      libraryFolders,
+    };
   }
 
   async parseLibraryData(
@@ -94,142 +110,48 @@ export class AbsParserService {
   ): Promise<LibraryData> {
     this.logger.log(`[ABS-RESTORE] Parsing library data for: ${libraryId}`);
 
-    const dbPath = path.join(extractedPath, 'absdatabase.sqlite');
-    const db = new Database(dbPath, { readonly: true });
+    const result = await this.workerPool.executeTask<WorkerLibraryData>(
+      POOL_NAME,
+      'parseLibraryData',
+      { extractedPath, libraryId },
+    );
 
-    try {
-      // Get library items for this library
-      const libraryItems = db
-        .prepare(
-          `
-        SELECT id, path, relPath, mediaId, mediaType, libraryId, title, authorNamesFirstLast
-        FROM libraryItems
-        WHERE libraryId = ? AND mediaType = 'book'
-      `,
-        )
-        .all(libraryId) as ABSLibraryItem[];
-      this.logger.log(
-        `[ABS-RESTORE] Found ${libraryItems.length} library items`,
-      );
+    this.logger.log(
+      `[ABS-RESTORE] Found ${result.libraryItems.length} library items`,
+    );
+    this.logger.log(
+      `[ABS-RESTORE] Found ${Object.keys(result.books).length} books`,
+    );
+    this.logger.log(`[ABS-RESTORE] Found ${result.authors.length} authors`);
+    this.logger.log(`[ABS-RESTORE] Found ${result.series.length} series`);
+    this.logger.log(
+      `[ABS-RESTORE] Found ${result.users.length} users with progress`,
+    );
+    this.logger.log(
+      `[ABS-RESTORE] Found ${result.mediaProgresses.length} progress records`,
+    );
 
-      // Get books for these items
-      const mediaIds = libraryItems.map((item) => item.mediaId);
-      const books = new Map<string, ABSBook>();
-
-      if (mediaIds.length > 0) {
-        const placeholders = mediaIds.map(() => '?').join(',');
-        const booksResult = db
-          .prepare(`SELECT * FROM books WHERE id IN (${placeholders})`)
-          .all(...mediaIds) as any[];
-
-        for (const book of booksResult) {
-          // Parse JSON fields
-          books.set(book.id, {
-            ...book,
-            narrators: book.narrators ? JSON.parse(book.narrators) : null,
-            audioFiles: book.audioFiles ? JSON.parse(book.audioFiles) : null,
-            chapters: book.chapters ? JSON.parse(book.chapters) : null,
-            genres: book.genres ? JSON.parse(book.genres) : null,
-          });
-        }
-        this.logger.log(`[ABS-RESTORE] Found ${books.size} books`);
-      }
-
-      // Get authors for this library
-      const authors = db
-        .prepare('SELECT * FROM authors WHERE libraryId = ?')
-        .all(libraryId) as ABSAuthor[];
-      this.logger.log(`[ABS-RESTORE] Found ${authors.length} authors`);
-
-      // Get book-author relationships
-      const bookAuthors = db
-        .prepare(
-          `
-        SELECT ba.* FROM bookAuthors ba
-        INNER JOIN libraryItems li ON ba.bookId = li.mediaId
-        WHERE li.libraryId = ?
-      `,
-        )
-        .all(libraryId) as ABSBookAuthor[];
-
-      // Get series for this library
-      const series = db
-        .prepare('SELECT * FROM series WHERE libraryId = ?')
-        .all(libraryId) as ABSSeries[];
-      this.logger.log(`[ABS-RESTORE] Found ${series.length} series`);
-
-      // Get book-series relationships
-      const bookSeries = db
-        .prepare(
-          `
-        SELECT bs.* FROM bookSeries bs
-        INNER JOIN libraryItems li ON bs.bookId = li.mediaId
-        WHERE li.libraryId = ?
-      `,
-        )
-        .all(libraryId) as ABSBookSeries[];
-
-      // Get all users with progress
-      const users = db
-        .prepare(
-          `
-        SELECT DISTINCT u.* FROM users u
-        INNER JOIN mediaProgresses mp ON u.id = mp.userId
-        INNER JOIN libraryItems li ON mp.mediaItemId = li.mediaId
-        WHERE li.libraryId = ?
-      `,
-        )
-        .all(libraryId) as ABSUser[];
-      this.logger.log(
-        `[ABS-RESTORE] Found ${users.length} users with progress`,
-      );
-
-      // Get media progress for this library
-      const mediaProgresses = db
-        .prepare(
-          `
-        SELECT mp.* FROM mediaProgresses mp
-        INNER JOIN libraryItems li ON mp.mediaItemId = li.mediaId
-        WHERE li.libraryId = ?
-      `,
-        )
-        .all(libraryId) as ABSMediaProgress[];
-      this.logger.log(
-        `[ABS-RESTORE] Found ${mediaProgresses.length} progress records`,
-      );
-
-      return {
-        libraryItems,
-        books,
-        authors,
-        bookAuthors,
-        series,
-        bookSeries,
-        users,
-        mediaProgresses,
-      };
-    } finally {
-      db.close();
+    // Convert Record back to Map
+    const books = new Map<string, ABSBook>();
+    for (const [mediaId, book] of Object.entries(result.books)) {
+      books.set(mediaId, book);
     }
+
+    return {
+      ...result,
+      books,
+    };
   }
 
   async readMetadataJson(
     extractedPath: string,
     absBookId: string,
   ): Promise<ABSMetadataJson | null> {
-    const metadataPath = path.join(
-      extractedPath,
-      'metadata-items',
-      absBookId,
-      'metadata.json',
+    return this.workerPool.executeTask<ABSMetadataJson | null>(
+      POOL_NAME,
+      'readMetadataJson',
+      { extractedPath, absBookId },
     );
-
-    try {
-      const content = await fs.readFile(metadataPath, 'utf-8');
-      return JSON.parse(content) as ABSMetadataJson;
-    } catch {
-      return null;
-    }
   }
 
   async getCoverPath(

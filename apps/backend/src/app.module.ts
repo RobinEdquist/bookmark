@@ -27,9 +27,11 @@ import { HealthModule } from './health/health.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { createAuthInstance } from './auth/auth.provider';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
+    CommonModule,
     ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
     LoggerModule.forRootAsync({

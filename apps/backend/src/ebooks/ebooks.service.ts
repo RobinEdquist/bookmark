@@ -21,8 +21,8 @@ import {
 } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import sharp from 'sharp';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { ImageProcessingService } from '../common/image-processing.service';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as hardcoverSchema from '../hardcover/schema';
@@ -68,6 +68,7 @@ export class EbooksService {
     private appEvents: AppEventsService,
     private appDataService: AppDataService,
     private ebookMetadataProvider: EbookMetadataProvider,
+    private imageProcessing: ImageProcessingService,
   ) {}
 
   /**
@@ -753,16 +754,10 @@ export class EbooksService {
       throw new NotFoundException('Ebook not found');
     }
 
-    // Process image with sharp
+    // Process image in worker thread
     let processedBuffer: Buffer;
     try {
-      processedBuffer = await sharp(buffer)
-        .resize(1000, 1000, {
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .jpeg({ quality: 85 })
-        .toBuffer();
+      processedBuffer = await this.imageProcessing.processCover(buffer);
     } catch {
       throw new BadRequestException('Invalid image file');
     }

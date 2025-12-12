@@ -1,20 +1,28 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { HardcoverService, MediaType } from './hardcover.service';
 import { WsEventsService } from '../events/ws-events.service';
+import { ImportQueueService } from '../library-watcher/import-queue.service';
+import { LibraryScannerService } from '../library-watcher/library-scanner.service';
 
 const PROCESS_INTERVAL_MS = 5000; // Check for new items every 5 seconds
 const THROTTLE_DELAY_MS = 3000; // 3 second delay between API requests
+const POST_IMPORT_DELAY_MS = 5000; // Wait 5 seconds after imports finish before syncing
 
 @Injectable()
 export class HardcoverSyncProcessor implements OnModuleInit {
   private readonly logger = new Logger(HardcoverSyncProcessor.name);
   private isProcessing = false;
   private lastProcessTime = 0;
+  private lastImportActiveTime = 0;
 
   constructor(
     private readonly hardcoverService: HardcoverService,
     private readonly wsEvents: WsEventsService,
+    @Inject(forwardRef(() => ImportQueueService))
+    private readonly importQueueService: ImportQueueService,
+    @Inject(forwardRef(() => LibraryScannerService))
+    private readonly libraryScannerService: LibraryScannerService,
   ) {}
 
   onModuleInit() {
@@ -28,8 +36,23 @@ export class HardcoverSyncProcessor implements OnModuleInit {
       return;
     }
 
-    // Enforce throttle delay between API requests
     const now = Date.now();
+
+    // Check if imports are in progress or a library scan is running - wait for them to complete
+    const pendingImports = this.importQueueService.getPendingCount();
+    const isScanning = this.libraryScannerService.isScanning();
+    if (pendingImports > 0 || isScanning) {
+      this.lastImportActiveTime = now;
+      return;
+    }
+
+    // Wait for a grace period after imports finish before starting Hardcover sync
+    // This ensures all imports are fully processed before we start API calls
+    if (this.lastImportActiveTime > 0 && now - this.lastImportActiveTime < POST_IMPORT_DELAY_MS) {
+      return;
+    }
+
+    // Enforce throttle delay between API requests
     if (now - this.lastProcessTime < THROTTLE_DELAY_MS) {
       return;
     }

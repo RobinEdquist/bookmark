@@ -9,6 +9,7 @@ import { MediaImporterService } from './media-importer.service';
 import { ImportQueueService } from './import-queue.service';
 import { EmbeddedMetadataProvider } from './metadata/embedded-metadata.provider';
 import { EbookMetadataProvider } from './metadata/ebook-metadata.provider';
+import { MetadataWorkerPoolService } from './metadata/metadata-worker-pool.service';
 import { HardcoverModule } from '../hardcover/hardcover.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { HardcoverModule } from '../hardcover/hardcover.module';
     MediaDetectorService,
     MediaImporterService,
     ImportQueueService,
+    MetadataWorkerPoolService,
     EmbeddedMetadataProvider,
     EbookMetadataProvider,
   ],
@@ -29,6 +31,7 @@ import { HardcoverModule } from '../hardcover/hardcover.module';
     EmbeddedMetadataProvider,
     EbookMetadataProvider,
     ImportQueueService,
+    LibraryScannerService,
   ],
 })
 export class LibraryWatcherModule {}
