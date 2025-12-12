@@ -394,7 +394,7 @@ export function LibrariesSettings() {
         open={audiobookFolderPickerOpen}
         onOpenChange={setAudiobookFolderPickerOpen}
         onSelect={handleSelectAudiobookPath}
-        initialPath={settings?.audiobookLibraryPath || undefined}
+        initialPath={settings?.audiobookLibraryPath || '/library/audiobooks'}
         title={t("folderPicker.audiobookTitle")}
         description={t("folderPicker.audiobookDescription")}
       />
@@ -402,7 +402,7 @@ export function LibrariesSettings() {
         open={ebookFolderPickerOpen}
         onOpenChange={setEbookFolderPickerOpen}
         onSelect={handleSelectEbookPath}
-        initialPath={settings?.ebookLibraryPath || undefined}
+        initialPath={settings?.ebookLibraryPath || '/library/ebooks'}
         title={t("folderPicker.ebookTitle")}
         description={t("folderPicker.ebookDescription")}
       />
