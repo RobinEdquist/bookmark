@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { WorkerPoolService, getWorkerPath } from './worker-pool.service';
+import { WorkerPoolService } from './worker-pool.service';
 import * as path from 'path';
 
 export interface ProcessImageOptions {
