@@ -15,7 +15,12 @@
     "hide": "Dölj från Fortsätt lyssna",
     "hiding": "Döljer...",
     "hideSuccess": "Dold från Fortsätt lyssna",
-    "hideError": "Kunde inte dölja ljudboken"
+    "hideError": "Kunde inte dölja ljudboken",
+    "noLibraryAdmin": "Inget bibliotek konfigurerat",
+    "noLibraryAdminDescription": "Konfigurera ditt ljudboksbibliotek i inställningarna för att komma igång.",
+    "goToSettings": "Gå till inställningar",
+    "noLibraryUser": "Väntar på konfiguration",
+    "noLibraryUserDescription": "Ljudboksbiblioteket har inte konfigurerats ännu. Kontakta en administratör."
   },
   "recentlyAdded": {
     "title": "Nyligen tillagda",

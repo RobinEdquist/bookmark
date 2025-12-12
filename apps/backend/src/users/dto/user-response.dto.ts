@@ -1,4 +1,5 @@
 export interface UserPermissionsResponse {
+  isAdmin: boolean;
   canEditMetadata: boolean;
   canUploadAudiobooks: boolean;
   canDeleteAudiobooks: boolean;

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { Headphones, Play, Pause, MoreVertical, EyeOff } from "lucide-react";
+import { Headphones, Play, Pause, MoreVertical, EyeOff, Settings, Clock } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
@@ -17,6 +17,8 @@ import {
 import { toast } from "sonner";
 import { useAllProgress, useHideProgress, type ProgressWithAudiobook } from "../../lib/use-progress";
 import { useAudiobook } from "../../lib/use-audiobooks";
+import { useLibraryAvailability } from "../../lib/use-library-availability";
+import { useMyPermissions } from "../../lib/use-users";
 import { usePlayer } from "../providers/player-provider";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
 
@@ -153,6 +155,8 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
 export function ContinueListeningSection() {
   const t = useTranslations("home.continueListening");
   const { data: allProgress, isLoading } = useAllProgress();
+  const { data: availability, isLoading: isLoadingAvailability } = useLibraryAvailability();
+  const { data: permissions, isLoading: isLoadingPermissions } = useMyPermissions();
 
   // Filter to only show incomplete audiobooks, sorted by most recently updated
   const inProgressAudiobooks = useMemo(() => {
@@ -162,7 +166,7 @@ export function ContinueListeningSection() {
       .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
   }, [allProgress]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingAvailability || isLoadingPermissions) {
     return (
       <section className="space-y-4">
         <div className="flex items-center justify-between">
@@ -181,7 +185,62 @@ export function ContinueListeningSection() {
     );
   }
 
-  // Show empty state when no in-progress audiobooks
+  // Check if audiobook library is configured
+  const audiobookLibraryConfigured = availability?.audiobooks ?? false;
+  const isAdmin = permissions?.isAdmin ?? false;
+
+  // Show different empty states based on library configuration and user role
+  if (!audiobookLibraryConfigured) {
+    // No audiobook library configured
+    if (isAdmin) {
+      // Admin: prompt to configure library
+      return (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
+
+          <motion.div
+            className="flex flex-col items-center justify-center rounded-xl border bg-card p-8 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="mb-4 rounded-full bg-primary/10 p-4">
+              <Settings className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-lg font-medium">{t("noLibraryAdmin")}</h3>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              {t("noLibraryAdminDescription")}
+            </p>
+            <Button asChild className="mt-6">
+              <Link href="/settings">{t("goToSettings")}</Link>
+            </Button>
+          </motion.div>
+        </section>
+      );
+    } else {
+      // Regular user: show waiting message
+      return (
+        <section className="space-y-4">
+          <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
+
+          <motion.div
+            className="flex flex-col items-center justify-center rounded-xl border bg-card p-8 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="mb-4 rounded-full bg-muted p-4">
+              <Clock className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-medium">{t("noLibraryUser")}</h3>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              {t("noLibraryUserDescription")}
+            </p>
+          </motion.div>
+        </section>
+      );
+    }
+  }
+
+  // Show empty state when library is configured but no in-progress audiobooks
   if (inProgressAudiobooks.length === 0) {
     return (
       <section className="space-y-4">
@@ -200,7 +259,7 @@ export function ContinueListeningSection() {
             {t("emptyDescription")}
           </p>
           <Button asChild className="mt-6">
-            <Link href="/libraries">{t("browseLibrary")}</Link>
+            <Link href="/audiobooks">{t("browseLibrary")}</Link>
           </Button>
         </motion.div>
       </section>

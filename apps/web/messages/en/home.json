@@ -15,7 +15,12 @@
     "hide": "Hide from Continue Listening",
     "hiding": "Hiding...",
     "hideSuccess": "Hidden from Continue Listening",
-    "hideError": "Failed to hide audiobook"
+    "hideError": "Failed to hide audiobook",
+    "noLibraryAdmin": "No library configured",
+    "noLibraryAdminDescription": "Configure your audiobook library in settings to get started.",
+    "goToSettings": "Go to Settings",
+    "noLibraryUser": "Waiting for configuration",
+    "noLibraryUserDescription": "The audiobook library hasn't been configured yet. Please contact an administrator."
   },
   "recentlyAdded": {
     "title": "Recently Added",

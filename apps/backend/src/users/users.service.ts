@@ -298,8 +298,11 @@ export class UsersService {
       .where(eq(authSchema.user.id, userId))
       .limit(1);
 
-    if (userRecord.length > 0 && userRecord[0].role === 'admin') {
+    const isAdmin = userRecord.length > 0 && userRecord[0].role === 'admin';
+
+    if (isAdmin) {
       return {
+        isAdmin: true,
         canEditMetadata: true,
         canUploadAudiobooks: true,
         canDeleteAudiobooks: true,
@@ -315,6 +318,7 @@ export class UsersService {
 
     if (perms.length === 0) {
       return {
+        isAdmin: false,
         canEditMetadata: false,
         canUploadAudiobooks: false,
         canDeleteAudiobooks: false,
@@ -323,6 +327,7 @@ export class UsersService {
     }
 
     return {
+      isAdmin: false,
       canEditMetadata: perms[0].canEditMetadata,
       canUploadAudiobooks: perms[0].canUploadAudiobooks,
       canDeleteAudiobooks: perms[0].canDeleteAudiobooks,

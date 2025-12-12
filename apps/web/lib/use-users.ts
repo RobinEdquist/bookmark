@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 
 export interface UserPermissions {
+  isAdmin: boolean;
   canEditMetadata: boolean;
   canUploadAudiobooks: boolean;
   canDeleteAudiobooks: boolean;
