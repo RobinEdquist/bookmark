@@ -1424,6 +1424,7 @@ export class AudiobooksService {
     // Multiple files OR separate cover - ZIP download
     // Sanitize title for filename
     const sanitizedTitle = ab.title
+      // eslint-disable-next-line no-control-regex
       .replace(/[<>:"/\\|?*\x00-\x1f]/g, '') // Remove invalid filename chars
       .replace(/\s+/g, ' ') // Normalize whitespace
       .trim()

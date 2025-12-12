@@ -54,7 +54,7 @@ export default function SettingsPage() {
       });
       router.replace("/home");
     }
-  }, [isPending, isAdmin, router, session?.user?.role]);
+  }, [isPending, isAdmin, router, session?.user]);
 
   if (isPending || !isAdmin) {
     return (

@@ -460,7 +460,6 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!state.audiobook || !audioRef.current) return;
 
     const clampedPosition = Math.max(0, Math.min(position, state.duration));
-    const currentPos = fileStartPositionRef.current + audioRef.current.currentTime;
 
     // Check if seeking within the same file or to a different file
     // We need to reload if seeking to a position outside the current file

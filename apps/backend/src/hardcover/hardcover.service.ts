@@ -6,7 +6,7 @@ import * as appSettingsSchema from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as hardcoverSchema from './schema';
-import { eq, asc, and, count } from 'drizzle-orm';
+import { eq, asc, and } from 'drizzle-orm';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 

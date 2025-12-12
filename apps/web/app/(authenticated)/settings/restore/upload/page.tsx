@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import {
   Upload,
   FileArchive,
-  CheckCircle2,
   AlertCircle,
   FolderOpen,
   Users,
@@ -36,7 +35,7 @@ export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const validateFile = (file: File): string | null => {
+  const validateFile = useCallback((file: File): string | null => {
     if (!file.name.toLowerCase().endsWith(".audiobookshelf")) {
       return t("upload.errors.invalidFileType");
     }
@@ -44,7 +43,7 @@ export default function UploadPage() {
       return t("upload.errors.fileTooLarge", { maxSize: "500MB" });
     }
     return null;
-  };
+  }, [t]);
 
   const handleFileSelect = useCallback((file: File) => {
     const error = validateFile(file);
@@ -53,7 +52,7 @@ export default function UploadPage() {
       return;
     }
     setSelectedFile(file);
-  }, [t]);
+  }, [validateFile]);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();

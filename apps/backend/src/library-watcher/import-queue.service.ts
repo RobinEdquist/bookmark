@@ -134,7 +134,7 @@ export class ImportQueueService implements OnModuleDestroy {
   private async processStableImports(): Promise<void> {
     const now = Date.now();
 
-    for (const [rootPath, pending] of this.pendingImports) {
+    for (const [, pending] of this.pendingImports) {
       if (pending.status !== 'collecting') continue;
 
       const timeSinceLastActivity = now - pending.lastActivity.getTime();

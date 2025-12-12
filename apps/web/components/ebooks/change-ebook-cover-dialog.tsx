@@ -38,7 +38,6 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 export function ChangeEbookCoverDialog({
   ebookId,
   ebookTitle,
-  currentCoverUrl,
   open,
   onOpenChange,
 }: ChangeEbookCoverDialogProps) {

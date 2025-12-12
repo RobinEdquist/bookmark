@@ -75,7 +75,7 @@ export class OpdsAuthGuard implements CanActivate {
       }
 
       return true;
-    } catch (error) {
+    } catch {
       response.setHeader('WWW-Authenticate', 'Basic realm="OPDS"');
       throw new UnauthorizedException('Invalid API key');
     }

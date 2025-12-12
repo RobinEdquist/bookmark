@@ -87,7 +87,9 @@ export class EmbeddedMetadataProvider {
   async extractFullMetadata(filePath: string): Promise<FullMetadataResult> {
     try {
       // Parse file once with chapters included
-      const mmMetadata = await mm.parseFile(filePath, { includeChapters: true });
+      const mmMetadata = await mm.parseFile(filePath, {
+        includeChapters: true,
+      });
       const { common, format } = mmMetadata;
       const stats = await fs.stat(filePath);
 
@@ -147,10 +149,7 @@ export class EmbeddedMetadataProvider {
       const sampleRate = mmMetadata.format.sampleRate || 44100;
 
       // Check format.chapters (works for M4B/M4A/MP4 files with chapter tracks)
-      if (
-        mmMetadata.format.chapters &&
-        mmMetadata.format.chapters.length > 0
-      ) {
+      if (mmMetadata.format.chapters && mmMetadata.format.chapters.length > 0) {
         this.logger.debug(
           `Found ${mmMetadata.format.chapters.length} chapters via format.chapters`,
         );

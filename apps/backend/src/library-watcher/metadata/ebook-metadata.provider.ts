@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as path from 'path';
-import * as fs from 'fs/promises';
 import EPub from 'epub2';
 
 export interface EbookMetadata {

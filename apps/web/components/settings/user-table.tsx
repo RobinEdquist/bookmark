@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Button } from "@repo/ui/components/ui/button";
 import type { User } from "../../lib/use-users";
 
@@ -49,9 +50,11 @@ export function UserTable({
               <td className="px-4 py-3">
                 <div className="flex items-center gap-2">
                   {user.image && (
-                    <img
+                    <Image
                       src={user.image}
                       alt=""
+                      width={32}
+                      height={32}
                       className="h-8 w-8 rounded-full"
                     />
                   )}

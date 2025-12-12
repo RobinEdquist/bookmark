@@ -375,7 +375,10 @@ export class LibraryScannerService {
     units: AudiobookUnit[] | EbookUnit[],
     libraryPath: string,
     type: 'audiobook' | 'ebook',
-  ): Promise<{ added: number; errors: Array<{ path: string; error: string }> }> {
+  ): Promise<{
+    added: number;
+    errors: Array<{ path: string; error: string }>;
+  }> {
     const limit = pLimit(IMPORT_CONCURRENCY);
     let added = 0;
     const errors: Array<{ path: string; error: string }> = [];

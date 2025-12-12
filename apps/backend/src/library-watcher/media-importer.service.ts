@@ -65,8 +65,11 @@ export class MediaImporterService {
       // This avoids parsing the file 3 times
       const primaryData =
         await this.audioMetadataProvider.extractFullMetadata(primaryFile);
-      const { metadata, fileInfo: primaryFileInfo, chapters: primaryChapters } =
-        primaryData;
+      const {
+        metadata,
+        fileInfo: primaryFileInfo,
+        chapters: primaryChapters,
+      } = primaryData;
 
       // Determine cover source
       let coverSource: 'embedded' | undefined = undefined;
@@ -322,16 +325,18 @@ export class MediaImporterService {
   private sanitizeText(text: string | undefined): string | undefined {
     if (!text) return undefined;
 
-    return text
-      // Replace smart/curly quotes with straight quotes
-      .replace(/[\u2018\u2019\u201A\u201B]/g, "'") // single quotes
-      .replace(/[\u201C\u201D\u201E\u201F]/g, '"') // double quotes
-      // Replace various dashes with regular hyphen
-      .replace(/[\u2013\u2014\u2015]/g, '-') // en-dash, em-dash, horizontal bar
-      // Replace ellipsis character with three dots
-      .replace(/\u2026/g, '...')
-      // Remove null bytes that might be embedded
-      .replace(/\0/g, '');
+    return (
+      text
+        // Replace smart/curly quotes with straight quotes
+        .replace(/[\u2018\u2019\u201A\u201B]/g, "'") // single quotes
+        .replace(/[\u201C\u201D\u201E\u201F]/g, '"') // double quotes
+        // Replace various dashes with regular hyphen
+        .replace(/[\u2013\u2014\u2015]/g, '-') // en-dash, em-dash, horizontal bar
+        // Replace ellipsis character with three dots
+        .replace(/\u2026/g, '...')
+        // Remove null bytes that might be embedded
+        .replace(/\0/g, '')
+    );
   }
 
   private inferTitleFromPath(

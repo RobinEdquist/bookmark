@@ -45,7 +45,6 @@ export default function RestoreUsersPage() {
     if (session?.userMappings) {
       setUserMappings(session.userMappings);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.userMappings]);
 
   const handleMappingChange = (absUserId: string, savUserId: string | null) => {

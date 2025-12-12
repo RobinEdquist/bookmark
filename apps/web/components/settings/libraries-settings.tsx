@@ -19,25 +19,8 @@ import { Switch } from "@repo/ui/components/ui/switch";
 import { FolderPickerDialog } from "./folder-picker-dialog";
 import {
   useSettings,
-  MetadataSource,
   MetadataFieldPriority,
 } from "../../lib/use-settings";
-
-// Define which sources are available for each field
-const FIELD_AVAILABLE_SOURCES: Record<keyof MetadataFieldPriority, MetadataSource[]> = {
-  title: ["manual", "embedded", "hardcover", "filename"],
-  subtitle: ["manual", "embedded", "hardcover"],
-  author: ["manual", "embedded", "hardcover", "filename"],
-  narrator: ["manual", "embedded"],
-  description: ["manual", "embedded", "hardcover"],
-  publisher: ["manual", "embedded", "hardcover"],
-  publishedDate: ["manual", "embedded", "hardcover"],
-  language: ["manual", "embedded"],
-  genres: ["manual", "embedded", "hardcover"],
-  series: ["manual", "embedded", "hardcover", "filename"],
-  seriesOrder: ["manual", "embedded", "hardcover", "filename"],
-  cover: ["manual", "embedded", "hardcover", "folder_image"],
-};
 
 // Fields that make sense to show in the UI
 // Note: genres is excluded because it always combines all sources

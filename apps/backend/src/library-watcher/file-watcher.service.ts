@@ -85,7 +85,7 @@ export class FileWatcherService implements OnModuleDestroy {
       },
       depth: 99,
       ignored: [
-        /(^|[\/\\])\../, // Ignore dotfiles
+        /(^|[/\\])\../, // Ignore dotfiles
         /\.DS_Store$/,
         /Thumbs\.db$/,
         /desktop\.ini$/,

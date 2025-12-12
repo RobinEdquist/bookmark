@@ -15,7 +15,7 @@ export default function AudiobooksPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
-  const { sortBy, sortOrder, setSortField, isLoaded } = useSortPreference("audiobooks");
+  const { sortBy, sortOrder, setSortField } = useSortPreference("audiobooks");
   const { data, isLoading, isFetching, error } = useAudiobooks({
     search: debouncedSearch || undefined,
     sortBy,

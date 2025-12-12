@@ -67,11 +67,6 @@ export function CreatableSelect({
     }
   };
 
-  const handleClear = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    onChange("");
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && showCreateOption) {
       e.preventDefault();

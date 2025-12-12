@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, desc, eq, gte, sql, sum, count } from 'drizzle-orm';
+import { and, desc, eq, gte, sql, count } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as progressSchema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';

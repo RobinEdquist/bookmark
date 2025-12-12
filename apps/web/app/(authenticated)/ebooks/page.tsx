@@ -15,7 +15,7 @@ export default function EbooksPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
-  const { sortBy, sortOrder, setSortField, isLoaded } = useSortPreference("ebooks");
+  const { sortBy, sortOrder, setSortField } = useSortPreference("ebooks");
   const { data, isLoading, isFetching, error } = useEbooks({
     search: debouncedSearch || undefined,
     sortBy,

@@ -32,8 +32,9 @@ export default function LibraryPage() {
 
   // Get available libraries from session
   const availableLibraries: AvailableLibrary[] =
-    session?.extractedPath && (session as any).availableLibraries
-      ? (session as any).availableLibraries
+    session?.extractedPath &&
+    (session as unknown as { availableLibraries?: AvailableLibrary[] }).availableLibraries
+      ? (session as unknown as { availableLibraries: AvailableLibrary[] }).availableLibraries
       : [];
 
   // Redirect if no session ID
