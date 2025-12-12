@@ -141,7 +141,7 @@ export class AudiobooksService {
       language,
       sortBy = 'createdAt',
       sortOrder = 'desc',
-      limit = 24,
+      limit,
       offset = 0,
     } = filters;
 
@@ -250,13 +250,16 @@ export class AudiobooksService {
         orderByClause = desc(schema.audiobooks.createdAt);
     }
 
-    const audiobooks = await this.db
+    const baseQuery = this.db
       .select()
       .from(schema.audiobooks)
       .where(whereClause)
-      .orderBy(orderByClause)
-      .limit(limit)
-      .offset(offset);
+      .orderBy(orderByClause);
+
+    const audiobooks =
+      limit !== undefined
+        ? await baseQuery.limit(limit).offset(offset)
+        : await baseQuery;
 
     // Get all audiobook IDs for batch fetching
     const audiobookIds = audiobooks.map((ab) => ab.id);

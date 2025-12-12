@@ -304,7 +304,8 @@
       "noResults": "Inga resultat hittades",
       "autoSync": {
         "label": "Auto-synk vid import",
-        "description": "Hämta automatiskt metadata från Hardcover när nya ljudböcker importeras"
+        "description": "Hämta automatiskt metadata från Hardcover när nya ljudböcker importeras",
+        "warning": "Rekommenderas att aktivera först efter att din initiala biblioteksimport är klar. Auto-länkningsfel under stora importer kan vara svåra att spåra."
       },
       "syncQueue": {
         "title": "Synkkö",

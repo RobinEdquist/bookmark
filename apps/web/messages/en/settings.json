@@ -304,7 +304,8 @@
       "noResults": "No results found",
       "autoSync": {
         "label": "Auto-sync on import",
-        "description": "Automatically fetch metadata from Hardcover when new audiobooks are imported"
+        "description": "Automatically fetch metadata from Hardcover when new audiobooks are imported",
+        "warning": "Recommended to enable only after your initial library import is complete. Auto-linking errors during large imports can be difficult to track."
       },
       "syncQueue": {
         "title": "Sync Queue",

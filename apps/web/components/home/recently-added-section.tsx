@@ -20,10 +20,12 @@ export function RecentlyAddedSection() {
   });
 
   // Shared edit dialog state for navigation between audiobooks
-  const [editingAudiobookId, setEditingAudiobookId] = useState<string | null>(null);
+  const [editingAudiobookId, setEditingAudiobookId] = useState<string | null>(
+    null
+  );
   const audiobooks = data?.audiobooks ?? [];
   const editingAudiobook = editingAudiobookId
-    ? audiobooks.find((a) => a.id === editingAudiobookId) ?? null
+    ? (audiobooks.find((a) => a.id === editingAudiobookId) ?? null)
     : null;
   const audiobookIds = audiobooks.map((a) => a.id);
 
@@ -63,7 +65,7 @@ export function RecentlyAddedSection() {
     <>
       <HorizontalScrollRow
         title={t("title")}
-        seeAllHref="/libraries?sortBy=createdAt&sortOrder=desc"
+        seeAllHref="/audiobooks?sortBy=createdAt&sortOrder=desc"
         seeAllLabel={t("seeAll")}
       >
         {data.audiobooks.map((audiobook) => (

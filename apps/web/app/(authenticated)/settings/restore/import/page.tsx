@@ -30,7 +30,8 @@ export default function RestoreImportPage() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session");
 
-  const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
+  const { data: session, isLoading: sessionLoading } =
+    useRestoreSession(sessionId);
   const { progress, isConnected } = useRestoreProgress(sessionId);
 
   const logContainerRef = useRef<HTMLDivElement>(null);
@@ -52,7 +53,7 @@ export default function RestoreImportPage() {
       hasNavigated.current = true;
       // Small delay to show the completion message
       setTimeout(() => {
-        router.push("/library");
+        router.push("/home");
       }, 3000);
     }
   }, [session?.state, router]);
@@ -246,7 +247,7 @@ export default function RestoreImportPage() {
               </p>
             </div>
             <Button asChild size="lg">
-              <Link href="/library">
+              <Link href="/home">
                 <Library className="mr-2 h-4 w-4" />
                 Go to Library
               </Link>
@@ -268,10 +269,7 @@ export default function RestoreImportPage() {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button
-                variant="outline"
-                asChild
-              >
+              <Button variant="outline" asChild>
                 <Link href="/settings/restore/upload">Try Again</Link>
               </Button>
               <Button asChild>
@@ -287,9 +285,7 @@ export default function RestoreImportPage() {
         <div className="flex justify-center gap-3">
           <Button
             variant="outline"
-            onClick={() =>
-              router.push(`/settings/restore/upload`)
-            }
+            onClick={() => router.push(`/settings/restore/upload`)}
           >
             Start Over
           </Button>

@@ -218,22 +218,28 @@ export function IntegrationsSettings() {
                 </Button>
               </div>
 
-              <fieldset className="flex items-center justify-between rounded-lg border p-4">
-                <div className="space-y-0.5">
-                  <Label htmlFor="auto-sync-enabled" className="text-base font-medium">
-                    {t("hardcover.autoSync.label")}
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {t("hardcover.autoSync.description")}
-                  </p>
+              <fieldset className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="auto-sync-enabled" className="text-base font-medium">
+                      {t("hardcover.autoSync.label")}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {t("hardcover.autoSync.description")}
+                    </p>
+                  </div>
+                  <Switch
+                    id="auto-sync-enabled"
+                    checked={autoSyncOnImport}
+                    onCheckedChange={handleAutoSyncToggle}
+                    disabled={isUpdatingAutoSync}
+                    aria-describedby="auto-sync-description"
+                  />
                 </div>
-                <Switch
-                  id="auto-sync-enabled"
-                  checked={autoSyncOnImport}
-                  onCheckedChange={handleAutoSyncToggle}
-                  disabled={isUpdatingAutoSync}
-                  aria-describedby="auto-sync-description"
-                />
+                <p className="text-sm text-amber-600 dark:text-amber-500 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  {t("hardcover.autoSync.warning")}
+                </p>
               </fieldset>
 
               {/* Sync Queue Status */}
