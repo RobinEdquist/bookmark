@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, Logger, BadRequestException } from '@nestjs/common';
 import { GraphQLClient } from 'graphql-request';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -6,7 +6,7 @@ import * as appSettingsSchema from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as hardcoverSchema from './schema';
-import { eq, asc, and } from 'drizzle-orm';
+import { eq, asc, and, isNull } from 'drizzle-orm';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 
@@ -1051,5 +1051,60 @@ export class HardcoverService {
           eq(hardcoverSchema.hardcoverSyncQueue.status, 'failed'),
         ),
       );
+  }
+
+  async queueAllUnlinked(mediaType: MediaType): Promise<number> {
+    // Check if API key is configured
+    const apiKey = await this.getApiKey();
+    if (!apiKey) {
+      throw new BadRequestException('Hardcover API key not configured');
+    }
+
+    let unlinkedIds: string[];
+
+    if (mediaType === 'audiobook') {
+      // Find all audiobooks without a Hardcover link
+      const unlinked = await this.db
+        .select({ id: audiobooksSchema.audiobooks.id })
+        .from(audiobooksSchema.audiobooks)
+        .leftJoin(
+          hardcoverSchema.hardcoverAudiobookLinks,
+          eq(
+            audiobooksSchema.audiobooks.id,
+            hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+          ),
+        )
+        .where(isNull(hardcoverSchema.hardcoverAudiobookLinks.audiobookId));
+
+      unlinkedIds = unlinked.map((row) => row.id);
+    } else {
+      // Find all ebooks without a Hardcover link
+      const unlinked = await this.db
+        .select({ id: ebooksSchema.ebooks.id })
+        .from(ebooksSchema.ebooks)
+        .leftJoin(
+          hardcoverSchema.hardcoverEbookLinks,
+          eq(
+            ebooksSchema.ebooks.id,
+            hardcoverSchema.hardcoverEbookLinks.ebookId,
+          ),
+        )
+        .where(isNull(hardcoverSchema.hardcoverEbookLinks.ebookId));
+
+      unlinkedIds = unlinked.map((row) => row.id);
+    }
+
+    // Queue each unlinked item (addToSyncQueue handles duplicates)
+    let queuedCount = 0;
+    for (const id of unlinkedIds) {
+      await this.addToSyncQueue(mediaType, id);
+      queuedCount++;
+    }
+
+    this.logger.log(
+      `Queued ${queuedCount} unlinked ${mediaType}s for Hardcover sync`,
+    );
+
+    return queuedCount;
   }
 }
