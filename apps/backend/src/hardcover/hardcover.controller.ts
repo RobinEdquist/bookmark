@@ -305,4 +305,20 @@ export class HardcoverController {
   async dismissFailedItem(@Param('id') id: string) {
     await this.hardcoverService.dismissFailedItem(id);
   }
+
+  // ============ Bulk Queue Endpoints ============
+
+  @Post('queue-all-unlinked/audiobooks')
+  @HttpCode(HttpStatus.OK)
+  async queueAllUnlinkedAudiobooks() {
+    const queuedCount = await this.hardcoverService.queueAllUnlinked('audiobook');
+    return { queuedCount };
+  }
+
+  @Post('queue-all-unlinked/ebooks')
+  @HttpCode(HttpStatus.OK)
+  async queueAllUnlinkedEbooks() {
+    const queuedCount = await this.hardcoverService.queueAllUnlinked('ebook');
+    return { queuedCount };
+  }
 }
