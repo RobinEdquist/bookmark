@@ -573,6 +573,32 @@ async function dismissFailedSyncItem(id: string): Promise<void> {
   }
 }
 
+interface QueueAllUnlinkedResponse {
+  queuedCount: number;
+}
+
+async function queueAllUnlinked(
+  mediaType: MediaType
+): Promise<QueueAllUnlinkedResponse> {
+  const endpoint = `/api/hardcover/queue-all-unlinked/${mediaType}s`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    // Check if it's a "not configured" error (BadRequestException from backend)
+    if (error.message && error.message.includes("Hardcover API key not configured")) {
+      throw new Error("HARDCOVER_NOT_CONFIGURED");
+    }
+    throw new Error(error.message || "Failed to queue items");
+  }
+
+  return response.json();
+}
+
 export function useHardcoverDismissFailedItem() {
   const queryClient = useQueryClient();
 
@@ -588,6 +614,26 @@ export function useHardcoverDismissFailedItem() {
   return {
     dismissItem: mutation.mutateAsync,
     isDismissing: mutation.isPending,
+    error: mutation.error,
+  };
+}
+
+export function useQueueAllUnlinked() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: queueAllUnlinked,
+    onSuccess: () => {
+      // Invalidate queue status to reflect new pending count
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.hardcover.queueStatus(),
+      });
+    },
+  });
+
+  return {
+    queueAllUnlinked: mutation.mutateAsync,
+    isQueueing: mutation.isPending,
     error: mutation.error,
   };
 }
