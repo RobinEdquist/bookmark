@@ -23,11 +23,8 @@ export interface ImportErrorsResponse {
   total: number;
 }
 
-async function fetchImportErrors(
-  libraryType: "audiobook" | "ebook"
-): Promise<ImportErrorsResponse> {
+async function fetchImportErrors(): Promise<ImportErrorsResponse> {
   const params = new URLSearchParams({
-    libraryType,
     status: "pending",
   });
 
@@ -55,10 +52,10 @@ async function retryImport(errorId: string): Promise<{ success: boolean; message
   return response.json();
 }
 
-export function useImportErrors(libraryType: "audiobook" | "ebook") {
+export function useImportErrors() {
   return useQuery({
-    queryKey: queryKeys.importErrors.list(libraryType),
-    queryFn: () => fetchImportErrors(libraryType),
+    queryKey: queryKeys.importErrors.list(),
+    queryFn: fetchImportErrors,
     staleTime: 30000, // 30 seconds
   });
 }

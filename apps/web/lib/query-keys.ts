@@ -90,8 +90,7 @@ export const queryKeys = {
   },
   importErrors: {
     all: ["importErrors"] as const,
-    list: (libraryType?: "audiobook" | "ebook") =>
-      [...queryKeys.importErrors.all, "list", libraryType] as const,
+    list: () => [...queryKeys.importErrors.all, "list"] as const,
     detail: (id: string) =>
       [...queryKeys.importErrors.all, "detail", id] as const,
   },

@@ -167,9 +167,12 @@ async function extractFullMetadata(
     narrator: common.composer?.[0] || undefined,
     description: common.comment?.[0]?.text || undefined,
     publisher: common.label?.[0] || undefined,
-    // Validate year is a finite number - NaN.toString() returns "NaN" string
+    // Validate year is a finite number and a reasonable 4-digit year (1000-2100)
     publishedDate:
-      common.year && Number.isFinite(common.year)
+      common.year &&
+      Number.isFinite(common.year) &&
+      common.year >= 1000 &&
+      common.year <= 2100
         ? common.year.toString()
         : undefined,
     language: common.language || undefined,

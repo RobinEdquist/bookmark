@@ -273,6 +273,9 @@ export function LibrariesSettings() {
           <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Import Errors */}
+          <ImportErrorsSection />
+
           {/* Audiobook Library Path */}
           <fieldset className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
@@ -312,9 +315,6 @@ export function LibrariesSettings() {
             </div>
           </fieldset>
 
-          {/* Audiobook Import Errors */}
-          <ImportErrorsSection libraryType="audiobook" />
-
           {/* Ebook Library Path */}
           <fieldset className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
@@ -353,9 +353,6 @@ export function LibrariesSettings() {
               </Button>
             </div>
           </fieldset>
-
-          {/* Ebook Import Errors */}
-          <ImportErrorsSection libraryType="ebook" />
 
           {/* OPDS Feed */}
           <fieldset className="rounded-lg border p-4 space-y-4">

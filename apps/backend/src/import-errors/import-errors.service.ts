@@ -1,14 +1,13 @@
 // apps/backend/src/import-errors/import-errors.service.ts
 import { Inject, Injectable } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, sql, desc, and, like, SQL } from 'drizzle-orm';
+import { eq, sql, desc, and, SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import * as appSettingsSchema from '../app-settings/schema';
 
 export interface ImportErrorFilters {
   status?: 'pending' | 'retrying' | 'resolved' | 'ignored';
-  libraryType?: 'audiobook' | 'ebook';
   limit?: number;
   offset?: number;
 }
@@ -54,20 +53,12 @@ export class ImportErrorsService {
   }
 
   async getErrors(filters: ImportErrorFilters = {}) {
-    const { status, libraryType, limit = 50, offset = 0 } = filters;
+    const { status, limit = 50, offset = 0 } = filters;
 
     const conditions: SQL[] = [];
 
     if (status) {
       conditions.push(eq(schema.importErrors.status, status));
-    }
-
-    // Filter by library type using file path prefix
-    if (libraryType) {
-      const libraryPath = await this.getLibraryPath(libraryType);
-      if (libraryPath) {
-        conditions.push(like(schema.importErrors.filePath, `${libraryPath}%`));
-      }
     }
 
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;

@@ -28,13 +28,11 @@ export class ImportErrorsController {
   @Get()
   async listErrors(
     @Query('status') status?: 'pending' | 'retrying' | 'resolved' | 'ignored',
-    @Query('libraryType') libraryType?: 'audiobook' | 'ebook',
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
   ) {
     return this.importErrorsService.getErrors({
       status,
-      libraryType,
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
     });

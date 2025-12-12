@@ -10,13 +10,9 @@ import {
 import { useImportErrors } from "../../lib/use-import-errors";
 import { ImportErrorCard } from "./import-error-card";
 
-interface ImportErrorsSectionProps {
-  libraryType: "audiobook" | "ebook";
-}
-
-export function ImportErrorsSection({ libraryType }: ImportErrorsSectionProps) {
+export function ImportErrorsSection() {
   const t = useTranslations("settings.libraries.importErrors");
-  const { data, isLoading } = useImportErrors(libraryType);
+  const { data, isLoading } = useImportErrors();
 
   const errorCount = data?.total ?? 0;
 

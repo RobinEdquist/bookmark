@@ -353,9 +353,22 @@ export class MediaImporterService {
     dateString: string | undefined,
   ): string | undefined {
     if (!dateString) return undefined;
+
+    // Handle year-only format (must be 4 digits and reasonable)
     if (/^\d{4}$/.test(dateString)) {
-      return `${dateString}-01-01`;
+      const year = parseInt(dateString, 10);
+      if (year >= 1000 && year <= 2100) {
+        return `${dateString}-01-01`;
+      }
+      return undefined; // Invalid year
     }
+
+    // Try to parse as date - if invalid, return undefined
+    const parsed = new Date(dateString);
+    if (isNaN(parsed.getTime())) {
+      return undefined;
+    }
+
     return dateString;
   }
 
