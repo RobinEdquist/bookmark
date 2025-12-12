@@ -32,10 +32,14 @@ async function processImage(
 ): Promise<{ data: number[]; mimeType: string }> {
   const buffer = Buffer.from(imageData);
 
-  let sharpInstance = sharp(buffer).resize(options.maxWidth, options.maxHeight, {
-    fit: 'inside',
-    withoutEnlargement: true,
-  });
+  let sharpInstance = sharp(buffer).resize(
+    options.maxWidth,
+    options.maxHeight,
+    {
+      fit: 'inside',
+      withoutEnlargement: true,
+    },
+  );
 
   let mimeType: string;
   switch (options.format) {

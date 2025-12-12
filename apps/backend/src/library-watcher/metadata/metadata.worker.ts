@@ -58,7 +58,11 @@ interface WorkerTask {
 interface WorkerResponse {
   taskId: string;
   success: boolean;
-  result?: FullMetadataResult | AudioFileInfo | { data: number[]; mimeType: string } | null;
+  result?:
+    | FullMetadataResult
+    | AudioFileInfo
+    | { data: number[]; mimeType: string }
+    | null;
   error?: string;
 }
 
@@ -111,7 +115,9 @@ async function extractChaptersFromParsedMetadata(
   }
 }
 
-async function extractChaptersWithFfprobe(filePath: string): Promise<Chapter[]> {
+async function extractChaptersWithFfprobe(
+  filePath: string,
+): Promise<Chapter[]> {
   try {
     const { stdout } = await execAsync(
       `ffprobe -v quiet -print_format json -show_chapters "${filePath.replace(/"/g, '\\"')}"`,
@@ -135,7 +141,9 @@ async function extractChaptersWithFfprobe(filePath: string): Promise<Chapter[]> 
       ) => ({
         title: chap.tags?.title || `Chapter ${index + 1}`,
         startTime: Math.round(parseFloat(chap.start_time || '0')),
-        endTime: chap.end_time ? Math.round(parseFloat(chap.end_time)) : undefined,
+        endTime: chap.end_time
+          ? Math.round(parseFloat(chap.end_time))
+          : undefined,
       }),
     );
   } catch {
@@ -143,7 +151,9 @@ async function extractChaptersWithFfprobe(filePath: string): Promise<Chapter[]> 
   }
 }
 
-async function extractFullMetadata(filePath: string): Promise<FullMetadataResult> {
+async function extractFullMetadata(
+  filePath: string,
+): Promise<FullMetadataResult> {
   const mmMetadata = await mm.parseFile(filePath, { includeChapters: true });
   const { common, format } = mmMetadata;
   const stats = await fs.stat(filePath);
@@ -176,7 +186,10 @@ async function extractFullMetadata(filePath: string): Promise<FullMetadataResult
     sizeBytes: stats.size,
   };
 
-  const chapters = await extractChaptersFromParsedMetadata(mmMetadata, filePath);
+  const chapters = await extractChaptersFromParsedMetadata(
+    mmMetadata,
+    filePath,
+  );
 
   return { metadata, fileInfo, chapters };
 }
@@ -188,7 +201,9 @@ async function getFileInfo(filePath: string): Promise<AudioFileInfo> {
   return {
     filePath,
     fileName: path.basename(filePath),
-    duration: metadata.format.duration ? Math.round(metadata.format.duration) : 0,
+    duration: metadata.format.duration
+      ? Math.round(metadata.format.duration)
+      : 0,
     format: metadata.format.container || path.extname(filePath).slice(1),
     bitrate: metadata.format.bitrate
       ? Math.round(metadata.format.bitrate / 1000)
@@ -216,7 +231,11 @@ async function extractCover(
 
 async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
   try {
-    let result: FullMetadataResult | AudioFileInfo | { data: number[]; mimeType: string } | null;
+    let result:
+      | FullMetadataResult
+      | AudioFileInfo
+      | { data: number[]; mimeType: string }
+      | null;
 
     switch (task.type) {
       case 'extractFullMetadata':

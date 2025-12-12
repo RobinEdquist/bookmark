@@ -1,4 +1,10 @@
-import { Injectable, Logger, OnModuleInit, Inject, forwardRef } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  Inject,
+  forwardRef,
+} from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { HardcoverService, MediaType } from './hardcover.service';
 import { WsEventsService } from '../events/ws-events.service';
@@ -48,7 +54,10 @@ export class HardcoverSyncProcessor implements OnModuleInit {
 
     // Wait for a grace period after imports finish before starting Hardcover sync
     // This ensures all imports are fully processed before we start API calls
-    if (this.lastImportActiveTime > 0 && now - this.lastImportActiveTime < POST_IMPORT_DELAY_MS) {
+    if (
+      this.lastImportActiveTime > 0 &&
+      now - this.lastImportActiveTime < POST_IMPORT_DELAY_MS
+    ) {
       return;
     }
 

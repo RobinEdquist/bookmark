@@ -41,7 +41,9 @@ export class MetadataWorkerPoolService implements OnModuleDestroy {
   constructor() {
     // Use half the CPU cores for metadata workers, minimum 2, maximum 8
     this.poolSize = Math.min(8, Math.max(2, Math.floor(os.cpus().length / 2)));
-    this.logger.log(`Metadata worker pool configured with ${this.poolSize} workers`);
+    this.logger.log(
+      `Metadata worker pool configured with ${this.poolSize} workers`,
+    );
   }
 
   private async initializePool(): Promise<void> {
@@ -90,10 +92,15 @@ export class MetadataWorkerPoolService implements OnModuleDestroy {
     }
 
     this.initialized = true;
-    this.logger.log(`Worker pool initialized with ${this.workers.length} workers`);
+    this.logger.log(
+      `Worker pool initialized with ${this.workers.length} workers`,
+    );
   }
 
-  private handleWorkerResponse(workerState: WorkerState, response: WorkerResponse): void {
+  private handleWorkerResponse(
+    workerState: WorkerState,
+    response: WorkerResponse,
+  ): void {
     const pending = this.pendingTasks.get(response.taskId);
     if (pending) {
       this.pendingTasks.delete(response.taskId);
@@ -140,7 +147,10 @@ export class MetadataWorkerPoolService implements OnModuleDestroy {
     availableWorker.worker.postMessage(pendingTask.task);
   }
 
-  private async executeTask<T>(type: WorkerTask['type'], filePath: string): Promise<T> {
+  private async executeTask<T>(
+    type: WorkerTask['type'],
+    filePath: string,
+  ): Promise<T> {
     await this.initializePool();
 
     const taskId = `task-${++this.taskIdCounter}`;

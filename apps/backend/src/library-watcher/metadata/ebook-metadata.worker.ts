@@ -144,9 +144,7 @@ async function extractMetadata(filePath: string): Promise<EbookMetadata> {
           .map((a: string) => a.trim())
           .filter(Boolean);
       } else if (Array.isArray(metadata.creator)) {
-        authors = metadata.creator
-          .map((a: string) => a.trim())
-          .filter(Boolean);
+        authors = metadata.creator.map((a: string) => a.trim()).filter(Boolean);
       }
     }
 

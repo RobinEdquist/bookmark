@@ -56,7 +56,9 @@ import { CommonModule } from './common/common.module';
                   },
                 },
             customProps: (req) => {
-              const session = (req as { session?: { user?: { id: string; email: string } } }).session;
+              const session = (
+                req as { session?: { user?: { id: string; email: string } } }
+              ).session;
               if (session?.user) {
                 return {
                   actor: {

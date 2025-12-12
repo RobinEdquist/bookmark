@@ -42,19 +42,25 @@ interface PoolConfig {
 @Injectable()
 export class WorkerPoolService implements OnModuleDestroy {
   private readonly logger = new Logger(WorkerPoolService.name);
-  private pools: Map<string, {
-    workers: WorkerState[];
-    taskQueue: PendingTask[];
-    pendingTasks: Map<string, PendingTask>;
-    taskIdCounter: number;
-    config: PoolConfig;
-  }> = new Map();
+  private pools: Map<
+    string,
+    {
+      workers: WorkerState[];
+      taskQueue: PendingTask[];
+      pendingTasks: Map<string, PendingTask>;
+      taskIdCounter: number;
+      config: PoolConfig;
+    }
+  > = new Map();
 
   private readonly defaultPoolSize: number;
 
   constructor() {
     // Use half the CPU cores, minimum 2, maximum 8
-    this.defaultPoolSize = Math.min(8, Math.max(2, Math.floor(os.cpus().length / 2)));
+    this.defaultPoolSize = Math.min(
+      8,
+      Math.max(2, Math.floor(os.cpus().length / 2)),
+    );
   }
 
   /**
@@ -80,7 +86,9 @@ export class WorkerPoolService implements OnModuleDestroy {
       config,
     };
 
-    this.logger.log(`Initializing ${config.name} pool with ${poolSize} workers`);
+    this.logger.log(
+      `Initializing ${config.name} pool with ${poolSize} workers`,
+    );
 
     for (let i = 0; i < poolSize; i++) {
       try {
@@ -97,13 +105,17 @@ export class WorkerPoolService implements OnModuleDestroy {
         });
 
         worker.on('error', (error) => {
-          this.logger.error(`${config.name} worker ${i} error: ${error.message}`);
+          this.logger.error(
+            `${config.name} worker ${i} error: ${error.message}`,
+          );
           this.handleWorkerError(config.name, workerState, error);
         });
 
         worker.on('exit', (code) => {
           if (code !== 0) {
-            this.logger.warn(`${config.name} worker ${i} exited with code ${code}`);
+            this.logger.warn(
+              `${config.name} worker ${i} exited with code ${code}`,
+            );
           }
           const poolData = this.pools.get(config.name);
           if (poolData) {
@@ -116,12 +128,16 @@ export class WorkerPoolService implements OnModuleDestroy {
 
         pool.workers.push(workerState);
       } catch (error) {
-        this.logger.error(`Failed to create ${config.name} worker ${i}: ${error}`);
+        this.logger.error(
+          `Failed to create ${config.name} worker ${i}: ${error}`,
+        );
       }
     }
 
     this.pools.set(config.name, pool);
-    this.logger.log(`${config.name} pool initialized with ${pool.workers.length} workers`);
+    this.logger.log(
+      `${config.name} pool initialized with ${pool.workers.length} workers`,
+    );
   }
 
   private handleWorkerResponse(
@@ -189,10 +205,16 @@ export class WorkerPoolService implements OnModuleDestroy {
    * Execute a task on the specified pool.
    * The pool must be initialized first with initializePool().
    */
-  async executeTask<T>(poolName: string, taskType: string, taskData: Record<string, unknown>): Promise<T> {
+  async executeTask<T>(
+    poolName: string,
+    taskType: string,
+    taskData: Record<string, unknown>,
+  ): Promise<T> {
     const pool = this.pools.get(poolName);
     if (!pool) {
-      throw new Error(`Pool ${poolName} not initialized. Call initializePool first.`);
+      throw new Error(
+        `Pool ${poolName} not initialized. Call initializePool first.`,
+      );
     }
 
     const taskId = `${poolName}-${++pool.taskIdCounter}`;
@@ -221,7 +243,9 @@ export class WorkerPoolService implements OnModuleDestroy {
   /**
    * Get statistics for a specific pool.
    */
-  getPoolStats(poolName: string): { total: number; busy: number; queued: number } | null {
+  getPoolStats(
+    poolName: string,
+  ): { total: number; busy: number; queued: number } | null {
     const pool = this.pools.get(poolName);
     if (!pool) return null;
 
@@ -235,8 +259,14 @@ export class WorkerPoolService implements OnModuleDestroy {
   /**
    * Get statistics for all pools.
    */
-  getAllPoolStats(): Record<string, { total: number; busy: number; queued: number }> {
-    const stats: Record<string, { total: number; busy: number; queued: number }> = {};
+  getAllPoolStats(): Record<
+    string,
+    { total: number; busy: number; queued: number }
+  > {
+    const stats: Record<
+      string,
+      { total: number; busy: number; queued: number }
+    > = {};
     for (const [name, pool] of this.pools) {
       stats[name] = {
         total: pool.workers.length,

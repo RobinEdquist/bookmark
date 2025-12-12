@@ -184,7 +184,9 @@ interface WorkerResponse {
   error?: string;
 }
 
-async function parseBackupDetails(extractedPath: string): Promise<ParsedBackup> {
+async function parseBackupDetails(
+  extractedPath: string,
+): Promise<ParsedBackup> {
   // Read details file
   const detailsPath = path.join(extractedPath, 'details');
   const detailsContent = await fs.readFile(detailsPath, 'utf-8');
