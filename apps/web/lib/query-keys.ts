@@ -88,6 +88,13 @@ export const queryKeys = {
     import: () => [...queryKeys.tasks.all, "import"] as const,
     hardcover: () => [...queryKeys.tasks.all, "hardcover"] as const,
   },
+  importErrors: {
+    all: ["importErrors"] as const,
+    list: (libraryType?: "audiobook" | "ebook") =>
+      [...queryKeys.importErrors.all, "list", libraryType] as const,
+    detail: (id: string) =>
+      [...queryKeys.importErrors.all, "detail", id] as const,
+  },
   restore: {
     all: ["restore"] as const,
     session: (sessionId: string) => [...queryKeys.restore.all, "session", sessionId] as const,

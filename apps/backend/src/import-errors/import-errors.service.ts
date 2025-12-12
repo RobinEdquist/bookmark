@@ -1,12 +1,14 @@
 // apps/backend/src/import-errors/import-errors.service.ts
 import { Inject, Injectable } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, sql, desc, and } from 'drizzle-orm';
+import { eq, sql, desc, and, like, SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
+import * as appSettingsSchema from '../app-settings/schema';
 
 export interface ImportErrorFilters {
   status?: 'pending' | 'retrying' | 'resolved' | 'ignored';
+  libraryType?: 'audiobook' | 'ebook';
   limit?: number;
   offset?: number;
 }
@@ -52,16 +54,28 @@ export class ImportErrorsService {
   }
 
   async getErrors(filters: ImportErrorFilters = {}) {
-    const { status, limit = 50, offset = 0 } = filters;
+    const { status, libraryType, limit = 50, offset = 0 } = filters;
 
-    const conditions = status
-      ? eq(schema.importErrors.status, status)
-      : undefined;
+    const conditions: SQL[] = [];
+
+    if (status) {
+      conditions.push(eq(schema.importErrors.status, status));
+    }
+
+    // Filter by library type using file path prefix
+    if (libraryType) {
+      const libraryPath = await this.getLibraryPath(libraryType);
+      if (libraryPath) {
+        conditions.push(like(schema.importErrors.filePath, `${libraryPath}%`));
+      }
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
     const errors = await this.db
       .select()
       .from(schema.importErrors)
-      .where(conditions)
+      .where(whereClause)
       .orderBy(desc(schema.importErrors.lastOccurredAt))
       .limit(limit)
       .offset(offset);
@@ -69,12 +83,62 @@ export class ImportErrorsService {
     const [countResult] = await this.db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.importErrors)
-      .where(conditions);
+      .where(whereClause);
 
     return {
       errors,
       total: countResult.count,
     };
+  }
+
+  async getLibraryPath(
+    libraryType: 'audiobook' | 'ebook',
+  ): Promise<string | null> {
+    const [settings] = await this.db
+      .select({
+        audiobookLibraryPath: appSettingsSchema.appSettings.audiobookLibraryPath,
+        ebookLibraryPath: appSettingsSchema.appSettings.ebookLibraryPath,
+      })
+      .from(appSettingsSchema.appSettings)
+      .where(eq(appSettingsSchema.appSettings.id, 'app_settings'))
+      .limit(1);
+
+    if (!settings) return null;
+
+    return libraryType === 'audiobook'
+      ? settings.audiobookLibraryPath
+      : settings.ebookLibraryPath;
+  }
+
+  async getLibraryTypeForPath(
+    filePath: string,
+  ): Promise<'audiobook' | 'ebook' | null> {
+    const [settings] = await this.db
+      .select({
+        audiobookLibraryPath: appSettingsSchema.appSettings.audiobookLibraryPath,
+        ebookLibraryPath: appSettingsSchema.appSettings.ebookLibraryPath,
+      })
+      .from(appSettingsSchema.appSettings)
+      .where(eq(appSettingsSchema.appSettings.id, 'app_settings'))
+      .limit(1);
+
+    if (!settings) return null;
+
+    if (
+      settings.audiobookLibraryPath &&
+      filePath.startsWith(settings.audiobookLibraryPath)
+    ) {
+      return 'audiobook';
+    }
+
+    if (
+      settings.ebookLibraryPath &&
+      filePath.startsWith(settings.ebookLibraryPath)
+    ) {
+      return 'ebook';
+    }
+
+    return null;
   }
 
   async getError(id: string) {

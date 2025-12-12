@@ -154,7 +154,9 @@ async function extractChaptersWithFfprobe(
 async function extractFullMetadata(
   filePath: string,
 ): Promise<FullMetadataResult> {
-  const mmMetadata = await mm.parseFile(filePath, { includeChapters: true });
+  // Parse without chapters first - this is more reliable and avoids
+  // music-metadata errors with malformed chapter atoms in some M4B files
+  const mmMetadata = await mm.parseFile(filePath, { includeChapters: false });
   const { common, format } = mmMetadata;
   const stats = await fs.stat(filePath);
 
@@ -165,7 +167,11 @@ async function extractFullMetadata(
     narrator: common.composer?.[0] || undefined,
     description: common.comment?.[0]?.text || undefined,
     publisher: common.label?.[0] || undefined,
-    publishedDate: common.year?.toString() || undefined,
+    // Validate year is a finite number - NaN.toString() returns "NaN" string
+    publishedDate:
+      common.year && Number.isFinite(common.year)
+        ? common.year.toString()
+        : undefined,
     language: common.language || undefined,
     genres: common.genre || undefined,
     series: common.grouping || undefined,
@@ -186,10 +192,23 @@ async function extractFullMetadata(
     sizeBytes: stats.size,
   };
 
-  const chapters = await extractChaptersFromParsedMetadata(
-    mmMetadata,
-    filePath,
-  );
+  // Try to extract chapters - failures here shouldn't fail the whole import
+  let chapters: Chapter[] = [];
+  try {
+    // Try music-metadata with chapters enabled
+    const mmWithChapters = await mm.parseFile(filePath, {
+      includeChapters: true,
+    });
+    chapters = await extractChaptersFromParsedMetadata(mmWithChapters, filePath);
+  } catch {
+    // music-metadata chapter parsing failed (e.g., "Expected equal chunk-offset-table
+    // & sample-size-table length" or "Chapter chunk exceeding token length")
+    // Fall back to ffprobe for chapter extraction
+    const ext = path.extname(filePath).toLowerCase();
+    if (['.m4b', '.m4a', '.mp4'].includes(ext)) {
+      chapters = await extractChaptersWithFfprobe(filePath);
+    }
+  }
 
   return { metadata, fileInfo, chapters };
 }

@@ -107,6 +107,23 @@
         "error": "Kunde inte köa objekt",
         "notConfigured": "Hardcover är inte konfigurerat. Konfigurera din API-nyckel under Integrationer."
       }
+    },
+    "importErrors": {
+      "title": "Importfel",
+      "loading": "Laddar fel...",
+      "noErrors": "Inga importfel",
+      "retry": "Försök igen",
+      "retrying": "Försöker igen...",
+      "details": "Detaljer",
+      "fullPath": "Fullständig sökväg",
+      "attempts": "Försök",
+      "firstOccurred": "Första gången",
+      "lastOccurred": "Senaste gången",
+      "stackTrace": "Stackspårning",
+      "toast": {
+        "retryQueued": "Nytt försök köat",
+        "retryFailed": "Kunde inte köa nytt försök"
+      }
     }
   },
   "users": {

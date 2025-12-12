@@ -98,6 +98,7 @@ export class ImportQueueService implements OnModuleDestroy {
       this.logger.debug(
         `Updated pending ${libraryType} import: ${rootPath} (${existing.files.size} files)`,
       );
+      this.emitImportStatus();
     } else if (!existing) {
       this.pendingImports.set(rootPath, {
         path: rootPath,
@@ -151,6 +152,7 @@ export class ImportQueueService implements OnModuleDestroy {
 
   private async processImport(pending: PendingImport): Promise<void> {
     pending.status = 'processing';
+    this.emitImportStatus();
     this.logger.log(
       `Processing ${pending.libraryType} import: ${pending.path}`,
     );

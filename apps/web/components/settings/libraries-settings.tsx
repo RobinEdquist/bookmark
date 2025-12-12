@@ -17,6 +17,7 @@ import { Label } from "@repo/ui/components/ui/label";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { Switch } from "@repo/ui/components/ui/switch";
 import { FolderPickerDialog } from "./folder-picker-dialog";
+import { ImportErrorsSection } from "./import-errors-section";
 import {
   useSettings,
   MetadataSource,
@@ -102,7 +103,7 @@ export function LibrariesSettings() {
   const [ebookFolderPickerOpen, setEbookFolderPickerOpen] = useState(false);
   const [opdsCopied, setOpdsCopied] = useState(false);
   const { isConfigured: hardcoverConfigured } = useHardcoverStatus();
-  const { queueAllUnlinked, isQueueing } = useQueueAllUnlinked();
+  const { queueAllUnlinked } = useQueueAllUnlinked();
   const [isQueueingAudiobooks, setIsQueueingAudiobooks] = useState(false);
   const [isQueueingEbooks, setIsQueueingEbooks] = useState(false);
 
@@ -311,6 +312,9 @@ export function LibrariesSettings() {
             </div>
           </fieldset>
 
+          {/* Audiobook Import Errors */}
+          <ImportErrorsSection libraryType="audiobook" />
+
           {/* Ebook Library Path */}
           <fieldset className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
@@ -349,6 +353,9 @@ export function LibrariesSettings() {
               </Button>
             </div>
           </fieldset>
+
+          {/* Ebook Import Errors */}
+          <ImportErrorsSection libraryType="ebook" />
 
           {/* OPDS Feed */}
           <fieldset className="rounded-lg border p-4 space-y-4">

@@ -107,6 +107,23 @@
         "error": "Failed to queue items",
         "notConfigured": "Hardcover is not configured. Please set up your API key in Integrations."
       }
+    },
+    "importErrors": {
+      "title": "Import Errors",
+      "loading": "Loading errors...",
+      "noErrors": "No import errors",
+      "retry": "Retry",
+      "retrying": "Retrying...",
+      "details": "Details",
+      "fullPath": "Full Path",
+      "attempts": "Attempts",
+      "firstOccurred": "First occurred",
+      "lastOccurred": "Last occurred",
+      "stackTrace": "Stack trace",
+      "toast": {
+        "retryQueued": "Retry queued",
+        "retryFailed": "Failed to retry import"
+      }
     }
   },
   "users": {
