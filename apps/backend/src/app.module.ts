@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { LoggerModule } from 'nestjs-pino';
 import { AppDataModule } from './app-data/app-data.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
@@ -23,15 +24,63 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { PeopleModule } from './people/people.module';
 import { RestoreModule } from './restore/restore.module';
 import { HealthModule } from './health/health.module';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { createAuthInstance } from './auth/auth.provider';
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     ScheduleModule.forRoot(),
+    LoggerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const isProduction = configService.get('NODE_ENV') === 'production';
+        const logLevel = configService.get('LOG_LEVEL', 'info');
+
+        return {
+          pinoHttp: {
+            level: logLevel,
+            transport: isProduction
+              ? undefined
+              : {
+                  target: 'pino-pretty',
+                  options: {
+                    colorize: true,
+                    singleLine: true,
+                    translateTime: 'SYS:standard',
+                    ignore: 'pid,hostname',
+                  },
+                },
+            customProps: (req) => {
+              const session = (req as { session?: { user?: { id: string; email: string } } }).session;
+              if (session?.user) {
+                return {
+                  actor: {
+                    id: session.user.id,
+                    email: session.user.email,
+                  },
+                };
+              }
+              return { actor: { id: 'system', email: null } };
+            },
+            customLogLevel: (
+              _req: unknown,
+              res: { statusCode: number },
+              err: unknown,
+            ) => {
+              if (res.statusCode >= 500 || err) return 'error';
+              if (res.statusCode >= 400) return 'warn';
+              return 'info';
+            },
+            autoLogging: {
+              ignore: (req: { url?: string }) => req.url === '/api/health',
+            },
+          },
+        };
+      },
+    }),
     AppDataModule,
     DatabaseModule,
     AuthModule.forRootAsync({
@@ -64,10 +113,6 @@ import { createAuthInstance } from './auth/auth.provider';
     {
       provide: APP_GUARD,
       useClass: SignupGuard,
-    },
-    {
-      provide: APP_INTERCEPTOR,
-      useClass: LoggingInterceptor,
     },
   ],
 })

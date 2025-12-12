@@ -1,9 +1,16 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
+    bufferLogs: true,
+  });
+
+  const logger = app.get(Logger);
+  app.useLogger(logger);
 
   // Validate APP_DATA_PATH in production
   const isProduction = process.env.NODE_ENV === 'production';
@@ -17,8 +24,6 @@ async function bootstrap() {
     process.exit(1);
   }
 
-  const app = await NestFactory.create(AppModule, { bodyParser: false });
-
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -28,6 +33,10 @@ async function bootstrap() {
   );
 
   app.setGlobalPrefix('api');
-  await app.listen(process.env.PORT ?? 3000);
+
+  const port = process.env.PORT ?? 3000;
+  await app.listen(port);
+
+  logger.log(`Application listening on port ${port}`, 'Bootstrap');
 }
 bootstrap();
