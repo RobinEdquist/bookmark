@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X, Rss, Copy, Check, Upload } from "lucide-react";
+import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X, Rss, Copy, Check, Upload, Link2 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -22,6 +22,7 @@ import {
   MetadataSource,
   MetadataFieldPriority,
 } from "../../lib/use-settings";
+import { useHardcoverStatus, useQueueAllUnlinked } from "../../lib/use-hardcover";
 
 // Fields that make sense to show in the UI
 // Note: genres is excluded because it always combines all sources
@@ -100,6 +101,10 @@ export function LibrariesSettings() {
   const [audiobookFolderPickerOpen, setAudiobookFolderPickerOpen] = useState(false);
   const [ebookFolderPickerOpen, setEbookFolderPickerOpen] = useState(false);
   const [opdsCopied, setOpdsCopied] = useState(false);
+  const { isConfigured: hardcoverConfigured } = useHardcoverStatus();
+  const { queueAllUnlinked, isQueueing } = useQueueAllUnlinked();
+  const [isQueueingAudiobooks, setIsQueueingAudiobooks] = useState(false);
+  const [isQueueingEbooks, setIsQueueingEbooks] = useState(false);
 
   const handleSelectAudiobookPath = async (path: string) => {
     try {
@@ -196,6 +201,46 @@ export function LibrariesSettings() {
     },
     [settings?.metadataPriority, updateSettings, t]
   );
+
+  const handleQueueAllAudiobooks = async () => {
+    if (!hardcoverConfigured) {
+      toast.error(t("hardcoverLinking.toast.notConfigured"));
+      return;
+    }
+    setIsQueueingAudiobooks(true);
+    try {
+      const result = await queueAllUnlinked("audiobook");
+      toast.success(t("hardcoverLinking.toast.queuedAudiobooks", { count: result.queuedCount }));
+    } catch (err) {
+      if (err instanceof Error && err.message === "HARDCOVER_NOT_CONFIGURED") {
+        toast.error(t("hardcoverLinking.toast.notConfigured"));
+      } else {
+        toast.error(t("hardcoverLinking.toast.error"));
+      }
+    } finally {
+      setIsQueueingAudiobooks(false);
+    }
+  };
+
+  const handleQueueAllEbooks = async () => {
+    if (!hardcoverConfigured) {
+      toast.error(t("hardcoverLinking.toast.notConfigured"));
+      return;
+    }
+    setIsQueueingEbooks(true);
+    try {
+      const result = await queueAllUnlinked("ebook");
+      toast.success(t("hardcoverLinking.toast.queuedEbooks", { count: result.queuedCount }));
+    } catch (err) {
+      if (err instanceof Error && err.message === "HARDCOVER_NOT_CONFIGURED") {
+        toast.error(t("hardcoverLinking.toast.notConfigured"));
+      } else {
+        toast.error(t("hardcoverLinking.toast.error"));
+      }
+    } finally {
+      setIsQueueingEbooks(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -367,6 +412,55 @@ export function LibrariesSettings() {
                 isUpdating={isUpdating}
               />
             ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Hardcover Linking */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-5 w-5" />
+            {t("hardcoverLinking.title")}
+          </CardTitle>
+          <CardDescription>{t("hardcoverLinking.description")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={handleQueueAllAudiobooks}
+              disabled={isQueueingAudiobooks || isQueueingEbooks}
+            >
+              {isQueueingAudiobooks ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  {t("hardcoverLinking.linkingAudiobooks")}
+                </>
+              ) : (
+                <>
+                  <Headphones className="mr-2 h-4 w-4" />
+                  {t("hardcoverLinking.linkAllAudiobooks")}
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleQueueAllEbooks}
+              disabled={isQueueingAudiobooks || isQueueingEbooks}
+            >
+              {isQueueingEbooks ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  {t("hardcoverLinking.linkingEbooks")}
+                </>
+              ) : (
+                <>
+                  <BookOpen className="mr-2 h-4 w-4" />
+                  {t("hardcoverLinking.linkAllEbooks")}
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
