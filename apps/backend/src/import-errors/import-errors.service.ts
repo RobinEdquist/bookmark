@@ -96,7 +96,8 @@ export class ImportErrorsService {
   ): Promise<string | null> {
     const [settings] = await this.db
       .select({
-        audiobookLibraryPath: appSettingsSchema.appSettings.audiobookLibraryPath,
+        audiobookLibraryPath:
+          appSettingsSchema.appSettings.audiobookLibraryPath,
         ebookLibraryPath: appSettingsSchema.appSettings.ebookLibraryPath,
       })
       .from(appSettingsSchema.appSettings)
@@ -115,7 +116,8 @@ export class ImportErrorsService {
   ): Promise<'audiobook' | 'ebook' | null> {
     const [settings] = await this.db
       .select({
-        audiobookLibraryPath: appSettingsSchema.appSettings.audiobookLibraryPath,
+        audiobookLibraryPath:
+          appSettingsSchema.appSettings.audiobookLibraryPath,
         ebookLibraryPath: appSettingsSchema.appSettings.ebookLibraryPath,
       })
       .from(appSettingsSchema.appSettings)

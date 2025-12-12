@@ -68,9 +68,8 @@ export class ImportErrorsController {
     }
 
     // Get the library path for queueing
-    const libraryPath = await this.importErrorsService.getLibraryPath(
-      libraryType,
-    );
+    const libraryPath =
+      await this.importErrorsService.getLibraryPath(libraryType);
     if (!libraryPath) {
       throw new BadRequestException('Library path not configured');
     }

@@ -199,7 +199,10 @@ async function extractFullMetadata(
     const mmWithChapters = await mm.parseFile(filePath, {
       includeChapters: true,
     });
-    chapters = await extractChaptersFromParsedMetadata(mmWithChapters, filePath);
+    chapters = await extractChaptersFromParsedMetadata(
+      mmWithChapters,
+      filePath,
+    );
   } catch {
     // music-metadata chapter parsing failed (e.g., "Expected equal chunk-offset-table
     // & sample-size-table length" or "Chapter chunk exceeding token length")

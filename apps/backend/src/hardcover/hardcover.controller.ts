@@ -311,7 +311,8 @@ export class HardcoverController {
   @Post('queue-all-unlinked/audiobooks')
   @HttpCode(HttpStatus.OK)
   async queueAllUnlinkedAudiobooks() {
-    const queuedCount = await this.hardcoverService.queueAllUnlinked('audiobook');
+    const queuedCount =
+      await this.hardcoverService.queueAllUnlinked('audiobook');
     return { queuedCount };
   }
 
