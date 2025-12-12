@@ -93,6 +93,20 @@
         "updateSuccess": "Metadataprioritet uppdaterad",
         "updateError": "Kunde inte uppdatera metadataprioritet"
       }
+    },
+    "hardcoverLinking": {
+      "title": "Hardcover-länkning",
+      "description": "Köa olänkade objekt för automatisk Hardcover-metadatamatchning",
+      "linkAllAudiobooks": "Länka alla olänkade ljudböcker",
+      "linkAllEbooks": "Länka alla olänkade e-böcker",
+      "linkingAudiobooks": "Köar ljudböcker...",
+      "linkingEbooks": "Köar e-böcker...",
+      "toast": {
+        "queuedAudiobooks": "Köade {count} ljudböcker för Hardcover-länkning",
+        "queuedEbooks": "Köade {count} e-böcker för Hardcover-länkning",
+        "error": "Kunde inte köa objekt",
+        "notConfigured": "Hardcover är inte konfigurerat. Konfigurera din API-nyckel under Integrationer."
+      }
     }
   },
   "users": {

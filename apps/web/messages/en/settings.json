@@ -93,6 +93,20 @@
         "updateSuccess": "Metadata priority updated",
         "updateError": "Failed to update metadata priority"
       }
+    },
+    "hardcoverLinking": {
+      "title": "Hardcover Linking",
+      "description": "Queue unlinked items for automatic Hardcover metadata matching",
+      "linkAllAudiobooks": "Link all unlinked audiobooks",
+      "linkAllEbooks": "Link all unlinked ebooks",
+      "linkingAudiobooks": "Queueing audiobooks...",
+      "linkingEbooks": "Queueing ebooks...",
+      "toast": {
+        "queuedAudiobooks": "Queued {count} audiobooks for Hardcover linking",
+        "queuedEbooks": "Queued {count} ebooks for Hardcover linking",
+        "error": "Failed to queue items",
+        "notConfigured": "Hardcover is not configured. Please set up your API key in Integrations."
+      }
     }
   },
   "users": {
