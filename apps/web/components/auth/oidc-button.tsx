@@ -18,7 +18,7 @@ export function OidcButton({ buttonText }: OidcButtonProps) {
     try {
       await authClient.signIn.oauth2({
         providerId: "oidc",
-        callbackURL: "/libraries",
+        callbackURL: "/home",
       });
     } catch {
       toast.error("Failed to initiate SSO sign-in");

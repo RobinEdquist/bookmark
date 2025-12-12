@@ -41,7 +41,7 @@ export function SignupForm() {
         return;
       }
 
-      router.push("/libraries");
+      router.push("/home");
     } catch {
       toast.error(tCommon("error.connection"));
     } finally {

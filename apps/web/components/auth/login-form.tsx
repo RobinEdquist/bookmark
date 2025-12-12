@@ -44,7 +44,7 @@ export function LoginForm() {
         // Ignore - not critical
       }
 
-      router.push("/libraries");
+      router.push("/home");
     } catch {
       toast.error(tCommon("error.connection"));
     } finally {
