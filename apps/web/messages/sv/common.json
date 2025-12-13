@@ -25,8 +25,16 @@
   "tasks": {
     "title": "Bakgrundsuppgifter",
     "running": "{count, plural, =0 {Inga uppgifter} =1 {1 uppgift körs} other {# uppgifter körs}}",
-    "importing": "Importerar ljudböcker",
+    "scanningLibrary": "Skannar bibliotek",
+    "scanPhase": {
+      "reconciling": "Kontrollerar befintliga filer",
+      "scanning": "Söker nya filer",
+      "importing": "Importerar nya objekt"
+    },
+    "importingAudiobooks": "Importerar ljudböcker",
+    "importingEbooks": "Importerar e-böcker",
     "audiobooks": "{count, plural, =1 {1 ljudbok} other {# ljudböcker}}",
+    "ebooks": "{count, plural, =1 {1 e-bok} other {# e-böcker}}",
     "hardcoverSync": "Hardcover-synk",
     "pending": "{count, plural, =1 {1 väntande} other {# väntande}}",
     "failed": "{count, plural, =1 {1 misslyckad} other {# misslyckade}}",

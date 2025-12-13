@@ -250,10 +250,40 @@ export class ImportQueueService implements OnModuleDestroy {
     });
   }
 
+  getAudiobookPendingCount(): number {
+    return Array.from(this.pendingImports.values()).filter(
+      (p) => p.libraryType === 'audiobook',
+    ).length;
+  }
+
+  getAudiobookPendingNames(): string[] {
+    return Array.from(this.pendingImports.entries())
+      .filter(([, p]) => p.libraryType === 'audiobook')
+      .map(([fullPath]) => path.basename(fullPath));
+  }
+
+  getEbookPendingCount(): number {
+    return Array.from(this.pendingImports.values()).filter(
+      (p) => p.libraryType === 'ebook',
+    ).length;
+  }
+
+  getEbookPendingNames(): string[] {
+    return Array.from(this.pendingImports.entries())
+      .filter(([, p]) => p.libraryType === 'ebook')
+      .map(([fullPath]) => path.basename(fullPath));
+  }
+
   private emitImportStatus(): void {
     this.wsEvents.importStatusUpdated({
-      pendingCount: this.getPendingCount(),
-      pendingNames: this.getPendingNames(),
+      audiobooks: {
+        pendingCount: this.getAudiobookPendingCount(),
+        pendingNames: this.getAudiobookPendingNames(),
+      },
+      ebooks: {
+        pendingCount: this.getEbookPendingCount(),
+        pendingNames: this.getEbookPendingNames(),
+      },
     });
   }
 }

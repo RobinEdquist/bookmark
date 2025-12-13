@@ -15,6 +15,7 @@ import {
 } from './media-detector.service';
 import { MediaImporterService } from './media-importer.service';
 import { AppEventsService } from '../events/app-events.service';
+import { WsEventsService } from '../events/ws-events.service';
 import { LibraryType } from './file-watcher.service';
 
 // Configuration for parallel import processing
@@ -40,6 +41,7 @@ export interface ScanProgress {
 export class LibraryScannerService {
   private readonly logger = new Logger(LibraryScannerService.name);
   private currentProgress: ScanProgress | null = null;
+  private currentLibraryType: 'audiobook' | 'ebook' | null = null;
   private progressCallbacks = new Set<(progress: ScanProgress) => void>();
 
   constructor(
@@ -48,6 +50,7 @@ export class LibraryScannerService {
     private mediaDetector: MediaDetectorService,
     private mediaImporter: MediaImporterService,
     private appEvents: AppEventsService,
+    private wsEvents: WsEventsService,
   ) {}
 
   // ===== AUDIOBOOK SCANNING =====
@@ -62,6 +65,7 @@ export class LibraryScannerService {
     };
 
     this.logger.log(`Starting audiobook reconciliation scan of ${libraryPath}`);
+    this.currentLibraryType = 'audiobook';
     this.appEvents.libraryScanStarted();
 
     // Phase 1: Check existing DB entries against filesystem
@@ -157,6 +161,8 @@ export class LibraryScannerService {
     });
 
     this.currentProgress = null;
+    this.currentLibraryType = null;
+    this.emitScanStatus(false);
 
     this.logger.log(
       `Audiobook reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
@@ -178,6 +184,7 @@ export class LibraryScannerService {
     };
 
     this.logger.log(`Starting ebook reconciliation scan of ${libraryPath}`);
+    this.currentLibraryType = 'ebook';
 
     // Phase 1: Check existing DB entries against filesystem
     this.updateProgress({ phase: 'reconciling', total: 0, processed: 0 });
@@ -272,6 +279,8 @@ export class LibraryScannerService {
     });
 
     this.currentProgress = null;
+    this.currentLibraryType = null;
+    this.emitScanStatus(false);
 
     this.logger.log(
       `Ebook reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
@@ -458,6 +467,32 @@ export class LibraryScannerService {
   private updateProgress(progress: ScanProgress): void {
     this.currentProgress = progress;
     this.progressCallbacks.forEach((cb) => cb(progress));
+    this.emitScanStatus(true);
+  }
+
+  private emitScanStatus(isScanning: boolean): void {
+    if (!isScanning) {
+      this.wsEvents.scanStatusUpdated({ isScanning: false });
+      return;
+    }
+
+    const progress = this.currentProgress;
+    if (!progress) return;
+
+    const percentage =
+      progress.total > 0
+        ? Math.round((progress.processed / progress.total) * 100)
+        : 0;
+
+    this.wsEvents.scanStatusUpdated({
+      isScanning: true,
+      phase: progress.phase,
+      total: progress.total,
+      processed: progress.processed,
+      percentage,
+      currentFile: progress.currentFile,
+      libraryType: this.currentLibraryType ?? undefined,
+    });
   }
 
   getProgress(): ScanProgress | null {

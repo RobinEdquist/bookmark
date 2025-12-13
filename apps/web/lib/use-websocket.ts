@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
-import type { ImportStatus, HardcoverSyncStatus } from "./use-tasks";
+import type { ImportStatus, HardcoverSyncStatus, ScanStatus } from "./use-tasks";
 
 interface WSEvent {
   type: string;
@@ -114,6 +114,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
             queryClient.setQueryData(
               queryKeys.tasks.hardcover(),
               payload as HardcoverSyncStatus
+            );
+          }
+          break;
+
+        // Library scan status events - directly update cache
+        case type === "tasks.scan.status":
+          if (payload) {
+            queryClient.setQueryData(
+              queryKeys.tasks.scan(),
+              payload as ScanStatus
             );
           }
           break;

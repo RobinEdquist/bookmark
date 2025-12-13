@@ -9,8 +9,18 @@ export interface WSEvent {
 }
 
 export interface ImportTaskStatus {
-  pendingCount: number;
-  pendingNames: string[];
+  audiobooks: { pendingCount: number; pendingNames: string[] };
+  ebooks: { pendingCount: number; pendingNames: string[] };
+}
+
+export interface LibraryScanStatus {
+  isScanning: boolean;
+  phase?: 'reconciling' | 'scanning' | 'importing';
+  total?: number;
+  processed?: number;
+  percentage?: number;
+  currentFile?: string;
+  libraryType?: 'audiobook' | 'ebook';
 }
 
 export interface HardcoverTaskStatus {
@@ -23,6 +33,7 @@ export class WsEventsService {
   private readonly logger = new Logger(WsEventsService.name);
   private lastImportStatusJson: string | null = null;
   private lastHardcoverStatusJson: string | null = null;
+  private lastScanStatusJson: string | null = null;
 
   constructor(private readonly gateway: EventsGateway) {}
 
@@ -143,6 +154,22 @@ export class WsEventsService {
 
     this.lastHardcoverStatusJson = statusJson;
     this.emit({ type: 'tasks.hardcover.status', payload: status });
+  }
+
+  /**
+   * Push library scan status update to all connected clients.
+   * Debounced - only emits if status has changed.
+   */
+  scanStatusUpdated(status: LibraryScanStatus): void {
+    const statusJson = JSON.stringify(status);
+
+    // Debounce: only emit if status actually changed
+    if (statusJson === this.lastScanStatusJson) {
+      return;
+    }
+
+    this.lastScanStatusJson = statusJson;
+    this.emit({ type: 'tasks.scan.status', payload: status });
   }
 
   /**

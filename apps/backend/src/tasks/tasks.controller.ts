@@ -2,6 +2,7 @@ import { Controller, Get, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { ImportQueueService } from '../library-watcher/import-queue.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
+import { LibraryScannerService } from '../library-watcher/library-scanner.service';
 
 @Controller('tasks')
 @UseGuards(AuthGuard)
@@ -9,6 +10,7 @@ export class TasksController {
   constructor(
     private importQueueService: ImportQueueService,
     private hardcoverService: HardcoverService,
+    private libraryScannerService: LibraryScannerService,
   ) {}
 
   @Get('status')
@@ -18,15 +20,39 @@ export class TasksController {
       this.hardcoverService.getFailedQueueItems(),
     ]);
 
+    const scanProgress = this.libraryScannerService.getProgress();
+    const isScanning = this.libraryScannerService.isScanning();
+
     return {
       import: {
-        pendingCount: this.importQueueService.getPendingCount(),
-        pendingNames: this.importQueueService.getPendingNames(),
+        audiobooks: {
+          pendingCount: this.importQueueService.getAudiobookPendingCount(),
+          pendingNames: this.importQueueService.getAudiobookPendingNames(),
+        },
+        ebooks: {
+          pendingCount: this.importQueueService.getEbookPendingCount(),
+          pendingNames: this.importQueueService.getEbookPendingNames(),
+        },
       },
       hardcoverSync: {
         pendingCount: pendingHardcoverCount,
         failedCount: failedHardcoverItems.length,
       },
+      scan: isScanning && scanProgress
+        ? {
+            isScanning: true,
+            phase: scanProgress.phase,
+            total: scanProgress.total,
+            processed: scanProgress.processed,
+            percentage:
+              scanProgress.total > 0
+                ? Math.round(
+                    (scanProgress.processed / scanProgress.total) * 100,
+                  )
+                : 0,
+            currentFile: scanProgress.currentFile,
+          }
+        : { isScanning: false },
     };
   }
 }

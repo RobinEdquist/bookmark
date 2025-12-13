@@ -13,7 +13,7 @@ import { useTasksStatus } from "../../lib/use-tasks";
 
 export function TasksIndicator() {
   const t = useTranslations("common.tasks");
-  const { import: importStatus, hardcoverSync, totalPending, hasTasks, isLoading } = useTasksStatus();
+  const { import: importStatus, hardcoverSync, scan, totalPending, hasTasks, isLoading } = useTasksStatus();
 
   // Don't render if no tasks and not loading
   if (!hasTasks && !isLoading) {
@@ -21,11 +21,12 @@ export function TasksIndicator() {
   }
 
   // Still loading initial data
-  if (isLoading && importStatus.pendingCount === 0 && hardcoverSync.pendingCount === 0) {
+  if (isLoading && !hasTasks) {
     return null;
   }
 
-  const importCount = importStatus.pendingCount;
+  const audiobookImportCount = importStatus.audiobooks.pendingCount;
+  const ebookImportCount = importStatus.ebooks.pendingCount;
   const hardcoverPending = hardcoverSync.pendingCount;
   const hardcoverFailed = hardcoverSync.failedCount;
 
@@ -50,23 +51,63 @@ export function TasksIndicator() {
           <div className="space-y-4">
             <h4 className="font-medium">{t("title")}</h4>
 
-            {/* Import Queue */}
-            {importCount > 0 && (
+            {/* Library Scan */}
+            {scan.isScanning && (
               <div className="space-y-1">
-                <div className="text-sm font-medium">{t("importing")}</div>
+                <div className="text-sm font-medium">{t("scanningLibrary")}</div>
                 <div className="text-sm text-muted-foreground">
-                  {t("audiobooks", { count: importCount })}
+                  {scan.phase && t(`scanPhase.${scan.phase}`)}
+                  {scan.percentage !== undefined && ` (${scan.percentage}%)`}
                 </div>
-                {importStatus.pendingNames.length > 0 && (
+                {scan.currentFile && (
+                  <div className="text-xs text-muted-foreground truncate">
+                    {scan.currentFile.split("/").pop()}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Audiobook Import Queue */}
+            {audiobookImportCount > 0 && (
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{t("importingAudiobooks")}</div>
+                <div className="text-sm text-muted-foreground">
+                  {t("audiobooks", { count: audiobookImportCount })}
+                </div>
+                {importStatus.audiobooks.pendingNames.length > 0 && (
                   <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                    {importStatus.pendingNames.slice(0, 3).map((name, index) => (
+                    {importStatus.audiobooks.pendingNames.slice(0, 3).map((name, index) => (
                       <li key={index} className="truncate">
                         • {name}
                       </li>
                     ))}
-                    {importStatus.pendingNames.length > 3 && (
+                    {importStatus.audiobooks.pendingNames.length > 3 && (
                       <li className="text-muted-foreground/70">
-                        +{importStatus.pendingNames.length - 3} {t("more")}
+                        +{importStatus.audiobooks.pendingNames.length - 3} {t("more")}
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            )}
+
+            {/* Ebook Import Queue */}
+            {ebookImportCount > 0 && (
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{t("importingEbooks")}</div>
+                <div className="text-sm text-muted-foreground">
+                  {t("ebooks", { count: ebookImportCount })}
+                </div>
+                {importStatus.ebooks.pendingNames.length > 0 && (
+                  <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                    {importStatus.ebooks.pendingNames.slice(0, 3).map((name, index) => (
+                      <li key={index} className="truncate">
+                        • {name}
+                      </li>
+                    ))}
+                    {importStatus.ebooks.pendingNames.length > 3 && (
+                      <li className="text-muted-foreground/70">
+                        +{importStatus.ebooks.pendingNames.length - 3} {t("more")}
                       </li>
                     )}
                   </ul>
@@ -101,7 +142,7 @@ export function TasksIndicator() {
             )}
 
             {/* Empty state - only happens briefly during loading */}
-            {importCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && (
+            {!scan.isScanning && audiobookImportCount === 0 && ebookImportCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && (
               <div className="text-sm text-muted-foreground">{t("noTasks")}</div>
             )}
           </div>
