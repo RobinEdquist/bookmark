@@ -37,6 +37,29 @@ export default function EReaderPage() {
           <p className="text-muted-foreground mt-2">{t("description")}</p>
         </header>
 
+        {/* Learn More - What is OPDS */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("learnMore.title")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t("learnMore.description")}
+            </p>
+            <Button variant="outline" asChild>
+              <a
+                href="https://opds.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2"
+              >
+                {t("learnMore.link")}
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* OPDS URL Card */}
         <Card>
           <CardHeader>
@@ -163,28 +186,6 @@ export default function EReaderPage() {
           </CardContent>
         </Card>
 
-        {/* Learn More */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("learnMore.title")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t("learnMore.description")}
-            </p>
-            <Button variant="outline" asChild>
-              <a
-                href="https://opds.io/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2"
-              >
-                {t("learnMore.link")}
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
