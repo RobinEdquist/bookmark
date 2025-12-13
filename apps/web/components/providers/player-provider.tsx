@@ -32,6 +32,7 @@ interface PlayerActions {
   resume: () => void;
   stop: () => void;
   seek: (position: number) => void;
+  seekPreview: (position: number) => void; // Updates audio position without syncing to server
   seekRelative: (delta: number) => void;
   setPlaybackRate: (rate: number) => void;
   setVolume: (volume: number) => void;
@@ -525,6 +526,31 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     syncProgress(clampedPosition);
   }, [state.audiobook, state.duration, state.isPlaying, syncProgress]);
 
+  // Preview seek: updates audio position without syncing to server
+  // Used during slider dragging for responsive UI
+  const seekPreview = useCallback((position: number) => {
+    if (!state.audiobook || !audioRef.current) return;
+
+    const clampedPosition = Math.max(0, Math.min(position, state.duration));
+
+    // Check if seeking within the same file
+    const currentFileEnd = fileStartPositionRef.current + (audioRef.current.duration || 0);
+    const isWithinCurrentFile = clampedPosition >= fileStartPositionRef.current && clampedPosition < currentFileEnd;
+
+    if (isWithinCurrentFile) {
+      // Seeking within current file - use native seeking
+      const newTime = clampedPosition - fileStartPositionRef.current;
+      if (newTime >= 0 && isFinite(newTime)) {
+        audioRef.current.currentTime = newTime;
+      }
+    }
+    // If seeking outside current file, just update the UI position
+    // The actual file loading will happen on seekCommit (via seek)
+
+    dispatch({ type: "SET_POSITION", payload: clampedPosition });
+    // Note: No syncProgress call here - that happens only on commit
+  }, [state.audiobook, state.duration]);
+
   const seekRelative = useCallback((delta: number) => {
     seek(state.currentPosition + delta);
   }, [state.currentPosition, seek]);
@@ -592,6 +618,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     resume,
     stop,
     seek,
+    seekPreview,
     seekRelative,
     setPlaybackRate,
     setVolume,

@@ -59,6 +59,7 @@ export function PlayerBar() {
     resume,
     stop,
     seek,
+    seekPreview,
     seekRelative,
     setPlaybackRate,
     setVolume,
@@ -66,7 +67,19 @@ export function PlayerBar() {
     prevChapter,
   } = usePlayer();
 
-  const handleSeek = useCallback(
+  // Called during dragging - updates audio position without syncing to server
+  const handleSeekPreview = useCallback(
+    (value: number[]) => {
+      const position = value[0];
+      if (position !== undefined) {
+        seekPreview(position);
+      }
+    },
+    [seekPreview]
+  );
+
+  // Called when user releases the slider - syncs progress to server
+  const handleSeekCommit = useCallback(
     (value: number[]) => {
       const position = value[0];
       if (position !== undefined) {
@@ -232,7 +245,8 @@ export function PlayerBar() {
               value={[currentPosition]}
               max={duration || 1}
               step={1}
-              onValueChange={handleSeek}
+              onValueChange={handleSeekPreview}
+              onValueCommit={handleSeekCommit}
               className="flex-1"
               disabled={isLoading}
             />
@@ -314,7 +328,8 @@ export function PlayerBar() {
             value={[currentPosition]}
             max={duration || 1}
             step={1}
-            onValueChange={handleSeek}
+            onValueChange={handleSeekPreview}
+            onValueCommit={handleSeekCommit}
             className="flex-1"
             disabled={isLoading}
           />
