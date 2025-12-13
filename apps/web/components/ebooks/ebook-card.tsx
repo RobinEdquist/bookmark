@@ -68,9 +68,15 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
   const primaryAuthor = ebook.authors[0]?.name;
   const primarySeries = ebook.series[0];
 
+  // Format series order: remove unnecessary decimals (1.0 -> 1, 1.5 -> 1.5)
+  const formatSeriesOrder = (order: string) => {
+    const num = parseFloat(order);
+    return Number.isInteger(num) ? num.toString() : num.toString();
+  };
+
   // Show series info if available, otherwise subtitle
   const secondaryText = primarySeries
-    ? t("bookInSeries", { order: primarySeries.order, series: primarySeries.name })
+    ? t("bookInSeries", { series: primarySeries.name, order: formatSeriesOrder(primarySeries.order) })
     : ebook.subtitle;
 
   return (
@@ -79,17 +85,15 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
         className="group relative flex flex-col"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        whileHover="hover"
       >
         {/* Cover Image */}
         <Link href={`/ebooks/${ebook.id}`} prefetch={false}>
           <motion.div
-            className="relative aspect-[2/3] overflow-hidden rounded-xl border border-black/5 dark:border-white/5"
-            variants={{
-              hover: {
-                boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
-                borderColor: "rgba(0,0,0,0.1)",
-              },
+            className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-sm"
+            whileHover={{
+              scale: 1.05,
+              y: -4,
+              boxShadow: "0 12px 24px rgba(0,0,0,0.15)",
             }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
           >

@@ -423,10 +423,10 @@
     },
     "paths": {
       "title": "Configure Paths",
-      "description": "Map the AudioBookShelf library path to your Simple Audiobook Vault path",
+      "description": "Map the AudioBookShelf library path to your Bookmark path",
       "absPathLabel": "AudioBookShelf Library Path",
       "absPathDescription": "This is where your audiobooks were stored in AudioBookShelf",
-      "savPathLabel": "Simple Audiobook Vault Library Path",
+      "savPathLabel": "Bookmark Library Path",
       "savPathDescription": "Enter where your audiobooks are currently stored on this system",
       "infoTitle": "Path Mapping:",
       "infoPoint1": "The AudioBookShelf path will be replaced with the SAV path in all database records",
@@ -447,9 +447,9 @@
     },
     "users": {
       "title": "Map Users",
-      "description": "Map AudioBookShelf users to Simple Audiobook Vault users to import listening progress",
+      "description": "Map AudioBookShelf users to Bookmark users to import listening progress",
       "absUserLabel": "AudioBookShelf User",
-      "savUserLabel": "Simple Audiobook Vault User",
+      "savUserLabel": "Bookmark User",
       "skipUser": "Skip this user",
       "progressInfo": "{count} total progress records",
       "inProgressInfo": "{count} in progress",
@@ -474,7 +474,7 @@
       },
       "importCovers": {
         "label": "Import audiobook covers",
-        "description": "Copy cover images from the AudioBookShelf backup to your Simple Audiobook Vault library. Covers will be stored in the app data folder."
+        "description": "Copy cover images from the AudioBookShelf backup to your Bookmark library. Covers will be stored in the app data folder."
       },
       "importAuthorImages": {
         "label": "Import author images",

@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
 export interface AudiobookAuthor {
@@ -131,6 +131,25 @@ export function useAudiobooks(filters: AudiobookFilters = {}) {
   return useQuery({
     queryKey: queryKeys.audiobooks.list(filters),
     queryFn: () => fetchAudiobooks(filters),
+    placeholderData: (previousData) => previousData,
+  });
+}
+
+const ITEMS_PER_PAGE = 50;
+
+export function useInfiniteAudiobooks(
+  filters: Omit<AudiobookFilters, "limit" | "offset"> = {}
+) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.audiobooks.infinite(filters),
+    queryFn: ({ pageParam = 0 }) =>
+      fetchAudiobooks({ ...filters, limit: ITEMS_PER_PAGE, offset: pageParam }),
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((acc, page) => acc + page.audiobooks.length, 0);
+      return loaded < lastPage.total ? loaded : undefined;
+    },
+    initialPageParam: 0,
+    // Keep showing previous results while fetching new search results
     placeholderData: (previousData) => previousData,
   });
 }

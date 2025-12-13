@@ -6,7 +6,7 @@
   "loading": "Laddar e-böcker...",
   "error": "Kunde inte ladda e-böcker",
   "card": {
-    "bookInSeries": "Bok {order} i {series}",
+    "bookInSeries": "{series} #{order}",
     "edit": "Redigera",
     "delete": "Ta bort",
     "download": "Ladda ner",
@@ -61,7 +61,7 @@
     "description": "Beskrivning",
     "showMore": "Visa mer",
     "showLess": "Visa mindre",
-    "bookInSeries": "Bok {order} i {series}",
+    "bookInSeries": "{series} #{order}",
     "fileInfo": "Fil",
     "additionalInfo": "Ytterligare information",
     "publisher": "Förlag",

@@ -6,7 +6,7 @@ import { useTranslations } from "next-intl";
 import { Search, X, Loader2 } from "lucide-react";
 import { Input } from "@repo/ui/components/ui/input";
 import { EbookGrid } from "../../../components/ebooks/ebook-grid";
-import { useEbooks } from "../../../lib/use-ebooks";
+import { useInfiniteEbooks } from "../../../lib/use-ebooks";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
 import { SortSelect } from "../../../components/library/sort-select";
 import { useSortPreference } from "../../../lib/use-sort-preference";
@@ -56,14 +56,25 @@ export default function EbooksPage() {
     router.replace(newUrl, { scroll: false });
   }, [debouncedSearch, router, searchParams]);
   const { sortBy, sortOrder, setSortField } = useSortPreference("ebooks");
-  const { data, isLoading, isFetching, error } = useEbooks({
+  const {
+    data,
+    isLoading,
+    isFetching,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useInfiniteEbooks({
     search: debouncedSearch || undefined,
     sortBy,
     sortOrder,
   });
 
-  // Show spinner when search is pending (query differs from debounced) or fetching
-  const isSearching = searchQuery !== debouncedSearch || isFetching;
+  // Flatten pages into single array
+  const ebooks = data?.pages.flatMap((page) => page.ebooks) ?? [];
+
+  // Show spinner when search is pending (query differs from debounced) or fetching first page
+  const isSearching = searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
 
   // Only show skeleton loading on initial load, not during search
   const showSkeletons = isLoading && !data;
@@ -118,9 +129,12 @@ export default function EbooksPage() {
       <div className="p-4 pt-4 lg:p-8 lg:pt-6">
         <div className="mx-auto max-w-7xl">
           <EbookGrid
-            ebooks={data?.ebooks ?? []}
+            ebooks={ebooks}
             isLoading={showSkeletons}
             error={error}
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={() => fetchNextPage()}
           />
         </div>
       </div>

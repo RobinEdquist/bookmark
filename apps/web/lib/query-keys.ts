@@ -39,6 +39,14 @@ export const queryKeys = {
       sortBy?: string;
       sortOrder?: string;
     }) => [...queryKeys.audiobooks.all, "list", filters] as const,
+    infinite: (filters?: {
+      search?: string;
+      genreId?: string;
+      seriesId?: string;
+      language?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.audiobooks.all, "infinite", filters] as const,
     detail: (id: string) => [...queryKeys.audiobooks.all, "detail", id] as const,
     authors: (search?: string) => [...queryKeys.audiobooks.all, "authors", search] as const,
     narrators: (search?: string) => [...queryKeys.audiobooks.all, "narrators", search] as const,
@@ -56,6 +64,14 @@ export const queryKeys = {
       sortBy?: string;
       sortOrder?: string;
     }) => [...queryKeys.ebooks.all, "list", filters] as const,
+    infinite: (filters?: {
+      search?: string;
+      genreId?: string;
+      seriesId?: string;
+      language?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.ebooks.all, "infinite", filters] as const,
     detail: (id: string) => [...queryKeys.ebooks.all, "detail", id] as const,
     authors: (search?: string) => [...queryKeys.ebooks.all, "authors", search] as const,
     publishers: (search?: string) => [...queryKeys.ebooks.all, "publishers", search] as const,

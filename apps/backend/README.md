@@ -1,6 +1,6 @@
-# Simple Audiobook Vault - Backend
+# Bookmark - Backend
 
-NestJS REST API for the Simple Audiobook Vault audiobook management platform.
+NestJS REST API for the Bookmark audiobook management platform.
 
 ## Prerequisites
 
@@ -14,16 +14,19 @@ NestJS REST API for the Simple Audiobook Vault audiobook management platform.
 FFmpeg is required to extract chapter information from M4B audiobook files.
 
 **macOS:**
+
 ```bash
 brew install ffmpeg
 ```
 
 **Ubuntu/Debian:**
+
 ```bash
 sudo apt-get update && sudo apt-get install -y ffmpeg
 ```
 
 **Alpine Linux (Docker):**
+
 ```dockerfile
 RUN apk add --no-cache ffmpeg
 ```
@@ -34,17 +37,20 @@ Download from [ffmpeg.org](https://ffmpeg.org/download.html) and add to PATH.
 ## Setup
 
 1. Install dependencies:
+
 ```bash
 pnpm install
 ```
 
 2. Set up environment variables:
+
 ```bash
 cp .env.example .env
 # Edit .env with your database credentials
 ```
 
 3. Run database migrations:
+
 ```bash
 pnpm db:migrate
 ```

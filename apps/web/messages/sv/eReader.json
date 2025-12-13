@@ -49,7 +49,7 @@
   },
   "learnMore": {
     "title": "Vad ar OPDS?",
-    "description": "OPDS (Open Publication Distribution System) ar en oppen standard for distribution av digitala publikationer. Det tillater e-bokslasarappar att blaadra, soka och ladda ner e-bocker direkt fran kompatibla servrar som Simple Audiobook Vault.",
+    "description": "OPDS (Open Publication Distribution System) ar en oppen standard for distribution av digitala publikationer. Det tillater e-bokslasarappar att blaadra, soka och ladda ner e-bocker direkt fran kompatibla servrar som Bookmark.",
     "link": "Las mer om OPDS"
   }
 }

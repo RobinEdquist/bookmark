@@ -6,7 +6,7 @@
   "loading": "Loading audiobooks...",
   "error": "Failed to load audiobooks",
   "card": {
-    "bookInSeries": "Book {order} in {series}",
+    "bookInSeries": "{series} #{order}",
     "edit": "Edit",
     "delete": "Delete",
     "changeCover": "Change cover",
@@ -71,7 +71,7 @@
     "refreshChapters": "Refresh",
     "chaptersRefreshed": "Found {count} chapters",
     "chaptersRefreshError": "Failed to refresh chapters",
-    "bookInSeries": "Book {order} in {series}",
+    "bookInSeries": "{series} #{order}",
     "files": "Files",
     "noFiles": "No files found for this audiobook.",
     "progress": {

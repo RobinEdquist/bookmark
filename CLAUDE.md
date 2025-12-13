@@ -1,4 +1,4 @@
-# Simple Audiobook Vault - Development Guide
+# Bookmark - Development Guide
 
 > A modern, self-hostable audiobook management platform with Spotify/Apple-quality UI.
 
@@ -28,9 +28,10 @@ pnpm test:cov               # Coverage report
 
 ## Project Overview
 
-Simple Audiobook Vault is a self-hosted audiobook management and streaming platform. The goal is to create a polished, production-quality application that rivals commercial products like Spotify and Apple Books.
+Bookmark is a self-hosted audiobook management and streaming platform. The goal is to create a polished, production-quality application that rivals commercial products like Spotify and Apple Books.
 
 **Core Principles:**
+
 - Beautiful, intuitive UI with smooth animations
 - Robust backend with excellent error handling
 - Type-safe throughout the entire stack
@@ -38,6 +39,7 @@ Simple Audiobook Vault is a self-hosted audiobook management and streaming platf
 - Accessible and internationalized from day one
 
 **AI Assistant Guidelines:**
+
 - **Always verify before stating facts** - When answering questions about URLs, paths, configurations, or implementation details, search the codebase or test the actual behavior rather than assuming based on patterns or library defaults. If uncertain, say so and offer to verify.
 
 **Reference Document:** See `docs/scope.md` for the complete feature specification.
@@ -66,18 +68,18 @@ simple-audiobook-vault/
 
 ### Tech Stack
 
-| Layer | Technology | Version |
-|-------|------------|---------|
-| **Frontend** | Next.js (App Router) | 16.x |
-| **UI Framework** | React | 19.x |
-| **Styling** | Tailwind CSS | 4.x |
-| **Backend** | NestJS | 11.x |
-| **Database** | PostgreSQL | 16.x |
-| **ORM** | Drizzle ORM | 0.44.x |
-| **Auth** | Better Auth | 1.4.x |
-| **State** | TanStack React Query | 5.x |
-| **Package Manager** | pnpm | 9.x |
-| **Monorepo** | Turborepo | 2.x |
+| Layer               | Technology           | Version |
+| ------------------- | -------------------- | ------- |
+| **Frontend**        | Next.js (App Router) | 16.x    |
+| **UI Framework**    | React                | 19.x    |
+| **Styling**         | Tailwind CSS         | 4.x     |
+| **Backend**         | NestJS               | 11.x    |
+| **Database**        | PostgreSQL           | 16.x    |
+| **ORM**             | Drizzle ORM          | 0.44.x  |
+| **Auth**            | Better Auth          | 1.4.x   |
+| **State**           | TanStack React Query | 5.x     |
+| **Package Manager** | pnpm                 | 9.x     |
+| **Monorepo**        | Turborepo            | 2.x     |
 
 ### Data Flow
 
@@ -122,21 +124,22 @@ function updateProgress(data: any) { ... }
 
 **Naming Conventions:**
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Files (components) | kebab-case | `audiobook-card.tsx` |
-| Files (utilities) | kebab-case | `use-audiobook.ts` |
-| Components | PascalCase | `AudiobookCard` |
-| Functions/Hooks | camelCase | `useAudiobook` |
-| Constants | UPPER_SNAKE_CASE | `DATABASE_CONNECTION` |
-| Database tables | snake_case | `user_audiobook_progress` |
-| Database columns | snake_case | `created_at` |
-| Interfaces/Types | PascalCase | `AudiobookMetadata` |
-| Enums | PascalCase | `PlaybackStatus` |
+| Type               | Convention       | Example                   |
+| ------------------ | ---------------- | ------------------------- |
+| Files (components) | kebab-case       | `audiobook-card.tsx`      |
+| Files (utilities)  | kebab-case       | `use-audiobook.ts`        |
+| Components         | PascalCase       | `AudiobookCard`           |
+| Functions/Hooks    | camelCase        | `useAudiobook`            |
+| Constants          | UPPER_SNAKE_CASE | `DATABASE_CONNECTION`     |
+| Database tables    | snake_case       | `user_audiobook_progress` |
+| Database columns   | snake_case       | `created_at`              |
+| Interfaces/Types   | PascalCase       | `AudiobookMetadata`       |
+| Enums              | PascalCase       | `PlaybackStatus`          |
 
 ### File Organization
 
 **Backend (NestJS):**
+
 ```
 src/
 ├── main.ts                           # Entry point
@@ -166,6 +169,7 @@ src/
 ```
 
 **Frontend (Next.js):**
+
 ```
 app/
 ├── (auth)/                           # Auth route group
@@ -221,23 +225,23 @@ Always organize imports in this order (enforced by ESLint):
 
 ```typescript
 // 1. React/Next.js
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 // 2. External packages
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 // 3. Internal packages (@repo/*)
-import { Button, Card } from '@repo/ui/components';
-import { cn } from '@repo/ui/lib/utils';
+import { Button, Card } from "@repo/ui/components";
+import { cn } from "@repo/ui/lib/utils";
 
 // 4. Relative imports (parent directories first)
-import { usePlayer } from '@/lib/hooks/use-player';
-import { fetchAudiobook } from '@/lib/api/audiobooks';
+import { usePlayer } from "@/lib/hooks/use-player";
+import { fetchAudiobook } from "@/lib/api/audiobooks";
 
 // 5. Types (with type keyword)
-import type { Audiobook, Chapter } from '@/lib/types';
+import type { Audiobook, Chapter } from "@/lib/types";
 ```
 
 ---
@@ -250,10 +254,10 @@ Every feature should be a self-contained NestJS module:
 
 ```typescript
 // audiobooks/audiobooks.module.ts
-import { Module } from '@nestjs/common';
-import { AudiobooksController } from './audiobooks.controller';
-import { AudiobooksService } from './audiobooks.service';
-import { DatabaseModule } from '../database/database.module';
+import { Module } from "@nestjs/common";
+import { AudiobooksController } from "./audiobooks.controller";
+import { AudiobooksService } from "./audiobooks.service";
+import { DatabaseModule } from "../database/database.module";
 
 @Module({
   imports: [DatabaseModule],
@@ -267,7 +271,7 @@ export class AudiobooksModule {}
 ### Controller Patterns
 
 ```typescript
-@Controller('audiobooks')
+@Controller("audiobooks")
 export class AudiobooksController {
   constructor(private readonly audiobooksService: AudiobooksService) {}
 
@@ -275,20 +279,20 @@ export class AudiobooksController {
   @Get()
   async findAll(
     @Query() query: ListAudiobooksDto,
-    @Session() session: UserSession,
+    @Session() session: UserSession
   ): Promise<PaginatedResponse<AudiobookDto>> {
     return this.audiobooksService.findAll(query, session.user);
   }
 
   // Get single resource
-  @Get(':id')
+  @Get(":id")
   async findOne(
-    @Param('id') id: string,
-    @Session() session: UserSession,
+    @Param("id") id: string,
+    @Session() session: UserSession
   ): Promise<AudiobookDto> {
     const audiobook = await this.audiobooksService.findOne(id, session.user);
     if (!audiobook) {
-      throw new NotFoundException('Audiobook not found');
+      throw new NotFoundException("Audiobook not found");
     }
     return audiobook;
   }
@@ -296,34 +300,34 @@ export class AudiobooksController {
   // Create (admin/permission required)
   @Post()
   @UseGuards(RolesGuard)
-  @Roles('admin')
+  @Roles("admin")
   async create(
     @Body() dto: CreateAudiobookDto,
-    @Session() session: UserSession,
+    @Session() session: UserSession
   ): Promise<AudiobookDto> {
     return this.audiobooksService.create(dto, session.user);
   }
 
   // Update (permission required)
-  @Patch(':id')
+  @Patch(":id")
   @UseGuards(PermissionsGuard)
-  @RequirePermission('edit_metadata')
+  @RequirePermission("edit_metadata")
   async update(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() dto: UpdateAudiobookDto,
-    @Session() session: UserSession,
+    @Session() session: UserSession
   ): Promise<AudiobookDto> {
     return this.audiobooksService.update(id, dto, session.user);
   }
 
   // Delete (permission required)
-  @Delete(':id')
+  @Delete(":id")
   @UseGuards(PermissionsGuard)
-  @RequirePermission('delete_audiobook')
+  @RequirePermission("delete_audiobook")
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
-    @Param('id') id: string,
-    @Session() session: UserSession,
+    @Param("id") id: string,
+    @Session() session: UserSession
   ): Promise<void> {
     await this.audiobooksService.remove(id, session.user);
   }
@@ -337,12 +341,12 @@ export class AudiobooksController {
 export class AudiobooksService {
   constructor(
     @Inject(DATABASE_CONNECTION)
-    private readonly db: DrizzleDatabase,
+    private readonly db: DrizzleDatabase
   ) {}
 
   async findAll(
     query: ListAudiobooksDto,
-    user: User,
+    user: User
   ): Promise<PaginatedResponse<AudiobookDto>> {
     const { page = 1, limit = 20, search, genre, author } = query;
     const offset = (page - 1) * limit;
@@ -354,8 +358,8 @@ export class AudiobooksService {
       conditions.push(
         or(
           ilike(audiobooks.title, `%${search}%`),
-          ilike(audiobooks.author, `%${search}%`),
-        ),
+          ilike(audiobooks.author, `%${search}%`)
+        )
       );
     }
 
@@ -426,33 +430,41 @@ Migration names should describe what the migration does (e.g., `init`, `add_user
 
 ```typescript
 // schema.ts
-import { pgTable, text, timestamp, integer, boolean, uuid, index } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import {
+  pgTable,
+  text,
+  timestamp,
+  integer,
+  boolean,
+  uuid,
+  index,
+} from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 export const audiobooks = pgTable(
-  'audiobooks',
+  "audiobooks",
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    title: text('title').notNull(),
-    subtitle: text('subtitle'),
-    author: text('author').notNull(),
-    narrator: text('narrator'),
-    description: text('description'),
-    duration: integer('duration').notNull(), // in seconds
-    coverUrl: text('cover_url'),
-    filePath: text('file_path').notNull(), // internal only
-    isExplicit: boolean('is_explicit').default(false).notNull(),
-    createdAt: timestamp('created_at').defaultNow().notNull(),
-    updatedAt: timestamp('updated_at')
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    subtitle: text("subtitle"),
+    author: text("author").notNull(),
+    narrator: text("narrator"),
+    description: text("description"),
+    duration: integer("duration").notNull(), // in seconds
+    coverUrl: text("cover_url"),
+    filePath: text("file_path").notNull(), // internal only
+    isExplicit: boolean("is_explicit").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
   },
   (table) => [
-    index('audiobooks_title_idx').on(table.title),
-    index('audiobooks_author_idx').on(table.author),
-    index('audiobooks_created_at_idx').on(table.createdAt),
-  ],
+    index("audiobooks_title_idx").on(table.title),
+    index("audiobooks_author_idx").on(table.author),
+    index("audiobooks_created_at_idx").on(table.createdAt),
+  ]
 );
 
 export const audiobookRelations = relations(audiobooks, ({ many, one }) => ({
@@ -464,15 +476,15 @@ export const audiobookRelations = relations(audiobooks, ({ many, one }) => ({
   progress: many(userProgress),
 }));
 
-export const chapters = pgTable('chapters', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  audiobookId: uuid('audiobook_id')
+export const chapters = pgTable("chapters", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  audiobookId: uuid("audiobook_id")
     .notNull()
-    .references(() => audiobooks.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  startTime: integer('start_time').notNull(), // in seconds
-  endTime: integer('end_time').notNull(),
-  orderIndex: integer('order_index').notNull(),
+    .references(() => audiobooks.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  startTime: integer("start_time").notNull(), // in seconds
+  endTime: integer("end_time").notNull(),
+  orderIndex: integer("order_index").notNull(),
 });
 ```
 
@@ -489,21 +501,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
-    let code = 'INTERNAL_ERROR';
+    let message = "Internal server error";
+    let code = "INTERNAL_ERROR";
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const exceptionResponse = exception.getResponse();
-      message = typeof exceptionResponse === 'string'
-        ? exceptionResponse
-        : (exceptionResponse as any).message;
+      message =
+        typeof exceptionResponse === "string"
+          ? exceptionResponse
+          : (exceptionResponse as any).message;
       code = this.getErrorCode(status);
     }
 
     // Log error for debugging (not in production for 4xx)
     if (status >= 500) {
-      console.error('Server Error:', exception);
+      console.error("Server Error:", exception);
     }
 
     response.status(status).json({
@@ -598,9 +611,9 @@ export function AudiobookCard({
 
 ```typescript
 // lib/hooks/use-audiobook.ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/lib/query-keys';
-import * as api from '@/lib/api/audiobooks';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import * as api from "@/lib/api/audiobooks";
 
 export function useAudiobook(id: string) {
   return useQuery({
@@ -627,8 +640,7 @@ export function useUpdateProgress() {
       // Update the audiobook detail cache
       queryClient.setQueryData(
         queryKeys.audiobooks.detail(variables.audiobookId),
-        (old: Audiobook | undefined) =>
-          old ? { ...old, progress: data } : old,
+        (old: Audiobook | undefined) => (old ? { ...old, progress: data } : old)
       );
       // Invalidate list queries to reflect progress changes
       queryClient.invalidateQueries({
@@ -645,30 +657,29 @@ export function useUpdateProgress() {
 // lib/query-keys.ts
 export const queryKeys = {
   audiobooks: {
-    all: ['audiobooks'] as const,
+    all: ["audiobooks"] as const,
     list: (filters?: AudiobookFilters) =>
-      [...queryKeys.audiobooks.all, 'list', filters] as const,
+      [...queryKeys.audiobooks.all, "list", filters] as const,
     detail: (id: string) =>
-      [...queryKeys.audiobooks.all, 'detail', id] as const,
+      [...queryKeys.audiobooks.all, "detail", id] as const,
     chapters: (id: string) =>
-      [...queryKeys.audiobooks.all, 'chapters', id] as const,
+      [...queryKeys.audiobooks.all, "chapters", id] as const,
   },
   progress: {
-    all: ['progress'] as const,
+    all: ["progress"] as const,
     byAudiobook: (audiobookId: string) =>
       [...queryKeys.progress.all, audiobookId] as const,
   },
   user: {
-    all: ['user'] as const,
-    stats: () => [...queryKeys.user.all, 'stats'] as const,
-    lists: () => [...queryKeys.user.all, 'lists'] as const,
+    all: ["user"] as const,
+    stats: () => [...queryKeys.user.all, "stats"] as const,
+    lists: () => [...queryKeys.user.all, "lists"] as const,
   },
   hardcover: {
-    all: ['hardcover'] as const,
+    all: ["hardcover"] as const,
     search: (query: string) =>
-      [...queryKeys.hardcover.all, 'search', query] as const,
-    book: (id: string) =>
-      [...queryKeys.hardcover.all, 'book', id] as const,
+      [...queryKeys.hardcover.all, "search", query] as const,
+    book: (id: string) => [...queryKeys.hardcover.all, "book", id] as const,
   },
 } as const;
 ```
@@ -677,28 +688,25 @@ export const queryKeys = {
 
 ```typescript
 // lib/api/client.ts
-const API_BASE = '/api';
+const API_BASE = "/api";
 
 class ApiError extends Error {
   constructor(
     public status: number,
     public code: string,
-    message: string,
+    message: string
   ) {
     super(message);
-    this.name = 'ApiError';
+    this.name = "ApiError";
   }
 }
 
-async function request<T>(
-  endpoint: string,
-  options?: RequestInit,
-): Promise<T> {
+async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
-    credentials: 'include',
+    credentials: "include",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options?.headers,
     },
   });
@@ -707,8 +715,8 @@ async function request<T>(
     const error = await response.json().catch(() => ({}));
     throw new ApiError(
       response.status,
-      error.error?.code || 'UNKNOWN_ERROR',
-      error.error?.message || 'An error occurred',
+      error.error?.code || "UNKNOWN_ERROR",
+      error.error?.message || "An error occurred"
     );
   }
 
@@ -724,16 +732,15 @@ export const api = {
   get: <T>(endpoint: string) => request<T>(endpoint),
   post: <T>(endpoint: string, data?: unknown) =>
     request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: data ? JSON.stringify(data) : undefined,
     }),
   patch: <T>(endpoint: string, data: unknown) =>
     request<T>(endpoint, {
-      method: 'PATCH',
+      method: "PATCH",
       body: JSON.stringify(data),
     }),
-  delete: <T>(endpoint: string) =>
-    request<T>(endpoint, { method: 'DELETE' }),
+  delete: <T>(endpoint: string) => request<T>(endpoint, { method: "DELETE" }),
 };
 ```
 
@@ -974,7 +981,7 @@ Focus on business logic, utilities, and complex functions:
 
 ```typescript
 // services/__tests__/audiobooks.service.spec.ts
-describe('AudiobooksService', () => {
+describe("AudiobooksService", () => {
   let service: AudiobooksService;
   let mockDb: jest.Mocked<DrizzleDatabase>;
 
@@ -989,8 +996,8 @@ describe('AudiobooksService', () => {
     service = module.get(AudiobooksService);
   });
 
-  describe('findAll', () => {
-    it('should filter explicit content for users without permission', async () => {
+  describe("findAll", () => {
+    it("should filter explicit content for users without permission", async () => {
       const user = createMockUser({ canSeeExplicitContent: false });
       await service.findAll({}, user);
 
@@ -1007,33 +1014,35 @@ Test critical user flows:
 
 ```typescript
 // e2e/audiobook-playback.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Audiobook Playback', () => {
+test.describe("Audiobook Playback", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto("/");
     await loginAsUser(page);
   });
 
-  test('should play audiobook and track progress', async ({ page }) => {
+  test("should play audiobook and track progress", async ({ page }) => {
     // Navigate to library
-    await page.getByRole('link', { name: 'Library' }).click();
+    await page.getByRole("link", { name: "Library" }).click();
 
     // Click on first audiobook
-    await page.getByTestId('audiobook-card').first().click();
+    await page.getByTestId("audiobook-card").first().click();
 
     // Start playback
-    await page.getByRole('button', { name: 'Play' }).click();
+    await page.getByRole("button", { name: "Play" }).click();
 
     // Verify player is visible and playing
-    await expect(page.getByTestId('player-bar')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Pause' })).toBeVisible();
+    await expect(page.getByTestId("player-bar")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
 
     // Wait for progress sync
     await page.waitForTimeout(5000);
 
     // Verify progress was saved
-    const progress = await page.getByTestId('progress-bar').getAttribute('aria-valuenow');
+    const progress = await page
+      .getByTestId("progress-bar")
+      .getAttribute("aria-valuenow");
     expect(Number(progress)).toBeGreaterThan(0);
   });
 });
@@ -1311,7 +1320,7 @@ async getBatch(
 ```typescript
 // Real-time sync events for mobile apps
 interface ProgressSyncEvent {
-  type: 'progress_update';
+  type: "progress_update";
   audiobookId: string;
   currentTime: number;
   percentage: number;
@@ -1319,8 +1328,8 @@ interface ProgressSyncEvent {
 }
 
 interface LibraryUpdateEvent {
-  type: 'library_update';
-  action: 'added' | 'removed' | 'updated';
+  type: "library_update";
+  action: "added" | "removed" | "updated";
   audiobookId: string;
 }
 ```
@@ -1356,9 +1365,11 @@ test(player): add e2e tests for chapter navigation
 
 ```markdown
 ## Description
+
 Brief description of changes
 
 ## Type of Change
+
 - [ ] Feature
 - [ ] Bug fix
 - [ ] Refactor
@@ -1366,6 +1377,7 @@ Brief description of changes
 - [ ] Tests
 
 ## Testing
+
 - [ ] Unit tests added/updated
 - [ ] E2E tests added/updated
 - [ ] Manual testing completed
@@ -1373,6 +1385,7 @@ Brief description of changes
 ## Screenshots (if applicable)
 
 ## Checklist
+
 - [ ] Code follows project style guidelines
 - [ ] Self-review completed
 - [ ] Documentation updated
@@ -1388,6 +1401,7 @@ Brief description of changes
 Before deploying to production:
 
 ### Security
+
 - [ ] Environment variables are properly set
 - [ ] CORS is configured correctly
 - [ ] Rate limiting is enabled
@@ -1395,18 +1409,21 @@ Before deploying to production:
 - [ ] File upload limits are configured
 
 ### Performance
+
 - [ ] Database indexes are in place
 - [ ] Static assets have cache headers
 - [ ] Images are optimized
 - [ ] Gzip/Brotli compression enabled
 
 ### Monitoring
+
 - [ ] Error tracking configured (Sentry, etc.)
 - [ ] Logging is set up properly
 - [ ] Health check endpoint exists
 - [ ] Database connection monitoring
 
 ### Data
+
 - [ ] Database migrations are applied
 - [ ] Backup strategy is in place
 - [ ] Media storage is configured
@@ -1422,4 +1439,4 @@ Before deploying to production:
 
 ---
 
-*This document is the authoritative guide for development. When in doubt, refer here first.*
+_This document is the authoritative guide for development. When in doubt, refer here first._

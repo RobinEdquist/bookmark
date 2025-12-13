@@ -2,26 +2,10 @@
 
 import { useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { themes, isValidTheme, type Theme } from "./theme-config";
 
-export const themes = [
-  "default",
-  "tokyo-night",
-  "tokyo-storm",
-  "tokyo-moon",
-  "tokyo-day",
-  "synthwave",
-  "catppuccin-mocha",
-  "catppuccin-macchiato",
-  "catppuccin-frappe",
-  "catppuccin-latte",
-  "yin-yang",
-  "yang-yin",
-] as const;
-export type Theme = (typeof themes)[number];
-
-export function isValidTheme(theme: string): theme is Theme {
-  return themes.includes(theme as Theme);
-}
+// Re-export for convenience
+export { themes, isValidTheme, type Theme } from "./theme-config";
 
 async function fetchTheme(): Promise<string> {
   const res = await fetch("/api/users/me/theme", {
@@ -56,14 +40,23 @@ async function updateTheme(theme: string): Promise<void> {
   }
 }
 
+// Get initial theme from cookie (client-side only)
+function getInitialTheme(): Theme {
+  if (typeof document === "undefined") return "default";
+  const cookie = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("theme="))
+    ?.split("=")[1];
+  return cookie && isValidTheme(cookie) ? cookie : "default";
+}
+
 export function useTheme() {
   const queryClient = useQueryClient();
 
-  const { data: theme = "default", isLoading } = useQuery({
+  const { data: theme = getInitialTheme(), isLoading } = useQuery({
     queryKey: ["theme"],
     queryFn: fetchTheme,
     staleTime: Infinity,
-    initialData: "default",
   });
 
   const mutation = useMutation({

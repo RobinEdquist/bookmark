@@ -423,10 +423,10 @@
     },
     "paths": {
       "title": "Konfigurera sökvägar",
-      "description": "Mappa AudioBookShelf-bibliotekssökvägen till din Simple Audiobook Vault-sökväg",
+      "description": "Mappa AudioBookShelf-bibliotekssökvägen till din Bookmark-sökväg",
       "absPathLabel": "AudioBookShelf-bibliotekssökväg",
       "absPathDescription": "Detta är var dina ljudböcker var lagrade i AudioBookShelf",
-      "savPathLabel": "Simple Audiobook Vault-bibliotekssökväg",
+      "savPathLabel": "Bookmark-bibliotekssökväg",
       "savPathDescription": "Ange var dina ljudböcker för närvarande är lagrade på detta system",
       "infoTitle": "Sökvägsmappning:",
       "infoPoint1": "AudioBookShelf-sökvägen kommer att ersättas med SAV-sökvägen i alla databasposter",
@@ -447,9 +447,9 @@
     },
     "users": {
       "title": "Mappa användare",
-      "description": "Mappa AudioBookShelf-användare till Simple Audiobook Vault-användare för att importera lyssningsframsteg",
+      "description": "Mappa AudioBookShelf-användare till Bookmark-användare för att importera lyssningsframsteg",
       "absUserLabel": "AudioBookShelf-användare",
-      "savUserLabel": "Simple Audiobook Vault-användare",
+      "savUserLabel": "Bookmark-användare",
       "skipUser": "Hoppa över denna användare",
       "progressInfo": "{count} framstegsposter totalt",
       "inProgressInfo": "{count} pågående",
@@ -474,7 +474,7 @@
       },
       "importCovers": {
         "label": "Importera ljudboksomslag",
-        "description": "Kopiera omslagsbilder från AudioBookShelf-säkerhetskopian till ditt Simple Audiobook Vault-bibliotek. Omslag kommer att lagras i appdatamappen."
+        "description": "Kopiera omslagsbilder från AudioBookShelf-säkerhetskopian till ditt Bookmark-bibliotek. Omslag kommer att lagras i appdatamappen."
       },
       "importAuthorImages": {
         "label": "Importera författarbilder",

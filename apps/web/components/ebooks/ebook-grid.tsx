@@ -3,15 +3,20 @@
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
+import { Loader2 } from "lucide-react";
 import { EbookCard } from "./ebook-card";
 import { EditEbookDialog } from "./edit-ebook-dialog";
 import { useMyPermissions } from "../../lib/use-users";
+import { useIntersectionObserver } from "../../lib/use-intersection-observer";
 import type { EbookListItem } from "../../lib/use-ebooks";
 
 interface EbookGridProps {
   ebooks: EbookListItem[];
   isLoading?: boolean;
   error?: Error | null;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void;
 }
 
 function EbookSkeleton() {
@@ -49,10 +54,27 @@ function EmptyState() {
   );
 }
 
-export function EbookGrid({ ebooks, isLoading, error }: EbookGridProps) {
+export function EbookGrid({
+  ebooks,
+  isLoading,
+  error,
+  hasNextPage,
+  isFetchingNextPage,
+  onLoadMore,
+}: EbookGridProps) {
   const t = useTranslations("ebooks");
   const { data: permissions } = useMyPermissions();
   const canEdit = permissions?.canEditMetadata ?? false;
+
+  // Intersection observer for infinite scroll
+  const loadMoreRef = useIntersectionObserver(
+    () => {
+      if (hasNextPage && !isFetchingNextPage && onLoadMore) {
+        onLoadMore();
+      }
+    },
+    { enabled: hasNextPage && !isFetchingNextPage }
+  );
 
   // Shared edit dialog state for navigation between ebooks
   const [editingEbookId, setEditingEbookId] = useState<string | null>(null);
@@ -115,6 +137,18 @@ export function EbookGrid({ ebooks, isLoading, error }: EbookGridProps) {
           />
         ))}
       </motion.div>
+
+      {/* Infinite scroll sentinel */}
+      {hasNextPage && (
+        <div
+          ref={loadMoreRef}
+          className="flex items-center justify-center py-8"
+        >
+          {isFetchingNextPage && (
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          )}
+        </div>
+      )}
 
       {/* Shared edit dialog with navigation */}
       {canEdit && (

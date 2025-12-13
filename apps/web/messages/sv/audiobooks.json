@@ -6,7 +6,7 @@
   "loading": "Laddar ljudböcker...",
   "error": "Kunde inte ladda ljudböcker",
   "card": {
-    "bookInSeries": "Bok {order} i {series}",
+    "bookInSeries": "{series} #{order}",
     "edit": "Redigera",
     "delete": "Ta bort",
     "changeCover": "Ändra omslag",
@@ -71,7 +71,7 @@
     "refreshChapters": "Uppdatera",
     "chaptersRefreshed": "Hittade {count} kapitel",
     "chaptersRefreshError": "Kunde inte uppdatera kapitel",
-    "bookInSeries": "Bok {order} i {series}",
+    "bookInSeries": "{series} #{order}",
     "files": "Filer",
     "noFiles": "Inga filer hittades för denna ljudbok.",
     "progress": {

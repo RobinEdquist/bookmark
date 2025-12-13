@@ -49,7 +49,7 @@
   },
   "learnMore": {
     "title": "What is OPDS?",
-    "description": "OPDS (Open Publication Distribution System) is an open standard for distributing digital publications. It allows e-reader apps to browse, search, and download ebooks directly from compatible servers like Simple Audiobook Vault.",
+    "description": "OPDS (Open Publication Distribution System) is an open standard for distributing digital publications. It allows e-reader apps to browse, search, and download ebooks directly from compatible servers like Bookmark.",
     "link": "Learn more about OPDS"
   }
 }
