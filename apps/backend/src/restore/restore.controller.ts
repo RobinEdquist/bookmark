@@ -126,7 +126,15 @@ export class RestoreController {
    * Get the current status and details of a restore session
    */
   @Get('sessions/:id')
-  async getSession(@Param('id') sessionId: string): Promise<RestoreSession> {
+  async getSession(@Param('id') sessionId: string): Promise<
+    RestoreSession & {
+      availableLibraries?: Array<{
+        id: string;
+        name: string;
+        folders: string[];
+      }>;
+    }
+  > {
     this.logger.log(`[ABS-RESTORE-API] Getting session: ${sessionId}`);
 
     const session = this.restoreService.getSession(sessionId);
@@ -134,7 +142,21 @@ export class RestoreController {
       throw new NotFoundException(`Restore session ${sessionId} not found`);
     }
 
-    return session;
+    // Include available libraries from parsed backup
+    const backupDetails = this.restoreService.getBackupDetails(sessionId);
+    const availableLibraries = backupDetails
+      ? backupDetails.libraries.map((lib) => ({
+          id: lib.id,
+          name: lib.name,
+          folders:
+            backupDetails.libraryFolders.get(lib.id)?.map((f) => f.path) || [],
+        }))
+      : undefined;
+
+    return {
+      ...session,
+      availableLibraries,
+    };
   }
 
   /**
