@@ -32,7 +32,7 @@ export class SetPathMappingsDto {
   pathMappings!: PathMappingDto[];
 }
 
-// DTO for user mapping update (only contains fields sent by frontend)
+// DTO for user mapping update (only contains fields needed by backend)
 export class UserMappingUpdateDto {
   @IsString()
   @IsNotEmpty()

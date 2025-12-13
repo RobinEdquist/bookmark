@@ -95,13 +95,19 @@ async function setUserMappingsApi(
   sessionId: string,
   userMappings: UserMapping[],
 ): Promise<ApiSuccessResponse> {
+  // Only send the fields the backend needs
+  const mappingsToSend = userMappings.map(({ absUserId, savUserId }) => ({
+    absUserId,
+    savUserId,
+  }));
+
   const response = await fetch(`/api/admin/restore/sessions/${sessionId}/user-mappings`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: JSON.stringify({ userMappings }),
+    body: JSON.stringify({ userMappings: mappingsToSend }),
   });
 
   if (!response.ok) {
