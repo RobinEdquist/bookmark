@@ -1415,6 +1415,10 @@ export class AudiobooksService {
       throw new NotFoundException('Audiobook has no audio files');
     }
 
+    // Detect single-file audiobook: filePath equals the first file's fileName
+    // (single files at library root have filePath = fileName)
+    const isSingleFile = files.length === 1 && ab.filePath === files[0].fileName;
+
     // Check if cover is uploaded (stored in app data)
     const hasUploadedCover = ab.coverSource === 'uploaded';
 
@@ -1433,7 +1437,12 @@ export class AudiobooksService {
     // Single file with embedded cover - direct download
     if (files.length === 1 && !hasUploadedCover) {
       const file = files[0];
-      const relativePath = path.join(ab.filePath, file.fileName);
+      // Build the correct relative path:
+      // - Single-file audiobooks: filePath is the filename itself (at library root)
+      // - Multi-file audiobooks: filePath is folder, need to join with fileName
+      const relativePath = isSingleFile
+        ? ab.filePath
+        : path.join(ab.filePath, file.fileName);
       const absolutePath = await this.resolveFilePath(relativePath);
 
       const mimeTypes: Record<string, string> = {
@@ -1467,6 +1476,7 @@ export class AudiobooksService {
       isZip: true,
       files: await Promise.all(
         files.map(async (f) => ({
+          // Build the correct relative path (multi-file: folder + fileName)
           filePath: await this.resolveFilePath(path.join(ab.filePath, f.fileName)),
           fileName: f.fileName,
         })),
@@ -1494,7 +1504,7 @@ export class AudiobooksService {
     fileIndex: number;
     fileStartPosition: number; // cumulative position where this file starts
   }> {
-    // Get audiobook to access its folder path
+    // Get audiobook to check if it's a single-file audiobook
     const audiobook = await this.db
       .select({ filePath: schema.audiobooks.filePath })
       .from(schema.audiobooks)
@@ -1504,8 +1514,6 @@ export class AudiobooksService {
     if (audiobook.length === 0) {
       throw new NotFoundException('Audiobook not found');
     }
-
-    const audiobookFolderPath = audiobook[0].filePath;
 
     // Get audiobook files ordered by sequence
     const files = await this.db
@@ -1517,6 +1525,10 @@ export class AudiobooksService {
     if (files.length === 0) {
       throw new NotFoundException('Audiobook has no audio files');
     }
+
+    // Detect single-file audiobook: filePath equals the first file's fileName
+    // (single files at library root have filePath = fileName)
+    const isSingleFile = files.length === 1 && audiobook[0].filePath === files[0].fileName;
 
     // Calculate total duration
     const totalDuration = files.reduce((sum, f) => sum + f.duration, 0);
@@ -1553,8 +1565,12 @@ export class AudiobooksService {
     // Calculate offset within the file
     const offsetInFile = clampedPosition - fileStartPosition;
 
-    // Resolve absolute path using audiobook folder + file name
-    const relativePath = path.join(audiobookFolderPath, targetFile.fileName);
+    // Build the correct relative path:
+    // - Single-file audiobooks: filePath is the filename itself (at library root)
+    // - Multi-file audiobooks: filePath is folder, need to join with fileName
+    const relativePath = isSingleFile
+      ? audiobook[0].filePath
+      : path.join(audiobook[0].filePath, targetFile.fileName);
     const absolutePath = await this.resolveFilePath(relativePath);
 
     // Determine MIME type from format
