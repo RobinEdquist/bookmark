@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import Link from "next/link";
+import { PrefetchLink } from "../ui/prefetch-link";
 import { motion } from "motion/react";
 import { MoreVertical, Pencil, Star, AlertTriangle, Trash2, ImageIcon } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -96,7 +96,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
         whileHover="hover"
       >
         {/* Cover Image */}
-        <Link href={`/audiobooks/${audiobook.id}`}>
+        <PrefetchLink href={`/audiobooks/${audiobook.id}`}>
           <motion.div
             className="relative aspect-square overflow-hidden rounded-xl border border-black/5 dark:border-white/5"
             variants={{
@@ -160,11 +160,11 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
               </div>
             )}
           </motion.div>
-        </Link>
+        </PrefetchLink>
 
         {/* Text Content with Menu */}
         <div className="mt-3 flex items-start gap-1">
-          <Link href={`/audiobooks/${audiobook.id}`} className="min-w-0 flex-1">
+          <PrefetchLink href={`/audiobooks/${audiobook.id}`} className="min-w-0 flex-1">
             <div className="space-y-1">
               <h3 className="line-clamp-2 text-sm font-medium leading-tight">
                 {audiobook.title}
@@ -182,7 +182,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                 </p>
               )}
             </div>
-          </Link>
+          </PrefetchLink>
 
           {showDropdown && (
             <DropdownMenu>

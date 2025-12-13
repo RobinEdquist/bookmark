@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { PrefetchLink } from "../ui/prefetch-link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Headphones, Play, Pause, MoreVertical, EyeOff, Settings, Clock } from "lucide-react";
@@ -70,7 +71,7 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
         transition={{ duration: 0.3 }}
       >
         {/* Cover with progress bar and play button */}
-        <Link href={`/audiobooks/${progress.audiobook.id}`} className="block">
+        <PrefetchLink href={`/audiobooks/${progress.audiobook.id}`} className="block">
           <div className="relative aspect-square overflow-hidden rounded-xl border border-border/50 bg-muted">
             <Image
               src={`/api/audiobooks/${progress.audiobook.id}/cover`}
@@ -112,11 +113,11 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
               />
             </div>
           </div>
-        </Link>
+        </PrefetchLink>
 
         {/* Title and menu */}
         <div className="flex items-start gap-1">
-          <Link href={`/audiobooks/${progress.audiobook.id}`} className="min-w-0 flex-1">
+          <PrefetchLink href={`/audiobooks/${progress.audiobook.id}`} className="min-w-0 flex-1">
             <div className="space-y-0.5 px-0.5">
               <h3 className="truncate text-sm font-medium leading-tight">
                 {progress.audiobook.title}
@@ -127,7 +128,7 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
                 </p>
               )}
             </div>
-          </Link>
+          </PrefetchLink>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import Link from "next/link";
+import { PrefetchLink } from "../ui/prefetch-link";
 import { motion } from "motion/react";
 import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download, Star } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -82,7 +82,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
         whileHover="hover"
       >
         {/* Cover Image */}
-        <Link href={`/ebooks/${ebook.id}`}>
+        <PrefetchLink href={`/ebooks/${ebook.id}`}>
           <motion.div
             className="relative aspect-[2/3] overflow-hidden rounded-xl border border-black/5 dark:border-white/5"
             variants={{
@@ -148,11 +148,11 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
               </div>
             )}
           </motion.div>
-        </Link>
+        </PrefetchLink>
 
         {/* Text Content with Menu */}
         <div className="mt-3 flex items-start gap-1">
-          <Link href={`/ebooks/${ebook.id}`} className="min-w-0 flex-1">
+          <PrefetchLink href={`/ebooks/${ebook.id}`} className="min-w-0 flex-1">
             <div className="space-y-1">
               <h3 className="line-clamp-2 text-sm font-medium leading-tight">
                 {ebook.title}
@@ -170,7 +170,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                 </p>
               )}
             </div>
-          </Link>
+          </PrefetchLink>
 
           {showDropdown && (
             <DropdownMenu>
