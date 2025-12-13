@@ -9,7 +9,6 @@ import { SortSelect } from "../library/sort-select";
 import { type SortField, type SortOrder } from "../../lib/use-sort-preference";
 
 interface MobileLibraryHeaderProps {
-  title: string;
   searchPlaceholder: string;
   searchValue: string;
   onSearchChange: (value: string) => void;
@@ -20,7 +19,6 @@ interface MobileLibraryHeaderProps {
 }
 
 export function MobileLibraryHeader({
-  title,
   searchPlaceholder,
   searchValue,
   onSearchChange,
@@ -94,7 +92,7 @@ export function MobileLibraryHeader({
             </div>
           </div>
         ) : (
-          // Normal mode: hamburger + title + search icon + sort
+          // Normal mode: hamburger + spacer + search icon + sort
           <>
             <Button
               variant="ghost"
@@ -105,9 +103,7 @@ export function MobileLibraryHeader({
               <Menu className="h-6 w-6" />
             </Button>
 
-            <h1 className="flex-1 truncate text-center text-lg font-semibold">
-              {title}
-            </h1>
+            <div className="flex-1" />
 
             <div className="flex items-center gap-1">
               <Button

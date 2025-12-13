@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Search, X, Loader2 } from "lucide-react";
@@ -15,7 +15,7 @@ import { MobileLibraryHeader } from "../../../components/layout/mobile-library-h
 import { authClient } from "../../../lib/auth-client";
 
 export default function EbooksPage() {
-  const t = useTranslations("ebooks");
+  const t = useTranslations("ebooks.filters");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = authClient.useSession();
@@ -29,13 +29,23 @@ export default function EbooksPage() {
   const [searchQuery, setSearchQuery] = useState(searchFromUrl);
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
 
-  // Sync URL → input when URL changes (e.g., back navigation)
+  // Track if we're the ones updating the URL to avoid circular sync
+  const isUpdatingUrl = useRef(false);
+
+  // Sync URL → input only for external navigation (e.g., back button)
   useEffect(() => {
-    setSearchQuery(searchFromUrl);
+    if (!isUpdatingUrl.current) {
+      setSearchQuery(searchFromUrl);
+    }
+    isUpdatingUrl.current = false;
   }, [searchFromUrl]);
 
   // Sync input → URL when debounced value changes
   useEffect(() => {
+    const currentSearch = searchParams.get("search") ?? "";
+    if (debouncedSearch === currentSearch) return;
+
+    isUpdatingUrl.current = true;
     const params = new URLSearchParams(searchParams.toString());
     if (debouncedSearch) {
       params.set("search", debouncedSearch);
@@ -43,9 +53,7 @@ export default function EbooksPage() {
       params.delete("search");
     }
     const newUrl = params.toString() ? `/ebooks?${params.toString()}` : "/ebooks";
-    if (newUrl !== `/ebooks${window.location.search}`) {
-      router.replace(newUrl, { scroll: false });
-    }
+    router.replace(newUrl, { scroll: false });
   }, [debouncedSearch, router, searchParams]);
   const { sortBy, sortOrder, setSortField } = useSortPreference("ebooks");
   const { data, isLoading, isFetching, error } = useEbooks({
@@ -64,8 +72,7 @@ export default function EbooksPage() {
     <div className="flex flex-col">
       {/* Mobile header */}
       <MobileLibraryHeader
-        title={t("title")}
-        searchPlaceholder={t("filters.search")}
+        searchPlaceholder={t("search")}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         sortBy={sortBy}
@@ -77,7 +84,6 @@ export default function EbooksPage() {
       {/* Desktop header */}
       <header className="sticky top-0 z-10 hidden border-b border-border/50 bg-background/80 px-8 py-4 backdrop-blur-sm lg:block">
         <div className="mx-auto flex max-w-7xl items-center gap-4">
-          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <div className="relative w-64">
             {isSearching ? (
               <Loader2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -86,7 +92,7 @@ export default function EbooksPage() {
             )}
             <Input
               type="text"
-              placeholder={t("filters.search")}
+              placeholder={t("search")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 pr-9"
