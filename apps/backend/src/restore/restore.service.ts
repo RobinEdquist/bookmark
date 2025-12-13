@@ -409,14 +409,24 @@ export class RestoreService {
       // Convert ABS path to SAV path
       const savPath = this.convertPath(item.path, mapping);
 
-      // Check if directory exists
+      // Check if path exists (can be directory or single audio file)
       let found = false;
       let reason: string | undefined;
+      const audioExtensions = [
+        '.m4b',
+        '.m4a',
+        '.mp3',
+        '.flac',
+        '.ogg',
+        '.opus',
+        '.wma',
+        '.aac',
+      ];
 
       try {
         const stats = await fs.stat(savPath);
         if (stats.isDirectory()) {
-          // Check if audio files exist
+          // Folder-based audiobook: check if audio files exist inside
           const audioFiles = book.audioFiles || [];
           if (audioFiles.length === 0) {
             found = false;
@@ -436,13 +446,22 @@ export class RestoreService {
               reason = `Audio file not found: ${firstAudioFile.metadata.filename}`;
             }
           }
+        } else if (stats.isFile()) {
+          // Single-file audiobook: check if it's an audio file
+          const ext = path.extname(savPath).toLowerCase();
+          if (audioExtensions.includes(ext)) {
+            found = true;
+          } else {
+            found = false;
+            reason = `Path is not an audio file: ${ext}`;
+          }
         } else {
           found = false;
-          reason = 'Path exists but is not a directory';
+          reason = 'Path is neither a file nor directory';
         }
       } catch {
         found = false;
-        reason = 'Directory not found';
+        reason = 'Path not found';
       }
 
       const previewItem: AudiobookPreviewItem = {

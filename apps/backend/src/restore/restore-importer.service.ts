@@ -70,9 +70,15 @@ export class RestoreImporterService {
    * Main import executor - runs the entire import process in a transaction
    */
   async executeImport(session: RestoreSession): Promise<void> {
-    this.logger.log(
-      `[ABS-RESTORE-IMPORT] Starting import for session ${session.id}`,
-    );
+    this.logger.log({
+      msg: 'ABS restore import starting',
+      sessionId: session.id,
+      libraryId: session.selectedLibraryId,
+      options: session.options,
+      pathMappings: session.pathMappings.length,
+      userMappings: session.userMappings.filter((m) => m.savUserId !== null)
+        .length,
+    });
     const startTime = Date.now();
 
     if (!session.selectedLibraryId || !session.extractedPath) {
@@ -131,6 +137,18 @@ export class RestoreImporterService {
         this.eventEmitter.emit('restore.progress', progress);
       };
 
+      // Track import results for summary
+      const results = {
+        authors: { imported: 0, failed: 0 },
+        narrators: { imported: 0, failed: 0 },
+        series: { imported: 0, failed: 0 },
+        genres: { imported: 0, failed: 0 },
+        audiobooks: { imported: 0, skipped: 0, failed: 0 },
+        covers: { imported: 0, failed: 0 },
+        authorImages: { imported: 0, failed: 0 },
+        progress: { imported: 0, skipped: 0, failed: 0 },
+      };
+
       // Execute import in a database transaction
       await this.db.transaction(async (tx) => {
         // Step 1: Import people (authors and narrators)
@@ -143,15 +161,24 @@ export class RestoreImporterService {
         const narratorNameMap = new Map<string, string>(); // Narrator name -> SAV person ID
 
         for (const absAuthor of libraryData.authors) {
-          const savPersonId = await this.findOrCreatePerson(
-            absAuthor.name,
-            'author',
-            tx,
-          );
-          authorIdMap.set(absAuthor.id, savPersonId);
-          this.logger.debug(
-            `[ABS-RESTORE-IMPORT]   - Author: ${absAuthor.name} (${absAuthor.id} -> ${savPersonId})`,
-          );
+          try {
+            const savPersonId = await this.findOrCreatePerson(
+              absAuthor.name,
+              'author',
+              tx,
+            );
+            authorIdMap.set(absAuthor.id, savPersonId);
+            results.authors.imported++;
+            this.logger.debug(
+              `[ABS-RESTORE-IMPORT]   - Author: ${absAuthor.name} (${absAuthor.id} -> ${savPersonId})`,
+            );
+          } catch (error) {
+            results.authors.failed++;
+            this.logger.error(
+              `[ABS-RESTORE-IMPORT] Failed to import author ${absAuthor.name}:`,
+              error,
+            );
+          }
         }
 
         // Collect unique narrators
@@ -163,15 +190,24 @@ export class RestoreImporterService {
         }
 
         for (const narratorName of uniqueNarrators) {
-          const savPersonId = await this.findOrCreatePerson(
-            narratorName,
-            'narrator',
-            tx,
-          );
-          narratorNameMap.set(narratorName, savPersonId);
-          this.logger.debug(
-            `[ABS-RESTORE-IMPORT]   - Narrator: ${narratorName} -> ${savPersonId}`,
-          );
+          try {
+            const savPersonId = await this.findOrCreatePerson(
+              narratorName,
+              'narrator',
+              tx,
+            );
+            narratorNameMap.set(narratorName, savPersonId);
+            results.narrators.imported++;
+            this.logger.debug(
+              `[ABS-RESTORE-IMPORT]   - Narrator: ${narratorName} -> ${savPersonId}`,
+            );
+          } catch (error) {
+            results.narrators.failed++;
+            this.logger.error(
+              `[ABS-RESTORE-IMPORT] Failed to import narrator ${narratorName}:`,
+              error,
+            );
+          }
         }
 
         processedItems += libraryData.authors.length + uniqueNarrators.size;
@@ -183,11 +219,23 @@ export class RestoreImporterService {
 
         const seriesIdMap = new Map<string, string>(); // ABS series ID -> SAV series ID
         for (const absSeries of libraryData.series) {
-          const savSeriesId = await this.findOrCreateSeries(absSeries.name, tx);
-          seriesIdMap.set(absSeries.id, savSeriesId);
-          this.logger.debug(
-            `[ABS-RESTORE-IMPORT]   - Series: ${absSeries.name} (${absSeries.id} -> ${savSeriesId})`,
-          );
+          try {
+            const savSeriesId = await this.findOrCreateSeries(
+              absSeries.name,
+              tx,
+            );
+            seriesIdMap.set(absSeries.id, savSeriesId);
+            results.series.imported++;
+            this.logger.debug(
+              `[ABS-RESTORE-IMPORT]   - Series: ${absSeries.name} (${absSeries.id} -> ${savSeriesId})`,
+            );
+          } catch (error) {
+            results.series.failed++;
+            this.logger.error(
+              `[ABS-RESTORE-IMPORT] Failed to import series ${absSeries.name}:`,
+              error,
+            );
+          }
         }
 
         processedItems += libraryData.series.length;
@@ -206,11 +254,20 @@ export class RestoreImporterService {
         }
 
         for (const genreName of uniqueGenres) {
-          const savGenreId = await this.findOrCreateGenre(genreName, tx);
-          genreIdMap.set(genreName, savGenreId);
-          this.logger.debug(
-            `[ABS-RESTORE-IMPORT]   - Genre: ${genreName} -> ${savGenreId}`,
-          );
+          try {
+            const savGenreId = await this.findOrCreateGenre(genreName, tx);
+            genreIdMap.set(genreName, savGenreId);
+            results.genres.imported++;
+            this.logger.debug(
+              `[ABS-RESTORE-IMPORT]   - Genre: ${genreName} -> ${savGenreId}`,
+            );
+          } catch (error) {
+            results.genres.failed++;
+            this.logger.error(
+              `[ABS-RESTORE-IMPORT] Failed to import genre ${genreName}:`,
+              error,
+            );
+          }
         }
 
         processedItems += uniqueGenres.size;
@@ -223,8 +280,6 @@ export class RestoreImporterService {
         emitProgress('Importing audiobooks');
 
         const audiobookIdMap = new Map<string, string>(); // ABS book ID -> SAV audiobook ID
-        let importedCount = 0;
-        let skippedCount = 0;
 
         for (const item of importableItems) {
           const book = libraryData.books.get(item.mediaId);
@@ -232,7 +287,7 @@ export class RestoreImporterService {
             this.logger.warn(
               `[ABS-RESTORE-IMPORT] Skipping ${item.title}: no book data found`,
             );
-            skippedCount++;
+            results.audiobooks.skipped++;
             continue;
           }
 
@@ -244,7 +299,7 @@ export class RestoreImporterService {
             this.logger.warn(
               `[ABS-RESTORE-IMPORT] Skipping ${item.title}: no path mapping`,
             );
-            skippedCount++;
+            results.audiobooks.skipped++;
             continue;
           }
 
@@ -263,29 +318,29 @@ export class RestoreImporterService {
             );
 
             audiobookIdMap.set(book.id, savAudiobookId);
-            importedCount++;
+            results.audiobooks.imported++;
             this.logger.debug(
-              `[ABS-RESTORE-IMPORT]   - [${importedCount}/${importableItems.length}] ${item.title} (${book.id} -> ${savAudiobookId})`,
+              `[ABS-RESTORE-IMPORT]   - [${results.audiobooks.imported}/${importableItems.length}] ${item.title} (${book.id} -> ${savAudiobookId})`,
             );
           } catch (error) {
             this.logger.error(
               `[ABS-RESTORE-IMPORT] Failed to import ${item.title}:`,
               error,
             );
-            skippedCount++;
+            results.audiobooks.failed++;
           }
 
           processedItems++;
-          if (importedCount % 10 === 0) {
+          if (results.audiobooks.imported % 10 === 0) {
             emitProgress(
-              `Importing audiobooks (${importedCount}/${importableItems.length})`,
+              `Importing audiobooks (${results.audiobooks.imported}/${importableItems.length})`,
               processedItems,
             );
           }
         }
 
         emitProgress(
-          `Imported ${importedCount} audiobooks (${skippedCount} skipped)`,
+          `Imported ${results.audiobooks.imported} audiobooks (${results.audiobooks.skipped} skipped, ${results.audiobooks.failed} failed)`,
           processedItems,
         );
 
@@ -296,7 +351,6 @@ export class RestoreImporterService {
           );
           emitProgress('Importing cover images');
 
-          let coverCount = 0;
           for (const [absBookId, savAudiobookId] of audiobookIdMap.entries()) {
             try {
               await this.copyCoverFile(
@@ -304,8 +358,9 @@ export class RestoreImporterService {
                 savAudiobookId,
                 session.extractedPath!,
               );
-              coverCount++;
+              results.covers.imported++;
             } catch (error) {
+              results.covers.failed++;
               this.logger.debug(
                 `[ABS-RESTORE-IMPORT] No cover found for book ${absBookId}: ${error}`,
               );
@@ -313,9 +368,9 @@ export class RestoreImporterService {
           }
 
           this.logger.log(
-            `[ABS-RESTORE-IMPORT] Imported ${coverCount} cover images`,
+            `[ABS-RESTORE-IMPORT] Imported ${results.covers.imported} cover images (${results.covers.failed} not found)`,
           );
-          processedItems += coverCount;
+          processedItems += results.covers.imported;
           emitProgress('Cover images imported', processedItems);
         }
 
@@ -326,7 +381,6 @@ export class RestoreImporterService {
           );
           emitProgress('Importing author images');
 
-          let imageCount = 0;
           for (const [absAuthorId, savPersonId] of authorIdMap.entries()) {
             try {
               await this.copyAuthorImage(
@@ -334,8 +388,9 @@ export class RestoreImporterService {
                 savPersonId,
                 session.extractedPath!,
               );
-              imageCount++;
+              results.authorImages.imported++;
             } catch (error) {
+              results.authorImages.failed++;
               this.logger.debug(
                 `[ABS-RESTORE-IMPORT] No image found for author ${absAuthorId}: ${error}`,
               );
@@ -343,9 +398,9 @@ export class RestoreImporterService {
           }
 
           this.logger.log(
-            `[ABS-RESTORE-IMPORT] Imported ${imageCount} author images`,
+            `[ABS-RESTORE-IMPORT] Imported ${results.authorImages.imported} author images (${results.authorImages.failed} not found)`,
           );
-          processedItems += imageCount;
+          processedItems += results.authorImages.imported;
           emitProgress('Author images imported', processedItems);
         }
 
@@ -362,12 +417,12 @@ export class RestoreImporterService {
               .map((m) => [m.absUserId, m.savUserId!]),
           );
 
-          let progressCount = 0;
           for (const absProgress of libraryData.mediaProgresses) {
             const savUserId = mappedUsers.get(absProgress.userId);
             const savAudiobookId = audiobookIdMap.get(absProgress.mediaItemId);
 
             if (!savUserId) {
+              results.progress.skipped++;
               this.logger.debug(
                 `[ABS-RESTORE-IMPORT] Skipping progress for unmapped user ${absProgress.userId}`,
               );
@@ -375,6 +430,7 @@ export class RestoreImporterService {
             }
 
             if (!savAudiobookId) {
+              results.progress.skipped++;
               this.logger.debug(
                 `[ABS-RESTORE-IMPORT] Skipping progress for unimported audiobook ${absProgress.mediaItemId}`,
               );
@@ -388,8 +444,9 @@ export class RestoreImporterService {
                 savAudiobookId,
                 tx,
               );
-              progressCount++;
+              results.progress.imported++;
             } catch (error) {
+              results.progress.failed++;
               this.logger.error(
                 `[ABS-RESTORE-IMPORT] Failed to import progress for user ${savUserId}, audiobook ${savAudiobookId}:`,
                 error,
@@ -398,21 +455,71 @@ export class RestoreImporterService {
           }
 
           this.logger.log(
-            `[ABS-RESTORE-IMPORT] Imported ${progressCount} progress records`,
+            `[ABS-RESTORE-IMPORT] Imported ${results.progress.imported} progress records (${results.progress.skipped} skipped, ${results.progress.failed} failed)`,
           );
-          processedItems += progressCount;
+          processedItems += results.progress.imported;
           emitProgress('User progress imported', processedItems);
         }
       });
 
-      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-      this.logger.log(
-        `[ABS-RESTORE-IMPORT] Import completed in ${duration} seconds`,
-      );
+      const durationMs = Date.now() - startTime;
+      const durationSec = (durationMs / 1000).toFixed(2);
+
+      // Calculate totals
+      const totalImported =
+        results.audiobooks.imported +
+        results.authors.imported +
+        results.narrators.imported +
+        results.series.imported +
+        results.genres.imported +
+        results.covers.imported +
+        results.authorImages.imported +
+        results.progress.imported;
+      const totalFailed =
+        results.audiobooks.failed +
+        results.authors.failed +
+        results.narrators.failed +
+        results.series.failed +
+        results.genres.failed +
+        results.progress.failed;
+      const totalSkipped =
+        results.audiobooks.skipped + results.progress.skipped;
+
+      // Log structured summary
+      this.logger.log({
+        msg: 'ABS restore import completed',
+        sessionId: session.id,
+        durationMs,
+        durationSec: parseFloat(durationSec),
+        totals: {
+          imported: totalImported,
+          skipped: totalSkipped,
+          failed: totalFailed,
+        },
+        results: {
+          authors: results.authors,
+          narrators: results.narrators,
+          series: results.series,
+          genres: results.genres,
+          audiobooks: results.audiobooks,
+          covers: session.options.importCovers ? results.covers : undefined,
+          authorImages: session.options.importAuthorImages
+            ? results.authorImages
+            : undefined,
+          progress: session.options.importProgress
+            ? results.progress
+            : undefined,
+        },
+      });
 
       this.eventEmitter.emit('restore.completed', { sessionId: session.id });
     } catch (error) {
-      this.logger.error(`[ABS-RESTORE-IMPORT] Import failed:`, error);
+      this.logger.error({
+        msg: 'ABS restore import failed',
+        sessionId: session.id,
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
 
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
