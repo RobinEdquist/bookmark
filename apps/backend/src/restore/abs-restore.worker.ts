@@ -35,6 +35,7 @@ interface ABSLibraryItem {
   libraryId: string;
   title: string;
   authorNamesFirstLast: string | null;
+  createdAt: string;
 }
 
 interface ABSBook {
@@ -236,7 +237,7 @@ async function parseLibraryData(
     const libraryItems = db
       .prepare(
         `
-      SELECT id, path, relPath, mediaId, mediaType, libraryId, title, authorNamesFirstLast
+      SELECT id, path, relPath, mediaId, mediaType, libraryId, title, authorNamesFirstLast, createdAt
       FROM libraryItems
       WHERE libraryId = ? AND mediaType = 'book'
     `,

@@ -29,6 +29,7 @@ export interface ABSLibraryItem {
   libraryId: string;
   title: string;
   authorNamesFirstLast: string | null;
+  createdAt: string;
 }
 
 export interface ABSBook {
