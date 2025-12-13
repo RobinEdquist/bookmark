@@ -60,12 +60,19 @@ export function PlayerBar() {
     stop,
     seek,
     seekPreview,
+    seekStart,
+    seekEnd,
     seekRelative,
     setPlaybackRate,
     setVolume,
     nextChapter,
     prevChapter,
   } = usePlayer();
+
+  // Called when user starts dragging - prevents timeupdate from overriding position
+  const handleSeekStart = useCallback(() => {
+    seekStart();
+  }, [seekStart]);
 
   // Called during dragging - updates audio position without syncing to server
   const handleSeekPreview = useCallback(
@@ -81,12 +88,13 @@ export function PlayerBar() {
   // Called when user releases the slider - syncs progress to server
   const handleSeekCommit = useCallback(
     (value: number[]) => {
+      seekEnd(); // Re-enable timeupdate
       const position = value[0];
       if (position !== undefined) {
         seek(position);
       }
     },
-    [seek]
+    [seek, seekEnd]
   );
 
   const handleVolumeChange = useCallback(
@@ -245,6 +253,7 @@ export function PlayerBar() {
               value={[currentPosition]}
               max={duration || 1}
               step={1}
+              onPointerDown={handleSeekStart}
               onValueChange={handleSeekPreview}
               onValueCommit={handleSeekCommit}
               className="flex-1"
@@ -328,6 +337,7 @@ export function PlayerBar() {
             value={[currentPosition]}
             max={duration || 1}
             step={1}
+            onPointerDown={handleSeekStart}
             onValueChange={handleSeekPreview}
             onValueCommit={handleSeekCommit}
             className="flex-1"

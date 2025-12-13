@@ -33,6 +33,8 @@ interface PlayerActions {
   stop: () => void;
   seek: (position: number) => void;
   seekPreview: (position: number) => void; // Updates audio position without syncing to server
+  seekStart: () => void; // Called when user starts dragging the slider
+  seekEnd: () => void; // Called when user stops dragging the slider
   seekRelative: (delta: number) => void;
   setPlaybackRate: (rate: number) => void;
   setVolume: (volume: number) => void;
@@ -166,6 +168,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const fileStartPositionRef = useRef<number>(0);
   const playbackRateRef = useRef<number>(getInitialPlaybackRate());
   const volumeRef = useRef<number>(getInitialVolume());
+  const isSeekingRef = useRef<boolean>(false); // True while user is dragging the slider
 
   // Initialize audio element
   useEffect(() => {
@@ -228,6 +231,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!audio) return;
 
     const handleTimeUpdate = () => {
+      // Don't update position while user is dragging the slider
+      if (isSeekingRef.current) return;
+
       // Calculate actual position: file start + current time in file
       const actualPosition = fileStartPositionRef.current + audio.currentTime;
       dispatch({ type: "SET_POSITION", payload: actualPosition });
@@ -555,6 +561,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     seek(state.currentPosition + delta);
   }, [state.currentPosition, seek]);
 
+  // Called when user starts dragging the slider
+  const seekStart = useCallback(() => {
+    isSeekingRef.current = true;
+  }, []);
+
+  // Called when user stops dragging the slider
+  const seekEnd = useCallback(() => {
+    isSeekingRef.current = false;
+  }, []);
+
   const setPlaybackRate = useCallback((rate: number) => {
     playbackRateRef.current = rate;
     if (audioRef.current) {
@@ -619,6 +635,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     stop,
     seek,
     seekPreview,
+    seekStart,
+    seekEnd,
     seekRelative,
     setPlaybackRate,
     setVolume,
