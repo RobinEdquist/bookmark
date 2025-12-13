@@ -93,7 +93,7 @@ export function HorizontalScrollRow({
         {/* Scroll container */}
         <div
           ref={scrollContainerRef}
-          className="flex gap-4 overflow-x-auto scrollbar-hide pb-2"
+          className="-mx-2 flex gap-4 overflow-x-auto px-2 py-2 scrollbar-hide"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {children}

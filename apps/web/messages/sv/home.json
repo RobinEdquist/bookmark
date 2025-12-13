@@ -26,6 +26,10 @@
     "title": "Nyligen tillagda",
     "seeAll": "Visa alla"
   },
+  "recentlyAddedEbooks": {
+    "title": "Nyligen tillagda e-böcker",
+    "seeAll": "Visa alla"
+  },
   "recentlyUpdatedSeries": {
     "title": "Nyligen uppdaterade serier",
     "seeAll": "Visa alla",

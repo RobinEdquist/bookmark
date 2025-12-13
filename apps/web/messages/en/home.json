@@ -26,6 +26,10 @@
     "title": "Recently Added",
     "seeAll": "See all"
   },
+  "recentlyAddedEbooks": {
+    "title": "Recently Added Ebooks",
+    "seeAll": "See all"
+  },
   "recentlyUpdatedSeries": {
     "title": "Recently Updated Series",
     "seeAll": "See all",

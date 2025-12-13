@@ -3,6 +3,7 @@
 import { StatsSection } from "../../../components/home/stats-section";
 import { ContinueListeningSection } from "../../../components/home/continue-listening-section";
 import { RecentlyAddedSection } from "../../../components/home/recently-added-section";
+import { RecentlyAddedEbooksSection } from "../../../components/home/recently-added-ebooks-section";
 import { RecentlyUpdatedSeriesSection } from "../../../components/home/recently-updated-series-section";
 
 export default function HomePage() {
@@ -12,6 +13,7 @@ export default function HomePage() {
         <StatsSection />
         <ContinueListeningSection />
         <RecentlyAddedSection />
+        <RecentlyAddedEbooksSection />
         <RecentlyUpdatedSeriesSection />
       </div>
     </div>
