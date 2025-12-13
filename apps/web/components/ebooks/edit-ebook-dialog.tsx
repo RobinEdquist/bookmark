@@ -58,6 +58,26 @@ import {
   useTags,
 } from "../../lib/use-audiobooks";
 
+// Helper to compare arrays by value
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((val, i) => val === b[i]);
+}
+
+// Interface for tracking initial form state
+interface InitialFormState {
+  title: string;
+  subtitle: string;
+  description: string;
+  authors: string[];
+  publisher: string;
+  language: string;
+  publishedYear: string;
+  isbn: string;
+  genres: string[];
+  tags: string[];
+}
+
 interface EditEbookDialogProps {
   ebook: EbookListItem | EbookDetail | null;
   open: boolean;
@@ -101,6 +121,9 @@ export function EditEbookDialog({
   const [isbn, setIsbn] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+
+  // Track initial values to detect which fields actually changed
+  const [initialState, setInitialState] = useState<InitialFormState | null>(null);
 
   // Convert existing data to combobox options
   const authorOptions = existingAuthors.map((a) => ({
@@ -168,41 +191,116 @@ export function EditEbookDialog({
   // Reset form when ebook changes
   useEffect(() => {
     if (ebookData) {
-      setTitle(ebookData.title || "");
-      setSubtitle(ebookData.subtitle || "");
-      setDescription(ebookData.description || "");
-      setAuthors(ebookData.authors.map((a) => a.name));
-      setPublisher(ebookData.publisher || "");
-      setLanguage(ebookData.language || "");
-      setPublishedYear(
-        ebookData.publishedDate
-          ? new Date(ebookData.publishedDate).getFullYear().toString()
-          : ""
-      );
-      setIsbn(ebookData.isbn || "");
-      setGenres(ebookData.genres.map((g) => g.name));
-      setTags(ebookData.tags.map((t) => t.name));
+      const titleVal = ebookData.title || "";
+      const subtitleVal = ebookData.subtitle || "";
+      const descriptionVal = ebookData.description || "";
+      const authorsVal = ebookData.authors.map((a) => a.name);
+      const publisherVal = ebookData.publisher || "";
+      const languageVal = ebookData.language || "";
+      const publishedYearVal = ebookData.publishedDate
+        ? new Date(ebookData.publishedDate).getFullYear().toString()
+        : "";
+      const isbnVal = ebookData.isbn || "";
+      const genresVal = ebookData.genres.map((g) => g.name);
+      const tagsVal = ebookData.tags.map((t) => t.name);
+
+      // Set form values
+      setTitle(titleVal);
+      setSubtitle(subtitleVal);
+      setDescription(descriptionVal);
+      setAuthors(authorsVal);
+      setPublisher(publisherVal);
+      setLanguage(languageVal);
+      setPublishedYear(publishedYearVal);
+      setIsbn(isbnVal);
+      setGenres(genresVal);
+      setTags(tagsVal);
+
+      // Store initial state for change detection
+      setInitialState({
+        title: titleVal,
+        subtitle: subtitleVal,
+        description: descriptionVal,
+        authors: authorsVal,
+        publisher: publisherVal,
+        language: languageVal,
+        publishedYear: publishedYearVal,
+        isbn: isbnVal,
+        genres: genresVal,
+        tags: tagsVal,
+      });
     }
   }, [ebookData]);
 
   const handleSave = async (closeAfterSave: boolean) => {
-    if (!ebookData) return;
+    if (!ebookData || !initialState) return;
+
+    // Build update data with only fields that actually changed
+    const data: Record<string, unknown> = {};
+
+    // Compare scalar fields
+    const trimmedTitle = title.trim();
+    if (trimmedTitle !== initialState.title) {
+      data.title = trimmedTitle || undefined;
+    }
+
+    const trimmedSubtitle = subtitle.trim();
+    if (trimmedSubtitle !== initialState.subtitle) {
+      data.subtitle = trimmedSubtitle || undefined;
+    }
+
+    const trimmedDescription = description.trim();
+    if (trimmedDescription !== initialState.description) {
+      data.description = trimmedDescription || undefined;
+    }
+
+    const trimmedPublisher = publisher.trim();
+    if (trimmedPublisher !== initialState.publisher) {
+      data.publisher = trimmedPublisher || undefined;
+    }
+
+    const normalizedLanguage = language && language !== "none" ? language : "";
+    if (normalizedLanguage !== initialState.language) {
+      data.language = normalizedLanguage || undefined;
+    }
+
+    if (publishedYear !== initialState.publishedYear) {
+      data.publishedDate = publishedYear ? `${publishedYear}-01-01` : undefined;
+    }
+
+    const trimmedIsbn = isbn.trim();
+    if (trimmedIsbn !== initialState.isbn) {
+      data.isbn = trimmedIsbn || undefined;
+    }
+
+    // Compare array fields
+    const filteredAuthors = authors.filter(Boolean);
+    if (!arraysEqual(filteredAuthors, initialState.authors)) {
+      data.authorNames = filteredAuthors;
+    }
+
+    const filteredGenres = genres.filter(Boolean);
+    if (!arraysEqual(filteredGenres, initialState.genres)) {
+      data.genreNames = filteredGenres;
+    }
+
+    const filteredTags = tags.filter(Boolean);
+    if (!arraysEqual(filteredTags, initialState.tags)) {
+      data.tagNames = filteredTags;
+    }
+
+    // If nothing changed, just close without making a request
+    if (Object.keys(data).length === 0) {
+      if (closeAfterSave) {
+        onOpenChange(false);
+      }
+      return;
+    }
 
     try {
       await updateEbook.mutateAsync({
         id: ebookData.id,
-        data: {
-          title: title.trim() || undefined,
-          subtitle: subtitle.trim() || undefined,
-          description: description.trim() || undefined,
-          publisher: publisher.trim() || undefined,
-          language: language && language !== "none" ? language : undefined,
-          publishedDate: publishedYear ? `${publishedYear}-01-01` : undefined,
-          isbn: isbn.trim() || undefined,
-          authorNames: authors.filter(Boolean),
-          genreNames: genres.filter(Boolean),
-          tagNames: tags.filter(Boolean),
-        },
+        data,
       });
 
       toast.success(t("success"));

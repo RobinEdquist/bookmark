@@ -56,6 +56,28 @@ import {
   type AudiobookListItem,
 } from "../../lib/use-audiobooks";
 
+// Helper to compare arrays by value
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every((val, i) => val === b[i]);
+}
+
+// Interface for tracking initial form state
+interface InitialFormState {
+  title: string;
+  subtitle: string;
+  description: string;
+  authors: string[];
+  narrators: string[];
+  publisher: string;
+  language: string;
+  publishedYear: string;
+  isbn: string;
+  asin: string;
+  genres: string[];
+  tags: string[];
+}
+
 interface EditAudiobookDialogProps {
   audiobook: AudiobookListItem | AudiobookDetail | null;
   open: boolean;
@@ -102,6 +124,9 @@ export function EditAudiobookDialog({
   const [asin, setAsin] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+
+  // Track initial values to detect which fields actually changed
+  const [initialState, setInitialState] = useState<InitialFormState | null>(null);
 
   // Convert existing data to combobox options
   const authorOptions = existingAuthors.map((a) => ({
@@ -174,45 +199,132 @@ export function EditAudiobookDialog({
   // Reset form when audiobook changes
   useEffect(() => {
     if (audiobookData) {
-      setTitle(audiobookData.title || "");
-      setSubtitle(audiobookData.subtitle || "");
-      setDescription(audiobookData.description || "");
-      setAuthors(audiobookData.authors.map((a) => a.name));
-      setNarrators(audiobookData.narrators.map((n) => n.name));
-      setPublisher(audiobookData.publisher || "");
-      setLanguage(audiobookData.language || "");
-      setPublishedYear(
-        audiobookData.publishedDate
-          ? new Date(audiobookData.publishedDate).getFullYear().toString()
-          : ""
-      );
-      setIsbn(audiobookData.isbn || "");
-      setAsin(audiobookData.asin || "");
-      setGenres(audiobookData.genres.map((g) => g.name));
-      setTags(audiobookData.tags.map((t) => t.name));
+      const titleVal = audiobookData.title || "";
+      const subtitleVal = audiobookData.subtitle || "";
+      const descriptionVal = audiobookData.description || "";
+      const authorsVal = audiobookData.authors.map((a) => a.name);
+      const narratorsVal = audiobookData.narrators.map((n) => n.name);
+      const publisherVal = audiobookData.publisher || "";
+      const languageVal = audiobookData.language || "";
+      const publishedYearVal = audiobookData.publishedDate
+        ? new Date(audiobookData.publishedDate).getFullYear().toString()
+        : "";
+      const isbnVal = audiobookData.isbn || "";
+      const asinVal = audiobookData.asin || "";
+      const genresVal = audiobookData.genres.map((g) => g.name);
+      const tagsVal = audiobookData.tags.map((t) => t.name);
+
+      // Set form values
+      setTitle(titleVal);
+      setSubtitle(subtitleVal);
+      setDescription(descriptionVal);
+      setAuthors(authorsVal);
+      setNarrators(narratorsVal);
+      setPublisher(publisherVal);
+      setLanguage(languageVal);
+      setPublishedYear(publishedYearVal);
+      setIsbn(isbnVal);
+      setAsin(asinVal);
+      setGenres(genresVal);
+      setTags(tagsVal);
+
+      // Store initial state for change detection
+      setInitialState({
+        title: titleVal,
+        subtitle: subtitleVal,
+        description: descriptionVal,
+        authors: authorsVal,
+        narrators: narratorsVal,
+        publisher: publisherVal,
+        language: languageVal,
+        publishedYear: publishedYearVal,
+        isbn: isbnVal,
+        asin: asinVal,
+        genres: genresVal,
+        tags: tagsVal,
+      });
     }
   }, [audiobookData]);
 
   const handleSave = async (closeAfterSave: boolean) => {
-    if (!audiobookData) return;
+    if (!audiobookData || !initialState) return;
+
+    // Build update data with only fields that actually changed
+    const data: Record<string, unknown> = {};
+
+    // Compare scalar fields
+    const trimmedTitle = title.trim();
+    if (trimmedTitle !== initialState.title) {
+      data.title = trimmedTitle || undefined;
+    }
+
+    const trimmedSubtitle = subtitle.trim();
+    if (trimmedSubtitle !== initialState.subtitle) {
+      data.subtitle = trimmedSubtitle || undefined;
+    }
+
+    const trimmedDescription = description.trim();
+    if (trimmedDescription !== initialState.description) {
+      data.description = trimmedDescription || undefined;
+    }
+
+    const trimmedPublisher = publisher.trim();
+    if (trimmedPublisher !== initialState.publisher) {
+      data.publisher = trimmedPublisher || undefined;
+    }
+
+    const normalizedLanguage = language && language !== "none" ? language : "";
+    if (normalizedLanguage !== initialState.language) {
+      data.language = normalizedLanguage || undefined;
+    }
+
+    if (publishedYear !== initialState.publishedYear) {
+      data.publishedDate = publishedYear ? `${publishedYear}-01-01` : undefined;
+    }
+
+    const trimmedIsbn = isbn.trim();
+    if (trimmedIsbn !== initialState.isbn) {
+      data.isbn = trimmedIsbn || undefined;
+    }
+
+    const trimmedAsin = asin.trim();
+    if (trimmedAsin !== initialState.asin) {
+      data.asin = trimmedAsin || undefined;
+    }
+
+    // Compare array fields
+    const filteredAuthors = authors.filter(Boolean);
+    if (!arraysEqual(filteredAuthors, initialState.authors)) {
+      data.authorNames = filteredAuthors;
+    }
+
+    const filteredNarrators = narrators.filter(Boolean);
+    if (!arraysEqual(filteredNarrators, initialState.narrators)) {
+      data.narratorNames = filteredNarrators;
+    }
+
+    const filteredGenres = genres.filter(Boolean);
+    if (!arraysEqual(filteredGenres, initialState.genres)) {
+      data.genreNames = filteredGenres;
+    }
+
+    const filteredTags = tags.filter(Boolean);
+    if (!arraysEqual(filteredTags, initialState.tags)) {
+      data.tagNames = filteredTags;
+    }
+
+    // If nothing changed, just close without making a request
+    if (Object.keys(data).length === 0) {
+      if (closeAfterSave) {
+        onOpenChange(false);
+      }
+      return;
+    }
 
     try {
       await updateAudiobook.mutateAsync({
         id: audiobookData.id,
-        data: {
-          title: title.trim() || undefined,
-          subtitle: subtitle.trim() || undefined,
-          description: description.trim() || undefined,
-          publisher: publisher.trim() || undefined,
-          language: language && language !== "none" ? language : undefined,
-          publishedDate: publishedYear ? `${publishedYear}-01-01` : undefined,
-          isbn: isbn.trim() || undefined,
-          asin: asin.trim() || undefined,
-          authorNames: authors.filter(Boolean),
-          narratorNames: narrators.filter(Boolean),
-          genreNames: genres.filter(Boolean),
-          tagNames: tags.filter(Boolean),
-        },
+        data,
       });
 
       toast.success(t("success"));
