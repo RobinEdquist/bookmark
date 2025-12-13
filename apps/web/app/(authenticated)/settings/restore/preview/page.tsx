@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   Play,
@@ -43,6 +44,7 @@ export default function RestorePreviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session");
+  const t = useTranslations("settings.restore.preview");
 
   const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
   const { data: preview, isLoading: previewLoading } = useGeneratePreview(sessionId, true);
@@ -50,7 +52,7 @@ export default function RestorePreviewPage() {
 
   const handleStartImport = async () => {
     if (!sessionId) {
-      toast.error("No session ID found");
+      toast.error(t("errors.noSession"));
       return;
     }
 
@@ -59,7 +61,7 @@ export default function RestorePreviewPage() {
       router.push(`/settings/restore/import?session=${sessionId}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to start import"
+        error instanceof Error ? error.message : t("errors.startFailed")
       );
     }
   };
@@ -68,7 +70,7 @@ export default function RestorePreviewPage() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">No session ID found</p>
+          <p className="text-muted-foreground">{t("errors.noSession")}</p>
         </CardContent>
       </Card>
     );
@@ -79,7 +81,7 @@ export default function RestorePreviewPage() {
       <Card>
         <CardContent className="flex flex-col items-center justify-center p-12 space-y-4">
           <LoadingSpinner className="h-8 w-8" />
-          <p className="text-muted-foreground">Generating preview...</p>
+          <p className="text-muted-foreground">{t("generatingPreview")}</p>
         </CardContent>
       </Card>
     );
@@ -89,7 +91,7 @@ export default function RestorePreviewPage() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">Failed to load preview</p>
+          <p className="text-muted-foreground">{t("errors.loadFailed")}</p>
         </CardContent>
       </Card>
     );
@@ -102,111 +104,84 @@ export default function RestorePreviewPage() {
   const willBeImported = [
     {
       icon: BookOpen,
-      label: "Audiobooks",
+      labelKey: "audiobooks",
       count: preview.audiobooksToImport.count,
-      description: "Audiobook metadata (title, author, description, duration, etc.)",
       always: true,
     },
     {
       icon: Users,
-      label: "Authors",
+      labelKey: "authors",
       count: preview.authorsToImport,
-      description: "Author information linked to audiobooks",
       always: true,
     },
     {
       icon: Users,
-      label: "Narrators",
+      labelKey: "narrators",
       count: preview.narratorsToImport,
-      description: "Narrator information linked to audiobooks",
       always: true,
     },
     {
       icon: Layers,
-      label: "Series",
+      labelKey: "series",
       count: preview.seriesToImport,
-      description: "Series information and audiobook ordering",
       always: true,
     },
     {
       icon: Tags,
-      label: "Genres",
+      labelKey: "genres",
       count: preview.genresToImport,
-      description: "Genre tags for audiobooks",
       always: true,
     },
     {
       icon: FileText,
-      label: "Chapters",
+      labelKey: "chapters",
       count: preview.chaptersToImport,
-      description: "Chapter markers and titles",
       always: true,
     },
     {
       icon: Clock,
-      label: "Listening Progress",
+      labelKey: "progress",
       count: preview.progressRecordsToImport,
-      description: "Playback positions, finished status, and bookmarks for mapped users",
       enabled: options?.importProgress,
-      skippedReason: !options?.importProgress ? "Disabled in options" :
+      skippedReason: !options?.importProgress ? t("disabledInOptions") :
         preview.usersToMap.skipped > 0 ? `${preview.usersToMap.skipped} user(s) not mapped` : undefined,
     },
     {
       icon: Image,
-      label: "Audiobook Covers",
+      labelKey: "covers",
       count: preview.coversToImport,
-      description: "Cover images for audiobooks",
       enabled: options?.importCovers,
-      skippedReason: !options?.importCovers ? "Disabled in options" : undefined,
+      skippedReason: !options?.importCovers ? t("disabledInOptions") : undefined,
     },
     {
       icon: UserCircle,
-      label: "Author/Narrator Images",
+      labelKey: "authorImages",
       count: preview.authorImagesToImport,
-      description: "Profile images for authors and narrators",
       enabled: options?.importAuthorImages,
-      skippedReason: !options?.importAuthorImages ? "Disabled in options" : undefined,
+      skippedReason: !options?.importAuthorImages ? t("disabledInOptions") : undefined,
     },
   ];
 
   // Build the "What will NOT be imported" list
   const willNotBeImported = [
-    {
-      label: "User accounts",
-      reason: "Users must already exist in SAV. Only progress data is imported for mapped users.",
-    },
-    {
-      label: "Audio files",
-      reason: "Audio files are not stored in the backup. SAV reads files directly from your configured library path.",
-    },
-    {
-      label: "Playlists and collections",
-      reason: "AudioBookShelf playlists are not supported in SAV.",
-    },
-    {
-      label: "Podcast data",
-      reason: "SAV does not support podcasts.",
-    },
-    {
-      label: "Custom metadata fields",
-      reason: "AudioBookShelf custom fields are not imported.",
-    },
-    {
-      label: "Library settings",
-      reason: "Library configuration must be set up separately in SAV.",
-    },
+    "userAccounts",
+    "audioFiles",
+    "playlists",
+    "podcasts",
+    "customFields",
+    "librarySettings",
   ];
 
   // Additional context items
   const importNotes = [
     options?.overwriteExisting
-      ? "Existing audiobooks will be OVERWRITTEN with data from the backup."
-      : "Existing audiobooks will be SKIPPED (not overwritten).",
+      ? t("importNotes.overwriteEnabled")
+      : t("importNotes.overwriteDisabled"),
     preview.audiobooksToSkip.count > 0
-      ? `${preview.audiobooksToSkip.count} audiobook(s) will be skipped because audio files were not found at the expected paths.`
+      ? t("importNotes.audiobooksSkipped", { count: preview.audiobooksToSkip.count })
       : null,
     preview.usersToMap.skipped > 0 && options?.importProgress
-      ? `Progress for ${preview.usersToMap.skipped} unmapped user(s) will not be imported.`
+      ? t("importNotes.usersSkipped", { count: preview.usersToMap.skipped })
       : null,
   ].filter(Boolean);
 
@@ -217,10 +192,10 @@ export default function RestorePreviewPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
-            <CardTitle>What Will Be Imported</CardTitle>
+            <CardTitle>{t("willBeImported.title")}</CardTitle>
           </div>
           <CardDescription>
-            The following data will be imported from your AudioBookShelf backup.
+            {t("willBeImported.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -231,7 +206,7 @@ export default function RestorePreviewPage() {
 
               return (
                 <div
-                  key={item.label}
+                  key={item.labelKey}
                   className={`flex items-start gap-3 rounded-lg border p-3 ${
                     isEnabled ? "bg-green-500/5 border-green-500/30" : "bg-muted/50 border-muted"
                   }`}
@@ -242,7 +217,7 @@ export default function RestorePreviewPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className={`font-medium ${!isEnabled && "text-muted-foreground"}`}>
-                        {item.label}
+                        {t(`items.${item.labelKey}.label`)}
                       </p>
                       {showCount && (
                         <span className="inline-flex items-center rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-400">
@@ -251,16 +226,16 @@ export default function RestorePreviewPage() {
                       )}
                       {!isEnabled && (
                         <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                          Skipped
+                          {t("skipped")}
                         </span>
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">
-                      {item.description}
+                      {t(`items.${item.labelKey}.description`)}
                     </p>
                     {item.skippedReason && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                        Note: {item.skippedReason}
+                        {t("note")}: {item.skippedReason}
                       </p>
                     )}
                   </div>
@@ -276,24 +251,24 @@ export default function RestorePreviewPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <XCircle className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-muted-foreground">What Will NOT Be Imported</CardTitle>
+            <CardTitle className="text-muted-foreground">{t("willNotBeImported.title")}</CardTitle>
           </div>
           <CardDescription>
-            The following data from AudioBookShelf is not supported or not included in the import.
+            {t("willNotBeImported.description")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {willNotBeImported.map((item) => (
+            {willNotBeImported.map((key) => (
               <div
-                key={item.label}
+                key={key}
                 className="flex items-start gap-3 rounded-lg border border-muted bg-muted/30 p-3"
               >
                 <XCircle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-muted-foreground">{item.label}</p>
+                  <p className="font-medium text-muted-foreground">{t(`notImported.${key}.label`)}</p>
                   <p className="text-sm text-muted-foreground/80 mt-0.5">
-                    {item.reason}
+                    {t(`notImported.${key}.reason`)}
                   </p>
                 </div>
               </div>
@@ -308,7 +283,7 @@ export default function RestorePreviewPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Info className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-blue-700 dark:text-blue-400">Important Notes</CardTitle>
+              <CardTitle className="text-blue-700 dark:text-blue-400">{t("importNotes.title")}</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -331,7 +306,7 @@ export default function RestorePreviewPage() {
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-warning" />
               <CardTitle className="text-warning-foreground">
-                Warnings
+                {t("warnings")}
               </CardTitle>
             </div>
           </CardHeader>
@@ -353,9 +328,9 @@ export default function RestorePreviewPage() {
         preview.audiobooksToSkip.sample.length > 0) && (
         <Card>
           <CardHeader>
-            <CardTitle>Sample Audiobooks</CardTitle>
+            <CardTitle>{t("sampleAudiobooks.title")}</CardTitle>
             <CardDescription>
-              Review a sample of audiobooks that will be imported or skipped.
+              {t("sampleAudiobooks.description")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -365,7 +340,10 @@ export default function RestorePreviewPage() {
                   <AccordionTrigger>
                     <span className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      Audiobooks to Import ({preview.audiobooksToImport.count.toLocaleString()} total, showing {Math.min(preview.audiobooksToImport.sample.length, 10)})
+                      {t("sampleAudiobooks.toImport", {
+                        total: preview.audiobooksToImport.count.toLocaleString(),
+                        showing: Math.min(preview.audiobooksToImport.sample.length, 10),
+                      })}
                     </span>
                   </AccordionTrigger>
                   <AccordionContent>
@@ -381,7 +359,7 @@ export default function RestorePreviewPage() {
                             <div className="flex-1 min-w-0">
                               <p className="font-medium">{book.title}</p>
                               <p className="text-muted-foreground">
-                                by {book.author}
+                                {t("sampleAudiobooks.by", { author: book.author })}
                               </p>
                               <p className="text-xs text-muted-foreground mt-1 font-mono">
                                 {book.savPath}
@@ -399,7 +377,10 @@ export default function RestorePreviewPage() {
                   <AccordionTrigger>
                     <span className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4 text-amber-500" />
-                      Audiobooks to Skip ({preview.audiobooksToSkip.count.toLocaleString()} total, showing {Math.min(preview.audiobooksToSkip.sample.length, 10)})
+                      {t("sampleAudiobooks.toSkip", {
+                        total: preview.audiobooksToSkip.count.toLocaleString(),
+                        showing: Math.min(preview.audiobooksToSkip.sample.length, 10),
+                      })}
                     </span>
                   </AccordionTrigger>
                   <AccordionContent>
@@ -415,15 +396,15 @@ export default function RestorePreviewPage() {
                             <div className="flex-1 min-w-0">
                               <p className="font-medium">{book.title}</p>
                               <p className="text-muted-foreground">
-                                by {book.author}
+                                {t("sampleAudiobooks.by", { author: book.author })}
                               </p>
                               {book.reason && (
                                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                                  Reason: {book.reason}
+                                  {t("sampleAudiobooks.reason", { reason: book.reason })}
                                 </p>
                               )}
                               <p className="text-xs text-muted-foreground mt-1 font-mono">
-                                Expected: {book.savPath}
+                                {t("sampleAudiobooks.expected", { path: book.savPath })}
                               </p>
                             </div>
                           </div>
@@ -446,12 +427,12 @@ export default function RestorePreviewPage() {
           {executeImport.isPending ? (
             <>
               <LoadingSpinner className="mr-2 h-4 w-4" />
-              Starting...
+              {t("starting")}
             </>
           ) : (
             <>
               <Play className="mr-2 h-4 w-4" />
-              Start Import
+              {t("startImport")}
             </>
           )}
         </Button>

@@ -53,6 +53,7 @@ export interface RestoreOptions {
   importCovers: boolean;
   importAuthorImages: boolean;
   overwriteExisting: boolean;
+  lockMetadata: boolean;
 }
 
 export interface RestoreSession {

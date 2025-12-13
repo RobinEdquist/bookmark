@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   CheckCircle2,
   XCircle,
@@ -29,6 +30,7 @@ export default function RestoreImportPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session");
+  const t = useTranslations("settings.restore.import");
 
   const { data: session, isLoading: sessionLoading } =
     useRestoreSession(sessionId);
@@ -62,7 +64,7 @@ export default function RestoreImportPage() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">No session ID found</p>
+          <p className="text-muted-foreground">{t("errors.noSession")}</p>
         </CardContent>
       </Card>
     );
@@ -82,7 +84,7 @@ export default function RestoreImportPage() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">Failed to load session</p>
+          <p className="text-muted-foreground">{t("errors.loadFailed")}</p>
         </CardContent>
       </Card>
     );
@@ -94,7 +96,7 @@ export default function RestoreImportPage() {
   const isRolledBack = session.state === RestoreSessionState.ROLLED_BACK;
 
   const percentage = progress?.percentage || 0;
-  const currentOperation = progress?.currentOperation || "Preparing import...";
+  const currentOperation = progress?.currentOperation || t("preparingImport");
   const hasErrors = (progress?.errors?.length || 0) > 0;
 
   return (
@@ -106,35 +108,35 @@ export default function RestoreImportPage() {
             {isImporting && (
               <>
                 <Loader2 className="h-5 w-5 text-primary animate-spin" />
-                <CardTitle>Importing Data</CardTitle>
+                <CardTitle>{t("title")}</CardTitle>
               </>
             )}
             {isCompleted && (
               <>
                 <CheckCircle2 className="h-5 w-5 text-green-500" />
-                <CardTitle>Import Complete</CardTitle>
+                <CardTitle>{t("titleComplete")}</CardTitle>
               </>
             )}
             {(isFailed || isRolledBack) && (
               <>
                 <XCircle className="h-5 w-5 text-destructive" />
-                <CardTitle>Import Failed</CardTitle>
+                <CardTitle>{t("titleFailed")}</CardTitle>
               </>
             )}
           </div>
           {isImporting && (
             <CardDescription>
-              Please do not close this page. The import is in progress.
+              {t("description")}
             </CardDescription>
           )}
           {isCompleted && (
             <CardDescription>
-              Your AudioBookShelf data has been successfully imported!
+              {t("descriptionComplete")}
             </CardDescription>
           )}
           {(isFailed || isRolledBack) && (
             <CardDescription>
-              The import failed and all changes have been rolled back.
+              {t("descriptionFailed")}
             </CardDescription>
           )}
         </CardHeader>
@@ -142,7 +144,7 @@ export default function RestoreImportPage() {
           {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Progress</span>
+              <span className="text-muted-foreground">{t("progress")}</span>
               <span className="font-medium">{Math.round(percentage)}%</span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-secondary">
@@ -156,13 +158,13 @@ export default function RestoreImportPage() {
           {/* Current Operation */}
           <div className="rounded-lg border p-4">
             <p className="text-sm font-medium text-muted-foreground">
-              Current Operation
+              {t("currentOperation")}
             </p>
             <p className="mt-1 text-sm">{currentOperation}</p>
             {!isConnected && isImporting && (
               <p className="mt-2 flex items-center gap-2 text-xs text-warning">
                 <AlertTriangle className="h-3 w-3" />
-                Reconnecting to server...
+                {t("reconnecting")}
               </p>
             )}
           </div>
@@ -172,7 +174,7 @@ export default function RestoreImportPage() {
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Items Processed
+                  {t("itemsProcessed")}
                 </p>
                 <p className="mt-1 text-2xl font-bold">
                   {session.processedItems.toLocaleString()}
@@ -180,7 +182,7 @@ export default function RestoreImportPage() {
               </div>
               <div className="text-right">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Total Items
+                  {t("totalItems")}
                 </p>
                 <p className="mt-1 text-2xl font-bold">
                   {session.totalItems.toLocaleString()}
@@ -198,7 +200,7 @@ export default function RestoreImportPage() {
             <div className="flex items-center gap-2">
               <XCircle className="h-5 w-5 text-destructive" />
               <CardTitle className="text-destructive-foreground">
-                Errors
+                {t("errorsTitle")}
               </CardTitle>
             </div>
           </CardHeader>
@@ -224,7 +226,7 @@ export default function RestoreImportPage() {
             <div className="flex items-center gap-2">
               <XCircle className="h-5 w-5 text-destructive" />
               <CardTitle className="text-destructive-foreground">
-                Import Error
+                {t("importError")}
               </CardTitle>
             </div>
           </CardHeader>
@@ -240,16 +242,15 @@ export default function RestoreImportPage() {
           <CardContent className="flex flex-col items-center justify-center p-12 space-y-4">
             <CheckCircle2 className="h-16 w-16 text-green-500" />
             <div className="text-center space-y-2">
-              <h3 className="text-2xl font-bold">Import Complete!</h3>
+              <h3 className="text-2xl font-bold">{t("completedTitle")}</h3>
               <p className="text-muted-foreground">
-                Your AudioBookShelf data has been successfully imported.
-                Redirecting to your library...
+                {t("completedDescription")}
               </p>
             </div>
             <Button asChild size="lg">
               <Link href="/home">
                 <Library className="mr-2 h-4 w-4" />
-                Go to Library
+                {t("goToLibrary")}
               </Link>
             </Button>
           </CardContent>
@@ -262,18 +263,17 @@ export default function RestoreImportPage() {
           <CardContent className="flex flex-col items-center justify-center p-12 space-y-4">
             <AlertTriangle className="h-16 w-16 text-warning" />
             <div className="text-center space-y-2">
-              <h3 className="text-2xl font-bold">Changes Rolled Back</h3>
+              <h3 className="text-2xl font-bold">{t("rolledBackTitle")}</h3>
               <p className="text-muted-foreground">
-                The import was cancelled or failed, and all changes have been
-                rolled back. No data was modified.
+                {t("rolledBackDescription")}
               </p>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" asChild>
-                <Link href="/settings/restore/upload">Try Again</Link>
+                <Link href="/settings/restore/upload">{t("tryAgain")}</Link>
               </Button>
               <Button asChild>
-                <Link href="/settings">Back to Settings</Link>
+                <Link href="/settings">{t("backToSettings")}</Link>
               </Button>
             </div>
           </CardContent>
@@ -287,10 +287,10 @@ export default function RestoreImportPage() {
             variant="outline"
             onClick={() => router.push(`/settings/restore/upload`)}
           >
-            Start Over
+            {t("startOver")}
           </Button>
           <Button asChild>
-            <Link href="/settings">Back to Settings</Link>
+            <Link href="/settings">{t("backToSettings")}</Link>
           </Button>
         </div>
       )}

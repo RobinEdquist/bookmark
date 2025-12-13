@@ -480,6 +480,10 @@
         "label": "Import author images",
         "description": "Copy author and narrator profile images from the AudioBookShelf backup. These will be stored in the app data folder."
       },
+      "lockMetadata": {
+        "label": "Lock imported metadata",
+        "description": "Treat imported metadata as manual edits, giving it the highest priority. This prevents Hardcover from overriding your imported data. Recommended if your AudioBookShelf metadata is well-curated."
+      },
       "overwriteExisting": {
         "label": "Overwrite existing audiobooks",
         "description": "Replace metadata for audiobooks that already exist in your library (matched by file path). This will overwrite titles, descriptions, covers, and other metadata."
@@ -496,27 +500,97 @@
     "preview": {
       "title": "Import Preview",
       "description": "Review what will be imported from your AudioBookShelf backup",
-      "stats": {
-        "audiobooks": "Audiobooks",
-        "toImport": "to import",
-        "skipped": "{count} skipped",
-        "authors": "Authors",
-        "narrators": "Narrators",
-        "people": "people",
-        "series": "Series",
-        "genres": "Genres",
-        "chapters": "Chapters",
-        "progress": "Progress",
-        "records": "records",
-        "usersSkipped": "{count} user(s) skipped",
-        "covers": "Covers",
-        "authorImages": "Author Images",
-        "images": "images"
+      "willBeImported": {
+        "title": "What Will Be Imported",
+        "description": "The following data will be imported from your AudioBookShelf backup."
       },
-      "sampleImport": "Sample Audiobooks to Import ({count})",
-      "sampleSkip": "Audiobooks to Skip ({count})",
-      "skipReason": "Reason: {reason}",
-      "expectedPath": "Expected path: {path}",
+      "willNotBeImported": {
+        "title": "What Will NOT Be Imported",
+        "description": "The following data from AudioBookShelf is not supported or not included in the import."
+      },
+      "importNotes": {
+        "title": "Important Notes",
+        "overwriteEnabled": "Existing audiobooks will be OVERWRITTEN with data from the backup.",
+        "overwriteDisabled": "Existing audiobooks will be SKIPPED (not overwritten).",
+        "audiobooksSkipped": "{count} audiobook(s) will be skipped because audio files were not found at the expected paths.",
+        "usersSkipped": "Progress for {count} unmapped user(s) will not be imported."
+      },
+      "items": {
+        "audiobooks": {
+          "label": "Audiobooks",
+          "description": "Audiobook metadata (title, author, description, duration, etc.)"
+        },
+        "authors": {
+          "label": "Authors",
+          "description": "Author information linked to audiobooks"
+        },
+        "narrators": {
+          "label": "Narrators",
+          "description": "Narrator information linked to audiobooks"
+        },
+        "series": {
+          "label": "Series",
+          "description": "Series information and audiobook ordering"
+        },
+        "genres": {
+          "label": "Genres",
+          "description": "Genre tags for audiobooks"
+        },
+        "chapters": {
+          "label": "Chapters",
+          "description": "Chapter markers and titles"
+        },
+        "progress": {
+          "label": "Listening Progress",
+          "description": "Playback positions, finished status, and bookmarks for mapped users"
+        },
+        "covers": {
+          "label": "Audiobook Covers",
+          "description": "Cover images for audiobooks"
+        },
+        "authorImages": {
+          "label": "Author/Narrator Images",
+          "description": "Profile images for authors and narrators"
+        }
+      },
+      "notImported": {
+        "userAccounts": {
+          "label": "User accounts",
+          "reason": "Users must already exist in SAV. Only progress data is imported for mapped users."
+        },
+        "audioFiles": {
+          "label": "Audio files",
+          "reason": "Audio files are not stored in the backup. SAV reads files directly from your configured library path."
+        },
+        "playlists": {
+          "label": "Playlists and collections",
+          "reason": "AudioBookShelf playlists are not supported in SAV."
+        },
+        "podcasts": {
+          "label": "Podcast data",
+          "reason": "SAV does not support podcasts."
+        },
+        "customFields": {
+          "label": "Custom metadata fields",
+          "reason": "AudioBookShelf custom fields are not imported."
+        },
+        "librarySettings": {
+          "label": "Library settings",
+          "reason": "Library configuration must be set up separately in SAV."
+        }
+      },
+      "skipped": "Skipped",
+      "disabledInOptions": "Disabled in options",
+      "note": "Note",
+      "sampleAudiobooks": {
+        "title": "Sample Audiobooks",
+        "description": "Review a sample of audiobooks that will be imported or skipped.",
+        "toImport": "Audiobooks to Import ({total} total, showing {showing})",
+        "toSkip": "Audiobooks to Skip ({total} total, showing {showing})",
+        "by": "by {author}",
+        "reason": "Reason: {reason}",
+        "expected": "Expected: {path}"
+      },
       "warnings": "Warnings",
       "startImport": "Start Import",
       "starting": "Starting...",
@@ -540,7 +614,7 @@
       "reconnecting": "Reconnecting to server...",
       "itemsProcessed": "Items Processed",
       "totalItems": "Total Items",
-      "errors": "Errors",
+      "errorsTitle": "Errors",
       "importError": "Import Error",
       "completedTitle": "Import Complete!",
       "completedDescription": "Your AudioBookShelf data has been successfully imported. Redirecting to your library...",

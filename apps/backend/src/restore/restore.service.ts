@@ -67,6 +67,7 @@ export class RestoreService {
         importCovers: true,
         importAuthorImages: true,
         overwriteExisting: false,
+        lockMetadata: false,
       },
       extractedPath,
     };

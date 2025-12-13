@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ArrowRight, Users } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -32,6 +33,7 @@ export default function RestoreUsersPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session");
+  const t = useTranslations("settings.restore.users");
 
   const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
   const { data: savUsers, isLoading: usersLoading } = useSavUsers();
@@ -59,7 +61,7 @@ export default function RestoreUsersPage() {
 
   const handleNext = async () => {
     if (!sessionId) {
-      toast.error("No session ID found");
+      toast.error(t("errors.noSession"));
       return;
     }
 
@@ -71,7 +73,7 @@ export default function RestoreUsersPage() {
       router.push(`/settings/restore/options?session=${sessionId}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to save user mappings"
+        error instanceof Error ? error.message : t("errors.saveFailed")
       );
     }
   };
@@ -80,7 +82,7 @@ export default function RestoreUsersPage() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">No session ID found</p>
+          <p className="text-muted-foreground">{t("errors.noSession")}</p>
         </CardContent>
       </Card>
     );
@@ -100,7 +102,7 @@ export default function RestoreUsersPage() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">Failed to load session or users</p>
+          <p className="text-muted-foreground">{t("errors.loadFailed")}</p>
         </CardContent>
       </Card>
     );
@@ -116,19 +118,17 @@ export default function RestoreUsersPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            <CardTitle>Map Users</CardTitle>
+            <CardTitle>{t("title")}</CardTitle>
           </div>
           <CardDescription>
-            Map AudioBookShelf users to Simple Audiobook Vault users to import
-            listening progress. Users can be skipped if you don&apos;t want to
-            import their progress.
+            {t("description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {userMappings.length === 0 ? (
             <div className="flex items-center justify-center p-8">
               <p className="text-muted-foreground">
-                No users found in backup with listening progress
+                {t("noUsersFound")}
               </p>
             </div>
           ) : (
@@ -143,13 +143,13 @@ export default function RestoreUsersPage() {
                       <h3 className="font-medium">{mapping.absUsername}</h3>
                       <div className="mt-1 flex flex-wrap gap-4 text-sm text-muted-foreground">
                         <span>
-                          {mapping.progressCount} total progress records
+                          {t("progressInfo", { count: mapping.progressCount })}
                         </span>
                         <span>
-                          {mapping.inProgressCount} in progress
+                          {t("inProgressInfo", { count: mapping.inProgressCount })}
                         </span>
                         <span>
-                          {mapping.finishedCount} finished
+                          {t("finishedInfo", { count: mapping.finishedCount })}
                         </span>
                       </div>
                     </div>
@@ -157,7 +157,7 @@ export default function RestoreUsersPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor={`mapping-${mapping.absUserId}`}>
-                      Map to SAV user
+                      {t("savUserLabel")}
                     </Label>
                     <Select
                       value={mapping.savUserId || "skip"}
@@ -169,12 +169,12 @@ export default function RestoreUsersPage() {
                       }
                     >
                       <SelectTrigger id={`mapping-${mapping.absUserId}`}>
-                        <SelectValue placeholder="Select a user or skip" />
+                        <SelectValue placeholder={t("skipUser")} />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="skip">
                           <span className="text-muted-foreground">
-                            Skip this user
+                            {t("skipUser")}
                           </span>
                         </SelectItem>
                         {savUsers.map((user) => (
@@ -189,7 +189,7 @@ export default function RestoreUsersPage() {
                     </Select>
                     {mapping.savUserId === null && mapping.progressCount > 0 && (
                       <p className="text-xs text-muted-foreground">
-                        Progress for this user will not be imported
+                        {t("skipWarning")}
                       </p>
                     )}
                   </div>
@@ -204,8 +204,7 @@ export default function RestoreUsersPage() {
         <Card className="border-warning bg-warning/5">
           <CardContent className="p-4">
             <p className="text-sm text-warning-foreground">
-              Some users with progress are not mapped to SAV users. Their
-              listening progress will not be imported.
+              {t("unmappedWarning")}
             </p>
           </CardContent>
         </Card>
@@ -220,11 +219,11 @@ export default function RestoreUsersPage() {
           {setUserMappingsMutation.isPending ? (
             <>
               <LoadingSpinner className="mr-2 h-4 w-4" />
-              Saving...
+              {t("saving")}
             </>
           ) : (
             <>
-              Next: Options
+              {t("nextButton")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </>
           )}

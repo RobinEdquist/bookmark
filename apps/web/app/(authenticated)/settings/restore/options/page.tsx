@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ArrowRight, Settings, AlertTriangle } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -25,6 +26,7 @@ export default function RestoreOptionsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session");
+  const t = useTranslations("settings.restore.options");
 
   const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
   const setRestoreOptions = useSetRestoreOptions();
@@ -35,6 +37,7 @@ export default function RestoreOptionsPage() {
     importCovers: true,
     importAuthorImages: true,
     overwriteExisting: false,
+    lockMetadata: false,
   });
 
   // Initialize options from session
@@ -53,7 +56,7 @@ export default function RestoreOptionsPage() {
 
   const handleNext = async () => {
     if (!sessionId) {
-      toast.error("No session ID found");
+      toast.error(t("errors.noSession"));
       return;
     }
 
@@ -65,7 +68,7 @@ export default function RestoreOptionsPage() {
       router.push(`/settings/restore/preview?session=${sessionId}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to save restore options"
+        error instanceof Error ? error.message : t("errors.saveFailed")
       );
     }
   };
@@ -74,7 +77,7 @@ export default function RestoreOptionsPage() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">No session ID found</p>
+          <p className="text-muted-foreground">{t("errors.noSession")}</p>
         </CardContent>
       </Card>
     );
@@ -94,7 +97,7 @@ export default function RestoreOptionsPage() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-12">
-          <p className="text-muted-foreground">Failed to load session</p>
+          <p className="text-muted-foreground">{t("errors.loadFailed")}</p>
         </CardContent>
       </Card>
     );
@@ -106,10 +109,10 @@ export default function RestoreOptionsPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <Settings className="h-5 w-5 text-primary" />
-            <CardTitle>Import Options</CardTitle>
+            <CardTitle>{t("title")}</CardTitle>
           </div>
           <CardDescription>
-            Choose what data to import from your AudioBookShelf backup.
+            {t("description")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -126,12 +129,10 @@ export default function RestoreOptionsPage() {
                 htmlFor="importProgress"
                 className="cursor-pointer font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Import listening progress
+                {t("importProgress.label")}
               </Label>
               <p className="text-sm text-muted-foreground">
-                Import user playback positions and completion status for mapped
-                users. This includes current position, finished books, and
-                bookmarks.
+                {t("importProgress.description")}
               </p>
             </div>
           </div>
@@ -149,12 +150,10 @@ export default function RestoreOptionsPage() {
                 htmlFor="importCovers"
                 className="cursor-pointer font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Import audiobook covers
+                {t("importCovers.label")}
               </Label>
               <p className="text-sm text-muted-foreground">
-                Copy cover images from the AudioBookShelf backup to your Simple
-                Audiobook Vault library. Covers will be stored in the app data
-                folder.
+                {t("importCovers.description")}
               </p>
             </div>
           </div>
@@ -172,11 +171,31 @@ export default function RestoreOptionsPage() {
                 htmlFor="importAuthorImages"
                 className="cursor-pointer font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
-                Import author images
+                {t("importAuthorImages.label")}
               </Label>
               <p className="text-sm text-muted-foreground">
-                Copy author and narrator profile images from the AudioBookShelf
-                backup. These will be stored in the app data folder.
+                {t("importAuthorImages.description")}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start space-x-3">
+            <Checkbox
+              id="lockMetadata"
+              checked={options.lockMetadata}
+              onCheckedChange={(checked) =>
+                handleOptionChange("lockMetadata", checked === true)
+              }
+            />
+            <div className="flex-1 space-y-1">
+              <Label
+                htmlFor="lockMetadata"
+                className="cursor-pointer font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                {t("lockMetadata.label")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("lockMetadata.description")}
               </p>
             </div>
           </div>
@@ -195,12 +214,10 @@ export default function RestoreOptionsPage() {
                   htmlFor="overwriteExisting"
                   className="cursor-pointer font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                  Overwrite existing audiobooks
+                  {t("overwriteExisting.label")}
                 </Label>
                 <p className="text-sm text-muted-foreground">
-                  Replace metadata for audiobooks that already exist in your
-                  library (matched by file path). This will overwrite titles,
-                  descriptions, covers, and other metadata.
+                  {t("overwriteExisting.description")}
                 </p>
               </div>
             </div>
@@ -214,13 +231,10 @@ export default function RestoreOptionsPage() {
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="font-medium text-destructive-foreground">
-                Data will be overwritten
+                {t("overwriteExisting.label")}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Existing audiobook metadata and covers will be replaced with
-                data from the AudioBookShelf backup. This action cannot be
-                undone. Make sure you have a backup of your current data if
-                needed.
+                {t("overwriteWarning")}
               </p>
             </div>
           </CardContent>
@@ -236,11 +250,11 @@ export default function RestoreOptionsPage() {
           {setRestoreOptions.isPending ? (
             <>
               <LoadingSpinner className="mr-2 h-4 w-4" />
-              Saving...
+              {t("saving")}
             </>
           ) : (
             <>
-              Next: Preview
+              {t("nextButton")}
               <ArrowRight className="ml-2 h-4 w-4" />
             </>
           )}

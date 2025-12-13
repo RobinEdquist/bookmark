@@ -67,6 +67,10 @@ export class SetRestoreOptionsDto {
   @IsBoolean()
   @IsOptional()
   overwriteExisting?: boolean = false;
+
+  @IsBoolean()
+  @IsOptional()
+  lockMetadata?: boolean = false;
 }
 
 // DTO for selecting library

@@ -480,6 +480,10 @@
         "label": "Importera författarbilder",
         "description": "Kopiera författar- och inläsarprofilbilder från AudioBookShelf-säkerhetskopian. Dessa kommer att lagras i appdatamappen."
       },
+      "lockMetadata": {
+        "label": "Lås importerad metadata",
+        "description": "Behandla importerad metadata som manuella redigeringar, vilket ger den högsta prioritet. Detta förhindrar att Hardcover skriver över din importerade data. Rekommenderas om din AudioBookShelf-metadata är välskött."
+      },
       "overwriteExisting": {
         "label": "Skriv över befintliga ljudböcker",
         "description": "Ersätt metadata för ljudböcker som redan finns i ditt bibliotek (matchas via filsökväg). Detta kommer att skriva över titlar, beskrivningar, omslag och annan metadata."
@@ -496,27 +500,97 @@
     "preview": {
       "title": "Importförhandsgranskning",
       "description": "Granska vad som kommer att importeras från din AudioBookShelf-säkerhetskopia",
-      "stats": {
-        "audiobooks": "Ljudböcker",
-        "toImport": "att importera",
-        "skipped": "{count} överhoppade",
-        "authors": "Författare",
-        "narrators": "Inläsare",
-        "people": "personer",
-        "series": "Serier",
-        "genres": "Genrer",
-        "chapters": "Kapitel",
-        "progress": "Framsteg",
-        "records": "poster",
-        "usersSkipped": "{count} användare överhoppade",
-        "covers": "Omslag",
-        "authorImages": "Författarbilder",
-        "images": "bilder"
+      "willBeImported": {
+        "title": "Vad som kommer att importeras",
+        "description": "Följande data kommer att importeras från din AudioBookShelf-säkerhetskopia."
       },
-      "sampleImport": "Exempel på ljudböcker att importera ({count})",
-      "sampleSkip": "Ljudböcker att hoppa över ({count})",
-      "skipReason": "Anledning: {reason}",
-      "expectedPath": "Förväntad sökväg: {path}",
+      "willNotBeImported": {
+        "title": "Vad som INTE kommer att importeras",
+        "description": "Följande data från AudioBookShelf stöds inte eller ingår inte i importen."
+      },
+      "importNotes": {
+        "title": "Viktiga anteckningar",
+        "overwriteEnabled": "Befintliga ljudböcker kommer att SKRIVAS ÖVER med data från säkerhetskopian.",
+        "overwriteDisabled": "Befintliga ljudböcker kommer att HOPPAS ÖVER (inte skrivas över).",
+        "audiobooksSkipped": "{count} ljudbok(er) kommer att hoppas över eftersom ljudfiler inte hittades på de förväntade sökvägarna.",
+        "usersSkipped": "Framsteg för {count} omappade användare kommer inte att importeras."
+      },
+      "items": {
+        "audiobooks": {
+          "label": "Ljudböcker",
+          "description": "Ljudboksmetadata (titel, författare, beskrivning, längd, etc.)"
+        },
+        "authors": {
+          "label": "Författare",
+          "description": "Författarinformation kopplad till ljudböcker"
+        },
+        "narrators": {
+          "label": "Inläsare",
+          "description": "Inläsarinformation kopplad till ljudböcker"
+        },
+        "series": {
+          "label": "Serier",
+          "description": "Serieinformation och ljudboksordning"
+        },
+        "genres": {
+          "label": "Genrer",
+          "description": "Genretaggar för ljudböcker"
+        },
+        "chapters": {
+          "label": "Kapitel",
+          "description": "Kapitelmarkeringar och titlar"
+        },
+        "progress": {
+          "label": "Lyssningsframsteg",
+          "description": "Uppspelningspositioner, slutförandestatus och bokmärken för mappade användare"
+        },
+        "covers": {
+          "label": "Ljudboksomslag",
+          "description": "Omslagsbilder för ljudböcker"
+        },
+        "authorImages": {
+          "label": "Författar-/inläsarbilder",
+          "description": "Profilbilder för författare och inläsare"
+        }
+      },
+      "notImported": {
+        "userAccounts": {
+          "label": "Användarkonton",
+          "reason": "Användare måste redan finnas i SAV. Endast framstegsdata importeras för mappade användare."
+        },
+        "audioFiles": {
+          "label": "Ljudfiler",
+          "reason": "Ljudfiler lagras inte i säkerhetskopian. SAV läser filer direkt från din konfigurerade bibliotekssökväg."
+        },
+        "playlists": {
+          "label": "Spellistor och samlingar",
+          "reason": "AudioBookShelf-spellistor stöds inte i SAV."
+        },
+        "podcasts": {
+          "label": "Podddata",
+          "reason": "SAV stöder inte poddar."
+        },
+        "customFields": {
+          "label": "Anpassade metadatafält",
+          "reason": "Anpassade fält från AudioBookShelf importeras inte."
+        },
+        "librarySettings": {
+          "label": "Biblioteksinställningar",
+          "reason": "Bibliotekskonfiguration måste ställas in separat i SAV."
+        }
+      },
+      "skipped": "Överhoppad",
+      "disabledInOptions": "Inaktiverad i alternativ",
+      "note": "Obs",
+      "sampleAudiobooks": {
+        "title": "Exempeljudböcker",
+        "description": "Granska ett urval av ljudböcker som kommer att importeras eller hoppas över.",
+        "toImport": "Ljudböcker att importera ({total} totalt, visar {showing})",
+        "toSkip": "Ljudböcker att hoppa över ({total} totalt, visar {showing})",
+        "by": "av {author}",
+        "reason": "Anledning: {reason}",
+        "expected": "Förväntat: {path}"
+      },
       "warnings": "Varningar",
       "startImport": "Starta import",
       "starting": "Startar...",
@@ -540,7 +614,7 @@
       "reconnecting": "Återansluter till servern...",
       "itemsProcessed": "Objekt bearbetade",
       "totalItems": "Totalt antal objekt",
-      "errors": "Fel",
+      "errorsTitle": "Fel",
       "importError": "Importfel",
       "completedTitle": "Import slutförd!",
       "completedDescription": "Din AudioBookShelf-data har importerats. Omdirigerar till ditt bibliotek...",

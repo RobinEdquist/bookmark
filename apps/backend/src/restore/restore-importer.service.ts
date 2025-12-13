@@ -21,6 +21,19 @@ import {
   ABSMediaProgress,
 } from './types/abs-backup.types';
 
+// Fields that can be marked as manual edits when lockMetadata is enabled
+const LOCKABLE_METADATA_FIELDS = [
+  'title',
+  'subtitle',
+  'description',
+  'publisher',
+  'publishedDate',
+  'language',
+  'author',
+  'narrator',
+  'series',
+];
+
 @Injectable()
 export class RestoreImporterService {
   private readonly logger = new Logger('RestoreImporterService');
@@ -617,6 +630,9 @@ export class RestoreImporterService {
           duration: book.duration,
           isExplicit: book.explicit || false,
           status: 'available',
+          manualFields: session.options.lockMetadata
+            ? LOCKABLE_METADATA_FIELDS
+            : [],
         })
         .where(eq(audiobooksSchema.audiobooks.id, audiobookId));
 
@@ -658,6 +674,9 @@ export class RestoreImporterService {
           filePath: savPath,
           isExplicit: book.explicit || false,
           status: 'available',
+          manualFields: session.options.lockMetadata
+            ? LOCKABLE_METADATA_FIELDS
+            : [],
         })
         .returning();
 

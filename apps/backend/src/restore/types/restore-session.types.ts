@@ -26,6 +26,7 @@ export interface RestoreOptions {
   importCovers: boolean;
   importAuthorImages: boolean;
   overwriteExisting: boolean;
+  lockMetadata: boolean; // Mark imported metadata as manual edits (highest priority)
 }
 
 export interface RestoreSession {
