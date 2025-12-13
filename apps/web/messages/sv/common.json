@@ -45,6 +45,8 @@
   "hardcoverSync": {
     "title": "Länka till Hardcover",
     "description": "Välj en bok från Hardcover att länka med \"{title}\"",
+    "searchPlaceholder": "Sök på Hardcover...",
+    "search": "Sök",
     "resultsCount": "{count, plural, one {# resultat hittades} other {# resultat hittades}}",
     "noResults": "Inga matchande böcker hittades på Hardcover",
     "error": "Kunde inte söka på Hardcover",

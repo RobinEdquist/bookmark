@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Star, Check } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star, Check, Search } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
+import { Input } from "@repo/ui/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -43,16 +44,35 @@ export function HardcoverSyncDialog({
   const t = useTranslations("common.hardcoverSync");
   const [page, setPage] = useState(1);
   const [selectedBook, setSelectedBook] = useState<HardcoverBookDocument | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [customQuery, setCustomQuery] = useState<string | undefined>(undefined);
 
   const { data, isLoading, error } = useHardcoverSearchPaginated(
     mediaType,
     mediaId,
     page,
     ITEMS_PER_PAGE,
-    open
+    open,
+    customQuery
   );
 
+  // Update search input when we get the default query from the API
+  useEffect(() => {
+    if (data?.query && !customQuery) {
+      setSearchInput(data.query);
+    }
+  }, [data?.query, customQuery]);
+
   const { linkMedia, isLinking } = useHardcoverLinkMedia();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      setCustomQuery(searchInput.trim());
+      setPage(1);
+      setSelectedBook(null);
+    }
+  };
 
   const handleSelect = async () => {
     if (!selectedBook) return;
@@ -72,6 +92,8 @@ export function HardcoverSyncDialog({
   const handleClose = () => {
     setSelectedBook(null);
     setPage(1);
+    setSearchInput("");
+    setCustomQuery(undefined);
     onOpenChange(false);
   };
 
@@ -96,6 +118,23 @@ export function HardcoverSyncDialog({
             {t("description", { title: mediaTitle })}
           </DialogDescription>
         </DialogHeader>
+
+        {/* Search input */}
+        <form onSubmit={handleSearch} className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              className="pl-9"
+            />
+          </div>
+          <Button type="submit" variant="secondary" disabled={isLoading || !searchInput.trim()}>
+            {t("search")}
+          </Button>
+        </form>
 
         <div className="flex-1 overflow-hidden flex flex-col">
           {isLoading ? (

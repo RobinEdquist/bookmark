@@ -71,8 +71,8 @@ export const queryKeys = {
     status: () => [...queryKeys.hardcover.all, "status"] as const,
     link: (mediaType: "audiobook" | "ebook", mediaId: string) =>
       [...queryKeys.hardcover.all, "link", mediaType, mediaId] as const,
-    search: (mediaType: "audiobook" | "ebook", mediaId: string, page?: number) =>
-      [...queryKeys.hardcover.all, "search", mediaType, mediaId, page] as const,
+    search: (mediaType: "audiobook" | "ebook", mediaId: string, page?: number, customQuery?: string) =>
+      [...queryKeys.hardcover.all, "search", mediaType, mediaId, page, customQuery] as const,
     queueStatus: () => [...queryKeys.hardcover.all, "queue", "status"] as const,
   },
   progress: {

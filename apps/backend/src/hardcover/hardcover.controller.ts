@@ -117,6 +117,7 @@ export class HardcoverController {
     @Param('id') audiobookId: string,
     @Query('page') page?: string,
     @Query('perPage') perPage?: string,
+    @Query('q') customQuery?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const perPageNum = perPage ? parseInt(perPage, 10) : 10;
@@ -125,6 +126,7 @@ export class HardcoverController {
       audiobookId,
       pageNum,
       perPageNum,
+      customQuery,
     );
 
     if (!result.success) {
@@ -206,6 +208,7 @@ export class HardcoverController {
     @Param('id') ebookId: string,
     @Query('page') page?: string,
     @Query('perPage') perPage?: string,
+    @Query('q') customQuery?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const perPageNum = perPage ? parseInt(perPage, 10) : 10;
@@ -215,6 +218,7 @@ export class HardcoverController {
       ebookId,
       pageNum,
       perPageNum,
+      customQuery,
     );
 
     if (!result.success) {

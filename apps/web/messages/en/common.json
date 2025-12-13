@@ -45,6 +45,8 @@
   "hardcoverSync": {
     "title": "Link to Hardcover",
     "description": "Select a book from Hardcover to link with \"{title}\"",
+    "searchPlaceholder": "Search Hardcover...",
+    "search": "Search",
     "resultsCount": "{count, plural, one {# result found} other {# results found}}",
     "noResults": "No matching books found on Hardcover",
     "error": "Failed to search Hardcover",

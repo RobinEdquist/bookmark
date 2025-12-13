@@ -467,49 +467,57 @@ export class HardcoverService {
     audiobookId: string,
     page: number = 1,
     perPage: number = 10,
+    customQuery?: string,
   ): Promise<{
     success: boolean;
     data?: HardcoverSearchResponse;
     query?: string;
     error?: string;
   }> {
-    // Fetch the audiobook with its authors
-    const audiobook = await this.db
-      .select({
-        title: audiobooksSchema.audiobooks.title,
-        subtitle: audiobooksSchema.audiobooks.subtitle,
-      })
-      .from(audiobooksSchema.audiobooks)
-      .where(eq(audiobooksSchema.audiobooks.id, audiobookId))
-      .limit(1);
+    let searchQuery: string;
 
-    if (audiobook.length === 0) {
-      throw new NotFoundException('Audiobook not found');
+    if (customQuery) {
+      // Use custom query provided by user
+      searchQuery = customQuery;
+    } else {
+      // Fetch the audiobook with its authors
+      const audiobook = await this.db
+        .select({
+          title: audiobooksSchema.audiobooks.title,
+          subtitle: audiobooksSchema.audiobooks.subtitle,
+        })
+        .from(audiobooksSchema.audiobooks)
+        .where(eq(audiobooksSchema.audiobooks.id, audiobookId))
+        .limit(1);
+
+      if (audiobook.length === 0) {
+        throw new NotFoundException('Audiobook not found');
+      }
+
+      // Fetch authors for this audiobook
+      const authors = await this.db
+        .select({
+          name: audiobooksSchema.people.name,
+        })
+        .from(audiobooksSchema.audiobookAuthors)
+        .innerJoin(
+          audiobooksSchema.people,
+          eq(
+            audiobooksSchema.audiobookAuthors.personId,
+            audiobooksSchema.people.id,
+          ),
+        )
+        .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, audiobookId))
+        .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
+
+      const { title, subtitle } = audiobook[0];
+
+      const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
+
+      // Build search query: "title author1 author2"
+      const authorNames = authors.map((a) => a.name).join(' ');
+      searchQuery = authorNames ? `${fullTitle} ${authorNames}` : fullTitle;
     }
-
-    // Fetch authors for this audiobook
-    const authors = await this.db
-      .select({
-        name: audiobooksSchema.people.name,
-      })
-      .from(audiobooksSchema.audiobookAuthors)
-      .innerJoin(
-        audiobooksSchema.people,
-        eq(
-          audiobooksSchema.audiobookAuthors.personId,
-          audiobooksSchema.people.id,
-        ),
-      )
-      .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, audiobookId))
-      .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
-
-    const { title, subtitle } = audiobook[0];
-
-    const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-
-    // Build search query: "title author1 author2"
-    const authorNames = authors.map((a) => a.name).join(' ');
-    const searchQuery = authorNames ? `${fullTitle} ${authorNames}` : fullTitle;
 
     const result = await this.searchBooks(searchQuery, page, perPage);
 
@@ -758,82 +766,90 @@ export class HardcoverService {
     mediaId: string,
     page: number = 1,
     perPage: number = 10,
+    customQuery?: string,
   ): Promise<{
     success: boolean;
     data?: HardcoverSearchResponse;
     query?: string;
     error?: string;
   }> {
-    let title: string;
-    let subtitle: string | null;
-    let authorNames: string[];
+    let searchQuery: string;
 
-    if (mediaType === 'audiobook') {
-      const audiobook = await this.db
-        .select({
-          title: audiobooksSchema.audiobooks.title,
-          subtitle: audiobooksSchema.audiobooks.subtitle,
-        })
-        .from(audiobooksSchema.audiobooks)
-        .where(eq(audiobooksSchema.audiobooks.id, mediaId))
-        .limit(1);
-
-      if (audiobook.length === 0) {
-        throw new NotFoundException('Audiobook not found');
-      }
-
-      title = audiobook[0].title;
-      subtitle = audiobook[0].subtitle;
-
-      const authors = await this.db
-        .select({ name: audiobooksSchema.people.name })
-        .from(audiobooksSchema.audiobookAuthors)
-        .innerJoin(
-          audiobooksSchema.people,
-          eq(
-            audiobooksSchema.audiobookAuthors.personId,
-            audiobooksSchema.people.id,
-          ),
-        )
-        .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, mediaId))
-        .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
-
-      authorNames = authors.map((a) => a.name);
+    if (customQuery) {
+      // Use custom query provided by user
+      searchQuery = customQuery;
     } else {
-      const ebook = await this.db
-        .select({
-          title: ebooksSchema.ebooks.title,
-          subtitle: ebooksSchema.ebooks.subtitle,
-        })
-        .from(ebooksSchema.ebooks)
-        .where(eq(ebooksSchema.ebooks.id, mediaId))
-        .limit(1);
+      let title: string;
+      let subtitle: string | null;
+      let authorNames: string[];
 
-      if (ebook.length === 0) {
-        throw new NotFoundException('Ebook not found');
+      if (mediaType === 'audiobook') {
+        const audiobook = await this.db
+          .select({
+            title: audiobooksSchema.audiobooks.title,
+            subtitle: audiobooksSchema.audiobooks.subtitle,
+          })
+          .from(audiobooksSchema.audiobooks)
+          .where(eq(audiobooksSchema.audiobooks.id, mediaId))
+          .limit(1);
+
+        if (audiobook.length === 0) {
+          throw new NotFoundException('Audiobook not found');
+        }
+
+        title = audiobook[0].title;
+        subtitle = audiobook[0].subtitle;
+
+        const authors = await this.db
+          .select({ name: audiobooksSchema.people.name })
+          .from(audiobooksSchema.audiobookAuthors)
+          .innerJoin(
+            audiobooksSchema.people,
+            eq(
+              audiobooksSchema.audiobookAuthors.personId,
+              audiobooksSchema.people.id,
+            ),
+          )
+          .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, mediaId))
+          .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
+
+        authorNames = authors.map((a) => a.name);
+      } else {
+        const ebook = await this.db
+          .select({
+            title: ebooksSchema.ebooks.title,
+            subtitle: ebooksSchema.ebooks.subtitle,
+          })
+          .from(ebooksSchema.ebooks)
+          .where(eq(ebooksSchema.ebooks.id, mediaId))
+          .limit(1);
+
+        if (ebook.length === 0) {
+          throw new NotFoundException('Ebook not found');
+        }
+
+        title = ebook[0].title;
+        subtitle = ebook[0].subtitle;
+
+        const authors = await this.db
+          .select({ name: audiobooksSchema.people.name })
+          .from(ebooksSchema.ebookAuthors)
+          .innerJoin(
+            audiobooksSchema.people,
+            eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
+          )
+          .where(eq(ebooksSchema.ebookAuthors.ebookId, mediaId))
+          .orderBy(asc(ebooksSchema.ebookAuthors.order));
+
+        authorNames = authors.map((a) => a.name);
       }
 
-      title = ebook[0].title;
-      subtitle = ebook[0].subtitle;
-
-      const authors = await this.db
-        .select({ name: audiobooksSchema.people.name })
-        .from(ebooksSchema.ebookAuthors)
-        .innerJoin(
-          audiobooksSchema.people,
-          eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
-        )
-        .where(eq(ebooksSchema.ebookAuthors.ebookId, mediaId))
-        .orderBy(asc(ebooksSchema.ebookAuthors.order));
-
-      authorNames = authors.map((a) => a.name);
+      const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
+      searchQuery =
+        authorNames.length > 0
+          ? `${fullTitle} ${authorNames.join(' ')}`
+          : fullTitle;
     }
-
-    const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-    const searchQuery =
-      authorNames.length > 0
-        ? `${fullTitle} ${authorNames.join(' ')}`
-        : fullTitle;
 
     const result = await this.searchBooks(searchQuery, page, perPage);
 

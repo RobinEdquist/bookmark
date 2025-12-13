@@ -361,11 +361,13 @@ async function searchByMediaPaginated(
   mediaType: MediaType,
   mediaId: string,
   page: number,
-  perPage: number
+  perPage: number,
+  customQuery?: string
 ): Promise<HardcoverAudiobookSearchResponse> {
   const searchParams = new URLSearchParams();
   if (page) searchParams.set("page", String(page));
   if (perPage) searchParams.set("perPage", String(perPage));
+  if (customQuery) searchParams.set("q", customQuery);
 
   const endpoint =
     mediaType === "audiobook"
@@ -391,11 +393,12 @@ export function useHardcoverSearchPaginated(
   mediaId: string,
   page: number = 1,
   perPage: number = 10,
-  enabled: boolean = true
+  enabled: boolean = true,
+  customQuery?: string
 ) {
   return useQuery({
-    queryKey: queryKeys.hardcover.search(mediaType, mediaId, page),
-    queryFn: () => searchByMediaPaginated(mediaType, mediaId, page, perPage),
+    queryKey: queryKeys.hardcover.search(mediaType, mediaId, page, customQuery),
+    queryFn: () => searchByMediaPaginated(mediaType, mediaId, page, perPage, customQuery),
     enabled: !!mediaId && enabled,
   });
 }
