@@ -386,7 +386,8 @@ export function useRestoreProgress(sessionId: string | null) {
 
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
-    const socket = io(apiUrl, {
+    // Connect to the /restore namespace (must match backend RestoreGateway)
+    const socket = io(`${apiUrl}/restore`, {
       withCredentials: true,
       transports: ["websocket", "polling"],
       reconnectionAttempts: 10,
@@ -398,8 +399,8 @@ export function useRestoreProgress(sessionId: string | null) {
     socket.on("connect", () => {
       console.log(`[Restore WS] Connected for session ${sessionId}`);
       setIsConnected(true);
-      // Join the session-specific room
-      socket.emit("restore:join", sessionId);
+      // Subscribe to session updates (matches backend @SubscribeMessage('subscribe'))
+      socket.emit("subscribe", { sessionId });
     });
 
     socket.on("disconnect", (reason) => {
@@ -412,15 +413,15 @@ export function useRestoreProgress(sessionId: string | null) {
       setIsConnected(false);
     });
 
-    // Listen for restore progress events
-    socket.on("restore:progress", (data: RestoreProgress) => {
+    // Listen for restore progress events (matches backend 'restore.progress')
+    socket.on("restore.progress", (data: RestoreProgress) => {
       console.log(`[Restore WS] Progress update:`, data.percentage, "%");
       setProgress(data);
     });
 
-    // Listen for restore completion
-    socket.on("restore:complete", (data: { sessionId: string; success: boolean }) => {
-      console.log(`[Restore WS] Restore complete:`, data.success);
+    // Listen for restore completion (matches backend 'restore.completed')
+    socket.on("restore.completed", (data: { sessionId: string }) => {
+      console.log(`[Restore WS] Restore completed`);
       // Invalidate session to get final state
       queryClient.invalidateQueries({
         queryKey: queryKeys.restore.session(data.sessionId),
@@ -432,9 +433,9 @@ export function useRestoreProgress(sessionId: string | null) {
       queryClient.invalidateQueries({ queryKey: queryKeys.progress.all });
     });
 
-    // Listen for restore errors
-    socket.on("restore:error", (data: { sessionId: string; error: string }) => {
-      console.error(`[Restore WS] Restore error:`, data.error);
+    // Listen for restore errors (matches backend 'restore.failed')
+    socket.on("restore.failed", (data: { sessionId: string; error: string }) => {
+      console.error(`[Restore WS] Restore failed:`, data.error);
       // Invalidate session to get updated error state
       queryClient.invalidateQueries({
         queryKey: queryKeys.restore.session(data.sessionId),

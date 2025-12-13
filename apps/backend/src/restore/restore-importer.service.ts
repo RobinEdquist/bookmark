@@ -323,10 +323,14 @@ export class RestoreImporterService {
               `[ABS-RESTORE-IMPORT]   - [${results.audiobooks.imported}/${importableItems.length}] ${item.title} (${book.id} -> ${savAudiobookId})`,
             );
           } catch (error) {
-            this.logger.error(
-              `[ABS-RESTORE-IMPORT] Failed to import ${item.title}:`,
-              error,
-            );
+            this.logger.error({
+              msg: 'Failed to import audiobook',
+              title: item.title,
+              absPath: item.path,
+              savPath,
+              error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
+            });
             results.audiobooks.failed++;
           }
 

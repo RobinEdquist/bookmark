@@ -1,7 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { X, Check } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -46,6 +46,7 @@ function getStepStatus(
 export default function RestoreLayout({ children }: RestoreLayoutProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const t = useTranslations("settings.restore");
   const sessionId = searchParams.get("session");
 
@@ -53,8 +54,7 @@ export default function RestoreLayout({ children }: RestoreLayoutProps) {
   const cancelRestore = useCancelRestore();
 
   // Get current step based on URL
-  const currentStepIndex =
-    typeof window !== "undefined" ? getStepIndex(window.location.pathname) : 0;
+  const currentStepIndex = getStepIndex(pathname);
 
   const handleCancel = async () => {
     if (!sessionId) {
