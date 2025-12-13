@@ -10,6 +10,7 @@ import { useEbooks } from "../../../lib/use-ebooks";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
 import { SortSelect } from "../../../components/library/sort-select";
 import { useSortPreference } from "../../../lib/use-sort-preference";
+import { useSaveLibraryUrl } from "../../../lib/use-library-return-url";
 import { MobileLibraryHeader } from "../../../components/layout/mobile-library-header";
 import { authClient } from "../../../lib/auth-client";
 
@@ -19,6 +20,9 @@ export default function EbooksPage() {
   const searchParams = useSearchParams();
   const { data: session } = authClient.useSession();
   const isAdmin = session?.user?.role === "admin";
+
+  // Save current URL for back navigation from detail pages
+  useSaveLibraryUrl("/ebooks");
 
   // Read search from URL params, use local state for immediate input feedback
   const searchFromUrl = searchParams.get("search") ?? "";

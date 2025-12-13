@@ -11,6 +11,7 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { useEbook } from "../../../../lib/use-ebooks";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
+import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
 import { EditEbookDialog } from "../../../../components/ebooks/edit-ebook-dialog";
 import { ChangeEbookCoverDialog } from "../../../../components/ebooks/change-ebook-cover-dialog";
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
@@ -30,6 +31,7 @@ export default function EbookDetailPage({
 }) {
   const { id } = use(params);
   const t = useTranslations("ebooks.detail");
+  const returnUrl = useLibraryReturnUrl("/ebooks");
   const { data: ebook, isLoading, error } = useEbook(id);
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
@@ -83,7 +85,7 @@ export default function EbookDetailPage({
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/ebooks">
+            <Link href={returnUrl}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

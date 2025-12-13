@@ -18,6 +18,7 @@ import { useAudiobook } from "../../../../lib/use-audiobooks";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { useProgress } from "../../../../lib/use-progress";
+import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
 import { usePlayer } from "../../../../components/providers/player-provider";
 import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audiobook-dialog";
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
@@ -58,6 +59,7 @@ export default function AudiobookDetailPage({
 }) {
   const { id } = use(params);
   const t = useTranslations("audiobooks.detail");
+  const returnUrl = useLibraryReturnUrl("/audiobooks");
   const { data: audiobook, isLoading, error } = useAudiobook(id);
   const { data: progress } = useProgress(id);
   const { data: permissions } = useMyPermissions();
@@ -135,7 +137,7 @@ export default function AudiobookDetailPage({
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/audiobooks">
+            <Link href={returnUrl}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
