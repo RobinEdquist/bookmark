@@ -38,21 +38,22 @@ export class TasksController {
         pendingCount: pendingHardcoverCount,
         failedCount: failedHardcoverItems.length,
       },
-      scan: isScanning && scanProgress
-        ? {
-            isScanning: true,
-            phase: scanProgress.phase,
-            total: scanProgress.total,
-            processed: scanProgress.processed,
-            percentage:
-              scanProgress.total > 0
-                ? Math.round(
-                    (scanProgress.processed / scanProgress.total) * 100,
-                  )
-                : 0,
-            currentFile: scanProgress.currentFile,
-          }
-        : { isScanning: false },
+      scan:
+        isScanning && scanProgress
+          ? {
+              isScanning: true,
+              phase: scanProgress.phase,
+              total: scanProgress.total,
+              processed: scanProgress.processed,
+              percentage:
+                scanProgress.total > 0
+                  ? Math.round(
+                      (scanProgress.processed / scanProgress.total) * 100,
+                    )
+                  : 0,
+              currentFile: scanProgress.currentFile,
+            }
+          : { isScanning: false },
     };
   }
 }

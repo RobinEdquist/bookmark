@@ -15,7 +15,6 @@ import {
   RestoreSession,
   RestoreSessionState,
   PathMapping,
-  UserMapping,
   RestoreOptions,
   ImportPreview,
   AudiobookPreviewItem,
