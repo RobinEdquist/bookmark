@@ -1433,7 +1433,8 @@ export class AudiobooksService {
     // Single file with embedded cover - direct download
     if (files.length === 1 && !hasUploadedCover) {
       const file = files[0];
-      const absolutePath = await this.resolveFilePath(file.filePath);
+      const relativePath = path.join(ab.filePath, file.fileName);
+      const absolutePath = await this.resolveFilePath(relativePath);
 
       const mimeTypes: Record<string, string> = {
         mp3: 'audio/mpeg',
@@ -1466,7 +1467,7 @@ export class AudiobooksService {
       isZip: true,
       files: await Promise.all(
         files.map(async (f) => ({
-          filePath: await this.resolveFilePath(f.filePath),
+          filePath: await this.resolveFilePath(path.join(ab.filePath, f.fileName)),
           fileName: f.fileName,
         })),
       ),
@@ -1493,6 +1494,19 @@ export class AudiobooksService {
     fileIndex: number;
     fileStartPosition: number; // cumulative position where this file starts
   }> {
+    // Get audiobook to access its folder path
+    const audiobook = await this.db
+      .select({ filePath: schema.audiobooks.filePath })
+      .from(schema.audiobooks)
+      .where(eq(schema.audiobooks.id, id))
+      .limit(1);
+
+    if (audiobook.length === 0) {
+      throw new NotFoundException('Audiobook not found');
+    }
+
+    const audiobookFolderPath = audiobook[0].filePath;
+
     // Get audiobook files ordered by sequence
     const files = await this.db
       .select()
@@ -1539,8 +1553,9 @@ export class AudiobooksService {
     // Calculate offset within the file
     const offsetInFile = clampedPosition - fileStartPosition;
 
-    // Resolve absolute path
-    const absolutePath = await this.resolveFilePath(targetFile.filePath);
+    // Resolve absolute path using audiobook folder + file name
+    const relativePath = path.join(audiobookFolderPath, targetFile.fileName);
+    const absolutePath = await this.resolveFilePath(relativePath);
 
     // Determine MIME type from format
     const mimeTypes: Record<string, string> = {
