@@ -49,6 +49,10 @@ export class RestoreService {
     await fs.mkdir(extractedPath, { recursive: true });
     this.logger.log(`[ABS-RESTORE] Extracting to ${extractedPath}`);
 
+    // Write buffer to temp file (FileInterceptor uses memory storage by default)
+    const tempZipPath = path.join(extractedPath, 'backup.zip');
+    await fs.writeFile(tempZipPath, uploadedFile.buffer);
+
     // Initialize session in 'uploading' state
     const session: RestoreSession = {
       id: sessionId,
@@ -70,7 +74,7 @@ export class RestoreService {
 
     try {
       // Extract ZIP file
-      await this.extractZipFile(uploadedFile.path, extractedPath);
+      await this.extractZipFile(tempZipPath, extractedPath);
       this.logger.log(`[ABS-RESTORE] Extraction complete`);
 
       // Update state to parsing
@@ -100,11 +104,11 @@ export class RestoreService {
         `[ABS-RESTORE] Session ${sessionId} ready for library selection`,
       );
 
-      // Clean up uploaded file
+      // Clean up temp ZIP file
       try {
-        await fs.unlink(uploadedFile.path);
+        await fs.unlink(tempZipPath);
       } catch (error) {
-        this.logger.warn(`Failed to delete uploaded file: ${error}`);
+        this.logger.warn(`Failed to delete temp ZIP file: ${error}`);
       }
 
       return session;
