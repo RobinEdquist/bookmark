@@ -10,6 +10,7 @@ const execAsync = promisify(exec);
 
 interface ExtractedMetadata {
   title?: string;
+  album?: string;
   subtitle?: string;
   author?: string;
   narrator?: string;
@@ -162,6 +163,7 @@ async function extractFullMetadata(
 
   const metadata: ExtractedMetadata = {
     title: common.title || undefined,
+    album: common.album || undefined,
     subtitle: common.subtitle?.[0] || undefined,
     author: common.artist || common.albumartist || undefined,
     narrator: common.composer?.[0] || undefined,

@@ -59,9 +59,14 @@ export class ImportErrorsService {
 
     if (status) {
       conditions.push(eq(schema.importErrors.status, status));
+    } else {
+      // Default: show actionable errors (pending and retrying), exclude resolved/ignored
+      conditions.push(
+        sql`${schema.importErrors.status} IN ('pending', 'retrying')`,
+      );
     }
 
-    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+    const whereClause = and(...conditions);
 
     const errors = await this.db
       .select()

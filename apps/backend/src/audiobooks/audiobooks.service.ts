@@ -264,158 +264,192 @@ export class AudiobooksService {
     // Get all audiobook IDs for batch fetching
     const audiobookIds = audiobooks.map((ab) => ab.id);
 
-    // Batch fetch hardcover data with all fields needed for priority-based merging
-    const hardcoverLinks =
-      audiobookIds.length > 0
-        ? await this.db
-            .select({
-              audiobookId: hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
-              hardcoverBook: hardcoverSchema.hardcoverBooks,
-            })
-            .from(hardcoverSchema.hardcoverAudiobookLinks)
-            .innerJoin(
-              hardcoverSchema.hardcoverBooks,
-              eq(
-                hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
-                hardcoverSchema.hardcoverBooks.id,
-              ),
-            )
-            .where(
-              inArray(
-                hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
-                audiobookIds,
-              ),
-            )
-        : [];
+    // Batch fetch all related data in parallel
+    const [hardcoverLinks, allAuthors, allSeriesData, metadataPriority] =
+      await Promise.all([
+        // Hardcover data
+        audiobookIds.length > 0
+          ? this.db
+              .select({
+                audiobookId:
+                  hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+                hardcoverBook: hardcoverSchema.hardcoverBooks,
+              })
+              .from(hardcoverSchema.hardcoverAudiobookLinks)
+              .innerJoin(
+                hardcoverSchema.hardcoverBooks,
+                eq(
+                  hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+                  hardcoverSchema.hardcoverBooks.id,
+                ),
+              )
+              .where(
+                inArray(
+                  hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+                  audiobookIds,
+                ),
+              )
+          : [],
+        // Authors for all audiobooks
+        audiobookIds.length > 0
+          ? this.db
+              .select({
+                audiobookId: schema.audiobookAuthors.audiobookId,
+                personId: schema.people.id,
+                personName: schema.people.name,
+                order: schema.audiobookAuthors.order,
+              })
+              .from(schema.audiobookAuthors)
+              .innerJoin(
+                schema.people,
+                eq(schema.audiobookAuthors.personId, schema.people.id),
+              )
+              .where(inArray(schema.audiobookAuthors.audiobookId, audiobookIds))
+              .orderBy(
+                asc(schema.audiobookAuthors.audiobookId),
+                asc(schema.audiobookAuthors.order),
+              )
+          : [],
+        // Series for all audiobooks
+        audiobookIds.length > 0
+          ? this.db
+              .select({
+                audiobookId: schema.audiobookSeries.audiobookId,
+                seriesId: schema.series.id,
+                seriesName: schema.series.name,
+                order: schema.audiobookSeries.order,
+              })
+              .from(schema.audiobookSeries)
+              .innerJoin(
+                schema.series,
+                eq(schema.audiobookSeries.seriesId, schema.series.id),
+              )
+              .where(inArray(schema.audiobookSeries.audiobookId, audiobookIds))
+          : [],
+        // Metadata priority settings
+        this.appSettingsService.getMetadataPriority(),
+      ]);
 
-    const hardcoverDataMap = new Map(
-      hardcoverLinks.map((l) => [l.audiobookId, l.hardcoverBook]),
+    // Build lookup maps for O(1) access
+    type HardcoverBook = typeof hardcoverSchema.hardcoverBooks.$inferSelect;
+    const hardcoverDataMap = new Map<string, HardcoverBook>(
+      hardcoverLinks.map(
+        (l) => [l.audiobookId, l.hardcoverBook] as [string, HardcoverBook],
+      ),
     );
 
-    // Get metadata priority settings
-    const metadataPriority =
-      await this.appSettingsService.getMetadataPriority();
+    // Group authors by audiobook ID
+    const authorsMap = new Map<string, { id: string; name: string }[]>();
+    for (const author of allAuthors) {
+      const existing = authorsMap.get(author.audiobookId) || [];
+      existing.push({ id: author.personId, name: author.personName });
+      authorsMap.set(author.audiobookId, existing);
+    }
 
-    // Fetch authors and series for each audiobook
-    const result: AudiobookListItem[] = await Promise.all(
-      audiobooks.map(async (ab) => {
-        const manualFields = (ab.manualFields as string[]) || [];
+    // Group series by audiobook ID
+    const seriesMap = new Map<
+      string,
+      { id: string; name: string; order: string }[]
+    >();
+    for (const s of allSeriesData) {
+      const existing = seriesMap.get(s.audiobookId) || [];
+      existing.push({ id: s.seriesId, name: s.seriesName, order: s.order });
+      seriesMap.set(s.audiobookId, existing);
+    }
 
-        const authors = await this.db
-          .select({
-            id: schema.people.id,
-            name: schema.people.name,
-          })
-          .from(schema.audiobookAuthors)
-          .innerJoin(
-            schema.people,
-            eq(schema.audiobookAuthors.personId, schema.people.id),
-          )
-          .where(eq(schema.audiobookAuthors.audiobookId, ab.id))
-          .orderBy(asc(schema.audiobookAuthors.order));
+    // Map audiobooks to list items (no async needed now)
+    const result: AudiobookListItem[] = audiobooks.map((ab) => {
+      const manualFields = (ab.manualFields as string[]) || [];
+      const authors = authorsMap.get(ab.id) || [];
+      const seriesData = seriesMap.get(ab.id) || [];
+      const hc = hardcoverDataMap.get(ab.id) || null;
 
-        const seriesData = await this.db
-          .select({
-            id: schema.series.id,
-            name: schema.series.name,
-            order: schema.audiobookSeries.order,
-          })
-          .from(schema.audiobookSeries)
-          .innerJoin(
-            schema.series,
-            eq(schema.audiobookSeries.seriesId, schema.series.id),
-          )
-          .where(eq(schema.audiobookSeries.audiobookId, ab.id));
-
-        const hc = hardcoverDataMap.get(ab.id) || null;
-
-        // Apply priority-based resolution for title
-        const resolvedTitle =
-          this.resolveFieldByPriority(
-            'title',
-            { manual: ab.title, embedded: ab.title, hardcover: hc?.title },
-            metadataPriority.title,
-            manualFields,
-          ) || ab.title;
-
-        // Apply priority-based resolution for subtitle
-        const resolvedSubtitle = this.resolveFieldByPriority(
-          'subtitle',
-          { manual: ab.subtitle, embedded: ab.subtitle, hardcover: null },
-          metadataPriority.subtitle,
+      // Apply priority-based resolution for title
+      const resolvedTitle =
+        this.resolveFieldByPriority(
+          'title',
+          { manual: ab.title, embedded: ab.title, hardcover: hc?.title },
+          metadataPriority.title,
           manualFields,
-        );
+        ) || ab.title;
 
-        // Apply priority-based resolution for authors
-        const embeddedAuthorNames = authors.map((a) => a.name);
-        const hardcoverAuthorNames = hc?.authorNames || [];
-        const resolvedAuthorNames =
-          this.resolveFieldByPriority(
-            'author',
-            {
-              manual: embeddedAuthorNames,
-              embedded: embeddedAuthorNames,
-              hardcover: hardcoverAuthorNames,
-            },
-            metadataPriority.author,
-            manualFields,
-          ) || embeddedAuthorNames;
+      // Apply priority-based resolution for subtitle
+      const resolvedSubtitle = this.resolveFieldByPriority(
+        'subtitle',
+        { manual: ab.subtitle, embedded: ab.subtitle, hardcover: null },
+        metadataPriority.subtitle,
+        manualFields,
+      );
 
-        // If hardcover authors win, create virtual author objects
-        const resolvedAuthors =
-          resolvedAuthorNames === hardcoverAuthorNames && hc
-            ? hardcoverAuthorNames.map((name, idx) => ({
-                id: `hc-author-${idx}`,
-                name,
-              }))
-            : authors;
+      // Apply priority-based resolution for authors
+      const embeddedAuthorNames = authors.map((a) => a.name);
+      const hardcoverAuthorNames = hc?.authorNames || [];
+      const resolvedAuthorNames =
+        this.resolveFieldByPriority(
+          'author',
+          {
+            manual: embeddedAuthorNames,
+            embedded: embeddedAuthorNames,
+            hardcover: hardcoverAuthorNames,
+          },
+          metadataPriority.author,
+          manualFields,
+        ) || embeddedAuthorNames;
 
-        // Apply priority-based resolution for series
-        const embeddedSeriesNames = seriesData.map((s) => s.name);
-        const hardcoverSeriesName = hc?.featuredSeriesName
-          ? [hc.featuredSeriesName]
-          : [];
-        const resolvedSeriesNames =
-          this.resolveFieldByPriority(
-            'series',
-            {
-              manual: embeddedSeriesNames,
-              embedded: embeddedSeriesNames,
-              hardcover: hardcoverSeriesName,
-            },
-            metadataPriority.series,
-            manualFields,
-          ) || embeddedSeriesNames;
+      // If hardcover authors win, create virtual author objects
+      const resolvedAuthors =
+        resolvedAuthorNames === hardcoverAuthorNames && hc
+          ? hardcoverAuthorNames.map((name, idx) => ({
+              id: `hc-author-${idx}`,
+              name,
+            }))
+          : authors;
 
-        // If hardcover series wins, create virtual series object
-        const resolvedSeries =
-          resolvedSeriesNames === hardcoverSeriesName && hc?.featuredSeriesName
-            ? [
-                {
-                  id: `hc-series-0`,
-                  name: hc.featuredSeriesName,
-                  order: hc.featuredSeriesPosition || '0',
-                },
-              ]
-            : seriesData;
+      // Apply priority-based resolution for series
+      const embeddedSeriesNames = seriesData.map((s) => s.name);
+      const hardcoverSeriesName = hc?.featuredSeriesName
+        ? [hc.featuredSeriesName]
+        : [];
+      const resolvedSeriesNames =
+        this.resolveFieldByPriority(
+          'series',
+          {
+            manual: embeddedSeriesNames,
+            embedded: embeddedSeriesNames,
+            hardcover: hardcoverSeriesName,
+          },
+          metadataPriority.series,
+          manualFields,
+        ) || embeddedSeriesNames;
 
-        return {
-          id: ab.id,
-          title: resolvedTitle,
-          subtitle: resolvedSubtitle,
-          duration: ab.duration,
-          coverUrl: this.getCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
-          createdAt: ab.createdAt,
-          // Hidden audiobooks are filtered out in the query, so status is never 'hidden' here
-          status: ab.status as 'available' | 'missing' | 'importing',
-          authors: resolvedAuthors,
-          series: resolvedSeries,
-          hardcoverLinked: !!hc,
-          hardcoverRating: hc?.rating ? parseFloat(hc.rating) : null,
-          hardcoverRatingsCount: hc?.ratingsCount ?? null,
-        };
-      }),
-    );
+      // If hardcover series wins, create virtual series object
+      const resolvedSeries =
+        resolvedSeriesNames === hardcoverSeriesName && hc?.featuredSeriesName
+          ? [
+              {
+                id: `hc-series-0`,
+                name: hc.featuredSeriesName,
+                order: hc.featuredSeriesPosition || '0',
+              },
+            ]
+          : seriesData;
+
+      return {
+        id: ab.id,
+        title: resolvedTitle,
+        subtitle: resolvedSubtitle,
+        duration: ab.duration,
+        coverUrl: this.getCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
+        createdAt: ab.createdAt,
+        // Hidden audiobooks are filtered out in the query, so status is never 'hidden' here
+        status: ab.status as 'available' | 'missing' | 'importing',
+        authors: resolvedAuthors,
+        series: resolvedSeries,
+        hardcoverLinked: !!hc,
+        hardcoverRating: hc?.rating ? parseFloat(hc.rating) : null,
+        hardcoverRatingsCount: hc?.ratingsCount ?? null,
+      };
+    });
 
     // Apply client-side sorting for rating and series
     if (sortBy === 'rating') {

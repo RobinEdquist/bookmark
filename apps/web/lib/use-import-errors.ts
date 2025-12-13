@@ -24,11 +24,8 @@ export interface ImportErrorsResponse {
 }
 
 async function fetchImportErrors(): Promise<ImportErrorsResponse> {
-  const params = new URLSearchParams({
-    status: "pending",
-  });
-
-  const response = await fetch(`/api/admin/import-errors?${params}`, {
+  // Don't filter by status - backend returns actionable errors (pending + retrying) by default
+  const response = await fetch(`/api/admin/import-errors`, {
     credentials: "include",
   });
 

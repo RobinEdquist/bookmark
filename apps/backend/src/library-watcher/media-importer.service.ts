@@ -94,8 +94,15 @@ export class MediaImporterService {
       }
 
       const totalDuration = fileInfos.reduce((sum, f) => sum + f.duration, 0);
+      // For multi-file audiobooks, prefer folder name (most reliable) over metadata
+      // For single-file, prefer track title from metadata
       const title =
-        metadata.title || this.inferTitleFromPath(unit.path, unit.type);
+        unit.type === 'multi-file'
+          ? this.inferTitleFromPath(unit.path, unit.type) ||
+            metadata.album ||
+            metadata.title ||
+            'Unknown Audiobook'
+          : metadata.title || this.inferTitleFromPath(unit.path, unit.type);
       const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
 
       // Create audiobook record

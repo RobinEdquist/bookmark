@@ -51,6 +51,15 @@ export interface HardcoverFeaturedSeries {
   name?: string;
   slug?: string;
   position?: number;
+  series?: HardcoverSeries;
+}
+
+export interface HardcoverSeries {
+  books_count: number;
+  id: number;
+  name: string;
+  primary_books_count: number;
+  slug: string;
 }
 
 export interface HardcoverBookDocument {
@@ -349,7 +358,8 @@ export class HardcoverService {
           description: hardcoverBook.description || null,
           authorNames: hardcoverBook.author_names || [],
           contentWarnings: hardcoverBook.content_warnings || [],
-          featuredSeriesName: hardcoverBook.featured_series?.name || null,
+          featuredSeriesName:
+            hardcoverBook.featured_series?.series?.name || null,
           featuredSeriesPosition: hardcoverBook.featured_series?.position
             ? String(hardcoverBook.featured_series.position)
             : null,

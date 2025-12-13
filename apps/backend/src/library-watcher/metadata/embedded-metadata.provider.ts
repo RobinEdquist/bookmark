@@ -6,6 +6,7 @@ import { MetadataWorkerPoolService } from './metadata-worker-pool.service';
 
 export interface ExtractedMetadata {
   title?: string;
+  album?: string;
   subtitle?: string;
   author?: string;
   narrator?: string;
