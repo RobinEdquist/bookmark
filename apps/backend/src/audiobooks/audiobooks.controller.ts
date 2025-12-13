@@ -9,6 +9,7 @@ import {
   Body,
   Header,
   Headers,
+  Req,
   Res,
   NotFoundException,
   InternalServerErrorException,
@@ -154,6 +155,7 @@ export class AudiobooksController {
   /**
    * Stream audio for an audiobook with seek support.
    * Supports HTTP Range requests for efficient seeking.
+   * Also handles HEAD requests for fetching stream metadata.
    *
    * Query params:
    * - position: Start position in seconds (for seek-by-time)
@@ -164,6 +166,7 @@ export class AudiobooksController {
     @Param('id') id: string,
     @Query('position') positionParam: string | undefined,
     @Headers('range') rangeHeader: string | undefined,
+    @Req() req: express.Request,
     @Res() res: express.Response,
   ) {
     const position = positionParam ? parseInt(positionParam, 10) : 0;
@@ -207,6 +210,13 @@ export class AudiobooksController {
     );
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', streamInfo.mimeType);
+    res.setHeader('Content-Length', fileSize.toString());
+
+    // HEAD requests: return headers only, no body
+    if (req.method === 'HEAD') {
+      res.status(200).end();
+      return;
+    }
 
     // Handle HTTP Range requests (for seeking within buffered content)
     if (rangeHeader) {
@@ -250,7 +260,6 @@ export class AudiobooksController {
       stream.pipe(res);
     } else {
       // Stream from beginning
-      res.setHeader('Content-Length', fileSize.toString());
       const stream = fs.createReadStream(streamInfo.filePath);
       stream.on('error', () => {
         if (!res.headersSent) {
