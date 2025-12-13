@@ -318,7 +318,7 @@ export class RestoreImporterService {
             );
           });
 
-          audiobookIdMap.set(item.id, savAudiobookId);  // Use item.id (libraryItemId) for cover lookups
+          audiobookIdMap.set(item.id, savAudiobookId); // Use item.id (libraryItemId) for cover lookups
           results.audiobooks.imported++;
           this.logger.debug(
             `[ABS-RESTORE-IMPORT]   - [${results.audiobooks.imported}/${importableItems.length}] ${item.title} (${item.id} -> ${savAudiobookId})`,
@@ -354,7 +354,10 @@ export class RestoreImporterService {
         this.logger.log(`[ABS-RESTORE-IMPORT] Step 5: Importing cover images`);
         emitProgress('Importing cover images');
 
-        for (const [libraryItemId, savAudiobookId] of audiobookIdMap.entries()) {
+        for (const [
+          libraryItemId,
+          savAudiobookId,
+        ] of audiobookIdMap.entries()) {
           // Find the item and its book data
           const item = importableItems.find((i) => i.id === libraryItemId);
           const book = item ? libraryData.books.get(item.mediaId) : null;
@@ -370,7 +373,7 @@ export class RestoreImporterService {
 
           try {
             await this.copyCoverFile(
-              libraryItemId,  // metadata-items folders use libraryItemId
+              libraryItemId, // metadata-items folders use libraryItemId
               savAudiobookId,
               session.extractedPath!,
               book,
