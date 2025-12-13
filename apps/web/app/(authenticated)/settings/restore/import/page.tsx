@@ -170,14 +170,14 @@ export default function RestoreImportPage() {
           </div>
 
           {/* Progress Stats */}
-          {session.totalItems > 0 && (
+          {(progress?.totalItems ?? session.totalItems) > 0 && (
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
                   {t("itemsProcessed")}
                 </p>
                 <p className="mt-1 text-2xl font-bold">
-                  {session.processedItems.toLocaleString()}
+                  {(progress?.processedItems ?? session.processedItems).toLocaleString()}
                 </p>
               </div>
               <div className="text-right">
@@ -185,7 +185,7 @@ export default function RestoreImportPage() {
                   {t("totalItems")}
                 </p>
                 <p className="mt-1 text-2xl font-bold">
-                  {session.totalItems.toLocaleString()}
+                  {(progress?.totalItems ?? session.totalItems).toLocaleString()}
                 </p>
               </div>
             </div>

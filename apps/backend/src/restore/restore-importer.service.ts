@@ -368,12 +368,13 @@ export class RestoreImporterService {
               `[ABS-RESTORE-IMPORT] No cover found for book ${absBookId}: ${error}`,
             );
           }
+          // Always increment progress for each attempted cover (success or not)
+          processedItems++;
         }
 
         this.logger.log(
           `[ABS-RESTORE-IMPORT] Imported ${results.covers.imported} cover images (${results.covers.failed} not found)`,
         );
-        processedItems += results.covers.imported;
         emitProgress('Cover images imported', processedItems);
       }
 
@@ -396,12 +397,13 @@ export class RestoreImporterService {
               `[ABS-RESTORE-IMPORT] No image found for author ${absAuthorId}: ${error}`,
             );
           }
+          // Always increment progress for each attempted author image (success or not)
+          processedItems++;
         }
 
         this.logger.log(
           `[ABS-RESTORE-IMPORT] Imported ${results.authorImages.imported} author images (${results.authorImages.failed} not found)`,
         );
-        processedItems += results.authorImages.imported;
         emitProgress('Author images imported', processedItems);
       }
 
