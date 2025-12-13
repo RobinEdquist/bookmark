@@ -12,6 +12,7 @@
   "close": "Stäng spelaren",
   "loading": "Laddar...",
   "error": "Kunde inte ladda ljudet",
+  "errorUnsupportedFormat": "Kunde inte spela ljudet. Filformatet kanske inte stöds.",
   "chapter": "Kapitel",
   "currentTime": "{current} / {total}"
 }

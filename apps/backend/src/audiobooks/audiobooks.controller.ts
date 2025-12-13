@@ -11,6 +11,7 @@ import {
   Headers,
   Res,
   NotFoundException,
+  InternalServerErrorException,
   StreamableFile,
   HttpCode,
   HttpStatus,
@@ -170,9 +171,18 @@ export class AudiobooksController {
     // Get stream info (finds correct file and offset for position)
     const streamInfo = await this.audiobooksService.getStreamInfo(id, position);
 
-    // Get file stats
-    const stat = fs.statSync(streamInfo.filePath);
-    const fileSize = stat.size;
+    // Get file stats with error handling
+    let fileSize: number;
+    try {
+      const stat = fs.statSync(streamInfo.filePath);
+      fileSize = stat.size;
+    } catch (error: unknown) {
+      const fsError = error as NodeJS.ErrnoException;
+      if (fsError.code === 'ENOENT') {
+        throw new NotFoundException('Audio file not found on disk');
+      }
+      throw new InternalServerErrorException('Failed to access audio file');
+    }
 
     // Calculate byte offset from time offset
     // Approximate: (offsetInFile / fileDuration) * fileSize
@@ -210,6 +220,11 @@ export class AudiobooksController {
       res.setHeader('Content-Length', chunkSize.toString());
 
       const stream = fs.createReadStream(streamInfo.filePath, { start, end });
+      stream.on('error', () => {
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Failed to stream audio file' });
+        }
+      });
       stream.pipe(res);
     } else if (estimatedByteOffset > 0) {
       // Seek by time: start from estimated byte position
@@ -227,11 +242,21 @@ export class AudiobooksController {
         start: estimatedByteOffset,
         end,
       });
+      stream.on('error', () => {
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Failed to stream audio file' });
+        }
+      });
       stream.pipe(res);
     } else {
       // Stream from beginning
       res.setHeader('Content-Length', fileSize.toString());
       const stream = fs.createReadStream(streamInfo.filePath);
+      stream.on('error', () => {
+        if (!res.headersSent) {
+          res.status(500).json({ message: 'Failed to stream audio file' });
+        }
+      });
       stream.pipe(res);
     }
   }

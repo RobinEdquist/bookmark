@@ -9,6 +9,7 @@ import {
   useEffect,
   type ReactNode,
 } from "react";
+import { toast } from "sonner";
 import type { AudiobookDetail, AudiobookChapter } from "../../lib/use-audiobooks";
 
 // Player state
@@ -315,6 +316,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     const handleError = (e: Event) => {
       console.error("[Player] Audio error:", e);
       dispatch({ type: "SET_ERROR", payload: "Failed to load audio" });
+      toast.error("Failed to play audio. The file format may not be supported.");
     };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -398,6 +400,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         `/api/audiobooks/${audiobook.id}/stream?position=${Math.floor(startPosition)}`,
         { method: "HEAD", credentials: "include" }
       );
+      if (!response.ok) {
+        throw new Error("Stream not available");
+      }
       const fileStartPosition = parseInt(response.headers.get("X-File-Start-Position") || "0", 10);
       fileStartPositionRef.current = fileStartPosition;
 
@@ -425,6 +430,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("[Player] Failed to play:", error);
       dispatch({ type: "SET_ERROR", payload: "Failed to play audio" });
+      toast.error("Failed to play audio. The file format may not be supported.");
     }
   }, []);
 

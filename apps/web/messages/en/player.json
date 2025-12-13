@@ -12,6 +12,7 @@
   "close": "Close player",
   "loading": "Loading...",
   "error": "Failed to load audio",
+  "errorUnsupportedFormat": "Failed to play audio. The file format may not be supported.",
   "chapter": "Chapter",
   "currentTime": "{current} / {total}"
 }
