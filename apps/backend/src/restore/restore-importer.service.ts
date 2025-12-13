@@ -618,7 +618,8 @@ export class RestoreImporterService {
   }
 
   /**
-   * Maps an ABS path to a SAV path using the configured path mappings
+   * Maps an ABS path to a SAV relative path using the configured path mappings.
+   * Returns the path relative to the SAV library root (matching how SAV normally stores paths).
    */
   private mapAbsPathToSavPath(
     absPath: string,
@@ -626,8 +627,13 @@ export class RestoreImporterService {
   ): string | null {
     for (const mapping of mappings) {
       if (absPath.startsWith(mapping.absPath)) {
-        const relativePath = absPath.substring(mapping.absPath.length);
-        return path.join(mapping.savPath, relativePath);
+        // Return relative path (matching SAV's normal storage format)
+        let relativePath = absPath.substring(mapping.absPath.length);
+        // Remove leading slash if present
+        if (relativePath.startsWith('/')) {
+          relativePath = relativePath.substring(1);
+        }
+        return relativePath;
       }
     }
     return null;
