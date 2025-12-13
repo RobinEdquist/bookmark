@@ -868,6 +868,8 @@ export class RestoreImporterService {
           manualFields: session.options.lockMetadata
             ? LOCKABLE_METADATA_FIELDS
             : [],
+          // Preserve original createdAt from ABS for correct "Date Added" sorting
+          createdAt: item.createdAt ? new Date(item.createdAt) : undefined,
         })
         .where(eq(audiobooksSchema.audiobooks.id, audiobookId));
 
