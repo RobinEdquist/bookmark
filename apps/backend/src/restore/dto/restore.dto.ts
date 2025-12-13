@@ -7,7 +7,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { PathMapping, UserMapping } from '../types/restore-session.types';
+import { PathMapping } from '../types/restore-session.types';
 
 // DTO for starting a restore - no fields needed, just file upload
 export class StartRestoreDto {
@@ -32,8 +32,8 @@ export class SetPathMappingsDto {
   pathMappings!: PathMappingDto[];
 }
 
-// DTO for user mapping validation
-export class UserMappingDto implements UserMapping {
+// DTO for user mapping update (only contains fields sent by frontend)
+export class UserMappingUpdateDto {
   @IsString()
   @IsNotEmpty()
   absUserId!: string;
@@ -46,8 +46,8 @@ export class UserMappingDto implements UserMapping {
 export class SetUserMappingsDto {
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => UserMappingDto)
-  userMappings!: UserMappingDto[];
+  @Type(() => UserMappingUpdateDto)
+  userMappings!: UserMappingUpdateDto[];
 }
 
 // DTO for restore options

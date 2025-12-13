@@ -18,7 +18,11 @@ export interface PathMapping {
 
 export interface UserMapping {
   absUserId: string;
+  absUsername: string;
   savUserId: string | null; // null means skip this user
+  progressCount: number;
+  inProgressCount: number;
+  finishedCount: number;
 }
 
 export interface RestoreOptions {

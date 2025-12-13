@@ -196,7 +196,23 @@ export class RestoreService {
     );
     session.selectedLibraryId = libraryId;
 
-    // Parse library data to get initial counts
+    // Get library folders from parsed backup and initialize path mappings
+    const backupDetails = this.parsedBackups.get(sessionId);
+    const libraryFolders = backupDetails?.libraryFolders.get(libraryId) || [];
+
+    session.pathMappings = libraryFolders.map((folder) => ({
+      absPath: folder.path,
+      savPath: '', // User will fill this in
+    }));
+
+    this.logger.log(
+      `[ABS-RESTORE] Session ${sessionId}: Initialized ${session.pathMappings.length} path mapping(s)`,
+    );
+    for (const mapping of session.pathMappings) {
+      this.logger.log(`[ABS-RESTORE]   - ABS path: ${mapping.absPath}`);
+    }
+
+    // Parse library data to get initial counts and user data
     const libraryData = await this.absParserService.parseLibraryData(
       session.extractedPath!,
       libraryId,
@@ -206,6 +222,55 @@ export class RestoreService {
     this.logger.log(
       `[ABS-RESTORE] Session ${sessionId}: Library has ${session.totalItems} audiobooks`,
     );
+
+    // Build user progress statistics
+    const userProgressMap = new Map<
+      string,
+      {
+        progressCount: number;
+        inProgressCount: number;
+        finishedCount: number;
+      }
+    >();
+
+    for (const progress of libraryData.mediaProgresses) {
+      const existing = userProgressMap.get(progress.userId) || {
+        progressCount: 0,
+        inProgressCount: 0,
+        finishedCount: 0,
+      };
+      existing.progressCount++;
+      if (progress.isFinished) {
+        existing.finishedCount++;
+      } else if (progress.currentTime > 0) {
+        existing.inProgressCount++;
+      }
+      userProgressMap.set(progress.userId, existing);
+    }
+
+    // Initialize user mappings with progress data
+    session.userMappings = libraryData.users.map((user) => {
+      const progressData = userProgressMap.get(user.id) || {
+        progressCount: 0,
+        inProgressCount: 0,
+        finishedCount: 0,
+      };
+      return {
+        absUserId: user.id,
+        absUsername: user.username,
+        savUserId: null, // User will map this
+        ...progressData,
+      };
+    });
+
+    this.logger.log(
+      `[ABS-RESTORE] Session ${sessionId}: Initialized ${session.userMappings.length} user mapping(s)`,
+    );
+    for (const mapping of session.userMappings) {
+      this.logger.log(
+        `[ABS-RESTORE]   - User "${mapping.absUsername}": ${mapping.progressCount} progress records (${mapping.inProgressCount} in progress, ${mapping.finishedCount} finished)`,
+      );
+    }
   }
 
   /**
@@ -231,29 +296,38 @@ export class RestoreService {
 
   /**
    * Sets user mappings for the restore session
+   * Only updates the savUserId field, preserving all other metadata
    */
-  setUserMappings(sessionId: string, mappings: UserMapping[]): void {
+  setUserMappings(
+    sessionId: string,
+    mappings: Array<{ absUserId: string; savUserId: string | null }>,
+  ): void {
     const session = this.validateSession(sessionId, [
       RestoreSessionState.MAPPING,
       RestoreSessionState.PREVIEWING,
     ]);
 
     this.logger.log(
-      `[ABS-RESTORE] Session ${sessionId}: Setting user mappings`,
+      `[ABS-RESTORE] Session ${sessionId}: Updating user mappings`,
     );
-    for (const mapping of mappings) {
-      if (mapping.savUserId) {
-        this.logger.log(
-          `[ABS-RESTORE]   - ABS user ${mapping.absUserId} -> SAV user ${mapping.savUserId}`,
-        );
-      } else {
-        this.logger.log(
-          `[ABS-RESTORE]   - ABS user ${mapping.absUserId} -> SKIP`,
-        );
-      }
-    }
 
-    session.userMappings = mappings;
+    // Merge with existing user mappings to preserve metadata (username, progress counts)
+    session.userMappings = session.userMappings.map((existing) => {
+      const update = mappings.find((m) => m.absUserId === existing.absUserId);
+      if (update) {
+        if (update.savUserId) {
+          this.logger.log(
+            `[ABS-RESTORE]   - ABS user "${existing.absUsername}" (${existing.absUserId}) -> SAV user ${update.savUserId}`,
+          );
+        } else {
+          this.logger.log(
+            `[ABS-RESTORE]   - ABS user "${existing.absUsername}" (${existing.absUserId}) -> SKIP`,
+          );
+        }
+        return { ...existing, savUserId: update.savUserId };
+      }
+      return existing;
+    });
   }
 
   /**
