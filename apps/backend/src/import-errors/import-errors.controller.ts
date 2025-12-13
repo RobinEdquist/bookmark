@@ -12,6 +12,7 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import * as fs from 'fs/promises';
 import { ImportErrorsService } from './import-errors.service';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { Session } from '@thallesp/nestjs-better-auth';
@@ -75,8 +76,29 @@ export class ImportErrorsController {
     // Mark as retrying
     await this.importErrorsService.markRetrying(id);
 
-    // Queue the file for re-import
-    this.importQueueService.queueFile(error.filePath, libraryPath, libraryType);
+    // Queue for re-import - check if path is a directory or file
+    // Audiobook errors typically store directory paths, ebook errors store file paths
+    try {
+      const stat = await fs.stat(error.filePath);
+      if (stat.isDirectory()) {
+        this.importQueueService.queueDirectory(
+          error.filePath,
+          libraryPath,
+          libraryType,
+        );
+      } else {
+        this.importQueueService.queueFile(
+          error.filePath,
+          libraryPath,
+          libraryType,
+        );
+      }
+    } catch {
+      // Path no longer exists - still mark as retrying but let the queue handle the error
+      throw new BadRequestException(
+        'File or directory no longer exists at the original path',
+      );
+    }
 
     return { success: true, message: 'Retry queued' };
   }
