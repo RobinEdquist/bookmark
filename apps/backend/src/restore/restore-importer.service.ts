@@ -839,7 +839,7 @@ export class RestoreImporterService {
           language: book.language,
           isbn: book.isbn,
           asin: book.asin,
-          duration: book.duration,
+          duration: book.duration ? Math.floor(book.duration) : null,
           isExplicit: book.explicit || false,
           status: 'available',
           manualFields: session.options.lockMetadata
@@ -882,7 +882,7 @@ export class RestoreImporterService {
           language: book.language,
           isbn: book.isbn,
           asin: book.asin,
-          duration: book.duration,
+          duration: book.duration ? Math.floor(book.duration) : null,
           filePath: savPath,
           isExplicit: book.explicit || false,
           status: 'available',
