@@ -277,7 +277,7 @@ export class RestoreImporterService {
       );
       emitProgress('Importing audiobooks');
 
-      const audiobookIdMap = new Map<string, string>(); // ABS book ID -> SAV audiobook ID
+      const audiobookIdMap = new Map<string, string>(); // ABS libraryItem ID -> SAV audiobook ID
 
       for (const item of importableItems) {
         const book = libraryData.books.get(item.mediaId);
@@ -318,10 +318,10 @@ export class RestoreImporterService {
             );
           });
 
-          audiobookIdMap.set(book.id, savAudiobookId);
+          audiobookIdMap.set(item.id, savAudiobookId);  // Use item.id (libraryItemId) for cover lookups
           results.audiobooks.imported++;
           this.logger.debug(
-            `[ABS-RESTORE-IMPORT]   - [${results.audiobooks.imported}/${importableItems.length}] ${item.title} (${book.id} -> ${savAudiobookId})`,
+            `[ABS-RESTORE-IMPORT]   - [${results.audiobooks.imported}/${importableItems.length}] ${item.title} (${item.id} -> ${savAudiobookId})`,
           );
         } catch (error) {
           this.logger.error({
@@ -354,18 +354,33 @@ export class RestoreImporterService {
         this.logger.log(`[ABS-RESTORE-IMPORT] Step 5: Importing cover images`);
         emitProgress('Importing cover images');
 
-        for (const [absBookId, savAudiobookId] of audiobookIdMap.entries()) {
+        for (const [libraryItemId, savAudiobookId] of audiobookIdMap.entries()) {
+          // Find the item and its book data
+          const item = importableItems.find((i) => i.id === libraryItemId);
+          const book = item ? libraryData.books.get(item.mediaId) : null;
+
+          if (!book) {
+            results.covers.failed++;
+            this.logger.debug(
+              `[ABS-RESTORE-IMPORT] No book data found for cover import: ${libraryItemId}`,
+            );
+            processedItems++;
+            continue;
+          }
+
           try {
             await this.copyCoverFile(
-              absBookId,
+              libraryItemId,  // metadata-items folders use libraryItemId
               savAudiobookId,
               session.extractedPath!,
+              book,
+              session.pathMappings,
             );
             results.covers.imported++;
           } catch (error) {
             results.covers.failed++;
             this.logger.debug(
-              `[ABS-RESTORE-IMPORT] No cover found for book ${absBookId}: ${error}`,
+              `[ABS-RESTORE-IMPORT] No cover found for item ${libraryItemId}: ${error}`,
             );
           }
           // Always increment progress for each attempted cover (success or not)
@@ -998,19 +1013,49 @@ export class RestoreImporterService {
   }
 
   /**
-   * Copy a cover file from the backup to app data
+   * Copy a cover file from the backup to app data.
+   * Looks for covers in two locations:
+   * 1. metadata-items folder in the backup (standard ABS backup location)
+   * 2. Inside the library folder (if ABS stored cover alongside audio files)
    */
   private async copyCoverFile(
     absBookId: string,
     savAudiobookId: string,
     extractedPath: string,
+    book: ABSBook,
+    pathMappings: PathMapping[],
   ): Promise<void> {
-    const sourcePath = await this.absParserService.getCoverPath(
+    // 1. First try metadata-items folder in backup (existing logic)
+    let sourcePath = await this.absParserService.getCoverPath(
       extractedPath,
       absBookId,
     );
+
+    // 2. If not in metadata-items, check if coverPath points to library
+    if (!sourcePath && book.coverPath) {
+      for (const mapping of pathMappings) {
+        if (book.coverPath.startsWith(mapping.absPath)) {
+          // Map ABS library path to SAV library path
+          const relativePath = book.coverPath.substring(mapping.absPath.length);
+          const savCoverPath = path.join(mapping.savPath, relativePath);
+
+          try {
+            await fs.access(savCoverPath);
+            sourcePath = savCoverPath;
+            this.logger.debug(
+              `[ABS-RESTORE-IMPORT] Found cover in library path: ${savCoverPath}`,
+            );
+            break;
+          } catch {
+            // File doesn't exist at mapped path, try next mapping
+            continue;
+          }
+        }
+      }
+    }
+
     if (!sourcePath) {
-      throw new Error('No cover found in backup');
+      throw new Error('No cover found in backup or library');
     }
 
     const destPath = this.appDataService.getAudiobookCoverPath(savAudiobookId);
