@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
+import pino from 'pino';
 import { AppDataModule } from './app-data/app-data.module';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from '@thallesp/nestjs-better-auth';
@@ -41,20 +42,33 @@ import { CommonModule } from './common/common.module';
         const isProduction = configService.get('NODE_ENV') === 'production';
         const logLevel = configService.get('LOG_LEVEL', 'info');
 
+        // Create multistream to route errors/fatal to stderr, rest to stdout
+        const streams: pino.StreamEntry[] = [
+          // stdout for info, debug, trace, warn
+          { level: 'trace', stream: process.stdout },
+          // stderr for error and fatal (overwrites lower levels for these)
+          { level: 'error', stream: process.stderr },
+        ];
+
         return {
           pinoHttp: {
             level: logLevel,
-            transport: isProduction
-              ? undefined
+            // In development, use pino-pretty transport
+            // In production, use multistream for stderr/stdout split
+            ...(isProduction
+              ? { stream: pino.multistream(streams, { dedupe: true }) }
               : {
-                  target: 'pino-pretty',
-                  options: {
-                    colorize: true,
-                    singleLine: true,
-                    translateTime: 'SYS:standard',
-                    ignore: 'pid,hostname',
+                  transport: {
+                    target: 'pino-pretty',
+                    options: {
+                      colorize: true,
+                      singleLine: true,
+                      translateTime: 'SYS:standard',
+                      ignore: 'pid,hostname',
+                      destination: 1, // stdout by default
+                    },
                   },
-                },
+                }),
             customProps: (req) => {
               const session = (
                 req as { session?: { user?: { id: string; email: string } } }
