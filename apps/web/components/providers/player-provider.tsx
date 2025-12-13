@@ -500,11 +500,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         const streamUrl = `/api/audiobooks/${state.audiobook.id}/stream?position=${Math.floor(fileStartPosition)}`;
         audioRef.current.src = streamUrl;
 
-        // Wait for the audio to be ready, then seek within the file
+        // Wait for the audio to be ready, then seek within the file and apply settings
         const handleCanPlay = () => {
           audioRef.current?.removeEventListener("canplay", handleCanPlay);
-          if (audioRef.current && offsetInFile > 0) {
-            audioRef.current.currentTime = offsetInFile;
+          if (audioRef.current) {
+            if (offsetInFile > 0) {
+              audioRef.current.currentTime = offsetInFile;
+            }
+            // Apply playback rate and volume AFTER source is loaded
+            audioRef.current.playbackRate = playbackRateRef.current;
+            audioRef.current.volume = volumeRef.current;
           }
         };
         audioRef.current.addEventListener("canplay", handleCanPlay);
