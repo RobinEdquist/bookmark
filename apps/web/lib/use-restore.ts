@@ -387,7 +387,9 @@ export function useRestoreProgress(sessionId: string | null) {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "";
 
     // Connect to the /restore namespace (must match backend RestoreGateway)
+    // Uses /api/socket.io path (same as EventsGateway) to go through reverse proxy
     const socket = io(`${apiUrl}/restore`, {
+      path: "/api/socket.io",
       withCredentials: true,
       transports: ["websocket", "polling"],
       reconnectionAttempts: 10,

@@ -31,6 +31,7 @@ interface SocketWithSession extends Socket {
  */
 @WebSocketGateway({
   namespace: '/restore',
+  path: '/api/socket.io',
   cors: {
     origin: true,
     credentials: true,
