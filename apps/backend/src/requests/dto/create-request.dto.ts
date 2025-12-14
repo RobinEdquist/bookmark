@@ -2,10 +2,10 @@ import { IsString, IsOptional, IsIn } from 'class-validator';
 
 export class CreateRequestDto {
   @IsString()
-  mamTorrentId: string;
+  mamTorrentId!: string;
 
   @IsString()
-  title: string;
+  title!: string;
 
   @IsOptional()
   @IsString()
@@ -28,5 +28,5 @@ export class CreateRequestDto {
   coverUrl?: string;
 
   @IsIn(['audiobook', 'ebook'])
-  contentType: 'audiobook' | 'ebook';
+  contentType!: 'audiobook' | 'ebook';
 }

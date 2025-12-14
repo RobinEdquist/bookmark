@@ -10,7 +10,7 @@ import {
 import { AdminGuard } from '../common/guards/admin.guard';
 import { RequestsService } from './requests.service';
 import { RejectRequestDto } from './dto';
-import { RequestStatus } from './schema';
+import type { RequestStatus } from './schema';
 
 @Controller('admin/requests')
 @UseGuards(AdminGuard)

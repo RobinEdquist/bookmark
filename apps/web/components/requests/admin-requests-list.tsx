@@ -27,8 +27,8 @@ import type { RequestResponse } from "../../lib/use-requests";
 interface AdminRequestsListProps {
   requests: RequestResponse[];
   isLoading: boolean;
-  onApprove: (id: string) => Promise<void>;
-  onReject: (id: string, reason?: string) => Promise<void>;
+  onApprove: (id: string) => Promise<unknown>;
+  onReject: (id: string, reason?: string) => Promise<unknown>;
   isApproving: boolean;
   isRejecting: boolean;
 }
@@ -179,7 +179,7 @@ export function AdminRequestsList({
           <Textarea
             placeholder={t("rejectDialog.placeholder")}
             value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectReason(e.target.value)}
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
