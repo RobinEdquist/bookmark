@@ -252,7 +252,7 @@ export function PlayerBar() {
                 <button
                   type="button"
                   onClick={() => setIsChapterDrawerOpen(true)}
-                  className="flex max-w-full items-center gap-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm transition-colors"
+                  className="flex max-w-full cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm transition-colors"
                   aria-label={t("openChapterList")}
                   aria-haspopup="dialog"
                 >

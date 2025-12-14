@@ -45,7 +45,9 @@ const DrawerContent = React.forwardRef<
       )}
       {...props}
     >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+      <div className="flex cursor-grab justify-center py-4 active:cursor-grabbing">
+        <div className="h-2 w-[100px] rounded-full bg-muted" />
+      </div>
       {children}
     </DrawerPrimitive.Content>
   </DrawerPortal>
