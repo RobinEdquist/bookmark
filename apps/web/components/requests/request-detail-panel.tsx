@@ -104,17 +104,6 @@ export function RequestDetailPanel({
           >
             {/* Header */}
             <div className="space-y-4 border-b p-6">
-              {/* Close button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-4 h-8 w-8 rounded-full"
-                onClick={onClose}
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </Button>
-
               {/* Content Type Badge */}
               <div className="flex items-center gap-2">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
@@ -252,6 +241,28 @@ export function RequestDetailPanel({
         )}
       </AnimatePresence>
 
+      {/* Close button - positioned outside panel like mobile sidebar */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="detail-panel-close"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, delay: 0.1 }}
+            className="fixed top-4 z-50 left-4 sm:left-auto sm:right-[37rem]"
+          >
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-8 w-8 rounded-full shadow-md"
+              onClick={onClose}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
