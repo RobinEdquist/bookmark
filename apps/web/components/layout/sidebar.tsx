@@ -111,6 +111,11 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
           <LogOut className="h-5 w-5" />
           {t("nav.signOut")}
         </Button>
+        <div className="mt-3 flex items-center gap-2 px-3">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-muted-foreground/20 to-transparent" />
+          <span className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground/50">pre-alpha</span>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-muted-foreground/20 to-transparent" />
+        </div>
       </div>
     </aside>
   );
