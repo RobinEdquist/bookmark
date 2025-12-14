@@ -190,6 +190,7 @@
       "canUploadAudiobooks": "Kan ladda upp ljudböcker",
       "canDeleteAudiobooks": "Kan ta bort ljudböcker",
       "canGenerateApiKeys": "Kan generera API-nycklar",
+      "canRequestContent": "Kan begära innehåll",
       "blacklistedTags": "Blockerade taggar",
       "blacklistedTagsPlaceholder": "Välj taggar att dölja...",
       "searchTags": "Sök taggar...",
@@ -285,6 +286,24 @@
   "integrations": {
     "title": "Integrationer",
     "description": "Anslut externa tjänster för metadata och berikning",
+    "requests": {
+      "title": "Innehållsförfrågningar",
+      "description": "Tillåt användare att söka och begära innehåll från externa källor",
+      "toggle": {
+        "label": "Aktivera innehållsförfrågningar",
+        "description": "Tillåt användare att söka och begära nytt innehåll från externa källor",
+        "disabledTooltip": "Kräver att miljövariablerna MAM_CLIENT_URL och MAM_CLIENT_API_KEY är konfigurerade"
+      },
+      "warning": {
+        "title": "Konfiguration krävs",
+        "description": "Innehållsförfrågningar kräver att miljövariablerna MAM_CLIENT_URL och MAM_CLIENT_API_KEY är konfigurerade. Sätt dessa i din miljö för att aktivera funktionen."
+      },
+      "toast": {
+        "enabled": "Innehållsförfrågningar aktiverade",
+        "disabled": "Innehållsförfrågningar inaktiverade",
+        "error": "Kunde inte uppdatera inställning för innehållsförfrågningar"
+      }
+    },
     "hardcover": {
       "title": "Hardcover",
       "description": "Anslut till Hardcover för att hämta bokmetadata, betyg och omslagsbilder",

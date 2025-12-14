@@ -4,6 +4,7 @@ export interface UserPermissionsResponse {
   canUploadAudiobooks: boolean;
   canDeleteAudiobooks: boolean;
   canGenerateApiKeys: boolean;
+  canRequestContent: boolean;
 }
 
 export interface ApiKeyInfo {

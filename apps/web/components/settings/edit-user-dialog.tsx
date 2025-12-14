@@ -19,6 +19,7 @@ import { MultiSelect } from "@repo/ui/components/ui/multi-select";
 import { useUpdateUser, type User } from "../../lib/use-users";
 import { useTags } from "../../lib/use-tags";
 import { useRevokeUserApiKey } from "../../lib/use-api-keys";
+import { useSettings } from "../../lib/use-settings";
 
 interface EditUserDialogProps {
   user: User | null;
@@ -31,6 +32,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const updateUser = useUpdateUser();
   const revokeUserApiKey = useRevokeUserApiKey();
   const { data: availableTags = [] } = useTags();
+  const { settings } = useSettings();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -39,6 +41,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const [canUploadAudiobooks, setCanUploadAudiobooks] = useState(false);
   const [canDeleteAudiobooks, setCanDeleteAudiobooks] = useState(false);
   const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
+  const [canRequestContent, setCanRequestContent] = useState(false);
   const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
   const [hasApiKey, setHasApiKey] = useState(false);
 
@@ -51,6 +54,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       setCanUploadAudiobooks(user.permissions.canUploadAudiobooks);
       setCanDeleteAudiobooks(user.permissions.canDeleteAudiobooks);
       setCanGenerateApiKeys(user.permissions.canGenerateApiKeys);
+      setCanRequestContent(user.permissions.canRequestContent);
       setBlacklistedTags(user.blacklistedTags);
       setHasApiKey(user.apiKey?.hasKey ?? false);
     }
@@ -63,6 +67,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       setCanUploadAudiobooks(true);
       setCanDeleteAudiobooks(true);
       setCanGenerateApiKeys(true);
+      setCanRequestContent(true);
       setBlacklistedTags([]);
     }
   }, [isAdmin]);
@@ -82,6 +87,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
           canUploadAudiobooks,
           canDeleteAudiobooks,
           canGenerateApiKeys,
+          canRequestContent,
           blacklistedTags,
         },
       });
@@ -187,6 +193,19 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                   disabled={isAdmin}
                 />
               </div>
+              {settings?.requestsEnabled && (
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <Label htmlFor="edit-canRequestContent" className="font-normal">
+                    {t("createDialog.canRequestContent")}
+                  </Label>
+                  <Switch
+                    id="edit-canRequestContent"
+                    checked={canRequestContent}
+                    onCheckedChange={setCanRequestContent}
+                    disabled={isAdmin}
+                  />
+                </div>
+              )}
             </div>
           </div>
 

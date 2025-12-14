@@ -29,6 +29,8 @@ export interface Settings {
   oidcButtonText: string;
   emailPasswordEnabled: boolean;
   oidcAutoCreateUsers: string;
+  requestsEnabled: boolean;
+  mamClientConfigured: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -42,6 +44,7 @@ export interface UpdateSettingsDto {
   oidcButtonText?: string;
   emailPasswordEnabled?: boolean;
   oidcAutoCreateUsers?: string;
+  requestsEnabled?: boolean;
 }
 
 async function fetchSettings(): Promise<Settings> {

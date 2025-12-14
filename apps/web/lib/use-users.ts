@@ -8,6 +8,7 @@ export interface UserPermissions {
   canUploadAudiobooks: boolean;
   canDeleteAudiobooks: boolean;
   canGenerateApiKeys: boolean;
+  canRequestContent: boolean;
 }
 
 export interface ApiKeyInfo {
@@ -40,6 +41,7 @@ export interface CreateUserInput {
   canUploadAudiobooks?: boolean;
   canDeleteAudiobooks?: boolean;
   canGenerateApiKeys?: boolean;
+  canRequestContent?: boolean;
   blacklistedTags?: string[];
 }
 
@@ -52,6 +54,7 @@ export interface UpdateUserInput {
   canUploadAudiobooks?: boolean;
   canDeleteAudiobooks?: boolean;
   canGenerateApiKeys?: boolean;
+  canRequestContent?: boolean;
   blacklistedTags?: string[];
 }
 

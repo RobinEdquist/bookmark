@@ -40,6 +40,10 @@ export class CreateUserDto {
   canGenerateApiKeys?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  canRequestContent?: boolean;
+
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   blacklistedTags?: string[];

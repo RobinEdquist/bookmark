@@ -113,6 +113,7 @@ export class UsersService {
       canUploadAudiobooks: isAdmin ? true : (dto.canUploadAudiobooks ?? false),
       canDeleteAudiobooks: isAdmin ? true : (dto.canDeleteAudiobooks ?? false),
       canGenerateApiKeys: isAdmin ? true : (dto.canGenerateApiKeys ?? false),
+      canRequestContent: isAdmin ? true : (dto.canRequestContent ?? false),
     });
 
     // Create blacklisted tags (admins have no blacklisted tags)
@@ -171,6 +172,7 @@ export class UsersService {
           canUploadAudiobooks: true,
           canDeleteAudiobooks: true,
           canGenerateApiKeys: true,
+          canRequestContent: true,
         })
         .onConflictDoUpdate({
           target: userSchema.userPermissions.userId,
@@ -179,6 +181,7 @@ export class UsersService {
             canUploadAudiobooks: true,
             canDeleteAudiobooks: true,
             canGenerateApiKeys: true,
+            canRequestContent: true,
           },
         });
 
@@ -199,6 +202,8 @@ export class UsersService {
         permUpdates.canDeleteAudiobooks = dto.canDeleteAudiobooks;
       if (dto.canGenerateApiKeys !== undefined)
         permUpdates.canGenerateApiKeys = dto.canGenerateApiKeys;
+      if (dto.canRequestContent !== undefined)
+        permUpdates.canRequestContent = dto.canRequestContent;
 
       if (Object.keys(permUpdates).length > 0) {
         await this.db
@@ -307,6 +312,7 @@ export class UsersService {
         canUploadAudiobooks: true,
         canDeleteAudiobooks: true,
         canGenerateApiKeys: true,
+        canRequestContent: true,
       };
     }
 
@@ -323,6 +329,7 @@ export class UsersService {
         canUploadAudiobooks: false,
         canDeleteAudiobooks: false,
         canGenerateApiKeys: false,
+        canRequestContent: false,
       };
     }
 
@@ -332,6 +339,7 @@ export class UsersService {
       canUploadAudiobooks: perms[0].canUploadAudiobooks,
       canDeleteAudiobooks: perms[0].canDeleteAudiobooks,
       canGenerateApiKeys: perms[0].canGenerateApiKeys,
+      canRequestContent: perms[0].canRequestContent,
     };
   }
 

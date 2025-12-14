@@ -22,6 +22,7 @@ interface UpdateSettingsDto {
   oidcButtonText?: string;
   emailPasswordEnabled?: boolean;
   oidcAutoCreateUsers?: string;
+  requestsEnabled?: boolean;
 }
 
 @Controller('settings')
@@ -56,6 +57,9 @@ export class AppSettingsController {
   @Get()
   async getSettings() {
     const settings = await this.appSettingsService.getSettings();
+    const mamClientConfigured = !!(
+      process.env.MAM_CLIENT_URL && process.env.MAM_CLIENT_API_KEY
+    );
     return {
       signupsEnabled: settings.signupsEnabled,
       audiobookLibraryPath: settings.audiobookLibraryPath,
@@ -65,6 +69,8 @@ export class AppSettingsController {
       oidcButtonText: settings.oidcButtonText,
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
+      requestsEnabled: settings.requestsEnabled,
+      mamClientConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };
@@ -82,7 +88,8 @@ export class AppSettingsController {
       dto.opdsEnabled === undefined &&
       dto.oidcButtonText === undefined &&
       dto.emailPasswordEnabled === undefined &&
-      dto.oidcAutoCreateUsers === undefined
+      dto.oidcAutoCreateUsers === undefined &&
+      dto.requestsEnabled === undefined
     ) {
       throw new BadRequestException('No settings provided to update');
     }
@@ -127,6 +134,7 @@ export class AppSettingsController {
       oidcButtonText?: string;
       emailPasswordEnabled?: boolean;
       oidcAutoCreateUsers?: string;
+      requestsEnabled?: boolean;
     } = {};
     if (dto.signupsEnabled !== undefined)
       updates.signupsEnabled = dto.signupsEnabled;
@@ -143,8 +151,13 @@ export class AppSettingsController {
       updates.emailPasswordEnabled = dto.emailPasswordEnabled;
     if (dto.oidcAutoCreateUsers !== undefined)
       updates.oidcAutoCreateUsers = dto.oidcAutoCreateUsers;
+    if (dto.requestsEnabled !== undefined)
+      updates.requestsEnabled = dto.requestsEnabled;
 
     const settings = await this.appSettingsService.updateSettings(updates);
+    const mamClientConfigured = !!(
+      process.env.MAM_CLIENT_URL && process.env.MAM_CLIENT_API_KEY
+    );
 
     return {
       signupsEnabled: settings.signupsEnabled,
@@ -155,6 +168,8 @@ export class AppSettingsController {
       oidcButtonText: settings.oidcButtonText,
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
+      requestsEnabled: settings.requestsEnabled,
+      mamClientConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };

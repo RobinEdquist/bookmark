@@ -190,6 +190,7 @@
       "canUploadAudiobooks": "Can upload audiobooks",
       "canDeleteAudiobooks": "Can delete audiobooks",
       "canGenerateApiKeys": "Can generate API keys",
+      "canRequestContent": "Can request content",
       "blacklistedTags": "Blacklisted Tags",
       "blacklistedTagsPlaceholder": "Select tags to hide...",
       "searchTags": "Search tags...",
@@ -285,6 +286,24 @@
   "integrations": {
     "title": "Integrations",
     "description": "Connect external services for metadata and enrichment",
+    "requests": {
+      "title": "Content Requests",
+      "description": "Allow users to search and request content from external sources",
+      "toggle": {
+        "label": "Enable Content Requests",
+        "description": "Allow users to search and request new content from external sources",
+        "disabledTooltip": "Requires MAM_CLIENT_URL and MAM_CLIENT_API_KEY environment variables to be configured"
+      },
+      "warning": {
+        "title": "Configuration Required",
+        "description": "Content requests require MAM_CLIENT_URL and MAM_CLIENT_API_KEY environment variables to be configured. Please set these in your environment to enable this feature."
+      },
+      "toast": {
+        "enabled": "Content requests enabled",
+        "disabled": "Content requests disabled",
+        "error": "Failed to update content requests setting"
+      }
+    },
     "hardcover": {
       "title": "Hardcover",
       "description": "Connect to Hardcover to fetch book metadata, ratings, and cover art",

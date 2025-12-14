@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ExternalLink, Check, X, AlertCircle, Clock, Trash2, Link as LinkIcon } from "lucide-react";
+import { ExternalLink, Check, X, AlertCircle, Clock, Trash2, Link as LinkIcon, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -29,6 +29,13 @@ import {
   type FailedSyncItem,
 } from "../../lib/use-hardcover";
 import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
+import { useSettings } from "../../lib/use-settings";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@repo/ui/components/ui/tooltip";
 
 export function IntegrationsSettings() {
   const t = useTranslations("settings.integrations");
@@ -39,6 +46,7 @@ export function IntegrationsSettings() {
   const { setAutoSync, isUpdating: isUpdatingAutoSync } = useHardcoverAutoSync();
   const { pendingCount, failedCount, failedItems } = useHardcoverQueueStatus();
   const { dismissItem, isDismissing } = useHardcoverDismissFailedItem();
+  const { settings, updateSettings, isUpdating: isUpdatingSettings } = useSettings();
 
   const [apiKey, setApiKey] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,7 +134,22 @@ export function IntegrationsSettings() {
     }
   };
 
-  if (isLoading) {
+  const handleRequestsToggle = async (enabled: boolean) => {
+    try {
+      await updateSettings({ requestsEnabled: enabled });
+      toast.success(
+        enabled
+          ? t("requests.toast.enabled")
+          : t("requests.toast.disabled")
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("requests.toast.error")
+      );
+    }
+  };
+
+  if (isLoading || !settings) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center p-8">
@@ -136,6 +159,8 @@ export function IntegrationsSettings() {
     );
   }
 
+  const requestsDisabled = !settings.mamClientConfigured;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -143,6 +168,61 @@ export function IntegrationsSettings() {
           <CardTitle>{t("title")}</CardTitle>
           <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
+      </Card>
+
+      {/* Content Requests */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("requests.title")}</CardTitle>
+          <CardDescription>{t("requests.description")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <fieldset className="flex items-center justify-between rounded-lg border p-4">
+            <div className="space-y-0.5">
+              <Label htmlFor="requests-enabled" className="text-base font-medium">
+                {t("requests.toggle.label")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("requests.toggle.description")}
+              </p>
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div>
+                    <Switch
+                      id="requests-enabled"
+                      checked={settings.requestsEnabled}
+                      onCheckedChange={handleRequestsToggle}
+                      disabled={requestsDisabled || isUpdatingSettings}
+                    />
+                  </div>
+                </TooltipTrigger>
+                {requestsDisabled && (
+                  <TooltipContent>
+                    <p className="max-w-xs">{t("requests.toggle.disabledTooltip")}</p>
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+          </fieldset>
+
+          {requestsDisabled && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                    {t("requests.warning.title")}
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    {t("requests.warning.description")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       <Card>
