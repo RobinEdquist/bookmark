@@ -118,4 +118,14 @@ export const queryKeys = {
     savUsers: () => [...queryKeys.restore.all, "sav-users"] as const,
     progress: (sessionId: string) => [...queryKeys.restore.all, "progress", sessionId] as const,
   },
+  requests: {
+    all: ['requests'] as const,
+    list: () => [...queryKeys.requests.all, 'list'] as const,
+    search: (query: string) => [...queryKeys.requests.all, 'search', query] as const,
+    detail: (id: string) => [...queryKeys.requests.all, 'detail', id] as const,
+  },
+  adminRequests: {
+    all: ['admin-requests'] as const,
+    list: (status?: string) => [...queryKeys.adminRequests.all, 'list', status] as const,
+  },
 } as const;
