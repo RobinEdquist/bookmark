@@ -57,6 +57,12 @@
     "narratedBy": "Narrated by {narrator}",
     "series": "Series: {series}"
   },
+  "detail": {
+    "narrator": "Narrator",
+    "series": "Series",
+    "tags": "Tags",
+    "description": "Description"
+  },
   "empty": {
     "search": "Search for audiobooks and ebooks to request",
     "requests": "You haven't made any requests yet",

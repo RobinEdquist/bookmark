@@ -42,7 +42,9 @@ export class RequestsService {
    * These come as JSON objects like {"111371":"Author Name"} or "{}"
    * Returns comma-separated names or null if empty
    */
-  private parseMamInfoField(infoField: string | null | undefined): string | null {
+  private parseMamInfoField(
+    infoField: string | null | undefined,
+  ): string | null {
     if (!infoField || infoField === '{}') {
       return null;
     }
@@ -79,15 +81,60 @@ export class RequestsService {
   }
 
   /**
-   * Clean description - decode HTML entities but preserve HTML tags for rendering
+   * Parse MAM series_info field
+   * Format: {"seriesId": ["Series Name", "bookNumber", orderIndex]}
+   * Example: {"1812":["Harry Potter","1",1]}
+   * Returns array of SeriesInfo objects
    */
-  private cleanDescription(description: string | null | undefined): string | null {
+  private parseMamSeriesField(
+    seriesInfo: string | null | undefined,
+  ): { name: string; number: string | null }[] | null {
+    if (!seriesInfo || seriesInfo === '{}') {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(seriesInfo);
+      if (typeof parsed === 'object' && parsed !== null) {
+        const series: { name: string; number: string | null }[] = [];
+        for (const value of Object.values(parsed)) {
+          if (Array.isArray(value) && value.length >= 1) {
+            const name = this.decodeHtmlEntities(String(value[0]));
+            const number =
+              value.length >= 2 && value[1] ? String(value[1]) : null;
+            series.push({ name, number });
+          }
+        }
+        return series.length > 0 ? series : null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Clean description - decode HTML entities but preserve HTML tags for rendering
+   * Also rewrites MAM gateway image URLs to direct URLs
+   */
+  private cleanDescription(
+    description: string | null | undefined,
+  ): string | null {
     if (!description) {
       return null;
     }
 
-    // Only decode HTML entities, keep HTML tags for frontend rendering
-    return this.decodeHtmlEntities(description);
+    let cleaned = this.decodeHtmlEntities(description);
+
+    // Rewrite MAM gateway image URLs to direct URLs
+    // Pattern: https://www.myanonamouse.net/imageBucket.php/[hash]/[filename]
+    // These should be rewritten to remove the gateway
+    cleaned = cleaned.replace(
+      /https?:\/\/www\.myanonamouse\.net\/imageBucket\.php\/([a-f0-9]+)\/([^"'\s>]+)/gi,
+      'https://www.myanonamouse.net/imageBucket.php/$1/$2',
+    );
+
+    return cleaned;
   }
 
   async search(
@@ -161,14 +208,15 @@ export class RequestsService {
         title: this.decodeHtmlEntities(torrent.title),
         author: this.parseMamInfoField(torrent.author_info),
         narrator: this.parseMamInfoField(torrent.narrator_info),
-        series: this.parseMamInfoField(torrent.series_info),
+        series: this.parseMamSeriesField(torrent.series_info),
         description: this.cleanDescription(torrent.description),
         coverUrl: null, // MAM doesn't provide cover URLs in search
         contentType,
+        category: torrent.catname || '',
         size: torrent.size,
         language: torrent.lang_code,
         fileType: torrent.filetype,
-        tags: torrent.tags,
+        tags: Array.isArray(torrent.tags) ? torrent.tags : [],
         addedDate: torrent.added,
         existingRequestId: existing?.id ?? null,
         existingRequestStatus: existing?.status ?? null,
@@ -301,7 +349,8 @@ export class RequestsService {
     }
 
     // Determine qBittorrent category based on content type
-    const category = request.contentType === 'audiobook' ? 'audiobooks' : 'books';
+    const category =
+      request.contentType === 'audiobook' ? 'audiobooks' : 'books';
 
     // Start download via MAM client
     const downloadResult = await this.mamClient.download(request.mamTorrentId, {

@@ -1,5 +1,10 @@
 import { RequestStatus, ContentType } from '../schema';
 
+export interface SeriesInfo {
+  name: string;
+  number: string | null;
+}
+
 export interface RequestResponseDto {
   id: string;
   userId: string;
@@ -27,14 +32,15 @@ export interface MamSearchResultDto {
   title: string;
   author: string | null;
   narrator: string | null;
-  series: string | null;
+  series: SeriesInfo[] | null;
   description: string | null;
   coverUrl: string | null;
   contentType: 'audiobook' | 'ebook';
+  category: string;
   size: string;
   language: string;
   fileType: string;
-  tags: string;
+  tags: string[];
   addedDate: string;
   existingRequestId: string | null;
   existingRequestStatus: RequestStatus | null;

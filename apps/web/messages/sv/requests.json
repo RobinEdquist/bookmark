@@ -57,6 +57,12 @@
     "narratedBy": "Uppläst av {narrator}",
     "series": "Serie: {series}"
   },
+  "detail": {
+    "narrator": "Uppläsare",
+    "series": "Serie",
+    "tags": "Taggar",
+    "description": "Beskrivning"
+  },
   "empty": {
     "search": "Sök efter ljudböcker och e-böcker att begära",
     "requests": "Du har inte gjort några förfrågningar än",

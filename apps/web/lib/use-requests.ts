@@ -7,6 +7,11 @@ import { queryKeys } from "./query-keys";
 export type RequestStatus = 'pending' | 'approved' | 'downloading' | 'complete' | 'rejected';
 export type ContentType = 'audiobook' | 'ebook';
 
+export interface SeriesInfo {
+  name: string;
+  number: string | null;
+}
+
 export interface RequestResponse {
   id: string;
   userId: string;
@@ -34,14 +39,15 @@ export interface MamSearchResult {
   title: string;
   author: string | null;
   narrator: string | null;
-  series: string | null;
+  series: SeriesInfo[] | null;
   description: string | null;
   coverUrl: string | null;
   contentType: ContentType;
+  category: string;
   size: string;
   language: string;
   fileType: string;
-  tags: string;
+  tags: string[];
   addedDate: string;
   existingRequestId: string | null;
   existingRequestStatus: RequestStatus | null;

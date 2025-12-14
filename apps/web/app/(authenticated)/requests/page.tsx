@@ -22,7 +22,7 @@ export default function RequestsPage() {
   const [filters, setFilters] = useState<SearchFilters>({
     contentType: "all",
     searchIn: ["title", "author"],
-    languages: [],
+    languages: [1], // Default to English
     perPage: 25,
   });
 
