@@ -1,0 +1,46 @@
+{
+  "title": "Förfrågningar",
+  "searchPlaceholder": "Sök ljudböcker & e-böcker...",
+  "tabs": {
+    "searchResults": "Sökresultat",
+    "myRequests": "Mina förfrågningar"
+  },
+  "button": {
+    "request": "Begär",
+    "requested": "Begärd",
+    "inLibrary": "I biblioteket",
+    "support": "Stöd förfrågan"
+  },
+  "status": {
+    "pending": "Väntande",
+    "approved": "Godkänd",
+    "downloading": "Laddar ner",
+    "complete": "Klar",
+    "rejected": "Avvisad"
+  },
+  "card": {
+    "by": "av {author}",
+    "narratedBy": "Uppläst av {narrator}",
+    "series": "Serie: {series}"
+  },
+  "empty": {
+    "search": "Sök efter ljudböcker och e-böcker att begära",
+    "requests": "Du har inte gjort några förfrågningar än",
+    "noResults": "Inga resultat hittades"
+  },
+  "toast": {
+    "requested": "Förfrågan skickad",
+    "supported": "Lade till ditt stöd för denna förfrågan",
+    "alreadyInLibrary": "Detta objekt finns redan i ditt bibliotek",
+    "approved": "Förfrågan godkänd",
+    "rejected": "Förfrågan avvisad"
+  },
+  "admin": {
+    "title": "Hantera förfrågningar",
+    "requestedBy": "Begärd av {email}",
+    "supporters": "+ {count} andra",
+    "approve": "Godkänn",
+    "reject": "Avvisa",
+    "rejectReason": "Anledning till avvisning (valfritt)"
+  }
+}

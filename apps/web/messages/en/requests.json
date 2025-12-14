@@ -1,0 +1,46 @@
+{
+  "title": "Requests",
+  "searchPlaceholder": "Search audiobooks & ebooks...",
+  "tabs": {
+    "searchResults": "Search Results",
+    "myRequests": "My Requests"
+  },
+  "button": {
+    "request": "Request",
+    "requested": "Requested",
+    "inLibrary": "In Library",
+    "support": "Support Request"
+  },
+  "status": {
+    "pending": "Pending",
+    "approved": "Approved",
+    "downloading": "Downloading",
+    "complete": "Complete",
+    "rejected": "Rejected"
+  },
+  "card": {
+    "by": "by {author}",
+    "narratedBy": "Narrated by {narrator}",
+    "series": "Series: {series}"
+  },
+  "empty": {
+    "search": "Search for audiobooks and ebooks to request",
+    "requests": "You haven't made any requests yet",
+    "noResults": "No results found"
+  },
+  "toast": {
+    "requested": "Request submitted",
+    "supported": "Added your support to this request",
+    "alreadyInLibrary": "This item is already in your library",
+    "approved": "Request approved",
+    "rejected": "Request rejected"
+  },
+  "admin": {
+    "title": "Manage Requests",
+    "requestedBy": "Requested by {email}",
+    "supporters": "+ {count} others",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectReason": "Rejection reason (optional)"
+  }
+}
