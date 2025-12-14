@@ -44,6 +44,7 @@ export interface MamSearchResult {
   coverUrl: string | null;
   contentType: ContentType;
   category: string;
+  mamCategory: number;
   size: string;
   language: string;
   fileType: string;
@@ -112,6 +113,7 @@ interface CreateRequestParams {
   description?: string;
   coverUrl?: string;
   contentType: ContentType;
+  mamCategory: number;
 }
 
 async function createRequest(params: CreateRequestParams): Promise<RequestResponse> {

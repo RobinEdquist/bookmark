@@ -37,6 +37,7 @@ export interface MamSearchResultDto {
   coverUrl: string | null;
   contentType: 'audiobook' | 'ebook';
   category: string;
+  mamCategory: number;
   size: string;
   language: string;
   fileType: string;

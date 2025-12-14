@@ -5,6 +5,7 @@ import {
   uuid,
   index,
   primaryKey,
+  integer,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { user } from '../auth/schema';
@@ -41,6 +42,7 @@ export const requests = pgTable(
     description: text('description'),
     coverUrl: text('cover_url'),
     contentType: text('content_type').$type<ContentType>().notNull(),
+    mamCategory: integer('mam_category').notNull(),
     rejectionReason: text('rejection_reason'),
     libraryItemId: uuid('library_item_id'),
     libraryItemType: text('library_item_type').$type<ContentType>(),

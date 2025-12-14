@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsInt } from 'class-validator';
 
 export class CreateRequestDto {
   @IsString()
@@ -29,4 +29,7 @@ export class CreateRequestDto {
 
   @IsIn(['audiobook', 'ebook'])
   contentType!: 'audiobook' | 'ebook';
+
+  @IsInt()
+  mamCategory!: number;
 }

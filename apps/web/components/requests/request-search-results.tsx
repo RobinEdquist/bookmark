@@ -22,6 +22,7 @@ interface RequestSearchResultsProps {
     series?: string;
     description?: string;
     contentType: ContentType;
+    mamCategory: number;
   }) => void;
   onSupport: (requestId: string) => void;
   isRequesting: boolean;
@@ -78,6 +79,7 @@ export function RequestSearchResults({
       series: seriesString,
       description: item.description ?? undefined,
       contentType: item.contentType,
+      mamCategory: item.mamCategory,
     });
   };
 

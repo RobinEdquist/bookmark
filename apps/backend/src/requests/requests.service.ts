@@ -213,6 +213,7 @@ export class RequestsService {
         coverUrl: null, // MAM doesn't provide cover URLs in search
         contentType,
         category: torrent.catname || '',
+        mamCategory: torrent.category,
         size: torrent.size,
         language: torrent.lang_code,
         fileType: torrent.filetype,
@@ -277,6 +278,7 @@ export class RequestsService {
         description: dto.description,
         coverUrl: dto.coverUrl,
         contentType: dto.contentType,
+        mamCategory: dto.mamCategory,
       })
       .returning();
 
@@ -348,9 +350,16 @@ export class RequestsService {
       throw new BadRequestException('Can only approve pending requests');
     }
 
-    // Determine qBittorrent category based on content type
-    const category =
-      request.contentType === 'audiobook' ? 'audiobooks' : 'books';
+    // Determine qBittorrent category based on content type and MAM category
+    // MAM category 61 = "Ebooks - Comics/Graphic novels"
+    let category: string;
+    if (request.mamCategory === 61) {
+      category = 'comics';
+    } else if (request.contentType === 'audiobook') {
+      category = 'audiobooks';
+    } else {
+      category = 'books';
+    }
 
     // Start download via MAM client
     const downloadResult = await this.mamClient.download(request.mamTorrentId, {

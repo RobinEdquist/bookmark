@@ -1,0 +1,1 @@
+ALTER TABLE "requests" ADD COLUMN "mam_category" integer NOT NULL;
