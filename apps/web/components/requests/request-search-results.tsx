@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Headphones, BookOpen } from "lucide-react";
+import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Badge } from "@repo/ui/components/ui/badge";
@@ -92,9 +93,10 @@ export function RequestSearchResults({
               </div>
 
               {item.description && (
-                <p className="line-clamp-2 text-sm text-muted-foreground">
-                  {item.description}
-                </p>
+                <p
+                  className="line-clamp-2 text-sm text-muted-foreground [&_strong]:font-semibold [&_em]:italic"
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.description) }}
+                />
               )}
 
               <div className="flex items-center gap-4 text-xs text-muted-foreground">

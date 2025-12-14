@@ -37,6 +37,59 @@ export class RequestsService {
     private mamClient: MamClientService,
   ) {}
 
+  /**
+   * Parse MAM info fields (author_info, narrator_info, series_info)
+   * These come as JSON objects like {"111371":"Author Name"} or "{}"
+   * Returns comma-separated names or null if empty
+   */
+  private parseMamInfoField(infoField: string | null | undefined): string | null {
+    if (!infoField || infoField === '{}') {
+      return null;
+    }
+
+    try {
+      const parsed = JSON.parse(infoField);
+      if (typeof parsed === 'object' && parsed !== null) {
+        const values = Object.values(parsed) as string[];
+        if (values.length === 0) {
+          return null;
+        }
+        // Decode HTML entities and join multiple values
+        return values.map((v) => this.decodeHtmlEntities(v)).join(', ');
+      }
+      return null;
+    } catch {
+      // If not valid JSON, return as-is after decoding
+      return this.decodeHtmlEntities(infoField);
+    }
+  }
+
+  /**
+   * Decode common HTML entities
+   */
+  private decodeHtmlEntities(text: string): string {
+    return text
+      .replace(/&#039;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&#160;/g, ' ')
+      .replace(/&nbsp;/g, ' ');
+  }
+
+  /**
+   * Clean description - decode HTML entities but preserve HTML tags for rendering
+   */
+  private cleanDescription(description: string | null | undefined): string | null {
+    if (!description) {
+      return null;
+    }
+
+    // Only decode HTML entities, keep HTML tags for frontend rendering
+    return this.decodeHtmlEntities(description);
+  }
+
   async search(
     query: string,
     perPage: number,
@@ -105,11 +158,11 @@ export class RequestsService {
 
       return {
         id: torrent.id,
-        title: torrent.title,
-        author: torrent.author_info || null,
-        narrator: torrent.narrator_info || null,
-        series: torrent.series_info || null,
-        description: torrent.description || null,
+        title: this.decodeHtmlEntities(torrent.title),
+        author: this.parseMamInfoField(torrent.author_info),
+        narrator: this.parseMamInfoField(torrent.narrator_info),
+        series: this.parseMamInfoField(torrent.series_info),
+        description: this.cleanDescription(torrent.description),
         coverUrl: null, // MAM doesn't provide cover URLs in search
         contentType,
         size: torrent.size,
