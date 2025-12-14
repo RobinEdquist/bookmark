@@ -76,16 +76,16 @@ export function RequestDetailPanel({
 
   return (
     <>
-      {/* Overlay */}
+      {/* Clickable backdrop (transparent) */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            key="detail-panel-overlay"
+            key="detail-panel-backdrop"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm"
+            className="fixed inset-0 z-40"
             onClick={onClose}
           />
         )}
@@ -252,28 +252,6 @@ export function RequestDetailPanel({
         )}
       </AnimatePresence>
 
-      {/* Close button outside panel */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            key="detail-panel-close"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2, delay: 0.1 }}
-            className="fixed right-[calc(100%-2.5rem)] top-4 z-50 sm:right-[calc(36rem-2.5rem)]"
-          >
-            <Button
-              variant="secondary"
-              size="icon"
-              className="h-8 w-8 rounded-full shadow-md"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </>
   );
 }
