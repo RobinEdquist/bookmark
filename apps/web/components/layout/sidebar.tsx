@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Home, Headphones, BookOpen, TabletSmartphone, Settings, User, LogOut, Search } from "lucide-react";
+import { Home, Headphones, BookOpen, TabletSmartphone, Settings, User, LogOut, Search, ClipboardList } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
+import { useSettings } from "../../lib/use-settings";
 import { TasksIndicator } from "./tasks-indicator";
 import { AppLogo } from "./app-logo";
 
@@ -20,6 +21,10 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
   const t = useTranslations("common");
   const pathname = usePathname();
   const { data: availability } = useLibraryAvailability();
+  const { settings } = useSettings();
+
+  // Show requests if enabled and user has permission (admins always have permission)
+  const showRequests = settings?.requestsEnabled && isAdmin;
 
   const handleSignOut = async () => {
     await authClient.signOut();
@@ -36,7 +41,7 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
     { href: "/audiobooks", icon: Headphones, labelKey: "audiobooks", show: availability?.audiobooks ?? false },
     { href: "/ebooks", icon: BookOpen, labelKey: "ebooks", show: availability?.ebooks ?? false },
     { href: "/e-reader", icon: TabletSmartphone, labelKey: "eReader", show: availability?.opds ?? false },
-    { href: "/requests", icon: Search, labelKey: "requests", show: false }, // TODO: Wire up user permission check
+    { href: "/requests", icon: Search, labelKey: "requests", show: showRequests },
   ];
 
   return (
@@ -77,19 +82,36 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
       {/* Bottom actions */}
       <div className="border-t p-4 space-y-1">
         {isAdmin && (
-          <Link
-            href="/settings"
-            onClick={handleNavClick}
-            className={cn(
-              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-              pathname === "/settings" || pathname.startsWith("/settings/")
-                ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+          <>
+            <Link
+              href="/settings"
+              onClick={handleNavClick}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                pathname === "/settings" || pathname.startsWith("/settings/")
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <Settings className="h-5 w-5" />
+              {t("nav.settings")}
+            </Link>
+            {showRequests && (
+              <Link
+                href="/admin/requests"
+                onClick={handleNavClick}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  pathname === "/admin/requests" || pathname.startsWith("/admin/requests/")
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <ClipboardList className="h-5 w-5" />
+                {t("nav.manageRequests")}
+              </Link>
             )}
-          >
-            <Settings className="h-5 w-5" />
-            {t("nav.settings")}
-          </Link>
+          </>
         )}
         <Link
           href="/preferences"
