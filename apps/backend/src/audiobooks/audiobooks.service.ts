@@ -1417,7 +1417,8 @@ export class AudiobooksService {
 
     // Detect single-file audiobook: filePath equals the first file's fileName
     // (single files at library root have filePath = fileName)
-    const isSingleFile = files.length === 1 && ab.filePath === files[0].fileName;
+    const isSingleFile =
+      files.length === 1 && ab.filePath === files[0].fileName;
 
     // Check if cover is uploaded (stored in app data)
     const hasUploadedCover = ab.coverSource === 'uploaded';
@@ -1477,7 +1478,9 @@ export class AudiobooksService {
       files: await Promise.all(
         files.map(async (f) => ({
           // Build the correct relative path (multi-file: folder + fileName)
-          filePath: await this.resolveFilePath(path.join(ab.filePath, f.fileName)),
+          filePath: await this.resolveFilePath(
+            path.join(ab.filePath, f.fileName),
+          ),
           fileName: f.fileName,
         })),
       ),
@@ -1528,7 +1531,8 @@ export class AudiobooksService {
 
     // Detect single-file audiobook: filePath equals the first file's fileName
     // (single files at library root have filePath = fileName)
-    const isSingleFile = files.length === 1 && audiobook[0].filePath === files[0].fileName;
+    const isSingleFile =
+      files.length === 1 && audiobook[0].filePath === files[0].fileName;
 
     // Calculate total duration
     const totalDuration = files.reduce((sum, f) => sum + f.duration, 0);

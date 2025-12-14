@@ -17,7 +17,6 @@ interface ChapterDrawerProps {
   onOpenChange: (open: boolean) => void;
   chapters: AudiobookChapter[];
   currentChapter: AudiobookChapter | null;
-  currentPosition: number;
   isPlaying: boolean;
   onSelectChapter: (chapter: AudiobookChapter) => void;
 }
@@ -52,7 +51,6 @@ export function ChapterDrawer({
   onOpenChange,
   chapters,
   currentChapter,
-  currentPosition,
   isPlaying,
   onSelectChapter,
 }: ChapterDrawerProps) {

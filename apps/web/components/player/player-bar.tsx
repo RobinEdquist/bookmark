@@ -507,7 +507,6 @@ export function PlayerBar() {
           onOpenChange={setIsChapterDrawerOpen}
           chapters={audiobook.chapters}
           currentChapter={currentChapter}
-          currentPosition={currentPosition}
           isPlaying={isPlaying}
           onSelectChapter={handleSelectChapter}
         />
