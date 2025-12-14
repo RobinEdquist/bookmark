@@ -11,9 +11,10 @@ import { EmbeddedMetadataProvider } from './metadata/embedded-metadata.provider'
 import { EbookMetadataProvider } from './metadata/ebook-metadata.provider';
 import { MetadataWorkerPoolService } from './metadata/metadata-worker-pool.service';
 import { HardcoverModule } from '../hardcover/hardcover.module';
+import { RequestsModule } from '../requests';
 
 @Module({
-  imports: [HardcoverModule],
+  imports: [HardcoverModule, RequestsModule],
   controllers: [LibraryWatcherController],
   providers: [
     LibraryWatcherService,

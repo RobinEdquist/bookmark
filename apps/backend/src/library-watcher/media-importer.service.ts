@@ -17,6 +17,7 @@ import { HardcoverService } from '../hardcover/hardcover.service';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 import { AudiobookUnit, EbookUnit } from './media-detector.service';
+import { RequestsService } from '../requests';
 
 @Injectable()
 export class MediaImporterService {
@@ -31,6 +32,7 @@ export class MediaImporterService {
     private hardcoverService: HardcoverService,
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
+    private requestsService: RequestsService,
   ) {}
 
   // ===== AUDIOBOOK IMPORT =====
@@ -202,6 +204,11 @@ export class MediaImporterService {
       this.logger.log(`Imported audiobook: ${title} (${audiobook.id})`);
       this.appEvents.audiobookCreated(audiobook.id);
       this.wsEvents.audiobookCreated(audiobook.id);
+
+      // Try to match with pending requests
+      const folderName = path.basename(unit.path);
+      await this.requestsService.tryMatchImport(folderName, audiobook.id, 'audiobook');
+
       return audiobook.id;
     } catch (error) {
       this.logger.error(`Failed to import audiobook at ${unit.path}: ${error}`);
@@ -295,6 +302,10 @@ export class MediaImporterService {
       this.logger.log(`Imported ebook: ${metadata.title} (${ebook.id})`);
       this.appEvents.ebookCreated(ebook.id);
       this.wsEvents.ebookCreated(ebook.id);
+
+      // Try to match with pending requests
+      const folderName = path.basename(path.dirname(unit.path));
+      await this.requestsService.tryMatchImport(folderName, ebook.id, 'ebook');
 
       // Queue for Hardcover auto-sync
       try {

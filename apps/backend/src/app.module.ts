@@ -25,6 +25,8 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { PeopleModule } from './people/people.module';
 import { RestoreModule } from './restore/restore.module';
 import { HealthModule } from './health/health.module';
+import { MamClientModule } from './mam-client';
+import { RequestsModule } from './requests';
 import { APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { createAuthInstance } from './auth/auth.provider';
@@ -125,6 +127,8 @@ import { CommonModule } from './common/common.module';
     PeopleModule,
     RestoreModule,
     HealthModule,
+    MamClientModule,
+    RequestsModule,
   ],
   controllers: [],
   providers: [

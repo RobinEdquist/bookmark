@@ -43,6 +43,7 @@ export class AppSettingsService {
     oidcButtonText?: string;
     emailPasswordEnabled?: boolean;
     oidcAutoCreateUsers?: string;
+    requestsEnabled?: boolean;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)
@@ -106,5 +107,10 @@ export class AppSettingsService {
   async getOidcAutoCreateUsers(): Promise<string> {
     const settings = await this.getSettings();
     return settings.oidcAutoCreateUsers;
+  }
+
+  async isRequestsEnabled(): Promise<boolean> {
+    const settings = await this.getSettings();
+    return settings.requestsEnabled;
   }
 }
