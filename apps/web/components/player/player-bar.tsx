@@ -190,6 +190,8 @@ export function PlayerBar() {
       <AnimatePresence>
         <motion.div
           key="player-bar"
+          role="region"
+          aria-label={t("playerRegion")}
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
@@ -197,7 +199,14 @@ export function PlayerBar() {
           className="shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 overflow-hidden"
         >
         {/* Progress bar at top */}
-        <div className="h-1 w-full bg-muted">
+        <div
+          className="h-1 w-full bg-muted"
+          role="progressbar"
+          aria-label={t("bookProgress")}
+          aria-valuenow={Math.round(progress)}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
           <div
             className="h-full bg-primary transition-all duration-150"
             style={{ width: `${progress}%` }}
@@ -210,19 +219,20 @@ export function PlayerBar() {
             {/* Cover */}
             <Link
               href={`/audiobooks/${audiobook.id}`}
-              className="shrink-0 overflow-hidden rounded-md"
+              className="shrink-0 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              aria-label={t("viewAudiobook", { title: audiobook.title })}
             >
               {audiobook.coverUrl ? (
                 <Image
                   src={audiobook.coverUrl}
-                  alt={audiobook.title}
+                  alt=""
                   width={48}
                   height={48}
                   className="h-10 w-10 sm:h-12 sm:w-12 object-cover"
                   unoptimized={audiobook.coverUrl.startsWith("/api/")}
                 />
               ) : (
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center bg-muted">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center bg-muted" aria-hidden="true">
                   <span className="text-lg">📚</span>
                 </div>
               )}
@@ -232,7 +242,7 @@ export function PlayerBar() {
             <div className="min-w-0 flex-1">
               <Link
                 href={`/audiobooks/${audiobook.id}`}
-                className="block text-sm font-medium hover:underline"
+                className="block text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
               >
                 <Marquee speed={25} pauseDuration={2500} gap={50}>
                   {audiobook.title}
@@ -240,11 +250,13 @@ export function PlayerBar() {
               </Link>
               {currentChapter && hasChapters && (
                 <button
+                  type="button"
                   onClick={() => setIsChapterDrawerOpen(true)}
-                  className="flex max-w-full items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  title={t("chapters")}
+                  className="flex max-w-full items-center gap-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm transition-colors"
+                  aria-label={t("openChapterList")}
+                  aria-haspopup="dialog"
                 >
-                  <List className="h-3 w-3 shrink-0" />
+                  <List className="h-3 w-3 shrink-0" aria-hidden="true" />
                   <Marquee speed={20} pauseDuration={2000} gap={40} className="flex-1">
                     {currentChapter.title}
                   </Marquee>
@@ -254,7 +266,7 @@ export function PlayerBar() {
           </div>
 
           {/* Controls - simplified on mobile, full on desktop */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2" role="group" aria-label={t("playbackControls")}>
             {/* Previous chapter - hidden on mobile */}
             <Button
               variant="ghost"
@@ -262,9 +274,9 @@ export function PlayerBar() {
               className="hidden h-8 w-8 sm:flex"
               onClick={prevChapter}
               disabled={isLoading}
-              title={t("previousChapter")}
+              aria-label={t("previousChapter")}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </Button>
 
             {/* Skip backward */}
@@ -274,9 +286,9 @@ export function PlayerBar() {
               className="h-8 w-8"
               onClick={() => seekRelative(-SKIP_BACKWARD_SECONDS)}
               disabled={isLoading}
-              title={t("skipBackward", { seconds: SKIP_BACKWARD_SECONDS })}
+              aria-label={t("skipBackward", { seconds: SKIP_BACKWARD_SECONDS })}
             >
-              <SkipBack className="h-4 w-4" />
+              <SkipBack className="h-4 w-4" aria-hidden="true" />
             </Button>
 
             {/* Play/Pause */}
@@ -286,14 +298,14 @@ export function PlayerBar() {
               className="h-9 w-9 sm:h-10 sm:w-10"
               onClick={isPlaying ? pause : resume}
               disabled={isLoading}
-              title={isPlaying ? t("pause") : t("play")}
+              aria-label={isPlaying ? t("pause") : t("play")}
             >
               {isLoading ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" role="status" aria-label={t("loading")} />
               ) : isPlaying ? (
-                <Pause className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Pause className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
               ) : (
-                <Play className="h-4 w-4 sm:h-5 sm:w-5 pl-0.5" />
+                <Play className="h-4 w-4 sm:h-5 sm:w-5 pl-0.5" aria-hidden="true" />
               )}
             </Button>
 
@@ -304,9 +316,9 @@ export function PlayerBar() {
               className="h-8 w-8"
               onClick={() => seekRelative(SKIP_FORWARD_SECONDS)}
               disabled={isLoading}
-              title={t("skipForward", { seconds: SKIP_FORWARD_SECONDS })}
+              aria-label={t("skipForward", { seconds: SKIP_FORWARD_SECONDS })}
             >
-              <SkipForward className="h-4 w-4" />
+              <SkipForward className="h-4 w-4" aria-hidden="true" />
             </Button>
 
             {/* Next chapter - hidden on mobile */}
@@ -316,9 +328,9 @@ export function PlayerBar() {
               className="hidden h-8 w-8 sm:flex"
               onClick={nextChapter}
               disabled={isLoading}
-              title={t("nextChapter")}
+              aria-label={t("nextChapter")}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
 
@@ -331,16 +343,16 @@ export function PlayerBar() {
                 size="icon"
                 className="h-6 w-6 shrink-0"
                 onClick={toggleProgressMode}
-                title={isChapterMode ? t("bookMode") : t("chapterMode")}
+                aria-label={isChapterMode ? t("bookMode") : t("chapterMode")}
               >
                 {isChapterMode ? (
-                  <List className="h-3.5 w-3.5" />
+                  <List className="h-3.5 w-3.5" aria-hidden="true" />
                 ) : (
-                  <BookOpen className="h-3.5 w-3.5" />
+                  <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
                 )}
               </Button>
             )}
-            <span className="w-12 text-right text-xs text-muted-foreground">
+            <span className="w-12 text-right text-xs text-muted-foreground" aria-hidden="true">
               {formatTime(sliderPosition)}
             </span>
             <Slider
@@ -352,8 +364,10 @@ export function PlayerBar() {
               onValueCommit={handleSeekCommit}
               className="flex-1"
               disabled={isLoading}
+              aria-label={isChapterMode ? t("chapterSeek") : t("bookSeek")}
+              aria-valuetext={t("currentTime", { current: formatTime(sliderPosition), total: formatTime(sliderMax) })}
             />
-            <span className="w-12 text-xs text-muted-foreground">
+            <span className="w-12 text-xs text-muted-foreground" aria-hidden="true">
               {formatTime(sliderMax)}
             </span>
           </div>
@@ -366,7 +380,8 @@ export function PlayerBar() {
               size="sm"
               className="h-8 px-2 text-xs font-medium sm:hidden"
               onClick={() => setIsSpeedDrawerOpen(true)}
-              title={t("speed")}
+              aria-label={t("speedValue", { rate: playbackRate })}
+              aria-haspopup="dialog"
             >
               {playbackRate}x
             </Button>
@@ -378,7 +393,7 @@ export function PlayerBar() {
                   variant="ghost"
                   size="sm"
                   className="hidden h-8 px-2 text-xs font-medium sm:flex"
-                  title={t("speed")}
+                  aria-label={t("speedValue", { rate: playbackRate })}
                 >
                   {playbackRate}x
                 </Button>
@@ -397,18 +412,19 @@ export function PlayerBar() {
             </DropdownMenu>
 
             {/* Volume - desktop only */}
-            <div className="hidden items-center gap-1 lg:flex">
+            <div className="hidden items-center gap-1 lg:flex" role="group" aria-label={t("volumeControls")}>
               <Button
                 variant="ghost"
                 size="icon"
                 className="h-8 w-8"
                 onClick={toggleMute}
-                title={volume > 0 ? t("mute") : t("unmute")}
+                aria-label={volume > 0 ? t("mute") : t("unmute")}
+                aria-pressed={volume === 0}
               >
                 {volume > 0 ? (
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="h-4 w-4" aria-hidden="true" />
                 ) : (
-                  <VolumeX className="h-4 w-4" />
+                  <VolumeX className="h-4 w-4" aria-hidden="true" />
                 )}
               </Button>
               <Slider
@@ -417,6 +433,8 @@ export function PlayerBar() {
                 step={0.01}
                 onValueChange={handleVolumeChange}
                 className="w-20"
+                aria-label={t("volume")}
+                aria-valuetext={`${Math.round(volume * 100)}%`}
               />
             </div>
 
@@ -426,9 +444,9 @@ export function PlayerBar() {
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
               onClick={stop}
-              title={t("close")}
+              aria-label={t("close")}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </div>
@@ -443,9 +461,9 @@ export function PlayerBar() {
               className="h-7 w-7 shrink-0"
               onClick={prevChapter}
               disabled={isLoading}
-              title={t("previousChapter")}
+              aria-label={t("previousChapter")}
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </Button>
           )}
 
@@ -456,17 +474,17 @@ export function PlayerBar() {
               size="icon"
               className="h-7 w-7 shrink-0"
               onClick={toggleProgressMode}
-              title={isChapterMode ? t("bookMode") : t("chapterMode")}
+              aria-label={isChapterMode ? t("bookMode") : t("chapterMode")}
             >
               {isChapterMode ? (
-                <List className="h-3.5 w-3.5" />
+                <List className="h-3.5 w-3.5" aria-hidden="true" />
               ) : (
-                <BookOpen className="h-3.5 w-3.5" />
+                <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
               )}
             </Button>
           )}
 
-          <span className="w-9 text-right text-[11px] tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-right text-[11px] tabular-nums text-muted-foreground" aria-hidden="true">
             {formatTime(sliderPosition)}
           </span>
           <Slider
@@ -476,10 +494,12 @@ export function PlayerBar() {
             onPointerDown={handleSeekStart}
             onValueChange={handleSeekPreview}
             onValueCommit={handleSeekCommit}
-            className="flex-1"
+            className="min-w-0 flex-1"
             disabled={isLoading}
+            aria-label={isChapterMode ? t("chapterSeek") : t("bookSeek")}
+            aria-valuetext={t("currentTime", { current: formatTime(sliderPosition), total: formatTime(sliderMax) })}
           />
-          <span className="w-9 text-[11px] tabular-nums text-muted-foreground">
+          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground" aria-hidden="true">
             {formatTime(sliderMax)}
           </span>
 
@@ -491,9 +511,9 @@ export function PlayerBar() {
               className="h-7 w-7 shrink-0"
               onClick={nextChapter}
               disabled={isLoading}
-              title={t("nextChapter")}
+              aria-label={t("nextChapter")}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           )}
         </div>

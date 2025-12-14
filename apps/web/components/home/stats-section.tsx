@@ -3,19 +3,8 @@
 import { useTranslations } from "next-intl";
 import { useLibraryStats } from "../../lib/use-library-stats";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
-import { formatDurationHours } from "../../lib/format-duration";
 import { StatsCard } from "./stats-card";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
-
-function formatNumber(num: number): string {
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(1)}M`;
-  }
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(1)}K`;
-  }
-  return num.toLocaleString();
-}
 
 export function StatsSection() {
   const t = useTranslations("home.stats");
@@ -24,8 +13,8 @@ export function StatsSection() {
 
   if (isLoading || isLoadingAvailability) {
     return (
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-6">
-        {[...Array(6)].map((_, i) => (
+      <div className="grid grid-cols-3 gap-4">
+        {[...Array(3)].map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
       </div>
@@ -44,30 +33,27 @@ export function StatsSection() {
   // Build stats array based on available libraries
   const stats: { value: number | string; label: string }[] = [];
 
-  // Audiobook-related stats (audiobooks, duration, series, authors)
+  // Audiobook count
   if (availability.audiobooks) {
     stats.push({ value: data.audiobookCount, label: t("audiobooks") });
-    stats.push({ value: formatDurationHours(data.totalDuration), label: t("totalDuration") });
   }
 
-  // Ebook-related stats
+  // Ebook count
   if (availability.ebooks) {
     stats.push({ value: data.ebookCount, label: t("ebooks") });
-    stats.push({ value: formatNumber(data.totalPages), label: t("totalPages") });
   }
 
-  // Series and authors are shared (shown if audiobooks available)
+  // Authors (shown if audiobooks available)
   if (availability.audiobooks) {
-    stats.push({ value: data.seriesCount, label: t("series") });
     stats.push({ value: data.authorCount, label: t("authors") });
   }
 
   // Determine grid columns based on number of stats
-  const gridCols = stats.length <= 2
-    ? "grid-cols-2"
-    : stats.length <= 4
-      ? "grid-cols-2 md:grid-cols-4"
-      : "grid-cols-2 md:grid-cols-3 lg:grid-cols-6";
+  const gridCols = stats.length === 1
+    ? "grid-cols-1"
+    : stats.length === 2
+      ? "grid-cols-2"
+      : "grid-cols-3";
 
   return (
     <div className={`grid gap-4 ${gridCols}`}>
