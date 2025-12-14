@@ -69,6 +69,7 @@ export const appSettings = pgTable(
     oidcAutoCreateUsers: text('oidc_auto_create_users')
       .notNull()
       .default('auto'),
+    requestsEnabled: boolean('requests_enabled').notNull().default(false),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
