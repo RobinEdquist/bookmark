@@ -9,6 +9,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
 import { useSettings } from "../../lib/use-settings";
+import { useMyPermissions } from "../../lib/use-users";
 import { TasksIndicator } from "./tasks-indicator";
 import { AppLogo } from "./app-logo";
 
@@ -22,9 +23,11 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
   const pathname = usePathname();
   const { data: availability } = useLibraryAvailability();
   const { settings } = useSettings();
+  const { data: permissions } = useMyPermissions();
 
   // Show requests if enabled and user has permission (admins always have permission)
-  const showRequests = settings?.requestsEnabled && isAdmin;
+  const canRequestContent = permissions?.canRequestContent ?? false;
+  const showRequests = settings?.requestsEnabled && (isAdmin || canRequestContent);
 
   const handleSignOut = async () => {
     await authClient.signOut();
