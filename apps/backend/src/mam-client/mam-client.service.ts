@@ -76,7 +76,11 @@ export class MamClientService {
   }
 
   async download(mamTorrentId: string): Promise<MamDownloadResponse> {
-    return this.request<MamDownloadResponse>('POST', `/download/${mamTorrentId}`, {});
+    return this.request<MamDownloadResponse>(
+      'POST',
+      `/download/${mamTorrentId}`,
+      {},
+    );
   }
 
   async getTorrentStatus(hash: string): Promise<TorrentStatus> {
@@ -85,7 +89,10 @@ export class MamClientService {
 
   async getBulkTorrentStatus(hashes: string[]): Promise<BulkTorrentStatus> {
     const hashesParam = hashes.join(',');
-    return this.request<BulkTorrentStatus>('GET', `/torrents?hashes=${hashesParam}`);
+    return this.request<BulkTorrentStatus>(
+      'GET',
+      `/torrents?hashes=${hashesParam}`,
+    );
   }
 
   async healthCheck(): Promise<boolean> {

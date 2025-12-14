@@ -207,7 +207,11 @@ export class MediaImporterService {
 
       // Try to match with pending requests
       const folderName = path.basename(unit.path);
-      await this.requestsService.tryMatchImport(folderName, audiobook.id, 'audiobook');
+      await this.requestsService.tryMatchImport(
+        folderName,
+        audiobook.id,
+        'audiobook',
+      );
 
       return audiobook.id;
     } catch (error) {

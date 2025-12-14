@@ -49,7 +49,13 @@ export interface TorrentFile {
 export interface TorrentStatus {
   hash: string;
   name: string;
-  state: 'downloading' | 'seeding' | 'completed' | 'paused' | 'error' | 'not_found';
+  state:
+    | 'downloading'
+    | 'seeding'
+    | 'completed'
+    | 'paused'
+    | 'error'
+    | 'not_found';
   progress: number;
   size?: number;
   downloaded?: number;

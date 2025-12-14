@@ -11,7 +11,13 @@ import { user } from '../auth/schema';
 import { audiobooks } from '../audiobooks/schema';
 import { ebooks } from '../ebooks/schema';
 
-export const requestStatus = ['pending', 'approved', 'downloading', 'complete', 'rejected'] as const;
+export const requestStatus = [
+  'pending',
+  'approved',
+  'downloading',
+  'complete',
+  'rejected',
+] as const;
 export type RequestStatus = (typeof requestStatus)[number];
 
 export const contentType = ['audiobook', 'ebook'] as const;
@@ -85,13 +91,16 @@ export const requestsRelations = relations(requests, ({ one, many }) => ({
   }),
 }));
 
-export const requestSupportersRelations = relations(requestSupporters, ({ one }) => ({
-  request: one(requests, {
-    fields: [requestSupporters.requestId],
-    references: [requests.id],
+export const requestSupportersRelations = relations(
+  requestSupporters,
+  ({ one }) => ({
+    request: one(requests, {
+      fields: [requestSupporters.requestId],
+      references: [requests.id],
+    }),
+    user: one(user, {
+      fields: [requestSupporters.userId],
+      references: [user.id],
+    }),
   }),
-  user: one(user, {
-    fields: [requestSupporters.userId],
-    references: [user.id],
-  }),
-}));
+);

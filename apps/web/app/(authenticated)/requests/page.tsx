@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
 import { Input } from "@repo/ui/components/ui/input";
@@ -15,13 +14,12 @@ import { authClient } from "../../../lib/auth-client";
 
 export default function RequestsPage() {
   const t = useTranslations("requests");
-  const router = useRouter();
-  const { data: session, isPending: sessionPending } = authClient.useSession();
+  const { isPending: sessionPending } = authClient.useSession();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"search" | "my-requests">("search");
 
-  const { search, isSearching, data: searchResults, reset: resetSearch } = useSearchMam();
+  const { search, isSearching, data: searchResults } = useSearchMam();
   const { data: myRequests, isLoading: requestsLoading } = useMyRequests();
   const { createRequest, isCreating } = useCreateRequest();
   const { supportRequest, isSupporting } = useSupportRequest();

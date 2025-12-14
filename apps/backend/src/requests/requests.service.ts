@@ -1,4 +1,10 @@
-import { Inject, Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, or, inArray, isNull } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -31,7 +37,12 @@ export class RequestsService {
     private mamClient: MamClientService,
   ) {}
 
-  async search(query: string, limit: number, offset: number, userId: string): Promise<SearchMamResponseDto> {
+  async search(
+    query: string,
+    limit: number,
+    offset: number,
+    _userId: string,
+  ): Promise<SearchMamResponseDto> {
     const mamResponse = await this.mamClient.search({
       text: query,
       perpage: limit,
@@ -42,32 +53,36 @@ export class RequestsService {
     const mamIds = mamResponse.data.map((t) => t.id);
 
     // Fetch existing requests for these torrents
-    const existingRequests = mamIds.length > 0
-      ? await this.db
-          .select({
-            mamTorrentId: requestsSchema.requests.mamTorrentId,
-            id: requestsSchema.requests.id,
-            status: requestsSchema.requests.status,
-          })
-          .from(requestsSchema.requests)
-          .where(
-            and(
-              inArray(requestsSchema.requests.mamTorrentId, mamIds),
-              or(
-                eq(requestsSchema.requests.status, 'pending'),
-                eq(requestsSchema.requests.status, 'approved'),
-                eq(requestsSchema.requests.status, 'downloading'),
+    const existingRequests =
+      mamIds.length > 0
+        ? await this.db
+            .select({
+              mamTorrentId: requestsSchema.requests.mamTorrentId,
+              id: requestsSchema.requests.id,
+              status: requestsSchema.requests.status,
+            })
+            .from(requestsSchema.requests)
+            .where(
+              and(
+                inArray(requestsSchema.requests.mamTorrentId, mamIds),
+                or(
+                  eq(requestsSchema.requests.status, 'pending'),
+                  eq(requestsSchema.requests.status, 'approved'),
+                  eq(requestsSchema.requests.status, 'downloading'),
+                ),
               ),
-            ),
-          )
-      : [];
+            )
+        : [];
 
-    const requestMap = new Map(existingRequests.map((r) => [r.mamTorrentId, r]));
+    const requestMap = new Map(
+      existingRequests.map((r) => [r.mamTorrentId, r]),
+    );
 
     // Map results
     const results: MamSearchResultDto[] = mamResponse.data.map((torrent) => {
       const existing = requestMap.get(torrent.id);
-      const contentType: ContentType = torrent.main_cat === 13 ? 'audiobook' : 'ebook';
+      const contentType: ContentType =
+        torrent.main_cat === 13 ? 'audiobook' : 'ebook';
 
       return {
         id: torrent.id,
@@ -96,7 +111,10 @@ export class RequestsService {
     };
   }
 
-  async createRequest(dto: CreateRequestDto, userId: string): Promise<RequestResponseDto> {
+  async createRequest(
+    dto: CreateRequestDto,
+    userId: string,
+  ): Promise<RequestResponseDto> {
     // Check for existing active request
     const existing = await this.db
       .select()
@@ -186,7 +204,10 @@ export class RequestsService {
     return Promise.all(requests.map((r) => this.mapToResponseDto(r, null)));
   }
 
-  async getRequestById(id: string, userId: string | null): Promise<RequestResponseDto> {
+  async getRequestById(
+    id: string,
+    userId: string | null,
+  ): Promise<RequestResponseDto> {
     const [request] = await this.db
       .select()
       .from(requestsSchema.requests)
@@ -211,7 +232,9 @@ export class RequestsService {
     const downloadResult = await this.mamClient.download(request.mamTorrentId);
 
     // Get torrent info to cache folder name
-    const torrentStatus = await this.mamClient.getTorrentStatus(downloadResult.hash);
+    const torrentStatus = await this.mamClient.getTorrentStatus(
+      downloadResult.hash,
+    );
 
     // Update request with hash and folder name
     await this.db
@@ -226,7 +249,10 @@ export class RequestsService {
     return this.getRequestById(id, null);
   }
 
-  async rejectRequest(id: string, dto: RejectRequestDto): Promise<RequestResponseDto> {
+  async rejectRequest(
+    id: string,
+    dto: RejectRequestDto,
+  ): Promise<RequestResponseDto> {
     const request = await this.getRequestByIdInternal(id);
 
     if (request.status !== 'pending') {
@@ -271,18 +297,25 @@ export class RequestsService {
       const statuses = await this.mamClient.getBulkTorrentStatus(hashes);
 
       for (const torrentStatus of statuses.torrents) {
-        const request = activeRequests.find((r) => r.torrentHash === torrentStatus.hash);
+        const request = activeRequests.find(
+          (r) => r.torrentHash === torrentStatus.hash,
+        );
         if (!request) continue;
 
         let newStatus: RequestStatus | null = null;
 
         if (torrentStatus.state === 'downloading') {
           newStatus = 'downloading';
-        } else if (torrentStatus.state === 'completed' || torrentStatus.state === 'seeding') {
+        } else if (
+          torrentStatus.state === 'completed' ||
+          torrentStatus.state === 'seeding'
+        ) {
           // Keep as downloading until import matcher links it
           newStatus = 'downloading';
         } else if (torrentStatus.state === 'not_found') {
-          this.logger.warn(`Torrent ${torrentStatus.hash} not found for request ${request.id}`);
+          this.logger.warn(
+            `Torrent ${torrentStatus.hash} not found for request ${request.id}`,
+          );
           continue;
         }
 
@@ -329,7 +362,9 @@ export class RequestsService {
       })
       .where(eq(requestsSchema.requests.id, request.id));
 
-    this.logger.log(`Matched request ${request.id} to ${libraryItemType} ${libraryItemId}`);
+    this.logger.log(
+      `Matched request ${request.id} to ${libraryItemType} ${libraryItemId}`,
+    );
     return true;
   }
 

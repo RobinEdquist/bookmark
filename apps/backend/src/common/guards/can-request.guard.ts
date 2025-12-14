@@ -37,7 +37,9 @@ export class CanRequestGuard implements CanActivate {
 
     // Check if requests are enabled globally
     const [settings] = await this.db
-      .select({ requestsEnabled: appSettingsSchema.appSettings.requestsEnabled })
+      .select({
+        requestsEnabled: appSettingsSchema.appSettings.requestsEnabled,
+      })
       .from(appSettingsSchema.appSettings)
       .where(eq(appSettingsSchema.appSettings.id, 'app_settings'))
       .limit(1);
@@ -48,13 +50,17 @@ export class CanRequestGuard implements CanActivate {
 
     // Check if user has permission
     const [permissions] = await this.db
-      .select({ canRequestContent: usersSchema.userPermissions.canRequestContent })
+      .select({
+        canRequestContent: usersSchema.userPermissions.canRequestContent,
+      })
       .from(usersSchema.userPermissions)
       .where(eq(usersSchema.userPermissions.userId, session.user.id))
       .limit(1);
 
     if (!permissions?.canRequestContent) {
-      throw new ForbiddenException('You do not have permission to request content');
+      throw new ForbiddenException(
+        'You do not have permission to request content',
+      );
     }
 
     return true;

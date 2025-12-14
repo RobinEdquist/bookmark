@@ -175,8 +175,6 @@ async function rejectRequest(requestId: string, reason?: string): Promise<Reques
 
 // Hooks
 export function useSearchMam() {
-  const queryClient = useQueryClient();
-
   const mutation = useMutation({
     mutationFn: searchMam,
   });
