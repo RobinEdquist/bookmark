@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
@@ -15,6 +15,8 @@ import {
   VolumeX,
   ChevronLeft,
   ChevronRight,
+  BookOpen,
+  List,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Slider } from "@repo/ui/components/ui/slider";
@@ -25,7 +27,10 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import { cn } from "@repo/ui/lib/utils";
+import { Marquee } from "@repo/ui/components/ui/marquee";
 import { usePlayer } from "../providers/player-provider";
+import { ChapterDrawer } from "./chapter-drawer";
+import { SpeedDrawer } from "./speed-drawer";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SKIP_BACKWARD_SECONDS = 15;
@@ -69,20 +74,69 @@ export function PlayerBar() {
     prevChapter,
   } = usePlayer();
 
+  // Drawer states
+  const [isChapterDrawerOpen, setIsChapterDrawerOpen] = useState(false);
+  const [isSpeedDrawerOpen, setIsSpeedDrawerOpen] = useState(false);
+
+  // Progress mode: 'book' shows total book progress, 'chapter' shows current chapter progress
+  const [progressMode, setProgressMode] = useState<"book" | "chapter">("book");
+
+  // Calculate chapter-relative progress values
+  const chapterProgress = useMemo(() => {
+    if (!currentChapter || !audiobook?.chapters) {
+      return { position: 0, duration: 0 };
+    }
+
+    const sortedChapters = [...audiobook.chapters].sort(
+      (a, b) => a.startTime - b.startTime
+    );
+    const chapterIndex = sortedChapters.findIndex(
+      (c) => c.id === currentChapter.id
+    );
+    const nextChapterItem = sortedChapters[chapterIndex + 1];
+    const chapterEndTime =
+      currentChapter.endTime ?? nextChapterItem?.startTime ?? duration;
+
+    const chapterPosition = currentPosition - currentChapter.startTime;
+    const chapterDuration = chapterEndTime - currentChapter.startTime;
+
+    return {
+      position: Math.max(0, chapterPosition),
+      duration: Math.max(0, chapterDuration),
+    };
+  }, [currentChapter, currentPosition, duration, audiobook?.chapters]);
+
+  // Determine which values to use for the slider based on progress mode
+  const hasChapters = (audiobook?.chapters?.length ?? 0) > 0;
+  const isChapterMode = progressMode === "chapter" && hasChapters && currentChapter;
+  const sliderPosition = isChapterMode ? chapterProgress.position : currentPosition;
+  const sliderMax = isChapterMode ? chapterProgress.duration : duration;
+
   // Called when user starts dragging - prevents timeupdate from overriding position
   const handleSeekStart = useCallback(() => {
     seekStart();
   }, [seekStart]);
+
+  // Convert slider position to absolute position (for chapter mode)
+  const toAbsolutePosition = useCallback(
+    (sliderValue: number): number => {
+      if (isChapterMode && currentChapter) {
+        return currentChapter.startTime + sliderValue;
+      }
+      return sliderValue;
+    },
+    [isChapterMode, currentChapter]
+  );
 
   // Called during dragging - updates audio position without syncing to server
   const handleSeekPreview = useCallback(
     (value: number[]) => {
       const position = value[0];
       if (position !== undefined) {
-        seekPreview(position);
+        seekPreview(toAbsolutePosition(position));
       }
     },
-    [seekPreview]
+    [seekPreview, toAbsolutePosition]
   );
 
   // Called when user releases the slider - syncs progress to server
@@ -91,11 +145,24 @@ export function PlayerBar() {
       seekEnd(); // Re-enable timeupdate
       const position = value[0];
       if (position !== undefined) {
-        seek(position);
+        seek(toAbsolutePosition(position));
       }
     },
-    [seek, seekEnd]
+    [seek, seekEnd, toAbsolutePosition]
   );
+
+  // Handle chapter selection from drawer
+  const handleSelectChapter = useCallback(
+    (chapter: { startTime: number }) => {
+      seek(chapter.startTime);
+    },
+    [seek]
+  );
+
+  // Toggle progress mode
+  const toggleProgressMode = useCallback(() => {
+    setProgressMode((prev) => (prev === "book" ? "chapter" : "book"));
+  }, []);
 
   const handleVolumeChange = useCallback(
     (value: number[]) => {
@@ -119,14 +186,16 @@ export function PlayerBar() {
   }
 
   return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ height: 0, opacity: 0 }}
-        animate={{ height: "auto", opacity: 1 }}
-        exit={{ height: 0, opacity: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-        className="shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 overflow-hidden"
-      >
+    <>
+      <AnimatePresence>
+        <motion.div
+          key="player-bar"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 overflow-hidden"
+        >
         {/* Progress bar at top */}
         <div className="h-1 w-full bg-muted">
           <div
@@ -135,9 +204,9 @@ export function PlayerBar() {
           />
         </div>
 
-        <div className="flex h-16 items-center gap-4 px-4 lg:px-6">
+        <div className="flex h-16 items-center gap-2 px-3 sm:gap-4 sm:px-4 lg:px-6">
           {/* Book info - left side */}
-          <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
             {/* Cover */}
             <Link
               href={`/audiobooks/${audiobook.id}`}
@@ -149,11 +218,11 @@ export function PlayerBar() {
                   alt={audiobook.title}
                   width={48}
                   height={48}
-                  className="h-12 w-12 object-cover"
+                  className="h-10 w-10 sm:h-12 sm:w-12 object-cover"
                   unoptimized={audiobook.coverUrl.startsWith("/api/")}
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center bg-muted">
+                <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center bg-muted">
                   <span className="text-lg">📚</span>
                 </div>
               )}
@@ -163,21 +232,30 @@ export function PlayerBar() {
             <div className="min-w-0 flex-1">
               <Link
                 href={`/audiobooks/${audiobook.id}`}
-                className="block truncate text-sm font-medium hover:underline"
+                className="block text-sm font-medium hover:underline"
               >
-                {audiobook.title}
+                <Marquee speed={25} pauseDuration={2500} gap={50}>
+                  {audiobook.title}
+                </Marquee>
               </Link>
-              {currentChapter && (
-                <p className="truncate text-xs text-muted-foreground">
-                  {currentChapter.title}
-                </p>
+              {currentChapter && hasChapters && (
+                <button
+                  onClick={() => setIsChapterDrawerOpen(true)}
+                  className="flex max-w-full items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  title={t("chapters")}
+                >
+                  <List className="h-3 w-3 shrink-0" />
+                  <Marquee speed={20} pauseDuration={2000} gap={40} className="flex-1">
+                    {currentChapter.title}
+                  </Marquee>
+                </button>
               )}
             </div>
           </div>
 
-          {/* Controls - center */}
+          {/* Controls - simplified on mobile, full on desktop */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Previous chapter */}
+            {/* Previous chapter - hidden on mobile */}
             <Button
               variant="ghost"
               size="icon"
@@ -205,7 +283,7 @@ export function PlayerBar() {
             <Button
               variant="default"
               size="icon"
-              className="h-10 w-10"
+              className="h-9 w-9 sm:h-10 sm:w-10"
               onClick={isPlaying ? pause : resume}
               disabled={isLoading}
               title={isPlaying ? t("pause") : t("play")}
@@ -213,9 +291,9 @@ export function PlayerBar() {
               {isLoading ? (
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
               ) : isPlaying ? (
-                <Pause className="h-5 w-5" />
+                <Pause className="h-4 w-4 sm:h-5 sm:w-5" />
               ) : (
-                <Play className="h-5 w-5 pl-0.5" />
+                <Play className="h-4 w-4 sm:h-5 sm:w-5 pl-0.5" />
               )}
             </Button>
 
@@ -231,7 +309,7 @@ export function PlayerBar() {
               <SkipForward className="h-4 w-4" />
             </Button>
 
-            {/* Next chapter */}
+            {/* Next chapter - hidden on mobile */}
             <Button
               variant="ghost"
               size="icon"
@@ -246,12 +324,28 @@ export function PlayerBar() {
 
           {/* Seek bar and time - desktop only */}
           <div className="hidden flex-1 items-center gap-2 md:flex">
+            {/* Progress mode toggle */}
+            {hasChapters && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0"
+                onClick={toggleProgressMode}
+                title={isChapterMode ? t("bookMode") : t("chapterMode")}
+              >
+                {isChapterMode ? (
+                  <List className="h-3.5 w-3.5" />
+                ) : (
+                  <BookOpen className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            )}
             <span className="w-12 text-right text-xs text-muted-foreground">
-              {formatTime(currentPosition)}
+              {formatTime(sliderPosition)}
             </span>
             <Slider
-              value={[currentPosition]}
-              max={duration || 1}
+              value={[sliderPosition]}
+              max={sliderMax || 1}
               step={1}
               onPointerDown={handleSeekStart}
               onValueChange={handleSeekPreview}
@@ -260,13 +354,24 @@ export function PlayerBar() {
               disabled={isLoading}
             />
             <span className="w-12 text-xs text-muted-foreground">
-              {formatTime(duration)}
+              {formatTime(sliderMax)}
             </span>
           </div>
 
           {/* Right side controls */}
           <div className="flex items-center gap-1">
-            {/* Playback speed */}
+            {/* Playback speed - mobile (opens drawer) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs font-medium sm:hidden"
+              onClick={() => setIsSpeedDrawerOpen(true)}
+              title={t("speed")}
+            >
+              {playbackRate}x
+            </Button>
+
+            {/* Playback speed - desktop (dropdown) */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -328,14 +433,45 @@ export function PlayerBar() {
           </div>
         </div>
 
-        {/* Mobile progress bar with time - shown on small screens */}
-        <div className="flex items-center gap-2 px-4 pb-3 md:hidden">
-          <span className="w-10 text-right text-xs text-muted-foreground">
-            {formatTime(currentPosition)}
+        {/* Mobile progress bar with chapter nav - shown on small screens */}
+        <div className="flex items-center gap-1.5 px-3 pb-2 sm:hidden">
+          {/* Previous chapter */}
+          {hasChapters && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={prevChapter}
+              disabled={isLoading}
+              title={t("previousChapter")}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          )}
+
+          {/* Progress mode toggle */}
+          {hasChapters && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={toggleProgressMode}
+              title={isChapterMode ? t("bookMode") : t("chapterMode")}
+            >
+              {isChapterMode ? (
+                <List className="h-3.5 w-3.5" />
+              ) : (
+                <BookOpen className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          )}
+
+          <span className="w-9 text-right text-[11px] tabular-nums text-muted-foreground">
+            {formatTime(sliderPosition)}
           </span>
           <Slider
-            value={[currentPosition]}
-            max={duration || 1}
+            value={[sliderPosition]}
+            max={sliderMax || 1}
             step={1}
             onPointerDown={handleSeekStart}
             onValueChange={handleSeekPreview}
@@ -343,11 +479,47 @@ export function PlayerBar() {
             className="flex-1"
             disabled={isLoading}
           />
-          <span className="w-10 text-xs text-muted-foreground">
-            {formatTime(duration)}
+          <span className="w-9 text-[11px] tabular-nums text-muted-foreground">
+            {formatTime(sliderMax)}
           </span>
+
+          {/* Next chapter */}
+          {hasChapters && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0"
+              onClick={nextChapter}
+              disabled={isLoading}
+              title={t("nextChapter")}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          )}
         </div>
-      </motion.div>
-    </AnimatePresence>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Chapter navigation drawer */}
+      {audiobook.chapters && (
+        <ChapterDrawer
+          open={isChapterDrawerOpen}
+          onOpenChange={setIsChapterDrawerOpen}
+          chapters={audiobook.chapters}
+          currentChapter={currentChapter}
+          currentPosition={currentPosition}
+          isPlaying={isPlaying}
+          onSelectChapter={handleSelectChapter}
+        />
+      )}
+
+      {/* Playback speed drawer (mobile) */}
+      <SpeedDrawer
+        open={isSpeedDrawerOpen}
+        onOpenChange={setIsSpeedDrawerOpen}
+        currentRate={playbackRate}
+        onSelectRate={setPlaybackRate}
+      />
+    </>
   );
 }

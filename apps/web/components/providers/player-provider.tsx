@@ -169,6 +169,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const playbackRateRef = useRef<number>(getInitialPlaybackRate());
   const volumeRef = useRef<number>(getInitialVolume());
   const isSeekingRef = useRef<boolean>(false); // True while user is dragging the slider
+  const isStoppingRef = useRef<boolean>(false); // True when intentionally stopping (to ignore error events)
+  const isInitializingRef = useRef<boolean>(false); // True during initial load until seek completes
 
   // Initialize audio element
   useEffect(() => {
@@ -231,8 +233,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!audio) return;
 
     const handleTimeUpdate = () => {
-      // Don't update position while user is dragging the slider
-      if (isSeekingRef.current) return;
+      // Don't update position while user is dragging the slider or during initial load
+      if (isSeekingRef.current || isInitializingRef.current) return;
 
       // Calculate actual position: file start + current time in file
       const actualPosition = fileStartPositionRef.current + audio.currentTime;
@@ -321,6 +323,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
 
     const handleError = (e: Event) => {
+      // Ignore errors when intentionally stopping (setting src to "")
+      if (isStoppingRef.current) {
+        isStoppingRef.current = false;
+        return;
+      }
       console.error("[Player] Audio error:", e);
       dispatch({ type: "SET_ERROR", payload: "Failed to load audio" });
       toast.error("Failed to play audio. The file format may not be supported.");
@@ -392,6 +399,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_LOADING", payload: true });
     dispatch({ type: "SET_POSITION", payload: startPosition });
 
+    // Block timeupdate from overwriting position until seek completes
+    isInitializingRef.current = true;
+
     // Start new session
     sessionRef.current = {
       audiobookId: audiobook.id,
@@ -430,12 +440,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // Apply playback rate and volume AFTER source is loaded
         audio.playbackRate = playbackRateRef.current;
         audio.volume = volumeRef.current;
+        // Allow timeupdate to run now that we're at the correct position
+        isInitializingRef.current = false;
       };
       audio.addEventListener("canplay", handleCanPlay);
 
       await audio.play();
     } catch (error) {
       console.error("[Player] Failed to play:", error);
+      isInitializingRef.current = false;
       dispatch({ type: "SET_ERROR", payload: "Failed to play audio" });
       toast.error("Failed to play audio. The file format may not be supported.");
     }
@@ -462,12 +475,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const stop = useCallback(() => {
     const audio = audioRef.current;
     if (audio) {
+      // Sync progress before stopping
+      const actualPosition = fileStartPositionRef.current + audio.currentTime;
+      syncProgress(actualPosition);
+
       audio.pause();
+      // Set flag to ignore the error event triggered by clearing src
+      isStoppingRef.current = true;
       audio.src = "";
     }
     recordSession();
     dispatch({ type: "STOP" });
-  }, [recordSession]);
+  }, [recordSession, syncProgress]);
 
   const seek = useCallback(async (position: number) => {
     if (!state.audiobook || !audioRef.current) return;
