@@ -15,6 +15,13 @@
       "when": 1765330405440,
       "tag": "0001_add-oidc-settings",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765731008719,
+      "tag": "0002_add_content_requests",
+      "breakpoints": true
     }
   ]
 }
