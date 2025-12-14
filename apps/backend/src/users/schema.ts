@@ -22,6 +22,7 @@ export const userPermissions = pgTable('user_permissions', {
     .notNull()
     .default(false),
   canGenerateApiKeys: boolean('can_generate_api_keys').notNull().default(false),
+  canRequestContent: boolean('can_request_content').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')
     .defaultNow()
