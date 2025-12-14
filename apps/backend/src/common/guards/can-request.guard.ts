@@ -48,6 +48,11 @@ export class CanRequestGuard implements CanActivate {
       throw new ForbiddenException('Content requests are disabled');
     }
 
+    // Admins always have access when requests are enabled
+    if (session.user.role === 'admin') {
+      return true;
+    }
+
     // Check if user has permission
     const [permissions] = await this.db
       .select({

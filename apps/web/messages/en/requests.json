@@ -1,6 +1,36 @@
 {
   "title": "Requests",
+  "description": "Search and request audiobooks and ebooks",
   "searchPlaceholder": "Search audiobooks & ebooks...",
+  "searchButton": "Search",
+  "filters": {
+    "title": "Filters",
+    "active": "active",
+    "contentType": {
+      "label": "Content Type",
+      "all": "All",
+      "audiobooks": "Audiobooks",
+      "ebooks": "Ebooks"
+    },
+    "searchIn": {
+      "label": "Search In",
+      "title": "Title",
+      "author": "Author",
+      "narrator": "Narrator",
+      "series": "Series",
+      "tags": "Tags",
+      "description": "Description"
+    },
+    "languages": {
+      "label": "Languages",
+      "placeholder": "All languages",
+      "searchPlaceholder": "Search languages...",
+      "empty": "No languages found"
+    },
+    "perPage": {
+      "label": "Results per page"
+    }
+  },
   "tabs": {
     "searchResults": "Search Results",
     "myRequests": "My Requests"
@@ -10,6 +40,10 @@
     "requested": "Requested",
     "inLibrary": "In Library",
     "support": "Support Request"
+  },
+  "badge": {
+    "audiobook": "Audiobook",
+    "ebook": "Ebook"
   },
   "status": {
     "pending": "Pending",
@@ -28,19 +62,14 @@
     "requests": "You haven't made any requests yet",
     "noResults": "No results found"
   },
+  "rejectionReason": "Rejection reason",
+  "requestedAt": "Requested on {date}",
+  "viewInLibrary": "View in library",
   "toast": {
     "requested": "Request submitted",
     "supported": "Added your support to this request",
     "alreadyInLibrary": "This item is already in your library",
     "approved": "Request approved",
     "rejected": "Request rejected"
-  },
-  "admin": {
-    "title": "Manage Requests",
-    "requestedBy": "Requested by {email}",
-    "supporters": "+ {count} others",
-    "approve": "Approve",
-    "reject": "Reject",
-    "rejectReason": "Rejection reason (optional)"
   }
 }

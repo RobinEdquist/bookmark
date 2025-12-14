@@ -39,14 +39,33 @@ export class RequestsService {
 
   async search(
     query: string,
-    limit: number,
+    perPage: number,
     offset: number,
     _userId: string,
+    contentType: 'all' | 'audiobooks' | 'ebooks' = 'all',
+    searchIn?: string[],
+    languages?: number[],
   ): Promise<SearchMamResponseDto> {
+    // Map contentType to main_cat
+    let mainCat: number[];
+    switch (contentType) {
+      case 'audiobooks':
+        mainCat = [13];
+        break;
+      case 'ebooks':
+        mainCat = [14];
+        break;
+      default:
+        mainCat = [13, 14];
+    }
+
     const mamResponse = await this.mamClient.search({
       text: query,
-      perpage: limit,
+      perpage: perPage,
       startNumber: offset,
+      main_cat: mainCat,
+      srchIn: searchIn?.length ? searchIn : undefined,
+      browse_lang: languages?.length ? languages : undefined,
     });
 
     // Get MAM torrent IDs to check for existing requests
@@ -228,8 +247,13 @@ export class RequestsService {
       throw new BadRequestException('Can only approve pending requests');
     }
 
+    // Determine qBittorrent category based on content type
+    const category = request.contentType === 'audiobook' ? 'audiobooks' : 'books';
+
     // Start download via MAM client
-    const downloadResult = await this.mamClient.download(request.mamTorrentId);
+    const downloadResult = await this.mamClient.download(request.mamTorrentId, {
+      category,
+    });
 
     // Get torrent info to cache folder name
     const torrentStatus = await this.mamClient.getTorrentStatus(

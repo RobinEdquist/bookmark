@@ -1,0 +1,38 @@
+{
+  "requests": {
+    "title": "Manage Requests",
+    "description": "Review and approve user content requests",
+    "tabs": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "downloading": "Downloading",
+      "all": "All"
+    },
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "downloading": "Downloading",
+      "complete": "Complete",
+      "rejected": "Rejected"
+    },
+    "timeAgo": {
+      "days": "{count, plural, =1 {1 day ago} other {# days ago}}",
+      "hours": "{count, plural, =1 {1 hour ago} other {# hours ago}}",
+      "justNow": "Just now"
+    },
+    "requestedBy": "Requested by {email}",
+    "supporters": "+ {count} others",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectWithoutReason": "Reject without reason",
+    "rejectWithReason": "Reject with reason...",
+    "rejectDialog": {
+      "title": "Reject Request",
+      "description": "Optionally provide a reason for rejecting this request.",
+      "placeholder": "Enter reason (optional)",
+      "cancel": "Cancel",
+      "confirm": "Reject"
+    },
+    "empty": "No requests found"
+  }
+}

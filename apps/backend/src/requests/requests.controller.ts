@@ -31,9 +31,12 @@ export class RequestsController {
   async search(@Body() dto: SearchMamDto, @Req() req: AuthenticatedRequest) {
     return this.requestsService.search(
       dto.query,
-      dto.limit ?? 25,
+      dto.perPage ?? 25,
       dto.offset ?? 0,
       req.session.user.id,
+      dto.contentType ?? 'all',
+      dto.searchIn,
+      dto.languages,
     );
   }
 

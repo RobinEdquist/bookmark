@@ -54,13 +54,26 @@ export interface SearchMamResponse {
   total: number;
 }
 
+export interface SearchFilters {
+  contentType?: 'all' | 'audiobooks' | 'ebooks';
+  searchIn?: string[];
+  languages?: number[];
+  perPage?: number;
+}
+
 // API functions
-async function searchMam(query: string): Promise<SearchMamResponse> {
+async function searchMam(query: string, filters?: SearchFilters): Promise<SearchMamResponse> {
   const response = await fetch("/api/requests/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ query }),
+    body: JSON.stringify({
+      query,
+      contentType: filters?.contentType,
+      searchIn: filters?.searchIn,
+      languages: filters?.languages,
+      perPage: filters?.perPage,
+    }),
   });
 
   if (!response.ok) {
@@ -176,11 +189,13 @@ async function rejectRequest(requestId: string, reason?: string): Promise<Reques
 // Hooks
 export function useSearchMam() {
   const mutation = useMutation({
-    mutationFn: searchMam,
+    mutationFn: ({ query, filters }: { query: string; filters?: SearchFilters }) =>
+      searchMam(query, filters),
   });
 
   return {
-    search: mutation.mutateAsync,
+    search: (query: string, filters?: SearchFilters) =>
+      mutation.mutateAsync({ query, filters }),
     isSearching: mutation.isPending,
     error: mutation.error,
     data: mutation.data,

@@ -1,6 +1,36 @@
 {
   "title": "Förfrågningar",
+  "description": "Sök och begär ljudböcker och e-böcker",
   "searchPlaceholder": "Sök ljudböcker & e-böcker...",
+  "searchButton": "Sök",
+  "filters": {
+    "title": "Filter",
+    "active": "aktiva",
+    "contentType": {
+      "label": "Innehållstyp",
+      "all": "Alla",
+      "audiobooks": "Ljudböcker",
+      "ebooks": "E-böcker"
+    },
+    "searchIn": {
+      "label": "Sök i",
+      "title": "Titel",
+      "author": "Författare",
+      "narrator": "Uppläsare",
+      "series": "Serie",
+      "tags": "Taggar",
+      "description": "Beskrivning"
+    },
+    "languages": {
+      "label": "Språk",
+      "placeholder": "Alla språk",
+      "searchPlaceholder": "Sök språk...",
+      "empty": "Inga språk hittades"
+    },
+    "perPage": {
+      "label": "Resultat per sida"
+    }
+  },
   "tabs": {
     "searchResults": "Sökresultat",
     "myRequests": "Mina förfrågningar"
@@ -10,6 +40,10 @@
     "requested": "Begärd",
     "inLibrary": "I biblioteket",
     "support": "Stöd förfrågan"
+  },
+  "badge": {
+    "audiobook": "Ljudbok",
+    "ebook": "E-bok"
   },
   "status": {
     "pending": "Väntande",
@@ -28,19 +62,14 @@
     "requests": "Du har inte gjort några förfrågningar än",
     "noResults": "Inga resultat hittades"
   },
+  "rejectionReason": "Anledning till avvisning",
+  "requestedAt": "Begärd {date}",
+  "viewInLibrary": "Visa i bibliotek",
   "toast": {
     "requested": "Förfrågan skickad",
     "supported": "Lade till ditt stöd för denna förfrågan",
     "alreadyInLibrary": "Detta objekt finns redan i ditt bibliotek",
     "approved": "Förfrågan godkänd",
     "rejected": "Förfrågan avvisad"
-  },
-  "admin": {
-    "title": "Hantera förfrågningar",
-    "requestedBy": "Begärd av {email}",
-    "supporters": "+ {count} andra",
-    "approve": "Godkänn",
-    "reject": "Avvisa",
-    "rejectReason": "Anledning till avvisning (valfritt)"
   }
 }

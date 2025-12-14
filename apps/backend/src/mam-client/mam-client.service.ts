@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   MamSearchParams,
   MamSearchResponse,
+  MamDownloadOptions,
   MamDownloadResponse,
   TorrentStatus,
   BulkTorrentStatus,
@@ -63,10 +64,10 @@ export class MamClientService {
   }
 
   async search(params: MamSearchParams): Promise<MamSearchResponse> {
-    // Force audiobooks and ebooks categories only
+    // Default to audiobooks and ebooks if not specified
     const searchParams: MamSearchParams = {
       ...params,
-      main_cat: [13, 14], // 13=Audiobooks, 14=Ebooks
+      main_cat: params.main_cat ?? [13, 14],
     };
 
     return this.request<MamSearchResponse>('POST', '/search', {
@@ -75,11 +76,14 @@ export class MamClientService {
     });
   }
 
-  async download(mamTorrentId: string): Promise<MamDownloadResponse> {
+  async download(
+    mamTorrentId: string,
+    options?: MamDownloadOptions,
+  ): Promise<MamDownloadResponse> {
     return this.request<MamDownloadResponse>(
       'POST',
       `/download/${mamTorrentId}`,
-      {},
+      options ?? {},
     );
   }
 

@@ -7,9 +7,10 @@ import { Input } from "@repo/ui/components/ui/input";
 import { Button } from "@repo/ui/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
-import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest } from "../../../lib/use-requests";
+import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest, type SearchFilters } from "../../../lib/use-requests";
 import { RequestSearchResults } from "../../../components/requests/request-search-results";
 import { MyRequestsList } from "../../../components/requests/my-requests-list";
+import { SearchFiltersPanel } from "../../../components/requests/search-filters";
 import { authClient } from "../../../lib/auth-client";
 
 export default function RequestsPage() {
@@ -18,6 +19,12 @@ export default function RequestsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"search" | "my-requests">("search");
+  const [filters, setFilters] = useState<SearchFilters>({
+    contentType: "all",
+    searchIn: ["title", "author"],
+    languages: [],
+    perPage: 25,
+  });
 
   const { search, isSearching, data: searchResults } = useSearchMam();
   const { data: myRequests, isLoading: requestsLoading } = useMyRequests();
@@ -27,7 +34,7 @@ export default function RequestsPage() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      await search(searchQuery.trim());
+      await search(searchQuery.trim(), filters);
     }
   };
 
@@ -72,6 +79,8 @@ export default function RequestsPage() {
             {isSearching ? <LoadingSpinner size="sm" /> : t("searchButton")}
           </Button>
         </form>
+
+        <SearchFiltersPanel filters={filters} onChange={setFilters} />
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "search" | "my-requests")}>
           <TabsList>

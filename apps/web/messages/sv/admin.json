@@ -1,0 +1,38 @@
+{
+  "requests": {
+    "title": "Hantera förfrågningar",
+    "description": "Granska och godkänn användarnas innehållsförfrågningar",
+    "tabs": {
+      "pending": "Väntande",
+      "approved": "Godkända",
+      "downloading": "Laddar ner",
+      "all": "Alla"
+    },
+    "status": {
+      "pending": "Väntande",
+      "approved": "Godkänd",
+      "downloading": "Laddar ner",
+      "complete": "Klar",
+      "rejected": "Avvisad"
+    },
+    "timeAgo": {
+      "days": "{count, plural, =1 {1 dag sedan} other {# dagar sedan}}",
+      "hours": "{count, plural, =1 {1 timme sedan} other {# timmar sedan}}",
+      "justNow": "Nyss"
+    },
+    "requestedBy": "Begärd av {email}",
+    "supporters": "+ {count} andra",
+    "approve": "Godkänn",
+    "reject": "Avvisa",
+    "rejectWithoutReason": "Avvisa utan anledning",
+    "rejectWithReason": "Avvisa med anledning...",
+    "rejectDialog": {
+      "title": "Avvisa förfrågan",
+      "description": "Ange valfritt en anledning till avvisningen.",
+      "placeholder": "Ange anledning (valfritt)",
+      "cancel": "Avbryt",
+      "confirm": "Avvisa"
+    },
+    "empty": "Inga förfrågningar hittades"
+  }
+}

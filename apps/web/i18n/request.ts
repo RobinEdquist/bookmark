@@ -20,6 +20,8 @@ export default getRequestConfig(async () => {
       eReader: (await import(`../messages/${locale}/eReader.json`)).default,
       home: (await import(`../messages/${locale}/home.json`)).default,
       player: (await import(`../messages/${locale}/player.json`)).default,
+      requests: (await import(`../messages/${locale}/requests.json`)).default,
+      admin: (await import(`../messages/${locale}/admin.json`)).default,
     },
   };
 });

@@ -3,6 +3,8 @@ export interface MamSearchParams {
   text: string;
   searchType?: 'all' | 'active' | 'fl' | 'VIP';
   main_cat?: number[]; // 13=Audiobooks, 14=Ebooks
+  srchIn?: string[]; // Fields to search: title, author, narrator, series, tags, description
+  browse_lang?: number[]; // Language IDs
   perpage?: number;
   startNumber?: number;
 }
@@ -34,6 +36,13 @@ export interface MamSearchResponse {
 }
 
 // MAM Download Types
+export interface MamDownloadOptions {
+  category?: string; // qBittorrent category (e.g., "audiobooks", "books")
+  tags?: string;
+  paused?: boolean;
+  savepath?: string;
+}
+
 export interface MamDownloadResponse {
   status: string;
   message: string;
