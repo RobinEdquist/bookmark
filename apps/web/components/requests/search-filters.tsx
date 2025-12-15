@@ -8,6 +8,7 @@ import { Label } from "@repo/ui/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/ui/radio-group";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { MultiSelect } from "@repo/ui/components/ui/multi-select";
+import { Tabs, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -71,112 +72,96 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
   const selectedLanguages = (filters.languages ?? []).map(String);
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
-        <Button variant="ghost" className="flex items-center gap-2 px-0 hover:bg-transparent">
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 transition-transform",
-              isOpen && "rotate-180"
-            )}
-          />
-          <span className="text-sm font-medium">{t("title")}</span>
-          {(filters.contentType !== "all" ||
-            filters.languages?.length ||
-            filters.perPage !== 25) && (
-            <span className="text-xs text-muted-foreground">({t("active")})</span>
-          )}
-        </Button>
-      </CollapsibleTrigger>
-      <CollapsibleContent className="mt-4">
-        <div className="rounded-lg border bg-muted/30 p-6 space-y-8">
-          {/* Content Type */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">{t("contentType.label")}</Label>
-            <RadioGroup
-              value={filters.contentType ?? "all"}
-              onValueChange={handleContentTypeChange}
-              className="flex flex-wrap gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="all" id="content-all" />
-                <Label htmlFor="content-all" className="font-normal cursor-pointer">
-                  {t("contentType.all")}
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="audiobooks" id="content-audiobooks" />
-                <Label htmlFor="content-audiobooks" className="font-normal cursor-pointer">
-                  {t("contentType.audiobooks")}
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="ebooks" id="content-ebooks" />
-                <Label htmlFor="content-ebooks" className="font-normal cursor-pointer">
-                  {t("contentType.ebooks")}
-                </Label>
-              </div>
-            </RadioGroup>
-          </div>
+    <div className="space-y-4">
+      {/* Content Type Tabs - Outside accordion for easy access */}
+      <Tabs
+        value={filters.contentType ?? "all"}
+        onValueChange={handleContentTypeChange}
+      >
+        <TabsList>
+          <TabsTrigger value="all">{t("contentType.all")}</TabsTrigger>
+          <TabsTrigger value="audiobooks">{t("contentType.audiobooks")}</TabsTrigger>
+          <TabsTrigger value="ebooks">{t("contentType.ebooks")}</TabsTrigger>
+        </TabsList>
+      </Tabs>
 
-          {/* Search In */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">{t("searchIn.label")}</Label>
-            <div className="flex flex-wrap gap-6">
-              {SEARCH_IN_FIELDS.map((field) => (
-                <div key={field.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`search-in-${field.id}`}
-                    checked={searchInFields.includes(field.id)}
-                    onCheckedChange={(checked) =>
-                      handleSearchInChange(field.id, checked === true)
-                    }
-                  />
-                  <Label
-                    htmlFor={`search-in-${field.id}`}
-                    className="font-normal cursor-pointer"
-                  >
-                    {t(`searchIn.${field.labelKey}`)}
-                  </Label>
-                </div>
-              ))}
+      {/* Advanced Filters Accordion */}
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="flex items-center gap-2 px-0 hover:bg-transparent">
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 transition-transform",
+                isOpen && "rotate-180"
+              )}
+            />
+            <span className="text-sm font-medium">{t("title")}</span>
+            {(filters.languages?.length || filters.perPage !== 25) && (
+              <span className="text-xs text-muted-foreground">({t("active")})</span>
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-4">
+          <div className="rounded-lg border bg-muted/30 p-6 space-y-8">
+            {/* Search In */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">{t("searchIn.label")}</Label>
+              <div className="flex flex-wrap gap-6">
+                {SEARCH_IN_FIELDS.map((field) => (
+                  <div key={field.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={`search-in-${field.id}`}
+                      checked={searchInFields.includes(field.id)}
+                      onCheckedChange={(checked) =>
+                        handleSearchInChange(field.id, checked === true)
+                      }
+                    />
+                    <Label
+                      htmlFor={`search-in-${field.id}`}
+                      className="font-normal cursor-pointer"
+                    >
+                      {t(`searchIn.${field.labelKey}`)}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Languages */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">{t("languages.label")}</Label>
+              <MultiSelect
+                options={languageOptions}
+                selected={selectedLanguages}
+                onChange={handleLanguagesChange}
+                placeholder={t("languages.placeholder")}
+                searchPlaceholder={t("languages.searchPlaceholder")}
+                emptyText={t("languages.empty")}
+                className="max-w-md"
+              />
+            </div>
+
+            {/* Results per page */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">{t("perPage.label")}</Label>
+              <RadioGroup
+                value={String(filters.perPage ?? 25)}
+                onValueChange={handlePerPageChange}
+                className="flex flex-wrap gap-6"
+              >
+                {PER_PAGE_OPTIONS.map((option) => (
+                  <div key={option} className="flex items-center space-x-2">
+                    <RadioGroupItem value={String(option)} id={`perpage-${option}`} />
+                    <Label htmlFor={`perpage-${option}`} className="font-normal cursor-pointer">
+                      {option}
+                    </Label>
+                  </div>
+                ))}
+              </RadioGroup>
             </div>
           </div>
-
-          {/* Languages */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">{t("languages.label")}</Label>
-            <MultiSelect
-              options={languageOptions}
-              selected={selectedLanguages}
-              onChange={handleLanguagesChange}
-              placeholder={t("languages.placeholder")}
-              searchPlaceholder={t("languages.searchPlaceholder")}
-              emptyText={t("languages.empty")}
-              className="max-w-md"
-            />
-          </div>
-
-          {/* Results per page */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">{t("perPage.label")}</Label>
-            <RadioGroup
-              value={String(filters.perPage ?? 25)}
-              onValueChange={handlePerPageChange}
-              className="flex flex-wrap gap-6"
-            >
-              {PER_PAGE_OPTIONS.map((option) => (
-                <div key={option} className="flex items-center space-x-2">
-                  <RadioGroupItem value={String(option)} id={`perpage-${option}`} />
-                  <Label htmlFor={`perpage-${option}`} className="font-normal cursor-pointer">
-                    {option}
-                  </Label>
-                </div>
-              ))}
-            </RadioGroup>
-          </div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   );
 }
