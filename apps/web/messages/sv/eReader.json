@@ -1,55 +1,55 @@
 {
-  "title": "E-bokslasare (OPDS)",
-  "description": "Anslut din e-bokslasare eller lasapp for att ladda ner e-bocker direkt fran ditt bibliotek via OPDS.",
+  "title": "E-boksläsare (OPDS)",
+  "description": "Anslut din e-boksläsare eller läsapp för att ladda ner e-böcker direkt från ditt bibliotek via OPDS.",
   "urlCopied": "Feed-URL kopierad till urklipp",
   "feedUrl": {
     "title": "OPDS Feed-URL",
-    "description": "Lagg till denna URL i din e-bokslasare eller lasapp for att komma at ditt e-boksbibliotek.",
+    "description": "Lägg till denna URL i din e-boksläsare eller läsapp för att komma åt ditt e-boksbibliotek.",
     "copy": "Kopiera URL"
   },
   "auth": {
     "title": "Autentisering",
-    "description": "OPDS kraver autentisering for att komma at ditt bibliotek. Du behover en API-nyckel for att ansluta.",
-    "step1": "Ga till Preferenser och generera en API-nyckel om du inte redan har en.",
-    "step2": "Nar din e-bokslasare fragar efter inloggningsuppgifter, ange valfritt anvandarnamn (t.ex. din e-post).",
-    "step3": "Anvand din API-nyckel som losenord.",
-    "goToPreferences": "Ga till Preferenser"
+    "description": "OPDS kräver autentisering för att komma åt ditt bibliotek. Du behöver en API-nyckel för att ansluta.",
+    "step1": "Gå till Preferenser och generera en API-nyckel om du inte redan har en.",
+    "step2": "När din e-boksläsare frågar efter inloggningsuppgifter, ange valfritt användarnamn (t.ex. din e-post).",
+    "step3": "Använd din API-nyckel som lösenord.",
+    "goToPreferences": "Gå till Preferenser"
   },
   "setup": {
     "title": "Installationsinstruktioner",
-    "description": "Folj dessa instruktioner for att ansluta din e-bokslasare eller lasapp.",
+    "description": "Följ dessa instruktioner för att ansluta din e-boksläsare eller läsapp.",
     "kindle": {
       "title": "Kindle (via KOReader)",
-      "step1": "Installera KOReader pa din Kindle (kraver jailbreak).",
-      "step2": "Oppna KOReader och ga till Sok → OPDS-katalog.",
-      "step3": "Lagg till en ny katalog med OPDS-URL:en ovan.",
-      "step4": "Ange valfritt anvandarnamn och din API-nyckel som losenord nar du ombeds."
+      "step1": "Installera KOReader på din Kindle (kräver jailbreak).",
+      "step2": "Öppna KOReader och gå till Sök → OPDS-katalog.",
+      "step3": "Lägg till en ny katalog med OPDS-URL:en ovan.",
+      "step4": "Ange valfritt användarnamn och din API-nyckel som lösenord när du ombeds."
     },
     "kobo": {
       "title": "Kobo (via KOReader)",
-      "step1": "Installera KOReader pa din Kobo-enhet.",
-      "step2": "Oppna KOReader och ga till Sok → OPDS-katalog.",
-      "step3": "Lagg till en ny katalog med OPDS-URL:en ovan.",
-      "step4": "Ange valfritt anvandarnamn och din API-nyckel som losenord nar du ombeds."
+      "step1": "Installera KOReader på din Kobo-enhet.",
+      "step2": "Öppna KOReader och gå till Sök → OPDS-katalog.",
+      "step3": "Lägg till en ny katalog med OPDS-URL:en ovan.",
+      "step4": "Ange valfritt användarnamn och din API-nyckel som lösenord när du ombeds."
     },
     "ios": {
       "title": "iOS (iPhone/iPad)",
       "step1": "Ladda ner en OPDS-kompatibel app som Panels, Marvin eller Yomu.",
-      "step2": "I appen, leta efter ett alternativ att lagga till en OPDS-katalog eller bibliotek.",
+      "step2": "I appen, leta efter ett alternativ att lägga till en OPDS-katalog eller bibliotek.",
       "step3": "Ange OPDS-URL:en ovan.",
-      "step4": "Ange valfritt anvandarnamn och din API-nyckel som losenord nar du ombeds."
+      "step4": "Ange valfritt användarnamn och din API-nyckel som lösenord när du ombeds."
     },
     "android": {
       "title": "Android",
       "step1": "Ladda ner en OPDS-kompatibel app som Moon+ Reader, FBReader eller Librera.",
-      "step2": "I appen, hitta alternativet att lagga till ett OPDS/natverksbibliotek.",
+      "step2": "I appen, hitta alternativet att lägga till ett OPDS/nätverksbibliotek.",
       "step3": "Ange OPDS-URL:en ovan.",
-      "step4": "Ange valfritt anvandarnamn och din API-nyckel som losenord nar du ombeds."
+      "step4": "Ange valfritt användarnamn och din API-nyckel som lösenord när du ombeds."
     }
   },
   "learnMore": {
-    "title": "Vad ar OPDS?",
-    "description": "OPDS (Open Publication Distribution System) ar en oppen standard for distribution av digitala publikationer. Det tillater e-bokslasarappar att blaadra, soka och ladda ner e-bocker direkt fran kompatibla servrar som Bookmark.",
-    "link": "Las mer om OPDS"
+    "title": "Vad är OPDS?",
+    "description": "OPDS (Open Publication Distribution System) är en öppen standard för distribution av digitala publikationer. Det tillåter e-boksläsarappar att bläddra, söka och ladda ner e-böcker direkt från kompatibla servrar som Bookmark.",
+    "link": "Läs mer om OPDS"
   }
 }

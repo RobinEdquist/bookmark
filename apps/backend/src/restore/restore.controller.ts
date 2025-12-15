@@ -315,14 +315,14 @@ export class RestoreController {
   }
 
   /**
-   * GET /api/admin/restore/sav-users
-   * Get list of SAV users for mapping
+   * GET /api/admin/restore/bookmark-users
+   * Get list of Bookmark users for mapping
    */
-  @Get('sav-users')
-  async getSavUsers(): Promise<
+  @Get('bookmark-users')
+  async getBookmarkUsers(): Promise<
     Array<{ id: string; name: string; email: string }>
   > {
-    this.logger.log(`[ABS-RESTORE-API] Fetching SAV users for mapping`);
+    this.logger.log(`[ABS-RESTORE-API] Fetching Bookmark users for mapping`);
 
     const users = await this.db
       .select({
@@ -333,7 +333,7 @@ export class RestoreController {
       .from(authSchema.user)
       .orderBy(authSchema.user.name);
 
-    this.logger.log(`[ABS-RESTORE-API] Found ${users.length} SAV users`);
+    this.logger.log(`[ABS-RESTORE-API] Found ${users.length} Bookmark users`);
 
     return users;
   }

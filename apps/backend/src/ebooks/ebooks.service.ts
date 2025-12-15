@@ -1,8 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   eq,
@@ -675,7 +671,10 @@ export class EbooksService {
     id: string,
     buffer: Buffer,
   ): Promise<{ coverUrl: string }> {
-    return this.coverService.updateCoverFromFile(buffer, this.getCoverConfig(id));
+    return this.coverService.updateCoverFromFile(
+      buffer,
+      this.getCoverConfig(id),
+    );
   }
 
   async updateCoverFromUrl(

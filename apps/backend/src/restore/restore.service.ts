@@ -286,7 +286,7 @@ export class RestoreService {
     );
     for (const mapping of mappings) {
       this.logger.log(
-        `[ABS-RESTORE]   - ABS: ${mapping.absPath} -> SAV: ${mapping.savPath}`,
+        `[ABS-RESTORE]   - ABS: ${mapping.absPath} -> Bookmark: ${mapping.savPath}`,
       );
     }
 
@@ -316,7 +316,7 @@ export class RestoreService {
       if (update) {
         if (update.savUserId) {
           this.logger.log(
-            `[ABS-RESTORE]   - ABS user "${existing.absUsername}" (${existing.absUserId}) -> SAV user ${update.savUserId}`,
+            `[ABS-RESTORE]   - ABS user "${existing.absUsername}" (${existing.absUserId}) -> Bookmark user ${update.savUserId}`,
           );
         } else {
           this.logger.log(

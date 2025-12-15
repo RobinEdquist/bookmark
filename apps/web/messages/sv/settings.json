@@ -383,11 +383,11 @@
         },
         "files": {
           "title": "Se till att dina ljudboksfiler är tillgängliga",
-          "description": "Dina ljudboksfiler måste vara tillgängliga från denna server på samma sökvägar (eller så måste du mappa sökvägarna under importen). SAV läser ljudfiler direkt från disk."
+          "description": "Dina ljudboksfiler måste vara tillgängliga från denna server på samma sökvägar (eller så måste du mappa sökvägarna under importen). Bookmark läser ljudfiler direkt från disk."
         },
         "users": {
-          "title": "Skapa användarkonton i SAV",
-          "description": "Om du vill importera lyssningsframsteg måste användarna redan finnas i SAV. Skapa de användarkonton som behövs innan du startar återställningen."
+          "title": "Skapa användarkonton i Bookmark",
+          "description": "Om du vill importera lyssningsframsteg måste användarna redan finnas i Bookmark. Skapa de användarkonton som behövs innan du startar återställningen."
         },
         "diskSpace": {
           "title": "Se till att det finns tillräckligt med diskutrymme",
@@ -448,7 +448,7 @@
       "savPathLabel": "Bookmark-bibliotekssökväg",
       "savPathDescription": "Ange var dina ljudböcker för närvarande är lagrade på detta system",
       "infoTitle": "Sökvägsmappning:",
-      "infoPoint1": "AudioBookShelf-sökvägen kommer att ersättas med SAV-sökvägen i alla databasposter",
+      "infoPoint1": "AudioBookShelf-sökvägen kommer att ersättas med Bookmark-sökvägen i alla databasposter",
       "infoPoint2": "Se till att dina ljudböcker är tillgängliga på den nya sökvägen",
       "infoPoint3": "Fil- och mappstrukturen bör vara densamma som i AudioBookShelf",
       "back": "Tillbaka",
@@ -575,19 +575,19 @@
       "notImported": {
         "userAccounts": {
           "label": "Användarkonton",
-          "reason": "Användare måste redan finnas i SAV. Endast framstegsdata importeras för mappade användare."
+          "reason": "Användare måste redan finnas i Bookmark. Endast framstegsdata importeras för mappade användare."
         },
         "audioFiles": {
           "label": "Ljudfiler",
-          "reason": "Ljudfiler lagras inte i säkerhetskopian. SAV läser filer direkt från din konfigurerade bibliotekssökväg."
+          "reason": "Ljudfiler lagras inte i säkerhetskopian. Bookmark läser filer direkt från din konfigurerade bibliotekssökväg."
         },
         "playlists": {
           "label": "Spellistor och samlingar",
-          "reason": "AudioBookShelf-spellistor stöds inte i SAV."
+          "reason": "AudioBookShelf-spellistor stöds inte i Bookmark."
         },
         "podcasts": {
           "label": "Podddata",
-          "reason": "SAV stöder inte poddar."
+          "reason": "Bookmark stöder inte poddar."
         },
         "customFields": {
           "label": "Anpassade metadatafält",
@@ -595,7 +595,7 @@
         },
         "librarySettings": {
           "label": "Biblioteksinställningar",
-          "reason": "Bibliotekskonfiguration måste ställas in separat i SAV."
+          "reason": "Bibliotekskonfiguration måste ställas in separat i Bookmark."
         }
       },
       "skipped": "Överhoppad",

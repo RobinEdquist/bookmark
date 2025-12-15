@@ -383,11 +383,11 @@
         },
         "files": {
           "title": "Ensure your audiobook files are accessible",
-          "description": "Your audiobook files must be accessible from this server at the same paths (or you'll need to map the paths during import). SAV reads audio files directly from disk."
+          "description": "Your audiobook files must be accessible from this server at the same paths (or you'll need to map the paths during import). Bookmark reads audio files directly from disk."
         },
         "users": {
-          "title": "Create user accounts in SAV",
-          "description": "If you want to import listening progress, the users must already exist in SAV. Create any needed user accounts before starting the restore."
+          "title": "Create user accounts in Bookmark",
+          "description": "If you want to import listening progress, the users must already exist in Bookmark. Create any needed user accounts before starting the restore."
         },
         "diskSpace": {
           "title": "Ensure sufficient disk space",
@@ -448,7 +448,7 @@
       "savPathLabel": "Bookmark Library Path",
       "savPathDescription": "Enter where your audiobooks are currently stored on this system",
       "infoTitle": "Path Mapping:",
-      "infoPoint1": "The AudioBookShelf path will be replaced with the SAV path in all database records",
+      "infoPoint1": "The AudioBookShelf path will be replaced with the Bookmark path in all database records",
       "infoPoint2": "Make sure your audiobooks are accessible at the new path",
       "infoPoint3": "File and folder structure should be the same as in AudioBookShelf",
       "back": "Back",
@@ -575,19 +575,19 @@
       "notImported": {
         "userAccounts": {
           "label": "User accounts",
-          "reason": "Users must already exist in SAV. Only progress data is imported for mapped users."
+          "reason": "Users must already exist in Bookmark. Only progress data is imported for mapped users."
         },
         "audioFiles": {
           "label": "Audio files",
-          "reason": "Audio files are not stored in the backup. SAV reads files directly from your configured library path."
+          "reason": "Audio files are not stored in the backup. Bookmark reads files directly from your configured library path."
         },
         "playlists": {
           "label": "Playlists and collections",
-          "reason": "AudioBookShelf playlists are not supported in SAV."
+          "reason": "AudioBookShelf playlists are not supported in Bookmark."
         },
         "podcasts": {
           "label": "Podcast data",
-          "reason": "SAV does not support podcasts."
+          "reason": "Bookmark does not support podcasts."
         },
         "customFields": {
           "label": "Custom metadata fields",
@@ -595,7 +595,7 @@
         },
         "librarySettings": {
           "label": "Library settings",
-          "reason": "Library configuration must be set up separately in SAV."
+          "reason": "Library configuration must be set up separately in Bookmark."
         }
       },
       "skipped": "Skipped",

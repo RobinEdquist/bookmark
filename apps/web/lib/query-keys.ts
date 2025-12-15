@@ -115,7 +115,7 @@ export const queryKeys = {
     all: ["restore"] as const,
     session: (sessionId: string) => [...queryKeys.restore.all, "session", sessionId] as const,
     preview: (sessionId: string) => [...queryKeys.restore.all, "preview", sessionId] as const,
-    savUsers: () => [...queryKeys.restore.all, "sav-users"] as const,
+    bookmarkUsers: () => [...queryKeys.restore.all, "bookmark-users"] as const,
     progress: (sessionId: string) => [...queryKeys.restore.all, "progress", sessionId] as const,
   },
   requests: {

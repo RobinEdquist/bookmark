@@ -178,14 +178,14 @@ async function cancelRestoreApi(sessionId: string): Promise<void> {
   }
 }
 
-async function fetchSavUsers(): Promise<SavUser[]> {
-  const response = await fetch("/api/admin/restore/sav-users", {
+async function fetchBookmarkUsers(): Promise<SavUser[]> {
+  const response = await fetch("/api/admin/restore/bookmark-users", {
     credentials: "include",
   });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || "Failed to fetch SAV users");
+    throw new Error(errorData.message || "Failed to fetch Bookmark users");
   }
 
   return response.json();
@@ -359,12 +359,12 @@ export function useCancelRestore() {
 }
 
 /**
- * Get list of SAV users for mapping
+ * Get list of Bookmark users for mapping
  */
-export function useSavUsers() {
+export function useBookmarkUsers() {
   return useQuery({
-    queryKey: queryKeys.restore.savUsers(),
-    queryFn: fetchSavUsers,
+    queryKey: queryKeys.restore.bookmarkUsers(),
+    queryFn: fetchBookmarkUsers,
     staleTime: 300000, // Cache for 5 minutes
   });
 }

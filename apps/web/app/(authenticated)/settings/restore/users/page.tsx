@@ -24,7 +24,7 @@ import {
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
   useRestoreSession,
-  useSavUsers,
+  useBookmarkUsers,
   useSetUserMappings,
 } from "../../../../../lib/use-restore";
 import type { UserMapping } from "../../../../../lib/types/restore";
@@ -36,7 +36,7 @@ export default function RestoreUsersPage() {
   const t = useTranslations("settings.restore.users");
 
   const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
-  const { data: savUsers, isLoading: usersLoading } = useSavUsers();
+  const { data: savUsers, isLoading: usersLoading } = useBookmarkUsers();
   const setUserMappingsMutation = useSetUserMappings();
 
   // Local state for user mappings

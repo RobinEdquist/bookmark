@@ -25,7 +25,7 @@ const DEFAULT_DIRECTIONS: Record<SortField, SortOrder> = {
 };
 
 function getStorageKey(libraryType: "audiobooks" | "ebooks"): string {
-  return `sav-${libraryType}-sort`;
+  return `bookmark-${libraryType}-sort`;
 }
 
 function loadFromStorage(key: string): SortPreference | null {
