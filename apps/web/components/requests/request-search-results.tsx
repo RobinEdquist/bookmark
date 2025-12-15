@@ -6,7 +6,6 @@ import { Headphones, BookOpen, ChevronRight, Calendar, Tag } from "lucide-react"
 import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
-import { Badge } from "@repo/ui/components/ui/badge";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import type { MamSearchResult, ContentType } from "../../lib/use-requests";
 import { RequestDetailPanel } from "./request-detail-panel";
@@ -86,137 +85,167 @@ export function RequestSearchResults({
   return (
     <>
       <div className="space-y-4">
-        {results.map((item) => (
-          <Card
-            key={item.id}
-            className="cursor-pointer transition-colors hover:bg-accent/50"
-            onClick={() => setSelectedItem(item)}
-          >
-            <CardContent className="flex gap-4 p-4">
-              {/* Content Type Icon */}
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-muted">
-                {item.contentType === "audiobook" ? (
-                  <Headphones className="h-8 w-8 text-muted-foreground" />
-                ) : (
-                  <BookOpen className="h-8 w-8 text-muted-foreground" />
-                )}
-              </div>
+        {results.map((item) => {
+          const isAudiobook = item.contentType === "audiobook";
 
-              {/* Info */}
-              <div className="min-w-0 flex-1 space-y-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="truncate font-semibold">{item.title}</h3>
-                    {item.author && (
-                      <p className="truncate text-sm text-muted-foreground">
-                        {t("card.by", { author: item.author })}
-                      </p>
-                    )}
-                    {item.narrator && (
-                      <p className="truncate text-sm text-muted-foreground">
-                        {t("card.narratedBy", { narrator: item.narrator })}
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Badge variant={item.contentType === "audiobook" ? "default" : "secondary"}>
-                      {item.contentType === "audiobook" ? t("badge.audiobook") : t("badge.ebook")}
-                    </Badge>
-                    <Badge variant="outline">{item.category}</Badge>
-                  </div>
+          return (
+            <Card
+              key={item.id}
+              className="cursor-pointer overflow-hidden transition-colors hover:bg-accent/50"
+              onClick={() => setSelectedItem(item)}
+            >
+              <CardContent className="flex gap-4 p-0">
+                {/* Colored accent bar */}
+                <div
+                  className={`w-1.5 shrink-0 ${
+                    isAudiobook ? "bg-primary" : "bg-blue-500"
+                  }`}
+                />
+
+                {/* Content Type Icon */}
+                <div
+                  className={`my-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-lg ${
+                    isAudiobook
+                      ? "bg-primary/10 text-primary"
+                      : "bg-blue-500/10 text-blue-500"
+                  }`}
+                >
+                  {isAudiobook ? (
+                    <Headphones className="h-7 w-7" />
+                  ) : (
+                    <BookOpen className="h-7 w-7" />
+                  )}
                 </div>
 
-                {/* Series chips */}
-                {item.series && item.series.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {item.series.map((s, idx) => (
-                      <Badge key={idx} variant="secondary" className="text-xs">
-                        {s.number ? `${s.name} #${s.number}` : s.name}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-
-                {item.description && (
-                  <p
-                    className="line-clamp-2 text-sm text-muted-foreground [&_img]:hidden [&_strong]:font-semibold [&_em]:italic"
-                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.description) }}
-                  />
-                )}
-
-                {/* Meta info row */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <span>{item.size}</span>
-                  <span>{item.language}</span>
-                  <span>{item.fileType}</span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {formatDate(item.addedDate)}
-                  </span>
-                </div>
-
-                {/* Tags */}
-                {item.tags && item.tags.length > 0 && (
-                  <div className="flex items-center gap-1">
-                    <Tag className="h-3 w-3 text-muted-foreground" />
-                    <div className="flex flex-wrap gap-1">
-                      {item.tags.slice(0, 5).map((tag, idx) => (
-                        <span key={idx} className="text-xs text-muted-foreground">
-                          {tag}
-                          {idx < Math.min(item.tags.length, 5) - 1 && ","}
+                {/* Info */}
+                <div className="min-w-0 flex-1 space-y-2 py-4">
+                  {/* Title row with category */}
+                  <div className="flex items-start justify-between gap-2 pr-4">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="truncate font-semibold">{item.title}</h3>
+                        <span
+                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                            isAudiobook
+                              ? "bg-primary/15 text-primary"
+                              : "bg-blue-500/15 text-blue-500"
+                          }`}
+                        >
+                          {isAudiobook ? t("badge.audiobook") : t("badge.ebook")}
                         </span>
-                      ))}
-                      {item.tags.length > 5 && (
-                        <span className="text-xs text-muted-foreground">
-                          +{item.tags.length - 5} more
-                        </span>
+                      </div>
+                      {item.author && (
+                        <p className="truncate text-sm text-muted-foreground">
+                          {t("card.by", { author: item.author })}
+                        </p>
+                      )}
+                      {item.narrator && (
+                        <p className="truncate text-sm text-muted-foreground">
+                          {t("card.narratedBy", { narrator: item.narrator })}
+                        </p>
                       )}
                     </div>
+                    {/* Category badge - more prominent */}
+                    <span className="shrink-0 rounded-md border bg-background px-2 py-1 text-xs font-medium">
+                      {item.category}
+                    </span>
                   </div>
-                )}
-              </div>
 
-              {/* Action */}
-              <div className="flex shrink-0 items-center gap-2">
-                {item.inLibrary ? (
-                  <Button variant="outline" disabled size="sm">
-                    {t("button.inLibrary")}
-                  </Button>
-                ) : item.existingRequestId ? (
-                  item.existingRequestStatus === "pending" ? (
+                  {/* Series chips - with color */}
+                  {item.series && item.series.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {item.series.map((s, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-xs font-medium text-violet-600 dark:text-violet-400"
+                        >
+                          {s.number ? `${s.name} #${s.number}` : s.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {item.description && (
+                    <p
+                      className="line-clamp-2 pr-4 text-sm text-muted-foreground [&_img]:hidden [&_strong]:font-semibold [&_em]:italic"
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.description) }}
+                    />
+                  )}
+
+                  {/* Meta info row */}
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                    <span>{item.size}</span>
+                    <span>{item.language}</span>
+                    <span>{item.fileType}</span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      {formatDate(item.addedDate)}
+                    </span>
+                  </div>
+
+                  {/* Tags */}
+                  {item.tags && item.tags.length > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Tag className="h-3 w-3 text-muted-foreground" />
+                      <div className="flex flex-wrap gap-1">
+                        {item.tags.slice(0, 5).map((tag, idx) => (
+                          <span key={idx} className="text-xs text-muted-foreground">
+                            {tag}
+                            {idx < Math.min(item.tags.length, 5) - 1 && ","}
+                          </span>
+                        ))}
+                        {item.tags.length > 5 && (
+                          <span className="text-xs text-muted-foreground">
+                            +{item.tags.length - 5} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Action */}
+                <div className="flex shrink-0 items-center gap-2 pr-4">
+                  {item.inLibrary ? (
+                    <Button variant="outline" disabled size="sm">
+                      {t("button.inLibrary")}
+                    </Button>
+                  ) : item.existingRequestId ? (
+                    item.existingRequestStatus === "pending" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSupport(item.existingRequestId!);
+                        }}
+                        disabled={isSupporting}
+                      >
+                        {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
+                      </Button>
+                    ) : (
+                      <Button variant="outline" disabled size="sm">
+                        {t(`status.${item.existingRequestStatus}`)}
+                      </Button>
+                    )
+                  ) : (
                     <Button
-                      variant="outline"
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onSupport(item.existingRequestId!);
+                        handleRequest(item);
                       }}
-                      disabled={isSupporting}
+                      disabled={isRequesting}
                     >
-                      {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
+                      {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
                     </Button>
-                  ) : (
-                    <Button variant="outline" disabled size="sm">
-                      {t(`status.${item.existingRequestStatus}`)}
-                    </Button>
-                  )
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleRequest(item);
-                    }}
-                    disabled={isRequesting}
-                  >
-                    {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
-                  </Button>
-                )}
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                  )}
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
 
       <RequestDetailPanel
