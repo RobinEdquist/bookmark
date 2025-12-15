@@ -4,7 +4,7 @@ import {
   surfaceColorKeys,
   type PrimaryColor,
   type SurfaceColor,
-} from '@repo/shared';
+} from '../../common/theme-config.js';
 
 export class UpdateThemeDto {
   @IsString()
