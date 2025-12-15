@@ -29,6 +29,13 @@
       "when": 1765751923670,
       "tag": "0003_add_mam_category_to_requests",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1765842600000,
+      "tag": "0004_palette_theming",
+      "breakpoints": true
     }
   ]
 }
