@@ -24,7 +24,7 @@ export const surfaceColorKeys = [
   'pitch',
   'charcoal',
   'espresso',
-  'slate',
+  'midnight',
   'zinc',
   'stone',
   'forest',
