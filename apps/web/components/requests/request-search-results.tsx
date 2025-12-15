@@ -9,6 +9,7 @@ import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import type { MamSearchResult, ContentType } from "../../lib/use-requests";
 import { RequestDetailPanel } from "./request-detail-panel";
+import { getCategoryColor, formatCategoryName } from "./category-colors";
 
 interface RequestSearchResultsProps {
   results: MamSearchResult[];
@@ -102,53 +103,62 @@ export function RequestSearchResults({
                   }`}
                 />
 
-                {/* Content Type Icon */}
-                <div
-                  className={`my-4 flex h-14 w-14 shrink-0 items-center justify-center rounded-lg ${
-                    isAudiobook
-                      ? "bg-primary/10 text-primary"
-                      : "bg-blue-500/10 text-blue-500"
-                  }`}
-                >
-                  {isAudiobook ? (
-                    <Headphones className="h-7 w-7" />
-                  ) : (
-                    <BookOpen className="h-7 w-7" />
-                  )}
+                {/* Content Type Icon & Category */}
+                <div className="my-4 flex shrink-0 flex-col items-center gap-1.5">
+                  <div
+                    className={`flex h-14 w-14 items-center justify-center rounded-lg ${
+                      isAudiobook
+                        ? "bg-primary/10 text-primary"
+                        : "bg-blue-500/10 text-blue-500"
+                    }`}
+                  >
+                    {isAudiobook ? (
+                      <Headphones className="h-7 w-7" />
+                    ) : (
+                      <BookOpen className="h-7 w-7" />
+                    )}
+                  </div>
+                  {/* Category chip */}
+                  {(() => {
+                    const categoryName = formatCategoryName(item.category);
+                    const colors = getCategoryColor(categoryName);
+                    return (
+                      <span
+                        className={`max-w-[72px] truncate rounded px-1.5 py-0.5 text-[10px] font-medium ${colors.bg} ${colors.text}`}
+                        title={categoryName}
+                      >
+                        {categoryName}
+                      </span>
+                    );
+                  })()}
                 </div>
 
                 {/* Info */}
                 <div className="min-w-0 flex-1 space-y-2 py-4">
-                  {/* Title row with category */}
-                  <div className="flex items-start justify-between gap-2 pr-4">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="truncate font-semibold">{item.title}</h3>
-                        <span
-                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-                            isAudiobook
-                              ? "bg-primary/15 text-primary"
-                              : "bg-blue-500/15 text-blue-500"
-                          }`}
-                        >
-                          {isAudiobook ? t("badge.audiobook") : t("badge.ebook")}
-                        </span>
-                      </div>
-                      {item.author && (
-                        <p className="truncate text-sm text-muted-foreground">
-                          {t("card.by", { author: item.author })}
-                        </p>
-                      )}
-                      {item.narrator && (
-                        <p className="truncate text-sm text-muted-foreground">
-                          {t("card.narratedBy", { narrator: item.narrator })}
-                        </p>
-                      )}
+                  {/* Title row */}
+                  <div className="pr-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="truncate font-semibold">{item.title}</h3>
+                      <span
+                        className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                          isAudiobook
+                            ? "bg-primary/15 text-primary"
+                            : "bg-blue-500/15 text-blue-500"
+                        }`}
+                      >
+                        {isAudiobook ? t("badge.audiobook") : t("badge.ebook")}
+                      </span>
                     </div>
-                    {/* Category badge - more prominent */}
-                    <span className="shrink-0 rounded-md border bg-background px-2 py-1 text-xs font-medium">
-                      {item.category}
-                    </span>
+                    {item.author && (
+                      <p className="truncate text-sm text-muted-foreground">
+                        {t("card.by", { author: item.author })}
+                      </p>
+                    )}
+                    {item.narrator && (
+                      <p className="truncate text-sm text-muted-foreground">
+                        {t("card.narratedBy", { narrator: item.narrator })}
+                      </p>
+                    )}
                   </div>
 
                   {/* Series chips - with color */}

@@ -9,6 +9,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import type { MamSearchResult } from "../../lib/use-requests";
+import { getCategoryColor, formatCategoryName } from "./category-colors";
 
 interface RequestDetailPanelProps {
   item: MamSearchResult | null;
@@ -105,7 +106,15 @@ export function RequestDetailPanel({
                   <Badge variant={item.contentType === "audiobook" ? "default" : "secondary"}>
                     {item.contentType === "audiobook" ? t("badge.audiobook") : t("badge.ebook")}
                   </Badge>
-                  <Badge variant="outline">{item.category}</Badge>
+                  {(() => {
+                    const categoryName = formatCategoryName(item.category);
+                    const colors = getCategoryColor(categoryName);
+                    return (
+                      <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colors.bg} ${colors.text}`}>
+                        {categoryName}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
