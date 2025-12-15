@@ -432,20 +432,32 @@ export class UsersService {
     return result[0]?.language ?? 'en';
   }
 
-  async updateTheme(userId: string, theme: string): Promise<void> {
+  async updateTheme(
+    userId: string,
+    primaryColor: string,
+    surfaceColor: string,
+  ): Promise<void> {
     await this.db
       .update(authSchema.user)
-      .set({ theme })
+      .set({ primaryColor, surfaceColor })
       .where(eq(authSchema.user.id, userId));
   }
 
-  async getTheme(userId: string): Promise<string> {
+  async getTheme(
+    userId: string,
+  ): Promise<{ primaryColor: string; surfaceColor: string }> {
     const result = await this.db
-      .select({ theme: authSchema.user.theme })
+      .select({
+        primaryColor: authSchema.user.primaryColor,
+        surfaceColor: authSchema.user.surfaceColor,
+      })
       .from(authSchema.user)
       .where(eq(authSchema.user.id, userId))
       .limit(1);
 
-    return result[0]?.theme ?? 'default';
+    return {
+      primaryColor: result[0]?.primaryColor ?? 'orange',
+      surfaceColor: result[0]?.surfaceColor ?? 'espresso',
+    };
   }
 }
