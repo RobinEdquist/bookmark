@@ -135,13 +135,18 @@ export class UsersController {
     @Session() session: UserSession,
     @Body() dto: UpdateThemeDto,
   ): Promise<{ success: boolean }> {
-    await this.usersService.updateTheme(session.user.id, dto.theme);
+    await this.usersService.updateTheme(
+      session.user.id,
+      dto.primaryColor,
+      dto.surfaceColor,
+    );
     return { success: true };
   }
 
   @Get('me/theme')
-  async getTheme(@Session() session: UserSession): Promise<{ theme: string }> {
-    const theme = await this.usersService.getTheme(session.user.id);
-    return { theme };
+  async getTheme(
+    @Session() session: UserSession,
+  ): Promise<{ primaryColor: string; surfaceColor: string }> {
+    return this.usersService.getTheme(session.user.id);
   }
 }
