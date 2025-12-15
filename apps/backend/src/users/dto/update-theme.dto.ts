@@ -1,27 +1,23 @@
 import { IsIn, IsNotEmpty, IsString } from 'class-validator';
-
-export const VALID_THEMES = [
-  'default',
-  'tokyo-night',
-  'tokyo-storm',
-  'tokyo-moon',
-  'tokyo-day',
-  'synthwave',
-  'catppuccin-mocha',
-  'catppuccin-macchiato',
-  'catppuccin-frappe',
-  'catppuccin-latte',
-  'yin-yang',
-  'yang-yin',
-] as const;
-
-export type Theme = (typeof VALID_THEMES)[number];
+import {
+  primaryColorKeys,
+  surfaceColorKeys,
+  type PrimaryColor,
+  type SurfaceColor,
+} from '@repo/shared';
 
 export class UpdateThemeDto {
   @IsString()
   @IsNotEmpty()
-  @IsIn(VALID_THEMES, {
-    message: `Theme must be one of: ${VALID_THEMES.join(', ')}`,
+  @IsIn(primaryColorKeys, {
+    message: `primaryColor must be one of: ${primaryColorKeys.join(', ')}`,
   })
-  theme!: Theme;
+  primaryColor!: PrimaryColor;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsIn(surfaceColorKeys, {
+    message: `surfaceColor must be one of: ${surfaceColorKeys.join(', ')}`,
+  })
+  surfaceColor!: SurfaceColor;
 }
