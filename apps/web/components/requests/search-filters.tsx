@@ -89,14 +89,14 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
         </Button>
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-4">
-        <div className="rounded-lg border bg-muted/30 p-4 space-y-6">
+        <div className="rounded-lg border bg-muted/30 p-6 space-y-8">
           {/* Content Type */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label className="text-sm font-medium">{t("contentType.label")}</Label>
             <RadioGroup
               value={filters.contentType ?? "all"}
               onValueChange={handleContentTypeChange}
-              className="flex flex-wrap gap-4"
+              className="flex flex-wrap gap-6"
             >
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="all" id="content-all" />
@@ -120,9 +120,9 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
           </div>
 
           {/* Search In */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label className="text-sm font-medium">{t("searchIn.label")}</Label>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap gap-6">
               {SEARCH_IN_FIELDS.map((field) => (
                 <div key={field.id} className="flex items-center space-x-2">
                   <Checkbox
@@ -144,7 +144,7 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
           </div>
 
           {/* Languages */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label className="text-sm font-medium">{t("languages.label")}</Label>
             <MultiSelect
               options={languageOptions}
@@ -158,12 +158,12 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
           </div>
 
           {/* Results per page */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <Label className="text-sm font-medium">{t("perPage.label")}</Label>
             <RadioGroup
               value={String(filters.perPage ?? 25)}
               onValueChange={handlePerPageChange}
-              className="flex flex-wrap gap-4"
+              className="flex flex-wrap gap-6"
             >
               {PER_PAGE_OPTIONS.map((option) => (
                 <div key={option} className="flex items-center space-x-2">
