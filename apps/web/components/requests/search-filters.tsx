@@ -8,7 +8,6 @@ import { Label } from "@repo/ui/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/ui/radio-group";
 import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { MultiSelect } from "@repo/ui/components/ui/multi-select";
-import { Tabs, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import {
   Collapsible,
   CollapsibleContent,
@@ -35,13 +34,6 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
     value: String(lang.id),
     label: lang.name,
   }));
-
-  const handleContentTypeChange = (value: string) => {
-    onChange({
-      ...filters,
-      contentType: value as SearchFilters["contentType"],
-    });
-  };
 
   const handleSearchInChange = (field: string, checked: boolean) => {
     const current = filters.searchIn ?? ["title", "author"];
@@ -72,21 +64,7 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
   const selectedLanguages = (filters.languages ?? []).map(String);
 
   return (
-    <div className="space-y-4">
-      {/* Content Type Tabs - Outside accordion for easy access */}
-      <Tabs
-        value={filters.contentType ?? "all"}
-        onValueChange={handleContentTypeChange}
-      >
-        <TabsList>
-          <TabsTrigger value="all">{t("contentType.all")}</TabsTrigger>
-          <TabsTrigger value="audiobooks">{t("contentType.audiobooks")}</TabsTrigger>
-          <TabsTrigger value="ebooks">{t("contentType.ebooks")}</TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      {/* Advanced Filters Accordion */}
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="flex items-center gap-2 px-0 hover:bg-transparent">
             <ChevronDown
@@ -104,8 +82,8 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
         <CollapsibleContent className="mt-4">
           <div className="rounded-lg border bg-muted/30 p-6 space-y-8">
             {/* Search In */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">{t("searchIn.label")}</Label>
+            <div className="space-y-4">
+              <Label className="text-sm font-medium block">{t("searchIn.label")}</Label>
               <div className="flex flex-wrap gap-6">
                 {SEARCH_IN_FIELDS.map((field) => (
                   <div key={field.id} className="flex items-center space-x-2">
@@ -128,8 +106,8 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
             </div>
 
             {/* Languages */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">{t("languages.label")}</Label>
+            <div className="space-y-4">
+              <Label className="text-sm font-medium block">{t("languages.label")}</Label>
               <MultiSelect
                 options={languageOptions}
                 selected={selectedLanguages}
@@ -142,8 +120,8 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
             </div>
 
             {/* Results per page */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium">{t("perPage.label")}</Label>
+            <div className="space-y-4">
+              <Label className="text-sm font-medium block">{t("perPage.label")}</Label>
               <RadioGroup
                 value={String(filters.perPage ?? 25)}
                 onValueChange={handlePerPageChange}
@@ -161,7 +139,6 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
             </div>
           </div>
         </CollapsibleContent>
-      </Collapsible>
-    </div>
+    </Collapsible>
   );
 }

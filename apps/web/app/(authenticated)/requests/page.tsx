@@ -6,6 +6,7 @@ import { Search } from "lucide-react";
 import { Input } from "@repo/ui/components/ui/input";
 import { Button } from "@repo/ui/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
+import { Tabs as ContentTypeTabs, TabsList as ContentTypeTabsList, TabsTrigger as ContentTypeTabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest, type SearchFilters } from "../../../lib/use-requests";
 import { RequestSearchResults } from "../../../components/requests/request-search-results";
@@ -63,6 +64,18 @@ export default function RequestsPage() {
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("description")}</p>
         </header>
+
+        {/* Content Type Tabs */}
+        <ContentTypeTabs
+          value={filters.contentType ?? "all"}
+          onValueChange={(value) => setFilters({ ...filters, contentType: value as SearchFilters["contentType"] })}
+        >
+          <ContentTypeTabsList>
+            <ContentTypeTabsTrigger value="all">{t("filters.contentType.all")}</ContentTypeTabsTrigger>
+            <ContentTypeTabsTrigger value="audiobooks">{t("filters.contentType.audiobooks")}</ContentTypeTabsTrigger>
+            <ContentTypeTabsTrigger value="ebooks">{t("filters.contentType.ebooks")}</ContentTypeTabsTrigger>
+          </ContentTypeTabsList>
+        </ContentTypeTabs>
 
         <form onSubmit={handleSearch} className="flex gap-2">
           <div className="relative flex-1">
