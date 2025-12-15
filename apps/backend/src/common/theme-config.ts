@@ -15,6 +15,7 @@ export const primaryColorKeys = [
   'cyan',
   'blue',
   'indigo',
+  'violet',
   'purple',
   'pink',
   'rose',

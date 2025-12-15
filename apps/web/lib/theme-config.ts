@@ -13,6 +13,7 @@ export const primaryColors = {
   cyan: { hsl: '189 94% 53%', name: 'Cyan' },
   blue: { hsl: '217 91% 60%', name: 'Blue' },
   indigo: { hsl: '239 84% 67%', name: 'Indigo' },
+  violet: { hsl: '262 60% 55%', name: 'Violet' },
   purple: { hsl: '270 76% 65%', name: 'Purple' },
   pink: { hsl: '330 81% 60%', name: 'Pink' },
   rose: { hsl: '350 89% 60%', name: 'Rose' },
