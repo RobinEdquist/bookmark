@@ -29,7 +29,7 @@ export function AuthCard({ signupsEnabled }: AuthCardProps) {
   // Show loading state while fetching auth config
   if (isLoadingConfig) {
     return (
-      <Card className="w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm">
+      <Card className="w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm ">
         <CardContent className="flex items-center justify-center p-12">
           <LoadingSpinner size="lg" className="text-primary" />
         </CardContent>
@@ -60,7 +60,7 @@ export function AuthCard({ signupsEnabled }: AuthCardProps) {
   }
 
   return (
-    <Card className="w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm">
+    <Card className="w-full max-w-md border-border/50 bg-card/80 backdrop-blur-sm w-full">
       <CardHeader className="text-center">
         <CardTitle className="text-3xl font-bold tracking-tight">
           {tCommon("appName")}

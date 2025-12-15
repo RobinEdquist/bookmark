@@ -4,7 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { Headphones, Play, Pause, MoreVertical, EyeOff, Settings, Clock } from "lucide-react";
+import { Headphones, Play, Pause, MoreVertical, EyeOff, Settings, Clock, Star } from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
@@ -118,6 +118,22 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
         <div className="flex items-start gap-1">
           <Link href={`/audiobooks/${progress.audiobook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-0.5 px-0.5">
+              {/* Rating with Hardcover badge */}
+              {audiobookDetail?.hardcover?.rating !== null && audiobookDetail?.hardcover?.rating !== undefined && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                  <span>{audiobookDetail.hardcover.rating.toFixed(1)}</span>
+                  <span>({audiobookDetail.hardcover.ratingsCount?.toLocaleString() ?? 0})</span>
+                  <Image
+                    src="/hardcover.svg"
+                    alt="Hardcover"
+                    width={12}
+                    height={12}
+                    className="ml-0.5 opacity-70"
+                  />
+                </div>
+              )}
+
               <h3 className="truncate text-sm font-medium leading-tight">
                 {progress.audiobook.title}
               </h3>

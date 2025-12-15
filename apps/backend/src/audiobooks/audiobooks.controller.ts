@@ -87,6 +87,11 @@ export class AudiobooksController {
     return this.audiobooksService.getTags(search);
   }
 
+  @Get('series')
+  async getSeries(@Query('search') search?: string) {
+    return this.audiobooksService.getSeries(search);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.audiobooksService.findById(id);

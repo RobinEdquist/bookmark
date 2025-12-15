@@ -56,6 +56,7 @@
     "changeCover": "Ändra omslag",
     "syncWithHardcover": "Synka med Hardcover",
     "author": "Författare",
+    "series": "Serie",
     "pages": "Sidor",
     "published": "Publicerad",
     "description": "Beskrivning",
@@ -139,7 +140,15 @@
       "tagsPlaceholder": "Välj taggar...",
       "searchTags": "Sök taggar...",
       "noTagsFound": "Inga taggar hittades.",
-      "createTag": "Lägg till"
+      "createTag": "Lägg till",
+      "series": "Serier",
+      "addSeries": "Lägg till serie",
+      "seriesOrder": "Ordning",
+      "seriesOrderPlaceholder": "#",
+      "searchSeries": "Sök serier...",
+      "noSeriesFound": "Inga serier hittades.",
+      "createSeries": "Lägg till",
+      "removeSeries": "Ta bort serie"
     }
   }
 }

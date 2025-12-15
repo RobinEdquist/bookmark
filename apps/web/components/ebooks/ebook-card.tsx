@@ -122,35 +122,6 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                 </div>
               </div>
             )}
-            {/* Hardcover rating badge */}
-            {isLinkedToHardcover && (
-              <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                {ebook.hardcoverRating !== null && (
-                  <div
-                    className="flex items-center gap-0.5 rounded-full bg-background/90 px-1.5 py-1 text-xs font-medium shadow-sm backdrop-blur-sm"
-                    title={t("rating", {
-                      rating: ebook.hardcoverRating.toFixed(1),
-                      count: ebook.hardcoverRatingsCount ?? 0,
-                    })}
-                  >
-                    <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                    <span>{ebook.hardcoverRating.toFixed(1)}</span>
-                  </div>
-                )}
-                <div
-                  className="rounded-full bg-background/90 p-1 shadow-sm backdrop-blur-sm"
-                  title={t("linkedToHardcover")}
-                >
-                  <Image
-                    src="/hardcover.svg"
-                    alt="Hardcover"
-                    width={14}
-                    height={14}
-                    className="opacity-80"
-                  />
-                </div>
-              </div>
-            )}
           </motion.div>
         </Link>
 
@@ -158,6 +129,22 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
         <div className="mt-3 flex items-start gap-1">
           <Link href={`/ebooks/${ebook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-1">
+              {/* Rating with Hardcover badge */}
+              {isLinkedToHardcover && ebook.hardcoverRating !== null && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                  <span>{ebook.hardcoverRating.toFixed(1)}</span>
+                  <span>({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
+                  <Image
+                    src="/hardcover.svg"
+                    alt="Hardcover"
+                    width={12}
+                    height={12}
+                    className="ml-0.5 opacity-70"
+                  />
+                </div>
+              )}
+
               <h3 className="line-clamp-2 text-sm font-medium leading-tight">
                 {ebook.title}
               </h3>

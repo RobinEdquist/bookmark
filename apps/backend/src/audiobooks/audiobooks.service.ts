@@ -21,7 +21,7 @@ import { CoverService } from '../common/cover.service';
 import * as schema from './schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import { EmbeddedMetadataProvider } from '../library-watcher/metadata/embedded-metadata.provider';
-import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
+import { UpdateAudiobookDto, SeriesEntryDto } from './dto/update-audiobook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
@@ -900,11 +900,18 @@ export class AudiobooksService {
       await this.updateTags(id, dto.tagNames);
     }
 
+    // Update series if provided
+    if (dto.series !== undefined) {
+      await this.updateSeries(id, dto.series);
+      newManualFields.add('series');
+    }
+
     // Update manualFields for relation changes (if not already updated above)
     const relationFieldsChanged =
       dto.authorNames !== undefined ||
       dto.narratorNames !== undefined ||
-      dto.genreNames !== undefined;
+      dto.genreNames !== undefined ||
+      dto.series !== undefined;
 
     if (relationFieldsChanged && Object.keys(updateData).length === 0) {
       await this.db
@@ -1025,6 +1032,43 @@ export class AudiobooksService {
     }
   }
 
+  private async updateSeries(
+    audiobookId: string,
+    seriesEntries: SeriesEntryDto[],
+  ) {
+    // Delete existing relations
+    await this.db
+      .delete(schema.audiobookSeries)
+      .where(eq(schema.audiobookSeries.audiobookId, audiobookId));
+
+    // Create new relations
+    for (const entry of seriesEntries) {
+      const name = entry.seriesName.trim();
+      if (!name) continue;
+
+      // Find or create series
+      let [seriesRecord] = await this.db
+        .select()
+        .from(schema.series)
+        .where(eq(schema.series.name, name))
+        .limit(1);
+
+      if (!seriesRecord) {
+        [seriesRecord] = await this.db
+          .insert(schema.series)
+          .values({ name })
+          .returning();
+      }
+
+      // Create relation with order
+      await this.db.insert(schema.audiobookSeries).values({
+        audiobookId,
+        seriesId: seriesRecord.id,
+        order: entry.order,
+      });
+    }
+  }
+
   async getGenres(search?: string): Promise<{ id: string; name: string }[]> {
     const conditions: SQL[] = [];
 
@@ -1063,6 +1107,26 @@ export class AudiobooksService {
       .limit(50);
 
     return tags;
+  }
+
+  async getSeries(search?: string): Promise<{ id: string; name: string }[]> {
+    const conditions: SQL[] = [];
+
+    if (search) {
+      conditions.push(ilike(schema.series.name, `%${search}%`));
+    }
+
+    const seriesList = await this.db
+      .select({
+        id: schema.series.id,
+        name: schema.series.name,
+      })
+      .from(schema.series)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(schema.series.name))
+      .limit(50);
+
+    return seriesList;
   }
 
   async getPublishers(search?: string): Promise<string[]> {

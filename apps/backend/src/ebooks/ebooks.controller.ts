@@ -67,6 +67,11 @@ export class EbooksController {
     return this.ebooksService.getPublishers(search);
   }
 
+  @Get('series')
+  async getSeries(@Query('search') search?: string) {
+    return this.ebooksService.getSeries(search);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.ebooksService.findById(id);

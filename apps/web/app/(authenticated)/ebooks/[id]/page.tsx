@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import { ArrowLeft, Calendar, User, BookOpen, Pencil, ChevronDown, ChevronUp, FileText, ImageIcon, Download } from "lucide-react";
+import { ArrowLeft, Calendar, User, BookOpen, Library, Pencil, ChevronDown, ChevronUp, FileText, ImageIcon, Download } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { useEbook } from "../../../../lib/use-ebooks";
@@ -77,7 +77,6 @@ export default function EbookDetailPage({
   }
 
   const authors = ebook.authors.map((a) => a.name).join(", ");
-  const primarySeries = ebook.series[0];
 
   return (
     <main className="min-h-screen">
@@ -199,14 +198,6 @@ export default function EbookDetailPage({
                   {ebook.subtitle}
                 </p>
               )}
-              {primarySeries && (
-                <p className="mt-2 text-sm text-primary">
-                  {t("bookInSeries", {
-                    order: primarySeries.order,
-                    series: primarySeries.name,
-                  })}
-                </p>
-              )}
             </div>
 
             {/* Metadata grid */}
@@ -219,6 +210,31 @@ export default function EbookDetailPage({
                   <div>
                     <p className="text-xs text-muted-foreground">{t("author")}</p>
                     <p className="font-medium">{authors}</p>
+                  </div>
+                </div>
+              )}
+
+              {ebook.series.length > 0 && (
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                    <Library className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">{t("series")}</p>
+                    <p className="font-medium">
+                      {ebook.series.map((s, i) => (
+                        <span key={s.id}>
+                          {i > 0 && ", "}
+                          <Link
+                            href={`/series/${s.id}`}
+                            className="hover:underline"
+                          >
+                            {s.name}
+                          </Link>
+                          {s.order && ` #${parseFloat(s.order)}`}
+                        </span>
+                      ))}
+                    </p>
                   </div>
                 </div>
               )}

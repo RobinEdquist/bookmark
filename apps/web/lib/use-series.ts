@@ -67,3 +67,35 @@ export function useSeries(limit?: number, offset?: number) {
     staleTime: 60 * 1000, // 1 minute
   });
 }
+
+export interface SeriesOption {
+  id: string;
+  name: string;
+}
+
+async function fetchSeriesOptions(
+  search?: string
+): Promise<SeriesOption[]> {
+  const params = new URLSearchParams();
+  if (search) {
+    params.set("search", search);
+  }
+
+  const response = await fetch(`/api/audiobooks/series?${params}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch series options");
+  }
+
+  return response.json();
+}
+
+export function useSeriesOptions(search?: string) {
+  return useQuery({
+    queryKey: queryKeys.series.options(search),
+    queryFn: () => fetchSeriesOptions(search),
+    staleTime: 60 * 1000, // 1 minute
+  });
+}

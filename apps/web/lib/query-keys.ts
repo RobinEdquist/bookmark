@@ -28,6 +28,8 @@ export const queryKeys = {
       [...queryKeys.series.all, "list", filters] as const,
     recentlyUpdated: (limit?: number) =>
       [...queryKeys.series.all, "recently-updated", limit] as const,
+    options: (search?: string) =>
+      [...queryKeys.series.all, "options", search] as const,
   },
   audiobooks: {
     all: ["audiobooks"] as const,

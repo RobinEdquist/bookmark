@@ -136,33 +136,6 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                 </div>
               </div>
             )}
-            {isLinkedToHardcover && (
-              <div className="absolute bottom-2 right-2 flex items-center gap-1">
-                {audiobook.hardcoverRating !== null && (
-                  <div
-                    className="flex items-center gap-0.5 rounded-full bg-background/90 px-1.5 py-1 text-xs font-medium shadow-sm backdrop-blur-sm"
-                    title={t("rating", {
-                      rating: audiobook.hardcoverRating.toFixed(1),
-                      count: audiobook.hardcoverRatingsCount ?? 0,
-                    })}
-                  >
-                    <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                    <span>{audiobook.hardcoverRating.toFixed(1)}</span>
-                  </div>
-                )}
-                <div
-                  className="rounded-full bg-background/90 p-1.5 shadow-sm backdrop-blur-sm"
-                  title={t("linkedToHardcover")}
-                >
-                  <Image
-                    src="/hardcover.svg"
-                    alt="Hardcover"
-                    width={14}
-                    height={14}
-                  />
-                </div>
-              </div>
-            )}
           </motion.div>
         </Link>
 
@@ -170,6 +143,22 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
         <div className="mt-3 flex items-start gap-1">
           <Link href={`/audiobooks/${audiobook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-1">
+              {/* Rating with Hardcover badge */}
+              {isLinkedToHardcover && audiobook.hardcoverRating !== null && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                  <span>{audiobook.hardcoverRating.toFixed(1)}</span>
+                  <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
+                  <Image
+                    src="/hardcover.svg"
+                    alt="Hardcover"
+                    width={12}
+                    height={12}
+                    className="ml-0.5 opacity-70"
+                  />
+                </div>
+              )}
+
               <h3 className="line-clamp-2 text-sm font-medium leading-tight">
                 {audiobook.title}
               </h3>

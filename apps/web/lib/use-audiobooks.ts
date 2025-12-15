@@ -66,6 +66,17 @@ export interface AudiobookListItem {
   hardcoverRatingsCount: number | null;
 }
 
+export interface AudiobookHardcover {
+  id: string;
+  slug: string;
+  rating: number | null;
+  ratingsCount: number | null;
+  imageUrl: string | null;
+  genres: string[];
+  moods: string[];
+  contentWarnings: string[];
+}
+
 export interface AudiobookDetail {
   id: string;
   title: string;
@@ -89,6 +100,7 @@ export interface AudiobookDetail {
   tags: AudiobookTag[];
   files: AudiobookFile[];
   chapters: AudiobookChapter[];
+  hardcover: AudiobookHardcover | null;
 }
 
 export interface AudiobookFilters {

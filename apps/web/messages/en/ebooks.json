@@ -56,6 +56,7 @@
     "changeCover": "Change cover",
     "syncWithHardcover": "Sync with Hardcover",
     "author": "Author",
+    "series": "Series",
     "pages": "Pages",
     "published": "Published",
     "description": "Description",
@@ -139,7 +140,15 @@
       "tagsPlaceholder": "Select tags...",
       "searchTags": "Search tags...",
       "noTagsFound": "No tags found.",
-      "createTag": "Add"
+      "createTag": "Add",
+      "series": "Series",
+      "addSeries": "Add Series",
+      "seriesOrder": "Order",
+      "seriesOrderPlaceholder": "#",
+      "searchSeries": "Search series...",
+      "noSeriesFound": "No series found.",
+      "createSeries": "Add",
+      "removeSeries": "Remove series"
     }
   }
 }

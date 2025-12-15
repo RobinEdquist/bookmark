@@ -57,11 +57,24 @@ import {
   useGenres,
   useTags,
 } from "../../lib/use-audiobooks";
+import {
+  SeriesEntryEditor,
+  type SeriesEntry,
+} from "../shared/series-entry-editor";
 
 // Helper to compare arrays by value
 function arraysEqual(a: string[], b: string[]): boolean {
   if (a.length !== b.length) return false;
   return a.every((val, i) => val === b[i]);
+}
+
+// Helper to compare series entries arrays
+function seriesEntriesEqual(a: SeriesEntry[], b: SeriesEntry[]): boolean {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (entry, i) =>
+      entry.seriesName === b[i]?.seriesName && entry.order === b[i]?.order
+  );
 }
 
 // Interface for tracking initial form state
@@ -76,6 +89,7 @@ interface InitialFormState {
   isbn: string;
   genres: string[];
   tags: string[];
+  seriesEntries: SeriesEntry[];
 }
 
 interface EditEbookDialogProps {
@@ -121,6 +135,7 @@ export function EditEbookDialog({
   const [isbn, setIsbn] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
+  const [seriesEntries, setSeriesEntries] = useState<SeriesEntry[]>([]);
 
   // Track initial values to detect which fields actually changed
   const [initialState, setInitialState] = useState<InitialFormState | null>(null);
@@ -203,6 +218,10 @@ export function EditEbookDialog({
       const isbnVal = ebookData.isbn || "";
       const genresVal = ebookData.genres.map((g) => g.name);
       const tagsVal = ebookData.tags.map((t) => t.name);
+      const seriesEntriesVal: SeriesEntry[] = ebookData.series.map((s) => ({
+        seriesName: s.name,
+        order: s.order ? String(parseFloat(s.order)) : "",
+      }));
 
       // Set form values
       setTitle(titleVal);
@@ -215,6 +234,7 @@ export function EditEbookDialog({
       setIsbn(isbnVal);
       setGenres(genresVal);
       setTags(tagsVal);
+      setSeriesEntries(seriesEntriesVal);
 
       // Store initial state for change detection
       setInitialState({
@@ -228,6 +248,7 @@ export function EditEbookDialog({
         isbn: isbnVal,
         genres: genresVal,
         tags: tagsVal,
+        seriesEntries: seriesEntriesVal,
       });
     }
   }, [ebookData]);
@@ -287,6 +308,14 @@ export function EditEbookDialog({
     const filteredTags = tags.filter(Boolean);
     if (!arraysEqual(filteredTags, initialState.tags)) {
       data.tagNames = filteredTags;
+    }
+
+    // Compare series entries
+    const filteredSeriesEntries = seriesEntries.filter(
+      (entry) => entry.seriesName.trim() && entry.order.trim()
+    );
+    if (!seriesEntriesEqual(filteredSeriesEntries, initialState.seriesEntries)) {
+      data.series = filteredSeriesEntries;
     }
 
     // If nothing changed, just close without making a request
@@ -437,6 +466,23 @@ export function EditEbookDialog({
               />
             </div>
           </div>
+
+          {/* Series */}
+          <SeriesEntryEditor
+            value={seriesEntries}
+            onChange={setSeriesEntries}
+            disabled={isLoading}
+            labels={{
+              series: t("fields.series"),
+              addSeries: t("fields.addSeries"),
+              order: t("fields.seriesOrder"),
+              orderPlaceholder: t("fields.seriesOrderPlaceholder"),
+              searchSeries: t("fields.searchSeries"),
+              noSeriesFound: t("fields.noSeriesFound"),
+              createSeries: t("fields.createSeries"),
+              removeSeries: t("fields.removeSeries"),
+            }}
+          />
 
           {/* Description */}
           <div className="space-y-2">

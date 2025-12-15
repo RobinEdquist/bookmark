@@ -1,4 +1,19 @@
-import { IsString, IsOptional, IsBoolean, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class SeriesEntryDto {
+  @IsString()
+  seriesName!: string;
+
+  @IsString()
+  order!: string;
+}
 
 export class UpdateAudiobookDto {
   @IsOptional()
@@ -56,4 +71,10 @@ export class UpdateAudiobookDto {
   @IsArray()
   @IsString({ each: true })
   tagNames?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SeriesEntryDto)
+  series?: SeriesEntryDto[];
 }

@@ -4,7 +4,17 @@ import {
   IsBoolean,
   IsArray,
   IsNumber,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class SeriesEntryDto {
+  @IsString()
+  seriesName!: string;
+
+  @IsString()
+  order!: string;
+}
 
 export class UpdateEbookDto {
   @IsOptional()
@@ -61,4 +71,10 @@ export class UpdateEbookDto {
   @IsArray()
   @IsString({ each: true })
   tagNames?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SeriesEntryDto)
+  series?: SeriesEntryDto[];
 }
