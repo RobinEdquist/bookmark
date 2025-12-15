@@ -5,9 +5,11 @@
     "title": "Appearance",
     "description": "Customize how the app looks",
     "theme": {
-      "label": "Theme",
-      "description": "Choose your preferred color theme"
+      "label": "Colors",
+      "description": "Choose your preferred color scheme"
     },
+    "primary": "Primary",
+    "surface": "Surface",
     "language": {
       "label": "Language",
       "description": "Choose your preferred language"

@@ -5,9 +5,11 @@
     "title": "Utseende",
     "description": "Anpassa hur appen ser ut",
     "theme": {
-      "label": "Tema",
-      "description": "Välj ditt föredragna färgtema"
+      "label": "Färger",
+      "description": "Välj ditt föredragna färgschema"
     },
+    "primary": "Primär",
+    "surface": "Bakgrund",
     "language": {
       "label": "Språk",
       "description": "Välj ditt föredragna språk"
