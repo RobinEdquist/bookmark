@@ -2,8 +2,6 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  BadRequestException,
-  UnprocessableEntityException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
@@ -22,7 +20,7 @@ import {
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
-import { ImageProcessingService } from '../common/image-processing.service';
+import { CoverService } from '../common/cover.service';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as hardcoverSchema from '../hardcover/schema';
@@ -68,7 +66,7 @@ export class EbooksService {
     private appEvents: AppEventsService,
     private appDataService: AppDataService,
     private ebookMetadataProvider: EbookMetadataProvider,
-    private imageProcessing: ImageProcessingService,
+    private coverService: CoverService,
   ) {}
 
   /**
@@ -372,10 +370,7 @@ export class EbooksService {
     coverUrl: string | null,
     coverSource: 'embedded' | 'uploaded' | 'filesystem' | null,
   ): string | null {
-    if (coverSource || coverUrl) {
-      return `/api/ebooks/${id}/cover`;
-    }
-    return null;
+    return this.coverService.getCoverUrl(id, coverUrl, coverSource, 'ebooks');
   }
 
   async getCover(
@@ -680,103 +675,42 @@ export class EbooksService {
     id: string,
     buffer: Buffer,
   ): Promise<{ coverUrl: string }> {
-    return this.processAndSaveCover(id, buffer);
+    return this.coverService.updateCoverFromFile(buffer, this.getCoverConfig(id));
   }
 
   async updateCoverFromUrl(
     id: string,
     url: string,
   ): Promise<{ coverUrl: string }> {
-    // Fetch the image from URL
-    let response: Response;
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
-      response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'SimpleAudiobookVault/1.0',
-        },
-      });
-
-      clearTimeout(timeout);
-    } catch (error) {
-      throw new UnprocessableEntityException(
-        `Failed to fetch image from URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-    }
-
-    if (!response.ok) {
-      throw new UnprocessableEntityException(
-        `Failed to fetch image: HTTP ${response.status}`,
-      );
-    }
-
-    // Validate content type
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('image/')) {
-      throw new BadRequestException('URL does not point to an image');
-    }
-
-    // Check content length if available
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
-      throw new BadRequestException('Image size exceeds 2 MB limit');
-    }
-
-    // Read the response body
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Double-check size after download
-    if (buffer.length > 2 * 1024 * 1024) {
-      throw new BadRequestException('Image size exceeds 2 MB limit');
-    }
-
-    return this.processAndSaveCover(id, buffer);
+    return this.coverService.updateCoverFromUrl(url, this.getCoverConfig(id));
   }
 
-  private async processAndSaveCover(
-    id: string,
-    buffer: Buffer,
-  ): Promise<{ coverUrl: string }> {
-    // Verify ebook exists
-    const ebook = await this.db
-      .select({
-        id: schema.ebooks.id,
-      })
-      .from(schema.ebooks)
-      .where(eq(schema.ebooks.id, id))
-      .limit(1);
-
-    if (ebook.length === 0) {
-      throw new NotFoundException('Ebook not found');
-    }
-
-    // Process image in worker thread
-    let processedBuffer: Buffer;
-    try {
-      processedBuffer = await this.imageProcessing.processCover(buffer);
-    } catch {
-      throw new BadRequestException('Invalid image file');
-    }
-
-    // Save cover to app data directory
-    const coverPath = this.appDataService.getEbookCoverPath(id);
-    await fs.writeFile(coverPath, processedBuffer);
-
-    // Update database
-    await this.db
-      .update(schema.ebooks)
-      .set({
-        coverUrl: `${id}.jpg`,
-        coverSource: 'uploaded',
-      })
-      .where(eq(schema.ebooks.id, id));
-
-    this.appEvents.ebookUpdated(id);
-    return { coverUrl: `/api/ebooks/${id}/cover` };
+  private getCoverConfig(id: string) {
+    return {
+      entityId: id,
+      apiPath: 'ebooks',
+      getCoverPath: (entityId: string) =>
+        this.appDataService.getEbookCoverPath(entityId),
+      verifyExists: async (entityId: string) => {
+        const ebook = await this.db
+          .select({ id: schema.ebooks.id })
+          .from(schema.ebooks)
+          .where(eq(schema.ebooks.id, entityId))
+          .limit(1);
+        if (ebook.length === 0) {
+          throw new NotFoundException('Ebook not found');
+        }
+      },
+      updateCoverMetadata: async (entityId: string, coverUrl: string) => {
+        await this.db
+          .update(schema.ebooks)
+          .set({ coverUrl, coverSource: 'uploaded' })
+          .where(eq(schema.ebooks.id, entityId));
+      },
+      emitUpdateEvent: (entityId: string) => {
+        this.appEvents.ebookUpdated(entityId);
+      },
+    };
   }
 
   async delete(id: string, deleteFiles: boolean): Promise<void> {
