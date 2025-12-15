@@ -438,9 +438,18 @@ export function useHardcoverLinkMedia() {
   const mutation = useMutation({
     mutationFn: linkMediaToHardcover,
     onSuccess: (_, variables) => {
+      // Invalidate the hardcover link query
       queryClient.invalidateQueries({
         queryKey: queryKeys.hardcover.link(variables.mediaType, variables.mediaId),
       });
+      // Invalidate the audiobook/ebook list and detail to reflect new hardcover data (rating, etc.)
+      if (variables.mediaType === "audiobook") {
+        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(variables.mediaId) });
+      } else {
+        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(variables.mediaId) });
+      }
     },
   });
 
@@ -479,9 +488,18 @@ export function useHardcoverUnlinkMedia() {
   const mutation = useMutation({
     mutationFn: unlinkMediaFromHardcover,
     onSuccess: (_, variables) => {
+      // Invalidate the hardcover link query
       queryClient.invalidateQueries({
         queryKey: queryKeys.hardcover.link(variables.mediaType, variables.mediaId),
       });
+      // Invalidate the audiobook/ebook list and detail to reflect removed hardcover data
+      if (variables.mediaType === "audiobook") {
+        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(variables.mediaId) });
+      } else {
+        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(variables.mediaId) });
+      }
     },
   });
 
