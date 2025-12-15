@@ -7,8 +7,6 @@ import {
   isValidSurfaceColor,
   DEFAULT_PRIMARY_COLOR,
   DEFAULT_SURFACE_COLOR,
-  primaryColorKeys,
-  surfaceColorKeys,
   type PrimaryColor,
   type SurfaceColor,
 } from './theme-config';
