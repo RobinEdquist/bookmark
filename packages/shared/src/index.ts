@@ -1,1 +1,1 @@
-export * from './theme-colors';
+export * from './theme-colors.js';

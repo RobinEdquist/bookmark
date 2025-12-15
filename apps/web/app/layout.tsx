@@ -8,7 +8,14 @@ import { QueryProvider } from "../components/providers/query-provider";
 import { IntlProvider } from "../components/providers/intl-provider";
 import { PlayerProvider } from "../components/providers/player-provider";
 import { Toaster } from "@repo/ui/components/ui/sonner";
-import { isValidTheme, themeClasses, type Theme } from "../lib/theme-config";
+import {
+  isValidPrimaryColor,
+  isValidSurfaceColor,
+  primaryColors,
+  surfaceColors,
+  DEFAULT_PRIMARY_COLOR,
+  DEFAULT_SURFACE_COLOR,
+} from "../lib/theme-config";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -37,14 +44,45 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
 
-  // Read theme from cookie for server-side rendering
+  // Read color preferences from cookies for server-side rendering
   const cookieStore = await cookies();
-  const themeCookie = cookieStore.get("theme")?.value;
-  const theme: Theme = themeCookie && isValidTheme(themeCookie) ? themeCookie : "default";
-  const themeClassName = themeClasses[theme].join(" ");
+  const primaryColorCookie = cookieStore.get("primaryColor")?.value;
+  const surfaceColorCookie = cookieStore.get("surfaceColor")?.value;
+
+  const primaryColor =
+    primaryColorCookie && isValidPrimaryColor(primaryColorCookie)
+      ? primaryColorCookie
+      : DEFAULT_PRIMARY_COLOR;
+  const surfaceColor =
+    surfaceColorCookie && isValidSurfaceColor(surfaceColorCookie)
+      ? surfaceColorCookie
+      : DEFAULT_SURFACE_COLOR;
+
+  const primary = primaryColors[primaryColor];
+  const surface = surfaceColors[surfaceColor];
+
+  // Build initial CSS variables for SSR to avoid flash of unstyled content
+  const cssVars = {
+    "--primary": primary.hsl,
+    "--ring": primary.hsl,
+    "--primary-foreground": surface.isDark
+      ? surface.vars.background
+      : surface.vars.foreground,
+    "--destructive": surface.isDark ? "0 70% 50%" : "0 84% 60%",
+    "--destructive-foreground": surface.isDark ? "0 0% 94%" : "0 0% 100%",
+    "--accent": surface.vars.secondary,
+    "--accent-foreground": surface.vars["secondary-foreground"],
+    ...Object.fromEntries(
+      Object.entries(surface.vars).map(([key, value]) => [`--${key}`, value])
+    ),
+  };
 
   return (
-    <html lang={locale} className={themeClassName} suppressHydrationWarning>
+    <html
+      lang={locale}
+      style={cssVars as React.CSSProperties}
+      suppressHydrationWarning
+    >
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${neonderthaw.variable} font-sans antialiased`}
       >
