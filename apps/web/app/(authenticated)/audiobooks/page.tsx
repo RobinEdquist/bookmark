@@ -100,6 +100,7 @@ export default function AudiobooksPage() {
     searchParamsKey,
     pagesLoaded,
     isLoading,
+    isFetchingNextPage,
     fetchNextPage,
     hasNextPage ?? false
   );

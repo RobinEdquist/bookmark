@@ -65,8 +65,8 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+      <div className="mx-auto max-w-5xl space-y-6 overflow-hidden">
         <header>
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">

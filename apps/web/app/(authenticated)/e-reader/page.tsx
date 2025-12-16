@@ -27,7 +27,7 @@ export default function EReaderPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="mx-auto max-w-3xl space-y-6">
         <header>
           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
@@ -67,8 +67,8 @@ export default function EReaderPage() {
             <CardDescription>{t("feedUrl.description")}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm bg-muted px-4 py-3 rounded-lg overflow-x-auto font-mono">
+            <div className="flex items-start gap-2">
+              <code className="flex-1 text-sm bg-muted px-4 py-3 rounded-lg break-all font-mono">
                 {opdsUrl}
               </code>
               <Button
@@ -76,6 +76,7 @@ export default function EReaderPage() {
                 size="icon"
                 onClick={handleCopy}
                 title={t("feedUrl.copy")}
+                className="shrink-0"
               >
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>

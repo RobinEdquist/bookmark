@@ -85,18 +85,18 @@ export function ImportErrorCard({ error }: ImportErrorCardProps) {
                 {error.filePath}
               </dd>
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
               <div>
                 <dt className="text-muted-foreground">{t("attempts")}</dt>
                 <dd>{error.attemptCount}</dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">{t("firstOccurred")}</dt>
-                <dd>{formatDate(error.firstOccurredAt)}</dd>
+                <dd className="whitespace-nowrap">{formatDate(error.firstOccurredAt)}</dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">{t("lastOccurred")}</dt>
-                <dd>{formatDate(error.lastOccurredAt)}</dd>
+                <dd className="whitespace-nowrap">{formatDate(error.lastOccurredAt)}</dd>
               </div>
             </div>
             {error.errorDetails?.stack && (

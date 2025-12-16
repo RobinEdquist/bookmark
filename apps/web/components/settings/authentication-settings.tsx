@@ -118,8 +118,8 @@ export function AuthenticationSettings() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Signups Toggle */}
-          <fieldset className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
               <Label htmlFor="signups-enabled" className="text-base font-medium">
                 {t("signups.label")}
               </Label>
@@ -133,12 +133,13 @@ export function AuthenticationSettings() {
               onCheckedChange={handleSignupsToggle}
               disabled={isUpdating}
               aria-describedby="signups-description"
+              className="shrink-0"
             />
           </fieldset>
 
           {/* Email/Password Toggle */}
-          <fieldset className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
               <Label htmlFor="email-password-enabled" className="text-base font-medium">
                 {t("emailPassword.label")}
               </Label>
@@ -152,6 +153,7 @@ export function AuthenticationSettings() {
               onCheckedChange={handleEmailPasswordToggle}
               disabled={isUpdating || !oidcEnabled}
               aria-describedby="email-password-description"
+              className="shrink-0"
             />
           </fieldset>
         </CardContent>
@@ -160,14 +162,14 @@ export function AuthenticationSettings() {
       {/* OIDC Settings Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <CardTitle>{t("oidc.title")}</CardTitle>
               <CardDescription>
                 {t("oidc.description")}
               </CardDescription>
             </div>
-            <Badge variant={oidcEnabled ? "default" : "secondary"}>
+            <Badge variant={oidcEnabled ? "default" : "secondary"} className="w-fit shrink-0">
               {oidcEnabled ? t("oidc.configured") : t("oidc.notConfigured")}
             </Badge>
           </div>

@@ -44,57 +44,57 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
     <div className="space-y-4">
       {requests.map((request) => (
         <Card key={request.id}>
-          <CardContent className="flex gap-4 p-4">
-            {/* Content Type Icon */}
-            <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
-              {request.contentType === "audiobook" ? (
-                <Headphones className="h-8 w-8 text-muted-foreground" />
-              ) : (
-                <BookOpen className="h-8 w-8 text-muted-foreground" />
-              )}
-            </div>
+          <CardContent className="p-4">
+            <div className="flex gap-4">
+              {/* Content Type Icon */}
+              <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-muted shrink-0">
+                {request.contentType === "audiobook" ? (
+                  <Headphones className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                ) : (
+                  <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                )}
+              </div>
 
-            {/* Info */}
-            <div className="flex-1 space-y-1">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-semibold">{request.title}</h3>
-                  {request.author && (
-                    <p className="text-sm text-muted-foreground">
-                      {t("card.by", { author: request.author })}
-                    </p>
-                  )}
+              {/* Info */}
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex flex-wrap items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold line-clamp-2 sm:line-clamp-1">{request.title}</h3>
+                    {request.author && (
+                      <p className="text-sm text-muted-foreground truncate">
+                        {t("card.by", { author: request.author })}
+                      </p>
+                    )}
+                  </div>
+                  <Badge variant={statusVariants[request.status]} className="shrink-0">
+                    {t(`status.${request.status}`)}
+                  </Badge>
                 </div>
-                <Badge variant={statusVariants[request.status]}>
-                  {t(`status.${request.status}`)}
-                </Badge>
-              </div>
 
-              {request.status === "rejected" && request.rejectionReason && (
-                <p className="text-sm text-destructive">
-                  {t("rejectionReason")}: {request.rejectionReason}
+                {request.status === "rejected" && request.rejectionReason && (
+                  <p className="text-sm text-destructive line-clamp-2">
+                    {t("rejectionReason")}: {request.rejectionReason}
+                  </p>
+                )}
+
+                <p className="text-xs text-muted-foreground">
+                  {t("requestedAt", {
+                    date: new Date(request.createdAt).toLocaleDateString(),
+                  })}
                 </p>
-              )}
 
-              <p className="text-xs text-muted-foreground">
-                {t("requestedAt", {
-                  date: new Date(request.createdAt).toLocaleDateString(),
-                })}
-              </p>
-            </div>
-
-            {/* Link to library item if complete */}
-            {request.status === "complete" && request.libraryItemId && (
-              <div className="flex items-center">
-                <Link
-                  href={`/${request.libraryItemType}s/${request.libraryItemId}`}
-                  className="flex items-center gap-1 text-sm text-primary hover:underline"
-                >
-                  {t("viewInLibrary")}
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
+                {/* Link to library item if complete */}
+                {request.status === "complete" && request.libraryItemId && (
+                  <Link
+                    href={`/${request.libraryItemType}s/${request.libraryItemId}`}
+                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                  >
+                    {t("viewInLibrary")}
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
               </div>
-            )}
+            </div>
           </CardContent>
         </Card>
       ))}

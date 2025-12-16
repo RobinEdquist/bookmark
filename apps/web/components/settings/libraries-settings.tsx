@@ -297,92 +297,100 @@ export function LibrariesSettings() {
           <ImportErrorsSection />
 
           {/* Audiobook Library Path */}
-          <fieldset className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <Label className="text-base font-medium flex items-center gap-2">
-                <Headphones className="h-4 w-4" />
-                {t("audiobookLibrary.label")}
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                {t("audiobookLibrary.description")}
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <Folder className="h-4 w-4 text-muted-foreground" />
-                <code className="text-sm bg-muted px-2 py-0.5 rounded">
+          <fieldset className="rounded-lg border p-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Headphones className="h-4 w-4 shrink-0" />
+                    {t("audiobookLibrary.label")}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t("audiobookLibrary.description")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {settings?.audiobookLibraryPath && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRemoveAudiobookPath}
+                      disabled={isUpdating}
+                      title={t("audiobookLibrary.remove")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => setAudiobookFolderPickerOpen(true)}
+                    disabled={isUpdating}
+                  >
+                    {t("audiobookLibrary.browse")}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Folder className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <code className="text-sm bg-muted px-2 py-0.5 rounded break-all">
                   {settings?.audiobookLibraryPath || t("audiobookLibrary.notConfigured")}
                 </code>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              {settings?.audiobookLibraryPath && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleRemoveAudiobookPath}
-                  disabled={isUpdating}
-                  title={t("audiobookLibrary.remove")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => setAudiobookFolderPickerOpen(true)}
-                disabled={isUpdating}
-              >
-                {t("audiobookLibrary.browse")}
-              </Button>
-            </div>
           </fieldset>
 
           {/* Ebook Library Path */}
-          <fieldset className="flex items-center justify-between rounded-lg border p-4">
-            <div className="space-y-0.5">
-              <Label className="text-base font-medium flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                {t("ebookLibrary.label")}
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                {t("ebookLibrary.description")}
-              </p>
-              <div className="flex items-center gap-2 pt-1">
-                <Folder className="h-4 w-4 text-muted-foreground" />
-                <code className="text-sm bg-muted px-2 py-0.5 rounded">
+          <fieldset className="rounded-lg border p-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <BookOpen className="h-4 w-4 shrink-0" />
+                    {t("ebookLibrary.label")}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t("ebookLibrary.description")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {settings?.ebookLibraryPath && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRemoveEbookPath}
+                      disabled={isUpdating}
+                      title={t("ebookLibrary.remove")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => setEbookFolderPickerOpen(true)}
+                    disabled={isUpdating}
+                  >
+                    {t("ebookLibrary.browse")}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Folder className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <code className="text-sm bg-muted px-2 py-0.5 rounded break-all">
                   {settings?.ebookLibraryPath || t("ebookLibrary.notConfigured")}
                 </code>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {settings?.ebookLibraryPath && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleRemoveEbookPath}
-                  disabled={isUpdating}
-                  title={t("ebookLibrary.remove")}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              )}
-              <Button
-                variant="outline"
-                onClick={() => setEbookFolderPickerOpen(true)}
-                disabled={isUpdating}
-              >
-                {t("ebookLibrary.browse")}
-              </Button>
             </div>
           </fieldset>
 
           {/* OPDS Feed */}
           <fieldset className="rounded-lg border p-4 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="space-y-0.5">
                 <Label className="text-base font-medium flex items-center gap-2">
-                  <Rss className="h-4 w-4" />
+                  <Rss className="h-4 w-4 shrink-0" />
                   {t("opds.label")}
                 </Label>
-                <p className="text-sm text-muted-foreground max-w-lg">
+                <p className="text-sm text-muted-foreground">
                   {t("opds.description")}
                 </p>
               </div>
@@ -390,14 +398,15 @@ export function LibrariesSettings() {
                 checked={settings?.opdsEnabled ?? false}
                 onCheckedChange={handleToggleOpds}
                 disabled={isUpdating || !settings?.ebookLibraryPath}
+                className="shrink-0"
               />
             </div>
 
             {settings?.opdsEnabled && (
               <div className="space-y-2 pt-2 border-t">
                 <Label className="text-sm text-muted-foreground">{t("opds.feedUrl")}</Label>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 text-sm bg-muted px-3 py-2 rounded overflow-x-auto">
+                <div className="flex items-start gap-2">
+                  <code className="flex-1 text-sm bg-muted px-3 py-2 rounded break-all">
                     {typeof window !== 'undefined' ? `${window.location.origin}/api/ebooks/opds` : '/api/ebooks/opds'}
                   </code>
                   <Button
@@ -405,6 +414,7 @@ export function LibrariesSettings() {
                     size="icon"
                     onClick={handleCopyOpdsUrl}
                     title={t("opds.copy")}
+                    className="shrink-0"
                   >
                     {opdsCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                   </Button>
@@ -501,13 +511,13 @@ export function LibrariesSettings() {
         <CardContent className="space-y-4">
           {rescanStatus.isRescanning && (
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
+              <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
+                <span className="text-muted-foreground break-words">
                   {rescanStatus.currentAudiobook
                     ? t("rescan.progress.current", { title: rescanStatus.currentAudiobook })
                     : t("rescan.progress.preparing")}
                 </span>
-                <span className="font-medium">
+                <span className="font-medium shrink-0">
                   {rescanStatus.processed ?? 0} / {rescanStatus.total ?? 0}
                 </span>
               </div>

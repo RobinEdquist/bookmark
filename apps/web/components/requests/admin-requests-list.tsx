@@ -101,54 +101,58 @@ export function AdminRequestsList({
       <div className="space-y-4">
         {requests.map((request) => (
           <Card key={request.id}>
-            <CardContent className="flex gap-4 p-4">
-              {/* Content Type Icon */}
-              <div className="flex h-16 w-16 items-center justify-center rounded-lg bg-muted">
-                {request.contentType === "audiobook" ? (
-                  <Headphones className="h-8 w-8 text-muted-foreground" />
-                ) : (
-                  <BookOpen className="h-8 w-8 text-muted-foreground" />
-                )}
-              </div>
+            <CardContent className="p-4">
+              <div className="flex gap-4">
+                {/* Content Type Icon */}
+                <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-muted shrink-0">
+                  {request.contentType === "audiobook" ? (
+                    <Headphones className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                  ) : (
+                    <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
+                  )}
+                </div>
 
-              {/* Info */}
-              <div className="flex-1 space-y-1">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="font-semibold">
-                      {request.title}
-                      {request.author && ` - ${request.author}`}
+                {/* Info */}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-start gap-2">
+                    <h3 className="font-semibold flex-1 min-w-0">
+                      <span className="line-clamp-2 sm:line-clamp-1">
+                        {request.title}
+                        {request.author && ` - ${request.author}`}
+                      </span>
                     </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {t("requestedBy", { email: request.userEmail })}
-                      {request.supporterCount > 0 && (
-                        <span className="ml-1">
-                          {t("supporters", { count: request.supporterCount })}
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatTimeAgo(request.createdAt)}
-                    </p>
+                    <Badge variant={statusVariants[request.status]} className="shrink-0">
+                      {t(`status.${request.status}`)}
+                    </Badge>
                   </div>
-                  <Badge variant={statusVariants[request.status]}>
-                    {t(`status.${request.status}`)}
-                  </Badge>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {t("requestedBy", { email: request.userEmail })}
+                    {request.supporterCount > 0 && (
+                      <span className="ml-1">
+                        {t("supporters", { count: request.supporterCount })}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatTimeAgo(request.createdAt)}
+                  </p>
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Actions - separate row on mobile */}
               {request.status === "pending" && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
                   <Button
                     onClick={() => onApprove(request.id)}
                     disabled={isApproving}
+                    size="sm"
+                    className="flex-1 sm:flex-none"
                   >
                     {isApproving ? <LoadingSpinner size="sm" /> : t("approve")}
                   </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" disabled={isRejecting}>
+                      <Button variant="outline" size="sm" disabled={isRejecting} className="flex-1 sm:flex-none">
                         {t("reject")}
                         <ChevronDown className="ml-1 h-4 w-4" />
                       </Button>

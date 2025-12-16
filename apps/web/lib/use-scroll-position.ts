@@ -113,6 +113,7 @@ export function useRestoreScrollPosition(
   searchParamsKey: string,
   pagesLoaded: number,
   isLoading: boolean,
+  isFetchingNextPage: boolean,
   fetchNextPage: () => void,
   hasNextPage: boolean
 ): { isRestoring: boolean } {
@@ -146,7 +147,8 @@ export function useRestoreScrollPosition(
   // Fetch more pages if needed, then restore scroll
   useEffect(() => {
     const targetState = targetStateRef.current;
-    if (!targetState || restoredRef.current || isLoading) return;
+    // Wait for loading and fetching to complete before attempting scroll
+    if (!targetState || restoredRef.current || isLoading || isFetchingNextPage) return;
 
     // Need to load more pages first?
     if (pagesLoaded < targetState.pagesLoaded && hasNextPage) {
@@ -154,18 +156,21 @@ export function useRestoreScrollPosition(
       return;
     }
 
-    // Ready to restore scroll position
+    // Ready to restore scroll position - use double rAF for layout stability
+    // First rAF: scheduled after React's DOM updates
+    // Second rAF: scheduled after browser layout/paint
     const container = getScrollContainer();
     if (container) {
-      // Use requestAnimationFrame to ensure DOM has updated
       requestAnimationFrame(() => {
-        container.scrollTop = targetState.position;
-        restoredRef.current = true;
-        setIsRestoring(false);
-        clearScrollState(libraryPath);
+        requestAnimationFrame(() => {
+          container.scrollTop = targetState.position;
+          restoredRef.current = true;
+          setIsRestoring(false);
+          clearScrollState(libraryPath);
+        });
       });
     }
-  }, [libraryPath, pagesLoaded, isLoading, hasNextPage, fetchNextPage]);
+  }, [libraryPath, pagesLoaded, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage]);
 
   return { isRestoring };
 }
