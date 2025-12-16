@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Headphones, BookOpen, ChevronRight, Calendar, Tag, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
