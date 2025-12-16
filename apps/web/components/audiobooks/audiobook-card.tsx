@@ -143,18 +143,22 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
         <div className="mt-3 flex items-start gap-1">
           <Link href={`/audiobooks/${audiobook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-1">
-              {/* Rating with Hardcover badge */}
-              {isLinkedToHardcover && audiobook.hardcoverRating !== null && (
+              {/* Rating and/or Hardcover badge */}
+              {isLinkedToHardcover && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  <span>{audiobook.hardcoverRating.toFixed(1)}</span>
-                  <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
+                  {audiobook.hardcoverRating !== null && (
+                    <>
+                      <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                      <span>{audiobook.hardcoverRating.toFixed(1)}</span>
+                      <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
+                    </>
+                  )}
                   <Image
                     src="/hardcover.svg"
                     alt="Hardcover"
                     width={12}
                     height={12}
-                    className="ml-0.5 opacity-70"
+                    className={audiobook.hardcoverRating !== null ? "ml-0.5 opacity-70" : "opacity-70"}
                   />
                 </div>
               )}
