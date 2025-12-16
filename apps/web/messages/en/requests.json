@@ -1,7 +1,11 @@
 {
   "title": "Requests",
   "description": "Search and request audiobooks and ebooks",
-  "searchPlaceholder": "Search audiobooks & ebooks...",
+  "searchPlaceholder": {
+    "all": "Search audiobooks & ebooks...",
+    "audiobooks": "Search audiobooks...",
+    "ebooks": "Search ebooks..."
+  },
   "searchButton": "Search",
   "filters": {
     "title": "Filters",

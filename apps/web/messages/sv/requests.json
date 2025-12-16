@@ -1,7 +1,11 @@
 {
   "title": "Förfrågningar",
   "description": "Sök och begär ljudböcker och e-böcker",
-  "searchPlaceholder": "Sök ljudböcker & e-böcker...",
+  "searchPlaceholder": {
+    "all": "Sök ljudböcker & e-böcker...",
+    "audiobooks": "Sök ljudböcker...",
+    "ebooks": "Sök e-böcker..."
+  },
   "searchButton": "Sök",
   "filters": {
     "title": "Filter",
