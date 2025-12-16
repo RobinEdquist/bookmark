@@ -259,11 +259,12 @@ export function EditEbookDialog({
     // Build update data with only fields that actually changed
     const data: Record<string, unknown> = {};
 
-    // Compare scalar fields - use null (not undefined) to clear values
+    // Compare scalar fields - use null (not undefined) to clear optional values
     // undefined gets stripped from JSON, null is sent explicitly
+    // Note: title is required and cannot be null
     const trimmedTitle = title.trim();
-    if (trimmedTitle !== initialState.title) {
-      data.title = trimmedTitle || null;
+    if (trimmedTitle && trimmedTitle !== initialState.title) {
+      data.title = trimmedTitle;
     }
 
     const trimmedSubtitle = subtitle.trim();

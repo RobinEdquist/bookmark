@@ -20,7 +20,7 @@ export class SeriesEntryDto {
 export class UpdateEbookDto {
   @IsOptional()
   @IsString()
-  title?: string | null;
+  title?: string;
 
   @IsOptional()
   @ValidateIf((_, value) => value !== null)

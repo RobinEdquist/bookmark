@@ -19,7 +19,7 @@ export class SeriesEntryDto {
 export class UpdateAudiobookDto {
   @IsOptional()
   @IsString()
-  title?: string | null;
+  title?: string;
 
   @IsOptional()
   @ValidateIf((_, value) => value !== null)
