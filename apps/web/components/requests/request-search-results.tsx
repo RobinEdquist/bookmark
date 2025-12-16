@@ -15,7 +15,7 @@ interface RequestSearchResultsProps {
   results: MamSearchResult[];
   isLoading: boolean;
   onRequest: (item: {
-    mamTorrentId: string;
+    mamTorrentId: number;
     title: string;
     author?: string;
     narrator?: string;

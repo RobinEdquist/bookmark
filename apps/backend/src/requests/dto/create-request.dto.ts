@@ -1,8 +1,8 @@
 import { IsString, IsOptional, IsIn, IsInt } from 'class-validator';
 
 export class CreateRequestDto {
-  @IsString()
-  mamTorrentId!: string;
+  @IsInt()
+  mamTorrentId!: number;
 
   @IsString()
   title!: string;

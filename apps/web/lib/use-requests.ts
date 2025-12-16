@@ -35,7 +35,7 @@ export interface RequestResponse {
 }
 
 export interface MamSearchResult {
-  id: string;
+  id: number;
   title: string;
   author: string | null;
   narrator: string | null;
@@ -105,7 +105,7 @@ async function fetchMyRequests(): Promise<RequestResponse[]> {
 }
 
 interface CreateRequestParams {
-  mamTorrentId: string;
+  mamTorrentId: number;
   title: string;
   author?: string;
   narrator?: string;

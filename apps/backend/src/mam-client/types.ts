@@ -10,7 +10,7 @@ export interface MamSearchParams {
 }
 
 export interface MamTorrent {
-  id: string;
+  id: number;
   title: string;
   author_info: string;
   narrator_info: string;

@@ -28,7 +28,7 @@ export interface RequestResponseDto {
 }
 
 export interface MamSearchResultDto {
-  id: string;
+  id: number;
   title: string;
   author: string | null;
   narrator: string | null;

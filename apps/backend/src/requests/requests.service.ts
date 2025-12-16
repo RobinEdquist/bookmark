@@ -168,12 +168,12 @@ export class RequestsService {
       browse_lang: languages?.length ? languages : undefined,
     });
 
-    // Get MAM torrent IDs to check for existing requests
-    const mamIds = mamResponse.data.map((t) => t.id);
+    // Get MAM torrent IDs to check for existing requests (convert to strings for DB query)
+    const mamIdStrings = mamResponse.data.map((t) => String(t.id));
 
     // Fetch existing requests for these torrents
     const existingRequests =
-      mamIds.length > 0
+      mamIdStrings.length > 0
         ? await this.db
             .select({
               mamTorrentId: requestsSchema.requests.mamTorrentId,
@@ -183,7 +183,7 @@ export class RequestsService {
             .from(requestsSchema.requests)
             .where(
               and(
-                inArray(requestsSchema.requests.mamTorrentId, mamIds),
+                inArray(requestsSchema.requests.mamTorrentId, mamIdStrings),
                 or(
                   eq(requestsSchema.requests.status, 'pending'),
                   eq(requestsSchema.requests.status, 'approved'),
@@ -199,7 +199,7 @@ export class RequestsService {
 
     // Map results
     const results: MamSearchResultDto[] = mamResponse.data.map((torrent) => {
-      const existing = requestMap.get(torrent.id);
+      const existing = requestMap.get(String(torrent.id));
       const contentType: ContentType =
         torrent.main_cat === 13 ? 'audiobook' : 'ebook';
 
@@ -236,13 +236,16 @@ export class RequestsService {
     dto: CreateRequestDto,
     userId: string,
   ): Promise<RequestResponseDto> {
+    // Convert number to string for DB storage
+    const mamTorrentIdStr = String(dto.mamTorrentId);
+
     // Check for existing active request
     const existing = await this.db
       .select()
       .from(requestsSchema.requests)
       .where(
         and(
-          eq(requestsSchema.requests.mamTorrentId, dto.mamTorrentId),
+          eq(requestsSchema.requests.mamTorrentId, mamTorrentIdStr),
           or(
             eq(requestsSchema.requests.status, 'pending'),
             eq(requestsSchema.requests.status, 'approved'),
@@ -270,7 +273,7 @@ export class RequestsService {
       .insert(requestsSchema.requests)
       .values({
         userId,
-        mamTorrentId: dto.mamTorrentId,
+        mamTorrentId: mamTorrentIdStr,
         title: dto.title,
         author: dto.author,
         narrator: dto.narrator,
