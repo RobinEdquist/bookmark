@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Headphones, BookOpen, Calendar, Tag, FileText, Globe, HardDrive, X } from "lucide-react";
+import { Headphones, BookOpen, Calendar, Tag, FileText, Globe, HardDrive, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
@@ -209,30 +209,66 @@ export function RequestDetailPanel({
 
             {/* Footer Actions */}
             <div className="border-t p-6">
-              {item.inLibrary ? (
-                <Button variant="outline" disabled className="w-full">
-                  {t("button.inLibrary")}
-                </Button>
-              ) : item.existingRequestId ? (
-                item.existingRequestStatus === "pending" ? (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => onSupport(item.existingRequestId!)}
-                    disabled={isSupporting}
+              <AnimatePresence mode="wait">
+                {item.inLibrary ? (
+                  <motion.div
+                    key={`panel-inlibrary-${item.id}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
                   >
-                    {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
-                  </Button>
+                    <Button variant="outline" disabled className="w-full">
+                      {t("button.inLibrary")}
+                    </Button>
+                  </motion.div>
+                ) : item.existingRequestId ? (
+                  item.existingRequestStatus === "pending" ? (
+                    <motion.div
+                      key={`panel-support-${item.id}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                    >
+                      <Button
+                        variant="outline"
+                        className="w-full gap-2"
+                        onClick={() => onSupport(item.existingRequestId!)}
+                        disabled={isSupporting}
+                      >
+                        <Check className="h-4 w-4 text-emerald-500" />
+                        {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
+                      </Button>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key={`panel-status-${item.id}`}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                    >
+                      <Button variant="outline" disabled className="w-full gap-2">
+                        <Check className="h-4 w-4 text-emerald-500" />
+                        {t(`status.${item.existingRequestStatus}`)}
+                      </Button>
+                    </motion.div>
+                  )
                 ) : (
-                  <Button variant="outline" disabled className="w-full">
-                    {t(`status.${item.existingRequestStatus}`)}
-                  </Button>
-                )
-              ) : (
-                <Button className="w-full" onClick={() => onRequest(item)} disabled={isRequesting}>
-                  {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
-                </Button>
-              )}
+                  <motion.div
+                    key={`panel-request-${item.id}`}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                  >
+                    <Button className="w-full" onClick={() => onRequest(item)} disabled={isRequesting}>
+                      {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
+                    </Button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}

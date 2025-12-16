@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Headphones, BookOpen, ChevronRight, Calendar, Tag } from "lucide-react";
+import { Headphones, BookOpen, ChevronRight, Calendar, Tag, Check } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
@@ -216,40 +217,77 @@ export function RequestSearchResults({
 
                 {/* Action */}
                 <div className="flex shrink-0 items-center gap-2 pr-4">
-                  {item.inLibrary ? (
-                    <Button variant="outline" disabled size="sm">
-                      {t("button.inLibrary")}
-                    </Button>
-                  ) : item.existingRequestId ? (
-                    item.existingRequestStatus === "pending" ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSupport(item.existingRequestId!);
-                        }}
-                        disabled={isSupporting}
+                  <AnimatePresence mode="wait">
+                    {item.inLibrary ? (
+                      <motion.div
+                        key={`inlibrary-${item.id}`}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
                       >
-                        {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
-                      </Button>
+                        <Button variant="outline" disabled size="sm">
+                          {t("button.inLibrary")}
+                        </Button>
+                      </motion.div>
+                    ) : item.existingRequestId ? (
+                      item.existingRequestStatus === "pending" ? (
+                        <motion.div
+                          key={`support-${item.id}`}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSupport(item.existingRequestId!);
+                            }}
+                            disabled={isSupporting}
+                            className="gap-1.5"
+                          >
+                            <Check className="h-3.5 w-3.5 text-emerald-500" />
+                            {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
+                          </Button>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key={`status-${item.id}`}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                        >
+                          <Button variant="outline" disabled size="sm" className="gap-1.5">
+                            <Check className="h-3.5 w-3.5 text-emerald-500" />
+                            {t(`status.${item.existingRequestStatus}`)}
+                          </Button>
+                        </motion.div>
+                      )
                     ) : (
-                      <Button variant="outline" disabled size="sm">
-                        {t(`status.${item.existingRequestStatus}`)}
-                      </Button>
-                    )
-                  ) : (
-                    <Button
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRequest(item);
-                      }}
-                      disabled={isRequesting}
-                    >
-                      {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
-                    </Button>
-                  )}
+                      <motion.div
+                        key={`request-${item.id}`}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                      >
+                        <Button
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRequest(item);
+                          }}
+                          disabled={isRequesting}
+                        >
+                          {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
+                        </Button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardContent>

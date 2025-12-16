@@ -1,21 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@repo/ui/components/ui/input";
 import { Button } from "@repo/ui/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import { Tabs as ContentTypeTabs, TabsList as ContentTypeTabsList, TabsTrigger as ContentTypeTabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
-import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest, type SearchFilters } from "../../../lib/use-requests";
+import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest, type SearchFilters, type MamSearchResult, type RequestResponse } from "../../../lib/use-requests";
 import { RequestSearchResults } from "../../../components/requests/request-search-results";
 import { MyRequestsList } from "../../../components/requests/my-requests-list";
 import { SearchFiltersPanel } from "../../../components/requests/search-filters";
 import { authClient } from "../../../lib/auth-client";
+import { queryKeys } from "../../../lib/query-keys";
 
 export default function RequestsPage() {
   const t = useTranslations("requests");
+  const queryClient = useQueryClient();
   const { isPending: sessionPending } = authClient.useSession();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -27,10 +31,20 @@ export default function RequestsPage() {
     perPage: 25,
   });
 
+  // Local state for search results (to update without re-fetching from external API)
+  const [localSearchResults, setLocalSearchResults] = useState<MamSearchResult[]>([]);
+
   const { search, isSearching, data: searchResults } = useSearchMam();
   const { data: myRequests, isLoading: requestsLoading } = useMyRequests();
   const { createRequest, isCreating } = useCreateRequest();
   const { supportRequest, isSupporting } = useSupportRequest();
+
+  // Sync local state with search mutation data
+  useEffect(() => {
+    if (searchResults?.results) {
+      setLocalSearchResults(searchResults.results);
+    }
+  }, [searchResults]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,13 +54,29 @@ export default function RequestsPage() {
   };
 
   const handleRequest = async (item: Parameters<typeof createRequest>[0]) => {
-    await createRequest(item);
-    setActiveTab("my-requests");
+    const newRequest = await createRequest(item);
+
+    // Optimistically update my requests cache for instant tab count
+    queryClient.setQueryData<RequestResponse[]>(
+      queryKeys.requests.list(),
+      (old) => (old ? [...old, newRequest] : [newRequest])
+    );
+
+    // Update local search results to show "requested" status (no external API call)
+    setLocalSearchResults((prev) =>
+      prev.map((result) =>
+        result.id === item.mamTorrentId
+          ? { ...result, existingRequestId: newRequest.id, existingRequestStatus: "pending" as const }
+          : result
+      )
+    );
+
+    // Show success toast instead of navigating away
+    toast.success(t("toast.requested"));
   };
 
   const handleSupport = async (requestId: string) => {
     await supportRequest(requestId);
-    setActiveTab("my-requests");
   };
 
   if (sessionPending) {
@@ -105,7 +135,7 @@ export default function RequestsPage() {
 
           <TabsContent value="search" className="mt-6">
             <RequestSearchResults
-              results={searchResults?.results ?? []}
+              results={localSearchResults}
               isLoading={isSearching}
               onRequest={handleRequest}
               onSupport={handleSupport}
