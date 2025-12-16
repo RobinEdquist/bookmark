@@ -5,6 +5,7 @@ import {
   IsArray,
   IsNumber,
   ValidateNested,
+  ValidateIf,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -19,35 +20,42 @@ export class SeriesEntryDto {
 export class UpdateEbookDto {
   @IsOptional()
   @IsString()
-  title?: string;
+  title?: string | null;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
-  subtitle?: string;
+  subtitle?: string | null;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
-  description?: string;
+  description?: string | null;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
-  publisher?: string;
+  publisher?: string | null;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
-  language?: string;
+  language?: string | null;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
-  publishedDate?: string;
+  publishedDate?: string | null;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
-  isbn?: string;
+  isbn?: string | null;
 
   @IsOptional()
+  @ValidateIf((_, value) => value !== null)
   @IsString()
-  asin?: string;
+  asin?: string | null;
 
   @IsOptional()
   @IsNumber()

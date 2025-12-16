@@ -259,39 +259,40 @@ export function EditEbookDialog({
     // Build update data with only fields that actually changed
     const data: Record<string, unknown> = {};
 
-    // Compare scalar fields
+    // Compare scalar fields - use null (not undefined) to clear values
+    // undefined gets stripped from JSON, null is sent explicitly
     const trimmedTitle = title.trim();
     if (trimmedTitle !== initialState.title) {
-      data.title = trimmedTitle || undefined;
+      data.title = trimmedTitle || null;
     }
 
     const trimmedSubtitle = subtitle.trim();
     if (trimmedSubtitle !== initialState.subtitle) {
-      data.subtitle = trimmedSubtitle || undefined;
+      data.subtitle = trimmedSubtitle || null;
     }
 
     const trimmedDescription = description.trim();
     if (trimmedDescription !== initialState.description) {
-      data.description = trimmedDescription || undefined;
+      data.description = trimmedDescription || null;
     }
 
     const trimmedPublisher = publisher.trim();
     if (trimmedPublisher !== initialState.publisher) {
-      data.publisher = trimmedPublisher || undefined;
+      data.publisher = trimmedPublisher || null;
     }
 
     const normalizedLanguage = language && language !== "none" ? language : "";
     if (normalizedLanguage !== initialState.language) {
-      data.language = normalizedLanguage || undefined;
+      data.language = normalizedLanguage || null;
     }
 
     if (publishedYear !== initialState.publishedYear) {
-      data.publishedDate = publishedYear ? `${publishedYear}-01-01` : undefined;
+      data.publishedDate = publishedYear ? `${publishedYear}-01-01` : null;
     }
 
     const trimmedIsbn = isbn.trim();
     if (trimmedIsbn !== initialState.isbn) {
-      data.isbn = trimmedIsbn || undefined;
+      data.isbn = trimmedIsbn || null;
     }
 
     // Compare array fields
