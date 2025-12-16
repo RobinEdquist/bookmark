@@ -48,7 +48,13 @@ export function RequestSearchResults({
   isSupporting,
 }: RequestSearchResultsProps) {
   const t = useTranslations("requests");
-  const [selectedItem, setSelectedItem] = useState<MamSearchResult | null>(null);
+  // Store only ID so panel updates when results change (e.g., after requesting)
+  const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
+
+  // Derive selected item from results to get latest state
+  const selectedItem = selectedItemId !== null
+    ? results.find((r) => r.id === selectedItemId) ?? null
+    : null;
 
   if (isLoading) {
     return (
@@ -94,7 +100,7 @@ export function RequestSearchResults({
             <Card
               key={item.id}
               className="cursor-pointer overflow-hidden transition-colors hover:bg-accent/50"
-              onClick={() => setSelectedItem(item)}
+              onClick={() => setSelectedItemId(item.id)}
             >
               <CardContent className="flex gap-4 p-0">
                 {/* Colored accent bar */}
@@ -299,7 +305,7 @@ export function RequestSearchResults({
       <RequestDetailPanel
         item={selectedItem}
         isOpen={selectedItem !== null}
-        onClose={() => setSelectedItem(null)}
+        onClose={() => setSelectedItemId(null)}
         onRequest={handleRequest}
         onSupport={onSupport}
         isRequesting={isRequesting}
