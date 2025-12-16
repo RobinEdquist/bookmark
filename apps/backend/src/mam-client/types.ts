@@ -58,13 +58,11 @@ export interface TorrentFile {
 export interface TorrentStatus {
   hash: string;
   name: string;
-  state:
-    | 'downloading'
-    | 'seeding'
-    | 'completed'
-    | 'paused'
-    | 'error'
-    | 'not_found';
+  // qBittorrent states: downloading, stalledDL, metaDL, pausedDL, queuedDL, checkingDL, forcedDL,
+  // uploading, stalledUP, pausedUP, queuedUP, checkingUP, forcedUP, checkingResumeData,
+  // moving, missingFiles, error, allocating, completed, seeding
+  // We also use 'not_found' for missing torrents
+  state: string;
   progress: number;
   size?: number;
   downloaded?: number;

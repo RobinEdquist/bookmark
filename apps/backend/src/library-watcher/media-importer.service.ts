@@ -208,12 +208,24 @@ export class MediaImporterService {
       this.wsEvents.audiobookCreated(audiobook.id);
 
       // Try to match with pending requests
-      const folderName = path.basename(unit.path);
-      await this.requestsService.tryMatchImport(
-        folderName,
+      // For audiobooks, torrent name can be folder name or single file name (e.g., "Book.m4b")
+      // Try matching by basename first, then by parent folder for nested structures
+      const baseName = path.basename(unit.path);
+      const parentFolderName = path.basename(path.dirname(unit.path));
+
+      const matched = await this.requestsService.tryMatchImport(
+        baseName,
         audiobook.id,
         'audiobook',
       );
+      if (!matched) {
+        // Try parent folder if basename didn't match (for nested folder structures)
+        await this.requestsService.tryMatchImport(
+          parentFolderName,
+          audiobook.id,
+          'audiobook',
+        );
+      }
 
       return audiobook.id;
     } catch (error) {
@@ -310,8 +322,24 @@ export class MediaImporterService {
       this.wsEvents.ebookCreated(ebook.id);
 
       // Try to match with pending requests
-      const folderName = path.basename(path.dirname(unit.path));
-      await this.requestsService.tryMatchImport(folderName, ebook.id, 'ebook');
+      // For ebooks, the torrent name is typically the filename (e.g., "Book.epub")
+      // Try matching by filename first, then by parent folder for ebooks in subfolders
+      const fileName = path.basename(unit.path);
+      const parentFolderName = path.basename(path.dirname(unit.path));
+
+      const matched = await this.requestsService.tryMatchImport(
+        fileName,
+        ebook.id,
+        'ebook',
+      );
+      if (!matched) {
+        // Try parent folder if filename didn't match (for ebooks in subfolders)
+        await this.requestsService.tryMatchImport(
+          parentFolderName,
+          ebook.id,
+          'ebook',
+        );
+      }
 
       // Queue for Hardcover auto-sync
       try {

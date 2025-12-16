@@ -442,20 +442,20 @@ export class RequestsService {
 
         let newStatus: RequestStatus | null = null;
 
-        if (torrentStatus.state === 'downloading') {
-          newStatus = 'downloading';
-        } else if (
-          torrentStatus.state === 'completed' ||
-          torrentStatus.state === 'seeding'
-        ) {
-          // Keep as downloading until import matcher links it
-          newStatus = 'downloading';
-        } else if (torrentStatus.state === 'not_found') {
+        // qBittorrent has many states (downloading, stalledDL, uploading, stalledUP, etc.)
+        // We only care about 'not_found' - all other states mean the torrent exists
+        // Transition to 'complete' happens via import matcher when file is imported
+        const state = torrentStatus.state;
+
+        if (state === 'not_found') {
           this.logger.warn(
             `Torrent ${torrentStatus.hash} not found for request ${request.id}`,
           );
           continue;
         }
+
+        // Keep as 'downloading' until import matcher links it to library
+        newStatus = 'downloading';
 
         if (newStatus && newStatus !== request.status) {
           await this.db
