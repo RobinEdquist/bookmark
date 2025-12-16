@@ -28,12 +28,22 @@ export interface HardcoverTaskStatus {
   failedCount: number;
 }
 
+export interface RescanStatus {
+  isRescanning: boolean;
+  phase?: 'preparing' | 'rescanning';
+  total?: number;
+  processed?: number;
+  percentage?: number;
+  currentAudiobook?: string;
+}
+
 @Injectable()
 export class WsEventsService {
   private readonly logger = new Logger(WsEventsService.name);
   private lastImportStatusJson: string | null = null;
   private lastHardcoverStatusJson: string | null = null;
   private lastScanStatusJson: string | null = null;
+  private lastRescanStatusJson: string | null = null;
 
   constructor(private readonly gateway: EventsGateway) {}
 
@@ -170,6 +180,22 @@ export class WsEventsService {
 
     this.lastScanStatusJson = statusJson;
     this.emit({ type: 'tasks.scan.status', payload: status });
+  }
+
+  /**
+   * Push rescan status update to all connected clients.
+   * Debounced - only emits if status has changed.
+   */
+  rescanStatusUpdated(status: RescanStatus): void {
+    const statusJson = JSON.stringify(status);
+
+    // Debounce: only emit if status actually changed
+    if (statusJson === this.lastRescanStatusJson) {
+      return;
+    }
+
+    this.lastRescanStatusJson = statusJson;
+    this.emit({ type: 'tasks.rescan.status', payload: status });
   }
 
   /**

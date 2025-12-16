@@ -30,4 +30,18 @@ export class LibraryWatcherController {
       result,
     };
   }
+
+  @Post('rescan')
+  async triggerRescan() {
+    const result = await this.libraryWatcherService.rescanAllAudiobooks();
+    return {
+      success: true,
+      result,
+    };
+  }
+
+  @Get('rescan-status')
+  getRescanStatus() {
+    return this.libraryWatcherService.getRescanStatus();
+  }
 }

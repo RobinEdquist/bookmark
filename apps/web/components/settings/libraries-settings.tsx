@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X, Rss, Copy, Check, Upload, Link2 } from "lucide-react";
+import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X, Rss, Copy, Check, Upload, Link2, RefreshCw } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -15,6 +15,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Label } from "@repo/ui/components/ui/label";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
+import { Progress } from "@repo/ui/components/ui/progress";
 import { Switch } from "@repo/ui/components/ui/switch";
 import { FolderPickerDialog } from "./folder-picker-dialog";
 import { ImportErrorsSection } from "./import-errors-section";
@@ -24,6 +25,7 @@ import {
   MetadataFieldPriority,
 } from "../../lib/use-settings";
 import { useHardcoverStatus, useQueueAllUnlinked } from "../../lib/use-hardcover";
+import { useRescan, useRescanStatus } from "../../lib/use-rescan";
 
 // Fields that make sense to show in the UI
 // Note: genres is excluded because it always combines all sources
@@ -106,6 +108,8 @@ export function LibrariesSettings() {
   const { queueAllUnlinked } = useQueueAllUnlinked();
   const [isQueueingAudiobooks, setIsQueueingAudiobooks] = useState(false);
   const [isQueueingEbooks, setIsQueueingEbooks] = useState(false);
+  const { rescan, isRescanPending } = useRescan();
+  const rescanStatus = useRescanStatus();
 
   const handleSelectAudiobookPath = async (path: string) => {
     try {
@@ -240,6 +244,22 @@ export function LibrariesSettings() {
       }
     } finally {
       setIsQueueingEbooks(false);
+    }
+  };
+
+  const handleRescan = async () => {
+    try {
+      const result = await rescan();
+      toast.success(
+        t("rescan.toast.completed", {
+          succeeded: result.result.succeeded,
+          failed: result.result.failed,
+        })
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("rescan.toast.error")
+      );
     }
   };
 
@@ -466,6 +486,56 @@ export function LibrariesSettings() {
               )}
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Rescan Metadata Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <RefreshCw className="h-5 w-5" />
+            {t("rescan.title")}
+          </CardTitle>
+          <CardDescription>{t("rescan.description")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {rescanStatus.isRescanning && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {rescanStatus.currentAudiobook
+                    ? t("rescan.progress.current", { title: rescanStatus.currentAudiobook })
+                    : t("rescan.progress.preparing")}
+                </span>
+                <span className="font-medium">
+                  {rescanStatus.processed ?? 0} / {rescanStatus.total ?? 0}
+                </span>
+              </div>
+              <Progress value={rescanStatus.percentage ?? 0} />
+            </div>
+          )}
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              onClick={handleRescan}
+              disabled={isRescanPending || rescanStatus.isRescanning || !settings?.audiobookLibraryPath}
+            >
+              {rescanStatus.isRescanning ? (
+                <>
+                  <LoadingSpinner size="sm" className="mr-2" />
+                  {t("rescan.inProgress")}
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {t("rescan.button")}
+                </>
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {t("rescan.hint")}
+          </p>
         </CardContent>
       </Card>
 

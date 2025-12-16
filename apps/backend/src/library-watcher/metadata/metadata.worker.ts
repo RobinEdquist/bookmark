@@ -1,6 +1,6 @@
 // Worker thread for metadata extraction - runs in separate thread to avoid blocking main event loop
 import { parentPort, workerData } from 'worker_threads';
-import * as mm from 'music-metadata';
+import MediaInfoFactory, { type MediaInfo, type MediaInfoResult } from 'mediainfo.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { exec } from 'child_process';
@@ -67,58 +67,176 @@ interface WorkerResponse {
   error?: string;
 }
 
-async function extractChaptersFromParsedMetadata(
-  mmMetadata: mm.IAudioMetadata,
-  filePath: string,
-): Promise<Chapter[]> {
+// Lazy-initialize MediaInfo instance (reusable across tasks)
+let mediaInfoInstance: MediaInfo | null = null;
+
+async function getMediaInfo(): Promise<MediaInfo> {
+  if (!mediaInfoInstance) {
+    mediaInfoInstance = await MediaInfoFactory({
+      format: 'object',
+      coverData: true,
+    });
+  }
+  return mediaInfoInstance;
+}
+
+/**
+ * Analyze a file using mediainfo.js
+ */
+async function analyzeFile(filePath: string): Promise<MediaInfoResult> {
+  const mediaInfo = await getMediaInfo();
+  const fileHandle = await fs.open(filePath, 'r');
+  const fileSize = (await fileHandle.stat()).size;
+
+  const readChunk = async (size: number, offset: number): Promise<Uint8Array> => {
+    const buffer = new Uint8Array(size);
+    await fileHandle.read(buffer, 0, size, offset);
+    return buffer;
+  };
+
   try {
-    const sampleRate = mmMetadata.format.sampleRate || 44100;
-
-    // Check format.chapters (works for M4B/M4A/MP4 files with chapter tracks)
-    if (mmMetadata.format.chapters && mmMetadata.format.chapters.length > 0) {
-      return mmMetadata.format.chapters.map((chap, index: number) => ({
-        title: chap.title || `Chapter ${index + 1}`,
-        startTime: Math.round(chap.sampleOffset / sampleRate),
-        endTime: undefined,
-      }));
-    }
-
-    // Try ID3v2.4 CHAP tags (for MP3 files with chapters)
-    const id3Chapters =
-      mmMetadata.native?.['ID3v2.4']?.filter((tag) => tag.id === 'CHAP') || [];
-    if (id3Chapters.length > 0) {
-      return id3Chapters.map((chap, index: number) => {
-        const value = chap.value as {
-          startTime: number;
-          endTime?: number;
-          title?: string;
-        };
-        return {
-          title: value.title || `Chapter ${index + 1}`,
-          startTime: Math.round(value.startTime / 1000),
-          endTime: value.endTime ? Math.round(value.endTime / 1000) : undefined,
-        };
-      });
-    }
-
-    // Fallback: Try ffprobe for M4B/M4A files (handles more chapter formats)
-    const ext = path.extname(filePath).toLowerCase();
-    if (['.m4b', '.m4a', '.mp4'].includes(ext)) {
-      const ffprobeChapters = await extractChaptersWithFfprobe(filePath);
-      if (ffprobeChapters.length > 0) {
-        return ffprobeChapters;
-      }
-    }
-
-    return [];
-  } catch {
-    return [];
+    const result = await mediaInfo.analyzeData(() => fileSize, readChunk);
+    return result as MediaInfoResult;
+  } finally {
+    await fileHandle.close();
   }
 }
 
-async function extractChaptersWithFfprobe(
-  filePath: string,
-): Promise<Chapter[]> {
+// Type definitions for mediainfo.js result structure
+interface MediaInfoTrack {
+  '@type': 'General' | 'Audio' | 'Video' | 'Image' | 'Text' | 'Menu';
+  // General track fields
+  Title?: string;
+  Album?: string;
+  Track?: string;
+  Performer?: string;
+  Artist?: string;
+  AlbumPerformer?: string;
+  Composer?: string;
+  Description?: string;
+  Comment?: string;
+  Publisher?: string;
+  Label?: string;
+  Genre?: string;
+  Recorded_Date?: string;
+  Released_Date?: string;
+  Original_Released_Date?: string;
+  Language?: string;
+  Duration?: number; // in seconds
+  Format?: string;
+  Grouping?: string;
+  Part?: string;
+  Part_Position?: string;
+  Copyright?: string;
+  Cover?: string; // 'Yes' if cover exists
+  Cover_Data?: string; // Base64 encoded cover
+  Cover_Mime?: string;
+  // Custom m4b tags (lowercase)
+  nrt?: string; // narrator
+  pub?: string; // publisher
+  // Audio track fields
+  BitRate?: number;
+  SamplingRate?: number;
+  Channels?: number;
+  // Allow other fields
+  [key: string]: unknown;
+}
+
+/**
+ * Normalize year string to just the year portion
+ */
+function normalizeYear(dateStr: string | undefined): string | undefined {
+  if (!dateStr) return undefined;
+
+  // Try to extract a 4-digit year
+  const yearMatch = dateStr.match(/\b(19|20)\d{2}\b/);
+  if (yearMatch) {
+    const year = parseInt(yearMatch[0], 10);
+    if (year >= 1000 && year <= 2100) {
+      return yearMatch[0];
+    }
+  }
+
+  return undefined;
+}
+
+/**
+ * Map mediainfo.js result to ExtractedMetadata
+ */
+function mapMediaInfoToMetadata(result: MediaInfoResult): ExtractedMetadata {
+  const tracks = (result.media?.track || []) as MediaInfoTrack[];
+  const generalTrack = tracks.find(t => t['@type'] === 'General');
+  const audioTrack = tracks.find(t => t['@type'] === 'Audio');
+  const imageTrack = tracks.find(t => t['@type'] === 'Image');
+
+  if (!generalTrack) {
+    return {};
+  }
+
+  // Smart fallback for author: Artist → Performer → AlbumPerformer
+  const author = generalTrack.Artist ||
+                 generalTrack.Performer ||
+                 generalTrack.AlbumPerformer ||
+                 undefined;
+
+  // Smart fallback for narrator: custom nrt tag → Composer (common m4b convention)
+  const narrator = generalTrack.nrt ||
+                   generalTrack.Composer ||
+                   undefined;
+
+  // Smart fallback for publisher: custom pub tag → Publisher → Label
+  const publisher = generalTrack.pub ||
+                    generalTrack.Publisher ||
+                    generalTrack.Label ||
+                    undefined;
+
+  // Parse genres - may be comma-separated or semicolon-separated
+  let genres: string[] | undefined;
+  if (generalTrack.Genre) {
+    genres = generalTrack.Genre.split(/[,;]/).map(g => g.trim()).filter(Boolean);
+  }
+
+  // Duration comes in seconds from mediainfo.js
+  const duration = generalTrack.Duration ? Math.round(generalTrack.Duration) : undefined;
+
+  // Bitrate from audio track (in bps, convert to kbps)
+  const bitrate = audioTrack?.BitRate ? Math.round(audioTrack.BitRate / 1000) : undefined;
+
+  // Sample rate from audio track
+  const sampleRate = audioTrack?.SamplingRate || undefined;
+
+  // Check for embedded cover
+  const hasEmbeddedCover = generalTrack.Cover === 'Yes' || !!imageTrack;
+
+  return {
+    title: generalTrack.Title || generalTrack.Track || undefined,
+    album: generalTrack.Album || undefined,
+    subtitle: undefined, // mediainfo.js doesn't have a standard subtitle field
+    author,
+    narrator,
+    description: generalTrack.Description || generalTrack.Comment || undefined,
+    publisher,
+    publishedDate: normalizeYear(
+      generalTrack.Recorded_Date ||
+      generalTrack.Released_Date ||
+      generalTrack.Original_Released_Date
+    ),
+    language: generalTrack.Language || undefined,
+    genres,
+    series: generalTrack.Grouping || undefined,
+    seriesOrder: generalTrack.Part || generalTrack.Part_Position || undefined,
+    hasEmbeddedCover,
+    duration,
+    format: generalTrack.Format || audioTrack?.Format || undefined,
+    bitrate,
+    sampleRate,
+  };
+}
+
+/**
+ * Extract chapters using ffprobe (mediainfo.js doesn't handle chapters well)
+ */
+async function extractChaptersWithFfprobe(filePath: string): Promise<Chapter[]> {
   try {
     const { stdout } = await execAsync(
       `ffprobe -v quiet -print_format json -show_chapters "${filePath.replace(/"/g, '\\"')}"`,
@@ -152,108 +270,80 @@ async function extractChaptersWithFfprobe(
   }
 }
 
-async function extractFullMetadata(
-  filePath: string,
-): Promise<FullMetadataResult> {
-  // Parse without chapters first - this is more reliable and avoids
-  // music-metadata errors with malformed chapter atoms in some M4B files
-  const mmMetadata = await mm.parseFile(filePath, { includeChapters: false });
-  const { common, format } = mmMetadata;
+async function extractFullMetadata(filePath: string): Promise<FullMetadataResult> {
   const stats = await fs.stat(filePath);
 
-  const metadata: ExtractedMetadata = {
-    title: common.title || undefined,
-    album: common.album || undefined,
-    subtitle: common.subtitle?.[0] || undefined,
-    author: common.artist || common.albumartist || undefined,
-    narrator: common.composer?.[0] || undefined,
-    description: common.comment?.[0]?.text || undefined,
-    publisher: common.label?.[0] || undefined,
-    // Validate year is a finite number and a reasonable 4-digit year (1000-2100)
-    publishedDate:
-      common.year &&
-      Number.isFinite(common.year) &&
-      common.year >= 1000 &&
-      common.year <= 2100
-        ? common.year.toString()
-        : undefined,
-    language: common.language || undefined,
-    genres: common.genre || undefined,
-    series: common.grouping || undefined,
-    hasEmbeddedCover: common.picture && common.picture.length > 0,
-    duration: format.duration ? Math.round(format.duration) : undefined,
-    format: format.container || undefined,
-    bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
-    sampleRate: format.sampleRate || undefined,
-  };
+  // Use mediainfo.js for metadata extraction
+  const mediaInfoResult = await analyzeFile(filePath);
+  const metadata = mapMediaInfoToMetadata(mediaInfoResult);
 
+  // Build file info
   const fileInfo: AudioFileInfo = {
     filePath,
     fileName: path.basename(filePath),
-    duration: format.duration ? Math.round(format.duration) : 0,
-    format: format.container || path.extname(filePath).slice(1),
-    bitrate: format.bitrate ? Math.round(format.bitrate / 1000) : undefined,
-    sampleRate: format.sampleRate || undefined,
+    duration: metadata.duration || 0,
+    format: metadata.format || path.extname(filePath).slice(1).toUpperCase(),
+    bitrate: metadata.bitrate,
+    sampleRate: metadata.sampleRate,
     sizeBytes: stats.size,
   };
 
-  // Try to extract chapters - failures here shouldn't fail the whole import
+  // Use ffprobe for chapter extraction (mediainfo.js doesn't handle chapters well)
   let chapters: Chapter[] = [];
   try {
-    // Try music-metadata with chapters enabled
-    const mmWithChapters = await mm.parseFile(filePath, {
-      includeChapters: true,
-    });
-    chapters = await extractChaptersFromParsedMetadata(
-      mmWithChapters,
-      filePath,
-    );
-  } catch {
-    // music-metadata chapter parsing failed (e.g., "Expected equal chunk-offset-table
-    // & sample-size-table length" or "Chapter chunk exceeding token length")
-    // Fall back to ffprobe for chapter extraction
     const ext = path.extname(filePath).toLowerCase();
-    if (['.m4b', '.m4a', '.mp4'].includes(ext)) {
+    if (['.m4b', '.m4a', '.mp4', '.mp3', '.ogg', '.flac'].includes(ext)) {
       chapters = await extractChaptersWithFfprobe(filePath);
     }
+  } catch {
+    // Chapters are optional, don't fail the whole extraction
   }
 
   return { metadata, fileInfo, chapters };
 }
 
 async function getFileInfo(filePath: string): Promise<AudioFileInfo> {
-  const metadata = await mm.parseFile(filePath);
   const stats = await fs.stat(filePath);
+
+  // Use mediainfo.js for file info
+  const mediaInfoResult = await analyzeFile(filePath);
+  const metadata = mapMediaInfoToMetadata(mediaInfoResult);
 
   return {
     filePath,
     fileName: path.basename(filePath),
-    duration: metadata.format.duration
-      ? Math.round(metadata.format.duration)
-      : 0,
-    format: metadata.format.container || path.extname(filePath).slice(1),
-    bitrate: metadata.format.bitrate
-      ? Math.round(metadata.format.bitrate / 1000)
-      : undefined,
-    sampleRate: metadata.format.sampleRate || undefined,
+    duration: metadata.duration || 0,
+    format: metadata.format || path.extname(filePath).slice(1).toUpperCase(),
+    bitrate: metadata.bitrate,
+    sampleRate: metadata.sampleRate,
     sizeBytes: stats.size,
   };
 }
 
-async function extractCover(
-  filePath: string,
-): Promise<{ data: number[]; mimeType: string } | null> {
-  const metadata = await mm.parseFile(filePath);
-  const picture = metadata.common.picture?.[0];
+async function extractCover(filePath: string): Promise<{ data: number[]; mimeType: string } | null> {
+  const mediaInfoResult = await analyzeFile(filePath);
+  const tracks = (mediaInfoResult.media?.track || []) as MediaInfoTrack[];
+  const generalTrack = tracks.find(t => t['@type'] === 'General');
 
-  if (!picture) {
-    return null;
+  // Check for cover data in general track
+  if (generalTrack?.Cover_Data) {
+    const mimeType = generalTrack.Cover_Mime || 'image/jpeg';
+    const data = Buffer.from(generalTrack.Cover_Data, 'base64');
+    return {
+      data: Array.from(data),
+      mimeType,
+    };
   }
 
-  return {
-    data: Array.from(picture.data),
-    mimeType: picture.format || 'image/jpeg',
-  };
+  // Check for image track (some files embed cover as a separate track)
+  const imageTrack = tracks.find(t => t['@type'] === 'Image');
+  if (imageTrack) {
+    // Image track doesn't usually contain data directly, but indicates presence
+    // For now, return null and rely on ffmpeg for cover extraction if needed
+    // This is a limitation - we may need to use ffmpeg for cover extraction
+  }
+
+  return null;
 }
 
 async function handleTask(task: WorkerTask): Promise<WorkerResponse> {

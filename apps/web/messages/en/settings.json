@@ -124,6 +124,21 @@
         "retryQueued": "Retry queued",
         "retryFailed": "Failed to retry import"
       }
+    },
+    "rescan": {
+      "title": "Rescan Metadata",
+      "description": "Re-extract metadata from all audiobook files and update database records",
+      "button": "Rescan All Audiobooks",
+      "inProgress": "Rescanning...",
+      "hint": "This will re-read metadata from your audio files. Manually edited fields will not be overwritten. File information (duration, bitrate, etc.) is always updated.",
+      "progress": {
+        "preparing": "Preparing...",
+        "current": "Rescanning: {title}"
+      },
+      "toast": {
+        "completed": "Rescan completed: {succeeded} succeeded, {failed} failed",
+        "error": "Failed to start rescan"
+      }
     }
   },
   "users": {

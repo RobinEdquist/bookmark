@@ -124,6 +124,21 @@
         "retryQueued": "Nytt försök köat",
         "retryFailed": "Kunde inte köa nytt försök"
       }
+    },
+    "rescan": {
+      "title": "Skanna om metadata",
+      "description": "Läs om metadata från alla ljudboksfiler och uppdatera databasposter",
+      "button": "Skanna om alla ljudböcker",
+      "inProgress": "Skannar om...",
+      "hint": "Detta läser om metadata från dina ljudfiler. Manuellt redigerade fält skrivs inte över. Filinformation (längd, bitrate, etc.) uppdateras alltid.",
+      "progress": {
+        "preparing": "Förbereder...",
+        "current": "Skannar om: {title}"
+      },
+      "toast": {
+        "completed": "Omskanning klar: {succeeded} lyckades, {failed} misslyckades",
+        "error": "Kunde inte starta omskanning"
+      }
     }
   },
   "users": {

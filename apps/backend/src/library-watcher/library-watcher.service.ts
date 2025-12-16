@@ -1,13 +1,18 @@
 // apps/backend/src/library-watcher/library-watcher.service.ts
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
+import { WsEventsService, RescanStatus } from '../events/ws-events.service';
 import { FileWatcherService } from './file-watcher.service';
 import {
   LibraryScannerService,
   ScanResult,
   ScanProgress,
 } from './library-scanner.service';
+import { MediaImporterService } from './media-importer.service';
+import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import * as audiobooksSchema from '../audiobooks/schema';
 
 @Injectable()
 export class LibraryWatcherService implements OnModuleInit {
@@ -15,11 +20,21 @@ export class LibraryWatcherService implements OnModuleInit {
   private currentAudiobookPath: string | null = null;
   private currentEbookPath: string | null = null;
 
+  // Rescan state
+  private isRescanning = false;
+  private rescanTotal = 0;
+  private rescanProcessed = 0;
+  private rescanCurrentAudiobook: string | undefined;
+
   constructor(
+    @Inject(DATABASE_CONNECTION)
+    private db: NodePgDatabase<typeof audiobooksSchema>,
     private appSettingsService: AppSettingsService,
     private appEvents: AppEventsService,
+    private wsEvents: WsEventsService,
     private fileWatcher: FileWatcherService,
     private libraryScanner: LibraryScannerService,
+    private mediaImporter: MediaImporterService,
   ) {}
 
   async onModuleInit() {
@@ -228,5 +243,114 @@ export class LibraryWatcherService implements OnModuleInit {
 
   onScanProgress(callback: (progress: ScanProgress) => void): () => void {
     return this.libraryScanner.onProgress(callback);
+  }
+
+  // ===== RESCAN ALL AUDIOBOOKS =====
+
+  /**
+   * Rescan all audiobooks in the library.
+   * Re-extracts metadata from files and updates database records.
+   * Respects manually edited fields (tracked via manualFields column).
+   */
+  async rescanAllAudiobooks(): Promise<{
+    total: number;
+    succeeded: number;
+    failed: number;
+  }> {
+    if (this.isRescanning) {
+      throw new Error('Rescan is already in progress');
+    }
+
+    this.isRescanning = true;
+    this.rescanProcessed = 0;
+
+    try {
+      // Get all audiobooks
+      const audiobooks = await this.db
+        .select({
+          id: audiobooksSchema.audiobooks.id,
+          title: audiobooksSchema.audiobooks.title,
+        })
+        .from(audiobooksSchema.audiobooks);
+
+      this.rescanTotal = audiobooks.length;
+
+      // Emit initial status
+      this.emitRescanStatus('preparing');
+
+      this.logger.log(`Starting rescan of ${this.rescanTotal} audiobooks`);
+
+      let succeeded = 0;
+      let failed = 0;
+
+      for (const audiobook of audiobooks) {
+        this.rescanCurrentAudiobook = audiobook.title;
+        this.emitRescanStatus('rescanning');
+
+        try {
+          const success = await this.mediaImporter.rescanAudiobook(audiobook.id);
+          if (success) {
+            succeeded++;
+          } else {
+            failed++;
+          }
+        } catch (error) {
+          this.logger.error(
+            `Failed to rescan audiobook ${audiobook.id}: ${error}`,
+          );
+          failed++;
+        }
+
+        this.rescanProcessed++;
+        this.emitRescanStatus('rescanning');
+      }
+
+      this.logger.log(
+        `Rescan completed: ${succeeded} succeeded, ${failed} failed`,
+      );
+
+      return {
+        total: this.rescanTotal,
+        succeeded,
+        failed,
+      };
+    } finally {
+      this.isRescanning = false;
+      this.rescanTotal = 0;
+      this.rescanProcessed = 0;
+      this.rescanCurrentAudiobook = undefined;
+
+      // Emit final status (not rescanning)
+      this.emitRescanStatus();
+    }
+  }
+
+  private emitRescanStatus(phase?: 'preparing' | 'rescanning'): void {
+    const status: RescanStatus = {
+      isRescanning: this.isRescanning,
+      phase,
+      total: this.rescanTotal,
+      processed: this.rescanProcessed,
+      percentage:
+        this.rescanTotal > 0
+          ? Math.round((this.rescanProcessed / this.rescanTotal) * 100)
+          : 0,
+      currentAudiobook: this.rescanCurrentAudiobook,
+    };
+    this.wsEvents.rescanStatusUpdated(status);
+  }
+
+  getRescanStatus(): RescanStatus {
+    return {
+      isRescanning: this.isRescanning,
+      phase: this.isRescanning ? 'rescanning' : undefined,
+      total: this.rescanTotal,
+      processed: this.rescanProcessed,
+      percentage:
+        this.rescanTotal > 0
+          ? Math.round((this.rescanProcessed / this.rescanTotal) * 100)
+          : 0,
+      currentAudiobook: this.rescanCurrentAudiobook,
+    };
   }
 }

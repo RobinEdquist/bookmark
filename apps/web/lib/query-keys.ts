@@ -106,6 +106,7 @@ export const queryKeys = {
     import: () => [...queryKeys.tasks.all, "import"] as const,
     hardcover: () => [...queryKeys.tasks.all, "hardcover"] as const,
     scan: () => [...queryKeys.tasks.all, "scan"] as const,
+    rescan: () => [...queryKeys.tasks.all, "rescan"] as const,
   },
   importErrors: {
     all: ["importErrors"] as const,
