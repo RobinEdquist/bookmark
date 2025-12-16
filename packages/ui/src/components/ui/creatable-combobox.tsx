@@ -81,10 +81,8 @@ export function CreatableCombobox({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && showCreateOption) {
-      e.preventDefault();
-      handleCreate();
-    }
+    // Let Command handle Enter - it will select the highlighted item
+    // (either an existing option or the "Create" option)
     if (e.key === "Backspace" && inputValue === "" && value.length > 0) {
       onChange(value.slice(0, -1));
     }

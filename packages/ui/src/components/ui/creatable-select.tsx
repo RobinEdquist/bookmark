@@ -67,13 +67,6 @@ export function CreatableSelect({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && showCreateOption) {
-      e.preventDefault();
-      handleCreate();
-    }
-  };
-
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -122,7 +115,6 @@ export function CreatableSelect({
             placeholder={searchPlaceholder}
             value={inputValue}
             onValueChange={setInputValue}
-            onKeyDown={handleKeyDown}
           />
           <CommandList>
             <CommandEmpty>{emptyText}</CommandEmpty>
