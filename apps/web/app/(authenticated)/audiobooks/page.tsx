@@ -11,6 +11,11 @@ import { useDebouncedValue } from "../../../lib/use-debounced-value";
 import { SortSelect } from "../../../components/library/sort-select";
 import { useSortPreference } from "../../../lib/use-sort-preference";
 import { useSaveLibraryUrl } from "../../../lib/use-library-return-url";
+import {
+  useSaveScrollPosition,
+  useRestoreScrollPosition,
+  clearScrollState,
+} from "../../../lib/use-scroll-position";
 import { MobileLibraryHeader } from "../../../components/layout/mobile-library-header";
 import { authClient } from "../../../lib/auth-client";
 
@@ -72,6 +77,32 @@ export default function AudiobooksPage() {
 
   // Flatten pages into single array
   const audiobooks = data?.pages.flatMap((page) => page.audiobooks) ?? [];
+
+  // Scroll position restoration
+  const pagesLoaded = data?.pages.length ?? 0;
+  const searchParamsKey = `${debouncedSearch ?? ""}-${sortBy}-${sortOrder}`;
+
+  // Clear scroll position when search/sort changes
+  const prevSearchParamsKey = useRef(searchParamsKey);
+  useEffect(() => {
+    if (prevSearchParamsKey.current !== searchParamsKey) {
+      clearScrollState("/audiobooks");
+      prevSearchParamsKey.current = searchParamsKey;
+    }
+  }, [searchParamsKey]);
+
+  // Save scroll position when navigating away
+  useSaveScrollPosition("/audiobooks", searchParamsKey, pagesLoaded);
+
+  // Restore scroll position when returning from detail page
+  useRestoreScrollPosition(
+    "/audiobooks",
+    searchParamsKey,
+    pagesLoaded,
+    isLoading,
+    fetchNextPage,
+    hasNextPage ?? false
+  );
 
   // Show spinner when search is pending (query differs from debounced) or fetching first page
   const isSearching = searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
