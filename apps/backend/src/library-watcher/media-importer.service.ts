@@ -44,13 +44,30 @@ export class MediaImporterService {
     libraryPath: string,
   ): Promise<string | null> {
     const primaryFile = unit.files[0];
-    // For root-level single files, unit.path is the file itself, not a directory
-    // In that case, we store empty string for filePath (indicates library root)
+
+    // Determine if this is a root-level file:
+    // - Root-level files: unit.path === unit.files[0] (both are the file path)
+    // - Subdirectory audiobooks: unit.path is the folder, unit.files[0] is the file inside
     const isRootLevelFile =
-      unit.type === 'single-file' && path.dirname(unit.path) === libraryPath;
+      unit.type === 'single-file' && unit.path === primaryFile;
+
+    // For root-level files, store empty string (indicates library root)
+    // For subdirectory audiobooks, store the relative folder path
     const relativeUnitPath = isRootLevelFile
       ? ''
       : path.relative(libraryPath, unit.path);
+
+    this.logger.debug(
+      `[IMPORT] Starting import for unit: ${JSON.stringify({
+        type: unit.type,
+        path: unit.path,
+        filesCount: unit.files.length,
+        primaryFile,
+        isRootLevelFile,
+        relativeUnitPath,
+        libraryPath,
+      })}`,
+    );
 
     try {
       // Check if already exists
@@ -80,15 +97,21 @@ export class MediaImporterService {
       }
 
       if (existing.length > 0) {
-        this.logger.debug(`Audiobook already exists at ${unit.path}`);
+        this.logger.debug(
+          `[IMPORT] Audiobook already exists at ${unit.path}, id=${existing[0].id}`,
+        );
         return existing[0].id;
       }
 
       // Check if quarantined
       if (await this.importErrorsService.isQuarantined(unit.path)) {
-        this.logger.debug(`Skipping quarantined path: ${unit.path}`);
+        this.logger.debug(`[IMPORT] Skipping quarantined path: ${unit.path}`);
         return null;
       }
+
+      this.logger.debug(
+        `[IMPORT] Extracting metadata from primary file: ${primaryFile}`,
+      );
 
       // Extract all metadata from primary file in one pass (metadata, fileInfo, chapters)
       // This avoids parsing the file 3 times
@@ -99,6 +122,16 @@ export class MediaImporterService {
         fileInfo: primaryFileInfo,
         chapters: primaryChapters,
       } = primaryData;
+
+      this.logger.debug(
+        `[IMPORT] Metadata extracted: ${JSON.stringify({
+          title: metadata.title,
+          author: metadata.author,
+          duration: primaryFileInfo.duration,
+          chaptersCount: primaryChapters.length,
+          hasEmbeddedCover: metadata.hasEmbeddedCover,
+        })}`,
+      );
 
       // Determine cover source
       let coverSource: 'embedded' | undefined = undefined;
@@ -134,6 +167,16 @@ export class MediaImporterService {
           : metadata.title || this.inferTitleFromPath(unit.path, unit.type);
       const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
 
+      this.logger.debug(
+        `[IMPORT] Creating audiobook record: ${JSON.stringify({
+          title: this.sanitizeText(title) ?? title,
+          filePath: relativeUnitPath,
+          totalDuration,
+          filesCount: fileInfos.length,
+          coverSource,
+        })}`,
+      );
+
       // Create audiobook record
       const [audiobook] = await this.db
         .insert(audiobooksSchema.audiobooks)
@@ -152,22 +195,32 @@ export class MediaImporterService {
         })
         .returning();
 
+      this.logger.debug(
+        `[IMPORT] Audiobook record created: id=${audiobook.id}`,
+      );
+
       // Create file records in a single batch insert
       // filePath stores just the filename (relative to audiobook folder)
       if (fileInfos.length > 0) {
-        await this.db.insert(audiobooksSchema.audiobookFiles).values(
-          fileInfos.map((fileInfo, i) => ({
-            audiobookId: audiobook.id,
-            filePath: path.basename(fileInfo.filePath),
-            fileName: fileInfo.fileName,
-            order: i,
-            duration: fileInfo.duration,
-            format: fileInfo.format,
-            bitrate: fileInfo.bitrate,
-            sampleRate: fileInfo.sampleRate,
-            sizeBytes: fileInfo.sizeBytes,
-          })),
+        const fileRecords = fileInfos.map((fileInfo, i) => ({
+          audiobookId: audiobook.id,
+          filePath: path.basename(fileInfo.filePath),
+          fileName: fileInfo.fileName,
+          order: i,
+          duration: fileInfo.duration,
+          format: fileInfo.format,
+          bitrate: fileInfo.bitrate,
+          sampleRate: fileInfo.sampleRate,
+          sizeBytes: fileInfo.sizeBytes,
+        }));
+
+        this.logger.debug(
+          `[IMPORT] Creating ${fileRecords.length} file record(s): ${JSON.stringify(
+            fileRecords.map((f) => ({ filePath: f.filePath, duration: f.duration })),
+          )}`,
         );
+
+        await this.db.insert(audiobooksSchema.audiobookFiles).values(fileRecords);
       }
 
       // Use chapters from the primary file extraction (already parsed)
@@ -229,7 +282,9 @@ export class MediaImporterService {
         );
       }
 
-      this.logger.log(`Imported audiobook: ${title} (${audiobook.id})`);
+      this.logger.log(
+        `[IMPORT] Successfully imported audiobook: "${title}" (id=${audiobook.id}, filePath="${relativeUnitPath}", files=${fileInfos.length})`,
+      );
       this.appEvents.audiobookCreated(audiobook.id);
       this.wsEvents.audiobookCreated(audiobook.id);
 
@@ -255,7 +310,9 @@ export class MediaImporterService {
 
       return audiobook.id;
     } catch (error) {
-      this.logger.error(`Failed to import audiobook at ${unit.path}: ${error}`);
+      this.logger.error(
+        `[IMPORT] Failed to import audiobook at ${unit.path}: ${error}`,
+      );
       await this.importErrorsService.recordError(
         unit.path,
         error instanceof Error ? error : new Error(String(error)),
@@ -271,7 +328,18 @@ export class MediaImporterService {
     unit: EbookUnit,
     libraryPath: string,
   ): Promise<string | null> {
+    // For ebooks, unit.path is always the full file path
+    // Store the relative path from library root to the file
     const relativeFilePath = path.relative(libraryPath, unit.path);
+
+    this.logger.debug(
+      `[IMPORT] Starting ebook import: ${JSON.stringify({
+        path: unit.path,
+        fileName: unit.fileName,
+        relativeFilePath,
+        libraryPath,
+      })}`,
+    );
 
     try {
       // Check if already exists
@@ -282,21 +350,33 @@ export class MediaImporterService {
         .limit(1);
 
       if (existing.length > 0) {
-        this.logger.debug(`Ebook already exists at ${unit.path}`);
+        this.logger.debug(
+          `[IMPORT] Ebook already exists at ${unit.path}, id=${existing[0].id}`,
+        );
         return existing[0].id;
       }
 
       // Check if quarantined
       if (await this.importErrorsService.isQuarantined(unit.path)) {
-        this.logger.debug(`Skipping quarantined path: ${unit.path}`);
+        this.logger.debug(`[IMPORT] Skipping quarantined path: ${unit.path}`);
         return null;
       }
+
+      this.logger.debug(`[IMPORT] Extracting metadata from: ${unit.path}`);
 
       // Extract metadata from EPUB
       const metadata = await this.ebookMetadataProvider.extractMetadata(
         unit.path,
       );
       const stats = await fs.stat(unit.path);
+
+      this.logger.debug(
+        `[IMPORT] Ebook metadata extracted: ${JSON.stringify({
+          title: metadata.title,
+          authors: metadata.authors,
+          hasCover: !!metadata.cover,
+        })}`,
+      );
 
       // Determine cover source
       let coverSource: 'embedded' | undefined = undefined;
@@ -309,6 +389,15 @@ export class MediaImporterService {
       // They will be migrated to app data storage by a separate migration task.
 
       const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
+
+      this.logger.debug(
+        `[IMPORT] Creating ebook record: ${JSON.stringify({
+          title: this.sanitizeText(metadata.title) ?? metadata.title,
+          filePath: relativeFilePath,
+          fileName: unit.fileName,
+          coverSource,
+        })}`,
+      );
 
       // Create ebook record
       const [ebook] = await this.db
@@ -332,6 +421,8 @@ export class MediaImporterService {
         })
         .returning();
 
+      this.logger.debug(`[IMPORT] Ebook record created: id=${ebook.id}`);
+
       // Create author links
       for (let i = 0; i < metadata.authors.length; i++) {
         const authorName = metadata.authors[i];
@@ -343,7 +434,9 @@ export class MediaImporterService {
       // Clear any previous errors
       await this.importErrorsService.clearResolvedByPath(unit.path);
 
-      this.logger.log(`Imported ebook: ${metadata.title} (${ebook.id})`);
+      this.logger.log(
+        `[IMPORT] Successfully imported ebook: "${metadata.title}" (id=${ebook.id}, filePath="${relativeFilePath}")`,
+      );
       this.appEvents.ebookCreated(ebook.id);
       this.wsEvents.ebookCreated(ebook.id);
 
@@ -384,7 +477,9 @@ export class MediaImporterService {
 
       return ebook.id;
     } catch (error) {
-      this.logger.error(`Failed to import ebook at ${unit.path}: ${error}`);
+      this.logger.error(
+        `[IMPORT] Failed to import ebook at ${unit.path}: ${error}`,
+      );
       await this.importErrorsService.recordError(
         unit.path,
         error instanceof Error ? error : new Error(String(error)),
@@ -404,6 +499,8 @@ export class MediaImporterService {
    * - Updates author/narrator if not manually edited
    */
   async rescanAudiobook(audiobookId: string): Promise<boolean> {
+    this.logger.debug(`[RESCAN] Starting rescan for audiobook: ${audiobookId}`);
+
     try {
       // Get the audiobook with its manualFields
       const [audiobook] = await this.db
@@ -413,7 +510,7 @@ export class MediaImporterService {
         .limit(1);
 
       if (!audiobook) {
-        this.logger.warn(`Audiobook ${audiobookId} not found for rescan`);
+        this.logger.warn(`[RESCAN] Audiobook ${audiobookId} not found`);
         return false;
       }
 
@@ -421,7 +518,7 @@ export class MediaImporterService {
       const libraryPath =
         await this.appSettingsService.getAudiobookLibraryPath();
       if (!libraryPath) {
-        this.logger.error('No audiobook library path configured');
+        this.logger.error('[RESCAN] No audiobook library path configured');
         return false;
       }
 
@@ -433,9 +530,18 @@ export class MediaImporterService {
         .orderBy(audiobooksSchema.audiobookFiles.order);
 
       if (existingFiles.length === 0) {
-        this.logger.warn(`No files found for audiobook ${audiobookId}`);
+        this.logger.warn(`[RESCAN] No files found for audiobook ${audiobookId}`);
         return false;
       }
+
+      this.logger.debug(
+        `[RESCAN] Audiobook info: ${JSON.stringify({
+          title: audiobook.title,
+          filePath: audiobook.filePath,
+          filesCount: existingFiles.length,
+          libraryPath,
+        })}`,
+      );
 
       // Build full file paths
       // Path formula: {libraryPath}/{audiobook.filePath}/{file.filePath}
@@ -443,6 +549,10 @@ export class MediaImporterService {
       // - file.filePath = filename only
       const filePaths = existingFiles.map((f) =>
         path.join(libraryPath, audiobook.filePath, f.filePath),
+      );
+
+      this.logger.debug(
+        `[RESCAN] Resolved file paths: ${JSON.stringify(filePaths)}`,
       );
 
       // Extract metadata from the primary file
@@ -604,14 +714,16 @@ export class MediaImporterService {
       }
 
       this.logger.log(
-        `Rescanned audiobook: ${audiobook.title} (${audiobookId})`,
+        `[RESCAN] Successfully rescanned audiobook: "${audiobook.title}" (id=${audiobookId})`,
       );
       this.appEvents.audiobookUpdated(audiobookId);
       this.wsEvents.audiobookUpdated(audiobookId);
 
       return true;
     } catch (error) {
-      this.logger.error(`Failed to rescan audiobook ${audiobookId}: ${error}`);
+      this.logger.error(
+        `[RESCAN] Failed to rescan audiobook ${audiobookId}: ${error}`,
+      );
       return false;
     }
   }

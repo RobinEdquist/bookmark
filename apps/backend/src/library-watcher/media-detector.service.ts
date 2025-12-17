@@ -31,6 +31,7 @@ export class MediaDetectorService {
   async scanLibraryForAudiobooks(
     libraryPath: string,
   ): Promise<AudiobookUnit[]> {
+    this.logger.log(`[SCAN] Starting audiobook scan of library: ${libraryPath}`);
     const units: AudiobookUnit[] = [];
 
     const scan = async (currentPath: string): Promise<void> => {
@@ -38,7 +39,7 @@ export class MediaDetectorService {
       try {
         entries = await fs.readdir(currentPath, { withFileTypes: true });
       } catch (error) {
-        this.logger.warn(`Cannot read directory ${currentPath}: ${error}`);
+        this.logger.warn(`[SCAN] Cannot read directory ${currentPath}: ${error}`);
         return;
       }
 
@@ -54,11 +55,22 @@ export class MediaDetectorService {
           .map((f) => path.join(currentPath, f.name))
           .sort();
 
-        units.push({
+        const unit: AudiobookUnit = {
           type: files.length === 1 ? 'single-file' : 'multi-file',
           path: currentPath,
           files,
-        });
+        };
+
+        this.logger.debug(
+          `[SCAN] Detected audiobook unit in subdirectory: ${JSON.stringify({
+            type: unit.type,
+            path: unit.path,
+            filesCount: unit.files.length,
+            firstFile: unit.files[0],
+          })}`,
+        );
+
+        units.push(unit);
       } else {
         for (const subdir of subdirs) {
           await scan(path.join(currentPath, subdir.name));
@@ -75,20 +87,31 @@ export class MediaDetectorService {
         const entryPath = path.join(libraryPath, entry.name);
 
         if (entry.isFile() && isAudioFile(entry.name)) {
-          units.push({
+          const unit: AudiobookUnit = {
             type: 'single-file',
             path: entryPath,
             files: [entryPath],
-          });
+          };
+
+          this.logger.debug(
+            `[SCAN] Detected root-level audiobook file: ${JSON.stringify({
+              type: unit.type,
+              path: unit.path,
+              file: unit.files[0],
+            })}`,
+          );
+
+          units.push(unit);
         } else if (entry.isDirectory() && !entry.name.startsWith('.')) {
           await scan(entryPath);
         }
       }
     } catch (error) {
-      this.logger.error(`Failed to scan library path ${libraryPath}: ${error}`);
+      this.logger.error(`[SCAN] Failed to scan library path ${libraryPath}: ${error}`);
       throw error;
     }
 
+    this.logger.log(`[SCAN] Completed audiobook scan: found ${units.length} units`);
     return units;
   }
 
@@ -130,6 +153,7 @@ export class MediaDetectorService {
   // ===== EBOOK DETECTION =====
 
   async scanLibraryForEbooks(libraryPath: string): Promise<EbookUnit[]> {
+    this.logger.log(`[SCAN] Starting ebook scan of library: ${libraryPath}`);
     const units: EbookUnit[] = [];
 
     const scan = async (currentPath: string): Promise<void> => {
@@ -137,7 +161,7 @@ export class MediaDetectorService {
       try {
         entries = await fs.readdir(currentPath, { withFileTypes: true });
       } catch (error) {
-        this.logger.warn(`Cannot read directory ${currentPath}: ${error}`);
+        this.logger.warn(`[SCAN] Cannot read directory ${currentPath}: ${error}`);
         return;
       }
 
@@ -145,10 +169,20 @@ export class MediaDetectorService {
         const entryPath = path.join(currentPath, entry.name);
 
         if (entry.isFile() && isEbookFile(entry.name)) {
-          units.push({
+          const unit: EbookUnit = {
             path: entryPath,
             fileName: entry.name,
-          });
+          };
+
+          this.logger.debug(
+            `[SCAN] Detected ebook: ${JSON.stringify({
+              path: unit.path,
+              fileName: unit.fileName,
+              relativePath: path.relative(libraryPath, unit.path),
+            })}`,
+          );
+
+          units.push(unit);
         } else if (entry.isDirectory() && !entry.name.startsWith('.')) {
           await scan(entryPath);
         }
@@ -158,10 +192,11 @@ export class MediaDetectorService {
     try {
       await scan(libraryPath);
     } catch (error) {
-      this.logger.error(`Failed to scan library path ${libraryPath}: ${error}`);
+      this.logger.error(`[SCAN] Failed to scan library path ${libraryPath}: ${error}`);
       throw error;
     }
 
+    this.logger.log(`[SCAN] Completed ebook scan: found ${units.length} units`);
     return units;
   }
 
