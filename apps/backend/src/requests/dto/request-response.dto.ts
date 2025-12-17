@@ -23,6 +23,8 @@ export interface RequestResponseDto {
   libraryItemType: ContentType | null;
   supporterCount: number;
   isSupporter: boolean;
+  autoApprovedByUserId: string | null;
+  autoApprovedByEmail: string | null;
   createdAt: string;
   updatedAt: string;
 }

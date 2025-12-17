@@ -610,6 +610,17 @@ export class RequestsService {
       .where(eq(authSchema.user.id, request.userId))
       .limit(1);
 
+    // Get auto-approver email if applicable
+    let autoApprovedByEmail: string | null = null;
+    if (request.autoApprovedByUserId) {
+      const [autoApprover] = await this.db
+        .select({ email: authSchema.user.email })
+        .from(authSchema.user)
+        .where(eq(authSchema.user.id, request.autoApprovedByUserId))
+        .limit(1);
+      autoApprovedByEmail = autoApprover?.email ?? null;
+    }
+
     // Get supporter count
     const supporters = await this.db
       .select({ userId: requestsSchema.requestSupporters.userId })
@@ -638,6 +649,8 @@ export class RequestsService {
       libraryItemType: request.libraryItemType,
       supporterCount: supporters.length,
       isSupporter,
+      autoApprovedByUserId: request.autoApprovedByUserId,
+      autoApprovedByEmail,
       createdAt: request.createdAt.toISOString(),
       updatedAt: request.updatedAt.toISOString(),
     };
