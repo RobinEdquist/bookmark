@@ -6,8 +6,9 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, or, inArray, isNull } from 'drizzle-orm';
+import { eq, and, or, inArray, isNull, gte, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { getLastMondayUTC } from '../common/utils/date.utils';
 import * as requestsSchema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
@@ -309,6 +310,31 @@ export class RequestsService {
         userId,
       });
     }
+  }
+
+  async getUserAutoApproveUsage(
+    userId: string,
+  ): Promise<{ used: number; limit: number }> {
+    const settings = await this.appSettingsService.getSettings();
+    const limit = settings?.autoApproveRequestsPerWeek ?? 0;
+
+    if (limit === 0) {
+      return { used: 0, limit: 0 };
+    }
+
+    const lastMonday = getLastMondayUTC();
+
+    const [result] = await this.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(requestsSchema.requests)
+      .where(
+        and(
+          eq(requestsSchema.requests.autoApprovedByUserId, userId),
+          gte(requestsSchema.requests.createdAt, lastMonday),
+        ),
+      );
+
+    return { used: result?.count ?? 0, limit };
   }
 
   async getUserRequests(userId: string): Promise<RequestResponseDto[]> {
