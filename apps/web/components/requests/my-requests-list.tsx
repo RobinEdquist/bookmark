@@ -67,7 +67,13 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
                     )}
                   </div>
                   <Badge variant={statusVariants[request.status]} className="shrink-0">
-                    {t(`status.${request.status}`)}
+                    {request.status === 'approved' && request.autoApprovedByUserId ? (
+                      request.autoApprovedByUserId === request.userId
+                        ? t('autoApprove.autoApproved')
+                        : t('autoApprove.autoApprovedBy', { email: request.autoApprovedByEmail ?? 'Unknown' })
+                    ) : (
+                      t(`status.${request.status}`)
+                    )}
                   </Badge>
                 </div>
 

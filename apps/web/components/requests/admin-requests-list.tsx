@@ -50,6 +50,7 @@ export function AdminRequestsList({
   isRejecting,
 }: AdminRequestsListProps) {
   const t = useTranslations("admin.requests");
+  const tRequests = useTranslations("requests");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
@@ -122,7 +123,13 @@ export function AdminRequestsList({
                       </span>
                     </h3>
                     <Badge variant={statusVariants[request.status]} className="shrink-0">
-                      {t(`status.${request.status}`)}
+                      {request.status === 'approved' && request.autoApprovedByUserId ? (
+                        request.autoApprovedByUserId === request.userId
+                          ? tRequests('autoApprove.autoApproved')
+                          : tRequests('autoApprove.autoApprovedBy', { email: request.autoApprovedByEmail ?? 'Unknown' })
+                      ) : (
+                        t(`status.${request.status}`)
+                      )}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground truncate">
