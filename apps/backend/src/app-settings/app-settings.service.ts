@@ -44,6 +44,9 @@ export class AppSettingsService {
     emailPasswordEnabled?: boolean;
     oidcAutoCreateUsers?: string;
     requestsEnabled?: boolean;
+    requestsAudiobookCategory?: string;
+    requestsEbookCategory?: string;
+    requestsComicsCategory?: string;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)
@@ -112,5 +115,18 @@ export class AppSettingsService {
   async isRequestsEnabled(): Promise<boolean> {
     const settings = await this.getSettings();
     return settings.requestsEnabled;
+  }
+
+  async getRequestsCategories(): Promise<{
+    audiobook: string;
+    ebook: string;
+    comics: string;
+  }> {
+    const settings = await this.getSettings();
+    return {
+      audiobook: settings.requestsAudiobookCategory,
+      ebook: settings.requestsEbookCategory,
+      comics: settings.requestsComicsCategory,
+    };
   }
 }

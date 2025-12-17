@@ -23,6 +23,9 @@ interface UpdateSettingsDto {
   emailPasswordEnabled?: boolean;
   oidcAutoCreateUsers?: string;
   requestsEnabled?: boolean;
+  requestsAudiobookCategory?: string;
+  requestsEbookCategory?: string;
+  requestsComicsCategory?: string;
 }
 
 @Controller('settings')
@@ -70,6 +73,9 @@ export class AppSettingsController {
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
       requestsEnabled: settings.requestsEnabled,
+      requestsAudiobookCategory: settings.requestsAudiobookCategory,
+      requestsEbookCategory: settings.requestsEbookCategory,
+      requestsComicsCategory: settings.requestsComicsCategory,
       mamClientConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
@@ -89,7 +95,10 @@ export class AppSettingsController {
       dto.oidcButtonText === undefined &&
       dto.emailPasswordEnabled === undefined &&
       dto.oidcAutoCreateUsers === undefined &&
-      dto.requestsEnabled === undefined
+      dto.requestsEnabled === undefined &&
+      dto.requestsAudiobookCategory === undefined &&
+      dto.requestsEbookCategory === undefined &&
+      dto.requestsComicsCategory === undefined
     ) {
       throw new BadRequestException('No settings provided to update');
     }
@@ -135,6 +144,9 @@ export class AppSettingsController {
       emailPasswordEnabled?: boolean;
       oidcAutoCreateUsers?: string;
       requestsEnabled?: boolean;
+      requestsAudiobookCategory?: string;
+      requestsEbookCategory?: string;
+      requestsComicsCategory?: string;
     } = {};
     if (dto.signupsEnabled !== undefined)
       updates.signupsEnabled = dto.signupsEnabled;
@@ -153,6 +165,12 @@ export class AppSettingsController {
       updates.oidcAutoCreateUsers = dto.oidcAutoCreateUsers;
     if (dto.requestsEnabled !== undefined)
       updates.requestsEnabled = dto.requestsEnabled;
+    if (dto.requestsAudiobookCategory !== undefined)
+      updates.requestsAudiobookCategory = dto.requestsAudiobookCategory;
+    if (dto.requestsEbookCategory !== undefined)
+      updates.requestsEbookCategory = dto.requestsEbookCategory;
+    if (dto.requestsComicsCategory !== undefined)
+      updates.requestsComicsCategory = dto.requestsComicsCategory;
 
     const settings = await this.appSettingsService.updateSettings(updates);
     const mamClientConfigured = !!(
@@ -169,6 +187,9 @@ export class AppSettingsController {
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
       requestsEnabled: settings.requestsEnabled,
+      requestsAudiobookCategory: settings.requestsAudiobookCategory,
+      requestsEbookCategory: settings.requestsEbookCategory,
+      requestsComicsCategory: settings.requestsComicsCategory,
       mamClientConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,

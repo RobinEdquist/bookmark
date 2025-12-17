@@ -317,6 +317,19 @@
         "enabled": "Content requests enabled",
         "disabled": "Content requests disabled",
         "error": "Failed to update content requests setting"
+      },
+      "categories": {
+        "title": "qBittorrent Categories",
+        "description": "Configure the category names used in qBittorrent when downloading requested content. These should match categories configured in your qBittorrent client.",
+        "audiobook": "Audiobooks Category",
+        "ebook": "Ebooks Category",
+        "comics": "Comics/Graphic Novels Category",
+        "save": "Save Categories",
+        "saving": "Saving...",
+        "toast": {
+          "success": "Categories saved successfully",
+          "error": "Failed to save categories"
+        }
       }
     },
     "hardcover": {

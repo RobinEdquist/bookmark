@@ -1,6 +1,6 @@
 {
-  "id": "b8c3d4e5-f6a7-5b8c-9d0e-1f2a3b4c5d6e",
-  "prevId": "a7b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+  "id": "325d4130-163c-47fd-9176-2396b6204cbf",
+  "prevId": "b8c3d4e5-f6a7-5b8c-9d0e-1f2a3b4c5d6e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -94,6 +94,27 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "requests_audiobook_category": {
+          "name": "requests_audiobook_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'audiobooks'"
+        },
+        "requests_ebook_category": {
+          "name": "requests_ebook_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'books'"
+        },
+        "requests_comics_category": {
+          "name": "requests_comics_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'comics'"
         },
         "created_at": {
           "name": "created_at",

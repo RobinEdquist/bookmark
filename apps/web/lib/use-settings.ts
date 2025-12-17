@@ -30,6 +30,9 @@ export interface Settings {
   emailPasswordEnabled: boolean;
   oidcAutoCreateUsers: string;
   requestsEnabled: boolean;
+  requestsAudiobookCategory: string;
+  requestsEbookCategory: string;
+  requestsComicsCategory: string;
   mamClientConfigured: boolean;
   createdAt: string;
   updatedAt: string;
@@ -45,6 +48,9 @@ export interface UpdateSettingsDto {
   emailPasswordEnabled?: boolean;
   oidcAutoCreateUsers?: string;
   requestsEnabled?: boolean;
+  requestsAudiobookCategory?: string;
+  requestsEbookCategory?: string;
+  requestsComicsCategory?: string;
 }
 
 async function fetchSettings(): Promise<Settings> {

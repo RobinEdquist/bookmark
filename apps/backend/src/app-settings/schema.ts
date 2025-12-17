@@ -70,6 +70,15 @@ export const appSettings = pgTable(
       .notNull()
       .default('auto'),
     requestsEnabled: boolean('requests_enabled').notNull().default(false),
+    requestsAudiobookCategory: text('requests_audiobook_category')
+      .notNull()
+      .default('audiobooks'),
+    requestsEbookCategory: text('requests_ebook_category')
+      .notNull()
+      .default('books'),
+    requestsComicsCategory: text('requests_comics_category')
+      .notNull()
+      .default('comics'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

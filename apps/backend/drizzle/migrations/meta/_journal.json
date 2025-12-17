@@ -43,6 +43,13 @@
       "when": 1766016000000,
       "tag": "0005_normalize_audiobook_paths",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1765970281988,
+      "tag": "0006_add_qbittorrent_category_settings",
+      "breakpoints": true
     }
   ]
 }

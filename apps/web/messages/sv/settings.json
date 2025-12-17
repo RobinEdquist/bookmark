@@ -317,6 +317,19 @@
         "enabled": "Innehållsförfrågningar aktiverade",
         "disabled": "Innehållsförfrågningar inaktiverade",
         "error": "Kunde inte uppdatera inställning för innehållsförfrågningar"
+      },
+      "categories": {
+        "title": "qBittorrent-kategorier",
+        "description": "Konfigurera kategorinamnen som används i qBittorrent vid nedladdning av begärt innehåll. Dessa bör matcha kategorier som är konfigurerade i din qBittorrent-klient.",
+        "audiobook": "Ljudbokskategori",
+        "ebook": "E-bokskategori",
+        "comics": "Serier/grafiska romaner-kategori",
+        "save": "Spara kategorier",
+        "saving": "Sparar...",
+        "toast": {
+          "success": "Kategorier sparade",
+          "error": "Kunde inte spara kategorier"
+        }
       }
     },
     "hardcover": {

@@ -13,6 +13,7 @@ import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as authSchema from '../auth/schema';
 import { MamClientService } from '../mam-client';
+import { AppSettingsService } from '../app-settings/app-settings.service';
 import {
   CreateRequestDto,
   RejectRequestDto,
@@ -35,6 +36,7 @@ export class RequestsService {
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<CombinedSchema>,
     private mamClient: MamClientService,
+    private appSettingsService: AppSettingsService,
   ) {}
 
   /**
@@ -353,15 +355,18 @@ export class RequestsService {
       throw new BadRequestException('Can only approve pending requests');
     }
 
+    // Get configurable category names from settings
+    const categories = await this.appSettingsService.getRequestsCategories();
+
     // Determine qBittorrent category based on content type and MAM category
     // MAM category 61 = "Ebooks - Comics/Graphic novels"
     let category: string;
     if (request.mamCategory === 61) {
-      category = 'comics';
+      category = categories.comics;
     } else if (request.contentType === 'audiobook') {
-      category = 'audiobooks';
+      category = categories.audiobook;
     } else {
-      category = 'books';
+      category = categories.ebook;
     }
 
     // Start download via MAM client

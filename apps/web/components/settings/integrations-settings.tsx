@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { ExternalLink, Check, X, AlertCircle, Clock, Trash2, Link as LinkIcon, AlertTriangle } from "lucide-react";
@@ -51,6 +51,21 @@ export function IntegrationsSettings() {
   const [apiKey, setApiKey] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [syncDialogItem, setSyncDialogItem] = useState<FailedSyncItem | null>(null);
+
+  // Category configuration state
+  const [audiobookCategory, setAudiobookCategory] = useState("");
+  const [ebookCategory, setEbookCategory] = useState("");
+  const [comicsCategory, setComicsCategory] = useState("");
+  const [isSavingCategories, setIsSavingCategories] = useState(false);
+
+  // Sync category state when settings load
+  useEffect(() => {
+    if (settings) {
+      setAudiobookCategory(settings.requestsAudiobookCategory);
+      setEbookCategory(settings.requestsEbookCategory);
+      setComicsCategory(settings.requestsComicsCategory);
+    }
+  }, [settings]);
 
   const handleConnect = async () => {
     try {
@@ -149,6 +164,24 @@ export function IntegrationsSettings() {
     }
   };
 
+  const handleSaveCategories = async () => {
+    setIsSavingCategories(true);
+    try {
+      await updateSettings({
+        requestsAudiobookCategory: audiobookCategory,
+        requestsEbookCategory: ebookCategory,
+        requestsComicsCategory: comicsCategory,
+      });
+      toast.success(t("requests.categories.toast.success"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("requests.categories.toast.error")
+      );
+    } finally {
+      setIsSavingCategories(false);
+    }
+  };
+
   if (isLoading || !settings) {
     return (
       <Card>
@@ -220,6 +253,64 @@ export function IntegrationsSettings() {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {settings.requestsEnabled && (
+            <div className="space-y-4 pt-4 border-t">
+              <div className="space-y-1">
+                <Label className="text-base font-medium">
+                  {t("requests.categories.title")}
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  {t("requests.categories.description")}
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="audiobook-category">
+                    {t("requests.categories.audiobook")}
+                  </Label>
+                  <Input
+                    id="audiobook-category"
+                    value={audiobookCategory}
+                    onChange={(e) => setAudiobookCategory(e.target.value)}
+                    placeholder="audiobooks"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="ebook-category">
+                    {t("requests.categories.ebook")}
+                  </Label>
+                  <Input
+                    id="ebook-category"
+                    value={ebookCategory}
+                    onChange={(e) => setEbookCategory(e.target.value)}
+                    placeholder="books"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="comics-category">
+                    {t("requests.categories.comics")}
+                  </Label>
+                  <Input
+                    id="comics-category"
+                    value={comicsCategory}
+                    onChange={(e) => setComicsCategory(e.target.value)}
+                    placeholder="comics"
+                  />
+                </div>
+              </div>
+
+              <Button
+                onClick={handleSaveCategories}
+                disabled={isSavingCategories}
+              >
+                {isSavingCategories ? t("requests.categories.saving") : t("requests.categories.save")}
+              </Button>
             </div>
           )}
         </CardContent>
