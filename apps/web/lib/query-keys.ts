@@ -126,6 +126,7 @@ export const queryKeys = {
     list: () => [...queryKeys.requests.all, 'list'] as const,
     search: (query: string) => [...queryKeys.requests.all, 'search', query] as const,
     detail: (id: string) => [...queryKeys.requests.all, 'detail', id] as const,
+    autoApproveBudget: () => [...queryKeys.requests.all, 'auto-approve-budget'] as const,
   },
   adminRequests: {
     all: ['admin-requests'] as const,
