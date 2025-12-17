@@ -81,5 +81,10 @@
     "alreadyInLibrary": "Detta objekt finns redan i ditt bibliotek",
     "approved": "Förfrågan godkänd",
     "rejected": "Förfrågan avvisad"
+  },
+  "autoApprove": {
+    "budget": "Auto-godkännanden: {remaining}/{limit} denna vecka",
+    "autoApproved": "Auto-godkänd",
+    "autoApprovedBy": "Auto-godkänd av {email}"
   }
 }

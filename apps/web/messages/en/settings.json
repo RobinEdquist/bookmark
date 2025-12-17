@@ -330,7 +330,9 @@
           "success": "Categories saved successfully",
           "error": "Failed to save categories"
         }
-      }
+      },
+      "autoApproveLimit": "Auto-approve requests per week",
+      "autoApproveLimitDescription": "Number of requests each user can auto-approve per week. Set to 0 to disable."
     },
     "hardcover": {
       "title": "Hardcover",

@@ -81,5 +81,10 @@
     "alreadyInLibrary": "This item is already in your library",
     "approved": "Request approved",
     "rejected": "Request rejected"
+  },
+  "autoApprove": {
+    "budget": "Auto-approvals: {remaining}/{limit} this week",
+    "autoApproved": "Auto-approved",
+    "autoApprovedBy": "Auto-approved by {email}"
   }
 }

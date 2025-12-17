@@ -330,7 +330,9 @@
           "success": "Kategorier sparade",
           "error": "Kunde inte spara kategorier"
         }
-      }
+      },
+      "autoApproveLimit": "Auto-godkänn förfrågningar per vecka",
+      "autoApproveLimitDescription": "Antal förfrågningar varje användare kan auto-godkänna per vecka. Sätt till 0 för att inaktivera."
     },
     "hardcover": {
       "title": "Hardcover",
