@@ -19,6 +19,17 @@ import { WsEventsService } from '../events/ws-events.service';
 import { AudiobookUnit, EbookUnit } from './media-detector.service';
 import { RequestsService } from '../requests';
 import { AppSettingsService } from '../app-settings/app-settings.service';
+import {
+  calculateAudiobookPaths,
+  calculateEbookPath,
+  resolveAudiobookFilePath,
+} from './utils/path.utils';
+import {
+  sanitizeText,
+  normalizePublishedDate,
+  inferTitleFromPath,
+} from './utils/text.utils';
+import { generateChaptersFromFiles } from './utils/chapter.utils';
 
 @Injectable()
 export class MediaImporterService {
@@ -45,17 +56,11 @@ export class MediaImporterService {
   ): Promise<string | null> {
     const primaryFile = unit.files[0];
 
-    // Determine if this is a root-level file:
-    // - Root-level files: unit.path === unit.files[0] (both are the file path)
-    // - Subdirectory audiobooks: unit.path is the folder, unit.files[0] is the file inside
-    const isRootLevelFile =
-      unit.type === 'single-file' && unit.path === primaryFile;
-
-    // For root-level files, store empty string (indicates library root)
-    // For subdirectory audiobooks, store the relative folder path
-    const relativeUnitPath = isRootLevelFile
-      ? ''
-      : path.relative(libraryPath, unit.path);
+    // Calculate path storage values using utility function
+    const { isRootLevelFile, relativeUnitPath } = calculateAudiobookPaths(
+      unit,
+      libraryPath,
+    );
 
     this.logger.debug(
       `[IMPORT] Starting import for unit: ${JSON.stringify({
@@ -160,16 +165,16 @@ export class MediaImporterService {
       // For single-file, prefer track title from metadata
       const title =
         unit.type === 'multi-file'
-          ? this.inferTitleFromPath(unit.path, unit.type) ||
+          ? inferTitleFromPath(unit.path, unit.type) ||
             metadata.album ||
             metadata.title ||
             'Unknown Audiobook'
-          : metadata.title || this.inferTitleFromPath(unit.path, unit.type);
-      const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
+          : metadata.title || inferTitleFromPath(unit.path, unit.type);
+      const publishedDate = normalizePublishedDate(metadata.publishedDate);
 
       this.logger.debug(
         `[IMPORT] Creating audiobook record: ${JSON.stringify({
-          title: this.sanitizeText(title) ?? title,
+          title: sanitizeText(title) ?? title,
           filePath: relativeUnitPath,
           totalDuration,
           filesCount: fileInfos.length,
@@ -181,10 +186,10 @@ export class MediaImporterService {
       const [audiobook] = await this.db
         .insert(audiobooksSchema.audiobooks)
         .values({
-          title: this.sanitizeText(title) ?? title,
-          subtitle: this.sanitizeText(metadata.subtitle),
-          description: this.sanitizeText(metadata.description),
-          publisher: this.sanitizeText(metadata.publisher),
+          title: sanitizeText(title) ?? title,
+          subtitle: sanitizeText(metadata.subtitle),
+          description: sanitizeText(metadata.description),
+          publisher: sanitizeText(metadata.publisher),
           language: metadata.language,
           publishedDate,
           duration: totalDuration,
@@ -216,11 +221,16 @@ export class MediaImporterService {
 
         this.logger.debug(
           `[IMPORT] Creating ${fileRecords.length} file record(s): ${JSON.stringify(
-            fileRecords.map((f) => ({ filePath: f.filePath, duration: f.duration })),
+            fileRecords.map((f) => ({
+              filePath: f.filePath,
+              duration: f.duration,
+            })),
           )}`,
         );
 
-        await this.db.insert(audiobooksSchema.audiobookFiles).values(fileRecords);
+        await this.db
+          .insert(audiobooksSchema.audiobookFiles)
+          .values(fileRecords);
       }
 
       // Use chapters from the primary file extraction (already parsed)
@@ -232,7 +242,7 @@ export class MediaImporterService {
         unit.type === 'multi-file' &&
         fileInfos.length > 1
       ) {
-        chapters = this.generateChaptersFromFiles(fileInfos);
+        chapters = generateChaptersFromFiles(fileInfos);
         chapterSource = 'external';
       }
 
@@ -241,7 +251,7 @@ export class MediaImporterService {
         await this.db.insert(audiobooksSchema.chapters).values(
           chapters.map((chapter, i) => ({
             audiobookId: audiobook.id,
-            title: this.sanitizeText(chapter.title) ?? chapter.title,
+            title: sanitizeText(chapter.title) ?? chapter.title,
             startTime: chapter.startTime,
             endTime: chapter.endTime,
             order: i,
@@ -328,9 +338,8 @@ export class MediaImporterService {
     unit: EbookUnit,
     libraryPath: string,
   ): Promise<string | null> {
-    // For ebooks, unit.path is always the full file path
-    // Store the relative path from library root to the file
-    const relativeFilePath = path.relative(libraryPath, unit.path);
+    // Calculate relative path using utility function
+    const relativeFilePath = calculateEbookPath(unit, libraryPath);
 
     this.logger.debug(
       `[IMPORT] Starting ebook import: ${JSON.stringify({
@@ -388,11 +397,11 @@ export class MediaImporterService {
       // Note: Filesystem covers are no longer imported as 'filesystem'.
       // They will be migrated to app data storage by a separate migration task.
 
-      const publishedDate = this.normalizePublishedDate(metadata.publishedDate);
+      const publishedDate = normalizePublishedDate(metadata.publishedDate);
 
       this.logger.debug(
         `[IMPORT] Creating ebook record: ${JSON.stringify({
-          title: this.sanitizeText(metadata.title) ?? metadata.title,
+          title: sanitizeText(metadata.title) ?? metadata.title,
           filePath: relativeFilePath,
           fileName: unit.fileName,
           coverSource,
@@ -403,10 +412,10 @@ export class MediaImporterService {
       const [ebook] = await this.db
         .insert(ebooksSchema.ebooks)
         .values({
-          title: this.sanitizeText(metadata.title) ?? metadata.title,
-          subtitle: this.sanitizeText(metadata.subtitle),
-          description: this.sanitizeText(metadata.description),
-          publisher: this.sanitizeText(metadata.publisher),
+          title: sanitizeText(metadata.title) ?? metadata.title,
+          subtitle: sanitizeText(metadata.subtitle),
+          description: sanitizeText(metadata.description),
+          publisher: sanitizeText(metadata.publisher),
           language: metadata.language,
           publishedDate,
           isbn: metadata.isbn,
@@ -530,7 +539,9 @@ export class MediaImporterService {
         .orderBy(audiobooksSchema.audiobookFiles.order);
 
       if (existingFiles.length === 0) {
-        this.logger.warn(`[RESCAN] No files found for audiobook ${audiobookId}`);
+        this.logger.warn(
+          `[RESCAN] No files found for audiobook ${audiobookId}`,
+        );
         return false;
       }
 
@@ -543,12 +554,9 @@ export class MediaImporterService {
         })}`,
       );
 
-      // Build full file paths
-      // Path formula: {libraryPath}/{audiobook.filePath}/{file.filePath}
-      // - audiobook.filePath = folder path (empty string for root-level files)
-      // - file.filePath = filename only
+      // Build full file paths using utility function
       const filePaths = existingFiles.map((f) =>
-        path.join(libraryPath, audiobook.filePath, f.filePath),
+        resolveAudiobookFilePath(libraryPath, audiobook.filePath, f.filePath),
       );
 
       this.logger.debug(
@@ -586,24 +594,22 @@ export class MediaImporterService {
 
       // Only update non-manual fields
       if (!manualFields.includes('title') && metadata.title) {
-        updates.title = this.sanitizeText(metadata.title);
+        updates.title = sanitizeText(metadata.title);
       }
       if (!manualFields.includes('subtitle') && metadata.subtitle) {
-        updates.subtitle = this.sanitizeText(metadata.subtitle);
+        updates.subtitle = sanitizeText(metadata.subtitle);
       }
       if (!manualFields.includes('description') && metadata.description) {
-        updates.description = this.sanitizeText(metadata.description);
+        updates.description = sanitizeText(metadata.description);
       }
       if (!manualFields.includes('publisher') && metadata.publisher) {
-        updates.publisher = this.sanitizeText(metadata.publisher);
+        updates.publisher = sanitizeText(metadata.publisher);
       }
       if (!manualFields.includes('language') && metadata.language) {
         updates.language = metadata.language;
       }
       if (!manualFields.includes('publishedDate') && metadata.publishedDate) {
-        updates.publishedDate = this.normalizePublishedDate(
-          metadata.publishedDate,
-        );
+        updates.publishedDate = normalizePublishedDate(metadata.publishedDate);
       }
 
       // Update cover source if not manually set
@@ -660,7 +666,7 @@ export class MediaImporterService {
 
           // For multi-file audiobooks with no embedded chapters, generate from files
           if (chapters.length === 0 && fileInfos.length > 1) {
-            chapters = this.generateChaptersFromFiles(fileInfos);
+            chapters = generateChaptersFromFiles(fileInfos);
             chapterSource = 'external';
           }
 
@@ -668,7 +674,7 @@ export class MediaImporterService {
             await this.db.insert(audiobooksSchema.chapters).values(
               chapters.map((chapter, i) => ({
                 audiobookId,
-                title: this.sanitizeText(chapter.title) ?? chapter.title,
+                title: sanitizeText(chapter.title) ?? chapter.title,
                 startTime: chapter.startTime,
                 endTime: chapter.endTime,
                 order: i,
@@ -729,75 +735,6 @@ export class MediaImporterService {
   }
 
   // ===== PRIVATE HELPERS =====
-
-  /**
-   * Sanitize text fields to prevent SQL parameter binding issues
-   * Some Unicode characters (smart quotes, em-dashes) can break Drizzle ORM's parameter serialization
-   */
-  private sanitizeText(text: string | undefined): string | undefined {
-    if (!text) return undefined;
-
-    return (
-      text
-        // Replace smart/curly quotes with straight quotes
-        .replace(/[\u2018\u2019\u201A\u201B]/g, "'") // single quotes
-        .replace(/[\u201C\u201D\u201E\u201F]/g, '"') // double quotes
-        // Replace various dashes with regular hyphen
-        .replace(/[\u2013\u2014\u2015]/g, '-') // en-dash, em-dash, horizontal bar
-        // Replace ellipsis character with three dots
-        .replace(/\u2026/g, '...')
-        // Remove null bytes that might be embedded
-        .replace(/\0/g, '')
-    );
-  }
-
-  private inferTitleFromPath(
-    audiobookPath: string,
-    type: 'single-file' | 'multi-file',
-  ): string {
-    if (type === 'single-file') {
-      return path.basename(audiobookPath, path.extname(audiobookPath));
-    }
-    return path.basename(audiobookPath);
-  }
-
-  private normalizePublishedDate(
-    dateString: string | undefined,
-  ): string | undefined {
-    if (!dateString) return undefined;
-
-    // Handle year-only format (must be 4 digits and reasonable)
-    if (/^\d{4}$/.test(dateString)) {
-      const year = parseInt(dateString, 10);
-      if (year >= 1000 && year <= 2100) {
-        return `${dateString}-01-01`;
-      }
-      return undefined; // Invalid year
-    }
-
-    // Try to parse as date - if invalid, return undefined
-    const parsed = new Date(dateString);
-    if (isNaN(parsed.getTime())) {
-      return undefined;
-    }
-
-    return dateString;
-  }
-
-  private generateChaptersFromFiles(
-    fileInfos: AudioFileInfo[],
-  ): Array<{ title: string; startTime: number; endTime: number }> {
-    let cumulativeTime = 0;
-
-    return fileInfos.map((file) => {
-      const startTime = cumulativeTime;
-      const endTime = cumulativeTime + file.duration;
-      cumulativeTime = endTime;
-
-      const title = path.basename(file.fileName, path.extname(file.fileName));
-      return { title, startTime, endTime };
-    });
-  }
 
   private async createOrLinkAudiobookPerson(
     audiobookId: string,

@@ -114,19 +114,30 @@ export function useSaveScrollPosition(
             searchParamsKey: searchParamsKeyRef.current,
             pagesLoaded: pagesLoadedRef.current,
           });
+        } else {
+          // User scrolled to top - clear saved state so we don't restore
+          log("At top, clearing saved state");
+          clearScrollState(libraryPath);
         }
       }, 150);
     };
 
     // Save on visibility change (user switches tab)
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden" && container.scrollTop > 0) {
-        log("Visibility changed to hidden, saving position:", container.scrollTop);
-        saveScrollState(libraryPath, {
-          position: container.scrollTop,
-          searchParamsKey: searchParamsKeyRef.current,
-          pagesLoaded: pagesLoadedRef.current,
-        });
+      if (document.visibilityState === "hidden") {
+        const scrollTop = container.scrollTop;
+        if (scrollTop > 0) {
+          log("Visibility changed to hidden, saving position:", scrollTop);
+          saveScrollState(libraryPath, {
+            position: scrollTop,
+            searchParamsKey: searchParamsKeyRef.current,
+            pagesLoaded: pagesLoadedRef.current,
+          });
+        } else {
+          // User is at top - clear saved state
+          log("Visibility changed to hidden, at top - clearing saved state");
+          clearScrollState(libraryPath);
+        }
       }
     };
 

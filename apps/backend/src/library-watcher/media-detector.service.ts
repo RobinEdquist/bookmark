@@ -31,7 +31,9 @@ export class MediaDetectorService {
   async scanLibraryForAudiobooks(
     libraryPath: string,
   ): Promise<AudiobookUnit[]> {
-    this.logger.log(`[SCAN] Starting audiobook scan of library: ${libraryPath}`);
+    this.logger.log(
+      `[SCAN] Starting audiobook scan of library: ${libraryPath}`,
+    );
     const units: AudiobookUnit[] = [];
 
     const scan = async (currentPath: string): Promise<void> => {
@@ -39,7 +41,9 @@ export class MediaDetectorService {
       try {
         entries = await fs.readdir(currentPath, { withFileTypes: true });
       } catch (error) {
-        this.logger.warn(`[SCAN] Cannot read directory ${currentPath}: ${error}`);
+        this.logger.warn(
+          `[SCAN] Cannot read directory ${currentPath}: ${error}`,
+        );
         return;
       }
 
@@ -107,11 +111,15 @@ export class MediaDetectorService {
         }
       }
     } catch (error) {
-      this.logger.error(`[SCAN] Failed to scan library path ${libraryPath}: ${error}`);
+      this.logger.error(
+        `[SCAN] Failed to scan library path ${libraryPath}: ${error}`,
+      );
       throw error;
     }
 
-    this.logger.log(`[SCAN] Completed audiobook scan: found ${units.length} units`);
+    this.logger.log(
+      `[SCAN] Completed audiobook scan: found ${units.length} units`,
+    );
     return units;
   }
 
@@ -161,7 +169,9 @@ export class MediaDetectorService {
       try {
         entries = await fs.readdir(currentPath, { withFileTypes: true });
       } catch (error) {
-        this.logger.warn(`[SCAN] Cannot read directory ${currentPath}: ${error}`);
+        this.logger.warn(
+          `[SCAN] Cannot read directory ${currentPath}: ${error}`,
+        );
         return;
       }
 
@@ -192,7 +202,9 @@ export class MediaDetectorService {
     try {
       await scan(libraryPath);
     } catch (error) {
-      this.logger.error(`[SCAN] Failed to scan library path ${libraryPath}: ${error}`);
+      this.logger.error(
+        `[SCAN] Failed to scan library path ${libraryPath}: ${error}`,
+      );
       throw error;
     }
 
