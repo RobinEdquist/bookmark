@@ -1,0 +1,3 @@
+ALTER TABLE "app_settings" ADD COLUMN "auto_approve_requests_per_week" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
+ALTER TABLE "requests" ADD COLUMN "auto_approved_by_user_id" text;--> statement-breakpoint
+ALTER TABLE "requests" ADD CONSTRAINT "requests_auto_approved_by_user_id_user_id_fk" FOREIGN KEY ("auto_approved_by_user_id") REFERENCES "public"."user"("id") ON DELETE set null ON UPDATE no action;
