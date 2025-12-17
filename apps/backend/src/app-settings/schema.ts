@@ -6,6 +6,7 @@ import {
   boolean,
   check,
   jsonb,
+  integer,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -79,6 +80,9 @@ export const appSettings = pgTable(
     requestsComicsCategory: text('requests_comics_category')
       .notNull()
       .default('comics'),
+    autoApproveRequestsPerWeek: integer('auto_approve_requests_per_week')
+      .notNull()
+      .default(0),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

@@ -46,6 +46,10 @@ export const requests = pgTable(
     rejectionReason: text('rejection_reason'),
     libraryItemId: uuid('library_item_id'),
     libraryItemType: text('library_item_type').$type<ContentType>(),
+    autoApprovedByUserId: text('auto_approved_by_user_id').references(
+      () => user.id,
+      { onDelete: 'set null' },
+    ),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
