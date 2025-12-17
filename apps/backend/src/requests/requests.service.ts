@@ -326,6 +326,30 @@ export class RequestsService {
         userId,
       });
     }
+
+    // Check if request is still pending and supporter has budget
+    const [request] = await this.db
+      .select()
+      .from(requestsSchema.requests)
+      .where(eq(requestsSchema.requests.id, requestId))
+      .limit(1);
+
+    if (request && request.status === 'pending') {
+      const { used, limit } = await this.getUserAutoApproveUsage(userId);
+      if (limit > 0 && used < limit) {
+        try {
+          await this.performApproval(request, userId);
+          this.logger.log(
+            `Auto-approved request ${requestId} via supporter ${userId} (${used + 1}/${limit})`,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Auto-approve via supporter failed for request ${requestId}: ${error}`,
+          );
+          // Request stays as pending if auto-approve fails
+        }
+      }
+    }
   }
 
   async getUserAutoApproveUsage(
