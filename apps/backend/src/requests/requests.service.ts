@@ -381,6 +381,15 @@ export class RequestsService {
       throw new BadRequestException('Can only approve pending requests');
     }
 
+    await this.performApproval(request, null);
+
+    return this.getRequestById(id, null);
+  }
+
+  private async performApproval(
+    request: typeof requestsSchema.requests.$inferSelect,
+    autoApprovedByUserId: string | null,
+  ): Promise<void> {
     // Get configurable category names from settings
     const categories = await this.appSettingsService.getRequestsCategories();
 
@@ -405,17 +414,16 @@ export class RequestsService {
       downloadResult.hash,
     );
 
-    // Update request with hash and folder name
+    // Update request with hash, folder name, and auto-approval info
     await this.db
       .update(requestsSchema.requests)
       .set({
         status: 'approved',
         torrentHash: downloadResult.hash,
         folderName: torrentStatus.name,
+        autoApprovedByUserId,
       })
-      .where(eq(requestsSchema.requests.id, id));
-
-    return this.getRequestById(id, null);
+      .where(eq(requestsSchema.requests.id, request.id));
   }
 
   async rejectRequest(
