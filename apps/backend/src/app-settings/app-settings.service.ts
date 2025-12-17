@@ -47,6 +47,7 @@ export class AppSettingsService {
     requestsAudiobookCategory?: string;
     requestsEbookCategory?: string;
     requestsComicsCategory?: string;
+    autoApproveRequestsPerWeek?: number;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)

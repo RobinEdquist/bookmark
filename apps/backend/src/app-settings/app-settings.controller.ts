@@ -26,6 +26,7 @@ interface UpdateSettingsDto {
   requestsAudiobookCategory?: string;
   requestsEbookCategory?: string;
   requestsComicsCategory?: string;
+  autoApproveRequestsPerWeek?: number;
 }
 
 @Controller('settings')
@@ -76,6 +77,7 @@ export class AppSettingsController {
       requestsAudiobookCategory: settings.requestsAudiobookCategory,
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
+      autoApproveRequestsPerWeek: settings.autoApproveRequestsPerWeek,
       mamClientConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
@@ -98,7 +100,8 @@ export class AppSettingsController {
       dto.requestsEnabled === undefined &&
       dto.requestsAudiobookCategory === undefined &&
       dto.requestsEbookCategory === undefined &&
-      dto.requestsComicsCategory === undefined
+      dto.requestsComicsCategory === undefined &&
+      dto.autoApproveRequestsPerWeek === undefined
     ) {
       throw new BadRequestException('No settings provided to update');
     }
@@ -147,6 +150,7 @@ export class AppSettingsController {
       requestsAudiobookCategory?: string;
       requestsEbookCategory?: string;
       requestsComicsCategory?: string;
+      autoApproveRequestsPerWeek?: number;
     } = {};
     if (dto.signupsEnabled !== undefined)
       updates.signupsEnabled = dto.signupsEnabled;
@@ -171,6 +175,8 @@ export class AppSettingsController {
       updates.requestsEbookCategory = dto.requestsEbookCategory;
     if (dto.requestsComicsCategory !== undefined)
       updates.requestsComicsCategory = dto.requestsComicsCategory;
+    if (dto.autoApproveRequestsPerWeek !== undefined)
+      updates.autoApproveRequestsPerWeek = dto.autoApproveRequestsPerWeek;
 
     const settings = await this.appSettingsService.updateSettings(updates);
     const mamClientConfigured = !!(
@@ -190,6 +196,7 @@ export class AppSettingsController {
       requestsAudiobookCategory: settings.requestsAudiobookCategory,
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
+      autoApproveRequestsPerWeek: settings.autoApproveRequestsPerWeek,
       mamClientConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
