@@ -10,7 +10,9 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import { Tabs as ContentTypeTabs, TabsList as ContentTypeTabsList, TabsTrigger as ContentTypeTabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
+import { cn } from "@repo/ui/lib/utils";
 import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest, type SearchFilters, type MamSearchResult, type RequestResponse } from "../../../lib/use-requests";
+import { useAutoApproveBudget } from "../../../lib/use-auto-approve-budget";
 import { RequestSearchResults } from "../../../components/requests/request-search-results";
 import { MyRequestsList } from "../../../components/requests/my-requests-list";
 import { SearchFiltersPanel } from "../../../components/requests/search-filters";
@@ -21,6 +23,7 @@ export default function RequestsPage() {
   const t = useTranslations("requests");
   const queryClient = useQueryClient();
   const { isPending: sessionPending } = authClient.useSession();
+  const { data: budget } = useAutoApproveBudget();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<"search" | "my-requests">("search");
@@ -94,6 +97,16 @@ export default function RequestsPage() {
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("description")}</p>
         </header>
+
+        {/* Auto-Approve Budget Counter */}
+        {budget && budget.limit > 0 && (
+          <p className={cn(
+            "text-sm",
+            budget.remaining === 0 ? "text-muted-foreground" : "text-foreground"
+          )}>
+            {t('autoApprove.budget', { remaining: budget.remaining, limit: budget.limit })}
+          </p>
+        )}
 
         {/* Content Type Tabs */}
         <ContentTypeTabs
