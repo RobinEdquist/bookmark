@@ -44,8 +44,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
           // Also invalidate series since they contain audiobook data
           queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
-          // Invalidate library stats since counts may have changed
-          queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+          // Invalidate library stats since counts may have changed (but not availability - that only changes when library paths change)
+          queryClient.invalidateQueries({ queryKey: queryKeys.library.stats() });
           // If specific audiobook, also invalidate its hardcover link
           if (entityId) {
             queryClient.invalidateQueries({
@@ -57,8 +57,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         // Ebook events invalidate all ebook queries
         case type.startsWith("ebook."):
           queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
-          // Invalidate library stats since counts may have changed
-          queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+          // Invalidate library stats since counts may have changed (but not availability - that only changes when library paths change)
+          queryClient.invalidateQueries({ queryKey: queryKeys.library.stats() });
           break;
 
         // Series events invalidate series queries

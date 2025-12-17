@@ -71,67 +71,79 @@ export function clearScrollState(libraryPath: LibraryPath): void {
 
 /**
  * Hook to save scroll position when navigating away from a library page.
- * Call this in the list page component.
+ * Saves continuously on scroll events since Next.js resets scroll before unmount.
  */
 export function useSaveScrollPosition(
   libraryPath: LibraryPath,
   searchParamsKey: string,
   pagesLoaded: number
 ) {
-  const savedRef = useRef(false);
+  // Store latest values in refs so scroll handler always has current data
+  const searchParamsKeyRef = useRef(searchParamsKey);
+  const pagesLoadedRef = useRef(pagesLoaded);
 
-  const savePosition = useCallback(() => {
-    log("savePosition called, savedRef.current:", savedRef.current);
-    if (savedRef.current) {
-      log("Already saved, skipping");
-      return;
-    }
-
-    const container = getScrollContainer();
-    if (!container) {
-      log("No container found, cannot save");
-      return;
-    }
-
-    log("Container scrollTop:", container.scrollTop, "scrollHeight:", container.scrollHeight);
-
-    // Only save if there's a meaningful scroll position
-    if (container.scrollTop > 0) {
-      saveScrollState(libraryPath, {
-        position: container.scrollTop,
-        searchParamsKey,
-        pagesLoaded,
-      });
-    } else {
-      log("scrollTop is 0, not saving");
-    }
-    savedRef.current = true;
-  }, [libraryPath, searchParamsKey, pagesLoaded]);
-
-  // Reset saved flag when dependencies change
+  // Update refs when values change
   useEffect(() => {
-    log("useSaveScrollPosition: resetting savedRef due to dependency change", { searchParamsKey, pagesLoaded });
-    savedRef.current = false;
+    searchParamsKeyRef.current = searchParamsKey;
+    pagesLoadedRef.current = pagesLoaded;
+    log("useSaveScrollPosition: updated refs", { searchParamsKey, pagesLoaded });
   }, [searchParamsKey, pagesLoaded]);
 
   useEffect(() => {
-    // Save on visibility change (user switches tab before navigating)
+    const container = getScrollContainer();
+    if (!container) {
+      log("useSaveScrollPosition: No container found on mount");
+      return;
+    }
+
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const handleScroll = () => {
+      // Debounce: save after scrolling stops for 150ms
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+
+      scrollTimeout = setTimeout(() => {
+        const scrollTop = container.scrollTop;
+        log("Scroll stopped, scrollTop:", scrollTop);
+
+        if (scrollTop > 0) {
+          saveScrollState(libraryPath, {
+            position: scrollTop,
+            searchParamsKey: searchParamsKeyRef.current,
+            pagesLoaded: pagesLoadedRef.current,
+          });
+        }
+      }, 150);
+    };
+
+    // Save on visibility change (user switches tab)
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        log("Visibility changed to hidden, saving position");
-        savePosition();
+      if (document.visibilityState === "hidden" && container.scrollTop > 0) {
+        log("Visibility changed to hidden, saving position:", container.scrollTop);
+        saveScrollState(libraryPath, {
+          position: container.scrollTop,
+          searchParamsKey: searchParamsKeyRef.current,
+          pagesLoaded: pagesLoadedRef.current,
+        });
       }
     };
 
+    container.addEventListener("scroll", handleScroll, { passive: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    // Save on unmount (navigation to detail page)
+    log("useSaveScrollPosition: scroll listener attached");
+
     return () => {
-      log("useSaveScrollPosition UNMOUNTING - saving position");
-      savePosition();
+      log("useSaveScrollPosition UNMOUNTING");
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout);
+      }
+      container.removeEventListener("scroll", handleScroll);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [savePosition]);
+  }, [libraryPath]);
 }
 
 /**
