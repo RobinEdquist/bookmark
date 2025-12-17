@@ -336,6 +336,75 @@ async function getFileInfo(filePath: string): Promise<AudioFileInfo> {
   };
 }
 
+/**
+ * Extract cover using ffmpeg as a fallback when mediainfo.js doesn't provide cover data.
+ * This handles m4b/m4a files where covers are stored as attached picture streams.
+ */
+async function extractCoverWithFfmpeg(
+  filePath: string,
+): Promise<{ data: number[]; mimeType: string } | null> {
+  try {
+    // First check if there's an attached picture stream
+    const { stdout: probeOutput } = await execAsync(
+      `ffprobe -v quiet -print_format json -show_streams -select_streams v "${filePath.replace(/"/g, '\\"')}"`,
+      { maxBuffer: 10 * 1024 * 1024 },
+    );
+
+    const probeData = JSON.parse(probeOutput);
+    const attachedPicStream = probeData.streams?.find(
+      (s: { disposition?: { attached_pic?: number } }) =>
+        s.disposition?.attached_pic === 1,
+    );
+
+    if (!attachedPicStream) {
+      return null;
+    }
+
+    // Extract the cover to a temporary file, then read it
+    const tempDir = await fs.mkdtemp(path.join('/tmp', 'cover-'));
+    const tempFile = path.join(tempDir, 'cover.jpg');
+
+    try {
+      await execAsync(
+        `ffmpeg -v quiet -i "${filePath.replace(/"/g, '\\"')}" -an -vcodec copy "${tempFile}"`,
+        { maxBuffer: 10 * 1024 * 1024 },
+      );
+
+      const coverData = await fs.readFile(tempFile);
+
+      // Detect mime type from magic bytes
+      let mimeType = 'image/jpeg';
+      if (coverData[0] === 0x89 && coverData[1] === 0x50) {
+        mimeType = 'image/png';
+      } else if (coverData[0] === 0x47 && coverData[1] === 0x49) {
+        mimeType = 'image/gif';
+      } else if (
+        coverData[0] === 0x52 &&
+        coverData[1] === 0x49 &&
+        coverData[2] === 0x46 &&
+        coverData[3] === 0x46
+      ) {
+        mimeType = 'image/webp';
+      }
+
+      return {
+        data: Array.from(coverData),
+        mimeType,
+      };
+    } finally {
+      // Clean up temp files
+      try {
+        await fs.unlink(tempFile);
+        await fs.rmdir(tempDir);
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+  } catch {
+    return null;
+  }
+}
+
 async function extractCover(
   filePath: string,
 ): Promise<{ data: number[]; mimeType: string } | null> {
@@ -343,7 +412,7 @@ async function extractCover(
   const tracks = (mediaInfoResult.media?.track || []) as MediaInfoTrack[];
   const generalTrack = tracks.find((t) => t['@type'] === 'General');
 
-  // Check for cover data in general track
+  // Check for cover data in general track (base64 encoded by mediainfo.js)
   if (generalTrack?.Cover_Data) {
     const mimeType = generalTrack.Cover_Mime || 'image/jpeg';
     const data = Buffer.from(generalTrack.Cover_Data, 'base64');
@@ -353,12 +422,18 @@ async function extractCover(
     };
   }
 
-  // Check for image track (some files embed cover as a separate track)
+  // Check for image track or Cover indicator (some files embed cover as attached picture stream)
   const imageTrack = tracks.find((t) => t['@type'] === 'Image');
-  if (imageTrack) {
-    // Image track doesn't usually contain data directly, but indicates presence
-    // For now, return null and rely on ffmpeg for cover extraction if needed
-    // This is a limitation - we may need to use ffmpeg for cover extraction
+  const hasCoverIndicator = generalTrack?.Cover === 'Yes';
+
+  if (imageTrack || hasCoverIndicator) {
+    // mediainfo.js detected a cover but didn't provide the data
+    // This happens with m4b/m4a files using attached picture streams
+    // Fall back to ffmpeg extraction
+    const ffmpegResult = await extractCoverWithFfmpeg(filePath);
+    if (ffmpegResult) {
+      return ffmpegResult;
+    }
   }
 
   return null;
