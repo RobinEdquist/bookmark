@@ -227,6 +227,7 @@ export function useCreateRequest() {
     mutationFn: createRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.autoApproveBudget() });
     },
   });
 
@@ -244,6 +245,7 @@ export function useSupportRequest() {
     mutationFn: supportRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.autoApproveBudget() });
     },
   });
 
