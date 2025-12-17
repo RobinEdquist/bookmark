@@ -61,4 +61,26 @@ export class RequestsController {
     await this.requestsService.addSupporter(id, req.session.user.id);
     return this.requestsService.getRequestById(id, req.session.user.id);
   }
+
+  @Get('auto-approve-budget')
+  async getAutoApproveBudget(@Req() req: AuthenticatedRequest) {
+    const { used, limit } = await this.requestsService.getUserAutoApproveUsage(
+      req.session.user.id,
+    );
+
+    // Calculate next Monday 00:00 UTC
+    const now = new Date();
+    const dayOfWeek = now.getUTCDay();
+    const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek;
+    const nextMonday = new Date(now);
+    nextMonday.setUTCDate(now.getUTCDate() + daysUntilMonday);
+    nextMonday.setUTCHours(0, 0, 0, 0);
+
+    return {
+      used,
+      limit,
+      remaining: Math.max(0, limit - used),
+      resetsAt: nextMonday.toISOString(),
+    };
+  }
 }
