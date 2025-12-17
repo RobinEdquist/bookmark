@@ -288,7 +288,9 @@ export class LibraryWatcherService implements OnModuleInit {
         this.emitRescanStatus('rescanning');
 
         try {
-          const success = await this.mediaImporter.rescanAudiobook(audiobook.id);
+          const success = await this.mediaImporter.rescanAudiobook(
+            audiobook.id,
+          );
           if (success) {
             succeeded++;
           } else {

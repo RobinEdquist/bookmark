@@ -1,6 +1,9 @@
 // Worker thread for metadata extraction - runs in separate thread to avoid blocking main event loop
 import { parentPort, workerData } from 'worker_threads';
-import MediaInfoFactory, { type MediaInfo, type MediaInfoResult } from 'mediainfo.js';
+import MediaInfoFactory, {
+  type MediaInfo,
+  type MediaInfoResult,
+} from 'mediainfo.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { exec } from 'child_process';
@@ -88,7 +91,10 @@ async function analyzeFile(filePath: string): Promise<MediaInfoResult> {
   const fileHandle = await fs.open(filePath, 'r');
   const fileSize = (await fileHandle.stat()).size;
 
-  const readChunk = async (size: number, offset: number): Promise<Uint8Array> => {
+  const readChunk = async (
+    size: number,
+    offset: number,
+  ): Promise<Uint8Array> => {
     const buffer = new Uint8Array(size);
     await fileHandle.read(buffer, 0, size, offset);
     return buffer;
@@ -165,42 +171,48 @@ function normalizeYear(dateStr: string | undefined): string | undefined {
  */
 function mapMediaInfoToMetadata(result: MediaInfoResult): ExtractedMetadata {
   const tracks = (result.media?.track || []) as MediaInfoTrack[];
-  const generalTrack = tracks.find(t => t['@type'] === 'General');
-  const audioTrack = tracks.find(t => t['@type'] === 'Audio');
-  const imageTrack = tracks.find(t => t['@type'] === 'Image');
+  const generalTrack = tracks.find((t) => t['@type'] === 'General');
+  const audioTrack = tracks.find((t) => t['@type'] === 'Audio');
+  const imageTrack = tracks.find((t) => t['@type'] === 'Image');
 
   if (!generalTrack) {
     return {};
   }
 
   // Smart fallback for author: Artist → Performer → AlbumPerformer
-  const author = generalTrack.Artist ||
-                 generalTrack.Performer ||
-                 generalTrack.AlbumPerformer ||
-                 undefined;
+  const author =
+    generalTrack.Artist ||
+    generalTrack.Performer ||
+    generalTrack.AlbumPerformer ||
+    undefined;
 
   // Smart fallback for narrator: custom nrt tag → Composer (common m4b convention)
-  const narrator = generalTrack.nrt ||
-                   generalTrack.Composer ||
-                   undefined;
+  const narrator = generalTrack.nrt || generalTrack.Composer || undefined;
 
   // Smart fallback for publisher: custom pub tag → Publisher → Label
-  const publisher = generalTrack.pub ||
-                    generalTrack.Publisher ||
-                    generalTrack.Label ||
-                    undefined;
+  const publisher =
+    generalTrack.pub ||
+    generalTrack.Publisher ||
+    generalTrack.Label ||
+    undefined;
 
   // Parse genres - may be comma-separated or semicolon-separated
   let genres: string[] | undefined;
   if (generalTrack.Genre) {
-    genres = generalTrack.Genre.split(/[,;]/).map(g => g.trim()).filter(Boolean);
+    genres = generalTrack.Genre.split(/[,;]/)
+      .map((g) => g.trim())
+      .filter(Boolean);
   }
 
   // Duration comes in seconds from mediainfo.js
-  const duration = generalTrack.Duration ? Math.round(generalTrack.Duration) : undefined;
+  const duration = generalTrack.Duration
+    ? Math.round(generalTrack.Duration)
+    : undefined;
 
   // Bitrate from audio track (in bps, convert to kbps)
-  const bitrate = audioTrack?.BitRate ? Math.round(audioTrack.BitRate / 1000) : undefined;
+  const bitrate = audioTrack?.BitRate
+    ? Math.round(audioTrack.BitRate / 1000)
+    : undefined;
 
   // Sample rate from audio track
   const sampleRate = audioTrack?.SamplingRate || undefined;
@@ -218,8 +230,8 @@ function mapMediaInfoToMetadata(result: MediaInfoResult): ExtractedMetadata {
     publisher,
     publishedDate: normalizeYear(
       generalTrack.Recorded_Date ||
-      generalTrack.Released_Date ||
-      generalTrack.Original_Released_Date
+        generalTrack.Released_Date ||
+        generalTrack.Original_Released_Date,
     ),
     language: generalTrack.Language || undefined,
     genres,
@@ -236,7 +248,9 @@ function mapMediaInfoToMetadata(result: MediaInfoResult): ExtractedMetadata {
 /**
  * Extract chapters using ffprobe (mediainfo.js doesn't handle chapters well)
  */
-async function extractChaptersWithFfprobe(filePath: string): Promise<Chapter[]> {
+async function extractChaptersWithFfprobe(
+  filePath: string,
+): Promise<Chapter[]> {
   try {
     const { stdout } = await execAsync(
       `ffprobe -v quiet -print_format json -show_chapters "${filePath.replace(/"/g, '\\"')}"`,
@@ -270,7 +284,9 @@ async function extractChaptersWithFfprobe(filePath: string): Promise<Chapter[]> 
   }
 }
 
-async function extractFullMetadata(filePath: string): Promise<FullMetadataResult> {
+async function extractFullMetadata(
+  filePath: string,
+): Promise<FullMetadataResult> {
   const stats = await fs.stat(filePath);
 
   // Use mediainfo.js for metadata extraction
@@ -320,10 +336,12 @@ async function getFileInfo(filePath: string): Promise<AudioFileInfo> {
   };
 }
 
-async function extractCover(filePath: string): Promise<{ data: number[]; mimeType: string } | null> {
+async function extractCover(
+  filePath: string,
+): Promise<{ data: number[]; mimeType: string } | null> {
   const mediaInfoResult = await analyzeFile(filePath);
   const tracks = (mediaInfoResult.media?.track || []) as MediaInfoTrack[];
-  const generalTrack = tracks.find(t => t['@type'] === 'General');
+  const generalTrack = tracks.find((t) => t['@type'] === 'General');
 
   // Check for cover data in general track
   if (generalTrack?.Cover_Data) {
@@ -336,7 +354,7 @@ async function extractCover(filePath: string): Promise<{ data: number[]; mimeTyp
   }
 
   // Check for image track (some files embed cover as a separate track)
-  const imageTrack = tracks.find(t => t['@type'] === 'Image');
+  const imageTrack = tracks.find((t) => t['@type'] === 'Image');
   if (imageTrack) {
     // Image track doesn't usually contain data directly, but indicates presence
     // For now, return null and rely on ffmpeg for cover extraction if needed

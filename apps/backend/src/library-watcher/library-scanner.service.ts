@@ -149,7 +149,9 @@ export class LibraryScannerService {
     // Build set of existing paths - for folder audiobooks use filePath,
     // for root-level audiobooks (filePath='') use the actual filename from audiobook_files
     const existingFolderPaths = new Set(
-      existingAudiobooks.filter((a) => a.filePath !== '').map((a) => a.filePath),
+      existingAudiobooks
+        .filter((a) => a.filePath !== '')
+        .map((a) => a.filePath),
     );
 
     // For root-level audiobooks, get their actual filenames

@@ -1344,7 +1344,9 @@ export class AudiobooksService {
               .where(eq(schema.audiobookFiles.audiobookId, id));
 
             for (const file of files) {
-              const absoluteFilePath = await this.resolveFilePath(file.filePath);
+              const absoluteFilePath = await this.resolveFilePath(
+                file.filePath,
+              );
               try {
                 await fs.unlink(absoluteFilePath);
               } catch {

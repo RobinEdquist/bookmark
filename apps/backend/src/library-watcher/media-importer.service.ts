@@ -574,7 +574,9 @@ export class MediaImporterService {
         // Delete existing authors
         await this.db
           .delete(audiobooksSchema.audiobookAuthors)
-          .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, audiobookId));
+          .where(
+            eq(audiobooksSchema.audiobookAuthors.audiobookId, audiobookId),
+          );
 
         // Create new author link
         await this.createOrLinkAudiobookPerson(
@@ -601,15 +603,15 @@ export class MediaImporterService {
         );
       }
 
-      this.logger.log(`Rescanned audiobook: ${audiobook.title} (${audiobookId})`);
+      this.logger.log(
+        `Rescanned audiobook: ${audiobook.title} (${audiobookId})`,
+      );
       this.appEvents.audiobookUpdated(audiobookId);
       this.wsEvents.audiobookUpdated(audiobookId);
 
       return true;
     } catch (error) {
-      this.logger.error(
-        `Failed to rescan audiobook ${audiobookId}: ${error}`,
-      );
+      this.logger.error(`Failed to rescan audiobook ${audiobookId}: ${error}`);
       return false;
     }
   }
