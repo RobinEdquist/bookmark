@@ -15,6 +15,11 @@
     "check-types": {
       "dependsOn": ["^check-types"]
     },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "jest.config.*", "**/*.spec.ts", "**/*.test.ts"],
+      "env": ["NODE_ENV"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
