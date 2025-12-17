@@ -33,6 +33,7 @@ export interface Settings {
   requestsAudiobookCategory: string;
   requestsEbookCategory: string;
   requestsComicsCategory: string;
+  autoApproveRequestsPerWeek: number;
   mamClientConfigured: boolean;
   createdAt: string;
   updatedAt: string;
@@ -51,6 +52,7 @@ export interface UpdateSettingsDto {
   requestsAudiobookCategory?: string;
   requestsEbookCategory?: string;
   requestsComicsCategory?: string;
+  autoApproveRequestsPerWeek?: number;
 }
 
 async function fetchSettings(): Promise<Settings> {

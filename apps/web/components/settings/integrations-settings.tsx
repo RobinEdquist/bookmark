@@ -58,12 +58,16 @@ export function IntegrationsSettings() {
   const [comicsCategory, setComicsCategory] = useState("");
   const [isSavingCategories, setIsSavingCategories] = useState(false);
 
+  // Auto-approve limit state
+  const [autoApproveLimit, setAutoApproveLimit] = useState(0);
+
   // Sync category state when settings load
   useEffect(() => {
     if (settings) {
       setAudiobookCategory(settings.requestsAudiobookCategory);
       setEbookCategory(settings.requestsEbookCategory);
       setComicsCategory(settings.requestsComicsCategory);
+      setAutoApproveLimit(settings.autoApproveRequestsPerWeek ?? 0);
     }
   }, [settings]);
 
@@ -179,6 +183,20 @@ export function IntegrationsSettings() {
       );
     } finally {
       setIsSavingCategories(false);
+    }
+  };
+
+  const handleAutoApproveLimitChange = async (value: number) => {
+    const newValue = Math.max(0, value);
+    setAutoApproveLimit(newValue);
+    try {
+      await updateSettings({
+        autoApproveRequestsPerWeek: newValue,
+      });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("requests.toast.error")
+      );
     }
   };
 
@@ -311,6 +329,22 @@ export function IntegrationsSettings() {
               >
                 {isSavingCategories ? t("requests.categories.saving") : t("requests.categories.save")}
               </Button>
+
+              <div className="space-y-2 pt-4 border-t">
+                <Label htmlFor="auto-approve-limit">
+                  {t("requests.autoApproveLimit")}
+                </Label>
+                <Input
+                  id="auto-approve-limit"
+                  type="number"
+                  min={0}
+                  value={autoApproveLimit}
+                  onChange={(e) => handleAutoApproveLimitChange(parseInt(e.target.value) || 0)}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {t("requests.autoApproveLimitDescription")}
+                </p>
+              </div>
             </div>
           )}
         </CardContent>
