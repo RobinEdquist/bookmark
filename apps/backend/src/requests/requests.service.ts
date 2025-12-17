@@ -288,6 +288,22 @@ export class RequestsService {
       })
       .returning();
 
+    // Check if user has auto-approve budget
+    const { used, limit } = await this.getUserAutoApproveUsage(userId);
+    if (limit > 0 && used < limit) {
+      try {
+        await this.performApproval(request, userId);
+        this.logger.log(
+          `Auto-approved request ${request.id} for user ${userId} (${used + 1}/${limit})`,
+        );
+      } catch (error) {
+        this.logger.error(
+          `Auto-approve failed for request ${request.id}: ${error}`,
+        );
+        // Request stays as pending if auto-approve fails
+      }
+    }
+
     return this.getRequestById(request.id, userId);
   }
 
