@@ -95,7 +95,7 @@ export default function EbooksPage() {
   useSaveScrollPosition("/ebooks", searchParamsKey, pagesLoaded);
 
   // Restore scroll position when returning from detail page
-  useRestoreScrollPosition(
+  const { isRestoring } = useRestoreScrollPosition(
     "/ebooks",
     searchParamsKey,
     pagesLoaded,
@@ -158,7 +158,11 @@ export default function EbooksPage() {
         </div>
       </header>
 
-      <div className="p-4 pt-4 lg:p-8 lg:pt-6">
+      <div
+        className={`p-4 pt-4 transition-opacity duration-300 lg:p-8 lg:pt-6 ${
+          isRestoring ? "opacity-0" : "opacity-100"
+        }`}
+      >
         <div className="mx-auto max-w-7xl">
           <EbookGrid
             ebooks={ebooks}
