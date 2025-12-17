@@ -36,6 +36,13 @@
       "when": 1765842600000,
       "tag": "0004_palette_theming",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1766016000000,
+      "tag": "0005_normalize_audiobook_paths",
+      "breakpoints": true
     }
   ]
 }

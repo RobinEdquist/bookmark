@@ -44,15 +44,40 @@ export class MediaImporterService {
     libraryPath: string,
   ): Promise<string | null> {
     const primaryFile = unit.files[0];
-    const relativeUnitPath = path.relative(libraryPath, unit.path);
+    // For root-level single files, unit.path is the file itself, not a directory
+    // In that case, we store empty string for filePath (indicates library root)
+    const isRootLevelFile =
+      unit.type === 'single-file' && path.dirname(unit.path) === libraryPath;
+    const relativeUnitPath = isRootLevelFile
+      ? ''
+      : path.relative(libraryPath, unit.path);
 
     try {
       // Check if already exists
-      const existing = await this.db
-        .select({ id: audiobooksSchema.audiobooks.id })
-        .from(audiobooksSchema.audiobooks)
-        .where(eq(audiobooksSchema.audiobooks.filePath, relativeUnitPath))
-        .limit(1);
+      let existing: { id: string }[];
+      if (isRootLevelFile) {
+        // For root-level files, check by the actual filename in audiobook_files
+        // since multiple audiobooks can have filePath = ''
+        const filename = path.basename(primaryFile);
+        existing = await this.db
+          .select({ id: audiobooksSchema.audiobooks.id })
+          .from(audiobooksSchema.audiobooks)
+          .innerJoin(
+            audiobooksSchema.audiobookFiles,
+            eq(
+              audiobooksSchema.audiobooks.id,
+              audiobooksSchema.audiobookFiles.audiobookId,
+            ),
+          )
+          .where(eq(audiobooksSchema.audiobookFiles.filePath, filename))
+          .limit(1);
+      } else {
+        existing = await this.db
+          .select({ id: audiobooksSchema.audiobooks.id })
+          .from(audiobooksSchema.audiobooks)
+          .where(eq(audiobooksSchema.audiobooks.filePath, relativeUnitPath))
+          .limit(1);
+      }
 
       if (existing.length > 0) {
         this.logger.debug(`Audiobook already exists at ${unit.path}`);
@@ -128,11 +153,12 @@ export class MediaImporterService {
         .returning();
 
       // Create file records in a single batch insert
+      // filePath stores just the filename (relative to audiobook folder)
       if (fileInfos.length > 0) {
         await this.db.insert(audiobooksSchema.audiobookFiles).values(
           fileInfos.map((fileInfo, i) => ({
             audiobookId: audiobook.id,
-            filePath: path.relative(libraryPath, fileInfo.filePath),
+            filePath: path.basename(fileInfo.filePath),
             fileName: fileInfo.fileName,
             order: i,
             duration: fileInfo.duration,
@@ -412,8 +438,11 @@ export class MediaImporterService {
       }
 
       // Build full file paths
+      // Path formula: {libraryPath}/{audiobook.filePath}/{file.filePath}
+      // - audiobook.filePath = folder path (empty string for root-level files)
+      // - file.filePath = filename only
       const filePaths = existingFiles.map((f) =>
-        path.join(libraryPath, f.filePath),
+        path.join(libraryPath, audiobook.filePath, f.filePath),
       );
 
       // Extract metadata from the primary file
@@ -483,10 +512,11 @@ export class MediaImporterService {
         .delete(audiobooksSchema.audiobookFiles)
         .where(eq(audiobooksSchema.audiobookFiles.audiobookId, audiobookId));
 
+      // filePath stores just the filename (relative to audiobook folder)
       await this.db.insert(audiobooksSchema.audiobookFiles).values(
         fileInfos.map((fileInfo, i) => ({
           audiobookId,
-          filePath: path.relative(libraryPath, fileInfo.filePath),
+          filePath: path.basename(fileInfo.filePath),
           fileName: fileInfo.fileName,
           order: i,
           duration: fileInfo.duration,

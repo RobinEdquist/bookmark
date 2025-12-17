@@ -95,8 +95,25 @@ export class LibraryScannerService {
         currentFile: audiobook.filePath,
       });
 
-      const absolutePath = path.join(libraryPath, audiobook.filePath);
-      const exists = await this.pathExists(absolutePath);
+      // For root-level files (empty filePath), check if the actual file exists
+      // For folder-based audiobooks, check if the folder exists
+      let exists: boolean;
+      if (audiobook.filePath === '') {
+        // Root-level file: get the actual file path from audiobook_files
+        const [file] = await this.db
+          .select({ filePath: audiobooksSchema.audiobookFiles.filePath })
+          .from(audiobooksSchema.audiobookFiles)
+          .where(eq(audiobooksSchema.audiobookFiles.audiobookId, audiobook.id))
+          .limit(1);
+        if (file) {
+          exists = await this.pathExists(path.join(libraryPath, file.filePath));
+        } else {
+          exists = false;
+        }
+      } else {
+        const absolutePath = path.join(libraryPath, audiobook.filePath);
+        exists = await this.pathExists(absolutePath);
+      }
 
       if (audiobook.status === 'hidden') {
         if (!exists) {
@@ -129,13 +146,46 @@ export class LibraryScannerService {
     // Phase 2: Scan for new audiobooks
     this.updateProgress({ phase: 'scanning', total: 0, processed: 0 });
 
-    const existingPaths = new Set(existingAudiobooks.map((a) => a.filePath));
+    // Build set of existing paths - for folder audiobooks use filePath,
+    // for root-level audiobooks (filePath='') use the actual filename from audiobook_files
+    const existingFolderPaths = new Set(
+      existingAudiobooks.filter((a) => a.filePath !== '').map((a) => a.filePath),
+    );
+
+    // For root-level audiobooks, get their actual filenames
+    const rootAudiobookIds = existingAudiobooks
+      .filter((a) => a.filePath === '')
+      .map((a) => a.id);
+    let existingRootFilenames = new Set<string>();
+    if (rootAudiobookIds.length > 0) {
+      const rootFiles = await this.db
+        .select({ filePath: audiobooksSchema.audiobookFiles.filePath })
+        .from(audiobooksSchema.audiobookFiles)
+        .where(
+          sql`${audiobooksSchema.audiobookFiles.audiobookId} IN (${sql.join(
+            rootAudiobookIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})`,
+        );
+      existingRootFilenames = new Set(rootFiles.map((f) => f.filePath));
+    }
+
     const detectedUnits =
       await this.mediaDetector.scanLibraryForAudiobooks(libraryPath);
 
     const newUnits = detectedUnits.filter((unit) => {
-      const relativeUnitPath = path.relative(libraryPath, unit.path);
-      return !existingPaths.has(relativeUnitPath);
+      const isRootLevelFile =
+        unit.type === 'single-file' && path.dirname(unit.path) === libraryPath;
+
+      if (isRootLevelFile) {
+        // For root-level files, check by filename
+        const filename = path.basename(unit.path);
+        return !existingRootFilenames.has(filename);
+      } else {
+        // For folder-based audiobooks, check by folder path
+        const relativeUnitPath = path.relative(libraryPath, unit.path);
+        return !existingFolderPaths.has(relativeUnitPath);
+      }
     });
 
     this.updateProgress({
