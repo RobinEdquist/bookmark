@@ -390,6 +390,39 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [state.audiobook]);
 
+  // Update Media Session metadata when audiobook changes
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    if (state.audiobook) {
+      const artwork: MediaImage[] = [];
+      if (state.audiobook.coverUrl) {
+        // Provide the cover at multiple declared sizes
+        // Browser will pick the best one for the context
+        artwork.push(
+          { src: state.audiobook.coverUrl, sizes: "96x96", type: "image/jpeg" },
+          { src: state.audiobook.coverUrl, sizes: "128x128", type: "image/jpeg" },
+          { src: state.audiobook.coverUrl, sizes: "256x256", type: "image/jpeg" },
+          { src: state.audiobook.coverUrl, sizes: "512x512", type: "image/jpeg" },
+        );
+      }
+
+      // Get author name from authors array
+      const authorName = state.audiobook.authors[0]?.name || "Unknown Author";
+      // Get series name from series array, fallback to title
+      const albumName = state.audiobook.series[0]?.name || state.audiobook.title;
+
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: state.audiobook.title,
+        artist: authorName,
+        album: albumName,
+        artwork,
+      });
+    } else {
+      navigator.mediaSession.metadata = null;
+    }
+  }, [state.audiobook]);
+
   // Player actions
   const play = useCallback(async (audiobook: AudiobookDetail, startPosition: number = 0) => {
     const audio = audioRef.current;
@@ -485,6 +518,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.src = "";
     }
     recordSession();
+
+    // Clear Media Session metadata
+    if ("mediaSession" in navigator) {
+      navigator.mediaSession.metadata = null;
+    }
+
     dispatch({ type: "STOP" });
   }, [recordSession, syncProgress]);
 
@@ -650,6 +689,64 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [state.audiobook, state.currentChapter, seek]);
 
+  // Set up Media Session action handlers
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+
+    const actionHandlers: [MediaSessionAction, MediaSessionActionHandler][] = [
+      ["play", () => { resume(); }],
+      ["pause", () => { pause(); }],
+      ["seekbackward", (details) => {
+        seekRelative(-(details.seekOffset || 15));
+      }],
+      ["seekforward", (details) => {
+        seekRelative(details.seekOffset || 30);
+      }],
+      ["previoustrack", () => { prevChapter(); }],
+      ["nexttrack", () => { nextChapter(); }],
+      ["seekto", (details) => {
+        if (details.seekTime !== undefined) {
+          seek(details.seekTime);
+        }
+      }],
+    ];
+
+    for (const [action, handler] of actionHandlers) {
+      try {
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch {
+        // Action not supported on this platform
+      }
+    }
+
+    return () => {
+      // Clear handlers on cleanup
+      for (const [action] of actionHandlers) {
+        try {
+          navigator.mediaSession.setActionHandler(action, null);
+        } catch {
+          // Ignore
+        }
+      }
+    };
+  }, [pause, resume, seek, seekRelative, prevChapter, nextChapter]);
+
+  // Update Media Session position state
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !state.audiobook) return;
+
+    if (state.duration > 0) {
+      try {
+        navigator.mediaSession.setPositionState({
+          duration: state.duration,
+          playbackRate: state.playbackRate,
+          position: Math.min(state.currentPosition, state.duration),
+        });
+      } catch {
+        // Position state not supported or invalid values
+      }
+    }
+  }, [state.audiobook, state.currentPosition, state.duration, state.playbackRate]);
 
   const value: PlayerContextValue = {
     ...state,
