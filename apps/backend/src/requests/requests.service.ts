@@ -553,14 +553,19 @@ export class RequestsService {
     libraryItemId: string,
     libraryItemType: ContentType,
   ): Promise<boolean> {
-    // Find request with matching folder name that's downloading
+    // Find request with matching folder name that's approved or downloading
+    // We need to match both statuses because small files may be imported
+    // before updateDownloadingStatuses() runs to change status from 'approved' to 'downloading'
     const [request] = await this.db
       .select()
       .from(requestsSchema.requests)
       .where(
         and(
           eq(requestsSchema.requests.folderName, folderName),
-          eq(requestsSchema.requests.status, 'downloading'),
+          or(
+            eq(requestsSchema.requests.status, 'approved'),
+            eq(requestsSchema.requests.status, 'downloading'),
+          ),
         ),
       )
       .limit(1);
