@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
@@ -9,17 +8,20 @@ import {
   useAdminRequests,
   useApproveRequest,
   useRejectRequest,
-  type RequestStatus,
 } from "../../../../lib/use-requests";
 import { AdminRequestsList } from "../../../../components/requests/admin-requests-list";
 import { authClient } from "../../../../lib/auth-client";
+import { useUrlTab } from "../../../../lib/use-url-tab";
+
+const STATUS_TABS = ["pending", "approved", "downloading", "all"] as const;
+type StatusTab = (typeof STATUS_TABS)[number];
 
 export default function AdminRequestsPage() {
   const t = useTranslations("admin.requests");
   const router = useRouter();
   const { data: session, isPending: sessionPending } = authClient.useSession();
 
-  const [activeTab, setActiveTab] = useState<RequestStatus | "all">("pending");
+  const [activeTab, setActiveTab] = useUrlTab<StatusTab>("status", "pending", STATUS_TABS);
 
   const status = activeTab === "all" ? undefined : activeTab;
   const { data: requests, isLoading } = useAdminRequests(status);
@@ -51,7 +53,7 @@ export default function AdminRequestsPage() {
           <p className="text-muted-foreground">{t("description")}</p>
         </header>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as RequestStatus | "all")}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as StatusTab)}>
           <TabsList>
             <TabsTrigger value="pending">
               {t("tabs.pending")} {pendingCount > 0 && `(${pendingCount})`}

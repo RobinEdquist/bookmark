@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -9,22 +9,17 @@ import { LibrariesSettings } from "../../../components/settings/libraries-settin
 import { UsersSettings } from "../../../components/settings/users-settings";
 import { IntegrationsSettings } from "../../../components/settings/integrations-settings";
 import { authClient } from "../../../lib/auth-client";
+import { useUrlTab } from "../../../lib/use-url-tab";
 
 const VALID_TABS = ["libraries", "users", "integrations"] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 export default function SettingsPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const t = useTranslations("settings");
   const { data: session, isPending, error } = authClient.useSession();
 
-  // Get tab from query param, defaulting to "libraries"
-  const tabParam = searchParams.get("tab");
-  const validTab: TabValue = VALID_TABS.includes(tabParam as TabValue)
-    ? (tabParam as TabValue)
-    : "libraries";
-  const [activeTab, setActiveTab] = useState<TabValue>(validTab);
+  const [activeTab, setActiveTab] = useUrlTab<TabValue>("tab", "libraries", VALID_TABS);
   const isAdmin = session?.user?.role === "admin";
 
   // Log settings page auth state
@@ -38,11 +33,6 @@ export default function SettingsPage() {
       error: error?.message ?? null,
     });
   }, [isPending, session, isAdmin, error]);
-
-  // Sync tab state with URL changes (e.g., browser back/forward)
-  useEffect(() => {
-    setActiveTab(validTab);
-  }, [validTab]);
 
   useEffect(() => {
     if (!isPending && !isAdmin) {

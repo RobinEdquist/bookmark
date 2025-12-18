@@ -18,6 +18,13 @@ import { MyRequestsList } from "../../../components/requests/my-requests-list";
 import { SearchFiltersPanel } from "../../../components/requests/search-filters";
 import { authClient } from "../../../lib/auth-client";
 import { queryKeys } from "../../../lib/query-keys";
+import { useUrlTab } from "../../../lib/use-url-tab";
+
+const VIEW_TABS = ["search", "my-requests"] as const;
+type ViewTab = (typeof VIEW_TABS)[number];
+
+const CONTENT_TYPES = ["all", "audiobooks", "ebooks"] as const;
+type ContentType = (typeof CONTENT_TYPES)[number];
 
 export default function RequestsPage() {
   const t = useTranslations("requests");
@@ -26,13 +33,19 @@ export default function RequestsPage() {
   const { data: budget } = useAutoApproveBudget();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"search" | "my-requests">("search");
+  const [activeTab, setActiveTab] = useUrlTab<ViewTab>("tab", "search", VIEW_TABS);
+  const [contentType, setContentType] = useUrlTab<ContentType>("type", "all", CONTENT_TYPES);
   const [filters, setFilters] = useState<SearchFilters>({
     contentType: "all",
     searchIn: ["title", "author"],
     languages: [1], // Default to English
     perPage: 25,
   });
+
+  // Sync contentType URL param to filters
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, contentType }));
+  }, [contentType]);
 
   // Local state for search results (to update without re-fetching from external API)
   const [localSearchResults, setLocalSearchResults] = useState<MamSearchResult[]>([]);
@@ -110,8 +123,8 @@ export default function RequestsPage() {
 
         {/* Content Type Tabs */}
         <ContentTypeTabs
-          value={filters.contentType ?? "all"}
-          onValueChange={(value) => setFilters({ ...filters, contentType: value as SearchFilters["contentType"] })}
+          value={contentType}
+          onValueChange={(value) => setContentType(value as ContentType)}
         >
           <ContentTypeTabsList>
             <ContentTypeTabsTrigger value="all">{t("filters.contentType.all")}</ContentTypeTabsTrigger>
@@ -125,7 +138,7 @@ export default function RequestsPage() {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
-              placeholder={t(`searchPlaceholder.${filters.contentType ?? "all"}`)}
+              placeholder={t(`searchPlaceholder.${contentType}`)}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -138,7 +151,7 @@ export default function RequestsPage() {
 
         <SearchFiltersPanel filters={filters} onChange={setFilters} />
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "search" | "my-requests")}>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ViewTab)}>
           <TabsList>
             <TabsTrigger value="search">{t("tabs.searchResults")}</TabsTrigger>
             <TabsTrigger value="my-requests">
