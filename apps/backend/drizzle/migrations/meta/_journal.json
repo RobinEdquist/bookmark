@@ -47,14 +47,14 @@
     {
       "idx": 6,
       "version": "7",
-      "when": 1765970281988,
+      "when": 1766102400000,
       "tag": "0006_add_qbittorrent_category_settings",
       "breakpoints": true
     },
     {
       "idx": 7,
       "version": "7",
-      "when": 1765998421969,
+      "when": 1766188800000,
       "tag": "0007_add_auto_approve_fields",
       "breakpoints": true
     }
