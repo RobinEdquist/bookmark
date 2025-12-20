@@ -12,7 +12,7 @@ import * as appSettingsSchema from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as hardcoverSchema from './schema';
-import { eq, asc, and, isNull } from 'drizzle-orm';
+import { eq, asc, and, isNull, inArray } from 'drizzle-orm';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 
@@ -664,13 +664,51 @@ export class HardcoverService {
 
       this.appEvents.ebookUpdated(mediaId);
     }
-
-    // TODO: Could clean up orphaned hardcover_books here if desired
   }
 
   // Keep old method as alias
   async unlinkAudiobookFromHardcover(audiobookId: string): Promise<void> {
     return this.unlinkMedia('audiobook', audiobookId);
+  }
+
+  /**
+   * Clean up orphaned hardcover_books records that have no links to audiobooks or ebooks.
+   * @returns The number of orphaned records deleted
+   */
+  async cleanupOrphanedBooks(): Promise<number> {
+    // Find hardcover_books with no links in either junction table
+    const orphaned = await this.db
+      .select({ id: hardcoverSchema.hardcoverBooks.id })
+      .from(hardcoverSchema.hardcoverBooks)
+      .leftJoin(
+        hardcoverSchema.hardcoverAudiobookLinks,
+        eq(
+          hardcoverSchema.hardcoverBooks.id,
+          hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+        ),
+      )
+      .leftJoin(
+        hardcoverSchema.hardcoverEbookLinks,
+        eq(
+          hardcoverSchema.hardcoverBooks.id,
+          hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+        ),
+      )
+      .where(
+        and(
+          isNull(hardcoverSchema.hardcoverAudiobookLinks.audiobookId),
+          isNull(hardcoverSchema.hardcoverEbookLinks.ebookId),
+        ),
+      );
+
+    if (orphaned.length === 0) return 0;
+
+    const orphanedIds = orphaned.map((o) => o.id);
+    await this.db
+      .delete(hardcoverSchema.hardcoverBooks)
+      .where(inArray(hardcoverSchema.hardcoverBooks.id, orphanedIds));
+
+    return orphanedIds.length;
   }
 
   async searchByMediaId(

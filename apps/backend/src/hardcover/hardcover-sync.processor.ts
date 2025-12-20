@@ -5,11 +5,11 @@ import {
   Inject,
   forwardRef,
 } from '@nestjs/common';
-import { Interval } from '@nestjs/schedule';
+import { Interval, Cron } from '@nestjs/schedule';
 import { HardcoverService, MediaType } from './hardcover.service';
 import { WsEventsService } from '../events/ws-events.service';
 import { ImportQueueService } from '../library-watcher/import-queue.service';
-import { LibraryScannerService } from '../library-watcher/library-scanner.service';
+import { LibraryScannerService } from '../library-watcher';
 
 const PROCESS_INTERVAL_MS = 5000; // Check for new items every 5 seconds
 const THROTTLE_DELAY_MS = 3000; // 3 second delay between API requests
@@ -185,5 +185,22 @@ export class HardcoverSyncProcessor implements OnModuleInit {
       pendingCount,
       failedCount: failedItems.length,
     });
+  }
+
+  /**
+   * Clean up orphaned hardcover_books records daily at 3 AM
+   */
+  @Cron('0 3 * * *')
+  async cleanupOrphanedBooks(): Promise<void> {
+    try {
+      const count = await this.hardcoverService.cleanupOrphanedBooks();
+      if (count > 0) {
+        this.logger.log(`Cleaned up ${count} orphaned Hardcover book records`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to cleanup orphaned Hardcover books: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
   }
 }
