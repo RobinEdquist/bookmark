@@ -24,6 +24,7 @@ import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audi
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
 import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
 import { ChangeCoverDialog } from "../../../../components/audiobooks/change-cover-dialog";
+import { HeaderSearch } from "../../../../components/layout/header-search";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "—";
@@ -140,7 +141,8 @@ export default function AudiobookDetailPage({
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="flex-1 truncate text-lg font-medium">{audiobook.title}</h1>
+          <HeaderSearch mediaType="audiobook" />
+          <div className="flex-1" />
           {isHardcoverConfigured && (
             <Button
               variant="ghost"

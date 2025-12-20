@@ -16,6 +16,7 @@ import { EditEbookDialog } from "../../../../components/ebooks/edit-ebook-dialog
 import { ChangeEbookCoverDialog } from "../../../../components/ebooks/change-ebook-cover-dialog";
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
 import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
+import { HeaderSearch } from "../../../../components/layout/header-search";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -88,7 +89,8 @@ export default function EbookDetailPage({
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="flex-1 truncate text-lg font-medium">{ebook.title}</h1>
+          <HeaderSearch mediaType="ebook" />
+          <div className="flex-1" />
           {isHardcoverConfigured && (
             <Button
               variant="ghost"

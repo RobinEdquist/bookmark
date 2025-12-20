@@ -93,5 +93,9 @@
     "oldest": "Oldest",
     "highest": "Highest",
     "lowest": "Lowest"
+  },
+  "headerSearch": {
+    "placeholder": "Search library...",
+    "noResults": "No results found"
   }
 }

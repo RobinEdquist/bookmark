@@ -93,5 +93,9 @@
     "oldest": "Äldst",
     "highest": "Högst",
     "lowest": "Lägst"
+  },
+  "headerSearch": {
+    "placeholder": "Sök i biblioteket...",
+    "noResults": "Inga resultat hittades"
   }
 }
