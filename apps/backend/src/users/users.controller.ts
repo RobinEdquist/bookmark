@@ -13,6 +13,14 @@ import {
   Inject,
 } from '@nestjs/common';
 import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiSecurity,
+} from '@nestjs/swagger';
+import {
   AllowAnonymous,
   Session,
   type UserSession,
@@ -28,6 +36,9 @@ import { UpdateLanguageDto } from './dto/update-language.dto';
 import { UpdateThemeDto } from './dto/update-theme.dto';
 import type { UserResponse, UserListResponse } from './dto/user-response.dto';
 
+@ApiTags('Users')
+@ApiSecurity('better-auth.session_token')
+@ApiSecurity('api-key')
 @Controller('users')
 export class UsersController {
   constructor(
@@ -39,24 +50,70 @@ export class UsersController {
 
   @Get()
   @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'List all users (Admin)',
+    description: 'Returns a list of all users. Requires admin role.',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search by name or email',
+  })
+  @ApiResponse({ status: 200, description: 'List of users' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async findAll(@Query('search') search?: string): Promise<UserListResponse> {
     return this.usersService.findAll(search);
   }
 
   @Get(':id')
   @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'Get user by ID (Admin)',
+    description: 'Returns user details. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ status: 200, description: 'User details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async findOne(@Param('id') id: string): Promise<UserResponse> {
     return this.usersService.findById(id);
   }
 
   @Post()
   @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'Create user (Admin)',
+    description: 'Create a new user account. Requires admin role.',
+  })
+  @ApiResponse({ status: 201, description: 'User created successfully' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error or email already exists',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async create(@Body() dto: CreateUserDto): Promise<UserResponse> {
     return this.usersService.create(dto);
   }
 
   @Patch(':id')
   @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'Update user (Admin)',
+    description: 'Update user details and permissions. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ status: 200, description: 'User updated successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description:
+      'Forbidden - requires admin role or cannot modify own admin status',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
@@ -67,6 +124,19 @@ export class UsersController {
 
   @Post(':id/ban')
   @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'Ban user (Admin)',
+    description:
+      'Ban a user from the system with an optional reason. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ status: 200, description: 'User banned successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires admin role or cannot ban self',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async ban(
     @Param('id') id: string,
     @Body() dto: BanUserDto,
@@ -77,6 +147,15 @@ export class UsersController {
 
   @Post(':id/unban')
   @UseGuards(AdminGuard)
+  @ApiOperation({
+    summary: 'Unban user (Admin)',
+    description: 'Remove ban from a user. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ status: 200, description: 'User unbanned successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async unban(@Param('id') id: string): Promise<UserResponse> {
     return this.usersService.unban(id);
   }
@@ -84,6 +163,18 @@ export class UsersController {
   @Delete(':id')
   @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete user (Admin)',
+    description: 'Delete a user account. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiResponse({ status: 204, description: 'User deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires admin role or cannot delete self',
+  })
+  @ApiResponse({ status: 404, description: 'User not found' })
   async delete(
     @Param('id') id: string,
     @Session() session: UserSession,
@@ -94,12 +185,24 @@ export class UsersController {
   // ===== Public/Self Endpoints =====
 
   @Get('session')
+  @ApiOperation({
+    summary: 'Get current session',
+    description: 'Returns the current authenticated user information',
+  })
+  @ApiResponse({ status: 200, description: 'Current user session data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   getSession(@Session() session: UserSession) {
     return session.user;
   }
 
   @Get('setup-admin-completed')
   @AllowAnonymous()
+  @ApiOperation({
+    summary: 'Check if setup is completed',
+    description:
+      'Check if at least one user exists (initial setup completed). This endpoint is public.',
+  })
+  @ApiResponse({ status: 200, description: 'Setup status' })
   async getSetupAdminCompleted() {
     const users = await this.db
       .select({ id: schema.user.id })
@@ -109,6 +212,13 @@ export class UsersController {
   }
 
   @Patch('me/language')
+  @ApiOperation({
+    summary: 'Update my language preference',
+    description: 'Update the UI language preference for the current user',
+  })
+  @ApiResponse({ status: 200, description: 'Language updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid language code' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateLanguage(
     @Session() session: UserSession,
     @Body() dto: UpdateLanguageDto,
@@ -118,6 +228,12 @@ export class UsersController {
   }
 
   @Get('me/language')
+  @ApiOperation({
+    summary: 'Get my language preference',
+    description: 'Get the UI language preference for the current user',
+  })
+  @ApiResponse({ status: 200, description: 'Language preference' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getLanguage(
     @Session() session: UserSession,
   ): Promise<{ language: string }> {
@@ -126,11 +242,24 @@ export class UsersController {
   }
 
   @Get('me/permissions')
+  @ApiOperation({
+    summary: 'Get my permissions',
+    description: 'Get the permissions for the current user',
+  })
+  @ApiResponse({ status: 200, description: 'User permissions' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyPermissions(@Session() session: UserSession) {
     return this.usersService.getPermissions(session.user.id);
   }
 
   @Patch('me/theme')
+  @ApiOperation({
+    summary: 'Update my theme preferences',
+    description: 'Update primary and surface color theme preferences',
+  })
+  @ApiResponse({ status: 200, description: 'Theme updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid color format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateTheme(
     @Session() session: UserSession,
     @Body() dto: UpdateThemeDto,
@@ -144,6 +273,12 @@ export class UsersController {
   }
 
   @Get('me/theme')
+  @ApiOperation({
+    summary: 'Get my theme preferences',
+    description: 'Get the theme color preferences for the current user',
+  })
+  @ApiResponse({ status: 200, description: 'Theme preferences' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getTheme(
     @Session() session: UserSession,
   ): Promise<{ primaryColor: string; surfaceColor: string }> {

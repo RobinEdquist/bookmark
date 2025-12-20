@@ -15,6 +15,15 @@ import {
   HttpStatus,
   Inject,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiConsumes,
+  ApiBody,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { RestoreService } from './restore.service';
@@ -30,6 +39,9 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as authSchema from '../auth/schema';
 
+@ApiTags('Restore')
+@ApiSecurity('better-auth.session_token')
+@ApiSecurity('api-key')
 @Controller('admin/restore')
 @UseGuards(AdminGuard)
 export class RestoreController {
@@ -42,12 +54,33 @@ export class RestoreController {
     private readonly db: NodePgDatabase<typeof authSchema>,
   ) {}
 
-  /**
-   * POST /api/admin/restore/upload
-   * Upload an AudioBookShelf backup file and create a restore session
-   */
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({
+    summary: 'Upload backup file (Admin)',
+    description:
+      'Upload an AudioBookShelf backup file (.audiobookshelf) and create a restore session. Max file size: 500 MB.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'AudioBookShelf backup file',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Backup uploaded and session created',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid file type or size' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async uploadBackup(@UploadedFile() file: Express.Multer.File): Promise<{
     success: boolean;
     session: {
@@ -121,11 +154,20 @@ export class RestoreController {
     }
   }
 
-  /**
-   * GET /api/admin/restore/sessions/:id
-   * Get the current status and details of a restore session
-   */
   @Get('sessions/:id')
+  @ApiOperation({
+    summary: 'Get session details (Admin)',
+    description:
+      'Get the current status and details of a restore session including available libraries',
+  })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Session details with available libraries',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
   async getSession(@Param('id') sessionId: string): Promise<
     RestoreSession & {
       availableLibraries?: Array<{
@@ -159,11 +201,16 @@ export class RestoreController {
     };
   }
 
-  /**
-   * POST /api/admin/restore/sessions/:id/library
-   * Select which library to restore from the backup
-   */
   @Post('sessions/:id/library')
+  @ApiOperation({
+    summary: 'Select library (Admin)',
+    description: 'Select which library from the backup to restore',
+  })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({ status: 200, description: 'Library selected successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
   async selectLibrary(
     @Param('id') sessionId: string,
     @Body() dto: SelectLibraryDto,
@@ -180,11 +227,17 @@ export class RestoreController {
     };
   }
 
-  /**
-   * POST /api/admin/restore/sessions/:id/path-mappings
-   * Set path mappings for converting ABS paths to SAV paths
-   */
   @Post('sessions/:id/path-mappings')
+  @ApiOperation({
+    summary: 'Set path mappings (Admin)',
+    description:
+      'Set path mappings for converting AudioBookShelf paths to Bookmark paths',
+  })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({ status: 200, description: 'Path mappings set successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
   async setPathMappings(
     @Param('id') sessionId: string,
     @Body() dto: SetPathMappingsDto,
@@ -201,11 +254,17 @@ export class RestoreController {
     };
   }
 
-  /**
-   * POST /api/admin/restore/sessions/:id/user-mappings
-   * Set user mappings for converting ABS users to SAV users
-   */
   @Post('sessions/:id/user-mappings')
+  @ApiOperation({
+    summary: 'Set user mappings (Admin)',
+    description:
+      'Set user mappings for converting AudioBookShelf users to Bookmark users',
+  })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({ status: 200, description: 'User mappings set successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
   async setUserMappings(
     @Param('id') sessionId: string,
     @Body() dto: SetUserMappingsDto,
@@ -222,11 +281,17 @@ export class RestoreController {
     };
   }
 
-  /**
-   * POST /api/admin/restore/sessions/:id/options
-   * Set import options (what to include in the restore)
-   */
   @Post('sessions/:id/options')
+  @ApiOperation({
+    summary: 'Set restore options (Admin)',
+    description:
+      'Set import options including what data to include in the restore',
+  })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({ status: 200, description: 'Restore options set successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
   async setOptions(
     @Param('id') sessionId: string,
     @Body() dto: SetRestoreOptionsDto,
@@ -243,11 +308,20 @@ export class RestoreController {
     };
   }
 
-  /**
-   * GET /api/admin/restore/sessions/:id/preview
-   * Generate a preview of what will be imported
-   */
   @Get('sessions/:id/preview')
+  @ApiOperation({
+    summary: 'Get import preview (Admin)',
+    description:
+      'Generate a preview of what will be imported based on current session settings',
+  })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Import preview with audiobook counts and details',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
   async getPreview(@Param('id') sessionId: string): Promise<ImportPreview> {
     this.logger.log(
       `[ABS-RESTORE-API] Session ${sessionId}: Generating preview`,
@@ -262,11 +336,17 @@ export class RestoreController {
     return preview;
   }
 
-  /**
-   * POST /api/admin/restore/sessions/:id/execute
-   * Start the import process (async operation)
-   */
   @Post('sessions/:id/execute')
+  @ApiOperation({
+    summary: 'Execute import (Admin)',
+    description:
+      'Start the import process. This is an async operation - progress updates are sent via WebSocket.',
+  })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({ status: 200, description: 'Import started successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
   async executeImport(
     @Param('id') sessionId: string,
   ): Promise<{ success: boolean; message: string }> {
@@ -298,12 +378,17 @@ export class RestoreController {
     };
   }
 
-  /**
-   * DELETE /api/admin/restore/sessions/:id
-   * Cancel a restore session and clean up temporary files
-   */
   @Delete('sessions/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Cancel session (Admin)',
+    description: 'Cancel a restore session and clean up temporary files',
+  })
+  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiResponse({ status: 204, description: 'Session cancelled successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Session not found' })
   async cancelSession(@Param('id') sessionId: string): Promise<void> {
     this.logger.log(`[ABS-RESTORE-API] Session ${sessionId}: Cancelling`);
 
@@ -314,11 +399,14 @@ export class RestoreController {
     );
   }
 
-  /**
-   * GET /api/admin/restore/bookmark-users
-   * Get list of Bookmark users for mapping
-   */
   @Get('bookmark-users')
+  @ApiOperation({
+    summary: 'Get Bookmark users (Admin)',
+    description: 'Get list of Bookmark users for user mapping during restore',
+  })
+  @ApiResponse({ status: 200, description: 'List of Bookmark users' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getBookmarkUsers(): Promise<
     Array<{ id: string; name: string; email: string }>
   > {

@@ -22,6 +22,16 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiBody,
+  ApiConsumes,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import * as express from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -34,11 +44,68 @@ import { UpdateCoverDto } from './dto/update-cover.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 
+@ApiTags('Audiobooks')
+@ApiSecurity('better-auth.session_token')
+@ApiSecurity('api-key')
 @Controller('audiobooks')
 export class AudiobooksController {
   constructor(private readonly audiobooksService: AudiobooksService) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List all audiobooks',
+    description:
+      'Returns a paginated list of audiobooks with optional filtering and sorting. Audiobooks with tags that the user has blacklisted are automatically excluded.',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search by title, author, or narrator',
+  })
+  @ApiQuery({
+    name: 'genreId',
+    required: false,
+    description: 'Filter by genre ID',
+  })
+  @ApiQuery({
+    name: 'seriesId',
+    required: false,
+    description: 'Filter by series ID',
+  })
+  @ApiQuery({
+    name: 'authorId',
+    required: false,
+    description: 'Filter by author ID',
+  })
+  @ApiQuery({
+    name: 'language',
+    required: false,
+    description: 'Filter by language code (e.g., "en", "sv")',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['title', 'createdAt', 'author', 'rating', 'series'],
+    description: 'Sort field',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort direction',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return (default: 50)',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: 'Number of items to skip for pagination',
+  })
+  @ApiResponse({ status: 200, description: 'List of audiobooks' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
     @Session() session: UserSession,
     @Query('search') search?: string,
@@ -67,52 +134,167 @@ export class AudiobooksController {
   }
 
   @Get('authors')
+  @ApiOperation({
+    summary: 'List all authors',
+    description: 'Returns a list of all authors with audiobooks in the library',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter authors by name',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of authors with IDs and names',
+  })
   async getAuthors(@Query('search') search?: string) {
     return this.audiobooksService.getAuthors(search);
   }
 
   @Get('narrators')
+  @ApiOperation({
+    summary: 'List all narrators',
+    description:
+      'Returns a list of all narrators with audiobooks in the library',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter narrators by name',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of narrators with IDs and names',
+  })
   async getNarrators(@Query('search') search?: string) {
     return this.audiobooksService.getNarrators(search);
   }
 
   @Get('publishers')
+  @ApiOperation({
+    summary: 'List all publishers',
+    description: 'Returns a list of all publishers in the library',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter publishers by name',
+  })
+  @ApiResponse({ status: 200, description: 'List of publishers' })
   async getPublishers(@Query('search') search?: string) {
     return this.audiobooksService.getPublishers(search);
   }
 
   @Get('genres')
+  @ApiOperation({
+    summary: 'List all genres',
+    description: 'Returns a list of all genres assigned to audiobooks',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter genres by name',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of genres with IDs and names',
+  })
   async getGenres(@Query('search') search?: string) {
     return this.audiobooksService.getGenres(search);
   }
 
   @Get('tags')
+  @ApiOperation({
+    summary: 'List all tags',
+    description: 'Returns a list of all tags assigned to audiobooks',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter tags by name',
+  })
+  @ApiResponse({ status: 200, description: 'List of tags with IDs and names' })
   async getTags(@Query('search') search?: string) {
     return this.audiobooksService.getTags(search);
   }
 
   @Get('series')
+  @ApiOperation({
+    summary: 'List all series',
+    description: 'Returns a list of all series with audiobooks',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter series by name',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of series with IDs and names',
+  })
   async getSeries(@Query('search') search?: string) {
     return this.audiobooksService.getSeries(search);
   }
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Get audiobook details',
+    description:
+      'Returns complete details of an audiobook including metadata, chapters, and files',
+  })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiResponse({ status: 200, description: 'Audiobook details' })
+  @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async findOne(@Param('id') id: string) {
     return this.audiobooksService.findById(id);
   }
 
   @Patch(':id')
+  @ApiOperation({
+    summary: 'Update audiobook metadata',
+    description:
+      'Update audiobook metadata including title, authors, narrators, genres, tags, and series',
+  })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiResponse({ status: 200, description: 'Updated audiobook' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateAudiobookDto) {
     return this.audiobooksService.update(id, dto);
   }
 
   @Post(':id/refresh-chapters')
+  @ApiOperation({
+    summary: 'Refresh chapters from audio files',
+    description:
+      'Re-extract chapter information from the embedded metadata in audio files',
+  })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiResponse({ status: 200, description: 'Chapters refreshed successfully' })
+  @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async refreshChapters(@Param('id') id: string) {
     return this.audiobooksService.refreshChapters(id);
   }
 
   @Post(':id/chapters/import')
   @UseGuards(AuthGuard, CanEditMetadataGuard)
+  @ApiOperation({
+    summary: 'Import chapters from Audible',
+    description:
+      'Import chapter data from Audible via Audnexus API. Requires edit metadata permission.',
+  })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiResponse({ status: 200, description: 'Chapters imported successfully' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validation error (invalid ASIN format)',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires edit metadata permission',
+  })
+  @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async importChapters(
     @Param('id') id: string,
     @Body() dto: ImportChaptersDto,
@@ -126,6 +308,37 @@ export class AudiobooksController {
 
   @Post(':id/cover')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({
+    summary: 'Update audiobook cover',
+    description:
+      'Upload a new cover image via file upload or URL. Supports JPG, PNG, and WebP formats. Max file size: 2 MB.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'Cover image file (JPG, PNG, or WebP)',
+        },
+        url: {
+          type: 'string',
+          description:
+            'URL to download cover from (alternative to file upload)',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Cover updated successfully' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Invalid file type, file too large, or neither file nor URL provided',
+  })
+  @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async updateCover(
     @Param('id') id: string,
     @UploadedFile() file?: Express.Multer.File,
@@ -162,6 +375,14 @@ export class AudiobooksController {
 
   @Get(':id/cover')
   @Header('Cache-Control', 'public, max-age=86400')
+  @ApiOperation({
+    summary: 'Get audiobook cover image',
+    description:
+      'Returns the cover image for an audiobook. Cached for 24 hours.',
+  })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiResponse({ status: 404, description: 'Cover not found' })
   async getCover(@Param('id') id: string) {
     const cover = await this.audiobooksService.getCover(id);
 
@@ -184,6 +405,29 @@ export class AudiobooksController {
    */
   @Get(':id/stream')
   @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Stream audiobook audio',
+    description: `Stream audio with seek support. Supports HTTP Range requests for efficient seeking.
+
+**Custom Response Headers:**
+- \`X-Audiobook-Total-Duration\`: Total duration of the audiobook in seconds
+- \`X-File-Duration\`: Duration of the current file in seconds
+- \`X-File-Index\`: Index of the current file (for multi-file audiobooks)
+- \`X-File-Start-Position\`: Position in audiobook where this file starts`,
+  })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiQuery({
+    name: 'position',
+    required: false,
+    description: 'Start position in seconds for seek-by-time',
+  })
+  @ApiResponse({ status: 200, description: 'Full audio stream' })
+  @ApiResponse({ status: 206, description: 'Partial content (range request)' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 404,
+    description: 'Audiobook or audio file not found',
+  })
   async stream(
     @Param('id') id: string,
     @Query('position') positionParam: string | undefined,
@@ -299,6 +543,15 @@ export class AudiobooksController {
    */
   @Get(':id/download')
   @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Download audiobook files',
+    description:
+      'Download the audiobook files. Single file audiobooks with embedded covers return the audio file directly. Multi-file audiobooks or those with separate covers return a ZIP archive.',
+  })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiResponse({ status: 200, description: 'Audio file or ZIP archive' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async download(@Param('id') id: string, @Res() res: express.Response) {
     const downloadInfo = await this.audiobooksService.getDownloadInfo(id);
 
@@ -340,6 +593,19 @@ export class AudiobooksController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete audiobook',
+    description:
+      'Delete an audiobook from the library. Optionally delete the source files from disk.',
+  })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiQuery({
+    name: 'deleteFiles',
+    required: false,
+    description: 'Set to "true" to also delete files from disk',
+  })
+  @ApiResponse({ status: 204, description: 'Audiobook deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async delete(
     @Param('id') id: string,
     @Query('deleteFiles') deleteFiles?: string,

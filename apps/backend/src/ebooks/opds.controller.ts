@@ -8,10 +8,20 @@ import {
   UseGuards,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiBasicAuth,
+} from '@nestjs/swagger';
 import * as express from 'express';
 import { OpdsService } from './opds.service';
 import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
 
+@ApiTags('OPDS')
+@ApiBasicAuth()
 @Controller('ebooks/opds')
 @UseGuards(OpdsAuthGuard)
 export class OpdsController {
@@ -30,6 +40,19 @@ export class OpdsController {
   }
 
   @Get()
+  @ApiOperation({
+    summary: 'Get OPDS root catalog',
+    description:
+      'Returns the OPDS root catalog with links to browse by all, authors, or series. Requires HTTP Basic authentication.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'OPDS Atom feed (application/atom+xml)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - requires HTTP Basic auth',
+  })
   async getRootCatalog(
     @Req() req: express.Request,
     @Res() res: express.Response,
@@ -40,6 +63,23 @@ export class OpdsController {
   }
 
   @Get('all')
+  @ApiOperation({
+    summary: 'Get all ebooks feed',
+    description: 'Returns a paginated OPDS feed of all ebooks in the library',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination (default: 1)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'OPDS Atom feed (application/atom+xml)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - requires HTTP Basic auth',
+  })
   async getAllEbooks(
     @Req() req: express.Request,
     @Res() res: express.Response,
@@ -52,6 +92,18 @@ export class OpdsController {
   }
 
   @Get('authors')
+  @ApiOperation({
+    summary: 'Get authors navigation',
+    description: 'Returns an OPDS navigation feed listing all authors',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'OPDS Atom feed (application/atom+xml)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - requires HTTP Basic auth',
+  })
   async getAuthors(@Req() req: express.Request, @Res() res: express.Response) {
     const baseUrl = this.getBaseUrl(req);
     const xml = await this.opdsService.buildAuthorsNavigationFeed(baseUrl);
@@ -59,6 +111,21 @@ export class OpdsController {
   }
 
   @Get('authors/:id')
+  @ApiOperation({
+    summary: 'Get author ebooks',
+    description:
+      'Returns an OPDS acquisition feed of ebooks by a specific author',
+  })
+  @ApiParam({ name: 'id', description: 'Author UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'OPDS Atom feed (application/atom+xml)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - requires HTTP Basic auth',
+  })
+  @ApiResponse({ status: 404, description: 'Author not found' })
   async getAuthorEbooks(
     @Req() req: express.Request,
     @Res() res: express.Response,
@@ -74,6 +141,18 @@ export class OpdsController {
   }
 
   @Get('series')
+  @ApiOperation({
+    summary: 'Get series navigation',
+    description: 'Returns an OPDS navigation feed listing all series',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'OPDS Atom feed (application/atom+xml)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - requires HTTP Basic auth',
+  })
   async getSeries(@Req() req: express.Request, @Res() res: express.Response) {
     const baseUrl = this.getBaseUrl(req);
     const xml = await this.opdsService.buildSeriesNavigationFeed(baseUrl);
@@ -81,6 +160,21 @@ export class OpdsController {
   }
 
   @Get('series/:id')
+  @ApiOperation({
+    summary: 'Get series ebooks',
+    description:
+      'Returns an OPDS acquisition feed of ebooks in a specific series',
+  })
+  @ApiParam({ name: 'id', description: 'Series UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'OPDS Atom feed (application/atom+xml)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - requires HTTP Basic auth',
+  })
+  @ApiResponse({ status: 404, description: 'Series not found' })
   async getSeriesEbooks(
     @Req() req: express.Request,
     @Res() res: express.Response,

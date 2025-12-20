@@ -6,6 +6,12 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { AppSettingsService } from './app-settings.service';
 import { Roles, RolesGuard } from '../auth/roles.guard';
@@ -29,6 +35,7 @@ interface UpdateSettingsDto {
   autoApproveRequestsPerWeek?: number;
 }
 
+@ApiTags('Settings')
 @Controller('settings')
 export class AppSettingsController {
   constructor(
@@ -38,6 +45,12 @@ export class AppSettingsController {
 
   @Get('public')
   @AllowAnonymous()
+  @ApiOperation({
+    summary: 'Get public settings',
+    description:
+      'Returns publicly accessible settings like signup status. No authentication required.',
+  })
+  @ApiResponse({ status: 200, description: 'Public settings' })
   async getPublicSettings() {
     const settings = await this.appSettingsService.getSettings();
     return {
@@ -47,6 +60,12 @@ export class AppSettingsController {
 
   @Get('auth-config')
   @AllowAnonymous()
+  @ApiOperation({
+    summary: 'Get authentication configuration',
+    description:
+      'Returns authentication methods configuration (email/password, OIDC). No authentication required.',
+  })
+  @ApiResponse({ status: 200, description: 'Authentication configuration' })
   async getAuthConfig() {
     const settings = await this.appSettingsService.getSettings();
     const oidcEnabled = this.oidcConfigService.isOidcEnabled();
@@ -59,6 +78,14 @@ export class AppSettingsController {
   }
 
   @Get()
+  @ApiSecurity('better-auth.session_token')
+  @ApiSecurity('api-key')
+  @ApiOperation({
+    summary: 'Get all settings',
+    description: 'Returns all application settings. Requires authentication.',
+  })
+  @ApiResponse({ status: 200, description: 'Application settings' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getSettings() {
     const settings = await this.appSettingsService.getSettings();
     const mamClientConfigured = !!(
@@ -87,6 +114,17 @@ export class AppSettingsController {
   @Patch()
   @UseGuards(RolesGuard)
   @Roles('admin')
+  @ApiSecurity('better-auth.session_token')
+  @ApiSecurity('api-key')
+  @ApiOperation({
+    summary: 'Update settings (Admin)',
+    description:
+      'Update application settings including library paths, authentication, and feature flags. Requires admin role.',
+  })
+  @ApiResponse({ status: 200, description: 'Updated settings' })
+  @ApiResponse({ status: 400, description: 'Validation error or invalid path' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async updateSettings(@Body() dto: UpdateSettingsDto) {
     if (
       dto.signupsEnabled === undefined &&

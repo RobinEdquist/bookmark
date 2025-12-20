@@ -31,6 +31,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/platform-socket.io": "^11.1.9",
     "@nestjs/schedule": "^6.0.1",
+    "@nestjs/swagger": "^11.2.3",
     "@nestjs/websockets": "^11.1.9",
     "@thallesp/nestjs-better-auth": "^2.1.0",
     "@types/pg": "^8.15.6",

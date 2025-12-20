@@ -12,12 +12,23 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiSecurity,
+} from '@nestjs/swagger';
 import * as fs from 'fs/promises';
 import { ImportErrorsService } from './import-errors.service';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { Session } from '@thallesp/nestjs-better-auth';
 import { ImportQueueService } from '../library-watcher/import-queue.service';
 
+@ApiTags('Import Errors')
+@ApiSecurity('better-auth.session_token')
+@ApiSecurity('api-key')
 @Controller('admin/import-errors')
 @UseGuards(AdminGuard)
 export class ImportErrorsController {
@@ -27,6 +38,30 @@ export class ImportErrorsController {
   ) {}
 
   @Get()
+  @ApiOperation({
+    summary: 'List import errors (Admin)',
+    description:
+      'Returns a paginated list of import errors with optional status filter. Requires admin role.',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    enum: ['pending', 'retrying', 'resolved', 'ignored'],
+    description: 'Filter by error status',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
+  @ApiQuery({
+    name: 'offset',
+    required: false,
+    description: 'Number of items to skip for pagination',
+  })
+  @ApiResponse({ status: 200, description: 'List of import errors' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async listErrors(
     @Query('status') status?: 'pending' | 'retrying' | 'resolved' | 'ignored',
     @Query('limit') limit?: string,
@@ -40,6 +75,16 @@ export class ImportErrorsController {
   }
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Get import error details (Admin)',
+    description:
+      'Returns detailed information about a specific import error. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'Import error UUID' })
+  @ApiResponse({ status: 200, description: 'Import error details' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Import error not found' })
   async getError(@Param('id') id: string) {
     const error = await this.importErrorsService.getError(id);
     if (!error) {
@@ -50,6 +95,20 @@ export class ImportErrorsController {
 
   @Post(':id/retry')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Retry failed import (Admin)',
+    description:
+      'Queue a failed import for retry. The file will be re-processed. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'Import error UUID' })
+  @ApiResponse({ status: 200, description: 'Retry queued successfully' })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot determine library type or path no longer exists',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Import error not found' })
   async retryImport(@Param('id') id: string) {
     const error = await this.importErrorsService.getError(id);
     if (!error) {
@@ -105,6 +164,16 @@ export class ImportErrorsController {
 
   @Post(':id/ignore')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Ignore import error (Admin)',
+    description:
+      'Mark an import error as ignored. It will no longer appear in the pending errors list. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'Import error UUID' })
+  @ApiResponse({ status: 200, description: 'Error ignored successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Import error not found' })
   async ignoreError(
     @Param('id') id: string,
     @Session() session: { user: { id: string } },
@@ -120,6 +189,16 @@ export class ImportErrorsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete import error (Admin)',
+    description:
+      'Permanently delete an import error record. Requires admin role.',
+  })
+  @ApiParam({ name: 'id', description: 'Import error UUID' })
+  @ApiResponse({ status: 204, description: 'Error deleted successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Import error not found' })
   async deleteError(@Param('id') id: string) {
     const error = await this.importErrorsService.getError(id);
     if (!error) {
