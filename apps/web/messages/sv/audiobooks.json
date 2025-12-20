@@ -69,6 +69,7 @@
     "showLess": "Visa mindre",
     "chapters": "Kapitel",
     "noChapters": "Inga kapitel hittades. Försök uppdatera för att extrahera kapitel från ljudfilen.",
+    "importChapters": "Importera från Audible",
     "refreshChapters": "Uppdatera",
     "chaptersRefreshed": "Hittade {count} kapitel",
     "chaptersRefreshError": "Kunde inte uppdatera kapitel",
@@ -169,5 +170,34 @@
       "createSeries": "Lägg till",
       "removeSeries": "Ta bort serie"
     }
+  },
+  "chapterImport": {
+    "title": "Importera kapitel",
+    "description": "Sök på Audible för att hitta kapiteldata för denna ljudbok",
+    "searchTab": "Sök",
+    "manualTab": "Ange ASIN",
+    "titleLabel": "Titel",
+    "titlePlaceholder": "Ljudbokens titel",
+    "authorLabel": "Författare",
+    "authorPlaceholder": "Författarnamn (valfritt)",
+    "asinLabel": "ASIN",
+    "asinPlaceholder": "B002V02KPU",
+    "asinHint": "ASIN är en 10-teckens Amazon-identifierare som finns på Audibles produktsida",
+    "fetch": "Hämta",
+    "noResults": "Inga ljudböcker hittades. Försök justera din sökning.",
+    "fetchingChapters": "Hämtar kapitel...",
+    "fetchError": "Kunde inte hämta kapitel",
+    "preview": "Förhandsgranskning",
+    "currentChapters": "Nuvarande kapitel",
+    "fetchedChapters": "Hämtade kapitel",
+    "noCurrentChapters": "Inga kapitel",
+    "noChaptersFound": "Inga kapitel hittades för detta ASIN",
+    "totalDuration": "Total längd",
+    "timingApproximate": "tiderna kan vara ungefärliga",
+    "cancel": "Avbryt",
+    "import": "Importera kapitel",
+    "importing": "Importerar...",
+    "success": "Kapitel importerades",
+    "error": "Kunde inte importera kapitel"
   }
 }

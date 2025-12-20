@@ -104,7 +104,6 @@ export function HeaderSearch({ mediaType }: HeaderSearchProps) {
               <SearchResultItem
                 key={item.id}
                 item={item}
-                mediaType={mediaType}
                 onSelect={handleSelect}
               />
             ))}
@@ -121,11 +120,10 @@ export function HeaderSearch({ mediaType }: HeaderSearchProps) {
 
 interface SearchResultItemProps {
   item: AudiobookListItem | EbookListItem;
-  mediaType: "audiobook" | "ebook";
   onSelect: (id: string) => void;
 }
 
-function SearchResultItem({ item, mediaType, onSelect }: SearchResultItemProps) {
+function SearchResultItem({ item, onSelect }: SearchResultItemProps) {
   const authors = item.authors.map((a) => a.name).join(", ");
 
   return (

@@ -1264,6 +1264,55 @@ export class AudiobooksService {
     return { count: totalChapters };
   }
 
+  async importExternalChapters(
+    id: string,
+    asin: string,
+    chapters: { title: string; startTime: number; endTime?: number }[],
+  ): Promise<{ count: number }> {
+    // Verify audiobook exists
+    const audiobook = await this.db
+      .select()
+      .from(schema.audiobooks)
+      .where(eq(schema.audiobooks.id, id))
+      .limit(1);
+
+    if (audiobook.length === 0) {
+      throw new NotFoundException('Audiobook not found');
+    }
+
+    // Delete existing chapters
+    await this.db
+      .delete(schema.chapters)
+      .where(eq(schema.chapters.audiobookId, id));
+
+    // Insert new chapters with source 'external'
+    if (chapters.length > 0) {
+      await this.db.insert(schema.chapters).values(
+        chapters.map((chap, index) => ({
+          audiobookId: id,
+          title: chap.title,
+          startTime: chap.startTime,
+          endTime: chap.endTime ?? null,
+          order: index + 1,
+          source: 'external' as const,
+        })),
+      );
+    }
+
+    // Update the audiobook's ASIN for future re-fetching
+    await this.db
+      .update(schema.audiobooks)
+      .set({
+        asin: asin.toUpperCase(),
+        manualFields: [...(audiobook[0].manualFields || []), 'asin'].filter(
+          (v, i, a) => a.indexOf(v) === i,
+        ),
+      })
+      .where(eq(schema.audiobooks.id, id));
+
+    return { count: chapters.length };
+  }
+
   async updateCoverFromFile(
     id: string,
     buffer: Buffer,

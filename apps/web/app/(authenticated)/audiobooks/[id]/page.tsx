@@ -25,6 +25,7 @@ import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-
 import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
 import { ChangeCoverDialog } from "../../../../components/audiobooks/change-cover-dialog";
 import { HeaderSearch } from "../../../../components/layout/header-search";
+import { ChapterImportDialog } from "../../../../components/chapters/chapter-import-dialog";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "—";
@@ -69,6 +70,7 @@ export default function AudiobookDetailPage({
   const [editOpen, setEditOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
+  const [chapterImportOpen, setChapterImportOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const [chaptersOpen, setChaptersOpen] = useState<string | undefined>(undefined);
@@ -489,6 +491,17 @@ export default function AudiobookDetailPage({
                       {t("noChapters")}
                     </p>
                   )}
+                  {canEdit && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="mt-3"
+                      onClick={() => setChapterImportOpen(true)}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      {t("importChapters")}
+                    </Button>
+                  )}
                 </AccordionContent>
               </AccordionItem>
             </Accordion>
@@ -597,6 +610,17 @@ export default function AudiobookDetailPage({
           currentCoverUrl={audiobook.coverUrl}
           open={changeCoverOpen}
           onOpenChange={setChangeCoverOpen}
+        />
+      )}
+
+      {canEdit && (
+        <ChapterImportDialog
+          audiobookId={id}
+          audiobookTitle={audiobook.title}
+          audiobookAuthor={authors}
+          currentChapters={audiobook.chapters}
+          open={chapterImportOpen}
+          onOpenChange={setChapterImportOpen}
         />
       )}
     </main>

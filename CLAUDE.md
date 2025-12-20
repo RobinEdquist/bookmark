@@ -1440,3 +1440,4 @@ Before deploying to production:
 ---
 
 _This document is the authoritative guide for development. When in doubt, refer here first._
+- Always run linting when reviewing of task is done

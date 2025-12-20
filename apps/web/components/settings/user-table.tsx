@@ -85,7 +85,7 @@ export function UserTable({
                 </span>
               </td>
               <td className="px-4 py-3 text-muted-foreground">
-                {new Date(user.createdAt).toLocaleDateString()}
+                {new Date(user.createdAt).toDateString()}
               </td>
               <td className="px-4 py-3">
                 {user.apiKey?.hasKey ? (
@@ -95,7 +95,7 @@ export function UserTable({
                     </span>
                     {user.apiKey.lastUsed && (
                       <span className="mt-1 text-xs text-muted-foreground">
-                        {t("apiKey.lastUsed")}: {new Date(user.apiKey.lastUsed).toLocaleDateString()}
+                        {t("apiKey.lastUsed")}: {new Date(user.apiKey.lastUsed).toDateString()}
                       </span>
                     )}
                   </div>

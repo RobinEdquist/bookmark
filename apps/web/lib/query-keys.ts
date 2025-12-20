@@ -132,4 +132,11 @@ export const queryKeys = {
     all: ['admin-requests'] as const,
     list: (status?: string) => [...queryKeys.adminRequests.all, 'list', status] as const,
   },
+  audnexus: {
+    all: ['audnexus'] as const,
+    search: (title: string, author?: string) =>
+      [...queryKeys.audnexus.all, 'search', title, author] as const,
+    chapters: (asin: string) =>
+      [...queryKeys.audnexus.all, 'chapters', asin] as const,
+  },
 } as const;

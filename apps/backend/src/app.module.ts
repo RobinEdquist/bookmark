@@ -16,6 +16,7 @@ import { EbooksModule } from './ebooks/ebooks.module';
 import { ImportErrorsModule } from './import-errors/import-errors.module';
 import { LibraryWatcherModule } from './library-watcher/library-watcher.module';
 import { HardcoverModule } from './hardcover/hardcover.module';
+import { AudnexusModule } from './audnexus/audnexus.module';
 import { LibraryModule } from './library/library.module';
 import { SeriesModule } from './series/series.module';
 import { EventsModule } from './events/events.module';
@@ -118,6 +119,7 @@ import { CommonModule } from './common/common.module';
     ImportErrorsModule,
     LibraryWatcherModule,
     HardcoverModule,
+    AudnexusModule,
     LibraryModule,
     SeriesModule,
     EventsModule,

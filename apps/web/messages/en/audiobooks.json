@@ -69,6 +69,7 @@
     "showLess": "Show less",
     "chapters": "Chapters",
     "noChapters": "No chapters found. Try refreshing to extract chapters from the audio file.",
+    "importChapters": "Import from Audible",
     "refreshChapters": "Refresh",
     "chaptersRefreshed": "Found {count} chapters",
     "chaptersRefreshError": "Failed to refresh chapters",
@@ -169,5 +170,34 @@
       "createSeries": "Add",
       "removeSeries": "Remove series"
     }
+  },
+  "chapterImport": {
+    "title": "Import Chapters",
+    "description": "Search Audible to find chapter data for this audiobook",
+    "searchTab": "Search",
+    "manualTab": "Enter ASIN",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Audiobook title",
+    "authorLabel": "Author",
+    "authorPlaceholder": "Author name (optional)",
+    "asinLabel": "ASIN",
+    "asinPlaceholder": "B002V02KPU",
+    "asinHint": "The ASIN is a 10-character Amazon identifier found on the Audible product page",
+    "fetch": "Fetch",
+    "noResults": "No audiobooks found. Try adjusting your search.",
+    "fetchingChapters": "Fetching chapters...",
+    "fetchError": "Failed to fetch chapters",
+    "preview": "Preview",
+    "currentChapters": "Current Chapters",
+    "fetchedChapters": "Fetched Chapters",
+    "noCurrentChapters": "No chapters",
+    "noChaptersFound": "No chapters found for this ASIN",
+    "totalDuration": "Total duration",
+    "timingApproximate": "timing may be approximate",
+    "cancel": "Cancel",
+    "import": "Import Chapters",
+    "importing": "Importing...",
+    "success": "Chapters imported successfully",
+    "error": "Failed to import chapters"
   }
 }

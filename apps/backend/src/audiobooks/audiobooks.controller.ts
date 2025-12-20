@@ -28,8 +28,10 @@ import * as path from 'path';
 import archiver from 'archiver';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
+import { ImportChaptersDto } from '../audnexus/dto/import-chapters.dto';
 import { UpdateCoverDto } from './dto/update-cover.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
+import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 
 @Controller('audiobooks')
 export class AudiobooksController {
@@ -105,6 +107,19 @@ export class AudiobooksController {
   @Post(':id/refresh-chapters')
   async refreshChapters(@Param('id') id: string) {
     return this.audiobooksService.refreshChapters(id);
+  }
+
+  @Post(':id/chapters/import')
+  @UseGuards(AuthGuard, CanEditMetadataGuard)
+  async importChapters(
+    @Param('id') id: string,
+    @Body() dto: ImportChaptersDto,
+  ) {
+    return this.audiobooksService.importExternalChapters(
+      id,
+      dto.asin,
+      dto.chapters,
+    );
   }
 
   @Post(':id/cover')
