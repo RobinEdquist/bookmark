@@ -44,3 +44,5 @@ yarn-error.log*
 # Worktrees
 .worktrees/
 2025-12-13T0502
+/apps/.claude/
+.idea

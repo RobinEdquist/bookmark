@@ -49,10 +49,6 @@ export class UpdateUserDto {
   @IsArray()
   @IsString({ each: true })
   blacklistedTags?: string[];
-
-  @IsOptional()
-  @IsBoolean()
-  forcePasswordReset?: boolean;
 }
 
 export class BanUserDto {
