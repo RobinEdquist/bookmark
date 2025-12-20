@@ -21,6 +21,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as express from 'express';
 import * as fs from 'fs';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { EbooksService, EbookFilters } from './ebooks.service';
 import { UpdateEbookDto } from './dto/update-ebook.dto';
 import { UpdateCoverDto } from './dto/update-cover.dto';
@@ -32,6 +33,7 @@ export class EbooksController {
 
   @Get()
   async findAll(
+    @Session() session: UserSession,
     @Query('search') search?: string,
     @Query('genreId') genreId?: string,
     @Query('seriesId') seriesId?: string,
@@ -54,7 +56,7 @@ export class EbooksController {
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
     };
-    return this.ebooksService.findAll(filters);
+    return this.ebooksService.findAll(filters, session.user.id);
   }
 
   @Get('authors')

@@ -194,6 +194,8 @@ export function useUpdateEbook() {
       );
       // Invalidate the list to reflect changes
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+      // Invalidate tags in case new tags were created
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
     },
   });
 }

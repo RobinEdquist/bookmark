@@ -55,8 +55,8 @@ import {
   useAuthors,
   usePublishers,
   useGenres,
-  useTags,
 } from "../../lib/use-audiobooks";
+import { useTags } from "../../lib/use-tags";
 import {
   SeriesEntryEditor,
   type SeriesEntry,
@@ -152,8 +152,8 @@ export function EditEbookDialog({
   }));
 
   const tagOptions = existingTags.map((t) => ({
-    value: t.name,
-    label: t.name,
+    value: t.label,
+    label: t.label,
   }));
 
   // Navigation logic

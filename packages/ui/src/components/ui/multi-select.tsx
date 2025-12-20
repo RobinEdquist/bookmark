@@ -104,7 +104,7 @@ export function MultiSelect({
                 return (
                   <CommandItem
                     key={option.value}
-                    value={option.value}
+                    value={option.label}
                     onSelect={() => handleToggle(option.value)}
                   >
                     <div

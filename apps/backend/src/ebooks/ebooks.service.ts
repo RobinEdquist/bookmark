@@ -11,6 +11,7 @@ import {
   and,
   isNotNull,
   exists,
+  notExists,
   sql,
 } from 'drizzle-orm';
 import * as fs from 'fs/promises';
@@ -20,6 +21,7 @@ import { CoverService } from '../common/cover.service';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as hardcoverSchema from '../hardcover/schema';
+import * as usersSchema from '../users/schema';
 import { UpdateEbookDto, SeriesEntryDto } from './dto/update-ebook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
@@ -79,6 +81,7 @@ export class EbooksService {
 
   async findAll(
     filters: EbookFilters = {},
+    userId?: string,
   ): Promise<{ ebooks: EbookListItem[]; total: number }> {
     const {
       search,
@@ -94,6 +97,24 @@ export class EbooksService {
 
     // Always exclude hidden ebooks
     conditions.push(ne(schema.ebooks.status, 'hidden'));
+
+    // Exclude ebooks with blacklisted tags for this user
+    if (userId) {
+      const blacklistedTagsFilter = notExists(
+        this.db
+          .select({ one: sql`1` })
+          .from(schema.ebookTags)
+          .innerJoin(
+            usersSchema.userBlacklistedTags,
+            and(
+              eq(schema.ebookTags.tagId, usersSchema.userBlacklistedTags.tagId),
+              eq(usersSchema.userBlacklistedTags.userId, userId),
+            ),
+          )
+          .where(eq(schema.ebookTags.ebookId, schema.ebooks.id)),
+      );
+      conditions.push(blacklistedTagsFilter);
+    }
 
     if (search) {
       const searchPattern = `%${search}%`;

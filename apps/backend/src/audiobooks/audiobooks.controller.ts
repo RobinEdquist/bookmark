@@ -26,6 +26,7 @@ import * as express from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import archiver from 'archiver';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
 import { ImportChaptersDto } from '../audnexus/dto/import-chapters.dto';
@@ -39,6 +40,7 @@ export class AudiobooksController {
 
   @Get()
   async findAll(
+    @Session() session: UserSession,
     @Query('search') search?: string,
     @Query('genreId') genreId?: string,
     @Query('seriesId') seriesId?: string,
@@ -61,7 +63,7 @@ export class AudiobooksController {
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
     };
-    return this.audiobooksService.findAll(filters);
+    return this.audiobooksService.findAll(filters, session.user.id);
   }
 
   @Get('authors')

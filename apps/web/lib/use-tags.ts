@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "./query-keys";
 
 export interface Tag {
   value: string;
@@ -22,7 +23,7 @@ async function fetchTags(): Promise<Tag[]> {
 
 export function useTags() {
   return useQuery({
-    queryKey: ["tags"],
+    queryKey: queryKeys.tags.all,
     queryFn: fetchTags,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });

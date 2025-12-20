@@ -236,6 +236,8 @@ export function useUpdateAudiobook() {
       );
       // Invalidate the list to reflect changes
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+      // Invalidate tags in case new tags were created
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
     },
   });
 }
@@ -358,29 +360,6 @@ export function useGenres(search?: string) {
   return useQuery({
     queryKey: queryKeys.audiobooks.genres(search),
     queryFn: () => fetchGenres(search),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
-
-async function fetchTags(search?: string): Promise<{ id: string; name: string }[]> {
-  const params = new URLSearchParams();
-  if (search) params.set("search", search);
-
-  const response = await fetch(`/api/audiobooks/tags?${params}`, {
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch tags");
-  }
-
-  return response.json();
-}
-
-export function useTags(search?: string) {
-  return useQuery({
-    queryKey: queryKeys.audiobooks.tags(search),
-    queryFn: () => fetchTags(search),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }

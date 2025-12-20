@@ -12,6 +12,7 @@ import {
   inArray,
   isNotNull,
   exists,
+  notExists,
   sql,
 } from 'drizzle-orm';
 import * as fs from 'fs/promises';
@@ -20,6 +21,7 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
 import * as schema from './schema';
 import * as hardcoverSchema from '../hardcover/schema';
+import * as usersSchema from '../users/schema';
 import { EmbeddedMetadataProvider } from '../library-watcher/metadata/embedded-metadata.provider';
 import { UpdateAudiobookDto, SeriesEntryDto } from './dto/update-audiobook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
@@ -129,6 +131,7 @@ export class AudiobooksService {
 
   async findAll(
     filters: AudiobookFilters = {},
+    userId?: string,
   ): Promise<{ audiobooks: AudiobookListItem[]; total: number }> {
     const {
       search,
@@ -144,6 +147,27 @@ export class AudiobooksService {
 
     // Always exclude hidden audiobooks
     conditions.push(ne(schema.audiobooks.status, 'hidden'));
+
+    // Exclude audiobooks with blacklisted tags for this user
+    if (userId) {
+      const blacklistedTagsFilter = notExists(
+        this.db
+          .select({ one: sql`1` })
+          .from(schema.audiobookTags)
+          .innerJoin(
+            usersSchema.userBlacklistedTags,
+            and(
+              eq(
+                schema.audiobookTags.tagId,
+                usersSchema.userBlacklistedTags.tagId,
+              ),
+              eq(usersSchema.userBlacklistedTags.userId, userId),
+            ),
+          )
+          .where(eq(schema.audiobookTags.audiobookId, schema.audiobooks.id)),
+      );
+      conditions.push(blacklistedTagsFilter);
+    }
 
     if (search) {
       const searchPattern = `%${search}%`;
