@@ -240,12 +240,17 @@ export class AudiobooksController {
   @ApiOperation({
     summary: 'Get audiobook details',
     description:
-      'Returns complete details of an audiobook including metadata, chapters, and files',
+      'Returns complete details of an audiobook including metadata, chapters, and files. Access denied if audiobook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID' })
   @ApiResponse({ status: 200, description: 'Audiobook details' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - audiobook has blacklisted tags',
+  })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @Session() session: UserSession) {
+    await this.audiobooksService.verifyNotBlacklisted(id, session.user.id);
     return this.audiobooksService.findById(id);
   }
 
@@ -378,12 +383,17 @@ export class AudiobooksController {
   @ApiOperation({
     summary: 'Get audiobook cover image',
     description:
-      'Returns the cover image for an audiobook. Cached for 24 hours.',
+      'Returns the cover image for an audiobook. Cached for 24 hours. Access denied if audiobook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - audiobook has blacklisted tags',
+  })
   @ApiResponse({ status: 404, description: 'Cover not found' })
-  async getCover(@Param('id') id: string) {
+  async getCover(@Param('id') id: string, @Session() session: UserSession) {
+    await this.audiobooksService.verifyNotBlacklisted(id, session.user.id);
     const cover = await this.audiobooksService.getCover(id);
 
     if (!cover) {
@@ -407,7 +417,7 @@ export class AudiobooksController {
   @UseGuards(AuthGuard)
   @ApiOperation({
     summary: 'Stream audiobook audio',
-    description: `Stream audio with seek support. Supports HTTP Range requests for efficient seeking.
+    description: `Stream audio with seek support. Supports HTTP Range requests for efficient seeking. Access denied if audiobook has tags blacklisted by the user.
 
 **Custom Response Headers:**
 - \`X-Audiobook-Total-Duration\`: Total duration of the audiobook in seconds
@@ -425,6 +435,10 @@ export class AudiobooksController {
   @ApiResponse({ status: 206, description: 'Partial content (range request)' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
+    status: 403,
+    description: 'Access denied - audiobook has blacklisted tags',
+  })
+  @ApiResponse({
     status: 404,
     description: 'Audiobook or audio file not found',
   })
@@ -434,7 +448,10 @@ export class AudiobooksController {
     @Headers('range') rangeHeader: string | undefined,
     @Req() req: express.Request,
     @Res() res: express.Response,
+    @Session() session: UserSession,
   ) {
+    // Check if user has blacklisted any tags on this audiobook
+    await this.audiobooksService.verifyNotBlacklisted(id, session.user.id);
     const position = positionParam ? parseInt(positionParam, 10) : 0;
 
     // Get stream info (finds correct file and offset for position)
@@ -546,13 +563,23 @@ export class AudiobooksController {
   @ApiOperation({
     summary: 'Download audiobook files',
     description:
-      'Download the audiobook files. Single file audiobooks with embedded covers return the audio file directly. Multi-file audiobooks or those with separate covers return a ZIP archive.',
+      'Download the audiobook files. Single file audiobooks with embedded covers return the audio file directly. Multi-file audiobooks or those with separate covers return a ZIP archive. Access denied if audiobook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID' })
   @ApiResponse({ status: 200, description: 'Audio file or ZIP archive' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - audiobook has blacklisted tags',
+  })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
-  async download(@Param('id') id: string, @Res() res: express.Response) {
+  async download(
+    @Param('id') id: string,
+    @Res() res: express.Response,
+    @Session() session: UserSession,
+  ) {
+    // Check if user has blacklisted any tags on this audiobook
+    await this.audiobooksService.verifyNotBlacklisted(id, session.user.id);
     const downloadInfo = await this.audiobooksService.getDownloadInfo(id);
 
     res.setHeader(

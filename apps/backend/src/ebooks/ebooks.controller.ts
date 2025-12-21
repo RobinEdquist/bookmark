@@ -180,12 +180,18 @@ export class EbooksController {
   @Get(':id')
   @ApiOperation({
     summary: 'Get ebook details',
-    description: 'Returns complete details of an ebook including metadata',
+    description:
+      'Returns complete details of an ebook including metadata. Access denied if ebook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID' })
   @ApiResponse({ status: 200, description: 'Ebook details' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - ebook has blacklisted tags',
+  })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @Session() session: UserSession) {
+    await this.ebooksService.verifyNotBlacklisted(id, session.user.id);
     return this.ebooksService.findById(id);
   }
 
@@ -274,12 +280,18 @@ export class EbooksController {
   @Header('Cache-Control', 'public, max-age=86400')
   @ApiOperation({
     summary: 'Get ebook cover image',
-    description: 'Returns the cover image for an ebook. Cached for 24 hours.',
+    description:
+      'Returns the cover image for an ebook. Cached for 24 hours. Access denied if ebook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - ebook has blacklisted tags',
+  })
   @ApiResponse({ status: 404, description: 'Cover not found' })
-  async getCover(@Param('id') id: string) {
+  async getCover(@Param('id') id: string, @Session() session: UserSession) {
+    await this.ebooksService.verifyNotBlacklisted(id, session.user.id);
     const cover = await this.ebooksService.getCover(id);
 
     if (!cover) {
@@ -295,13 +307,24 @@ export class EbooksController {
   @UseGuards(AuthGuard)
   @ApiOperation({
     summary: 'Download ebook file',
-    description: 'Download the ebook file (EPUB, PDF, etc.)',
+    description:
+      'Download the ebook file (EPUB, PDF, etc.). Access denied if ebook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID' })
   @ApiResponse({ status: 200, description: 'Ebook file' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - ebook has blacklisted tags',
+  })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
-  async download(@Param('id') id: string, @Res() res: express.Response) {
+  async download(
+    @Param('id') id: string,
+    @Res() res: express.Response,
+    @Session() session: UserSession,
+  ) {
+    // Check if user has blacklisted any tags on this ebook
+    await this.ebooksService.verifyNotBlacklisted(id, session.user.id);
     const downloadInfo = await this.ebooksService.getDownloadInfo(id);
 
     res.setHeader('Content-Type', downloadInfo.mimeType);

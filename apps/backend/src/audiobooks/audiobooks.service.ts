@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   eq,
@@ -127,6 +132,44 @@ export class AudiobooksService {
     if (typeof value === 'string' && value.trim() === '') return false;
     if (Array.isArray(value) && value.length === 0) return false;
     return true;
+  }
+
+  /**
+   * Check if an audiobook has any tags that are blacklisted for the given user.
+   * Returns true if the audiobook should be hidden from this user.
+   */
+  async hasBlacklistedTags(
+    audiobookId: string,
+    userId: string,
+  ): Promise<boolean> {
+    const result = await this.db
+      .select({ one: sql`1` })
+      .from(schema.audiobookTags)
+      .innerJoin(
+        usersSchema.userBlacklistedTags,
+        and(
+          eq(schema.audiobookTags.tagId, usersSchema.userBlacklistedTags.tagId),
+          eq(usersSchema.userBlacklistedTags.userId, userId),
+        ),
+      )
+      .where(eq(schema.audiobookTags.audiobookId, audiobookId))
+      .limit(1);
+
+    return result.length > 0;
+  }
+
+  /**
+   * Verify that the user can access this audiobook (not blacklisted).
+   * Throws ForbiddenException if the audiobook has blacklisted tags for this user.
+   */
+  async verifyNotBlacklisted(
+    audiobookId: string,
+    userId: string,
+  ): Promise<void> {
+    const isBlacklisted = await this.hasBlacklistedTags(audiobookId, userId);
+    if (isBlacklisted) {
+      throw new ForbiddenException('Access denied');
+    }
   }
 
   async findAll(

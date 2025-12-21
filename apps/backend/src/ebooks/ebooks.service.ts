@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   eq,
@@ -77,6 +82,38 @@ export class EbooksService {
       throw new Error('Ebook library path not configured');
     }
     return path.join(ebookLibraryPath, relativePath);
+  }
+
+  /**
+   * Check if an ebook has any tags that are blacklisted for the given user.
+   * Returns true if the ebook should be hidden from this user.
+   */
+  async hasBlacklistedTags(ebookId: string, userId: string): Promise<boolean> {
+    const result = await this.db
+      .select({ one: sql`1` })
+      .from(schema.ebookTags)
+      .innerJoin(
+        usersSchema.userBlacklistedTags,
+        and(
+          eq(schema.ebookTags.tagId, usersSchema.userBlacklistedTags.tagId),
+          eq(usersSchema.userBlacklistedTags.userId, userId),
+        ),
+      )
+      .where(eq(schema.ebookTags.ebookId, ebookId))
+      .limit(1);
+
+    return result.length > 0;
+  }
+
+  /**
+   * Verify that the user can access this ebook (not blacklisted).
+   * Throws ForbiddenException if the ebook has blacklisted tags for this user.
+   */
+  async verifyNotBlacklisted(ebookId: string, userId: string): Promise<void> {
+    const isBlacklisted = await this.hasBlacklistedTags(ebookId, userId);
+    if (isBlacklisted) {
+      throw new ForbiddenException('Access denied');
+    }
   }
 
   async findAll(

@@ -1,9 +1,9 @@
 "use client";
 
-import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { Button } from "@repo/ui/components/ui/button";
 import type { User } from "../../lib/use-users";
+import { useTranslations } from "next-intl";
 
 interface UserTableProps {
   users: User[];

@@ -1,9 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, desc, eq, gte, sql, count } from 'drizzle-orm';
+import { and, desc, eq, gte, sql, count, notExists } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as progressSchema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
+import * as usersSchema from '../users/schema';
 import type { UpdateProgressDto } from './dto/update-progress.dto';
 import type { CreateSessionDto } from './dto/create-session.dto';
 
@@ -171,9 +172,33 @@ export class ProgressService {
   }
 
   /**
-   * Get all in-progress audiobooks for a user
+   * Get all in-progress audiobooks for a user.
+   * Excludes audiobooks with tags that the user has blacklisted.
    */
   async getAllProgress(userId: string): Promise<ProgressWithAudiobook[]> {
+    // Build blacklist filter - exclude audiobooks with blacklisted tags
+    const blacklistedTagsFilter = notExists(
+      this.db
+        .select({ one: sql`1` })
+        .from(audiobookSchema.audiobookTags)
+        .innerJoin(
+          usersSchema.userBlacklistedTags,
+          and(
+            eq(
+              audiobookSchema.audiobookTags.tagId,
+              usersSchema.userBlacklistedTags.tagId,
+            ),
+            eq(usersSchema.userBlacklistedTags.userId, userId),
+          ),
+        )
+        .where(
+          eq(
+            audiobookSchema.audiobookTags.audiobookId,
+            audiobookSchema.audiobooks.id,
+          ),
+        ),
+    );
+
     const results = await this.db
       .select({
         progress: progressSchema.userAudiobookProgress,
@@ -196,6 +221,7 @@ export class ProgressService {
         and(
           eq(progressSchema.userAudiobookProgress.userId, userId),
           eq(progressSchema.userAudiobookProgress.isHidden, false),
+          blacklistedTagsFilter,
         ),
       )
       .orderBy(desc(progressSchema.userAudiobookProgress.updatedAt));
