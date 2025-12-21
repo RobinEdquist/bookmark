@@ -38,8 +38,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const [email, setEmail] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [canEditMetadata, setCanEditMetadata] = useState(false);
-  const [canUploadAudiobooks, setCanUploadAudiobooks] = useState(false);
-  const [canDeleteAudiobooks, setCanDeleteAudiobooks] = useState(false);
+  const [canUpload, setCanUploadAudiobooks] = useState(false);
+  const [canDelete, setCanDeleteAudiobooks] = useState(false);
   const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
   const [canRequestContent, setCanRequestContent] = useState(false);
   const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
@@ -51,8 +51,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       setEmail(user.email);
       setIsAdmin(user.role === "admin");
       setCanEditMetadata(user.permissions.canEditMetadata);
-      setCanUploadAudiobooks(user.permissions.canUploadAudiobooks);
-      setCanDeleteAudiobooks(user.permissions.canDeleteAudiobooks);
+      setCanUploadAudiobooks(user.permissions.canUpload);
+      setCanDeleteAudiobooks(user.permissions.canDelete);
       setCanGenerateApiKeys(user.permissions.canGenerateApiKeys);
       setCanRequestContent(user.permissions.canRequestContent);
       setBlacklistedTags(user.blacklistedTags);
@@ -84,8 +84,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
           email,
           isAdmin,
           canEditMetadata,
-          canUploadAudiobooks,
-          canDeleteAudiobooks,
+          canUpload,
+          canDelete,
           canGenerateApiKeys,
           canRequestContent,
           blacklistedTags,
@@ -161,23 +161,23 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor="edit-canUploadAudiobooks" className="font-normal">
-                  {t("createDialog.canUploadAudiobooks")}
+                <Label htmlFor="edit-canUpload" className="font-normal">
+                  {t("createDialog.canUpload")}
                 </Label>
                 <Switch
-                  id="edit-canUploadAudiobooks"
-                  checked={canUploadAudiobooks}
+                  id="edit-canUpload"
+                  checked={canUpload}
                   onCheckedChange={setCanUploadAudiobooks}
                   disabled={isAdmin}
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor="edit-canDeleteAudiobooks" className="font-normal">
-                  {t("createDialog.canDeleteAudiobooks")}
+                <Label htmlFor="edit-canDelete" className="font-normal">
+                  {t("createDialog.canDelete")}
                 </Label>
                 <Switch
-                  id="edit-canDeleteAudiobooks"
-                  checked={canDeleteAudiobooks}
+                  id="edit-canDelete"
+                  checked={canDelete}
                   onCheckedChange={setCanDeleteAudiobooks}
                   disabled={isAdmin}
                 />

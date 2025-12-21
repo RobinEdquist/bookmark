@@ -34,8 +34,8 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
   const [password, setPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [canEditMetadata, setCanEditMetadata] = useState(false);
-  const [canUploadAudiobooks, setCanUploadAudiobooks] = useState(false);
-  const [canDeleteAudiobooks, setCanDeleteAudiobooks] = useState(false);
+  const [canUpload, setCanUploadAudiobooks] = useState(false);
+  const [canDelete, setCanDeleteAudiobooks] = useState(false);
   const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
   const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
 
@@ -72,8 +72,8 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
         password,
         isAdmin,
         canEditMetadata,
-        canUploadAudiobooks,
-        canDeleteAudiobooks,
+        canUpload,
+        canDelete,
         canGenerateApiKeys,
         blacklistedTags,
       });
@@ -166,23 +166,23 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor="canUploadAudiobooks" className="font-normal">
-                  {t("createDialog.canUploadAudiobooks")}
+                <Label htmlFor="canUpload" className="font-normal">
+                  {t("createDialog.canUpload")}
                 </Label>
                 <Switch
-                  id="canUploadAudiobooks"
-                  checked={canUploadAudiobooks}
+                  id="canUpload"
+                  checked={canUpload}
                   onCheckedChange={setCanUploadAudiobooks}
                   disabled={isAdmin}
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor="canDeleteAudiobooks" className="font-normal">
-                  {t("createDialog.canDeleteAudiobooks")}
+                <Label htmlFor="canDelete" className="font-normal">
+                  {t("createDialog.canDelete")}
                 </Label>
                 <Switch
-                  id="canDeleteAudiobooks"
-                  checked={canDeleteAudiobooks}
+                  id="canDelete"
+                  checked={canDelete}
                   onCheckedChange={setCanDeleteAudiobooks}
                   disabled={isAdmin}
                 />

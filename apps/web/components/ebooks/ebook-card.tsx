@@ -40,7 +40,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
   const { mutateAsync: deleteEbook, isPending: isDeleting } = useDeleteEbook();
 
   const canEdit = permissions?.canEditMetadata ?? false;
-  const canDelete = permissions?.canDeleteAudiobooks ?? false; // Use same permission for now
+  const canDelete = permissions?.canDelete ?? false;
   const showDropdown = canEdit || canDelete;
   const isMissing = ebook.status === "missing";
   const isLinkedToHardcover = ebook.hardcoverLinked;

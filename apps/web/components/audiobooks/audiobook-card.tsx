@@ -49,7 +49,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
   const queryClient = useQueryClient();
 
   const canEdit = permissions?.canEditMetadata ?? false;
-  const canDelete = permissions?.canDeleteAudiobooks ?? false;
+  const canDelete = permissions?.canDelete ?? false;
   const showDropdown = canEdit || canDelete || isHardcoverConfigured;
   const isLinkedToHardcover = audiobook.hardcoverLinked;
   const isMissing = audiobook.status === "missing";

@@ -110,8 +110,8 @@ export class UsersService {
     await this.db.insert(userSchema.userPermissions).values({
       userId,
       canEditMetadata: isAdmin ? true : (dto.canEditMetadata ?? false),
-      canUploadAudiobooks: isAdmin ? true : (dto.canUploadAudiobooks ?? false),
-      canDeleteAudiobooks: isAdmin ? true : (dto.canDeleteAudiobooks ?? false),
+      canUpload: isAdmin ? true : (dto.canUpload ?? false),
+      canDelete: isAdmin ? true : (dto.canDelete ?? false),
       canGenerateApiKeys: isAdmin ? true : (dto.canGenerateApiKeys ?? false),
       canRequestContent: isAdmin ? true : (dto.canRequestContent ?? false),
     });
@@ -169,8 +169,8 @@ export class UsersService {
         .values({
           userId,
           canEditMetadata: true,
-          canUploadAudiobooks: true,
-          canDeleteAudiobooks: true,
+          canUpload: true,
+          canDelete: true,
           canGenerateApiKeys: true,
           canRequestContent: true,
         })
@@ -178,8 +178,8 @@ export class UsersService {
           target: userSchema.userPermissions.userId,
           set: {
             canEditMetadata: true,
-            canUploadAudiobooks: true,
-            canDeleteAudiobooks: true,
+            canUpload: true,
+            canDelete: true,
             canGenerateApiKeys: true,
             canRequestContent: true,
           },
@@ -196,10 +196,8 @@ export class UsersService {
       > = {};
       if (dto.canEditMetadata !== undefined)
         permUpdates.canEditMetadata = dto.canEditMetadata;
-      if (dto.canUploadAudiobooks !== undefined)
-        permUpdates.canUploadAudiobooks = dto.canUploadAudiobooks;
-      if (dto.canDeleteAudiobooks !== undefined)
-        permUpdates.canDeleteAudiobooks = dto.canDeleteAudiobooks;
+      if (dto.canUpload !== undefined) permUpdates.canUpload = dto.canUpload;
+      if (dto.canDelete !== undefined) permUpdates.canDelete = dto.canDelete;
       if (dto.canGenerateApiKeys !== undefined)
         permUpdates.canGenerateApiKeys = dto.canGenerateApiKeys;
       if (dto.canRequestContent !== undefined)
@@ -309,8 +307,8 @@ export class UsersService {
       return {
         isAdmin: true,
         canEditMetadata: true,
-        canUploadAudiobooks: true,
-        canDeleteAudiobooks: true,
+        canUpload: true,
+        canDelete: true,
         canGenerateApiKeys: true,
         canRequestContent: true,
       };
@@ -326,8 +324,8 @@ export class UsersService {
       return {
         isAdmin: false,
         canEditMetadata: false,
-        canUploadAudiobooks: false,
-        canDeleteAudiobooks: false,
+        canUpload: false,
+        canDelete: false,
         canGenerateApiKeys: false,
         canRequestContent: false,
       };
@@ -336,8 +334,8 @@ export class UsersService {
     return {
       isAdmin: false,
       canEditMetadata: perms[0].canEditMetadata,
-      canUploadAudiobooks: perms[0].canUploadAudiobooks,
-      canDeleteAudiobooks: perms[0].canDeleteAudiobooks,
+      canUpload: perms[0].canUpload,
+      canDelete: perms[0].canDelete,
       canGenerateApiKeys: perms[0].canGenerateApiKeys,
       canRequestContent: perms[0].canRequestContent,
     };

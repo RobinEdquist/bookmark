@@ -31,11 +31,11 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsBoolean()
-  canUploadAudiobooks?: boolean;
+  canUpload?: boolean;
 
   @IsOptional()
   @IsBoolean()
-  canDeleteAudiobooks?: boolean;
+  canDelete?: boolean;
 
   @IsOptional()
   @IsBoolean()

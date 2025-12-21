@@ -34,6 +34,11 @@ export interface Settings {
   requestsEbookCategory: string;
   requestsComicsCategory: string;
   autoApproveRequestsPerWeek: number;
+  defaultCanEditMetadata: boolean;
+  defaultCanUpload: boolean;
+  defaultCanDelete: boolean;
+  defaultCanGenerateApiKeys: boolean;
+  defaultCanRequestContent: boolean;
   mamClientConfigured: boolean;
   createdAt: string;
   updatedAt: string;
@@ -53,6 +58,11 @@ export interface UpdateSettingsDto {
   requestsEbookCategory?: string;
   requestsComicsCategory?: string;
   autoApproveRequestsPerWeek?: number;
+  defaultCanEditMetadata?: boolean;
+  defaultCanUpload?: boolean;
+  defaultCanDelete?: boolean;
+  defaultCanGenerateApiKeys?: boolean;
+  defaultCanRequestContent?: boolean;
 }
 
 async function fetchSettings(): Promise<Settings> {

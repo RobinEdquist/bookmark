@@ -83,6 +83,18 @@ export const appSettings = pgTable(
     autoApproveRequestsPerWeek: integer('auto_approve_requests_per_week')
       .notNull()
       .default(0),
+    // Default permissions for new users (signup and OIDC)
+    defaultCanEditMetadata: boolean('default_can_edit_metadata')
+      .notNull()
+      .default(false),
+    defaultCanUpload: boolean('default_can_upload').notNull().default(false),
+    defaultCanDelete: boolean('default_can_delete').notNull().default(false),
+    defaultCanGenerateApiKeys: boolean('default_can_generate_api_keys')
+      .notNull()
+      .default(false),
+    defaultCanRequestContent: boolean('default_can_request_content')
+      .notNull()
+      .default(false),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

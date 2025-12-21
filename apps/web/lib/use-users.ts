@@ -5,8 +5,8 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tansta
 export interface UserPermissions {
   isAdmin: boolean;
   canEditMetadata: boolean;
-  canUploadAudiobooks: boolean;
-  canDeleteAudiobooks: boolean;
+  canUpload: boolean;
+  canDelete: boolean;
   canGenerateApiKeys: boolean;
   canRequestContent: boolean;
 }
@@ -38,8 +38,8 @@ export interface CreateUserInput {
   password: string;
   isAdmin?: boolean;
   canEditMetadata?: boolean;
-  canUploadAudiobooks?: boolean;
-  canDeleteAudiobooks?: boolean;
+  canUpload?: boolean;
+  canDelete?: boolean;
   canGenerateApiKeys?: boolean;
   canRequestContent?: boolean;
   blacklistedTags?: string[];
@@ -51,8 +51,8 @@ export interface UpdateUserInput {
   image?: string;
   isAdmin?: boolean;
   canEditMetadata?: boolean;
-  canUploadAudiobooks?: boolean;
-  canDeleteAudiobooks?: boolean;
+  canUpload?: boolean;
+  canDelete?: boolean;
   canGenerateApiKeys?: boolean;
   canRequestContent?: boolean;
   blacklistedTags?: string[];

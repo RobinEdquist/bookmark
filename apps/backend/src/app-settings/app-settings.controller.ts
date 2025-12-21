@@ -33,6 +33,11 @@ interface UpdateSettingsDto {
   requestsEbookCategory?: string;
   requestsComicsCategory?: string;
   autoApproveRequestsPerWeek?: number;
+  defaultCanEditMetadata?: boolean;
+  defaultCanUpload?: boolean;
+  defaultCanDelete?: boolean;
+  defaultCanGenerateApiKeys?: boolean;
+  defaultCanRequestContent?: boolean;
 }
 
 @ApiTags('Settings')
@@ -105,6 +110,11 @@ export class AppSettingsController {
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
       autoApproveRequestsPerWeek: settings.autoApproveRequestsPerWeek,
+      defaultCanEditMetadata: settings.defaultCanEditMetadata,
+      defaultCanUpload: settings.defaultCanUpload,
+      defaultCanDelete: settings.defaultCanDelete,
+      defaultCanGenerateApiKeys: settings.defaultCanGenerateApiKeys,
+      defaultCanRequestContent: settings.defaultCanRequestContent,
       mamClientConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
@@ -139,7 +149,12 @@ export class AppSettingsController {
       dto.requestsAudiobookCategory === undefined &&
       dto.requestsEbookCategory === undefined &&
       dto.requestsComicsCategory === undefined &&
-      dto.autoApproveRequestsPerWeek === undefined
+      dto.autoApproveRequestsPerWeek === undefined &&
+      dto.defaultCanEditMetadata === undefined &&
+      dto.defaultCanUpload === undefined &&
+      dto.defaultCanDelete === undefined &&
+      dto.defaultCanGenerateApiKeys === undefined &&
+      dto.defaultCanRequestContent === undefined
     ) {
       throw new BadRequestException('No settings provided to update');
     }
@@ -189,6 +204,11 @@ export class AppSettingsController {
       requestsEbookCategory?: string;
       requestsComicsCategory?: string;
       autoApproveRequestsPerWeek?: number;
+      defaultCanEditMetadata?: boolean;
+      defaultCanUpload?: boolean;
+      defaultCanDelete?: boolean;
+      defaultCanGenerateApiKeys?: boolean;
+      defaultCanRequestContent?: boolean;
     } = {};
     if (dto.signupsEnabled !== undefined)
       updates.signupsEnabled = dto.signupsEnabled;
@@ -215,6 +235,16 @@ export class AppSettingsController {
       updates.requestsComicsCategory = dto.requestsComicsCategory;
     if (dto.autoApproveRequestsPerWeek !== undefined)
       updates.autoApproveRequestsPerWeek = dto.autoApproveRequestsPerWeek;
+    if (dto.defaultCanEditMetadata !== undefined)
+      updates.defaultCanEditMetadata = dto.defaultCanEditMetadata;
+    if (dto.defaultCanUpload !== undefined)
+      updates.defaultCanUpload = dto.defaultCanUpload;
+    if (dto.defaultCanDelete !== undefined)
+      updates.defaultCanDelete = dto.defaultCanDelete;
+    if (dto.defaultCanGenerateApiKeys !== undefined)
+      updates.defaultCanGenerateApiKeys = dto.defaultCanGenerateApiKeys;
+    if (dto.defaultCanRequestContent !== undefined)
+      updates.defaultCanRequestContent = dto.defaultCanRequestContent;
 
     const settings = await this.appSettingsService.updateSettings(updates);
     const mamClientConfigured = !!(
@@ -235,6 +265,11 @@ export class AppSettingsController {
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
       autoApproveRequestsPerWeek: settings.autoApproveRequestsPerWeek,
+      defaultCanEditMetadata: settings.defaultCanEditMetadata,
+      defaultCanUpload: settings.defaultCanUpload,
+      defaultCanDelete: settings.defaultCanDelete,
+      defaultCanGenerateApiKeys: settings.defaultCanGenerateApiKeys,
+      defaultCanRequestContent: settings.defaultCanRequestContent,
       mamClientConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,

@@ -201,9 +201,9 @@
       "roleAdmin": "Admin",
       "roleUser": "User",
       "permissions": "Permissions",
-      "canEditMetadata": "Can edit audiobook metadata",
-      "canUploadAudiobooks": "Can upload audiobooks",
-      "canDeleteAudiobooks": "Can delete audiobooks",
+      "canEditMetadata": "Can edit metadata",
+      "canUpload": "Can upload",
+      "canDelete": "Can delete",
       "canGenerateApiKeys": "Can generate API keys",
       "canRequestContent": "Can request content",
       "blacklistedTags": "Blacklisted Tags",
@@ -284,6 +284,21 @@
         "disabled": "Disabled (must pre-create user)"
       },
       "autoCreateUpdated": "OIDC user creation setting updated"
+    },
+    "defaultPermissions": {
+      "title": "Default New User Permissions",
+      "description": "When new users sign up or authenticate via SSO, they will receive these permissions by default",
+      "updated": "Default permission updated",
+      "canEditMetadata": "Can edit metadata",
+      "canEditMetadataDescription": "Allow new users to edit audiobook and ebook metadata",
+      "canUpload": "Can upload",
+      "canUploadDescription": "Allow new users to upload audiobooks and ebooks",
+      "canDelete": "Can delete",
+      "canDeleteDescription": "Allow new users to delete audiobooks and ebooks",
+      "canGenerateApiKeys": "Can generate API keys",
+      "canGenerateApiKeysDescription": "Allow new users to generate API keys for programmatic access",
+      "canRequestContent": "Can request content",
+      "canRequestContentDescription": "Allow new users to request new content from external sources"
     },
     "error": {
       "loadFailed": "Failed to load settings. Please try again.",

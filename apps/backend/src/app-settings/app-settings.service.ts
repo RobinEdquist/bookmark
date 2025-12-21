@@ -48,6 +48,11 @@ export class AppSettingsService {
     requestsEbookCategory?: string;
     requestsComicsCategory?: string;
     autoApproveRequestsPerWeek?: number;
+    defaultCanEditMetadata?: boolean;
+    defaultCanUpload?: boolean;
+    defaultCanDelete?: boolean;
+    defaultCanGenerateApiKeys?: boolean;
+    defaultCanRequestContent?: boolean;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)
@@ -128,6 +133,23 @@ export class AppSettingsService {
       audiobook: settings.requestsAudiobookCategory,
       ebook: settings.requestsEbookCategory,
       comics: settings.requestsComicsCategory,
+    };
+  }
+
+  async getDefaultUserPermissions(): Promise<{
+    canEditMetadata: boolean;
+    canUpload: boolean;
+    canDelete: boolean;
+    canGenerateApiKeys: boolean;
+    canRequestContent: boolean;
+  }> {
+    const settings = await this.getSettings();
+    return {
+      canEditMetadata: settings.defaultCanEditMetadata,
+      canUpload: settings.defaultCanUpload,
+      canDelete: settings.defaultCanDelete,
+      canGenerateApiKeys: settings.defaultCanGenerateApiKeys,
+      canRequestContent: settings.defaultCanRequestContent,
     };
   }
 }

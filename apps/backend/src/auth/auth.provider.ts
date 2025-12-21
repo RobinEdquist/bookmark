@@ -4,8 +4,10 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin, apiKey, genericOAuth } from 'better-auth/plugins';
 import { createAuthMiddleware } from 'better-auth/api';
-import { count } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import * as schema from './schema';
+import { userPermissions } from '../users/schema';
+import { appSettings } from '../app-settings/schema';
 
 export interface OidcConfig {
   enabled: boolean;
@@ -83,7 +85,7 @@ export function createAuthInstance(
     ],
     hooks: {
       after: createAuthMiddleware(async (ctx) => {
-        // Handle first user admin promotion for both sign-up and OAuth callback
+        // Handle new user setup for both sign-up and OAuth callback
         // Note: genericOAuth uses /oauth2/callback/:providerId, not /callback/:providerId
         if (
           ctx.path.startsWith('/sign-up') ||
@@ -92,13 +94,72 @@ export function createAuthInstance(
         ) {
           const newSession = ctx.context.newSession;
           if (newSession) {
+            const userId = newSession.user.id;
+
+            // Check if this is the first user (should become admin)
             const [result] = await database
               .select({ count: count() })
               .from(schema.user);
-            if (result.count === 1) {
-              await ctx.context.internalAdapter.updateUser(newSession.user.id, {
+            const isFirstUser = result.count === 1;
+
+            if (isFirstUser) {
+              // First user becomes admin with all permissions
+              await ctx.context.internalAdapter.updateUser(userId, {
                 role: 'admin',
               });
+              await database
+                .insert(userPermissions)
+                .values({
+                  userId,
+                  canEditMetadata: true,
+                  canUpload: true,
+                  canDelete: true,
+                  canGenerateApiKeys: true,
+                  canRequestContent: true,
+                })
+                .onConflictDoNothing();
+            } else {
+              // Check if permissions already exist for this user
+              const existingPerms = await database
+                .select({ userId: userPermissions.userId })
+                .from(userPermissions)
+                .where(eq(userPermissions.userId, userId))
+                .limit(1);
+
+              if (existingPerms.length === 0) {
+                // Get default permissions from app settings
+                const settings = await database
+                  .select({
+                    defaultCanEditMetadata: appSettings.defaultCanEditMetadata,
+                    defaultCanUpload: appSettings.defaultCanUpload,
+                    defaultCanDelete: appSettings.defaultCanDelete,
+                    defaultCanGenerateApiKeys:
+                      appSettings.defaultCanGenerateApiKeys,
+                    defaultCanRequestContent:
+                      appSettings.defaultCanRequestContent,
+                  })
+                  .from(appSettings)
+                  .where(eq(appSettings.id, 'app_settings'))
+                  .limit(1);
+
+                const defaults = settings[0] || {
+                  defaultCanEditMetadata: false,
+                  defaultCanUpload: false,
+                  defaultCanDelete: false,
+                  defaultCanGenerateApiKeys: false,
+                  defaultCanRequestContent: false,
+                };
+
+                // Create permissions with defaults
+                await database.insert(userPermissions).values({
+                  userId,
+                  canEditMetadata: defaults.defaultCanEditMetadata,
+                  canUpload: defaults.defaultCanUpload,
+                  canDelete: defaults.defaultCanDelete,
+                  canGenerateApiKeys: defaults.defaultCanGenerateApiKeys,
+                  canRequestContent: defaults.defaultCanRequestContent,
+                });
+              }
             }
           }
         }

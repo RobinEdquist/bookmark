@@ -83,6 +83,20 @@ export function AuthenticationSettings() {
     }
   };
 
+  const handleDefaultPermissionToggle = async (
+    field: 'defaultCanEditMetadata' | 'defaultCanUpload' | 'defaultCanDelete' | 'defaultCanGenerateApiKeys' | 'defaultCanRequestContent',
+    enabled: boolean
+  ) => {
+    try {
+      await updateSettings({ [field]: enabled });
+      toast.success(t("defaultPermissions.updated"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("error.updateFailed")
+      );
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -236,6 +250,107 @@ export function AuthenticationSettings() {
               </div>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Default Permissions Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("defaultPermissions.title")}</CardTitle>
+          <CardDescription>
+            {t("defaultPermissions.description")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <Label htmlFor="default-can-edit-metadata" className="text-base font-medium">
+                {t("defaultPermissions.canEditMetadata")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("defaultPermissions.canEditMetadataDescription")}
+              </p>
+            </div>
+            <Switch
+              id="default-can-edit-metadata"
+              checked={settings?.defaultCanEditMetadata ?? false}
+              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanEditMetadata', enabled)}
+              disabled={isUpdating}
+              className="shrink-0"
+            />
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <Label htmlFor="default-can-upload" className="text-base font-medium">
+                {t("defaultPermissions.canUpload")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("defaultPermissions.canUploadDescription")}
+              </p>
+            </div>
+            <Switch
+              id="default-can-upload"
+              checked={settings?.defaultCanUpload ?? false}
+              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanUpload', enabled)}
+              disabled={isUpdating}
+              className="shrink-0"
+            />
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <Label htmlFor="default-can-delete" className="text-base font-medium">
+                {t("defaultPermissions.canDelete")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("defaultPermissions.canDeleteDescription")}
+              </p>
+            </div>
+            <Switch
+              id="default-can-delete"
+              checked={settings?.defaultCanDelete ?? false}
+              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanDelete', enabled)}
+              disabled={isUpdating}
+              className="shrink-0"
+            />
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <Label htmlFor="default-can-generate-api-keys" className="text-base font-medium">
+                {t("defaultPermissions.canGenerateApiKeys")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("defaultPermissions.canGenerateApiKeysDescription")}
+              </p>
+            </div>
+            <Switch
+              id="default-can-generate-api-keys"
+              checked={settings?.defaultCanGenerateApiKeys ?? false}
+              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanGenerateApiKeys', enabled)}
+              disabled={isUpdating}
+              className="shrink-0"
+            />
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <Label htmlFor="default-can-request-content" className="text-base font-medium">
+                {t("defaultPermissions.canRequestContent")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("defaultPermissions.canRequestContentDescription")}
+              </p>
+            </div>
+            <Switch
+              id="default-can-request-content"
+              checked={settings?.defaultCanRequestContent ?? false}
+              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanRequestContent', enabled)}
+              disabled={isUpdating}
+              className="shrink-0"
+            />
+          </fieldset>
         </CardContent>
       </Card>
     </div>

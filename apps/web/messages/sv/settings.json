@@ -201,9 +201,9 @@
       "roleAdmin": "Admin",
       "roleUser": "Användare",
       "permissions": "Behörigheter",
-      "canEditMetadata": "Kan redigera ljudboksmetadata",
-      "canUploadAudiobooks": "Kan ladda upp ljudböcker",
-      "canDeleteAudiobooks": "Kan ta bort ljudböcker",
+      "canEditMetadata": "Kan redigera metadata",
+      "canUpload": "Kan ladda upp",
+      "canDelete": "Kan ta bort",
       "canGenerateApiKeys": "Kan generera API-nycklar",
       "canRequestContent": "Kan begära innehåll",
       "blacklistedTags": "Blockerade taggar",
@@ -284,6 +284,21 @@
         "disabled": "Inaktiverad (måste skapa användare först)"
       },
       "autoCreateUpdated": "OIDC-användarskapande-inställning uppdaterad"
+    },
+    "defaultPermissions": {
+      "title": "Standardbehörigheter för nya användare",
+      "description": "När nya användare registrerar sig eller autentiserar via SSO får de dessa behörigheter som standard",
+      "updated": "Standardbehörighet uppdaterad",
+      "canEditMetadata": "Kan redigera metadata",
+      "canEditMetadataDescription": "Tillåt nya användare att redigera metadata för ljudböcker och e-böcker",
+      "canUpload": "Kan ladda upp",
+      "canUploadDescription": "Tillåt nya användare att ladda upp ljudböcker och e-böcker",
+      "canDelete": "Kan ta bort",
+      "canDeleteDescription": "Tillåt nya användare att ta bort ljudböcker och e-böcker",
+      "canGenerateApiKeys": "Kan generera API-nycklar",
+      "canGenerateApiKeysDescription": "Tillåt nya användare att generera API-nycklar för programmatisk åtkomst",
+      "canRequestContent": "Kan begära innehåll",
+      "canRequestContentDescription": "Tillåt nya användare att begära nytt innehåll från externa källor"
     },
     "error": {
       "loadFailed": "Kunde inte ladda inställningar. Försök igen.",

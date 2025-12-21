@@ -15,12 +15,8 @@ export const userPermissions = pgTable('user_permissions', {
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),
   canEditMetadata: boolean('can_edit_metadata').notNull().default(false),
-  canUploadAudiobooks: boolean('can_upload_audiobooks')
-    .notNull()
-    .default(false),
-  canDeleteAudiobooks: boolean('can_delete_audiobooks')
-    .notNull()
-    .default(false),
+  canUpload: boolean('can_upload').notNull().default(false),
+  canDelete: boolean('can_delete').notNull().default(false),
   canGenerateApiKeys: boolean('can_generate_api_keys').notNull().default(false),
   canRequestContent: boolean('can_request_content').notNull().default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
