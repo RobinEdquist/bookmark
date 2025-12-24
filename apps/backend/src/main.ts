@@ -127,12 +127,12 @@ There are no rate limits for self-hosted instances. Be mindful of your server re
       },
       'api-key',
     )
-    .addTag('audiobooks', 'Manage your audiobook library')
-    .addTag('ebooks', 'Manage your ebook library')
-    .addTag('progress', 'Track reading/listening progress')
-    .addTag('hardcover', 'Hardcover.app integration')
-    .addTag('users', 'User management (admin only)')
-    .addTag('settings', 'Application settings')
+    .addTag('Audiobooks', 'Manage your audiobook library')
+    .addTag('Ebooks', 'Manage your ebook library')
+    .addTag('Progress', 'Track reading/listening progress')
+    .addTag('Hardcover', 'Hardcover.app integration')
+    .addTag('Users', 'User management (admin only)')
+    .addTag('Settings', 'Application settings')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

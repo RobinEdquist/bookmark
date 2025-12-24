@@ -1,4 +1,5 @@
 import { IsIn, IsNotEmpty, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   primaryColorKeys,
   surfaceColorKeys,
@@ -7,6 +8,11 @@ import {
 } from '../../common/theme-config.js';
 
 export class UpdateThemeDto {
+  @ApiProperty({
+    description: 'Primary accent color for the UI',
+    example: 'blue',
+    enum: primaryColorKeys,
+  })
   @IsString()
   @IsNotEmpty()
   @IsIn(primaryColorKeys, {
@@ -14,6 +20,11 @@ export class UpdateThemeDto {
   })
   primaryColor!: PrimaryColor;
 
+  @ApiProperty({
+    description: 'Background/surface color for the UI',
+    example: 'charcoal',
+    enum: surfaceColorKeys,
+  })
   @IsString()
   @IsNotEmpty()
   @IsIn(surfaceColorKeys, {
