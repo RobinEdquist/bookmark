@@ -47,6 +47,7 @@ import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 @ApiTags('Audiobooks')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('audiobooks')
 export class AudiobooksController {
   constructor(private readonly audiobooksService: AudiobooksService) {}

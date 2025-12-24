@@ -3,6 +3,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
+import * as authSchema from '../auth/schema';
 import { eq } from 'drizzle-orm';
 import { DEFAULT_METADATA_PRIORITY, MetadataFieldPriority } from './schema';
 import { AppEventsService } from '../events/app-events.service';
@@ -151,5 +152,13 @@ export class AppSettingsService {
       canGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       canRequestContent: settings.defaultCanRequestContent,
     };
+  }
+
+  async isSetupCompleted(): Promise<boolean> {
+    const users = await this.db
+      .select({ id: authSchema.user.id })
+      .from(authSchema.user)
+      .limit(1);
+    return users.length > 0;
   }
 }

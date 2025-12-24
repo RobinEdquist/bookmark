@@ -1,4 +1,5 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../common/guards/auth.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -17,6 +18,7 @@ export interface LibraryAvailability {
 @ApiTags('Library')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('library')
 export class LibraryController {
   constructor(

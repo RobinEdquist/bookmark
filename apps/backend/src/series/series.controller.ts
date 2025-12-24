@@ -1,4 +1,5 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../common/guards/auth.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -11,6 +12,7 @@ import { SeriesService } from './series.service';
 @ApiTags('Series')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('series')
 export class SeriesController {
   constructor(private readonly seriesService: SeriesService) {}

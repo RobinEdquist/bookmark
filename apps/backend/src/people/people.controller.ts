@@ -5,7 +5,9 @@ import {
   Res,
   Header,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
+import { AuthGuard } from '../common/guards/auth.guard';
 import {
   ApiTags,
   ApiOperation,
@@ -20,6 +22,7 @@ import { AppDataService } from '../app-data/app-data.service';
 @ApiTags('People')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('people')
 export class PeopleController {
   constructor(private readonly appDataService: AppDataService) {}

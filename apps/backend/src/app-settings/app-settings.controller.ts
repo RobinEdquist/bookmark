@@ -82,6 +82,19 @@ export class AppSettingsController {
     };
   }
 
+  @Get('setup-status')
+  @AllowAnonymous()
+  @ApiOperation({
+    summary: 'Check if setup is completed',
+    description:
+      'Check if at least one user exists (initial setup completed). This endpoint is public.',
+  })
+  @ApiResponse({ status: 200, description: 'Setup status' })
+  async getSetupStatus() {
+    const setupCompleted = await this.appSettingsService.isSetupCompleted();
+    return { setupCompleted };
+  }
+
   @Get()
   @ApiSecurity('better-auth.session_token')
   @ApiSecurity('api-key')

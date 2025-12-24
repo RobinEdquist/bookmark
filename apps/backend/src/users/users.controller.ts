@@ -20,11 +20,7 @@ import {
   ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
-import {
-  AllowAnonymous,
-  Session,
-  type UserSession,
-} from '@thallesp/nestjs-better-auth';
+import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from '../auth/schema';
@@ -193,22 +189,6 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   getSession(@Session() session: UserSession) {
     return session.user;
-  }
-
-  @Get('setup-admin-completed')
-  @AllowAnonymous()
-  @ApiOperation({
-    summary: 'Check if setup is completed',
-    description:
-      'Check if at least one user exists (initial setup completed). This endpoint is public.',
-  })
-  @ApiResponse({ status: 200, description: 'Setup status' })
-  async getSetupAdminCompleted() {
-    const users = await this.db
-      .select({ id: schema.user.id })
-      .from(schema.user)
-      .limit(1);
-    return { setupCompleted: users.length > 0 };
   }
 
   @Patch('me/language')

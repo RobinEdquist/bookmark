@@ -40,6 +40,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 @ApiTags('Ebooks')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('ebooks')
 export class EbooksController {
   constructor(private readonly ebooksService: EbooksService) {}
