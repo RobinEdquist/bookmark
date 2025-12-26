@@ -1,6 +1,7 @@
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { spawnSync, spawn, ChildProcess } from 'child_process';
 import { resolve } from 'path';
+import { existsSync, readdirSync } from 'fs';
 
 declare global {
   // eslint-disable-next-line no-var
@@ -10,6 +11,10 @@ declare global {
 }
 
 export default async function globalSetup() {
+  console.log('\n📍 Debug paths:');
+  console.log('  __dirname:', __dirname);
+  console.log('  cwd:', process.cwd());
+
   console.log('\n🐘 Starting PostgreSQL container...');
 
   const container = await new PostgreSqlContainer('postgres:16')
@@ -61,6 +66,18 @@ export default async function globalSetup() {
     throw new Error('Build failed');
   }
   console.log('✅ Backend built');
+
+  // Debug: Check if dist directory exists
+  const distPath = resolve(backendDir, 'dist');
+  const mainJsPath = resolve(distPath, 'main.js');
+  console.log('\n📁 Checking build output:');
+  console.log('  backendDir:', backendDir);
+  console.log('  distPath:', distPath);
+  console.log('  dist exists:', existsSync(distPath));
+  console.log('  main.js exists:', existsSync(mainJsPath));
+  if (existsSync(distPath)) {
+    console.log('  dist contents:', readdirSync(distPath).slice(0, 10));
+  }
 
   // Start the backend server
   console.log('\n🚀 Starting backend server...');
