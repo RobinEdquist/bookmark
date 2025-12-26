@@ -122,7 +122,7 @@ export class RequestsController {
     description:
       'Add your support to an existing request to help prioritize it',
   })
-  @ApiParam({ name: 'id', description: 'Request UUID' })
+  @ApiParam({ name: 'id', description: 'Request UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Support added successfully',

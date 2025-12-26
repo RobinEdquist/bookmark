@@ -168,7 +168,7 @@ export class RestoreController {
     description:
       'Get the current status and details of a restore session including available libraries',
   })
-  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiParam({ name: 'id', description: 'Session UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Session details with available libraries',
@@ -215,7 +215,7 @@ export class RestoreController {
     summary: 'Select library (Admin)',
     description: 'Select which library from the backup to restore',
   })
-  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiParam({ name: 'id', description: 'Session UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Library selected successfully',
@@ -246,7 +246,7 @@ export class RestoreController {
     description:
       'Set path mappings for converting AudioBookShelf paths to Bookmark paths',
   })
-  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiParam({ name: 'id', description: 'Session UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Path mappings set successfully',
@@ -277,7 +277,7 @@ export class RestoreController {
     description:
       'Set user mappings for converting AudioBookShelf users to Bookmark users',
   })
-  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiParam({ name: 'id', description: 'Session UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'User mappings set successfully',
@@ -308,7 +308,7 @@ export class RestoreController {
     description:
       'Set import options including what data to include in the restore',
   })
-  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiParam({ name: 'id', description: 'Session UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Restore options set successfully',
@@ -339,7 +339,7 @@ export class RestoreController {
     description:
       'Generate a preview of what will be imported based on current session settings',
   })
-  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiParam({ name: 'id', description: 'Session UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Import preview with audiobook counts and details',
@@ -368,7 +368,7 @@ export class RestoreController {
     description:
       'Start the import process. This is an async operation - progress updates are sent via WebSocket.',
   })
-  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiParam({ name: 'id', description: 'Session UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Import started successfully',
@@ -414,7 +414,7 @@ export class RestoreController {
     summary: 'Cancel session (Admin)',
     description: 'Cancel a restore session and clean up temporary files',
   })
-  @ApiParam({ name: 'id', description: 'Session UUID' })
+  @ApiParam({ name: 'id', description: 'Session UUID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Session cancelled successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })

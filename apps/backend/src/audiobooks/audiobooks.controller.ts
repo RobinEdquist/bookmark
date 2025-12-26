@@ -269,7 +269,7 @@ export class AudiobooksController {
     description:
       'Returns complete details of an audiobook including metadata, chapters, and files. Access denied if audiobook has tags blacklisted by the user.',
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Audiobook details',
@@ -291,7 +291,7 @@ export class AudiobooksController {
     description:
       'Update audiobook metadata including title, authors, narrators, genres, tags, and series',
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Updated audiobook',
@@ -309,7 +309,7 @@ export class AudiobooksController {
     description:
       'Re-extract chapter information from the embedded metadata in audio files',
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Chapters refreshed successfully',
@@ -327,7 +327,7 @@ export class AudiobooksController {
     description:
       'Import chapter data from Audible via Audnexus API. Requires edit metadata permission.',
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Chapters imported successfully',
@@ -362,7 +362,7 @@ export class AudiobooksController {
       'Upload a new cover image via file upload or URL. Supports JPG, PNG, and WebP formats. Max file size: 2 MB.',
   })
   @ApiConsumes('multipart/form-data')
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -432,7 +432,7 @@ export class AudiobooksController {
     description:
       'Returns the cover image for an audiobook. Cached for 24 hours. Access denied if audiobook has tags blacklisted by the user.',
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
   @ApiResponse({
     status: 403,
@@ -472,7 +472,7 @@ export class AudiobooksController {
 - \`X-File-Index\`: Index of the current file (for multi-file audiobooks)
 - \`X-File-Start-Position\`: Position in audiobook where this file starts`,
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiQuery({
     name: 'position',
     required: false,
@@ -612,7 +612,7 @@ export class AudiobooksController {
     description:
       'Download the audiobook files. Single file audiobooks with embedded covers return the audio file directly. Multi-file audiobooks or those with separate covers return a ZIP archive. Access denied if audiobook has tags blacklisted by the user.',
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Audio file or ZIP archive' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -672,7 +672,7 @@ export class AudiobooksController {
     description:
       'Delete an audiobook from the library. Optionally delete the source files from disk.',
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiQuery({
     name: 'deleteFiles',
     required: false,

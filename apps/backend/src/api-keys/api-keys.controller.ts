@@ -95,7 +95,7 @@ export class ApiKeysController {
     summary: 'Revoke API key',
     description: 'Revoke an API key. Users can only revoke their own keys.',
   })
-  @ApiParam({ name: 'id', description: 'API key ID to revoke' })
+  @ApiParam({ name: 'id', description: 'API key ID to revoke', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'API key revoked successfully',
@@ -129,7 +129,7 @@ export class ApiKeysController {
     description:
       'Get API key details for a specific user. Requires admin role.',
   })
-  @ApiParam({ name: 'userId', description: 'User UUID' })
+  @ApiParam({ name: 'userId', description: 'User UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'API key details or null if none exists',
@@ -148,7 +148,7 @@ export class ApiKeysController {
     summary: 'Revoke user API key (Admin)',
     description: 'Revoke the API key for a specific user. Requires admin role.',
   })
-  @ApiParam({ name: 'userId', description: 'User UUID' })
+  @ApiParam({ name: 'userId', description: 'User UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'API key revoked successfully',

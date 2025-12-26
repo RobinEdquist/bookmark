@@ -34,7 +34,7 @@ export class PeopleController {
     description:
       'Returns the image for an author or narrator. Cached for 24 hours.',
   })
-  @ApiParam({ name: 'id', description: 'Person UUID' })
+  @ApiParam({ name: 'id', description: 'Person UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Person image (JPEG)' })
   @ApiResponse({ status: 404, description: 'Person image not found' })
   async getImage(@Param('id') id: string, @Res() res: Response): Promise<void> {

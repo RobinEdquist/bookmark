@@ -200,7 +200,7 @@ export class HardcoverController {
     description:
       "Search Hardcover using an audiobook's metadata (title, author)",
   })
-  @ApiParam({ name: 'id', description: 'Audiobook UUID' })
+  @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -254,7 +254,11 @@ export class HardcoverController {
     summary: 'Get audiobook Hardcover link',
     description: 'Get the Hardcover book linked to an audiobook',
   })
-  @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
   @ApiResponse({
     status: 200,
     description: 'Hardcover link data',
@@ -275,7 +279,11 @@ export class HardcoverController {
     summary: 'Link audiobook to Hardcover',
     description: 'Link an audiobook to a Hardcover book for metadata sync',
   })
-  @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
   @ApiResponse({
     status: 200,
     description: 'Link created successfully',
@@ -334,7 +342,11 @@ export class HardcoverController {
     summary: 'Unlink audiobook from Hardcover',
     description: 'Remove the Hardcover link from an audiobook',
   })
-  @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
   @ApiResponse({ status: 204, description: 'Unlinked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async unlinkAudiobook(@Param('audiobookId') audiobookId: string) {
@@ -348,7 +360,7 @@ export class HardcoverController {
     summary: 'Search Hardcover by ebook',
     description: "Search Hardcover using an ebook's metadata (title, author)",
   })
-  @ApiParam({ name: 'id', description: 'Ebook UUID' })
+  @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -403,7 +415,7 @@ export class HardcoverController {
     summary: 'Get ebook Hardcover link',
     description: 'Get the Hardcover book linked to an ebook',
   })
-  @ApiParam({ name: 'ebookId', description: 'Ebook UUID' })
+  @ApiParam({ name: 'ebookId', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Hardcover link data',
@@ -421,7 +433,7 @@ export class HardcoverController {
     summary: 'Link ebook to Hardcover',
     description: 'Link an ebook to a Hardcover book for metadata sync',
   })
-  @ApiParam({ name: 'ebookId', description: 'Ebook UUID' })
+  @ApiParam({ name: 'ebookId', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Link created successfully',
@@ -478,7 +490,7 @@ export class HardcoverController {
     summary: 'Unlink ebook from Hardcover',
     description: 'Remove the Hardcover link from an ebook',
   })
-  @ApiParam({ name: 'ebookId', description: 'Ebook UUID' })
+  @ApiParam({ name: 'ebookId', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Unlinked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async unlinkEbook(@Param('ebookId') ebookId: string) {
@@ -518,7 +530,7 @@ export class HardcoverController {
     summary: 'Dismiss failed queue item',
     description: 'Remove a failed item from the sync queue',
   })
-  @ApiParam({ name: 'id', description: 'Queue item ID' })
+  @ApiParam({ name: 'id', description: 'Queue item ID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Item dismissed' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async dismissFailedItem(@Param('id') id: string) {

@@ -81,7 +81,11 @@ export class ProgressController {
     description:
       'Returns the current listening progress for a specific audiobook. Returns position 0 if no progress exists.',
   })
-  @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
   @ApiResponse({
     status: 200,
     description: 'Progress data',
@@ -116,7 +120,11 @@ export class ProgressController {
     description:
       'Update the listening position for an audiobook. Creates progress record if it does not exist.',
   })
-  @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
   @ApiResponse({
     status: 200,
     description: 'Updated progress',
@@ -142,7 +150,11 @@ export class ProgressController {
     description:
       'Record a completed listening session with start time, end time, and duration for analytics',
   })
-  @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
   @ApiResponse({
     status: 201,
     description: 'Session recorded successfully',
@@ -168,7 +180,11 @@ export class ProgressController {
     description:
       'Hide an audiobook from the "continue listening" section without marking it as completed',
   })
-  @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
   @ApiResponse({ status: 200, description: 'Audiobook hidden successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async hideProgress(

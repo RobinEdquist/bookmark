@@ -60,7 +60,7 @@ export class RequestsAdminController {
     summary: 'Approve request (Admin)',
     description: 'Approve a pending request. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'Request UUID' })
+  @ApiParam({ name: 'id', description: 'Request UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Request approved successfully',
@@ -79,7 +79,7 @@ export class RequestsAdminController {
     description:
       'Reject a pending request with an optional reason. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'Request UUID' })
+  @ApiParam({ name: 'id', description: 'Request UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Request rejected successfully',

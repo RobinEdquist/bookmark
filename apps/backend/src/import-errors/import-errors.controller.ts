@@ -90,7 +90,7 @@ export class ImportErrorsController {
     description:
       'Returns detailed information about a specific import error. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'Import error UUID' })
+  @ApiParam({ name: 'id', description: 'Import error UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Import error details',
@@ -114,7 +114,7 @@ export class ImportErrorsController {
     description:
       'Queue a failed import for retry. The file will be re-processed. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'Import error UUID' })
+  @ApiParam({ name: 'id', description: 'Import error UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Retry queued successfully',
@@ -187,7 +187,7 @@ export class ImportErrorsController {
     description:
       'Mark an import error as ignored. It will no longer appear in the pending errors list. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'Import error UUID' })
+  @ApiParam({ name: 'id', description: 'Import error UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Error ignored successfully',
@@ -216,7 +216,7 @@ export class ImportErrorsController {
     description:
       'Permanently delete an import error record. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'Import error UUID' })
+  @ApiParam({ name: 'id', description: 'Import error UUID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Error deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })

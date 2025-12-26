@@ -116,7 +116,7 @@ export class OpdsController {
     description:
       'Returns an OPDS acquisition feed of ebooks by a specific author',
   })
-  @ApiParam({ name: 'id', description: 'Author UUID' })
+  @ApiParam({ name: 'id', description: 'Author UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'OPDS Atom feed (application/atom+xml)',
@@ -165,7 +165,7 @@ export class OpdsController {
     description:
       'Returns an OPDS acquisition feed of ebooks in a specific series',
   })
-  @ApiParam({ name: 'id', description: 'Series UUID' })
+  @ApiParam({ name: 'id', description: 'Series UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'OPDS Atom feed (application/atom+xml)',

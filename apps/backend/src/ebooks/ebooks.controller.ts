@@ -201,7 +201,7 @@ export class EbooksController {
     description:
       'Returns complete details of an ebook including metadata. Access denied if ebook has tags blacklisted by the user.',
   })
-  @ApiParam({ name: 'id', description: 'Ebook UUID' })
+  @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Ebook details',
@@ -223,7 +223,7 @@ export class EbooksController {
     description:
       'Update ebook metadata including title, authors, genres, and series',
   })
-  @ApiParam({ name: 'id', description: 'Ebook UUID' })
+  @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Updated ebook',
@@ -243,7 +243,7 @@ export class EbooksController {
       'Upload a new cover image via file upload or URL. Supports JPG, PNG, and WebP formats. Max file size: 2 MB.',
   })
   @ApiConsumes('multipart/form-data')
-  @ApiParam({ name: 'id', description: 'Ebook UUID' })
+  @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -313,7 +313,7 @@ export class EbooksController {
     description:
       'Returns the cover image for an ebook. Cached for 24 hours. Access denied if ebook has tags blacklisted by the user.',
   })
-  @ApiParam({ name: 'id', description: 'Ebook UUID' })
+  @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
   @ApiResponse({
     status: 403,
@@ -340,7 +340,7 @@ export class EbooksController {
     description:
       'Download the ebook file (EPUB, PDF, etc.). Access denied if ebook has tags blacklisted by the user.',
   })
-  @ApiParam({ name: 'id', description: 'Ebook UUID' })
+  @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Ebook file' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -375,7 +375,7 @@ export class EbooksController {
     description:
       'Delete an ebook from the library. Optionally delete the source file from disk.',
   })
-  @ApiParam({ name: 'id', description: 'Ebook UUID' })
+  @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiQuery({
     name: 'deleteFiles',
     required: false,

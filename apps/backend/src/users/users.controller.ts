@@ -79,7 +79,7 @@ export class UsersController {
     summary: 'Get user by ID (Admin)',
     description: 'Returns user details. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiParam({ name: 'id', description: 'User UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'User details',
@@ -119,7 +119,7 @@ export class UsersController {
     summary: 'Update user (Admin)',
     description: 'Update user details and permissions. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiParam({ name: 'id', description: 'User UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'User updated successfully',
@@ -148,7 +148,7 @@ export class UsersController {
     description:
       'Ban a user from the system with an optional reason. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiParam({ name: 'id', description: 'User UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'User banned successfully',
@@ -174,7 +174,7 @@ export class UsersController {
     summary: 'Unban user (Admin)',
     description: 'Remove ban from a user. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiParam({ name: 'id', description: 'User UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'User unbanned successfully',
@@ -194,7 +194,7 @@ export class UsersController {
     summary: 'Delete user (Admin)',
     description: 'Delete a user account. Requires admin role.',
   })
-  @ApiParam({ name: 'id', description: 'User UUID' })
+  @ApiParam({ name: 'id', description: 'User UUID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'User deleted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
