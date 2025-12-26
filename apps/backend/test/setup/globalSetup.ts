@@ -72,11 +72,42 @@ export default async function globalSetup() {
 
   global.__BACKEND_PROCESS__ = backendProcess;
 
+  // Collect server output for debugging
+  let serverOutput = '';
+  let serverError = '';
+
+  backendProcess.stdout?.on('data', (data) => {
+    const text = data.toString();
+    serverOutput += text;
+    console.log('[backend]', text.trim());
+  });
+
+  backendProcess.stderr?.on('data', (data) => {
+    const text = data.toString();
+    serverError += text;
+    console.error('[backend:error]', text.trim());
+  });
+
+  backendProcess.on('exit', (code) => {
+    if (code !== null && code !== 0) {
+      console.error(`[backend] Process exited with code ${code}`);
+    }
+  });
+
   // Wait for server to be ready
   const maxAttempts = 30;
   let attempts = 0;
 
   while (attempts < maxAttempts) {
+    // Check if process has crashed
+    if (backendProcess.exitCode !== null) {
+      console.error('\n❌ Backend server crashed during startup');
+      console.error('stdout:', serverOutput);
+      console.error('stderr:', serverError);
+      await container.stop();
+      throw new Error(`Backend server crashed with exit code ${backendProcess.exitCode}`);
+    }
+
     try {
       const response = await fetch('http://localhost:3000/api/health');
       if (response.ok) {
@@ -90,7 +121,10 @@ export default async function globalSetup() {
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  // If we get here, server failed to start
+  // If we get here, server failed to start - log collected output
+  console.error('\n❌ Backend server failed to start within 30 seconds');
+  console.error('Server stdout:', serverOutput || '(empty)');
+  console.error('Server stderr:', serverError || '(empty)');
   backendProcess.kill();
   await container.stop();
   throw new Error('Backend server failed to start within 30 seconds');
