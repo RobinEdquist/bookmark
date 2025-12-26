@@ -35,6 +35,13 @@ import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
 import { EbooksService, EbookFilters } from './ebooks.service';
 import { UpdateEbookDto } from './dto/update-ebook.dto';
 import { UpdateCoverDto } from './dto/update-cover.dto';
+import {
+  EbookListResponseDto,
+  EbookDetailDto,
+  UpdateEbookCoverResponseDto,
+  EbookPersonDto,
+  EbookSeriesDto,
+} from './dto/ebook-response.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 
 @ApiTags('Ebooks')
@@ -98,7 +105,11 @@ export class EbooksController {
     required: false,
     description: 'Number of items to skip for pagination',
   })
-  @ApiResponse({ status: 200, description: 'List of ebooks' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of ebooks',
+    type: EbookListResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
     @Session() session: UserSession,
@@ -140,6 +151,7 @@ export class EbooksController {
   @ApiResponse({
     status: 200,
     description: 'List of authors with IDs and names',
+    type: [EbookPersonDto],
   })
   async getAuthors(@Query('search') search?: string) {
     return this.ebooksService.getAuthors(search);
@@ -155,7 +167,11 @@ export class EbooksController {
     required: false,
     description: 'Filter publishers by name',
   })
-  @ApiResponse({ status: 200, description: 'List of publishers' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of publishers',
+    type: [String],
+  })
   async getPublishers(@Query('search') search?: string) {
     return this.ebooksService.getPublishers(search);
   }
@@ -173,6 +189,7 @@ export class EbooksController {
   @ApiResponse({
     status: 200,
     description: 'List of series with IDs and names',
+    type: [EbookSeriesDto],
   })
   async getSeries(@Query('search') search?: string) {
     return this.ebooksService.getSeries(search);
@@ -185,7 +202,11 @@ export class EbooksController {
       'Returns complete details of an ebook including metadata. Access denied if ebook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID' })
-  @ApiResponse({ status: 200, description: 'Ebook details' })
+  @ApiResponse({
+    status: 200,
+    description: 'Ebook details',
+    type: EbookDetailDto,
+  })
   @ApiResponse({
     status: 403,
     description: 'Access denied - ebook has blacklisted tags',
@@ -203,7 +224,11 @@ export class EbooksController {
       'Update ebook metadata including title, authors, genres, and series',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID' })
-  @ApiResponse({ status: 200, description: 'Updated ebook' })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated ebook',
+    type: EbookDetailDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateEbookDto) {
@@ -236,7 +261,11 @@ export class EbooksController {
       },
     },
   })
-  @ApiResponse({ status: 200, description: 'Cover updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cover updated successfully',
+    type: UpdateEbookCoverResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description:

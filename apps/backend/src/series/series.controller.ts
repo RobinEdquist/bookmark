@@ -8,6 +8,7 @@ import {
   ApiSecurity,
 } from '@nestjs/swagger';
 import { SeriesService } from './series.service';
+import { SeriesListResponseDto } from './dto/series-response.dto';
 
 @ApiTags('Series')
 @ApiSecurity('better-auth.session_token')
@@ -32,7 +33,11 @@ export class SeriesController {
     required: false,
     description: 'Number of items to skip for pagination',
   })
-  @ApiResponse({ status: 200, description: 'List of series with metadata' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of series with metadata',
+    type: SeriesListResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAll(
     @Query('limit') limit?: string,
@@ -54,7 +59,11 @@ export class SeriesController {
     required: false,
     description: 'Number of items to return (default: 10)',
   })
-  @ApiResponse({ status: 200, description: 'List of recently updated series' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of recently updated series',
+    type: SeriesListResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getRecentlyUpdated(@Query('limit') limit?: string) {
     return this.seriesService.getRecentlyUpdated(

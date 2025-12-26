@@ -7,6 +7,11 @@ import {
   ApiSecurity,
 } from '@nestjs/swagger';
 import { LibraryWatcherService } from './library-watcher.service';
+import {
+  LibraryWatcherStatusResponseDto,
+  LibraryScanResponseDto,
+  RescanStatusResponseDto,
+} from './dto/library-watcher-response.dto';
 import { AdminGuard } from '../common/guards/admin.guard';
 
 @ApiTags('Library Watcher')
@@ -23,7 +28,11 @@ export class LibraryWatcherController {
     description:
       'Returns the current status of the library file watcher including whether it is running and last scan time',
   })
-  @ApiResponse({ status: 200, description: 'Watcher status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Watcher status',
+    type: LibraryWatcherStatusResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   getStatus() {
@@ -39,6 +48,7 @@ export class LibraryWatcherController {
   @ApiResponse({
     status: 200,
     description: 'Scan completed successfully with results',
+    type: LibraryScanResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -59,6 +69,7 @@ export class LibraryWatcherController {
   @ApiResponse({
     status: 200,
     description: 'Scan completed successfully with results',
+    type: LibraryScanResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -76,7 +87,11 @@ export class LibraryWatcherController {
     description:
       'Re-scan metadata for all existing audiobooks in the library. This may take a while for large libraries.',
   })
-  @ApiResponse({ status: 200, description: 'Rescan initiated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Rescan initiated successfully',
+    type: LibraryScanResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async triggerRescan() {
@@ -93,7 +108,11 @@ export class LibraryWatcherController {
     description:
       'Get the progress and status of an ongoing or last completed rescan operation',
   })
-  @ApiResponse({ status: 200, description: 'Rescan status and progress' })
+  @ApiResponse({
+    status: 200,
+    description: 'Rescan status and progress',
+    type: RescanStatusResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   getRescanStatus() {

@@ -22,6 +22,11 @@ import {
   type UserSession,
 } from '@thallesp/nestjs-better-auth';
 import { ApiKeysService } from './api-keys.service';
+import {
+  ApiKeyResponseDto,
+  ApiKeyCreateResponseDto,
+  RevokeApiKeyResponseDto,
+} from './dto/api-key-response.dto';
 import { ApiKeyPermissionGuard } from '../common/guards/api-key-permission.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import type { IncomingHttpHeaders } from 'http';
@@ -47,6 +52,7 @@ export class ApiKeysController {
   @ApiResponse({
     status: 200,
     description: 'API key details or null if none exists',
+    type: ApiKeyResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -68,6 +74,7 @@ export class ApiKeysController {
     status: 201,
     description:
       'API key created successfully. The full key is only shown once.',
+    type: ApiKeyCreateResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -89,7 +96,11 @@ export class ApiKeysController {
     description: 'Revoke an API key. Users can only revoke their own keys.',
   })
   @ApiParam({ name: 'id', description: 'API key ID to revoke' })
-  @ApiResponse({ status: 200, description: 'API key revoked successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'API key revoked successfully',
+    type: RevokeApiKeyResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
@@ -122,6 +133,7 @@ export class ApiKeysController {
   @ApiResponse({
     status: 200,
     description: 'API key details or null if none exists',
+    type: ApiKeyResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -137,7 +149,11 @@ export class ApiKeysController {
     description: 'Revoke the API key for a specific user. Requires admin role.',
   })
   @ApiParam({ name: 'userId', description: 'User UUID' })
-  @ApiResponse({ status: 200, description: 'API key revoked successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'API key revoked successfully',
+    type: RevokeApiKeyResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'User has no API key' })

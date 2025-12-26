@@ -19,6 +19,10 @@ import { SearchAudibleDto, GetChaptersDto } from './dto/search-audible.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { AudibleSearchResult } from './types/audible-search.types';
 import { ChaptersResponse } from './types/audnexus-chapters.types';
+import {
+  AudibleSearchResponseDto,
+  ChaptersResponseDto,
+} from './dto/audnexus-response.dto';
 
 @ApiTags('Audnexus')
 @ApiSecurity('better-auth.session_token')
@@ -49,7 +53,11 @@ export class AudnexusController {
     required: false,
     description: 'Audible region (e.g., us, uk, de)',
   })
-  @ApiResponse({ status: 200, description: 'Search results from Audible' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results from Audible',
+    type: AudibleSearchResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async searchAudible(
     @Query() dto: SearchAudibleDto,
@@ -85,6 +93,7 @@ export class AudnexusController {
   @ApiResponse({
     status: 200,
     description: 'Chapter information including timestamps',
+    type: ChaptersResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid ASIN format' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })

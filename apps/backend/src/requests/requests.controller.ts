@@ -18,6 +18,12 @@ import { Request } from 'express';
 import { CanRequestGuard } from '../common/guards/can-request.guard';
 import { RequestsService } from './requests.service';
 import { SearchMamDto, CreateRequestDto } from './dto';
+import {
+  MamSearchResponseDto,
+  RequestListResponseDto,
+  ContentRequestDto,
+  AutoApproveBudgetDto,
+} from './dto/request-response.dto';
 
 interface AuthenticatedRequest extends Request {
   session: {
@@ -46,6 +52,7 @@ export class RequestsController {
   @ApiResponse({
     status: 200,
     description: 'Search results with request status',
+    type: MamSearchResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -69,7 +76,11 @@ export class RequestsController {
     summary: 'Get my requests',
     description: 'Returns all requests made by the current user',
   })
-  @ApiResponse({ status: 200, description: 'List of user requests' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of user requests',
+    type: RequestListResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
@@ -84,7 +95,11 @@ export class RequestsController {
     summary: 'Create a new request',
     description: 'Submit a request for content to be added to the library',
   })
-  @ApiResponse({ status: 201, description: 'Request created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Request created successfully',
+    type: ContentRequestDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Validation error or duplicate request',
@@ -108,7 +123,11 @@ export class RequestsController {
       'Add your support to an existing request to help prioritize it',
   })
   @ApiParam({ name: 'id', description: 'Request UUID' })
-  @ApiResponse({ status: 200, description: 'Support added successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Support added successfully',
+    type: ContentRequestDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
@@ -133,6 +152,7 @@ export class RequestsController {
     status: 200,
     description:
       'Auto-approve budget with used, limit, remaining, and reset time',
+    type: AutoApproveBudgetDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({

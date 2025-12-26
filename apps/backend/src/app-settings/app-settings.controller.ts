@@ -16,6 +16,12 @@ import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { AppSettingsService } from './app-settings.service';
 import { Roles, RolesGuard } from '../auth/roles.guard';
 import { OidcConfigService } from '../auth/oidc-config.service';
+import {
+  PublicSettingsResponseDto,
+  AuthConfigResponseDto,
+  SetupStatusResponseDto,
+  AppSettingsResponseDto,
+} from './dto/settings-response.dto';
 import * as fs from 'fs/promises';
 import { MetadataFieldPriority, DEFAULT_METADATA_PRIORITY } from './schema';
 
@@ -55,7 +61,11 @@ export class AppSettingsController {
     description:
       'Returns publicly accessible settings like signup status. No authentication required.',
   })
-  @ApiResponse({ status: 200, description: 'Public settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Public settings',
+    type: PublicSettingsResponseDto,
+  })
   async getPublicSettings() {
     const settings = await this.appSettingsService.getSettings();
     return {
@@ -70,7 +80,11 @@ export class AppSettingsController {
     description:
       'Returns authentication methods configuration (email/password, OIDC). No authentication required.',
   })
-  @ApiResponse({ status: 200, description: 'Authentication configuration' })
+  @ApiResponse({
+    status: 200,
+    description: 'Authentication configuration',
+    type: AuthConfigResponseDto,
+  })
   async getAuthConfig() {
     const settings = await this.appSettingsService.getSettings();
     const oidcEnabled = this.oidcConfigService.isOidcEnabled();
@@ -89,7 +103,11 @@ export class AppSettingsController {
     description:
       'Check if at least one user exists (initial setup completed). This endpoint is public.',
   })
-  @ApiResponse({ status: 200, description: 'Setup status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Setup status',
+    type: SetupStatusResponseDto,
+  })
   async getSetupStatus() {
     const setupCompleted = await this.appSettingsService.isSetupCompleted();
     return { setupCompleted };
@@ -102,7 +120,11 @@ export class AppSettingsController {
     summary: 'Get all settings',
     description: 'Returns all application settings. Requires authentication.',
   })
-  @ApiResponse({ status: 200, description: 'Application settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Application settings',
+    type: AppSettingsResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getSettings() {
     const settings = await this.appSettingsService.getSettings();
@@ -144,7 +166,11 @@ export class AppSettingsController {
     description:
       'Update application settings including library paths, authentication, and feature flags. Requires admin role.',
   })
-  @ApiResponse({ status: 200, description: 'Updated settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated settings',
+    type: AppSettingsResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error or invalid path' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })

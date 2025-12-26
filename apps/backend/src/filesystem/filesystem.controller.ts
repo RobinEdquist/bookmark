@@ -21,6 +21,10 @@ import {
   BrowseResult,
   DirectoryInfo,
 } from './filesystem.service';
+import {
+  BrowseResultDto,
+  DirectoryInfoDto,
+} from './dto/filesystem-response.dto';
 
 @ApiTags('Filesystem')
 @ApiSecurity('better-auth.session_token')
@@ -45,6 +49,7 @@ export class FilesystemController {
   @ApiResponse({
     status: 200,
     description: 'Directory listing with files and subdirectories',
+    type: BrowseResultDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -69,7 +74,11 @@ export class FilesystemController {
       required: ['path'],
     },
   })
-  @ApiResponse({ status: 200, description: 'Directory created successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Directory created successfully',
+    type: DirectoryInfoDto,
+  })
   @ApiResponse({ status: 400, description: 'Path is required or invalid' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })

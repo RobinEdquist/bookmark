@@ -5,6 +5,7 @@ import {
   ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
+import { TasksStatusResponseDto } from './dto/tasks-response.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { ImportQueueService } from '../library-watcher/import-queue.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
@@ -28,7 +29,11 @@ export class TasksController {
     description:
       'Returns the current status of background tasks including import queues, Hardcover sync, and library scans',
   })
-  @ApiResponse({ status: 200, description: 'Status of all background tasks' })
+  @ApiResponse({
+    status: 200,
+    description: 'Status of all background tasks',
+    type: TasksStatusResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getTasksStatus() {
     const [pendingHardcoverCount, failedHardcoverItems] = await Promise.all([

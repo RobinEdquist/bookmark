@@ -8,6 +8,10 @@ import {
 } from '@nestjs/swagger';
 import { LibraryService, LibraryStats } from './library.service';
 import { AppSettingsService } from '../app-settings/app-settings.service';
+import {
+  LibraryStatsDto,
+  LibraryAvailabilityDto,
+} from './dto/library-response.dto';
 
 export interface LibraryAvailability {
   audiobooks: boolean;
@@ -32,7 +36,11 @@ export class LibraryController {
     description:
       'Returns statistics about the library including total audiobooks, ebooks, authors, and storage usage',
   })
-  @ApiResponse({ status: 200, description: 'Library statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Library statistics',
+    type: LibraryStatsDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getStats(): Promise<LibraryStats> {
     return this.libraryService.getStats();
@@ -44,7 +52,11 @@ export class LibraryController {
     description:
       'Returns which library features are available (audiobooks, ebooks, OPDS) based on configuration',
   })
-  @ApiResponse({ status: 200, description: 'Library feature availability' })
+  @ApiResponse({
+    status: 200,
+    description: 'Library feature availability',
+    type: LibraryAvailabilityDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAvailability(): Promise<LibraryAvailability> {
     const settings = await this.appSettingsService.getSettings();

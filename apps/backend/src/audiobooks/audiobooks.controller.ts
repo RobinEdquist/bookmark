@@ -41,6 +41,16 @@ import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
 import { ImportChaptersDto } from '../audnexus/dto/import-chapters.dto';
 import { UpdateCoverDto } from './dto/update-cover.dto';
+import {
+  AudiobookListResponseDto,
+  AudiobookDetailDto,
+  UpdateCoverResponseDto,
+  RefreshChaptersResponseDto,
+  PersonDto,
+  GenreDto,
+  TagDto,
+  SeriesDto,
+} from './dto/audiobook-response.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 
@@ -105,7 +115,11 @@ export class AudiobooksController {
     required: false,
     description: 'Number of items to skip for pagination',
   })
-  @ApiResponse({ status: 200, description: 'List of audiobooks' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of audiobooks',
+    type: AudiobookListResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
     @Session() session: UserSession,
@@ -147,6 +161,7 @@ export class AudiobooksController {
   @ApiResponse({
     status: 200,
     description: 'List of authors with IDs and names',
+    type: [PersonDto],
   })
   async getAuthors(@Query('search') search?: string) {
     return this.audiobooksService.getAuthors(search);
@@ -166,6 +181,7 @@ export class AudiobooksController {
   @ApiResponse({
     status: 200,
     description: 'List of narrators with IDs and names',
+    type: [PersonDto],
   })
   async getNarrators(@Query('search') search?: string) {
     return this.audiobooksService.getNarrators(search);
@@ -181,7 +197,11 @@ export class AudiobooksController {
     required: false,
     description: 'Filter publishers by name',
   })
-  @ApiResponse({ status: 200, description: 'List of publishers' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of publishers',
+    type: [String],
+  })
   async getPublishers(@Query('search') search?: string) {
     return this.audiobooksService.getPublishers(search);
   }
@@ -199,6 +219,7 @@ export class AudiobooksController {
   @ApiResponse({
     status: 200,
     description: 'List of genres with IDs and names',
+    type: [GenreDto],
   })
   async getGenres(@Query('search') search?: string) {
     return this.audiobooksService.getGenres(search);
@@ -214,7 +235,11 @@ export class AudiobooksController {
     required: false,
     description: 'Filter tags by name',
   })
-  @ApiResponse({ status: 200, description: 'List of tags with IDs and names' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of tags with IDs and names',
+    type: [TagDto],
+  })
   async getTags(@Query('search') search?: string) {
     return this.audiobooksService.getTags(search);
   }
@@ -232,6 +257,7 @@ export class AudiobooksController {
   @ApiResponse({
     status: 200,
     description: 'List of series with IDs and names',
+    type: [SeriesDto],
   })
   async getSeries(@Query('search') search?: string) {
     return this.audiobooksService.getSeries(search);
@@ -244,7 +270,11 @@ export class AudiobooksController {
       'Returns complete details of an audiobook including metadata, chapters, and files. Access denied if audiobook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 200, description: 'Audiobook details' })
+  @ApiResponse({
+    status: 200,
+    description: 'Audiobook details',
+    type: AudiobookDetailDto,
+  })
   @ApiResponse({
     status: 403,
     description: 'Access denied - audiobook has blacklisted tags',
@@ -262,7 +292,11 @@ export class AudiobooksController {
       'Update audiobook metadata including title, authors, narrators, genres, tags, and series',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 200, description: 'Updated audiobook' })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated audiobook',
+    type: AudiobookDetailDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateAudiobookDto) {
@@ -276,7 +310,11 @@ export class AudiobooksController {
       'Re-extract chapter information from the embedded metadata in audio files',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 200, description: 'Chapters refreshed successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Chapters refreshed successfully',
+    type: RefreshChaptersResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async refreshChapters(@Param('id') id: string) {
     return this.audiobooksService.refreshChapters(id);
@@ -290,7 +328,11 @@ export class AudiobooksController {
       'Import chapter data from Audible via Audnexus API. Requires edit metadata permission.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 200, description: 'Chapters imported successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Chapters imported successfully',
+    type: RefreshChaptersResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Validation error (invalid ASIN format)',
@@ -338,7 +380,11 @@ export class AudiobooksController {
       },
     },
   })
-  @ApiResponse({ status: 200, description: 'Cover updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cover updated successfully',
+    type: UpdateCoverResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description:

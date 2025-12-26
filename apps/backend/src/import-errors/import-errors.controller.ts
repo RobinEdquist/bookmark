@@ -25,6 +25,12 @@ import { ImportErrorsService } from './import-errors.service';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { Session } from '@thallesp/nestjs-better-auth';
 import { ImportQueueService } from '../library-watcher/import-queue.service';
+import {
+  ImportErrorListResponseDto,
+  ImportErrorDto,
+  ImportRetryResponseDto,
+} from './dto/import-errors-response.dto';
+import { SuccessResponseDto } from '../common/dto';
 
 @ApiTags('Import Errors')
 @ApiSecurity('better-auth.session_token')
@@ -59,7 +65,11 @@ export class ImportErrorsController {
     required: false,
     description: 'Number of items to skip for pagination',
   })
-  @ApiResponse({ status: 200, description: 'List of import errors' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of import errors',
+    type: ImportErrorListResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async listErrors(
@@ -81,7 +91,11 @@ export class ImportErrorsController {
       'Returns detailed information about a specific import error. Requires admin role.',
   })
   @ApiParam({ name: 'id', description: 'Import error UUID' })
-  @ApiResponse({ status: 200, description: 'Import error details' })
+  @ApiResponse({
+    status: 200,
+    description: 'Import error details',
+    type: ImportErrorDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Import error not found' })
@@ -101,7 +115,11 @@ export class ImportErrorsController {
       'Queue a failed import for retry. The file will be re-processed. Requires admin role.',
   })
   @ApiParam({ name: 'id', description: 'Import error UUID' })
-  @ApiResponse({ status: 200, description: 'Retry queued successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Retry queued successfully',
+    type: ImportRetryResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Cannot determine library type or path no longer exists',
@@ -170,7 +188,11 @@ export class ImportErrorsController {
       'Mark an import error as ignored. It will no longer appear in the pending errors list. Requires admin role.',
   })
   @ApiParam({ name: 'id', description: 'Import error UUID' })
-  @ApiResponse({ status: 200, description: 'Error ignored successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Error ignored successfully',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Import error not found' })

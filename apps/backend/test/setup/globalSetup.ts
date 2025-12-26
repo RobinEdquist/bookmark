@@ -1,11 +1,13 @@
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import {
+  PostgreSqlContainer,
+  StartedPostgreSqlContainer,
+} from '@testcontainers/postgresql';
 import { spawnSync, spawn, ChildProcess } from 'child_process';
 import { resolve } from 'path';
 
 declare global {
-  // eslint-disable-next-line no-var
   var __POSTGRES_CONTAINER__: StartedPostgreSqlContainer;
-  // eslint-disable-next-line no-var
+
   var __BACKEND_PROCESS__: ChildProcess;
 }
 
@@ -106,7 +108,9 @@ export default async function globalSetup() {
       console.error('stdout:', serverOutput);
       console.error('stderr:', serverError);
       await container.stop();
-      throw new Error(`Backend server crashed with exit code ${backendProcess.exitCode}`);
+      throw new Error(
+        `Backend server crashed with exit code ${backendProcess.exitCode}`,
+      );
     }
 
     try {

@@ -19,6 +19,12 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { UpdateProgressDto } from './dto/update-progress.dto';
 import { CreateSessionDto } from './dto/create-session.dto';
 import {
+  ProgressResponseDto,
+  ProgressWithAudiobookDto,
+  ListeningStatsDto,
+  CreateSessionResponseDto,
+} from './dto/progress-response.dto';
+import {
   ProgressService,
   type ProgressResponse,
   type ProgressWithAudiobook,
@@ -39,7 +45,11 @@ export class ProgressController {
     description:
       'Returns all audiobooks that the current user has started but not completed, ordered by last activity',
   })
-  @ApiResponse({ status: 200, description: 'List of audiobooks with progress' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of audiobooks with progress',
+    type: [ProgressWithAudiobookDto],
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAllProgress(
     @Session() session: UserSession,
@@ -53,7 +63,11 @@ export class ProgressController {
     description:
       'Returns listening statistics for the current user including total time, completed books, and streaks',
   })
-  @ApiResponse({ status: 200, description: 'Listening statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Listening statistics',
+    type: ListeningStatsDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getListeningStats(
     @Session() session: UserSession,
@@ -68,7 +82,11 @@ export class ProgressController {
       'Returns the current listening progress for a specific audiobook. Returns position 0 if no progress exists.',
   })
   @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 200, description: 'Progress data' })
+  @ApiResponse({
+    status: 200,
+    description: 'Progress data',
+    type: ProgressResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProgress(
     @Param('audiobookId') audiobookId: string,
@@ -99,7 +117,11 @@ export class ProgressController {
       'Update the listening position for an audiobook. Creates progress record if it does not exist.',
   })
   @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 200, description: 'Updated progress' })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated progress',
+    type: ProgressResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateProgress(
@@ -121,7 +143,11 @@ export class ProgressController {
       'Record a completed listening session with start time, end time, and duration for analytics',
   })
   @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 201, description: 'Session recorded successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Session recorded successfully',
+    type: CreateSessionResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createSession(

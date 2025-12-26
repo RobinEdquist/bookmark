@@ -20,6 +20,17 @@ import {
   ApiSecurity,
 } from '@nestjs/swagger';
 import { HardcoverService } from './hardcover.service';
+import {
+  HardcoverStatusResponseDto,
+  HardcoverAutoSyncResponseDto,
+  HardcoverValidateResponseDto,
+  HardcoverSearchResponseDto,
+  HardcoverLinkResponseDto,
+  HardcoverLinkCreatedResponseDto,
+  HardcoverQueueStatusResponseDto,
+  HardcoverQueueCountResponseDto,
+} from './dto/hardcover-response.dto';
+import { SuccessResponseDto } from '../common/dto';
 import { Roles, RolesGuard } from '../auth/roles.guard';
 
 interface ValidateKeyDto {
@@ -68,7 +79,11 @@ export class HardcoverController {
     description:
       'Returns whether Hardcover API is configured and auto-sync settings',
   })
-  @ApiResponse({ status: 200, description: 'Integration status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Integration status',
+    type: HardcoverStatusResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getStatus() {
     const [apiKey, autoSyncOnImport] = await Promise.all([
@@ -88,7 +103,11 @@ export class HardcoverController {
     description:
       'Enable or disable automatic syncing of new imports to Hardcover',
   })
-  @ApiResponse({ status: 200, description: 'Setting updated' })
+  @ApiResponse({
+    status: 200,
+    description: 'Setting updated',
+    type: HardcoverAutoSyncResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid enabled value' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async setAutoSync(@Body() dto: SetAutoSyncDto) {
@@ -106,7 +125,11 @@ export class HardcoverController {
     summary: 'Validate and save API key',
     description: 'Validate a Hardcover API key and save it if valid',
   })
-  @ApiResponse({ status: 200, description: 'Validation result' })
+  @ApiResponse({
+    status: 200,
+    description: 'Validation result',
+    type: HardcoverValidateResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'API key is required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async validateKey(@Body() dto: ValidateKeyDto) {
@@ -130,7 +153,11 @@ export class HardcoverController {
     description:
       'Remove the stored API key and disconnect the Hardcover integration',
   })
-  @ApiResponse({ status: 200, description: 'Disconnected successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Disconnected successfully',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async disconnect() {
     await this.hardcoverService.setApiKey(null);
@@ -143,7 +170,11 @@ export class HardcoverController {
     description: 'Search for books on Hardcover by title, author, or ISBN',
   })
   @ApiQuery({ name: 'q', description: 'Search query' })
-  @ApiResponse({ status: 200, description: 'Search results' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results',
+    type: HardcoverSearchResponseDto,
+  })
   @ApiResponse({
     status: 400,
     description: 'Search query required or API error',
@@ -185,7 +216,11 @@ export class HardcoverController {
     required: false,
     description: 'Custom search query override',
   })
-  @ApiResponse({ status: 200, description: 'Paginated search results' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated search results',
+    type: HardcoverSearchResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'API error' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async searchByAudiobook(
@@ -220,7 +255,11 @@ export class HardcoverController {
     description: 'Get the Hardcover book linked to an audiobook',
   })
   @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 200, description: 'Hardcover link data' })
+  @ApiResponse({
+    status: 200,
+    description: 'Hardcover link data',
+    type: HardcoverLinkResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getLink(@Param('audiobookId') audiobookId: string) {
     const link = await this.hardcoverService.getHardcoverLink(
@@ -237,7 +276,11 @@ export class HardcoverController {
     description: 'Link an audiobook to a Hardcover book for metadata sync',
   })
   @ApiParam({ name: 'audiobookId', description: 'Audiobook UUID' })
-  @ApiResponse({ status: 200, description: 'Link created successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Link created successfully',
+    type: HardcoverLinkCreatedResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Hardcover book data required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async linkAudiobook(
@@ -321,7 +364,11 @@ export class HardcoverController {
     required: false,
     description: 'Custom search query override',
   })
-  @ApiResponse({ status: 200, description: 'Paginated search results' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated search results',
+    type: HardcoverSearchResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'API error' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async searchByEbook(
@@ -357,7 +404,11 @@ export class HardcoverController {
     description: 'Get the Hardcover book linked to an ebook',
   })
   @ApiParam({ name: 'ebookId', description: 'Ebook UUID' })
-  @ApiResponse({ status: 200, description: 'Hardcover link data' })
+  @ApiResponse({
+    status: 200,
+    description: 'Hardcover link data',
+    type: HardcoverLinkResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getEbookLink(@Param('ebookId') ebookId: string) {
     const link = await this.hardcoverService.getHardcoverLink('ebook', ebookId);
@@ -371,7 +422,11 @@ export class HardcoverController {
     description: 'Link an ebook to a Hardcover book for metadata sync',
   })
   @ApiParam({ name: 'ebookId', description: 'Ebook UUID' })
-  @ApiResponse({ status: 200, description: 'Link created successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Link created successfully',
+    type: HardcoverLinkCreatedResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Hardcover book data required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async linkEbook(
@@ -438,7 +493,11 @@ export class HardcoverController {
     description:
       'Get the status of the Hardcover sync queue including pending and failed items',
   })
-  @ApiResponse({ status: 200, description: 'Queue status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Queue status',
+    type: HardcoverQueueStatusResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getQueueStatus() {
     const [pendingCount, failedItems] = await Promise.all([
@@ -474,7 +533,11 @@ export class HardcoverController {
     summary: 'Queue all unlinked audiobooks',
     description: 'Add all audiobooks without Hardcover links to the sync queue',
   })
-  @ApiResponse({ status: 200, description: 'Number of items queued' })
+  @ApiResponse({
+    status: 200,
+    description: 'Number of items queued',
+    type: HardcoverQueueCountResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async queueAllUnlinkedAudiobooks() {
     const queuedCount =
@@ -488,7 +551,11 @@ export class HardcoverController {
     summary: 'Queue all unlinked ebooks',
     description: 'Add all ebooks without Hardcover links to the sync queue',
   })
-  @ApiResponse({ status: 200, description: 'Number of items queued' })
+  @ApiResponse({
+    status: 200,
+    description: 'Number of items queued',
+    type: HardcoverQueueCountResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async queueAllUnlinkedEbooks() {
     const queuedCount = await this.hardcoverService.queueAllUnlinked('ebook');

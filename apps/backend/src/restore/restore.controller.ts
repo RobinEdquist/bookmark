@@ -35,6 +35,13 @@ import {
   SetRestoreOptionsDto,
 } from './dto/restore.dto';
 import { RestoreSession, ImportPreview } from './types/restore-session.types';
+import {
+  UploadBackupResponseDto,
+  RestoreSessionDto,
+  RestoreSuccessMessageDto,
+  ImportPreviewDto,
+  BookmarkUserDto,
+} from './dto/restore-response.dto';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as authSchema from '../auth/schema';
@@ -77,6 +84,7 @@ export class RestoreController {
   @ApiResponse({
     status: 200,
     description: 'Backup uploaded and session created',
+    type: UploadBackupResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid file type or size' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
@@ -164,6 +172,7 @@ export class RestoreController {
   @ApiResponse({
     status: 200,
     description: 'Session details with available libraries',
+    type: RestoreSessionDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -207,7 +216,11 @@ export class RestoreController {
     description: 'Select which library from the backup to restore',
   })
   @ApiParam({ name: 'id', description: 'Session UUID' })
-  @ApiResponse({ status: 200, description: 'Library selected successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Library selected successfully',
+    type: RestoreSuccessMessageDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Session not found' })
@@ -234,7 +247,11 @@ export class RestoreController {
       'Set path mappings for converting AudioBookShelf paths to Bookmark paths',
   })
   @ApiParam({ name: 'id', description: 'Session UUID' })
-  @ApiResponse({ status: 200, description: 'Path mappings set successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Path mappings set successfully',
+    type: RestoreSuccessMessageDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Session not found' })
@@ -261,7 +278,11 @@ export class RestoreController {
       'Set user mappings for converting AudioBookShelf users to Bookmark users',
   })
   @ApiParam({ name: 'id', description: 'Session UUID' })
-  @ApiResponse({ status: 200, description: 'User mappings set successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'User mappings set successfully',
+    type: RestoreSuccessMessageDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Session not found' })
@@ -288,7 +309,11 @@ export class RestoreController {
       'Set import options including what data to include in the restore',
   })
   @ApiParam({ name: 'id', description: 'Session UUID' })
-  @ApiResponse({ status: 200, description: 'Restore options set successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Restore options set successfully',
+    type: RestoreSuccessMessageDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Session not found' })
@@ -318,6 +343,7 @@ export class RestoreController {
   @ApiResponse({
     status: 200,
     description: 'Import preview with audiobook counts and details',
+    type: ImportPreviewDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -343,7 +369,11 @@ export class RestoreController {
       'Start the import process. This is an async operation - progress updates are sent via WebSocket.',
   })
   @ApiParam({ name: 'id', description: 'Session UUID' })
-  @ApiResponse({ status: 200, description: 'Import started successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Import started successfully',
+    type: RestoreSuccessMessageDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Session not found' })
@@ -404,7 +434,11 @@ export class RestoreController {
     summary: 'Get Bookmark users (Admin)',
     description: 'Get list of Bookmark users for user mapping during restore',
   })
-  @ApiResponse({ status: 200, description: 'List of Bookmark users' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of Bookmark users',
+    type: [BookmarkUserDto],
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getBookmarkUsers(): Promise<

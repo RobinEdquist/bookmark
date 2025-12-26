@@ -18,6 +18,10 @@ import {
 import { AdminGuard } from '../common/guards/admin.guard';
 import { RequestsService } from './requests.service';
 import { RejectRequestDto } from './dto';
+import {
+  RequestListResponseDto,
+  ContentRequestDto,
+} from './dto/request-response.dto';
 import type { RequestStatus } from './schema';
 
 @ApiTags('Requests Admin')
@@ -40,7 +44,11 @@ export class RequestsAdminController {
     enum: ['pending', 'approved', 'rejected', 'fulfilled'],
     description: 'Filter by request status',
   })
-  @ApiResponse({ status: 200, description: 'List of all requests' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all requests',
+    type: RequestListResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getAllRequests(@Query('status') status?: RequestStatus) {
@@ -53,7 +61,11 @@ export class RequestsAdminController {
     description: 'Approve a pending request. Requires admin role.',
   })
   @ApiParam({ name: 'id', description: 'Request UUID' })
-  @ApiResponse({ status: 200, description: 'Request approved successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request approved successfully',
+    type: ContentRequestDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Request not found' })
@@ -68,7 +80,11 @@ export class RequestsAdminController {
       'Reject a pending request with an optional reason. Requires admin role.',
   })
   @ApiParam({ name: 'id', description: 'Request UUID' })
-  @ApiResponse({ status: 200, description: 'Request rejected successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Request rejected successfully',
+    type: ContentRequestDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Request not found' })
