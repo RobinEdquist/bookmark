@@ -27,7 +27,7 @@ import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as usersSchema from '../users/schema';
-import { UpdateEbookDto, SeriesEntryDto } from './dto/update-ebook.dto';
+import { UpdateEbookDto, EbookSeriesEntryDto } from './dto/update-ebook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
@@ -686,7 +686,10 @@ export class EbooksService {
     }
   }
 
-  private async updateSeries(ebookId: string, seriesEntries: SeriesEntryDto[]) {
+  private async updateSeries(
+    ebookId: string,
+    seriesEntries: EbookSeriesEntryDto[],
+  ) {
     // Delete existing relations
     await this.db
       .delete(schema.ebookSeries)

@@ -11,6 +11,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiSecurity,
+  ApiBody,
 } from '@nestjs/swagger';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import { AppSettingsService } from './app-settings.service';
@@ -22,29 +23,9 @@ import {
   SetupStatusResponseDto,
   AppSettingsResponseDto,
 } from './dto/settings-response.dto';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 import * as fs from 'fs/promises';
 import { MetadataFieldPriority, DEFAULT_METADATA_PRIORITY } from './schema';
-
-interface UpdateSettingsDto {
-  signupsEnabled?: boolean;
-  audiobookLibraryPath?: string | null;
-  ebookLibraryPath?: string | null;
-  metadataPriority?: MetadataFieldPriority;
-  opdsEnabled?: boolean;
-  oidcButtonText?: string;
-  emailPasswordEnabled?: boolean;
-  oidcAutoCreateUsers?: string;
-  requestsEnabled?: boolean;
-  requestsAudiobookCategory?: string;
-  requestsEbookCategory?: string;
-  requestsComicsCategory?: string;
-  autoApproveRequestsPerWeek?: number;
-  defaultCanEditMetadata?: boolean;
-  defaultCanUpload?: boolean;
-  defaultCanDelete?: boolean;
-  defaultCanGenerateApiKeys?: boolean;
-  defaultCanRequestContent?: boolean;
-}
 
 @ApiTags('Settings')
 @Controller('settings')
@@ -166,6 +147,7 @@ export class AppSettingsController {
     description:
       'Update application settings including library paths, authentication, and feature flags. Requires admin role.',
   })
+  @ApiBody({ type: UpdateSettingsDto })
   @ApiResponse({
     status: 200,
     description: 'Updated settings',
@@ -256,7 +238,7 @@ export class AppSettingsController {
     if (dto.ebookLibraryPath !== undefined)
       updates.ebookLibraryPath = dto.ebookLibraryPath;
     if (dto.metadataPriority !== undefined)
-      updates.metadataPriority = dto.metadataPriority;
+      updates.metadataPriority = dto.metadataPriority as MetadataFieldPriority;
     if (dto.opdsEnabled !== undefined) updates.opdsEnabled = dto.opdsEnabled;
     if (dto.oidcButtonText !== undefined)
       updates.oidcButtonText = dto.oidcButtonText;

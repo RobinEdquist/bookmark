@@ -136,6 +136,13 @@ There are no rate limits for self-hosted instances. Be mindful of your server re
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
+
+  // Expose OpenAPI JSON at /api/docs-json for programmatic access
+  app.getHttpAdapter().get('/api/docs-json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(document);
+  });
+
   SwaggerModule.setup('api/docs', app, document, {
     customSiteTitle: 'Bookmark API Documentation',
     customfavIcon: '/favicon.ico',
