@@ -29,6 +29,7 @@ export default async function globalSetup() {
   process.env.NODE_ENV = 'test';
   process.env.BETTER_AUTH_SECRET = 'test-secret-for-ci-only';
   process.env.BETTER_AUTH_URL = 'http://localhost:3000';
+  process.env.UI_URL = 'http://localhost:3001';
 
   const backendDir = resolve(__dirname, '../..');
 
