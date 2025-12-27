@@ -6,7 +6,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, or, inArray, isNull, gte, sql } from 'drizzle-orm';
+import { eq, and, or, inArray, isNull, gte, sql, desc } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { getLastMondayUTC } from '../common/utils/date.utils';
 import * as requestsSchema from './schema';
@@ -382,17 +382,20 @@ export class RequestsService {
       .select()
       .from(requestsSchema.requests)
       .where(eq(requestsSchema.requests.userId, userId))
-      .orderBy(requestsSchema.requests.createdAt);
+      .orderBy(desc(requestsSchema.requests.createdAt));
 
     return Promise.all(requests.map((r) => this.mapToResponseDto(r, userId)));
   }
 
   async getAllRequests(status?: RequestStatus): Promise<RequestResponseDto[]> {
-    const query = this.db.select().from(requestsSchema.requests);
+    const baseQuery = this.db
+      .select()
+      .from(requestsSchema.requests)
+      .orderBy(desc(requestsSchema.requests.createdAt));
 
     const requests = status
-      ? await query.where(eq(requestsSchema.requests.status, status))
-      : await query;
+      ? await baseQuery.where(eq(requestsSchema.requests.status, status))
+      : await baseQuery;
 
     return Promise.all(requests.map((r) => this.mapToResponseDto(r, null)));
   }
