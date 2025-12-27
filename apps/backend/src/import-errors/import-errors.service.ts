@@ -53,7 +53,7 @@ export class ImportErrorsService {
   }
 
   async getErrors(filters: ImportErrorFilters = {}) {
-    const { status, limit = 50, offset = 0 } = filters;
+    const { status, limit, offset = 0 } = filters;
 
     const conditions: SQL[] = [];
 
@@ -68,13 +68,16 @@ export class ImportErrorsService {
 
     const whereClause = and(...conditions);
 
-    const errors = await this.db
+    const baseQuery = this.db
       .select()
       .from(schema.importErrors)
       .where(whereClause)
-      .orderBy(desc(schema.importErrors.lastOccurredAt))
-      .limit(limit)
-      .offset(offset);
+      .orderBy(desc(schema.importErrors.lastOccurredAt));
+
+    const errors =
+      limit !== undefined
+        ? await baseQuery.limit(limit).offset(offset)
+        : await baseQuery;
 
     const [countResult] = await this.db
       .select({ count: sql<number>`count(*)::int` })

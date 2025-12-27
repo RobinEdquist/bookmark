@@ -98,7 +98,7 @@ export class EbooksController {
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Number of items to return (default: 50)',
+    description: 'Number of items to return',
   })
   @ApiQuery({
     name: 'offset',
@@ -148,13 +148,24 @@ export class EbooksController {
     required: false,
     description: 'Filter authors by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of authors with IDs and names',
     type: [EbookPersonDto],
   })
-  async getAuthors(@Query('search') search?: string) {
-    return this.ebooksService.getAuthors(search);
+  async getAuthors(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.ebooksService.getAuthors(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get('publishers')
@@ -167,13 +178,24 @@ export class EbooksController {
     required: false,
     description: 'Filter publishers by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of publishers',
     type: [String],
   })
-  async getPublishers(@Query('search') search?: string) {
-    return this.ebooksService.getPublishers(search);
+  async getPublishers(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.ebooksService.getPublishers(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get('series')
@@ -186,13 +208,24 @@ export class EbooksController {
     required: false,
     description: 'Filter series by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of series with IDs and names',
     type: [EbookSeriesDto],
   })
-  async getSeries(@Query('search') search?: string) {
-    return this.ebooksService.getSeries(search);
+  async getSeries(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.ebooksService.getSeries(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get(':id')

@@ -1135,67 +1135,73 @@ export class AudiobooksService {
     }
   }
 
-  async getGenres(search?: string): Promise<{ id: string; name: string }[]> {
+  async getGenres(
+    search?: string,
+    limit?: number,
+  ): Promise<{ id: string; name: string }[]> {
     const conditions: SQL[] = [];
 
     if (search) {
       conditions.push(ilike(schema.genres.name, `%${search}%`));
     }
 
-    const genres = await this.db
+    const baseQuery = this.db
       .select({
         id: schema.genres.id,
         name: schema.genres.name,
       })
       .from(schema.genres)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(asc(schema.genres.name))
-      .limit(50);
+      .orderBy(asc(schema.genres.name));
 
-    return genres;
+    return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
   }
 
-  async getTags(search?: string): Promise<{ id: string; name: string }[]> {
+  async getTags(
+    search?: string,
+    limit?: number,
+  ): Promise<{ id: string; name: string }[]> {
     const conditions: SQL[] = [];
 
     if (search) {
       conditions.push(ilike(schema.tags.name, `%${search}%`));
     }
 
-    const tags = await this.db
+    const baseQuery = this.db
       .select({
         id: schema.tags.id,
         name: schema.tags.name,
       })
       .from(schema.tags)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(asc(schema.tags.name))
-      .limit(50);
+      .orderBy(asc(schema.tags.name));
 
-    return tags;
+    return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
   }
 
-  async getSeries(search?: string): Promise<{ id: string; name: string }[]> {
+  async getSeries(
+    search?: string,
+    limit?: number,
+  ): Promise<{ id: string; name: string }[]> {
     const conditions: SQL[] = [];
 
     if (search) {
       conditions.push(ilike(schema.series.name, `%${search}%`));
     }
 
-    const seriesList = await this.db
+    const baseQuery = this.db
       .select({
         id: schema.series.id,
         name: schema.series.name,
       })
       .from(schema.series)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(asc(schema.series.name))
-      .limit(50);
+      .orderBy(asc(schema.series.name));
 
-    return seriesList;
+    return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
   }
 
-  async getPublishers(search?: string): Promise<string[]> {
+  async getPublishers(search?: string, limit?: number): Promise<string[]> {
     const conditions: SQL[] = [];
 
     // Only get non-null publishers
@@ -1205,19 +1211,24 @@ export class AudiobooksService {
       conditions.push(ilike(schema.audiobooks.publisher, `%${search}%`));
     }
 
-    const publishers = await this.db
+    const baseQuery = this.db
       .selectDistinct({
         publisher: schema.audiobooks.publisher,
       })
       .from(schema.audiobooks)
       .where(and(...conditions))
-      .orderBy(asc(schema.audiobooks.publisher))
-      .limit(50);
+      .orderBy(asc(schema.audiobooks.publisher));
+
+    const publishers =
+      limit !== undefined ? await baseQuery.limit(limit) : await baseQuery;
 
     return publishers.map((p) => p.publisher!);
   }
 
-  async getAuthors(search?: string): Promise<{ id: string; name: string }[]> {
+  async getAuthors(
+    search?: string,
+    limit?: number,
+  ): Promise<{ id: string; name: string }[]> {
     const conditions: SQL[] = [];
 
     if (search) {
@@ -1225,7 +1236,7 @@ export class AudiobooksService {
     }
 
     // Get people who are authors (linked via audiobookAuthors)
-    const authors = await this.db
+    const baseQuery = this.db
       .selectDistinct({
         id: schema.people.id,
         name: schema.people.name,
@@ -1236,13 +1247,15 @@ export class AudiobooksService {
         eq(schema.people.id, schema.audiobookAuthors.personId),
       )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(asc(schema.people.name))
-      .limit(50);
+      .orderBy(asc(schema.people.name));
 
-    return authors;
+    return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
   }
 
-  async getNarrators(search?: string): Promise<{ id: string; name: string }[]> {
+  async getNarrators(
+    search?: string,
+    limit?: number,
+  ): Promise<{ id: string; name: string }[]> {
     const conditions: SQL[] = [];
 
     if (search) {
@@ -1250,7 +1263,7 @@ export class AudiobooksService {
     }
 
     // Get people who are narrators (linked via audiobookNarrators)
-    const narrators = await this.db
+    const baseQuery = this.db
       .selectDistinct({
         id: schema.people.id,
         name: schema.people.name,
@@ -1261,10 +1274,9 @@ export class AudiobooksService {
         eq(schema.people.id, schema.audiobookNarrators.personId),
       )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(asc(schema.people.name))
-      .limit(50);
+      .orderBy(asc(schema.people.name));
 
-    return narrators;
+    return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
   }
 
   async refreshChapters(id: string): Promise<{ count: number }> {

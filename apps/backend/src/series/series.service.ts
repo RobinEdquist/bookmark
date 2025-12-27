@@ -25,11 +25,11 @@ export class SeriesService {
   ) {}
 
   async getRecentlyUpdated(
-    limit: number = 12,
+    limit?: number,
   ): Promise<{ series: SeriesWithBooks[] }> {
     // Get series with their most recent audiobook addition date
     // We need to find series where an audiobook was recently added
-    const seriesWithLatest = await this.db
+    const baseQuery = this.db
       .select({
         seriesId: schema.series.id,
         seriesName: schema.series.name,
@@ -51,8 +51,10 @@ export class SeriesService {
       )
       .where(ne(schema.audiobooks.status, 'hidden'))
       .groupBy(schema.series.id, schema.series.name)
-      .orderBy(desc(sql`max(${schema.audiobooks.createdAt})`))
-      .limit(limit);
+      .orderBy(desc(sql`max(${schema.audiobooks.createdAt})`));
+
+    const seriesWithLatest =
+      limit !== undefined ? await baseQuery.limit(limit) : await baseQuery;
 
     // For each series, get the first 3 audiobooks (for stacked covers)
     const result: SeriesWithBooks[] = await Promise.all(
@@ -90,7 +92,7 @@ export class SeriesService {
   }
 
   async getAll(
-    limit: number = 50,
+    limit?: number,
     offset: number = 0,
   ): Promise<{ series: SeriesWithBooks[]; total: number }> {
     // Get total count
@@ -99,7 +101,7 @@ export class SeriesService {
       .from(schema.series);
 
     // Get series with book count
-    const seriesList = await this.db
+    const baseQuery = this.db
       .select({
         seriesId: schema.series.id,
         seriesName: schema.series.name,
@@ -120,9 +122,12 @@ export class SeriesService {
         eq(schema.audiobookSeries.audiobookId, schema.audiobooks.id),
       )
       .groupBy(schema.series.id, schema.series.name)
-      .orderBy(asc(schema.series.name))
-      .limit(limit)
-      .offset(offset);
+      .orderBy(asc(schema.series.name));
+
+    const seriesList =
+      limit !== undefined
+        ? await baseQuery.limit(limit).offset(offset)
+        : await baseQuery;
 
     // For each series, get the first 3 audiobooks (for stacked covers)
     const result: SeriesWithBooks[] = await Promise.all(

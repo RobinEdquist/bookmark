@@ -125,7 +125,7 @@ export class EbooksService {
       language,
       sortBy = 'createdAt',
       sortOrder = 'desc',
-      limit = 24,
+      limit,
       offset = 0,
     } = filters;
 
@@ -240,13 +240,16 @@ export class EbooksService {
         orderByClause = desc(schema.ebooks.createdAt);
     }
 
-    const ebooks = await this.db
+    const baseQuery = this.db
       .select()
       .from(schema.ebooks)
       .where(whereClause)
-      .orderBy(orderByClause)
-      .limit(limit)
-      .offset(offset);
+      .orderBy(orderByClause);
+
+    const ebooks =
+      limit !== undefined
+        ? await baseQuery.limit(limit).offset(offset)
+        : await baseQuery;
 
     // Fetch authors, series, and Hardcover data for each ebook
     const result: EbookListItem[] = await Promise.all(
@@ -723,7 +726,10 @@ export class EbooksService {
     }
   }
 
-  async getAuthors(search?: string): Promise<{ id: string; name: string }[]> {
+  async getAuthors(
+    search?: string,
+    limit?: number,
+  ): Promise<{ id: string; name: string }[]> {
     const conditions: SQL[] = [];
 
     if (search) {
@@ -731,7 +737,7 @@ export class EbooksService {
     }
 
     // Get people who are ebook authors (linked via ebookAuthors)
-    const authors = await this.db
+    const baseQuery = this.db
       .selectDistinct({
         id: audiobookSchema.people.id,
         name: audiobookSchema.people.name,
@@ -742,13 +748,12 @@ export class EbooksService {
         eq(audiobookSchema.people.id, schema.ebookAuthors.personId),
       )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(asc(audiobookSchema.people.name))
-      .limit(50);
+      .orderBy(asc(audiobookSchema.people.name));
 
-    return authors;
+    return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
   }
 
-  async getPublishers(search?: string): Promise<string[]> {
+  async getPublishers(search?: string, limit?: number): Promise<string[]> {
     const conditions: SQL[] = [];
 
     // Only get non-null publishers
@@ -758,36 +763,40 @@ export class EbooksService {
       conditions.push(ilike(schema.ebooks.publisher, `%${search}%`));
     }
 
-    const publishers = await this.db
+    const baseQuery = this.db
       .selectDistinct({
         publisher: schema.ebooks.publisher,
       })
       .from(schema.ebooks)
       .where(and(...conditions))
-      .orderBy(asc(schema.ebooks.publisher))
-      .limit(50);
+      .orderBy(asc(schema.ebooks.publisher));
+
+    const publishers =
+      limit !== undefined ? await baseQuery.limit(limit) : await baseQuery;
 
     return publishers.map((p) => p.publisher!);
   }
 
-  async getSeries(search?: string): Promise<{ id: string; name: string }[]> {
+  async getSeries(
+    search?: string,
+    limit?: number,
+  ): Promise<{ id: string; name: string }[]> {
     const conditions: SQL[] = [];
 
     if (search) {
       conditions.push(ilike(audiobookSchema.series.name, `%${search}%`));
     }
 
-    const seriesList = await this.db
+    const baseQuery = this.db
       .select({
         id: audiobookSchema.series.id,
         name: audiobookSchema.series.name,
       })
       .from(audiobookSchema.series)
       .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(asc(audiobookSchema.series.name))
-      .limit(50);
+      .orderBy(asc(audiobookSchema.series.name));
 
-    return seriesList;
+    return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
   }
 
   async updateCoverFromFile(

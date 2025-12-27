@@ -108,7 +108,7 @@ export class AudiobooksController {
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Number of items to return (default: 50)',
+    description: 'Number of items to return',
   })
   @ApiQuery({
     name: 'offset',
@@ -158,13 +158,24 @@ export class AudiobooksController {
     required: false,
     description: 'Filter authors by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of authors with IDs and names',
     type: [PersonDto],
   })
-  async getAuthors(@Query('search') search?: string) {
-    return this.audiobooksService.getAuthors(search);
+  async getAuthors(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.audiobooksService.getAuthors(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get('narrators')
@@ -178,13 +189,24 @@ export class AudiobooksController {
     required: false,
     description: 'Filter narrators by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of narrators with IDs and names',
     type: [PersonDto],
   })
-  async getNarrators(@Query('search') search?: string) {
-    return this.audiobooksService.getNarrators(search);
+  async getNarrators(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.audiobooksService.getNarrators(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get('publishers')
@@ -197,13 +219,24 @@ export class AudiobooksController {
     required: false,
     description: 'Filter publishers by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of publishers',
     type: [String],
   })
-  async getPublishers(@Query('search') search?: string) {
-    return this.audiobooksService.getPublishers(search);
+  async getPublishers(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.audiobooksService.getPublishers(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get('genres')
@@ -216,13 +249,24 @@ export class AudiobooksController {
     required: false,
     description: 'Filter genres by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of genres with IDs and names',
     type: [GenreDto],
   })
-  async getGenres(@Query('search') search?: string) {
-    return this.audiobooksService.getGenres(search);
+  async getGenres(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.audiobooksService.getGenres(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get('tags')
@@ -235,13 +279,24 @@ export class AudiobooksController {
     required: false,
     description: 'Filter tags by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of tags with IDs and names',
     type: [TagDto],
   })
-  async getTags(@Query('search') search?: string) {
-    return this.audiobooksService.getTags(search);
+  async getTags(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.audiobooksService.getTags(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get('series')
@@ -254,13 +309,24 @@ export class AudiobooksController {
     required: false,
     description: 'Filter series by name',
   })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of series with IDs and names',
     type: [SeriesDto],
   })
-  async getSeries(@Query('search') search?: string) {
-    return this.audiobooksService.getSeries(search);
+  async getSeries(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.audiobooksService.getSeries(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
   }
 
   @Get(':id')

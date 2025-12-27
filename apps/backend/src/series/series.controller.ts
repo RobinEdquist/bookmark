@@ -26,7 +26,7 @@ export class SeriesController {
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Number of items to return (default: 50)',
+    description: 'Number of items to return',
   })
   @ApiQuery({
     name: 'offset',
@@ -57,7 +57,7 @@ export class SeriesController {
   @ApiQuery({
     name: 'limit',
     required: false,
-    description: 'Number of items to return (default: 10)',
+    description: 'Number of items to return',
   })
   @ApiResponse({
     status: 200,
