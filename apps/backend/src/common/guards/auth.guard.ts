@@ -3,7 +3,6 @@ import {
   CanActivate,
   ExecutionContext,
   UnauthorizedException,
-  Logger,
 } from '@nestjs/common';
 import { Request } from 'express';
 
@@ -52,21 +51,14 @@ export function getAuthenticatedUser(
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  private readonly logger = new Logger(AuthGuard.name);
-
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    this.logger.debug(
-      `[AuthGuard] ${request.method} ${request.url} - session.user: ${!!request.session?.user}, apiTokenUser: ${!!request.apiTokenUser}`,
-    );
     const user = getAuthenticatedUser(request);
 
     if (!user) {
-      this.logger.debug(`[AuthGuard] No user found, throwing 401`);
       throw new UnauthorizedException('Authentication required');
     }
 
-    this.logger.debug(`[AuthGuard] User found: ${user.email}`);
     return true;
   }
 }
