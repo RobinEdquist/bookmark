@@ -8,7 +8,7 @@ import { ApiKeysService } from '../../api-keys/api-keys.service';
 import * as authSchema from '../../auth/schema';
 
 type Schema = typeof authSchema;
-const DEBUG_API_TOKEN = false;
+const DEBUG_API_TOKEN = true; // TEMPORARY: debugging 401 issue
 
 /**
  * Middleware that enables API token authentication for all endpoints.
