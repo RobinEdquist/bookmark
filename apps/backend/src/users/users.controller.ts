@@ -20,7 +20,8 @@ import {
   ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
-import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from '../auth/schema';
@@ -136,9 +137,9 @@ export class UsersController {
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateUserDto,
-    @Session() session: UserSession,
+    @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<UserResponse> {
-    return this.usersService.update(id, dto, session.user.id);
+    return this.usersService.update(id, dto, currentUser.id);
   }
 
   @Post(':id/ban')
@@ -163,9 +164,9 @@ export class UsersController {
   async ban(
     @Param('id') id: string,
     @Body() dto: BanUserDto,
-    @Session() session: UserSession,
+    @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<UserResponse> {
-    return this.usersService.ban(id, dto, session.user.id);
+    return this.usersService.ban(id, dto, currentUser.id);
   }
 
   @Post(':id/unban')
@@ -204,22 +205,39 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async delete(
     @Param('id') id: string,
-    @Session() session: UserSession,
+    @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<void> {
-    return this.usersService.delete(id, session.user.id);
+    return this.usersService.delete(id, currentUser.id);
   }
 
   // ===== Public/Self Endpoints =====
 
+  @Get('me')
+  @ApiOperation({
+    summary: 'Get current user',
+    description:
+      'Returns the current authenticated user information. Works with both session cookies and API tokens.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user data',
+    type: UserResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMe(@CurrentUser() user: AuthenticatedUser): Promise<UserResponse> {
+    return this.usersService.findById(user.id);
+  }
+
   @Get('session')
   @ApiOperation({
     summary: 'Get current session',
-    description: 'Returns the current authenticated user information',
+    description:
+      'Returns the current authenticated user information. Supports both session cookies and API tokens.',
   })
   @ApiResponse({ status: 200, description: 'Current user session data' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getSession(@Session() session: UserSession) {
-    return session.user;
+  getSession(@CurrentUser() user: AuthenticatedUser) {
+    return user;
   }
 
   @Patch('me/language')
@@ -231,10 +249,10 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Invalid language code' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateLanguage(
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateLanguageDto,
   ): Promise<{ success: boolean }> {
-    await this.usersService.updateLanguage(session.user.id, dto.language);
+    await this.usersService.updateLanguage(user.id, dto.language);
     return { success: true };
   }
 
@@ -250,9 +268,9 @@ export class UsersController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getLanguage(
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ language: string }> {
-    const language = await this.usersService.getLanguage(session.user.id);
+    const language = await this.usersService.getLanguage(user.id);
     return { language };
   }
 
@@ -267,8 +285,8 @@ export class UsersController {
     type: UserPermissionsResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getMyPermissions(@Session() session: UserSession) {
-    return this.usersService.getPermissions(session.user.id);
+  async getMyPermissions(@CurrentUser() user: AuthenticatedUser) {
+    return this.usersService.getPermissions(user.id);
   }
 
   @Patch('me/theme')
@@ -280,11 +298,11 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Invalid color format' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateTheme(
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateThemeDto,
   ): Promise<{ success: boolean }> {
     await this.usersService.updateTheme(
-      session.user.id,
+      user.id,
       dto.primaryColor,
       dto.surfaceColor,
     );
@@ -303,8 +321,8 @@ export class UsersController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getTheme(
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ primaryColor: string; surfaceColor: string }> {
-    return this.usersService.getTheme(session.user.id);
+    return this.usersService.getTheme(user.id);
   }
 }
