@@ -73,14 +73,17 @@ import { CommonModule } from './common/common.module';
                   },
                 }),
             customProps: (req) => {
-              const session = (
-                req as { session?: { user?: { id: string; email: string } } }
-              ).session;
-              if (session?.user) {
+              const typedReq = req as {
+                session?: { user?: { id: string; email: string } };
+                apiTokenUser?: { id: string; email: string };
+              };
+              // Check cookie session first, then API token user
+              const user = typedReq.session?.user || typedReq.apiTokenUser;
+              if (user) {
                 return {
                   actor: {
-                    id: session.user.id,
-                    email: session.user.email,
+                    id: user.id,
+                    email: user.email,
                   },
                 };
               }
