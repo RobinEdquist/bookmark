@@ -25,8 +25,9 @@ import * as path from 'path';
  * @param text - Raw text from metadata extraction (may contain problematic chars)
  * @returns Sanitized text safe for database storage, or undefined if input is empty
  */
-export function sanitizeText(text: string | undefined): string | undefined {
-  if (!text) return undefined;
+export function sanitizeText(text: unknown): string | undefined {
+  // Handle non-string values (arrays, objects, numbers, etc.)
+  if (!text || typeof text !== 'string') return undefined;
 
   return (
     text
