@@ -8,9 +8,9 @@ import {
 import { Reflector } from '@nestjs/core';
 import { getAuthenticatedUser } from './auth.guard';
 
-// Metadata keys from Better Auth
-const ALLOW_ANONYMOUS_KEY = 'allowAnonymous';
-const OPTIONAL_AUTH_KEY = 'optionalAuth';
+// Metadata keys from Better Auth (see @thallesp/nestjs-better-auth)
+const ALLOW_ANONYMOUS_KEY = 'PUBLIC';
+const OPTIONAL_AUTH_KEY = 'OPTIONAL';
 
 /**
  * Global auth guard that checks both cookie session and API token authentication.
