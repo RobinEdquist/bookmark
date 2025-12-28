@@ -9,7 +9,12 @@ import { ApiKeysModule } from '../api-keys/api-keys.module';
 @Global()
 @Module({
   imports: [DatabaseModule, ApiKeysModule],
-  providers: [WorkerPoolService, ImageProcessingService, CoverService],
+  providers: [
+    WorkerPoolService,
+    ImageProcessingService,
+    CoverService,
+    ApiTokenMiddleware,
+  ],
   exports: [WorkerPoolService, ImageProcessingService, CoverService],
 })
 export class CommonModule implements NestModule {
