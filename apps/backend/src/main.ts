@@ -87,10 +87,19 @@ For browser-based applications, use session-based authentication:
 For scripts, mobile apps, or third-party integrations, use API keys:
 
 1. Create an API key via the settings page or API
-2. Include the key in the \`Authorization\` header:
+2. Include the key in one of the following ways:
+
+   **Authorization Header (recommended):**
    \`\`\`
    Authorization: Bearer bkmrk_your_api_key_here
    \`\`\`
+
+   **Query Parameter (for image/asset URLs):**
+   \`\`\`
+   GET /api/audiobooks/:id/cover?token=bkmrk_your_api_key_here
+   \`\`\`
+
+   Use query parameter authentication when loading images in contexts that cannot set custom headers (e.g., \`<img>\` tags, mobile app image loaders). Note that query parameters may be logged by web servers.
 
 API keys have the same permissions as the user who created them.
 
