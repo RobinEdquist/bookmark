@@ -2,11 +2,14 @@ import {
   createParamDecorator,
   ExecutionContext,
   UnauthorizedException,
+  Logger,
 } from '@nestjs/common';
 import {
   getAuthenticatedUser,
   type AuthenticatedUser,
 } from '../guards/auth.guard';
+
+const logger = new Logger('CurrentUser');
 
 /**
  * Parameter decorator that extracts the current authenticated user from the request.
@@ -28,12 +31,21 @@ import {
 export const CurrentUser = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
     const request = ctx.switchToHttp().getRequest();
+    logger.debug(
+      `@CurrentUser decorator called for ${request.method} ${request.url}`,
+    );
+    logger.debug(
+      `session.user: ${!!request.session?.user}, apiTokenUser: ${!!request.apiTokenUser}`,
+    );
+
     const user = getAuthenticatedUser(request);
 
     if (!user) {
+      logger.debug('No authenticated user found, throwing UnauthorizedException');
       throw new UnauthorizedException('Authentication required');
     }
 
+    logger.debug(`Returning user: ${user.id}`);
     return user;
   },
 );
