@@ -67,12 +67,27 @@ export function createAuthInstance(
         defaultPrefix: 'bkmrk_',
         enableMetadata: true,
         enableSessionForAPIKeys: true,
-        // Support both x-api-key header and Authorization: Bearer/Basic formats
+        // Support x-api-key header, Authorization: Bearer/Basic, and query param token
         customAPIKeyGetter: (ctx) => {
           const headers = ctx.request?.headers as Record<string, string> | undefined;
+
+          // Check query parameter first (useful for image URLs in mobile apps)
+          const url = ctx.request?.url;
+          if (url) {
+            try {
+              const urlObj = new URL(url, 'http://localhost');
+              const tokenParam = urlObj.searchParams.get('token');
+              if (tokenParam?.startsWith('bkmrk_')) {
+                return tokenParam;
+              }
+            } catch {
+              // Invalid URL, continue to header checks
+            }
+          }
+
           if (!headers) return null;
 
-          // Check x-api-key header first (default)
+          // Check x-api-key header
           const xApiKey = headers['x-api-key'];
           if (xApiKey?.startsWith('bkmrk_')) {
             return xApiKey;
