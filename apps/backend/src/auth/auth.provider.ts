@@ -67,6 +67,8 @@ export function createAuthInstance(
         defaultPrefix: 'bkmrk_',
         enableMetadata: true,
         enableSessionForAPIKeys: true,
+        // Rate limiting not needed for this application
+        rateLimit: { enabled: false },
         // Support x-api-key header, Authorization: Bearer/Basic, and query param token
         customAPIKeyGetter: (ctx) => {
           const headers = ctx.request?.headers as Record<string, string> | undefined;
