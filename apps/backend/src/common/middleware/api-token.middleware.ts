@@ -8,7 +8,7 @@ import { ApiKeysService } from '../../api-keys/api-keys.service';
 import * as authSchema from '../../auth/schema';
 
 type Schema = typeof authSchema;
-const DEBUG_API_TOKEN = true; // Temporary debugging flag
+const DEBUG_API_TOKEN = false;
 
 /**
  * Middleware that enables API token authentication for all endpoints.
@@ -17,8 +17,9 @@ const DEBUG_API_TOKEN = true; // Temporary debugging flag
  * 1. Bearer token: `Authorization: Bearer bkmrk_xxx`
  * 2. Basic Auth: `Authorization: Basic base64(any:bkmrk_xxx)`
  *
- * When a valid API token is found, this middleware populates `request.session`
- * with user data, making all existing guards work transparently.
+ * When a valid API token is found, this middleware populates `request.apiTokenUser`
+ * with user data. Guards use `getAuthenticatedUser()` to check both session and
+ * apiTokenUser, making API token authentication work transparently.
  */
 @Injectable()
 export class ApiTokenMiddleware implements NestMiddleware {
@@ -109,12 +110,17 @@ export class ApiTokenMiddleware implements NestMiddleware {
         );
       }
 
-      // Check if user is banned
+      // Check if user is banned (and ban hasn't expired)
       if (user.banned) {
-        if (DEBUG_API_TOKEN) {
-          this.logger.debug('[12] User is banned');
+        const banExpired =
+          user.banExpires && new Date(user.banExpires) < new Date();
+        if (!banExpired) {
+          if (DEBUG_API_TOKEN) {
+            this.logger.debug('[12] User is banned');
+          }
+          return next(); // Banned users should be rejected by guards
         }
-        return next(); // Banned users should be rejected by guards
+        // Ban has expired, allow access
       }
 
       // Store API token user in a dedicated property that won't be overwritten
@@ -151,9 +157,8 @@ export class ApiTokenMiddleware implements NestMiddleware {
 
       next();
     } catch (error) {
-      if (DEBUG_API_TOKEN) {
-        this.logger.error('[ERROR] Exception in middleware:', error);
-      }
+      // Always log errors for security monitoring
+      this.logger.error('API token validation failed:', error);
       // If validation fails, let guards handle unauthorized
       next();
     }
