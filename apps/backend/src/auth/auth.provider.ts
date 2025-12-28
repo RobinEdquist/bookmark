@@ -66,6 +66,43 @@ export function createAuthInstance(
       apiKey({
         defaultPrefix: 'bkmrk_',
         enableMetadata: true,
+        enableSessionForAPIKeys: true,
+        // Support both x-api-key header and Authorization: Bearer/Basic formats
+        customAPIKeyGetter: (ctx) => {
+          const headers = ctx.request?.headers as Record<string, string> | undefined;
+          if (!headers) return null;
+
+          // Check x-api-key header first (default)
+          const xApiKey = headers['x-api-key'];
+          if (xApiKey?.startsWith('bkmrk_')) {
+            return xApiKey;
+          }
+
+          // Check Authorization header for Bearer token
+          const authHeader = headers['authorization'];
+          if (authHeader?.startsWith('Bearer ')) {
+            const token = authHeader.slice(7);
+            if (token.startsWith('bkmrk_')) {
+              return token;
+            }
+          }
+
+          // Check Authorization header for Basic auth (password is API key)
+          if (authHeader?.startsWith('Basic ')) {
+            try {
+              const base64 = authHeader.slice(6);
+              const decoded = Buffer.from(base64, 'base64').toString('utf-8');
+              const [, password] = decoded.split(':');
+              if (password?.startsWith('bkmrk_')) {
+                return password;
+              }
+            } catch {
+              // Invalid base64, ignore
+            }
+          }
+
+          return null;
+        },
       }),
       ...(oidcConfig
         ? [
