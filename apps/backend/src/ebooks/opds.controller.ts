@@ -16,6 +16,7 @@ import {
   ApiResponse,
   ApiBasicAuth,
 } from '@nestjs/swagger';
+import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import * as express from 'express';
 import { OpdsService } from './opds.service';
 import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
@@ -23,6 +24,7 @@ import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
 @ApiTags('OPDS')
 @ApiBasicAuth()
 @Controller('ebooks/opds')
+@AllowAnonymous() // Skip global auth - OpdsAuthGuard handles authentication
 @UseGuards(OpdsAuthGuard)
 export class OpdsController {
   constructor(private readonly opdsService: OpdsService) {}

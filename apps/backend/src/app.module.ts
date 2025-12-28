@@ -30,6 +30,7 @@ import { MamClientModule } from './mam-client';
 import { RequestsModule } from './requests';
 import { APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
+import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
 import { createAuthInstance } from './auth/auth.provider';
 import { CommonModule } from './common/common.module';
 
@@ -143,6 +144,10 @@ import { CommonModule } from './common/common.module';
     {
       provide: APP_GUARD,
       useClass: SignupGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: CombinedAuthGuard,
     },
   ],
 })
