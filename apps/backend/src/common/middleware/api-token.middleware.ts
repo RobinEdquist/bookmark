@@ -8,7 +8,6 @@ import { ApiKeysService } from '../../api-keys/api-keys.service';
 import * as authSchema from '../../auth/schema';
 
 type Schema = typeof authSchema;
-const DEBUG_API_TOKEN = true; // TEMPORARY: debugging 401 issue
 
 /**
  * Middleware that enables API token authentication for all endpoints.
@@ -20,6 +19,8 @@ const DEBUG_API_TOKEN = true; // TEMPORARY: debugging 401 issue
  * When a valid API token is found, this middleware populates `request.apiTokenUser`
  * with user data. Guards use `getAuthenticatedUser()` to check both session and
  * apiTokenUser, making API token authentication work transparently.
+ *
+ * Debug logging is available when log level is set to 'debug'.
  */
 @Injectable()
 export class ApiTokenMiddleware implements NestMiddleware {
@@ -33,60 +34,44 @@ export class ApiTokenMiddleware implements NestMiddleware {
   ) {}
 
   async use(req: Request, _res: Response, next: NextFunction): Promise<void> {
-    if (DEBUG_API_TOKEN) {
-      this.logger.debug(`[1] Middleware called for ${req.method} ${req.path}`);
-      this.logger.debug(
-        `[2] Authorization header: ${req.headers.authorization?.substring(0, 30)}...`,
-      );
-    }
+    this.logger.debug(`[1] Middleware called for ${req.method} ${req.path}`);
+    this.logger.debug(
+      `[2] Authorization header: ${req.headers.authorization?.substring(0, 30)}...`,
+    );
 
     // Skip if already has session (cookie auth takes precedence)
     if ((req as any).session?.user) {
-      if (DEBUG_API_TOKEN) {
-        this.logger.debug('[3] Skipping - session already exists');
-      }
+      this.logger.debug('[3] Skipping - session already exists');
       return next();
     }
 
     // Extract API token from Authorization header
     const apiToken = this.extractApiToken(req.headers.authorization);
     if (!apiToken) {
-      if (DEBUG_API_TOKEN) {
-        this.logger.debug('[4] No API token found in header');
-      }
+      this.logger.debug('[4] No API token found in header');
       return next();
     }
 
-    if (DEBUG_API_TOKEN) {
-      this.logger.debug(`[5] Extracted token: ${apiToken.substring(0, 15)}...`);
-    }
+    this.logger.debug(`[5] Extracted token: ${apiToken.substring(0, 15)}...`);
 
     try {
       // Validate using Better Auth
       const authInstance = this.authService.instance as any;
-      if (DEBUG_API_TOKEN) {
-        this.logger.debug('[6] Calling verifyApiKey...');
-      }
+      this.logger.debug('[6] Calling verifyApiKey...');
       const result = await authInstance.api.verifyApiKey({
         body: { key: apiToken },
       });
 
-      if (DEBUG_API_TOKEN) {
-        this.logger.debug(
-          `[7] verifyApiKey result: valid=${result.valid}, hasKey=${!!result.key}`,
-        );
-      }
+      this.logger.debug(
+        `[7] verifyApiKey result: valid=${result.valid}, hasKey=${!!result.key}`,
+      );
 
       if (!result.valid || !result.key) {
-        if (DEBUG_API_TOKEN) {
-          this.logger.debug('[8] Token invalid or no key returned');
-        }
+        this.logger.debug('[8] Token invalid or no key returned');
         return next(); // Let guards handle unauthorized
       }
 
-      if (DEBUG_API_TOKEN) {
-        this.logger.debug(`[9] Looking up user: ${result.key.userId}`);
-      }
+      this.logger.debug(`[9] Looking up user: ${result.key.userId}`);
 
       // Look up user from database
       const users = await this.db
@@ -96,28 +81,20 @@ export class ApiTokenMiddleware implements NestMiddleware {
         .limit(1);
 
       if (users.length === 0) {
-        if (DEBUG_API_TOKEN) {
-          this.logger.debug('[10] User not found in database');
-        }
+        this.logger.debug('[10] User not found in database');
         return next(); // User not found, let guards handle it
       }
 
       const user = users[0];
 
-      if (DEBUG_API_TOKEN) {
-        this.logger.debug(
-          `[11] Found user: ${user.email}, banned=${user.banned}`,
-        );
-      }
+      this.logger.debug(`[11] Found user: ${user.email}, banned=${user.banned}`);
 
       // Check if user is banned (and ban hasn't expired)
       if (user.banned) {
         const banExpired =
           user.banExpires && new Date(user.banExpires) < new Date();
         if (!banExpired) {
-          if (DEBUG_API_TOKEN) {
-            this.logger.debug('[12] User is banned');
-          }
+          this.logger.debug('[12] User is banned');
           return next(); // Banned users should be rejected by guards
         }
         // Ban has expired, allow access
@@ -140,9 +117,7 @@ export class ApiTokenMiddleware implements NestMiddleware {
       };
       (req as any).apiTokenUser = apiTokenUser;
 
-      if (DEBUG_API_TOKEN) {
-        this.logger.debug(`[13] apiTokenUser set for user: ${user.id}`);
-      }
+      this.logger.debug(`[13] apiTokenUser set for user: ${user.id}`);
 
       // Track usage with IP address
       const clientIp =
@@ -151,9 +126,7 @@ export class ApiTokenMiddleware implements NestMiddleware {
         'unknown';
       await this.apiKeysService.updateKeyUsage(result.key.id, clientIp);
 
-      if (DEBUG_API_TOKEN) {
-        this.logger.debug('[14] Usage tracked, calling next()');
-      }
+      this.logger.debug('[14] Usage tracked, calling next()');
 
       next();
     } catch (error) {
