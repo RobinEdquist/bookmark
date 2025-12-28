@@ -23,7 +23,8 @@ import {
 import * as fs from 'fs/promises';
 import { ImportErrorsService } from './import-errors.service';
 import { AdminGuard } from '../common/guards/admin.guard';
-import { Session } from '@thallesp/nestjs-better-auth';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { ImportQueueService } from '../library-watcher/import-queue.service';
 import {
   ImportErrorListResponseDto,
@@ -198,14 +199,14 @@ export class ImportErrorsController {
   @ApiResponse({ status: 404, description: 'Import error not found' })
   async ignoreError(
     @Param('id') id: string,
-    @Session() session: { user: { id: string } },
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     const error = await this.importErrorsService.getError(id);
     if (!error) {
       throw new NotFoundException('Import error not found');
     }
 
-    await this.importErrorsService.markIgnored(id, session.user.id);
+    await this.importErrorsService.markIgnored(id, user.id);
     return { success: true };
   }
 

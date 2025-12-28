@@ -16,11 +16,9 @@ import {
   ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
-import {
-  Session,
-  AuthService,
-  type UserSession,
-} from '@thallesp/nestjs-better-auth';
+import { AuthService } from '@thallesp/nestjs-better-auth';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { ApiKeysService } from './api-keys.service';
 import {
   ApiKeyResponseDto,
@@ -59,8 +57,8 @@ export class ApiKeysController {
     status: 403,
     description: 'Forbidden - user does not have API key permission',
   })
-  async getMyApiKey(@Session() session: UserSession) {
-    return this.apiKeysService.getUserApiKey(session.user.id);
+  async getMyApiKey(@CurrentUser() user: AuthenticatedUser) {
+    return this.apiKeysService.getUserApiKey(user.id);
   }
 
   @Post()
@@ -81,9 +79,9 @@ export class ApiKeysController {
     status: 403,
     description: 'Forbidden - user does not have API key permission',
   })
-  async createApiKey(@Session() session: UserSession) {
+  async createApiKey(@CurrentUser() user: AuthenticatedUser) {
     return this.apiKeysService.createApiKey(
-      session.user.id,
+      user.id,
       this.authService.instance,
     );
   }
@@ -109,12 +107,12 @@ export class ApiKeysController {
   @ApiResponse({ status: 404, description: 'API key not found' })
   async revokeApiKey(
     @Param('id') id: string,
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
     @Headers() headers: IncomingHttpHeaders,
   ) {
     return this.apiKeysService.revokeApiKey(
       id,
-      session.user.id,
+      user.id,
       this.authService.instance,
       headers,
     );

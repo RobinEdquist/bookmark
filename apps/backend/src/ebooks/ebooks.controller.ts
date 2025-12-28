@@ -31,7 +31,8 @@ import {
 } from '@nestjs/swagger';
 import * as express from 'express';
 import * as fs from 'fs';
-import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { EbooksService, EbookFilters } from './ebooks.service';
 import { UpdateEbookDto } from './dto/update-ebook.dto';
 import { UpdateCoverDto } from './dto/update-cover.dto';
@@ -112,7 +113,7 @@ export class EbooksController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('search') search?: string,
     @Query('genreId') genreId?: string,
     @Query('seriesId') seriesId?: string,
@@ -135,7 +136,7 @@ export class EbooksController {
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
     };
-    return this.ebooksService.findAll(filters, session.user.id);
+    return this.ebooksService.findAll(filters, user.id);
   }
 
   @Get('authors')
@@ -245,8 +246,8 @@ export class EbooksController {
     description: 'Access denied - ebook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
-  async findOne(@Param('id') id: string, @Session() session: UserSession) {
-    await this.ebooksService.verifyNotBlacklisted(id, session.user.id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.ebooksService.verifyNotBlacklisted(id, user.id);
     return this.ebooksService.findById(id);
   }
 
@@ -353,8 +354,8 @@ export class EbooksController {
     description: 'Access denied - ebook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Cover not found' })
-  async getCover(@Param('id') id: string, @Session() session: UserSession) {
-    await this.ebooksService.verifyNotBlacklisted(id, session.user.id);
+  async getCover(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.ebooksService.verifyNotBlacklisted(id, user.id);
     const cover = await this.ebooksService.getCover(id);
 
     if (!cover) {
@@ -384,10 +385,10 @@ export class EbooksController {
   async download(
     @Param('id') id: string,
     @Res() res: express.Response,
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     // Check if user has blacklisted any tags on this ebook
-    await this.ebooksService.verifyNotBlacklisted(id, session.user.id);
+    await this.ebooksService.verifyNotBlacklisted(id, user.id);
     const downloadInfo = await this.ebooksService.getDownloadInfo(id);
 
     res.setHeader('Content-Type', downloadInfo.mimeType);

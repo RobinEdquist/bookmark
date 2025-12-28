@@ -5,7 +5,6 @@ import {
   Body,
   Param,
   UseGuards,
-  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,7 +13,8 @@ import {
   ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { CanRequestGuard } from '../common/guards/can-request.guard';
 import { RequestsService } from './requests.service';
 import { SearchMamDto, CreateRequestDto } from './dto';
@@ -24,16 +24,6 @@ import {
   ContentRequestDto,
   AutoApproveBudgetDto,
 } from './dto/request-response.dto';
-
-interface AuthenticatedRequest extends Request {
-  session: {
-    user: {
-      id: string;
-      email: string;
-      role: string;
-    };
-  };
-}
 
 @ApiTags('Requests')
 @ApiSecurity('better-auth.session_token')
@@ -59,12 +49,12 @@ export class RequestsController {
     status: 403,
     description: 'Forbidden - user cannot make requests',
   })
-  async search(@Body() dto: SearchMamDto, @Req() req: AuthenticatedRequest) {
+  async search(@Body() dto: SearchMamDto, @CurrentUser() user: AuthenticatedUser) {
     return this.requestsService.search(
       dto.query,
       dto.perPage ?? 25,
       dto.offset ?? 0,
-      req.session.user.id,
+      user.id,
       dto.contentType ?? 'all',
       dto.searchIn,
       dto.languages,
@@ -86,8 +76,8 @@ export class RequestsController {
     status: 403,
     description: 'Forbidden - user cannot make requests',
   })
-  async getMyRequests(@Req() req: AuthenticatedRequest) {
-    return this.requestsService.getUserRequests(req.session.user.id);
+  async getMyRequests(@CurrentUser() user: AuthenticatedUser) {
+    return this.requestsService.getUserRequests(user.id);
   }
 
   @Post()
@@ -111,9 +101,9 @@ export class RequestsController {
   })
   async createRequest(
     @Body() dto: CreateRequestDto,
-    @Req() req: AuthenticatedRequest,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.requestsService.createRequest(dto, req.session.user.id);
+    return this.requestsService.createRequest(dto, user.id);
   }
 
   @Post(':id/support')
@@ -136,10 +126,10 @@ export class RequestsController {
   @ApiResponse({ status: 404, description: 'Request not found' })
   async supportRequest(
     @Param('id') id: string,
-    @Req() req: AuthenticatedRequest,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    await this.requestsService.addSupporter(id, req.session.user.id);
-    return this.requestsService.getRequestById(id, req.session.user.id);
+    await this.requestsService.addSupporter(id, user.id);
+    return this.requestsService.getRequestById(id, user.id);
   }
 
   @Get('auto-approve-budget')
@@ -159,9 +149,9 @@ export class RequestsController {
     status: 403,
     description: 'Forbidden - user cannot make requests',
   })
-  async getAutoApproveBudget(@Req() req: AuthenticatedRequest) {
+  async getAutoApproveBudget(@CurrentUser() user: AuthenticatedUser) {
     const { used, limit } = await this.requestsService.getUserAutoApproveUsage(
-      req.session.user.id,
+      user.id,
     );
 
     // Calculate next Monday 00:00 UTC

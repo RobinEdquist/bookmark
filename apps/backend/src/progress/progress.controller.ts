@@ -14,7 +14,8 @@ import {
   ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
-import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { UpdateProgressDto } from './dto/update-progress.dto';
 import { CreateSessionDto } from './dto/create-session.dto';
@@ -52,9 +53,9 @@ export class ProgressController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getAllProgress(
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ProgressWithAudiobook[]> {
-    return this.progressService.getAllProgress(session.user.id);
+    return this.progressService.getAllProgress(user.id);
   }
 
   @Get('stats')
@@ -70,9 +71,9 @@ export class ProgressController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getListeningStats(
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ListeningStats> {
-    return this.progressService.getListeningStats(session.user.id);
+    return this.progressService.getListeningStats(user.id);
   }
 
   @Get(':audiobookId')
@@ -94,10 +95,10 @@ export class ProgressController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProgress(
     @Param('audiobookId') audiobookId: string,
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ProgressResponse> {
     const progress = await this.progressService.getProgress(
-      session.user.id,
+      user.id,
       audiobookId,
     );
     if (!progress) {
@@ -135,10 +136,10 @@ export class ProgressController {
   async updateProgress(
     @Param('audiobookId') audiobookId: string,
     @Body() dto: UpdateProgressDto,
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<ProgressResponse> {
     return this.progressService.updateProgress(
-      session.user.id,
+      user.id,
       audiobookId,
       dto,
     );
@@ -165,10 +166,10 @@ export class ProgressController {
   async createSession(
     @Param('audiobookId') audiobookId: string,
     @Body() dto: CreateSessionDto,
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ id: string; durationSeconds: number }> {
     return this.progressService.createSession(
-      session.user.id,
+      user.id,
       audiobookId,
       dto,
     );
@@ -189,8 +190,8 @@ export class ProgressController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async hideProgress(
     @Param('audiobookId') audiobookId: string,
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ): Promise<void> {
-    return this.progressService.hideProgress(session.user.id, audiobookId);
+    return this.progressService.hideProgress(user.id, audiobookId);
   }
 }

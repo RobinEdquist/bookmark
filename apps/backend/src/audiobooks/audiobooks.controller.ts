@@ -36,7 +36,8 @@ import * as express from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import archiver from 'archiver';
-import { Session, type UserSession } from '@thallesp/nestjs-better-auth';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
 import { ImportChaptersDto } from '../audnexus/dto/import-chapters.dto';
@@ -122,7 +123,7 @@ export class AudiobooksController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('search') search?: string,
     @Query('genreId') genreId?: string,
     @Query('seriesId') seriesId?: string,
@@ -145,7 +146,7 @@ export class AudiobooksController {
       limit: limit ? parseInt(limit, 10) : undefined,
       offset: offset ? parseInt(offset, 10) : undefined,
     };
-    return this.audiobooksService.findAll(filters, session.user.id);
+    return this.audiobooksService.findAll(filters, user.id);
   }
 
   @Get('authors')
@@ -346,8 +347,8 @@ export class AudiobooksController {
     description: 'Access denied - audiobook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
-  async findOne(@Param('id') id: string, @Session() session: UserSession) {
-    await this.audiobooksService.verifyNotBlacklisted(id, session.user.id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.audiobooksService.verifyNotBlacklisted(id, user.id);
     return this.audiobooksService.findById(id);
   }
 
@@ -505,8 +506,8 @@ export class AudiobooksController {
     description: 'Access denied - audiobook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Cover not found' })
-  async getCover(@Param('id') id: string, @Session() session: UserSession) {
-    await this.audiobooksService.verifyNotBlacklisted(id, session.user.id);
+  async getCover(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    await this.audiobooksService.verifyNotBlacklisted(id, user.id);
     const cover = await this.audiobooksService.getCover(id);
 
     if (!cover) {
@@ -561,10 +562,10 @@ export class AudiobooksController {
     @Headers('range') rangeHeader: string | undefined,
     @Req() req: express.Request,
     @Res() res: express.Response,
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     // Check if user has blacklisted any tags on this audiobook
-    await this.audiobooksService.verifyNotBlacklisted(id, session.user.id);
+    await this.audiobooksService.verifyNotBlacklisted(id, user.id);
     const position = positionParam ? parseInt(positionParam, 10) : 0;
 
     // Get stream info (finds correct file and offset for position)
@@ -689,10 +690,10 @@ export class AudiobooksController {
   async download(
     @Param('id') id: string,
     @Res() res: express.Response,
-    @Session() session: UserSession,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     // Check if user has blacklisted any tags on this audiobook
-    await this.audiobooksService.verifyNotBlacklisted(id, session.user.id);
+    await this.audiobooksService.verifyNotBlacklisted(id, user.id);
     const downloadInfo = await this.audiobooksService.getDownloadInfo(id);
 
     res.setHeader(
