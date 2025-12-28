@@ -111,6 +111,9 @@ import { CommonModule } from './common/common.module';
       imports: [DatabaseModule, ConfigModule],
       useFactory: (database: NodePgDatabase, configService: ConfigService) => ({
         auth: createAuthInstance(database, configService),
+        // Disable global auth guard so we can handle API token auth ourselves
+        // Better Auth's guard only checks session.user, not apiTokenUser
+        disableGlobalAuthGuard: true,
       }),
       inject: [DATABASE_CONNECTION, ConfigService],
     }),
