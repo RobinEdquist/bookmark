@@ -736,61 +736,89 @@ export class MediaImporterService {
 
   // ===== PRIVATE HELPERS =====
 
+  /**
+   * Creates or links person(s) to an audiobook.
+   * Supports comma-separated names (e.g., "Author A, Author B" becomes two separate people).
+   */
   private async createOrLinkAudiobookPerson(
     audiobookId: string,
-    name: string,
+    nameOrNames: string,
     role: 'author' | 'narrator',
   ): Promise<void> {
-    let [person] = await this.db
-      .select()
-      .from(audiobooksSchema.people)
-      .where(eq(audiobooksSchema.people.name, name))
-      .limit(1);
+    // Split by comma and trim whitespace
+    const names = nameOrNames
+      .split(',')
+      .map((n) => n.trim())
+      .filter((n) => n.length > 0);
 
-    if (!person) {
-      [person] = await this.db
-        .insert(audiobooksSchema.people)
-        .values({ name })
-        .returning();
-    }
+    for (let i = 0; i < names.length; i++) {
+      const name = names[i];
 
-    if (role === 'author') {
-      await this.db.insert(audiobooksSchema.audiobookAuthors).values({
-        audiobookId,
-        personId: person.id,
-        order: 0,
-      });
-    } else {
-      await this.db.insert(audiobooksSchema.audiobookNarrators).values({
-        audiobookId,
-        personId: person.id,
-        order: 0,
-      });
+      let [person] = await this.db
+        .select()
+        .from(audiobooksSchema.people)
+        .where(eq(audiobooksSchema.people.name, name))
+        .limit(1);
+
+      if (!person) {
+        [person] = await this.db
+          .insert(audiobooksSchema.people)
+          .values({ name })
+          .returning();
+      }
+
+      if (role === 'author') {
+        await this.db.insert(audiobooksSchema.audiobookAuthors).values({
+          audiobookId,
+          personId: person.id,
+          order: i,
+        });
+      } else {
+        await this.db.insert(audiobooksSchema.audiobookNarrators).values({
+          audiobookId,
+          personId: person.id,
+          order: i,
+        });
+      }
     }
   }
 
+  /**
+   * Creates or links a single person to an ebook.
+   * For comma-separated names, callers should split first or use createOrLinkEbookPersons.
+   */
   private async createOrLinkEbookPerson(
     ebookId: string,
     name: string,
     order: number,
   ): Promise<void> {
-    let [person] = await this.db
-      .select()
-      .from(audiobooksSchema.people)
-      .where(eq(audiobooksSchema.people.name, name))
-      .limit(1);
+    // Split by comma in case a single author field contains multiple names
+    const names = name
+      .split(',')
+      .map((n) => n.trim())
+      .filter((n) => n.length > 0);
 
-    if (!person) {
-      [person] = await this.db
-        .insert(audiobooksSchema.people)
-        .values({ name })
-        .returning();
+    for (let i = 0; i < names.length; i++) {
+      const personName = names[i];
+
+      let [person] = await this.db
+        .select()
+        .from(audiobooksSchema.people)
+        .where(eq(audiobooksSchema.people.name, personName))
+        .limit(1);
+
+      if (!person) {
+        [person] = await this.db
+          .insert(audiobooksSchema.people)
+          .values({ name: personName })
+          .returning();
+      }
+
+      await this.db.insert(ebooksSchema.ebookAuthors).values({
+        ebookId,
+        personId: person.id,
+        order: order + i,
+      });
     }
-
-    await this.db.insert(ebooksSchema.ebookAuthors).values({
-      ebookId,
-      personId: person.id,
-      order,
-    });
   }
 }
