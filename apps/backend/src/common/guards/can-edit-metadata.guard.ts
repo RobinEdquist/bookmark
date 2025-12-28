@@ -9,6 +9,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database-connection.constants';
 import * as usersSchema from '../../users/schema';
+import { getAuthenticatedUser } from './auth.guard';
 
 @Injectable()
 export class CanEditMetadataGuard implements CanActivate {
@@ -19,14 +20,14 @@ export class CanEditMetadataGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const session = request.session;
+    const user = getAuthenticatedUser(request);
 
-    if (!session?.user) {
+    if (!user) {
       throw new ForbiddenException('Not authenticated');
     }
 
     // Admins always have access
-    if (session.user.role === 'admin') {
+    if (user.role === 'admin') {
       return true;
     }
 
@@ -36,7 +37,7 @@ export class CanEditMetadataGuard implements CanActivate {
         canEditMetadata: usersSchema.userPermissions.canEditMetadata,
       })
       .from(usersSchema.userPermissions)
-      .where(eq(usersSchema.userPermissions.userId, session.user.id))
+      .where(eq(usersSchema.userPermissions.userId, user.id))
       .limit(1);
 
     if (!permissions?.canEditMetadata) {

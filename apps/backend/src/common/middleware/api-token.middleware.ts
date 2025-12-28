@@ -117,25 +117,25 @@ export class ApiTokenMiddleware implements NestMiddleware {
         return next(); // Banned users should be rejected by guards
       }
 
-      // Populate request.session to match cookie auth structure
-      (req as any).session = {
-        user: {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          emailVerified: user.emailVerified,
-          image: user.image,
-          role: user.role,
-          banned: user.banned,
-          banReason: user.banReason,
-          banExpires: user.banExpires,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        },
+      // Store API token user in a dedicated property that won't be overwritten
+      // by Better Auth's session middleware (which sets request.session = null for non-cookie auth)
+      const apiTokenUser = {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        image: user.image,
+        role: user.role,
+        banned: user.banned,
+        banReason: user.banReason,
+        banExpires: user.banExpires,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
       };
+      (req as any).apiTokenUser = apiTokenUser;
 
       if (DEBUG_API_TOKEN) {
-        this.logger.debug(`[13] Session populated with user: ${user.id}`);
+        this.logger.debug(`[13] apiTokenUser set for user: ${user.id}`);
       }
 
       // Track usage with IP address

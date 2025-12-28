@@ -11,6 +11,7 @@ import { DATABASE_CONNECTION } from '../../database/database-connection.constant
 import * as appSettingsSchema from '../../app-settings/schema';
 import * as usersSchema from '../../users/schema';
 import { MamClientService } from '../../mam-client';
+import { getAuthenticatedUser } from './auth.guard';
 
 type CombinedSchema = typeof appSettingsSchema & typeof usersSchema;
 
@@ -24,9 +25,9 @@ export class CanRequestGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const session = request.session;
+    const user = getAuthenticatedUser(request);
 
-    if (!session?.user) {
+    if (!user) {
       throw new ForbiddenException('Not authenticated');
     }
 
@@ -49,7 +50,7 @@ export class CanRequestGuard implements CanActivate {
     }
 
     // Admins always have access when requests are enabled
-    if (session.user.role === 'admin') {
+    if (user.role === 'admin') {
       return true;
     }
 
@@ -59,7 +60,7 @@ export class CanRequestGuard implements CanActivate {
         canRequestContent: usersSchema.userPermissions.canRequestContent,
       })
       .from(usersSchema.userPermissions)
-      .where(eq(usersSchema.userPermissions.userId, session.user.id))
+      .where(eq(usersSchema.userPermissions.userId, user.id))
       .limit(1);
 
     if (!permissions?.canRequestContent) {

@@ -11,6 +11,7 @@ import { eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database-connection.constants';
 import { userPermissions } from '../../users/schema';
 import * as authSchema from '../../auth/schema';
+import { getAuthenticatedUser } from './auth.guard';
 
 type Schema = typeof authSchema & { userPermissions: typeof userPermissions };
 
@@ -23,14 +24,14 @@ export class ApiKeyPermissionGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const session = request.session;
+    const user = getAuthenticatedUser(request);
 
-    if (!session?.user) {
+    if (!user) {
       throw new UnauthorizedException();
     }
 
     // Admins always have permission
-    if (session.user.role === 'admin') {
+    if (user.role === 'admin') {
       return true;
     }
 
@@ -38,7 +39,7 @@ export class ApiKeyPermissionGuard implements CanActivate {
     const permissions = await this.db
       .select({ canGenerateApiKeys: userPermissions.canGenerateApiKeys })
       .from(userPermissions)
-      .where(eq(userPermissions.userId, session.user.id))
+      .where(eq(userPermissions.userId, user.id))
       .limit(1);
 
     if (permissions.length === 0 || !permissions[0].canGenerateApiKeys) {
