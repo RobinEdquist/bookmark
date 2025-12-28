@@ -12,9 +12,10 @@ type Schema = typeof authSchema;
 /**
  * Middleware that enables API token authentication for all endpoints.
  *
- * Supports two token formats:
+ * Supports three token formats:
  * 1. Bearer token: `Authorization: Bearer bkmrk_xxx`
  * 2. Basic Auth: `Authorization: Basic base64(any:bkmrk_xxx)`
+ * 3. Query parameter: `?token=bkmrk_xxx`
  *
  * When a valid API token is found, this middleware populates `request.apiTokenUser`
  * with user data. Guards use `getAuthenticatedUser()` to check both session and
@@ -45,10 +46,12 @@ export class ApiTokenMiddleware implements NestMiddleware {
       return next();
     }
 
-    // Extract API token from Authorization header
-    const apiToken = this.extractApiToken(req.headers.authorization);
+    // Extract API token from Authorization header or query parameter
+    const apiToken =
+      this.extractApiToken(req.headers.authorization) ||
+      this.extractApiTokenFromQuery(req.query.token);
     if (!apiToken) {
-      this.logger.debug('[4] No API token found in header');
+      this.logger.debug('[4] No API token found in header or query');
       return next();
     }
 
@@ -166,6 +169,19 @@ export class ApiTokenMiddleware implements NestMiddleware {
       }
     }
 
+    return null;
+  }
+
+  /**
+   * Extracts API token from query parameter.
+   * Format: ?token=bkmrk_xxx
+   */
+  private extractApiTokenFromQuery(token: unknown): string | null {
+    // Handle array case (multiple query params with same name)
+    const tokenValue = Array.isArray(token) ? token[0] : token;
+    if (typeof tokenValue === 'string' && tokenValue.startsWith('bkmrk_')) {
+      return tokenValue;
+    }
     return null;
   }
 }
