@@ -90,7 +90,9 @@ export class ApiTokenMiddleware implements NestMiddleware {
 
       const user = users[0];
 
-      this.logger.debug(`[11] Found user: ${user.email}, banned=${user.banned}`);
+      this.logger.debug(
+        `[11] Found user: ${user.email}, banned=${user.banned}`,
+      );
 
       // Check if user is banned (and ban hasn't expired)
       if (user.banned) {

@@ -246,7 +246,10 @@ export class EbooksController {
     description: 'Access denied - ebook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
-  async findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     await this.ebooksService.verifyNotBlacklisted(id, user.id);
     return this.ebooksService.findById(id);
   }
@@ -354,7 +357,10 @@ export class EbooksController {
     description: 'Access denied - ebook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Cover not found' })
-  async getCover(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  async getCover(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     await this.ebooksService.verifyNotBlacklisted(id, user.id);
     const cover = await this.ebooksService.getCover(id);
 

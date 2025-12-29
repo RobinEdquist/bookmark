@@ -141,4 +141,11 @@ export const queryKeys = {
     chapters: (asin: string) =>
       [...queryKeys.audnexus.all, 'chapters', asin] as const,
   },
+  lists: {
+    all: ['lists'] as const,
+    list: () => [...queryKeys.lists.all, 'list'] as const,
+    detail: (id: string) => [...queryKeys.lists.all, 'detail', id] as const,
+    forItem: (itemType: 'audiobook' | 'ebook', itemId: string) =>
+      [...queryKeys.lists.all, 'for-item', itemType, itemId] as const,
+  },
 } as const;

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, Star, AlertTriangle, Trash2, ImageIcon } from "lucide-react";
+import { MoreVertical, Pencil, Star, AlertTriangle, Trash2, ImageIcon, ListPlus } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -25,6 +25,7 @@ import { EditAudiobookDialog } from "./edit-audiobook-dialog";
 import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
 import { DeleteAudiobookDialog } from "./delete-audiobook-dialog";
 import { ChangeCoverDialog } from "./change-cover-dialog";
+import { AddToListDialog } from "../lists/add-to-list-dialog";
 
 interface AudiobookCardProps {
   audiobook: AudiobookListItem;
@@ -42,6 +43,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
+  const [addToListOpen, setAddToListOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const { unlinkAudiobook, isUnlinking } = useHardcoverUnlinkAudiobook();
@@ -211,7 +213,11 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                     {t("changeCover")}
                   </DropdownMenuItem>
                 )}
-                {canEdit && isHardcoverConfigured && <DropdownMenuSeparator />}
+                <DropdownMenuItem onClick={() => setAddToListOpen(true)}>
+                  <ListPlus className="h-4 w-4" />
+                  {t("addToList")}
+                </DropdownMenuItem>
+                {isHardcoverConfigured && <DropdownMenuSeparator />}
                 {isHardcoverConfigured && !isLinkedToHardcover && (
                   <DropdownMenuItem onClick={() => setHardcoverSyncOpen(true)}>
                     <Image
@@ -287,6 +293,13 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
           onOpenChange={setChangeCoverOpen}
         />
       )}
+
+      <AddToListDialog
+        itemType="audiobook"
+        itemId={audiobook.id}
+        open={addToListOpen}
+        onOpenChange={setAddToListOpen}
+      />
     </>
   );
 }

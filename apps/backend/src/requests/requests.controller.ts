@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Param,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -49,7 +42,10 @@ export class RequestsController {
     status: 403,
     description: 'Forbidden - user cannot make requests',
   })
-  async search(@Body() dto: SearchMamDto, @CurrentUser() user: AuthenticatedUser) {
+  async search(
+    @Body() dto: SearchMamDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.requestsService.search(
       dto.query,
       dto.perPage ?? 25,

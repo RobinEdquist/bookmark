@@ -1,0 +1,71 @@
+{
+  "title": "Mina Listor",
+  "createList": "Skapa lista",
+  "createFirstList": "Skapa din första lista",
+  "noLists": "Du har inte skapat några listor än",
+  "item": "objekt",
+  "items": "objekt",
+  "edit": "Redigera",
+  "delete": "Ta bort",
+  "createDialog": {
+    "title": "Skapa lista",
+    "name": "Listnamn",
+    "namePlaceholder": "Mina Favoriter",
+    "visibility": "Synlighet",
+    "private": "Privat",
+    "privateDescription": "Endast du kan se denna lista",
+    "public": "Offentlig",
+    "publicDescription": "Alla med länken kan se",
+    "cancel": "Avbryt",
+    "create": "Skapa",
+    "creating": "Skapar...",
+    "success": "Lista skapad",
+    "error": "Kunde inte skapa lista"
+  },
+  "editDialog": {
+    "title": "Redigera lista",
+    "name": "Listnamn",
+    "visibility": "Synlighet",
+    "private": "Privat",
+    "privateDescription": "Endast du kan se denna lista",
+    "public": "Offentlig",
+    "publicDescription": "Alla med länken kan se",
+    "cancel": "Avbryt",
+    "save": "Spara",
+    "success": "Listan uppdaterad",
+    "error": "Kunde inte uppdatera lista"
+  },
+  "deleteDialog": {
+    "title": "Ta bort lista",
+    "description": "Är du säker på att du vill ta bort \"{name}\"? Detta kan inte ångras.",
+    "cancel": "Avbryt",
+    "confirm": "Ta bort",
+    "success": "Listan borttagen",
+    "error": "Kunde inte ta bort lista"
+  },
+  "addToList": {
+    "title": "Lägg till i lista",
+    "loading": "Laddar listor...",
+    "noLists": "Inga listor än. Skapa en!",
+    "createNew": "Skapa ny lista",
+    "added": "Tillagd i listan",
+    "removed": "Borttagen från listan",
+    "error": "Kunde inte uppdatera lista"
+  },
+  "detail": {
+    "backToLists": "Tillbaka till listor",
+    "public": "Offentlig lista",
+    "private": "Privat lista",
+    "item": "objekt",
+    "items": "objekt",
+    "empty": "Denna lista är tom",
+    "edit": "Redigera",
+    "deleteList": "Ta bort",
+    "dragToReorder": "Dra för att ändra ordning",
+    "audiobook": "Ljudbok",
+    "ebook": "E-bok",
+    "itemRemoved": "Objekt borttaget från listan",
+    "removeError": "Kunde inte ta bort objekt",
+    "notFound": "Listan hittades inte"
+  }
+}

@@ -14,7 +14,8 @@
     "missing": "Fil saknas",
     "missingDescription": "E-bokfilen kunde inte hittas",
     "linkedToHardcover": "Länkad till Hardcover",
-    "rating": "{rating} ({count})"
+    "rating": "{rating} ({count})",
+    "addToList": "Lägg till i lista"
   },
   "deleteDialog": {
     "title": "Ta bort e-bok",
