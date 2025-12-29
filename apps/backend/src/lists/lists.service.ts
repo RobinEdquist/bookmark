@@ -59,20 +59,25 @@ export class ListsService {
         isPublic: listsSchema.lists.isPublic,
         createdAt: listsSchema.lists.createdAt,
         updatedAt: listsSchema.lists.updatedAt,
-        itemCount: sql<number>`(
-          SELECT COUNT(*) FROM list_items WHERE list_id = ${listsSchema.lists.id}
-        )::int`,
       })
       .from(listsSchema.lists)
       .where(eq(listsSchema.lists.userId, userId))
       .orderBy(desc(listsSchema.lists.updatedAt));
 
-    // Fetch cover previews for each list (up to 3 most recent items)
+    // Fetch item count and cover previews for each list
     const listsWithPreviews = await Promise.all(
       lists.map(async (list) => {
-        const previewCovers = await this.getListCoverPreviews(list.id);
+        const [countResult, previewCovers] = await Promise.all([
+          this.db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(listsSchema.listItems)
+            .where(eq(listsSchema.listItems.listId, list.id)),
+          this.getListCoverPreviews(list.id),
+        ]);
+
         return {
           ...list,
+          itemCount: countResult[0]?.count ?? 0,
           isOwner,
           previewCovers,
         };
@@ -94,9 +99,6 @@ export class ListsService {
         isPublic: listsSchema.lists.isPublic,
         createdAt: listsSchema.lists.createdAt,
         updatedAt: listsSchema.lists.updatedAt,
-        itemCount: sql<number>`(
-          SELECT COUNT(*) FROM list_items WHERE list_id = ${listsSchema.lists.id}
-        )::int`,
         ownerName: authSchema.user.name,
       })
       .from(listsSchema.lists)
@@ -112,12 +114,20 @@ export class ListsService {
       )
       .orderBy(desc(listsSchema.lists.updatedAt));
 
-    // Fetch cover previews for each list
+    // Fetch item count and cover previews for each list
     const listsWithPreviews = await Promise.all(
       lists.map(async (list) => {
-        const previewCovers = await this.getListCoverPreviews(list.id);
+        const [countResult, previewCovers] = await Promise.all([
+          this.db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(listsSchema.listItems)
+            .where(eq(listsSchema.listItems.listId, list.id)),
+          this.getListCoverPreviews(list.id),
+        ]);
+
         return {
           ...list,
+          itemCount: countResult[0]?.count ?? 0,
           isOwner: false,
           previewCovers,
         };
