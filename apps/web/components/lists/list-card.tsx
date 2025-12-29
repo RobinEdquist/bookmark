@@ -53,20 +53,26 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                   const index = covers.length - 1 - reverseIndex;
                   const totalCovers = covers.length;
 
-                  // Fan effect: convex spread (like holding cards)
-                  // Back covers fan out to the sides, front cover centered
-                  const config = {
-                    idle: {
-                      rotations: [0, 6, 12],
-                      xOffsets: [0, 12, 24],
-                      yOffsets: [0, 0, 0],
+                  // Balanced fan configs for 1, 2, or 3 covers
+                  // Front cover (index 0) is always on top and centered
+                  const configs: Record<number, { idle: { rotations: number[]; xOffsets: number[] }; hover: { rotations: number[]; xOffsets: number[] } }> = {
+                    1: {
+                      idle: { rotations: [0], xOffsets: [0] },
+                      hover: { rotations: [0], xOffsets: [0] },
                     },
-                    hover: {
-                      rotations: [0, 12, 24],
-                      xOffsets: [-10, 12, 34],
-                      yOffsets: [-3, 0, 3],
+                    2: {
+                      // Front centered, back fans right
+                      idle: { rotations: [0, 8], xOffsets: [0, 18] },
+                      hover: { rotations: [-4, 12], xOffsets: [-8, 24] },
+                    },
+                    3: {
+                      // Front centered, others fan left and right symmetrically
+                      idle: { rotations: [0, -8, 8], xOffsets: [0, -14, 14] },
+                      hover: { rotations: [0, -14, 14], xOffsets: [0, -22, 22] },
                     },
                   };
+
+                  const config = configs[totalCovers] ?? configs[1];
 
                   return (
                     <motion.div
@@ -82,15 +88,13 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                       }}
                       variants={{
                         idle: {
-                          x: `${config.idle.xOffsets[index]}%`,
-                          y: `${config.idle.yOffsets[index]}%`,
-                          rotate: config.idle.rotations[index],
+                          x: `${config.idle.xOffsets[index] ?? 0}%`,
+                          rotate: config.idle.rotations[index] ?? 0,
                           scale: 1,
                         },
                         hover: {
-                          x: `${config.hover.xOffsets[index]}%`,
-                          y: `${config.hover.yOffsets[index]}%`,
-                          rotate: config.hover.rotations[index],
+                          x: `${config.hover.xOffsets[index] ?? 0}%`,
+                          rotate: config.hover.rotations[index] ?? 0,
                           scale: index === 0 ? 1.02 : 1,
                         },
                       }}
