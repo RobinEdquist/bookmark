@@ -91,7 +91,10 @@ export class ListsService {
 
     // Combine and sort by updatedAt descending
     const allLists = [...userLists, ...publicLists]
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      )
       .slice(0, limit);
 
     // Fetch item count and cover previews for each list

@@ -64,6 +64,31 @@ export class ListsController {
     return this.listsService.getListsForItem(user.id, itemType, itemId);
   }
 
+  @Get('recent')
+  @ApiOperation({
+    summary: 'Get recently updated lists',
+    description:
+      'Returns user lists and public lists from others, sorted by most recently updated',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Max lists to return (default 12, max 50)',
+  })
+  @ApiResponse({ status: 200, description: 'Recently updated lists' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async findRecent(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = Math.min(
+      Math.max(parseInt(limit || '12', 10) || 12, 1),
+      50,
+    );
+    return this.listsService.findRecent(user.id, parsedLimit);
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get list by ID',
