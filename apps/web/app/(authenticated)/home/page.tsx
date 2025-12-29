@@ -13,9 +13,9 @@ export default function HomePage() {
       <div className="mx-auto max-w-7xl space-y-8">
         <StatsSection />
         <ContinueListeningSection />
-        <RecentlyUpdatedListsSection />
         <RecentlyAddedSection />
         <RecentlyAddedEbooksSection />
+        <RecentlyUpdatedListsSection />
         <RecentlyUpdatedSeriesSection />
       </div>
     </div>
