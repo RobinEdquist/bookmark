@@ -41,7 +41,11 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
           whileHover="hover"
         >
           {/* Stacked covers - fan layout */}
-          <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted/30">
+          <motion.div
+            className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted/30"
+            initial="idle"
+            whileHover="hover"
+          >
             {covers.length > 0 ? (
               <div className="relative h-full w-full">
                 {/* Render in reverse so first cover renders last (on top) */}
@@ -51,11 +55,18 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
 
                   // Fan effect: convex spread (like holding cards)
                   // Back covers fan out to the sides, front cover centered
-                  const rotations = [0, 8, 16]; // front cover straight, back covers fan outward
-                  const xOffsets = [0, 15, 30]; // horizontal spread percentage
-
-                  const rotation = rotations[index] ?? 0;
-                  const xOffset = xOffsets[index] ?? 0;
+                  const config = {
+                    idle: {
+                      rotations: [0, 6, 12],
+                      xOffsets: [0, 12, 24],
+                      yOffsets: [0, 0, 0],
+                    },
+                    hover: {
+                      rotations: [0, 12, 24],
+                      xOffsets: [-10, 12, 34],
+                      yOffsets: [-3, 0, 3],
+                    },
+                  };
 
                   return (
                     <motion.div
@@ -69,13 +80,19 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                         zIndex: totalCovers - index,
                         transformOrigin: "bottom center",
                       }}
-                      initial={false}
-                      animate={{
-                        x: `${xOffset}%`,
-                        rotate: rotation,
-                      }}
-                      whileHover={{
-                        scale: index === 0 ? 1.03 : 1,
+                      variants={{
+                        idle: {
+                          x: `${config.idle.xOffsets[index]}%`,
+                          y: `${config.idle.yOffsets[index]}%`,
+                          rotate: config.idle.rotations[index],
+                          scale: 1,
+                        },
+                        hover: {
+                          x: `${config.hover.xOffsets[index]}%`,
+                          y: `${config.hover.yOffsets[index]}%`,
+                          rotate: config.hover.rotations[index],
+                          scale: index === 0 ? 1.02 : 1,
+                        },
                       }}
                       transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     >
@@ -96,7 +113,7 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                 <ListMusic className="h-12 w-12 text-muted-foreground" />
               </div>
             )}
-          </div>
+          </motion.div>
 
           {/* Text content */}
           <div className="mt-3 flex items-start justify-between gap-2">
