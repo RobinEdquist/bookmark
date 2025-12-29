@@ -80,10 +80,7 @@ export class ApiKeysController {
     description: 'Forbidden - user does not have API key permission',
   })
   async createApiKey(@CurrentUser() user: AuthenticatedUser) {
-    return this.apiKeysService.createApiKey(
-      user.id,
-      this.authService.instance,
-    );
+    return this.apiKeysService.createApiKey(user.id, this.authService.instance);
   }
 
   @Delete(':id')

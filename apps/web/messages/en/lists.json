@@ -1,0 +1,71 @@
+{
+  "title": "My Lists",
+  "createList": "Create List",
+  "createFirstList": "Create your first list",
+  "noLists": "You haven't created any lists yet",
+  "item": "item",
+  "items": "items",
+  "edit": "Edit",
+  "delete": "Delete",
+  "createDialog": {
+    "title": "Create List",
+    "name": "List Name",
+    "namePlaceholder": "My Favorites",
+    "visibility": "Visibility",
+    "private": "Private",
+    "privateDescription": "Only you can see this list",
+    "public": "Public",
+    "publicDescription": "Anyone with the link can view",
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating...",
+    "success": "List created",
+    "error": "Failed to create list"
+  },
+  "editDialog": {
+    "title": "Edit List",
+    "name": "List Name",
+    "visibility": "Visibility",
+    "private": "Private",
+    "privateDescription": "Only you can see this list",
+    "public": "Public",
+    "publicDescription": "Anyone with the link can view",
+    "cancel": "Cancel",
+    "save": "Save",
+    "success": "List updated",
+    "error": "Failed to update list"
+  },
+  "deleteDialog": {
+    "title": "Delete List",
+    "description": "Are you sure you want to delete \"{name}\"? This action cannot be undone.",
+    "cancel": "Cancel",
+    "confirm": "Delete",
+    "success": "List deleted",
+    "error": "Failed to delete list"
+  },
+  "addToList": {
+    "title": "Add to List",
+    "loading": "Loading lists...",
+    "noLists": "No lists yet. Create one!",
+    "createNew": "Create New List",
+    "added": "Added to list",
+    "removed": "Removed from list",
+    "error": "Failed to update list"
+  },
+  "detail": {
+    "backToLists": "Back to Lists",
+    "public": "Public list",
+    "private": "Private list",
+    "item": "item",
+    "items": "items",
+    "empty": "This list is empty",
+    "edit": "Edit",
+    "deleteList": "Delete",
+    "dragToReorder": "Drag to reorder",
+    "audiobook": "Audiobook",
+    "ebook": "Ebook",
+    "itemRemoved": "Item removed from list",
+    "removeError": "Failed to remove item",
+    "notFound": "List not found"
+  }
+}

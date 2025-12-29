@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download, Star } from "lucide-react";
+import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download, Star, ListPlus } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { EditEbookDialog } from "./edit-ebook-dialog";
 import { DeleteEbookDialog } from "./delete-ebook-dialog";
 import { ChangeEbookCoverDialog } from "./change-ebook-cover-dialog";
+import { AddToListDialog } from "../lists/add-to-list-dialog";
 
 interface EbookCardProps {
   ebook: EbookListItem;
@@ -36,6 +37,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
+  const [addToListOpen, setAddToListOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
   const { mutateAsync: deleteEbook, isPending: isDeleting } = useDeleteEbook();
 
@@ -206,6 +208,10 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                     {t("changeCover")}
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onClick={() => setAddToListOpen(true)}>
+                  <ListPlus className="h-4 w-4" />
+                  {t("addToList")}
+                </DropdownMenuItem>
                 {canDelete && <DropdownMenuSeparator />}
                 {canDelete && (
                   <DropdownMenuItem
@@ -249,6 +255,13 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
           onOpenChange={setChangeCoverOpen}
         />
       )}
+
+      <AddToListDialog
+        itemType="ebook"
+        itemId={ebook.id}
+        open={addToListOpen}
+        onOpenChange={setAddToListOpen}
+      />
     </>
   );
 }

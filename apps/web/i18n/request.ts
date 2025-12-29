@@ -22,6 +22,7 @@ export default getRequestConfig(async () => {
       player: (await import(`../messages/${locale}/player.json`)).default,
       requests: (await import(`../messages/${locale}/requests.json`)).default,
       admin: (await import(`../messages/${locale}/admin.json`)).default,
+      lists: (await import(`../messages/${locale}/lists.json`)).default,
     },
   };
 });

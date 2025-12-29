@@ -347,7 +347,10 @@ export class AudiobooksController {
     description: 'Access denied - audiobook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
-  async findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  async findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     await this.audiobooksService.verifyNotBlacklisted(id, user.id);
     return this.audiobooksService.findById(id);
   }
@@ -506,7 +509,10 @@ export class AudiobooksController {
     description: 'Access denied - audiobook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Cover not found' })
-  async getCover(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+  async getCover(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     await this.audiobooksService.verifyNotBlacklisted(id, user.id);
     const cover = await this.audiobooksService.getCover(id);
 

@@ -71,7 +71,9 @@ export function createAuthInstance(
         rateLimit: { enabled: false },
         // Support x-api-key header, Authorization: Bearer/Basic, and query param token
         customAPIKeyGetter: (ctx) => {
-          const headers = ctx.request?.headers as Record<string, string> | undefined;
+          const headers = ctx.request?.headers as
+            | Record<string, string>
+            | undefined;
 
           // Check query parameter first (useful for image URLs in mobile apps)
           const url = ctx.request?.url;

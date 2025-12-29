@@ -15,7 +15,8 @@
     "linkedToHardcover": "Linked to Hardcover",
     "rating": "{rating} ({count})",
     "missing": "File missing",
-    "missingDescription": "The audio file for this audiobook could not be found"
+    "missingDescription": "The audio file for this audiobook could not be found",
+    "addToList": "Add to list"
   },
   "deleteDialog": {
     "title": "Delete Audiobook",

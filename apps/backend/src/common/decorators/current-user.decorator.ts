@@ -41,7 +41,9 @@ export const CurrentUser = createParamDecorator(
     const user = getAuthenticatedUser(request);
 
     if (!user) {
-      logger.debug('No authenticated user found, throwing UnauthorizedException');
+      logger.debug(
+        'No authenticated user found, throwing UnauthorizedException',
+      );
       throw new UnauthorizedException('Authentication required');
     }
 

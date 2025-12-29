@@ -15,7 +15,8 @@
     "linkedToHardcover": "Länkad till Hardcover",
     "rating": "{rating} ({count})",
     "missing": "Fil saknas",
-    "missingDescription": "Ljudfilen för denna ljudbok kunde inte hittas"
+    "missingDescription": "Ljudfilen för denna ljudbok kunde inte hittas",
+    "addToList": "Lägg till i lista"
   },
   "deleteDialog": {
     "title": "Ta bort ljudbok",

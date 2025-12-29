@@ -7,6 +7,7 @@ import * as authSchema from '../auth/schema';
 import * as appSettingsSchema from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as importErrorsSchema from '../import-errors/schema';
+import * as listsSchema from '../lists/schema';
 
 @Global()
 @Module({
@@ -25,6 +26,7 @@ import * as importErrorsSchema from '../import-errors/schema';
             ...appSettingsSchema,
             ...audiobooksSchema,
             ...importErrorsSchema,
+            ...listsSchema,
           },
         });
       },

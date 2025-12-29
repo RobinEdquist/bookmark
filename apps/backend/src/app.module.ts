@@ -28,6 +28,7 @@ import { RestoreModule } from './restore/restore.module';
 import { HealthModule } from './health/health.module';
 import { MamClientModule } from './mam-client';
 import { RequestsModule } from './requests';
+import { ListsModule } from './lists/lists.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
@@ -139,6 +140,7 @@ import { CommonModule } from './common/common.module';
     HealthModule,
     MamClientModule,
     RequestsModule,
+    ListsModule,
   ],
   controllers: [],
   providers: [

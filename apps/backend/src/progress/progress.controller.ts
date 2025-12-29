@@ -138,11 +138,7 @@ export class ProgressController {
     @Body() dto: UpdateProgressDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ProgressResponse> {
-    return this.progressService.updateProgress(
-      user.id,
-      audiobookId,
-      dto,
-    );
+    return this.progressService.updateProgress(user.id, audiobookId, dto);
   }
 
   @Post(':audiobookId/session')
@@ -168,11 +164,7 @@ export class ProgressController {
     @Body() dto: CreateSessionDto,
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ id: string; durationSeconds: number }> {
-    return this.progressService.createSession(
-      user.id,
-      audiobookId,
-      dto,
-    );
+    return this.progressService.createSession(user.id, audiobookId, dto);
   }
 
   @Post(':audiobookId/hide')
