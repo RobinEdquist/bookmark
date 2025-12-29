@@ -153,5 +153,6 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.lists.all, 'detail', id] as const,
     forItem: (itemType: 'audiobook' | 'ebook', itemId: string) =>
       [...queryKeys.lists.all, 'for-item', itemType, itemId] as const,
+    recent: (limit?: number) => [...queryKeys.lists.all, 'recent', limit] as const,
   },
 } as const;

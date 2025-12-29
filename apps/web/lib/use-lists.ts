@@ -21,6 +21,10 @@ export interface ListsResponse {
   publicLists: List[];
 }
 
+export interface RecentListsResponse {
+  lists: List[];
+}
+
 export interface ListItemAudiobook {
   id: string;
   title: string;
@@ -114,6 +118,18 @@ async function fetchListsForItem(
 
   if (!response.ok) {
     throw new Error("Failed to fetch lists for item");
+  }
+
+  return response.json();
+}
+
+async function fetchRecentLists(limit: number = 12): Promise<RecentListsResponse> {
+  const response = await fetch(`/api/lists/recent?limit=${limit}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch recent lists");
   }
 
   return response.json();
@@ -248,6 +264,14 @@ export function useListsForItem(
     queryKey: queryKeys.lists.forItem(itemType, itemId),
     queryFn: () => fetchListsForItem(itemType, itemId),
     enabled: !!itemId,
+  });
+}
+
+export function useRecentLists(limit: number = 12) {
+  return useQuery({
+    queryKey: queryKeys.lists.recent(limit),
+    queryFn: () => fetchRecentLists(limit),
+    staleTime: 60 * 1000, // 1 minute
   });
 }
 
