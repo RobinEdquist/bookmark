@@ -42,7 +42,7 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
         >
           {/* Stacked covers - fan layout */}
           <motion.div
-            className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted/30"
+            className="relative aspect-square w-full"
             initial="idle"
             whileHover="hover"
           >
