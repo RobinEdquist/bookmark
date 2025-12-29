@@ -48,6 +48,82 @@ export class ListsService {
   }
 
   /**
+   * Get recently updated lists: user's own lists + public lists from others
+   * Combined and sorted by updatedAt descending
+   */
+  async findRecent(userId: string, limit: number = 12) {
+    // Get user's lists (both private and public)
+    const userLists = await this.db
+      .select({
+        id: listsSchema.lists.id,
+        userId: listsSchema.lists.userId,
+        name: listsSchema.lists.name,
+        isPublic: listsSchema.lists.isPublic,
+        createdAt: listsSchema.lists.createdAt,
+        updatedAt: listsSchema.lists.updatedAt,
+        ownerName: sql<string>`NULL`.as('owner_name'),
+      })
+      .from(listsSchema.lists)
+      .where(eq(listsSchema.lists.userId, userId));
+
+    // Get public lists from other users
+    const publicLists = await this.db
+      .select({
+        id: listsSchema.lists.id,
+        userId: listsSchema.lists.userId,
+        name: listsSchema.lists.name,
+        isPublic: listsSchema.lists.isPublic,
+        createdAt: listsSchema.lists.createdAt,
+        updatedAt: listsSchema.lists.updatedAt,
+        ownerName: authSchema.user.name,
+      })
+      .from(listsSchema.lists)
+      .innerJoin(
+        authSchema.user,
+        eq(listsSchema.lists.userId, authSchema.user.id),
+      )
+      .where(
+        and(
+          eq(listsSchema.lists.isPublic, true),
+          sql`${listsSchema.lists.userId} != ${userId}`,
+        ),
+      );
+
+    // Combine and sort by updatedAt descending
+    const allLists = [...userLists, ...publicLists]
+      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+      .slice(0, limit);
+
+    // Fetch item count and cover previews for each list
+    const listsWithPreviews = await Promise.all(
+      allLists.map(async (list) => {
+        const [countResult, previewCovers] = await Promise.all([
+          this.db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(listsSchema.listItems)
+            .where(eq(listsSchema.listItems.listId, list.id)),
+          this.getListCoverPreviews(list.id),
+        ]);
+
+        return {
+          id: list.id,
+          userId: list.userId,
+          name: list.name,
+          isPublic: list.isPublic,
+          createdAt: list.createdAt,
+          updatedAt: list.updatedAt,
+          itemCount: countResult[0]?.count ?? 0,
+          isOwner: list.userId === userId,
+          previewCovers,
+          ownerName: list.ownerName,
+        };
+      }),
+    );
+
+    return { lists: listsWithPreviews };
+  }
+
+  /**
    * Get lists with cover previews
    */
   private async getListsWithPreviews(userId: string, isOwner: boolean) {
