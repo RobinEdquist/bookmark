@@ -37,13 +37,13 @@ export class ListsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Get user lists',
-    description: 'Returns all lists owned by the current user',
+    summary: 'Get all lists',
+    description: 'Returns user lists and public lists from other users',
   })
-  @ApiResponse({ status: 200, description: 'List of user lists' })
+  @ApiResponse({ status: 200, description: 'Lists grouped by ownership' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.listsService.findAllForUser(user.id);
+    return this.listsService.findAll(user.id);
   }
 
   @Get('for-item')

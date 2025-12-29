@@ -1,8 +1,11 @@
 {
-  "title": "My Lists",
+  "title": "Lists",
   "createList": "Create List",
   "createFirstList": "Create your first list",
-  "noLists": "You haven't created any lists yet",
+  "noLists": "No lists available yet",
+  "myListsSection": "My Lists",
+  "publicListsSection": "Public Lists",
+  "noOwnLists": "You haven't created any lists yet",
   "item": "item",
   "items": "items",
   "edit": "Edit",

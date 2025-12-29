@@ -1,8 +1,11 @@
 {
-  "title": "Mina Listor",
+  "title": "Listor",
   "createList": "Skapa lista",
   "createFirstList": "Skapa din första lista",
-  "noLists": "Du har inte skapat några listor än",
+  "noLists": "Inga listor tillgängliga än",
+  "myListsSection": "Mina listor",
+  "publicListsSection": "Offentliga listor",
+  "noOwnLists": "Du har inte skapat några listor än",
   "item": "objekt",
   "items": "objekt",
   "edit": "Redigera",

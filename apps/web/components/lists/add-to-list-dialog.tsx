@@ -48,7 +48,7 @@ export function AddToListDialog({
     setProcessingListId(listId);
     try {
       if (isInList && listItemId) {
-        await removeFromList({ listId, itemId: listItemId });
+        await removeFromList({ listId, itemId: listItemId, itemType, mediaItemId: itemId });
         toast.success(t("removed"));
       } else {
         await addToList({ listId, itemType, itemId });

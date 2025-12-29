@@ -123,11 +123,14 @@ export default function ListDetailPage({ params }: ListDetailPageProps) {
   // Convert to List type for dialogs
   const listForDialog: List = {
     id: list.id,
+    userId: list.userId,
     name: list.name,
     isPublic: list.isPublic,
     itemCount: list.items.length,
     createdAt: list.createdAt,
     updatedAt: list.updatedAt,
+    isOwner: list.isOwner,
+    previewCovers: [],
   };
 
   return (

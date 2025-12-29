@@ -32,12 +32,29 @@ export class ListsService {
   ) {}
 
   /**
-   * Get all lists for a user
+   * Get all lists: user's own lists + public lists from others
    */
-  async findAllForUser(userId: string) {
-    const userLists = await this.db
+  async findAll(userId: string) {
+    // Get user's lists
+    const myLists = await this.getListsWithPreviews(userId, true);
+
+    // Get public lists from other users
+    const publicLists = await this.getPublicListsFromOthers(userId);
+
+    return {
+      myLists,
+      publicLists,
+    };
+  }
+
+  /**
+   * Get lists with cover previews
+   */
+  private async getListsWithPreviews(userId: string, isOwner: boolean) {
+    const lists = await this.db
       .select({
         id: listsSchema.lists.id,
+        userId: listsSchema.lists.userId,
         name: listsSchema.lists.name,
         isPublic: listsSchema.lists.isPublic,
         createdAt: listsSchema.lists.createdAt,
@@ -50,7 +67,106 @@ export class ListsService {
       .where(eq(listsSchema.lists.userId, userId))
       .orderBy(desc(listsSchema.lists.updatedAt));
 
-    return userLists;
+    // Fetch cover previews for each list (up to 3 most recent items)
+    const listsWithPreviews = await Promise.all(
+      lists.map(async (list) => {
+        const previewCovers = await this.getListCoverPreviews(list.id);
+        return {
+          ...list,
+          isOwner,
+          previewCovers,
+        };
+      }),
+    );
+
+    return listsWithPreviews;
+  }
+
+  /**
+   * Get public lists from other users
+   */
+  private async getPublicListsFromOthers(excludeUserId: string) {
+    const lists = await this.db
+      .select({
+        id: listsSchema.lists.id,
+        userId: listsSchema.lists.userId,
+        name: listsSchema.lists.name,
+        isPublic: listsSchema.lists.isPublic,
+        createdAt: listsSchema.lists.createdAt,
+        updatedAt: listsSchema.lists.updatedAt,
+        itemCount: sql<number>`(
+          SELECT COUNT(*) FROM list_items WHERE list_id = ${listsSchema.lists.id}
+        )::int`,
+        ownerName: authSchema.user.name,
+      })
+      .from(listsSchema.lists)
+      .innerJoin(
+        authSchema.user,
+        eq(listsSchema.lists.userId, authSchema.user.id),
+      )
+      .where(
+        and(
+          eq(listsSchema.lists.isPublic, true),
+          sql`${listsSchema.lists.userId} != ${excludeUserId}`,
+        ),
+      )
+      .orderBy(desc(listsSchema.lists.updatedAt));
+
+    // Fetch cover previews for each list
+    const listsWithPreviews = await Promise.all(
+      lists.map(async (list) => {
+        const previewCovers = await this.getListCoverPreviews(list.id);
+        return {
+          ...list,
+          isOwner: false,
+          previewCovers,
+        };
+      }),
+    );
+
+    return listsWithPreviews;
+  }
+
+  /**
+   * Get up to 3 cover URLs for preview (most recently added)
+   */
+  private async getListCoverPreviews(listId: string): Promise<string[]> {
+    const items = await this.db
+      .select({
+        itemType: listsSchema.listItems.itemType,
+        audiobookId: listsSchema.listItems.audiobookId,
+        ebookId: listsSchema.listItems.ebookId,
+      })
+      .from(listsSchema.listItems)
+      .where(eq(listsSchema.listItems.listId, listId))
+      .orderBy(desc(listsSchema.listItems.createdAt))
+      .limit(3);
+
+    const covers: string[] = [];
+
+    for (const item of items) {
+      if (item.itemType === 'audiobook' && item.audiobookId) {
+        const audiobook = await this.db
+          .select({ coverUrl: audiobooksSchema.audiobooks.coverUrl })
+          .from(audiobooksSchema.audiobooks)
+          .where(eq(audiobooksSchema.audiobooks.id, item.audiobookId))
+          .limit(1);
+        if (audiobook[0]?.coverUrl) {
+          covers.push(audiobook[0].coverUrl);
+        }
+      } else if (item.itemType === 'ebook' && item.ebookId) {
+        const ebook = await this.db
+          .select({ coverUrl: ebooksSchema.ebooks.coverUrl })
+          .from(ebooksSchema.ebooks)
+          .where(eq(ebooksSchema.ebooks.id, item.ebookId))
+          .limit(1);
+        if (ebook[0]?.coverUrl) {
+          covers.push(ebook[0].coverUrl);
+        }
+      }
+    }
+
+    return covers;
   }
 
   /**

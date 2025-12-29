@@ -5,11 +5,20 @@ import { queryKeys } from "./query-keys";
 
 export interface List {
   id: string;
+  userId: string;
   name: string;
   isPublic: boolean;
   itemCount: number;
   createdAt: string;
   updatedAt: string;
+  isOwner: boolean;
+  previewCovers: string[];
+  ownerName?: string;
+}
+
+export interface ListsResponse {
+  myLists: List[];
+  publicLists: List[];
 }
 
 export interface ListItemAudiobook {
@@ -60,7 +69,7 @@ export interface ListForItem {
 }
 
 // Fetch functions
-async function fetchLists(): Promise<List[]> {
+async function fetchLists(): Promise<ListsResponse> {
   const response = await fetch("/api/lists", {
     credentials: "include",
   });
@@ -248,6 +257,7 @@ export function useCreateList() {
   return useMutation({
     mutationFn: createList,
     onSuccess: () => {
+      // Invalidate all list queries including forItem queries
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
@@ -282,7 +292,41 @@ export function useAddToList() {
 
   return useMutation({
     mutationFn: addToList,
-    onSuccess: (_, { listId, itemType, itemId }) => {
+    onMutate: async ({ listId, itemType, itemId }) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.lists.forItem(itemType, itemId),
+      });
+
+      // Snapshot the previous value
+      const previousLists = queryClient.getQueryData<ListForItem[]>(
+        queryKeys.lists.forItem(itemType, itemId)
+      );
+
+      // Optimistically update to show item as added
+      if (previousLists) {
+        queryClient.setQueryData<ListForItem[]>(
+          queryKeys.lists.forItem(itemType, itemId),
+          previousLists.map((list) =>
+            list.id === listId
+              ? { ...list, containsItem: true, itemCount: list.itemCount + 1 }
+              : list
+          )
+        );
+      }
+
+      return { previousLists };
+    },
+    onError: (_, { itemType, itemId }, context) => {
+      // Rollback on error
+      if (context?.previousLists) {
+        queryClient.setQueryData(
+          queryKeys.lists.forItem(itemType, itemId),
+          context.previousLists
+        );
+      }
+    },
+    onSettled: (_, __, { listId, itemType, itemId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(listId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.list() });
       queryClient.invalidateQueries({
@@ -296,11 +340,50 @@ export function useRemoveFromList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: removeFromList,
-    onSuccess: (_, { listId }) => {
+    mutationFn: ({ listId, itemId }: {
+      listId: string;
+      itemId: string;
+      itemType?: "audiobook" | "ebook";
+      mediaItemId?: string;
+    }) => removeFromList({ listId, itemId }),
+    onMutate: async ({ listId, itemType, mediaItemId }) => {
+      // If itemType and mediaItemId provided, optimistically update forItem query
+      if (itemType && mediaItemId) {
+        await queryClient.cancelQueries({
+          queryKey: queryKeys.lists.forItem(itemType, mediaItemId),
+        });
+
+        const previousLists = queryClient.getQueryData<ListForItem[]>(
+          queryKeys.lists.forItem(itemType, mediaItemId)
+        );
+
+        if (previousLists) {
+          queryClient.setQueryData<ListForItem[]>(
+            queryKeys.lists.forItem(itemType, mediaItemId),
+            previousLists.map((list) =>
+              list.id === listId
+                ? { ...list, containsItem: false, listItemId: null, itemCount: Math.max(0, list.itemCount - 1) }
+                : list
+            )
+          );
+        }
+
+        return { previousLists, itemType, mediaItemId };
+      }
+      return {};
+    },
+    onError: (_, __, context) => {
+      if (context?.previousLists && context.itemType && context.mediaItemId) {
+        queryClient.setQueryData(
+          queryKeys.lists.forItem(context.itemType, context.mediaItemId),
+          context.previousLists
+        );
+      }
+    },
+    onSettled: (_, __, { listId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(listId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.list() });
-      // Also invalidate forItem queries since containsItem may have changed
+      // Also invalidate all forItem queries
       queryClient.invalidateQueries({
         queryKey: queryKeys.lists.all,
         predicate: (query) => query.queryKey[1] === "for-item",
