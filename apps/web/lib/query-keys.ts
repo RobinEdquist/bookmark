@@ -30,6 +30,12 @@ export const queryKeys = {
     all: ["series"] as const,
     list: (filters?: { limit?: number; offset?: number }) =>
       [...queryKeys.series.all, "list", filters] as const,
+    infinite: (filters?: {
+      search?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.series.all, "infinite", filters] as const,
+    detail: (id: string) => [...queryKeys.series.all, "detail", id] as const,
     recentlyUpdated: (limit?: number) =>
       [...queryKeys.series.all, "recently-updated", limit] as const,
     options: (search?: string) =>

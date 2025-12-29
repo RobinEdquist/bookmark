@@ -22,6 +22,7 @@ import { EditEbookDialog } from "./edit-ebook-dialog";
 import { DeleteEbookDialog } from "./delete-ebook-dialog";
 import { ChangeEbookCoverDialog } from "./change-ebook-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
+import { formatSeriesOrder } from "../../lib/format-series";
 
 interface EbookCardProps {
   ebook: EbookListItem;
@@ -69,12 +70,6 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
 
   const primaryAuthor = ebook.authors[0]?.name;
   const primarySeries = ebook.series[0];
-
-  // Format series order: remove unnecessary decimals (1.0 -> 1, 1.5 -> 1.5)
-  const formatSeriesOrder = (order: string) => {
-    const num = parseFloat(order);
-    return Number.isInteger(num) ? num.toString() : num.toString();
-  };
 
   // Show series info if available, otherwise subtitle
   const secondaryText = primarySeries

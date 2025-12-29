@@ -1,9 +1,14 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
 export interface SeriesAudiobook {
+  id: string;
+  coverUrl: string | null;
+}
+
+export interface SeriesEbook {
   id: string;
   coverUrl: string | null;
 }
@@ -13,7 +18,49 @@ export interface SeriesWithBooks {
   name: string;
   bookCount: number;
   audiobooks: SeriesAudiobook[];
+  ebooks: SeriesEbook[];
   lastUpdated: string;
+}
+
+export interface SeriesDetailAudiobook {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  coverUrl: string | null;
+  duration: number | null;
+  authors: { name: string }[];
+  order: string;
+  status: "available" | "missing" | "importing" | "hidden";
+}
+
+export interface SeriesDetailEbook {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  coverUrl: string | null;
+  pageCount: number | null;
+  authors: { name: string }[];
+  order: string;
+  status: "available" | "missing" | "importing" | "hidden";
+}
+
+export interface SeriesDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  audiobooks: SeriesDetailAudiobook[];
+  ebooks: SeriesDetailEbook[];
+  audiobookCount: number;
+  ebookCount: number;
+}
+
+export type SeriesSortBy = "name" | "lastUpdated" | "bookCount";
+export type SeriesSortOrder = "asc" | "desc";
+
+export interface SeriesFilters {
+  search?: string;
+  sortBy?: SeriesSortBy;
+  sortOrder?: SeriesSortOrder;
 }
 
 async function fetchRecentlyUpdatedSeries(
@@ -96,6 +143,77 @@ export function useSeriesOptions(search?: string) {
   return useQuery({
     queryKey: queryKeys.series.options(search),
     queryFn: () => fetchSeriesOptions(search),
+    staleTime: 60 * 1000, // 1 minute
+  });
+}
+
+// Fetch series detail by ID
+async function fetchSeriesDetail(id: string): Promise<SeriesDetail> {
+  const response = await fetch(`/api/series/${id}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch series detail");
+  }
+
+  return response.json();
+}
+
+export function useSeriesDetail(id: string) {
+  return useQuery({
+    queryKey: queryKeys.series.detail(id),
+    queryFn: () => fetchSeriesDetail(id),
+    staleTime: 60 * 1000, // 1 minute
+    enabled: !!id,
+  });
+}
+
+// Fetch series with infinite scroll
+const PAGE_SIZE = 24;
+
+async function fetchSeriesPage(
+  filters: SeriesFilters,
+  pageParam: number
+): Promise<{ series: SeriesWithBooks[]; total: number; nextOffset: number | null }> {
+  const params = new URLSearchParams();
+  params.set("limit", PAGE_SIZE.toString());
+  params.set("offset", pageParam.toString());
+
+  if (filters.search) {
+    params.set("search", filters.search);
+  }
+  if (filters.sortBy) {
+    params.set("sortBy", filters.sortBy);
+  }
+  if (filters.sortOrder) {
+    params.set("sortOrder", filters.sortOrder);
+  }
+
+  const response = await fetch(`/api/series?${params}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch series");
+  }
+
+  const data = await response.json();
+  const nextOffset = pageParam + PAGE_SIZE < data.total ? pageParam + PAGE_SIZE : null;
+
+  return {
+    series: data.series,
+    total: data.total,
+    nextOffset,
+  };
+}
+
+export function useInfiniteSeries(filters: SeriesFilters = {}) {
+  return useInfiniteQuery({
+    queryKey: queryKeys.series.infinite(filters),
+    queryFn: ({ pageParam }) => fetchSeriesPage(filters, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage) => lastPage.nextOffset,
     staleTime: 60 * 1000, // 1 minute
   });
 }

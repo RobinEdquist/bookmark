@@ -1,0 +1,29 @@
+{
+  "title": "Series",
+  "search": "Search series...",
+  "bookCount": "{count, plural, =1 {1 book} other {# books}}",
+  "empty": {
+    "title": "No series found",
+    "description": "Series will appear here once audiobooks or ebooks with series metadata are added."
+  },
+  "sort": {
+    "placeholder": "Sort by...",
+    "nameAsc": "Name (A-Z)",
+    "nameDesc": "Name (Z-A)",
+    "lastUpdatedDesc": "Recently Updated",
+    "lastUpdatedAsc": "Oldest Updated",
+    "bookCountDesc": "Most Books",
+    "bookCountAsc": "Fewest Books"
+  },
+  "detail": {
+    "backToSeries": "Back to Series",
+    "notFound": "Series not found",
+    "audiobooksSection": "Audiobooks",
+    "ebooksSection": "Ebooks",
+    "audiobookCount": "{count, plural, =1 {1 audiobook} other {# audiobooks}}",
+    "ebookCount": "{count, plural, =1 {1 ebook} other {# ebooks}}",
+    "pageCount": "{count, plural, =1 {1 page} other {# pages}}",
+    "noBooks": "No books in this series yet.",
+    "missing": "Missing"
+  }
+}

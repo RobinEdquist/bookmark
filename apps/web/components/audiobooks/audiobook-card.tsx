@@ -26,6 +26,7 @@ import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
 import { DeleteAudiobookDialog } from "./delete-audiobook-dialog";
 import { ChangeCoverDialog } from "./change-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
+import { formatSeriesOrder } from "../../lib/format-series";
 
 interface AudiobookCardProps {
   audiobook: AudiobookListItem;
@@ -83,12 +84,6 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
 
   const primaryAuthor = audiobook.authors[0]?.name;
   const primarySeries = audiobook.series[0];
-
-  // Format series order: remove unnecessary decimals (1.0 -> 1, 1.5 -> 1.5)
-  const formatSeriesOrder = (order: string) => {
-    const num = parseFloat(order);
-    return Number.isInteger(num) ? num.toString() : num.toString();
-  };
 
   // Show series info if available, otherwise subtitle
   const secondaryText = primarySeries

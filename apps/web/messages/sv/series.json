@@ -1,0 +1,29 @@
+{
+  "title": "Serier",
+  "search": "Sök serier...",
+  "bookCount": "{count, plural, =1 {1 bok} other {# böcker}}",
+  "empty": {
+    "title": "Inga serier hittades",
+    "description": "Serier visas här när ljudböcker eller e-böcker med seriemetadata har lagts till."
+  },
+  "sort": {
+    "placeholder": "Sortera efter...",
+    "nameAsc": "Namn (A-Ö)",
+    "nameDesc": "Namn (Ö-A)",
+    "lastUpdatedDesc": "Senast uppdaterade",
+    "lastUpdatedAsc": "Äldst uppdaterade",
+    "bookCountDesc": "Flest böcker",
+    "bookCountAsc": "Färst böcker"
+  },
+  "detail": {
+    "backToSeries": "Tillbaka till serier",
+    "notFound": "Serien hittades inte",
+    "audiobooksSection": "Ljudböcker",
+    "ebooksSection": "E-böcker",
+    "audiobookCount": "{count, plural, =1 {1 ljudbok} other {# ljudböcker}}",
+    "ebookCount": "{count, plural, =1 {1 e-bok} other {# e-böcker}}",
+    "pageCount": "{count, plural, =1 {1 sida} other {# sidor}}",
+    "noBooks": "Inga böcker i denna serie än.",
+    "missing": "Saknas"
+  }
+}

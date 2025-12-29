@@ -88,13 +88,13 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                       }}
                       variants={{
                         idle: {
-                          x: `${config.idle.xOffsets[index] ?? 0}%`,
-                          rotate: config.idle.rotations[index] ?? 0,
+                          x: `${config?.idle.xOffsets[index] ?? 0}%`,
+                          rotate: config?.idle.rotations[index] ?? 0,
                           scale: 1,
                         },
                         hover: {
-                          x: `${config.hover.xOffsets[index] ?? 0}%`,
-                          rotate: config.hover.rotations[index] ?? 0,
+                          x: `${config?.hover.xOffsets[index] ?? 0}%`,
+                          rotate: config?.hover.rotations[index] ?? 0,
                           scale: index === 0 ? 1.02 : 1,
                         },
                       }}

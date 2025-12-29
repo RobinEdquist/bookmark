@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../common/guards/auth.guard';
 import {
   ApiTags,
@@ -6,6 +6,7 @@ import {
   ApiQuery,
   ApiResponse,
   ApiSecurity,
+  ApiParam,
 } from '@nestjs/swagger';
 import { SeriesService } from './series.service';
 import { SeriesListResponseDto } from './dto/series-response.dto';
@@ -33,6 +34,23 @@ export class SeriesController {
     required: false,
     description: 'Number of items to skip for pagination',
   })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Search series by name',
+  })
+  @ApiQuery({
+    name: 'sortBy',
+    required: false,
+    enum: ['name', 'lastUpdated', 'bookCount'],
+    description: 'Field to sort by',
+  })
+  @ApiQuery({
+    name: 'sortOrder',
+    required: false,
+    enum: ['asc', 'desc'],
+    description: 'Sort order',
+  })
   @ApiResponse({
     status: 200,
     description: 'List of series with metadata',
@@ -42,10 +60,16 @@ export class SeriesController {
   async getAll(
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('search') search?: string,
+    @Query('sortBy') sortBy?: 'name' | 'lastUpdated' | 'bookCount',
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ) {
     return this.seriesService.getAll(
       limit ? parseInt(limit, 10) : undefined,
       offset ? parseInt(offset, 10) : undefined,
+      search,
+      sortBy,
+      sortOrder,
     );
   }
 
@@ -69,5 +93,25 @@ export class SeriesController {
     return this.seriesService.getRecentlyUpdated(
       limit ? parseInt(limit, 10) : undefined,
     );
+  }
+
+  @Get(':id')
+  @ApiOperation({
+    summary: 'Get series by ID',
+    description:
+      'Returns detailed series information including all audiobooks and ebooks',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Series ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Series detail with audiobooks and ebooks',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Series not found' })
+  async getById(@Param('id') id: string) {
+    return this.seriesService.getById(id);
   }
 }
