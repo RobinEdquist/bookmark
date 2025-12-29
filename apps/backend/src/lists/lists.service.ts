@@ -146,23 +146,9 @@ export class ListsService {
 
     for (const item of items) {
       if (item.itemType === 'audiobook' && item.audiobookId) {
-        const audiobook = await this.db
-          .select({ coverUrl: audiobooksSchema.audiobooks.coverUrl })
-          .from(audiobooksSchema.audiobooks)
-          .where(eq(audiobooksSchema.audiobooks.id, item.audiobookId))
-          .limit(1);
-        if (audiobook[0]?.coverUrl) {
-          covers.push(audiobook[0].coverUrl);
-        }
+        covers.push(`/api/audiobooks/${item.audiobookId}/cover`);
       } else if (item.itemType === 'ebook' && item.ebookId) {
-        const ebook = await this.db
-          .select({ coverUrl: ebooksSchema.ebooks.coverUrl })
-          .from(ebooksSchema.ebooks)
-          .where(eq(ebooksSchema.ebooks.id, item.ebookId))
-          .limit(1);
-        if (ebook[0]?.coverUrl) {
-          covers.push(ebook[0].coverUrl);
-        }
+        covers.push(`/api/ebooks/${item.ebookId}/cover`);
       }
     }
 
@@ -244,7 +230,6 @@ export class ListsService {
         id: audiobooksSchema.audiobooks.id,
         title: audiobooksSchema.audiobooks.title,
         subtitle: audiobooksSchema.audiobooks.subtitle,
-        coverUrl: audiobooksSchema.audiobooks.coverUrl,
         duration: audiobooksSchema.audiobooks.duration,
         status: audiobooksSchema.audiobooks.status,
       })
@@ -272,6 +257,7 @@ export class ListsService {
 
     return {
       ...result[0],
+      coverUrl: `/api/audiobooks/${audiobookId}/cover`,
       authors: authors.map((a) => a.name),
     };
   }
@@ -282,7 +268,6 @@ export class ListsService {
         id: ebooksSchema.ebooks.id,
         title: ebooksSchema.ebooks.title,
         subtitle: ebooksSchema.ebooks.subtitle,
-        coverUrl: ebooksSchema.ebooks.coverUrl,
         pageCount: ebooksSchema.ebooks.pageCount,
         status: ebooksSchema.ebooks.status,
       })
@@ -307,6 +292,7 @@ export class ListsService {
 
     return {
       ...result[0],
+      coverUrl: `/api/ebooks/${ebookId}/cover`,
       authors: authors.map((a) => a.name),
     };
   }
