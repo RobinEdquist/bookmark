@@ -41,45 +41,43 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
           whileHover="hover"
         >
           {/* Stacked covers - fan layout */}
-          <div className="relative aspect-square w-full">
+          <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-muted/30">
             {covers.length > 0 ? (
               <div className="relative h-full w-full">
-                {covers.map((coverUrl, index) => {
-                  // Fan effect: covers spread horizontally with slight overlap
-                  // First cover on left, last on right, front cover on top
+                {/* Render in reverse so first cover renders last (on top) */}
+                {[...covers].reverse().map((coverUrl, reverseIndex) => {
+                  const index = covers.length - 1 - reverseIndex;
                   const totalCovers = covers.length;
-                  const isTopCover = index === 0;
 
-                  // Calculate horizontal position (spread across container)
-                  const spreadAmount = totalCovers > 1 ? 20 : 0; // percentage spread per cover
-                  const leftOffset = index * spreadAmount;
+                  // Fan effect: convex spread (like holding cards)
+                  // Back covers fan out to the sides, front cover centered
+                  const rotations = [0, 8, 16]; // front cover straight, back covers fan outward
+                  const xOffsets = [0, 15, 30]; // horizontal spread percentage
 
-                  // Slight rotation for visual interest (back covers tilted)
-                  const rotation = index === 0 ? 0 : (index === 1 ? -6 : -12);
-
-                  // Z-index: first cover on top
-                  const zIndex = totalCovers - index;
+                  const rotation = rotations[index] ?? 0;
+                  const xOffset = xOffsets[index] ?? 0;
 
                   return (
                     <motion.div
                       key={coverUrl + index}
                       className="absolute overflow-hidden rounded-lg border border-black/10 shadow-lg dark:border-white/10"
                       style={{
-                        width: "75%",
-                        height: "75%",
-                        left: `${leftOffset}%`,
-                        top: "12%",
-                        zIndex,
-                        transform: `rotate(${rotation}deg)`,
+                        width: "70%",
+                        height: "70%",
+                        left: "15%",
+                        top: "15%",
+                        zIndex: totalCovers - index,
                         transformOrigin: "bottom center",
                       }}
-                      variants={{
-                        hover: {
-                          scale: isTopCover ? 1.02 : 1,
-                          boxShadow: "0 12px 32px rgba(0,0,0,0.2)",
-                        },
+                      initial={false}
+                      animate={{
+                        x: `${xOffset}%`,
+                        rotate: rotation,
                       }}
-                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                      whileHover={{
+                        scale: index === 0 ? 1.03 : 1,
+                      }}
+                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
                     >
                       <Image
                         src={coverUrl}
@@ -94,7 +92,7 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                 })}
               </div>
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center rounded-xl border bg-muted">
+              <div className="flex h-full w-full items-center justify-center">
                 <ListMusic className="h-12 w-12 text-muted-foreground" />
               </div>
             )}
