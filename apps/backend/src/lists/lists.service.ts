@@ -497,31 +497,55 @@ export class ListsService {
     itemType: 'audiobook' | 'ebook',
     itemId: string,
   ) {
+    // First get the user's lists
     const userLists = await this.db
       .select({
         id: listsSchema.lists.id,
         name: listsSchema.lists.name,
         isPublic: listsSchema.lists.isPublic,
-        itemCount: sql<number>`(
-          SELECT COUNT(*) FROM list_items WHERE list_id = ${listsSchema.lists.id}
-        )::int`,
-        containsItem: sql<boolean>`EXISTS (
-          SELECT 1 FROM list_items
-          WHERE list_id = ${listsSchema.lists.id}
-          AND ${itemType === 'audiobook' ? sql`audiobook_id = ${itemId}` : sql`ebook_id = ${itemId}`}
-        )`,
-        listItemId: sql<string | null>`(
-          SELECT id FROM list_items
-          WHERE list_id = ${listsSchema.lists.id}
-          AND ${itemType === 'audiobook' ? sql`audiobook_id = ${itemId}` : sql`ebook_id = ${itemId}`}
-          LIMIT 1
-        )`,
       })
       .from(listsSchema.lists)
       .where(eq(listsSchema.lists.userId, userId))
       .orderBy(asc(listsSchema.lists.name));
 
-    return userLists;
+    // For each list, check if it contains the item and get count
+    const listsWithContainsFlag = await Promise.all(
+      userLists.map(async (list) => {
+        // Get item count
+        const countResult = await this.db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(listsSchema.listItems)
+          .where(eq(listsSchema.listItems.listId, list.id));
+
+        // Check if item is in this list
+        const itemColumn =
+          itemType === 'audiobook'
+            ? listsSchema.listItems.audiobookId
+            : listsSchema.listItems.ebookId;
+
+        const containsResult = await this.db
+          .select({ id: listsSchema.listItems.id })
+          .from(listsSchema.listItems)
+          .where(
+            and(
+              eq(listsSchema.listItems.listId, list.id),
+              eq(itemColumn, itemId),
+            ),
+          )
+          .limit(1);
+
+        return {
+          id: list.id,
+          name: list.name,
+          isPublic: list.isPublic,
+          itemCount: countResult[0]?.count ?? 0,
+          containsItem: containsResult.length > 0,
+          listItemId: containsResult[0]?.id ?? null,
+        };
+      }),
+    );
+
+    return listsWithContainsFlag;
   }
 
   /**
