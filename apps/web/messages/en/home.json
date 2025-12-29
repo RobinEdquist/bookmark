@@ -34,5 +34,9 @@
     "title": "Recently Updated Series",
     "seeAll": "See all",
     "bookCount": "{count, plural, one {# book} other {# books}}"
+  },
+  "recentlyUpdatedLists": {
+    "title": "Recently Updated Lists",
+    "seeAll": "See all"
   }
 }

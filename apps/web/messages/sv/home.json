@@ -34,5 +34,9 @@
     "title": "Nyligen uppdaterade serier",
     "seeAll": "Visa alla",
     "bookCount": "{count, plural, one {# bok} other {# böcker}}"
+  },
+  "recentlyUpdatedLists": {
+    "title": "Nyligen uppdaterade listor",
+    "seeAll": "Visa alla"
   }
 }
