@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl";
 import { useRecentlyUpdatedSeries } from "../../lib/use-series";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
-import { SeriesCard } from "./series-card";
+import { SeriesGridCard } from "../series/series-grid-card";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
 export function RecentlyUpdatedSeriesSection() {
@@ -41,8 +41,8 @@ export function RecentlyUpdatedSeriesSection() {
       seeAllLabel={t("seeAll")}
     >
       {data.series.map((series) => (
-        <div key={series.id} className="shrink-0">
-          <SeriesCard series={series} />
+        <div key={series.id} className="w-40 shrink-0">
+          <SeriesGridCard series={series} />
         </div>
       ))}
     </HorizontalScrollRow>
