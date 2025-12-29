@@ -34,7 +34,7 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
     >
       <Link
         href={`/lists/${list.id}`}
-        className="group block"
+        className="group/card block"
       >
         <motion.article
           className="cursor-pointer"
@@ -122,7 +122,7 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
           {/* Text content */}
           <div className="mt-3 flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <h3 className="line-clamp-2 text-sm font-medium leading-tight group-hover:text-primary">
+              <h3 className="line-clamp-2 text-sm font-medium leading-tight group-hover/card:text-primary">
                 {list.name}
               </h3>
               <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
