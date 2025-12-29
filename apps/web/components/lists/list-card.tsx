@@ -40,46 +40,59 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
           className="cursor-pointer"
           whileHover="hover"
         >
-          {/* Stacked covers */}
-          <div className="relative aspect-square w-full pb-4 pr-4">
+          {/* Stacked covers - fan layout */}
+          <div className="relative aspect-square w-full">
             {covers.length > 0 ? (
-              // Render covers in reverse order so first cover is on top
-              [...covers].reverse().map((coverUrl, index) => {
-                // index 0 = back cover (if 3 covers), index 2 = front cover
-                const stackPosition = covers.length - 1 - index;
-                // Back covers offset to bottom-right so they peek out
-                const offset = stackPosition * 8;
+              <div className="relative h-full w-full">
+                {covers.map((coverUrl, index) => {
+                  // Fan effect: covers spread horizontally with slight overlap
+                  // First cover on left, last on right, front cover on top
+                  const totalCovers = covers.length;
+                  const isTopCover = index === 0;
 
-                return (
-                  <motion.div
-                    key={coverUrl}
-                    className="absolute overflow-hidden rounded-xl border border-black/10 shadow-lg dark:border-white/10"
-                    style={{
-                      inset: 0,
-                      marginTop: offset,
-                      marginLeft: offset,
-                      marginRight: -offset,
-                      marginBottom: -offset,
-                      zIndex: index,
-                    }}
-                    variants={{
-                      hover: {
-                        boxShadow: "0 12px 32px rgba(0,0,0,0.15)",
-                      },
-                    }}
-                    transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  >
-                    <Image
-                      src={coverUrl}
-                      alt={list.name}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 200px"
-                      unoptimized={coverUrl.startsWith("/api/")}
-                    />
-                  </motion.div>
-                );
-              })
+                  // Calculate horizontal position (spread across container)
+                  const spreadAmount = totalCovers > 1 ? 20 : 0; // percentage spread per cover
+                  const leftOffset = index * spreadAmount;
+
+                  // Slight rotation for visual interest (back covers tilted)
+                  const rotation = index === 0 ? 0 : (index === 1 ? -6 : -12);
+
+                  // Z-index: first cover on top
+                  const zIndex = totalCovers - index;
+
+                  return (
+                    <motion.div
+                      key={coverUrl + index}
+                      className="absolute overflow-hidden rounded-lg border border-black/10 shadow-lg dark:border-white/10"
+                      style={{
+                        width: "75%",
+                        height: "75%",
+                        left: `${leftOffset}%`,
+                        top: "12%",
+                        zIndex,
+                        transform: `rotate(${rotation}deg)`,
+                        transformOrigin: "bottom center",
+                      }}
+                      variants={{
+                        hover: {
+                          scale: isTopCover ? 1.02 : 1,
+                          boxShadow: "0 12px 32px rgba(0,0,0,0.2)",
+                        },
+                      }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                    >
+                      <Image
+                        src={coverUrl}
+                        alt={list.name}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 200px"
+                        unoptimized={coverUrl.startsWith("/api/")}
+                      />
+                    </motion.div>
+                  );
+                })}
+              </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center rounded-xl border bg-muted">
                 <ListMusic className="h-12 w-12 text-muted-foreground" />
