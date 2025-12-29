@@ -745,11 +745,18 @@ export class MediaImporterService {
     nameOrNames: string,
     role: 'author' | 'narrator',
   ): Promise<void> {
-    // Split by comma and trim whitespace
+    // Split by comma, trim whitespace, and deduplicate (case-insensitive)
+    const seen = new Set<string>();
     const names = nameOrNames
       .split(',')
       .map((n) => n.trim())
-      .filter((n) => n.length > 0);
+      .filter((n) => {
+        if (n.length === 0) return false;
+        const lower = n.toLowerCase();
+        if (seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+      });
 
     for (let i = 0; i < names.length; i++) {
       const name = names[i];
@@ -792,11 +799,18 @@ export class MediaImporterService {
     name: string,
     order: number,
   ): Promise<void> {
-    // Split by comma in case a single author field contains multiple names
+    // Split by comma, trim whitespace, and deduplicate (case-insensitive)
+    const seen = new Set<string>();
     const names = name
       .split(',')
       .map((n) => n.trim())
-      .filter((n) => n.length > 0);
+      .filter((n) => {
+        if (n.length === 0) return false;
+        const lower = n.toLowerCase();
+        if (seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+      });
 
     for (let i = 0; i < names.length; i++) {
       const personName = names[i];
