@@ -25,7 +25,7 @@ export function SeriesGridCard({ series }: SeriesGridCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <Link href={`/series/${series.id}`} className="group block">
+      <Link href={`/series/${series.id}`} className="group/card block">
         <motion.article className="cursor-pointer" whileHover="hover">
           {/* Stacked covers - fan layout */}
           <motion.div
@@ -114,7 +114,7 @@ export function SeriesGridCard({ series }: SeriesGridCardProps) {
 
           {/* Text content */}
           <div className="mt-3">
-            <h3 className="line-clamp-2 text-sm font-medium leading-tight group-hover:text-primary">
+            <h3 className="line-clamp-2 text-sm font-medium leading-tight group-hover/card:text-primary">
               {series.name}
             </h3>
             <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
