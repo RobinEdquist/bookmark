@@ -157,25 +157,8 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
         <div className="mt-3 flex items-start gap-1">
           <Link href={`/audiobooks/${audiobook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-1">
-              {/* Rating and/or Hardcover/Goodreads badge */}
-              {isLinkedToHardcover && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Image
-                    src="/hardcover.svg"
-                    alt="Hardcover"
-                    width={12}
-                    height={12}
-                    className="opacity-70"
-                  />
-                  {audiobook.hardcoverRating !== null && (
-                    <>
-                      <span>{audiobook.hardcoverRating.toFixed(1)}</span>
-                      <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
-                    </>
-                  )}
-                </div>
-              )}
-              {isLinkedToGoodreads && !isLinkedToHardcover && (
+              {/* Rating and/or Hardcover/Goodreads badge - Goodreads takes priority */}
+              {isLinkedToGoodreads && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Image
                     src="/goodreads.svg"
@@ -188,6 +171,23 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                     <>
                       <span>{audiobook.goodreadsRating.toFixed(1)}</span>
                       <span>({audiobook.goodreadsRatingsCount?.toLocaleString() ?? 0})</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {isLinkedToHardcover && !isLinkedToGoodreads && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Image
+                    src="/hardcover.svg"
+                    alt="Hardcover"
+                    width={12}
+                    height={12}
+                    className="opacity-70"
+                  />
+                  {audiobook.hardcoverRating !== null && (
+                    <>
+                      <span>{audiobook.hardcoverRating.toFixed(1)}</span>
+                      <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
                     </>
                   )}
                 </div>
