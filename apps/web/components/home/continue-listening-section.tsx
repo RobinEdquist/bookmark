@@ -122,7 +122,7 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
               {audiobookDetail?.hardcover?.rating !== null && audiobookDetail?.hardcover?.rating !== undefined && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  <span>{audiobookDetail.hardcover.rating.toFixed(1)}</span>
+                  <span>{audiobookDetail.hardcover.rating.toFixed(2)}</span>
                   <span>({audiobookDetail.hardcover.ratingsCount?.toLocaleString() ?? 0})</span>
                   <Image
                     src="/hardcover.svg"

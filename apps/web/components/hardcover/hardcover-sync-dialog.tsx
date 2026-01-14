@@ -218,7 +218,7 @@ export function HardcoverSyncDialog({
                           {book.rating > 0 && (
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
                               <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                              {book.rating.toFixed(1)}
+                              {book.rating.toFixed(2)}
                               {book.ratings_count > 0 && (
                                 <span className="text-muted-foreground/60">
                                   ({book.ratings_count.toLocaleString()})

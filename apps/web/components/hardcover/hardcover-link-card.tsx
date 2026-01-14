@@ -119,7 +119,7 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
             {rating !== null && rating > 0 && (
               <div className="flex items-center gap-1.5 mt-2">
                 <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span className="text-sm font-medium">{rating.toFixed(1)}</span>
+                <span className="text-sm font-medium">{rating.toFixed(2)}</span>
                 {link.ratingsCount && link.ratingsCount > 0 && (
                   <span className="text-sm text-muted-foreground">
                     ({link.ratingsCount.toLocaleString()} {t("ratings")})

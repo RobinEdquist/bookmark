@@ -158,7 +158,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                   />
                   {ebook.hardcoverRating !== null && (
                     <>
-                      <span>{ebook.hardcoverRating.toFixed(1)}</span>
+                      <span>{ebook.hardcoverRating.toFixed(2)}</span>
                       <span>({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
                     </>
                   )}
@@ -175,7 +175,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                   />
                   {ebook.goodreadsRating !== null && (
                     <>
-                      <span>{ebook.goodreadsRating.toFixed(1)}</span>
+                      <span>{ebook.goodreadsRating.toFixed(2)}</span>
                       <span>({ebook.goodreadsRatingsCount?.toLocaleString() ?? 0})</span>
                     </>
                   )}

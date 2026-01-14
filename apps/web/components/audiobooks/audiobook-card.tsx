@@ -169,7 +169,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                   />
                   {audiobook.goodreadsRating !== null && (
                     <>
-                      <span>{audiobook.goodreadsRating.toFixed(1)}</span>
+                      <span>{audiobook.goodreadsRating.toFixed(2)}</span>
                       <span>({audiobook.goodreadsRatingsCount?.toLocaleString() ?? 0})</span>
                     </>
                   )}
@@ -186,7 +186,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                   />
                   {audiobook.hardcoverRating !== null && (
                     <>
-                      <span>{audiobook.hardcoverRating.toFixed(1)}</span>
+                      <span>{audiobook.hardcoverRating.toFixed(2)}</span>
                       <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
                     </>
                   )}
