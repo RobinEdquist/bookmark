@@ -468,8 +468,16 @@ export class EbooksService {
     const hc = hardcoverData[0]?.hardcoverBook || null;
     const gr = goodreadsData[0]?.goodreadsBook || null;
 
+    // Resolve description with fallback to Goodreads/Hardcover (Goodreads takes priority)
+    const resolvedDescription =
+      eb.description?.trim() ||
+      gr?.description?.trim() ||
+      hc?.description?.trim() ||
+      null;
+
     return {
       ...eb,
+      description: resolvedDescription,
       coverUrl: this.getCoverUrl(eb.id, eb.coverUrl, eb.coverSource),
       authors,
       series: seriesData,
@@ -497,6 +505,7 @@ export class EbooksService {
             ratingsCount: gr.ratingsCount,
             coverUrl: gr.coverUrl,
             genres: gr.genres,
+            description: gr.description,
           }
         : null,
     };

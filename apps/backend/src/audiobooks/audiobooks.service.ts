@@ -919,6 +919,7 @@ export class AudiobooksService {
             ratingsCount: gr.ratingsCount,
             coverUrl: gr.coverUrl,
             genres: gr.genres,
+            description: gr.description,
           }
         : null,
     };
