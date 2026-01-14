@@ -30,6 +30,7 @@ import * as goodreadsSchema from '../gr-finder/schema';
 import * as usersSchema from '../users/schema';
 import { UpdateEbookDto, EbookSeriesEntryDto } from './dto/update-ebook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
+import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadata.provider';
@@ -75,6 +76,59 @@ export class EbooksService {
     private ebookMetadataProvider: EbookMetadataProvider,
     private coverService: CoverService,
   ) {}
+
+  /**
+   * Resolve a field value based on metadata priority settings.
+   * Manual edits always take priority, then follows the configured order.
+   * Returns the first non-empty value according to priority order.
+   */
+  private resolveFieldByPriority<T>(
+    fieldName: keyof MetadataFieldPriority,
+    sources: {
+      manual: T | null | undefined;
+      embedded: T | null | undefined;
+      hardcover: T | null | undefined;
+      goodreads?: T | null | undefined;
+    },
+    priority: MetadataSource[],
+    manualFields: string[],
+  ): T | null {
+    // Manual edits always take priority
+    if (manualFields.includes(fieldName)) {
+      const value = sources.manual;
+      if (this.hasValue(value)) return value;
+    }
+
+    // Then follow the configured priority order (excluding 'manual' since we already checked it)
+    for (const source of priority) {
+      if (source === 'manual') {
+        // Already checked above
+        continue;
+      } else if (source === 'embedded') {
+        const value = sources.embedded;
+        if (this.hasValue(value)) return value;
+      } else if (source === 'hardcover') {
+        const value = sources.hardcover;
+        if (this.hasValue(value)) return value;
+      } else if (source === 'goodreads') {
+        const value = sources.goodreads;
+        if (this.hasValue(value)) return value;
+      }
+      // 'filename' and 'folder_image' sources are only relevant during import
+    }
+    // Fallback: return embedded (which is the original DB value)
+    return sources.embedded ?? null;
+  }
+
+  /**
+   * Check if a value is non-empty (not null, undefined, empty string, or empty array)
+   */
+  private hasValue<T>(value: T | null | undefined): value is T {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string' && value.trim() === '') return false;
+    if (Array.isArray(value) && value.length === 0) return false;
+    return true;
+  }
 
   /**
    * Convert a relative file path (stored in DB) to an absolute path using the ebook library path
@@ -385,95 +439,110 @@ export class EbooksService {
 
     const eb = ebook[0];
 
-    // Fetch all related data including Hardcover and Goodreads
-    const [authors, seriesData, genres, tags, hardcoverData, goodreadsData] =
-      await Promise.all([
-        this.db
-          .select({
-            id: audiobookSchema.people.id,
-            name: audiobookSchema.people.name,
-            imageUrl: audiobookSchema.people.imageUrl,
-          })
-          .from(schema.ebookAuthors)
-          .innerJoin(
-            audiobookSchema.people,
-            eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
-          )
-          .where(eq(schema.ebookAuthors.ebookId, id))
-          .orderBy(asc(schema.ebookAuthors.order)),
-        this.db
-          .select({
-            id: audiobookSchema.series.id,
-            name: audiobookSchema.series.name,
-            order: schema.ebookSeries.order,
-          })
-          .from(schema.ebookSeries)
-          .innerJoin(
-            audiobookSchema.series,
-            eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
-          )
-          .where(eq(schema.ebookSeries.ebookId, id)),
-        this.db
-          .select({
-            id: audiobookSchema.genres.id,
-            name: audiobookSchema.genres.name,
-          })
-          .from(schema.ebookGenres)
-          .innerJoin(
-            audiobookSchema.genres,
-            eq(schema.ebookGenres.genreId, audiobookSchema.genres.id),
-          )
-          .where(eq(schema.ebookGenres.ebookId, id)),
-        this.db
-          .select({
-            id: audiobookSchema.tags.id,
-            name: audiobookSchema.tags.name,
-          })
-          .from(schema.ebookTags)
-          .innerJoin(
-            audiobookSchema.tags,
-            eq(schema.ebookTags.tagId, audiobookSchema.tags.id),
-          )
-          .where(eq(schema.ebookTags.ebookId, id)),
-        this.db
-          .select({
-            hardcoverBook: hardcoverSchema.hardcoverBooks,
-          })
-          .from(hardcoverSchema.hardcoverEbookLinks)
-          .innerJoin(
-            hardcoverSchema.hardcoverBooks,
-            eq(
-              hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
-              hardcoverSchema.hardcoverBooks.id,
-            ),
-          )
-          .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, id))
-          .limit(1),
-        this.db
-          .select({
-            goodreadsBook: goodreadsSchema.goodreadsBooks,
-          })
-          .from(goodreadsSchema.goodreadsEbookLinks)
-          .innerJoin(
-            goodreadsSchema.goodreadsBooks,
-            eq(
-              goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
-              goodreadsSchema.goodreadsBooks.id,
-            ),
-          )
-          .where(eq(goodreadsSchema.goodreadsEbookLinks.ebookId, id))
-          .limit(1),
-      ]);
+    // Fetch all related data including Hardcover, Goodreads, and metadata priority
+    const [
+      authors,
+      seriesData,
+      genres,
+      tags,
+      hardcoverData,
+      goodreadsData,
+      metadataPriority,
+    ] = await Promise.all([
+      this.db
+        .select({
+          id: audiobookSchema.people.id,
+          name: audiobookSchema.people.name,
+          imageUrl: audiobookSchema.people.imageUrl,
+        })
+        .from(schema.ebookAuthors)
+        .innerJoin(
+          audiobookSchema.people,
+          eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
+        )
+        .where(eq(schema.ebookAuthors.ebookId, id))
+        .orderBy(asc(schema.ebookAuthors.order)),
+      this.db
+        .select({
+          id: audiobookSchema.series.id,
+          name: audiobookSchema.series.name,
+          order: schema.ebookSeries.order,
+        })
+        .from(schema.ebookSeries)
+        .innerJoin(
+          audiobookSchema.series,
+          eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
+        )
+        .where(eq(schema.ebookSeries.ebookId, id)),
+      this.db
+        .select({
+          id: audiobookSchema.genres.id,
+          name: audiobookSchema.genres.name,
+        })
+        .from(schema.ebookGenres)
+        .innerJoin(
+          audiobookSchema.genres,
+          eq(schema.ebookGenres.genreId, audiobookSchema.genres.id),
+        )
+        .where(eq(schema.ebookGenres.ebookId, id)),
+      this.db
+        .select({
+          id: audiobookSchema.tags.id,
+          name: audiobookSchema.tags.name,
+        })
+        .from(schema.ebookTags)
+        .innerJoin(
+          audiobookSchema.tags,
+          eq(schema.ebookTags.tagId, audiobookSchema.tags.id),
+        )
+        .where(eq(schema.ebookTags.ebookId, id)),
+      this.db
+        .select({
+          hardcoverBook: hardcoverSchema.hardcoverBooks,
+        })
+        .from(hardcoverSchema.hardcoverEbookLinks)
+        .innerJoin(
+          hardcoverSchema.hardcoverBooks,
+          eq(
+            hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+            hardcoverSchema.hardcoverBooks.id,
+          ),
+        )
+        .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, id))
+        .limit(1),
+      this.db
+        .select({
+          goodreadsBook: goodreadsSchema.goodreadsBooks,
+        })
+        .from(goodreadsSchema.goodreadsEbookLinks)
+        .innerJoin(
+          goodreadsSchema.goodreadsBooks,
+          eq(
+            goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+            goodreadsSchema.goodreadsBooks.id,
+          ),
+        )
+        .where(eq(goodreadsSchema.goodreadsEbookLinks.ebookId, id))
+        .limit(1),
+      this.appSettingsService.getMetadataPriority(),
+    ]);
 
     const hc = hardcoverData[0]?.hardcoverBook || null;
     const gr = goodreadsData[0]?.goodreadsBook || null;
+    const manualFields = (eb.manualFields as string[]) || [];
 
-    // Resolve description with fallback to Goodreads/Hardcover (Goodreads takes priority)
-    const resolvedDescription =
-      eb.description?.trim() ||
-      gr?.description?.trim() ||
-      hc?.description?.trim() ||
-      null;
+    // Resolve description using configured metadata priority
+    const resolvedDescription = this.resolveFieldByPriority(
+      'description',
+      {
+        manual: eb.description,
+        embedded: eb.description,
+        hardcover: hc?.description,
+        goodreads: gr?.description,
+      },
+      metadataPriority.description,
+      manualFields,
+    );
 
     return {
       ...eb,
