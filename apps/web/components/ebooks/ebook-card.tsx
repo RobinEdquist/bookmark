@@ -146,25 +146,8 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
         <div className="mt-3 flex items-start gap-1">
           <Link href={`/ebooks/${ebook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-1">
-              {/* Rating and/or Hardcover/Goodreads badge */}
-              {isLinkedToHardcover && (
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Image
-                    src="/hardcover.svg"
-                    alt="Hardcover"
-                    width={12}
-                    height={12}
-                    className="opacity-70"
-                  />
-                  {ebook.hardcoverRating !== null && (
-                    <>
-                      <span>{ebook.hardcoverRating.toFixed(2)}</span>
-                      <span>({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
-                    </>
-                  )}
-                </div>
-              )}
-              {isLinkedToGoodreads && !isLinkedToHardcover && (
+              {/* Rating and/or Hardcover/Goodreads badge - Goodreads takes priority */}
+              {isLinkedToGoodreads && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Image
                     src="/goodreads.svg"
@@ -177,6 +160,23 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                     <>
                       <span>{ebook.goodreadsRating.toFixed(2)}</span>
                       <span>({ebook.goodreadsRatingsCount?.toLocaleString() ?? 0})</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {isLinkedToHardcover && !isLinkedToGoodreads && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Image
+                    src="/hardcover.svg"
+                    alt="Hardcover"
+                    width={12}
+                    height={12}
+                    className="opacity-70"
+                  />
+                  {ebook.hardcoverRating !== null && (
+                    <>
+                      <span>{ebook.hardcoverRating.toFixed(2)}</span>
+                      <span>({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
                     </>
                   )}
                 </div>

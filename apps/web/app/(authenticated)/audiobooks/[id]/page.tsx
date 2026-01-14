@@ -308,14 +308,14 @@ export default function AudiobookDetailPage({
               </div>
             )}
 
-            {/* Hardcover Link */}
-            {isHardcoverConfigured && (
-              <HardcoverLinkCard mediaType="audiobook" mediaId={id} />
-            )}
-
             {/* Goodreads Link */}
             {isGrFinderConfigured && (
               <GoodreadsLinkCard mediaType="audiobook" mediaId={id} />
+            )}
+
+            {/* Hardcover Link */}
+            {isHardcoverConfigured && (
+              <HardcoverLinkCard mediaType="audiobook" mediaId={id} />
             )}
           </div>
 

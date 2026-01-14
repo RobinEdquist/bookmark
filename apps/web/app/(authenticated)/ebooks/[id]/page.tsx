@@ -210,14 +210,14 @@ export default function EbookDetailPage({
               </div>
             )}
 
-            {/* Hardcover Link */}
-            {isHardcoverConfigured && (
-              <HardcoverLinkCard mediaType="ebook" mediaId={id} />
-            )}
-
             {/* Goodreads Link */}
             {isGrFinderConfigured && (
               <GoodreadsLinkCard mediaType="ebook" mediaId={id} />
+            )}
+
+            {/* Hardcover Link */}
+            {isHardcoverConfigured && (
+              <HardcoverLinkCard mediaType="ebook" mediaId={id} />
             )}
           </div>
 
