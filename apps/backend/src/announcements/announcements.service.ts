@@ -31,7 +31,6 @@ export class AnnouncementsService {
         id: schema.announcements.id,
         title: schema.announcements.title,
         message: schema.announcements.message,
-        iconUrl: schema.announcements.iconUrl,
         createdAt: schema.announcements.createdAt,
       })
       .from(schema.announcements)
@@ -98,7 +97,6 @@ export class AnnouncementsService {
         id: schema.announcements.id,
         title: schema.announcements.title,
         message: schema.announcements.message,
-        iconUrl: schema.announcements.iconUrl,
         isActive: schema.announcements.isActive,
         createdBy: schema.announcements.createdBy,
         createdAt: schema.announcements.createdAt,
@@ -119,7 +117,6 @@ export class AnnouncementsService {
       .values({
         title: dto.title,
         message: dto.message,
-        iconUrl: dto.iconUrl ?? null,
         isActive: dto.isActive ?? true,
         createdBy,
       })
@@ -146,7 +143,6 @@ export class AnnouncementsService {
 
     if (dto.title !== undefined) updateData.title = dto.title;
     if (dto.message !== undefined) updateData.message = dto.message;
-    if (dto.iconUrl !== undefined) updateData.iconUrl = dto.iconUrl;
     if (dto.isActive !== undefined) updateData.isActive = dto.isActive;
 
     const [updated] = await this.db
