@@ -261,7 +261,71 @@ export class AudiobooksService {
           ),
       );
 
-      conditions.push(or(titleMatch, subtitleMatch, authorMatch, seriesMatch)!);
+      // Search in linked Goodreads book (title and author)
+      const goodreadsMatch = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(goodreadsSchema.goodreadsAudiobookLinks)
+          .innerJoin(
+            goodreadsSchema.goodreadsBooks,
+            eq(
+              goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
+              goodreadsSchema.goodreadsBooks.id,
+            ),
+          )
+          .where(
+            and(
+              eq(
+                goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
+                schema.audiobooks.id,
+              ),
+              or(
+                ilike(goodreadsSchema.goodreadsBooks.title, searchPattern),
+                ilike(goodreadsSchema.goodreadsBooks.author, searchPattern),
+              ),
+            ),
+          ),
+      );
+
+      // Search in linked Hardcover book (title and author names)
+      const hardcoverMatch = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(hardcoverSchema.hardcoverAudiobookLinks)
+          .innerJoin(
+            hardcoverSchema.hardcoverBooks,
+            eq(
+              hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+              hardcoverSchema.hardcoverBooks.id,
+            ),
+          )
+          .where(
+            and(
+              eq(
+                hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+                schema.audiobooks.id,
+              ),
+              or(
+                ilike(hardcoverSchema.hardcoverBooks.title, searchPattern),
+                sql`EXISTS (
+                  SELECT 1 FROM unnest(${hardcoverSchema.hardcoverBooks.authorNames}) AS author_name
+                  WHERE author_name ILIKE ${searchPattern}
+                )`,
+              ),
+            ),
+          ),
+      );
+
+      conditions.push(
+        or(
+          titleMatch,
+          subtitleMatch,
+          authorMatch,
+          seriesMatch,
+          goodreadsMatch,
+          hardcoverMatch,
+        )!,
+      );
     }
 
     if (language) {

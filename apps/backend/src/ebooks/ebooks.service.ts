@@ -14,6 +14,7 @@ import {
   asc,
   SQL,
   and,
+  inArray,
   isNotNull,
   exists,
   notExists,
@@ -252,7 +253,65 @@ export class EbooksService {
           ),
       );
 
-      conditions.push(or(titleMatch, subtitleMatch, authorMatch, seriesMatch)!);
+      // Search in linked Goodreads book (title and author)
+      const goodreadsMatch = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(goodreadsSchema.goodreadsEbookLinks)
+          .innerJoin(
+            goodreadsSchema.goodreadsBooks,
+            eq(
+              goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+              goodreadsSchema.goodreadsBooks.id,
+            ),
+          )
+          .where(
+            and(
+              eq(goodreadsSchema.goodreadsEbookLinks.ebookId, schema.ebooks.id),
+              or(
+                ilike(goodreadsSchema.goodreadsBooks.title, searchPattern),
+                ilike(goodreadsSchema.goodreadsBooks.author, searchPattern),
+              ),
+            ),
+          ),
+      );
+
+      // Search in linked Hardcover book (title and author names)
+      const hardcoverMatch = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(hardcoverSchema.hardcoverEbookLinks)
+          .innerJoin(
+            hardcoverSchema.hardcoverBooks,
+            eq(
+              hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+              hardcoverSchema.hardcoverBooks.id,
+            ),
+          )
+          .where(
+            and(
+              eq(hardcoverSchema.hardcoverEbookLinks.ebookId, schema.ebooks.id),
+              or(
+                ilike(hardcoverSchema.hardcoverBooks.title, searchPattern),
+                sql`EXISTS (
+                  SELECT 1 FROM unnest(${hardcoverSchema.hardcoverBooks.authorNames}) AS author_name
+                  WHERE author_name ILIKE ${searchPattern}
+                )`,
+              ),
+            ),
+          ),
+      );
+
+      conditions.push(
+        or(
+          titleMatch,
+          subtitleMatch,
+          authorMatch,
+          seriesMatch,
+          goodreadsMatch,
+          hardcoverMatch,
+        )!,
+      );
     }
 
     if (language) {
@@ -309,89 +368,244 @@ export class EbooksService {
         ? await baseQuery.limit(limit).offset(offset)
         : await baseQuery;
 
-    // Fetch authors, series, Hardcover, and Goodreads data for each ebook
-    const result: EbookListItem[] = await Promise.all(
-      ebooks.map(async (eb) => {
-        const [authors, seriesData, hardcoverData, goodreadsData] =
-          await Promise.all([
-            this.db
-              .select({
-                id: audiobookSchema.people.id,
-                name: audiobookSchema.people.name,
-              })
-              .from(schema.ebookAuthors)
-              .innerJoin(
-                audiobookSchema.people,
-                eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
-              )
-              .where(eq(schema.ebookAuthors.ebookId, eb.id))
-              .orderBy(asc(schema.ebookAuthors.order)),
-            this.db
-              .select({
-                id: audiobookSchema.series.id,
-                name: audiobookSchema.series.name,
-                order: schema.ebookSeries.order,
-              })
-              .from(schema.ebookSeries)
-              .innerJoin(
-                audiobookSchema.series,
-                eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
-              )
-              .where(eq(schema.ebookSeries.ebookId, eb.id)),
-            this.db
-              .select({
-                rating: hardcoverSchema.hardcoverBooks.rating,
-                ratingsCount: hardcoverSchema.hardcoverBooks.ratingsCount,
-              })
-              .from(hardcoverSchema.hardcoverEbookLinks)
-              .innerJoin(
-                hardcoverSchema.hardcoverBooks,
-                eq(
-                  hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
-                  hardcoverSchema.hardcoverBooks.id,
-                ),
-              )
-              .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, eb.id))
-              .limit(1),
-            this.db
-              .select({
-                rating: goodreadsSchema.goodreadsBooks.rating,
-                ratingsCount: goodreadsSchema.goodreadsBooks.ratingsCount,
-              })
-              .from(goodreadsSchema.goodreadsEbookLinks)
-              .innerJoin(
-                goodreadsSchema.goodreadsBooks,
-                eq(
-                  goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
-                  goodreadsSchema.goodreadsBooks.id,
-                ),
-              )
-              .where(eq(goodreadsSchema.goodreadsEbookLinks.ebookId, eb.id))
-              .limit(1),
-          ]);
+    // Get all ebook IDs for batch fetching
+    const ebookIds = ebooks.map((eb) => eb.id);
 
-        const hc = hardcoverData[0] || null;
-        const gr = goodreadsData[0] || null;
+    // Batch fetch all related data in parallel
+    const [
+      hardcoverLinks,
+      goodreadsLinks,
+      allAuthors,
+      allSeriesData,
+      metadataPriority,
+    ] = await Promise.all([
+      // Hardcover data (full book info for title resolution)
+      ebookIds.length > 0
+        ? this.db
+            .select({
+              ebookId: hardcoverSchema.hardcoverEbookLinks.ebookId,
+              hardcoverBook: hardcoverSchema.hardcoverBooks,
+            })
+            .from(hardcoverSchema.hardcoverEbookLinks)
+            .innerJoin(
+              hardcoverSchema.hardcoverBooks,
+              eq(
+                hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+                hardcoverSchema.hardcoverBooks.id,
+              ),
+            )
+            .where(
+              inArray(hardcoverSchema.hardcoverEbookLinks.ebookId, ebookIds),
+            )
+        : [],
+      // Goodreads data (full book info for title resolution)
+      ebookIds.length > 0
+        ? this.db
+            .select({
+              ebookId: goodreadsSchema.goodreadsEbookLinks.ebookId,
+              goodreadsBook: goodreadsSchema.goodreadsBooks,
+            })
+            .from(goodreadsSchema.goodreadsEbookLinks)
+            .innerJoin(
+              goodreadsSchema.goodreadsBooks,
+              eq(
+                goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+                goodreadsSchema.goodreadsBooks.id,
+              ),
+            )
+            .where(
+              inArray(goodreadsSchema.goodreadsEbookLinks.ebookId, ebookIds),
+            )
+        : [],
+      // Authors for all ebooks
+      ebookIds.length > 0
+        ? this.db
+            .select({
+              ebookId: schema.ebookAuthors.ebookId,
+              personId: audiobookSchema.people.id,
+              personName: audiobookSchema.people.name,
+              order: schema.ebookAuthors.order,
+            })
+            .from(schema.ebookAuthors)
+            .innerJoin(
+              audiobookSchema.people,
+              eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
+            )
+            .where(inArray(schema.ebookAuthors.ebookId, ebookIds))
+            .orderBy(
+              asc(schema.ebookAuthors.ebookId),
+              asc(schema.ebookAuthors.order),
+            )
+        : [],
+      // Series for all ebooks
+      ebookIds.length > 0
+        ? this.db
+            .select({
+              ebookId: schema.ebookSeries.ebookId,
+              seriesId: audiobookSchema.series.id,
+              seriesName: audiobookSchema.series.name,
+              order: schema.ebookSeries.order,
+            })
+            .from(schema.ebookSeries)
+            .innerJoin(
+              audiobookSchema.series,
+              eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
+            )
+            .where(inArray(schema.ebookSeries.ebookId, ebookIds))
+        : [],
+      // Metadata priority settings
+      this.appSettingsService.getMetadataPriority(),
+    ]);
 
-        return {
-          id: eb.id,
-          title: eb.title,
-          subtitle: eb.subtitle,
-          pageCount: eb.pageCount,
-          coverUrl: this.getCoverUrl(eb.id, eb.coverUrl, eb.coverSource),
-          createdAt: eb.createdAt,
-          status: eb.status as 'available' | 'missing' | 'importing',
-          authors,
-          series: seriesData,
-          hardcoverLinked: !!hc,
-          hardcoverRating: hc?.rating ? parseFloat(hc.rating) : null,
-          hardcoverRatingsCount: hc?.ratingsCount ?? null,
-          goodreadsLinked: !!gr,
-          goodreadsRating: gr?.rating ? parseFloat(gr.rating) : null,
-          goodreadsRatingsCount: gr?.ratingsCount ?? null,
-        };
-      }),
+    // Build lookup maps for O(1) access
+    type HardcoverBook = typeof hardcoverSchema.hardcoverBooks.$inferSelect;
+    const hardcoverDataMap = new Map<string, HardcoverBook>(
+      hardcoverLinks.map(
+        (l) => [l.ebookId, l.hardcoverBook] as [string, HardcoverBook],
+      ),
     );
+
+    type GoodreadsBook = typeof goodreadsSchema.goodreadsBooks.$inferSelect;
+    const goodreadsDataMap = new Map<string, GoodreadsBook>(
+      goodreadsLinks.map(
+        (l) => [l.ebookId, l.goodreadsBook] as [string, GoodreadsBook],
+      ),
+    );
+
+    // Group authors by ebook ID
+    const authorsMap = new Map<string, { id: string; name: string }[]>();
+    for (const author of allAuthors) {
+      const existing = authorsMap.get(author.ebookId) || [];
+      existing.push({ id: author.personId, name: author.personName });
+      authorsMap.set(author.ebookId, existing);
+    }
+
+    // Group series by ebook ID
+    const seriesMap = new Map<
+      string,
+      { id: string; name: string; order: string }[]
+    >();
+    for (const s of allSeriesData) {
+      const existing = seriesMap.get(s.ebookId) || [];
+      existing.push({ id: s.seriesId, name: s.seriesName, order: s.order });
+      seriesMap.set(s.ebookId, existing);
+    }
+
+    // Map ebooks to list items (no async needed now)
+    const result: EbookListItem[] = ebooks.map((eb) => {
+      const manualFields = (eb.manualFields as string[]) || [];
+      const authors = authorsMap.get(eb.id) || [];
+      const seriesData = seriesMap.get(eb.id) || [];
+      const hc = hardcoverDataMap.get(eb.id) || null;
+      const gr = goodreadsDataMap.get(eb.id) || null;
+
+      // Apply priority-based resolution for title
+      const resolvedTitle =
+        this.resolveFieldByPriority(
+          'title',
+          {
+            manual: eb.title,
+            embedded: eb.title,
+            hardcover: hc?.title,
+            goodreads: gr?.title,
+          },
+          metadataPriority.title,
+          manualFields,
+        ) || eb.title;
+
+      // Apply priority-based resolution for subtitle
+      const resolvedSubtitle = this.resolveFieldByPriority(
+        'subtitle',
+        {
+          manual: eb.subtitle,
+          embedded: eb.subtitle,
+          hardcover: null,
+          goodreads: null,
+        },
+        metadataPriority.subtitle,
+        manualFields,
+      );
+
+      // Apply priority-based resolution for authors
+      const embeddedAuthorNames = authors.map((a) => a.name);
+      const hardcoverAuthorNames = hc?.authorNames || [];
+      const goodreadsAuthorName = gr?.author ? [gr.author] : [];
+      const resolvedAuthorNames =
+        this.resolveFieldByPriority(
+          'author',
+          {
+            manual: embeddedAuthorNames,
+            embedded: embeddedAuthorNames,
+            hardcover: hardcoverAuthorNames,
+            goodreads: goodreadsAuthorName,
+          },
+          metadataPriority.author,
+          manualFields,
+        ) || embeddedAuthorNames;
+
+      // If hardcover or goodreads authors win, create virtual author objects
+      const resolvedAuthors =
+        resolvedAuthorNames === hardcoverAuthorNames && hc
+          ? hardcoverAuthorNames.map((name, idx) => ({
+              id: `hc-author-${idx}`,
+              name,
+            }))
+          : resolvedAuthorNames === goodreadsAuthorName && gr
+            ? goodreadsAuthorName.map((name, idx) => ({
+                id: `gr-author-${idx}`,
+                name,
+              }))
+            : authors;
+
+      // Apply priority-based resolution for series
+      const embeddedSeriesNames = seriesData.map((s) => s.name);
+      const hardcoverSeriesName = hc?.featuredSeriesName
+        ? [hc.featuredSeriesName]
+        : [];
+      // Goodreads doesn't have series info
+      const resolvedSeriesNames =
+        this.resolveFieldByPriority(
+          'series',
+          {
+            manual: embeddedSeriesNames,
+            embedded: embeddedSeriesNames,
+            hardcover: hardcoverSeriesName,
+            goodreads: [],
+          },
+          metadataPriority.series,
+          manualFields,
+        ) || embeddedSeriesNames;
+
+      // If hardcover series wins, create virtual series object
+      const resolvedSeries =
+        resolvedSeriesNames === hardcoverSeriesName && hc?.featuredSeriesName
+          ? [
+              {
+                id: `hc-series-0`,
+                name: hc.featuredSeriesName,
+                order: hc.featuredSeriesPosition || '0',
+              },
+            ]
+          : seriesData;
+
+      return {
+        id: eb.id,
+        title: resolvedTitle,
+        subtitle: resolvedSubtitle,
+        pageCount: eb.pageCount,
+        coverUrl: this.getCoverUrl(eb.id, eb.coverUrl, eb.coverSource),
+        createdAt: eb.createdAt,
+        status: eb.status as 'available' | 'missing' | 'importing',
+        authors: resolvedAuthors,
+        series: resolvedSeries,
+        hardcoverLinked: !!hc,
+        hardcoverRating: hc?.rating ? parseFloat(hc.rating) : null,
+        hardcoverRatingsCount: hc?.ratingsCount ?? null,
+        goodreadsLinked: !!gr,
+        goodreadsRating: gr?.rating ? parseFloat(gr.rating) : null,
+        goodreadsRatingsCount: gr?.ratingsCount ?? null,
+      };
+    });
 
     // Apply client-side sorting for author, rating, and series
     if (sortBy === 'rating') {
