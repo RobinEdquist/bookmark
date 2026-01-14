@@ -80,6 +80,17 @@ export interface AudiobookHardcover {
   contentWarnings: string[];
 }
 
+export interface AudiobookGoodreads {
+  id: string;
+  goodreadsId: string;
+  title: string;
+  author: string | null;
+  rating: number | null;
+  ratingsCount: number | null;
+  description: string | null;
+  imageUrl: string | null;
+}
+
 export interface AudiobookDetail {
   id: string;
   title: string;
@@ -104,6 +115,7 @@ export interface AudiobookDetail {
   files: AudiobookFile[];
   chapters: AudiobookChapter[];
   hardcover: AudiobookHardcover | null;
+  goodreads: AudiobookGoodreads | null;
 }
 
 export interface AudiobookFilters {

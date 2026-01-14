@@ -33,16 +33,6 @@ function AnnouncementItem({
           <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
             {announcement.message}
           </p>
-          <div className="mt-3 flex justify-end">
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onDismiss(announcement.id)}
-              disabled={isDismissing}
-            >
-              {t("dismiss")}
-            </Button>
-          </div>
         </div>
         <Button
           variant="ghost"

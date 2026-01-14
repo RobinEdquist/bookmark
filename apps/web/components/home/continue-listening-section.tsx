@@ -118,21 +118,34 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
         <div className="flex items-start gap-1">
           <Link href={`/audiobooks/${progress.audiobook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-0.5 px-0.5">
-              {/* Rating with Hardcover badge */}
-              {audiobookDetail?.hardcover?.rating !== null && audiobookDetail?.hardcover?.rating !== undefined && (
+              {/* Rating - Goodreads takes priority over Hardcover */}
+              {audiobookDetail?.goodreads?.rating !== null && audiobookDetail?.goodreads?.rating !== undefined ? (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Image
+                    src="/goodreads.svg"
+                    alt="Goodreads"
+                    width={12}
+                    height={12}
+                    className="opacity-70"
+                  />
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                  <span>{audiobookDetail.hardcover.rating.toFixed(2)}</span>
-                  <span>({audiobookDetail.hardcover.ratingsCount?.toLocaleString() ?? 0})</span>
+                  <span>{audiobookDetail.goodreads.rating.toFixed(2)}</span>
+                  <span>({audiobookDetail.goodreads.ratingsCount?.toLocaleString() ?? 0})</span>
+                </div>
+              ) : audiobookDetail?.hardcover?.rating !== null && audiobookDetail?.hardcover?.rating !== undefined ? (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Image
                     src="/hardcover.svg"
                     alt="Hardcover"
                     width={12}
                     height={12}
-                    className="ml-0.5 opacity-70"
+                    className="opacity-70"
                   />
+                  <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                  <span>{audiobookDetail.hardcover.rating.toFixed(2)}</span>
+                  <span>({audiobookDetail.hardcover.ratingsCount?.toLocaleString() ?? 0})</span>
                 </div>
-              )}
+              ) : null}
 
               <h3 className="truncate text-sm font-medium leading-tight">
                 {progress.audiobook.title}
