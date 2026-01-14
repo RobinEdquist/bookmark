@@ -18,6 +18,8 @@
   "apiKeys": {
     "title": "API-nyckel",
     "description": "Hantera din API-nyckel för OPDS-åtkomst",
+    "serverUrl": "Server-URL",
+    "copied": "Kopierad!",
     "keyLabel": "Din API-nyckel",
     "lastUsed": "Senast använd",
     "created": "Skapad",

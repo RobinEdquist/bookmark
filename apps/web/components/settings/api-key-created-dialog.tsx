@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { Copy, Check, AlertTriangle } from "lucide-react";
 import {
@@ -24,13 +24,26 @@ export function ApiKeyCreatedDialog({
   onClose,
 }: ApiKeyCreatedDialogProps) {
   const t = useTranslations("preferences.apiKeys.createdDialog");
+  const tKeys = useTranslations("preferences.apiKeys");
   const [copied, setCopied] = useState(false);
+  const [urlCopied, setUrlCopied] = useState(false);
+  const [serverUrl, setServerUrl] = useState("");
+
+  useEffect(() => {
+    setServerUrl(window.location.origin);
+  }, []);
 
   const handleCopy = async () => {
     if (!apiKey) return;
     await navigator.clipboard.writeText(apiKey.key);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyUrl = async () => {
+    await navigator.clipboard.writeText(serverUrl);
+    setUrlCopied(true);
+    setTimeout(() => setUrlCopied(false), 2000);
   };
 
   return (
@@ -45,17 +58,36 @@ export function ApiKeyCreatedDialog({
         </DialogHeader>
 
         <div className="space-y-4">
-          <div className="flex items-center gap-2 rounded-lg border bg-muted p-3">
-            <code className="flex-1 break-all font-mono text-sm">
-              {apiKey?.key}
-            </code>
-            <Button variant="ghost" size="icon" onClick={handleCopy}>
-              {copied ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{tKeys("serverUrl")}</label>
+            <div className="flex items-center gap-2 rounded-lg border bg-muted p-3">
+              <code className="flex-1 break-all font-mono text-sm">
+                {serverUrl}
+              </code>
+              <Button variant="ghost" size="icon" onClick={handleCopyUrl}>
+                {urlCopied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">{tKeys("keyLabel")}</label>
+            <div className="flex items-center gap-2 rounded-lg border bg-muted p-3">
+              <code className="flex-1 break-all font-mono text-sm">
+                {apiKey?.key}
+              </code>
+              <Button variant="ghost" size="icon" onClick={handleCopy}>
+                {copied ? (
+                  <Check className="h-4 w-4 text-green-600" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
           </div>
 
           <p className="text-sm text-muted-foreground">{t("instructions")}</p>

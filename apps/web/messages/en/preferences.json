@@ -18,6 +18,8 @@
   "apiKeys": {
     "title": "API Key",
     "description": "Manage your API key for OPDS access",
+    "serverUrl": "Server URL",
+    "copied": "Copied!",
     "keyLabel": "Your API Key",
     "lastUsed": "Last used",
     "created": "Created",

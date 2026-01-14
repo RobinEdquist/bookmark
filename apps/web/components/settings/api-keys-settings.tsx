@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Key, RefreshCw, Trash2 } from "lucide-react";
+import { Key, RefreshCw, Trash2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
   Card,
@@ -30,6 +30,22 @@ export function ApiKeysSettings() {
   const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null);
   const [showRevokeDialog, setShowRevokeDialog] = useState(false);
   const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [serverUrl, setServerUrl] = useState("");
+  const [urlCopied, setUrlCopied] = useState(false);
+
+  useEffect(() => {
+    setServerUrl(window.location.origin);
+  }, []);
+
+  const handleCopyUrl = async () => {
+    try {
+      await navigator.clipboard.writeText(serverUrl);
+      setUrlCopied(true);
+      setTimeout(() => setUrlCopied(false), 2000);
+    } catch {
+      toast.error("Failed to copy");
+    }
+  };
 
   const handleGenerate = async () => {
     try {
@@ -101,6 +117,26 @@ export function ApiKeysSettings() {
           {apiKey ? (
             <div className="space-y-4">
               <div className="space-y-3 rounded-lg border p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium">{t("serverUrl")}</span>
+                  <div className="flex items-center gap-2">
+                    <code className="rounded bg-muted px-2 py-1 font-mono text-sm truncate max-w-[200px]">
+                      {serverUrl}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      onClick={handleCopyUrl}
+                    >
+                      {urlCopied ? (
+                        <Check className="h-3.5 w-3.5 text-green-500" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{t("keyLabel")}</span>
                   <code className="rounded bg-muted px-2 py-1 font-mono text-sm">
