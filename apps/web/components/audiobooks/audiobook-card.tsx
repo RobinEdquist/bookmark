@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, Star, AlertTriangle, Trash2, ImageIcon, ListPlus } from "lucide-react";
+import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, ListPlus } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -18,11 +18,13 @@ import type { AudiobookListItem } from "../../lib/use-audiobooks";
 import { useDeleteAudiobook } from "../../lib/use-audiobooks";
 import { useMyPermissions } from "../../lib/use-users";
 import { useHardcoverStatus, useHardcoverUnlinkAudiobook } from "../../lib/use-hardcover";
+import { useGrFinderStatus, useGoodreadsUnlinkMedia } from "../../lib/use-goodreads";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "../../lib/query-keys";
 import { EditAudiobookDialog } from "./edit-audiobook-dialog";
 import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
+import { GoodreadsSearchDialog } from "../goodreads/goodreads-search-dialog";
 import { DeleteAudiobookDialog } from "./delete-audiobook-dialog";
 import { ChangeCoverDialog } from "./change-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
@@ -39,22 +41,27 @@ interface AudiobookCardProps {
 export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: AudiobookCardProps) {
   const t = useTranslations("audiobooks.card");
   const tLink = useTranslations("audiobooks.hardcoverLink");
+  const tGoodreads = useTranslations("audiobooks.goodreadsLink");
   const tDelete = useTranslations("audiobooks.deleteDialog");
   const [editOpen, setEditOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
+  const [goodreadsSyncOpen, setGoodreadsSyncOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [addToListOpen, setAddToListOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
+  const { isConfigured: isGoodreadsConfigured } = useGrFinderStatus();
   const { unlinkAudiobook, isUnlinking } = useHardcoverUnlinkAudiobook();
+  const { unlinkMedia: unlinkGoodreads, isUnlinking: isUnlinkingGoodreads } = useGoodreadsUnlinkMedia();
   const { mutateAsync: deleteAudiobook, isPending: isDeleting } = useDeleteAudiobook();
   const queryClient = useQueryClient();
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const canDelete = permissions?.canDelete ?? false;
-  const showDropdown = canEdit || canDelete || isHardcoverConfigured;
+  const showDropdown = canEdit || canDelete || isHardcoverConfigured || isGoodreadsConfigured;
   const isLinkedToHardcover = audiobook.hardcoverLinked;
+  const isLinkedToGoodreads = audiobook.goodreadsLinked;
   const isMissing = audiobook.status === "missing";
 
   const handleUnlink = async () => {
@@ -64,6 +71,16 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
       toast.success(tLink("toast.unlinked"));
     } catch {
       toast.error(tLink("toast.unlinkFailed"));
+    }
+  };
+
+  const handleUnlinkGoodreads = async () => {
+    try {
+      await unlinkGoodreads({ mediaType: "audiobook", mediaId: audiobook.id });
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+      toast.success(tGoodreads("toast.unlinked"));
+    } catch {
+      toast.error(tGoodreads("toast.unlinkFailed"));
     }
   };
 
@@ -140,23 +157,39 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
         <div className="mt-3 flex items-start gap-1">
           <Link href={`/audiobooks/${audiobook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-1">
-              {/* Rating and/or Hardcover badge */}
+              {/* Rating and/or Hardcover/Goodreads badge */}
               {isLinkedToHardcover && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  {audiobook.hardcoverRating !== null && (
-                    <>
-                      <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                      <span>{audiobook.hardcoverRating.toFixed(1)}</span>
-                      <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
-                    </>
-                  )}
                   <Image
                     src="/hardcover.svg"
                     alt="Hardcover"
                     width={12}
                     height={12}
-                    className={audiobook.hardcoverRating !== null ? "ml-0.5 opacity-70" : "opacity-70"}
+                    className="opacity-70"
                   />
+                  {audiobook.hardcoverRating !== null && (
+                    <>
+                      <span>{audiobook.hardcoverRating.toFixed(1)}</span>
+                      <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {isLinkedToGoodreads && !isLinkedToHardcover && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Image
+                    src="/goodreads.svg"
+                    alt="Goodreads"
+                    width={12}
+                    height={12}
+                    className="dark:invert opacity-70"
+                  />
+                  {audiobook.goodreadsRating !== null && (
+                    <>
+                      <span>{audiobook.goodreadsRating.toFixed(1)}</span>
+                      <span>({audiobook.goodreadsRatingsCount?.toLocaleString() ?? 0})</span>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -235,7 +268,31 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                     {isUnlinking ? tLink("unlinking") : t("unlinkFromHardcover")}
                   </DropdownMenuItem>
                 )}
-                {canDelete && (canEdit || isHardcoverConfigured) && <DropdownMenuSeparator />}
+                {isGoodreadsConfigured && !isLinkedToGoodreads && (
+                  <DropdownMenuItem onClick={() => setGoodreadsSyncOpen(true)}>
+                    <Image
+                      src="/goodreads.svg"
+                      alt="Goodreads"
+                      width={16}
+                      height={16}
+                      className="dark:invert"
+                    />
+                    {t("syncWithGoodreads")}
+                  </DropdownMenuItem>
+                )}
+                {isGoodreadsConfigured && isLinkedToGoodreads && (
+                  <DropdownMenuItem onClick={handleUnlinkGoodreads} disabled={isUnlinkingGoodreads}>
+                    <Image
+                      src="/goodreads.svg"
+                      alt="Goodreads"
+                      width={16}
+                      height={16}
+                      className="dark:invert"
+                    />
+                    {isUnlinkingGoodreads ? tGoodreads("unlinking") : t("unlinkFromGoodreads")}
+                  </DropdownMenuItem>
+                )}
+                {canDelete && (canEdit || isHardcoverConfigured || isGoodreadsConfigured) && <DropdownMenuSeparator />}
                 {canDelete && (
                   <DropdownMenuItem
                     onClick={handleDelete}
@@ -267,6 +324,17 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
           mediaTitle={audiobook.title}
           open={hardcoverSyncOpen}
           onOpenChange={setHardcoverSyncOpen}
+        />
+      )}
+
+      {isGoodreadsConfigured && (
+        <GoodreadsSearchDialog
+          mediaType="audiobook"
+          mediaId={audiobook.id}
+          mediaTitle={audiobook.title}
+          initialQuery={audiobook.title}
+          open={goodreadsSyncOpen}
+          onOpenChange={setGoodreadsSyncOpen}
         />
       )}
 

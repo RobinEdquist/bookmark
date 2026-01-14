@@ -112,6 +112,7 @@ export class AppSettingsController {
     const mamClientConfigured = !!(
       process.env.MAM_CLIENT_URL && process.env.MAM_CLIENT_API_KEY
     );
+    const grFinderConfigured = !!process.env.GR_FINDER_URL;
     return {
       signupsEnabled: settings.signupsEnabled,
       audiobookLibraryPath: settings.audiobookLibraryPath,
@@ -132,6 +133,7 @@ export class AppSettingsController {
       defaultCanGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       defaultCanRequestContent: settings.defaultCanRequestContent,
       mamClientConfigured,
+      grFinderConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };
@@ -271,6 +273,7 @@ export class AppSettingsController {
     const mamClientConfigured = !!(
       process.env.MAM_CLIENT_URL && process.env.MAM_CLIENT_API_KEY
     );
+    const grFinderConfigured = !!process.env.GR_FINDER_URL;
 
     return {
       signupsEnabled: settings.signupsEnabled,
@@ -292,6 +295,7 @@ export class AppSettingsController {
       defaultCanGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       defaultCanRequestContent: settings.defaultCanRequestContent,
       mamClientConfigured,
+      grFinderConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };

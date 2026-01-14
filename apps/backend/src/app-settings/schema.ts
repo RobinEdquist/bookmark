@@ -14,6 +14,7 @@ export type MetadataSource =
   | 'manual'
   | 'embedded'
   | 'hardcover'
+  | 'goodreads'
   | 'filename'
   | 'folder_image';
 
@@ -33,18 +34,18 @@ export interface MetadataFieldPriority {
 }
 
 export const DEFAULT_METADATA_PRIORITY: MetadataFieldPriority = {
-  title: ['manual', 'embedded', 'hardcover', 'filename'],
-  subtitle: ['manual', 'embedded', 'hardcover'],
-  author: ['manual', 'embedded', 'hardcover', 'filename'],
+  title: ['manual', 'embedded', 'hardcover', 'goodreads', 'filename'],
+  subtitle: ['manual', 'embedded', 'hardcover', 'goodreads'],
+  author: ['manual', 'embedded', 'hardcover', 'goodreads', 'filename'],
   narrator: ['manual', 'embedded'],
-  description: ['manual', 'embedded', 'hardcover'],
-  publisher: ['manual', 'embedded', 'hardcover'],
-  publishedDate: ['manual', 'embedded', 'hardcover'],
+  description: ['manual', 'embedded', 'hardcover', 'goodreads'],
+  publisher: ['manual', 'embedded', 'hardcover', 'goodreads'],
+  publishedDate: ['manual', 'embedded', 'hardcover', 'goodreads'],
   language: ['manual', 'embedded'],
-  genres: ['manual', 'embedded', 'hardcover'],
-  series: ['manual', 'embedded', 'hardcover', 'filename'],
-  seriesOrder: ['manual', 'embedded', 'hardcover', 'filename'],
-  cover: ['manual', 'embedded', 'hardcover', 'folder_image'],
+  genres: ['manual', 'embedded', 'hardcover', 'goodreads'],
+  series: ['manual', 'embedded', 'hardcover', 'goodreads', 'filename'],
+  seriesOrder: ['manual', 'embedded', 'hardcover', 'goodreads', 'filename'],
+  cover: ['manual', 'embedded', 'hardcover', 'goodreads', 'folder_image'],
 };
 
 export const appSettings = pgTable(

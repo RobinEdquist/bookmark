@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
-export type MetadataSource = "manual" | "embedded" | "hardcover" | "filename" | "folder_image";
+export type MetadataSource = "manual" | "embedded" | "hardcover" | "goodreads" | "filename" | "folder_image";
 
 export interface MetadataFieldPriority {
   title: MetadataSource[];
@@ -40,6 +40,7 @@ export interface Settings {
   defaultCanGenerateApiKeys: boolean;
   defaultCanRequestContent: boolean;
   mamClientConfigured: boolean;
+  grFinderConfigured: boolean;
   createdAt: string;
   updatedAt: string;
 }

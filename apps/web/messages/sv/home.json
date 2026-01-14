@@ -1,4 +1,7 @@
 {
+  "announcement": {
+    "dismiss": "Uppfattat"
+  },
   "stats": {
     "audiobooks": "Ljudböcker",
     "totalDuration": "Total speltid",
@@ -21,6 +24,21 @@
     "goToSettings": "Gå till inställningar",
     "noLibraryUser": "Väntar på konfiguration",
     "noLibraryUserDescription": "Ljudboksbiblioteket har inte konfigurerats ännu. Kontakta en administratör."
+  },
+  "continueReading": {
+    "title": "Fortsätt läsa",
+    "emptyTitle": "Redo att börja?",
+    "emptyDescription": "Välj en e-bok från ditt bibliotek för att börja läsa.",
+    "browseLibrary": "Bläddra i biblioteket",
+    "hide": "Dölj från Fortsätt läsa",
+    "hiding": "Döljer...",
+    "hideSuccess": "Dold från Fortsätt läsa",
+    "hideError": "Kunde inte dölja e-boken",
+    "noLibraryAdmin": "Inget bibliotek konfigurerat",
+    "noLibraryAdminDescription": "Konfigurera ditt e-boksbibliotek i inställningarna för att komma igång.",
+    "goToSettings": "Gå till inställningar",
+    "noLibraryUser": "Väntar på konfiguration",
+    "noLibraryUserDescription": "E-boksbiblioteket har inte konfigurerats ännu. Kontakta en administratör."
   },
   "recentlyAdded": {
     "title": "Nyligen tillagda",

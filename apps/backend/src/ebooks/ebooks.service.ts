@@ -26,6 +26,7 @@ import { CoverService } from '../common/cover.service';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as hardcoverSchema from '../hardcover/schema';
+import * as goodreadsSchema from '../gr-finder/schema';
 import * as usersSchema from '../users/schema';
 import { UpdateEbookDto, EbookSeriesEntryDto } from './dto/update-ebook.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
@@ -46,6 +47,9 @@ export interface EbookListItem {
   hardcoverLinked: boolean;
   hardcoverRating: number | null;
   hardcoverRatingsCount: number | null;
+  goodreadsLinked: boolean;
+  goodreadsRating: number | null;
+  goodreadsRatingsCount: number | null;
 }
 
 export interface EbookFilters {
@@ -251,52 +255,69 @@ export class EbooksService {
         ? await baseQuery.limit(limit).offset(offset)
         : await baseQuery;
 
-    // Fetch authors, series, and Hardcover data for each ebook
+    // Fetch authors, series, Hardcover, and Goodreads data for each ebook
     const result: EbookListItem[] = await Promise.all(
       ebooks.map(async (eb) => {
-        const [authors, seriesData, hardcoverData] = await Promise.all([
-          this.db
-            .select({
-              id: audiobookSchema.people.id,
-              name: audiobookSchema.people.name,
-            })
-            .from(schema.ebookAuthors)
-            .innerJoin(
-              audiobookSchema.people,
-              eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
-            )
-            .where(eq(schema.ebookAuthors.ebookId, eb.id))
-            .orderBy(asc(schema.ebookAuthors.order)),
-          this.db
-            .select({
-              id: audiobookSchema.series.id,
-              name: audiobookSchema.series.name,
-              order: schema.ebookSeries.order,
-            })
-            .from(schema.ebookSeries)
-            .innerJoin(
-              audiobookSchema.series,
-              eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
-            )
-            .where(eq(schema.ebookSeries.ebookId, eb.id)),
-          this.db
-            .select({
-              rating: hardcoverSchema.hardcoverBooks.rating,
-              ratingsCount: hardcoverSchema.hardcoverBooks.ratingsCount,
-            })
-            .from(hardcoverSchema.hardcoverEbookLinks)
-            .innerJoin(
-              hardcoverSchema.hardcoverBooks,
-              eq(
-                hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
-                hardcoverSchema.hardcoverBooks.id,
-              ),
-            )
-            .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, eb.id))
-            .limit(1),
-        ]);
+        const [authors, seriesData, hardcoverData, goodreadsData] =
+          await Promise.all([
+            this.db
+              .select({
+                id: audiobookSchema.people.id,
+                name: audiobookSchema.people.name,
+              })
+              .from(schema.ebookAuthors)
+              .innerJoin(
+                audiobookSchema.people,
+                eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
+              )
+              .where(eq(schema.ebookAuthors.ebookId, eb.id))
+              .orderBy(asc(schema.ebookAuthors.order)),
+            this.db
+              .select({
+                id: audiobookSchema.series.id,
+                name: audiobookSchema.series.name,
+                order: schema.ebookSeries.order,
+              })
+              .from(schema.ebookSeries)
+              .innerJoin(
+                audiobookSchema.series,
+                eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
+              )
+              .where(eq(schema.ebookSeries.ebookId, eb.id)),
+            this.db
+              .select({
+                rating: hardcoverSchema.hardcoverBooks.rating,
+                ratingsCount: hardcoverSchema.hardcoverBooks.ratingsCount,
+              })
+              .from(hardcoverSchema.hardcoverEbookLinks)
+              .innerJoin(
+                hardcoverSchema.hardcoverBooks,
+                eq(
+                  hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+                  hardcoverSchema.hardcoverBooks.id,
+                ),
+              )
+              .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, eb.id))
+              .limit(1),
+            this.db
+              .select({
+                rating: goodreadsSchema.goodreadsBooks.rating,
+                ratingsCount: goodreadsSchema.goodreadsBooks.ratingsCount,
+              })
+              .from(goodreadsSchema.goodreadsEbookLinks)
+              .innerJoin(
+                goodreadsSchema.goodreadsBooks,
+                eq(
+                  goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+                  goodreadsSchema.goodreadsBooks.id,
+                ),
+              )
+              .where(eq(goodreadsSchema.goodreadsEbookLinks.ebookId, eb.id))
+              .limit(1),
+          ]);
 
         const hc = hardcoverData[0] || null;
+        const gr = goodreadsData[0] || null;
 
         return {
           id: eb.id,
@@ -311,6 +332,9 @@ export class EbooksService {
           hardcoverLinked: !!hc,
           hardcoverRating: hc?.rating ? parseFloat(hc.rating) : null,
           hardcoverRatingsCount: hc?.ratingsCount ?? null,
+          goodreadsLinked: !!gr,
+          goodreadsRating: gr?.rating ? parseFloat(gr.rating) : null,
+          goodreadsRatingsCount: gr?.ratingsCount ?? null,
         };
       }),
     );
@@ -361,56 +385,88 @@ export class EbooksService {
 
     const eb = ebook[0];
 
-    // Fetch all related data
-    const [authors, seriesData, genres, tags] = await Promise.all([
-      this.db
-        .select({
-          id: audiobookSchema.people.id,
-          name: audiobookSchema.people.name,
-          imageUrl: audiobookSchema.people.imageUrl,
-        })
-        .from(schema.ebookAuthors)
-        .innerJoin(
-          audiobookSchema.people,
-          eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
-        )
-        .where(eq(schema.ebookAuthors.ebookId, id))
-        .orderBy(asc(schema.ebookAuthors.order)),
-      this.db
-        .select({
-          id: audiobookSchema.series.id,
-          name: audiobookSchema.series.name,
-          order: schema.ebookSeries.order,
-        })
-        .from(schema.ebookSeries)
-        .innerJoin(
-          audiobookSchema.series,
-          eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
-        )
-        .where(eq(schema.ebookSeries.ebookId, id)),
-      this.db
-        .select({
-          id: audiobookSchema.genres.id,
-          name: audiobookSchema.genres.name,
-        })
-        .from(schema.ebookGenres)
-        .innerJoin(
-          audiobookSchema.genres,
-          eq(schema.ebookGenres.genreId, audiobookSchema.genres.id),
-        )
-        .where(eq(schema.ebookGenres.ebookId, id)),
-      this.db
-        .select({
-          id: audiobookSchema.tags.id,
-          name: audiobookSchema.tags.name,
-        })
-        .from(schema.ebookTags)
-        .innerJoin(
-          audiobookSchema.tags,
-          eq(schema.ebookTags.tagId, audiobookSchema.tags.id),
-        )
-        .where(eq(schema.ebookTags.ebookId, id)),
-    ]);
+    // Fetch all related data including Hardcover and Goodreads
+    const [authors, seriesData, genres, tags, hardcoverData, goodreadsData] =
+      await Promise.all([
+        this.db
+          .select({
+            id: audiobookSchema.people.id,
+            name: audiobookSchema.people.name,
+            imageUrl: audiobookSchema.people.imageUrl,
+          })
+          .from(schema.ebookAuthors)
+          .innerJoin(
+            audiobookSchema.people,
+            eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
+          )
+          .where(eq(schema.ebookAuthors.ebookId, id))
+          .orderBy(asc(schema.ebookAuthors.order)),
+        this.db
+          .select({
+            id: audiobookSchema.series.id,
+            name: audiobookSchema.series.name,
+            order: schema.ebookSeries.order,
+          })
+          .from(schema.ebookSeries)
+          .innerJoin(
+            audiobookSchema.series,
+            eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
+          )
+          .where(eq(schema.ebookSeries.ebookId, id)),
+        this.db
+          .select({
+            id: audiobookSchema.genres.id,
+            name: audiobookSchema.genres.name,
+          })
+          .from(schema.ebookGenres)
+          .innerJoin(
+            audiobookSchema.genres,
+            eq(schema.ebookGenres.genreId, audiobookSchema.genres.id),
+          )
+          .where(eq(schema.ebookGenres.ebookId, id)),
+        this.db
+          .select({
+            id: audiobookSchema.tags.id,
+            name: audiobookSchema.tags.name,
+          })
+          .from(schema.ebookTags)
+          .innerJoin(
+            audiobookSchema.tags,
+            eq(schema.ebookTags.tagId, audiobookSchema.tags.id),
+          )
+          .where(eq(schema.ebookTags.ebookId, id)),
+        this.db
+          .select({
+            hardcoverBook: hardcoverSchema.hardcoverBooks,
+          })
+          .from(hardcoverSchema.hardcoverEbookLinks)
+          .innerJoin(
+            hardcoverSchema.hardcoverBooks,
+            eq(
+              hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+              hardcoverSchema.hardcoverBooks.id,
+            ),
+          )
+          .where(eq(hardcoverSchema.hardcoverEbookLinks.ebookId, id))
+          .limit(1),
+        this.db
+          .select({
+            goodreadsBook: goodreadsSchema.goodreadsBooks,
+          })
+          .from(goodreadsSchema.goodreadsEbookLinks)
+          .innerJoin(
+            goodreadsSchema.goodreadsBooks,
+            eq(
+              goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+              goodreadsSchema.goodreadsBooks.id,
+            ),
+          )
+          .where(eq(goodreadsSchema.goodreadsEbookLinks.ebookId, id))
+          .limit(1),
+      ]);
+
+    const hc = hardcoverData[0]?.hardcoverBook || null;
+    const gr = goodreadsData[0]?.goodreadsBook || null;
 
     return {
       ...eb,
@@ -419,6 +475,30 @@ export class EbooksService {
       series: seriesData,
       genres,
       tags,
+      // Include hardcover data for display
+      hardcover: hc
+        ? {
+            id: hc.hardcoverId,
+            slug: hc.slug,
+            rating: hc.rating ? parseFloat(hc.rating) : null,
+            ratingsCount: hc.ratingsCount,
+            imageUrl: hc.imageUrl,
+            genres: hc.genres,
+            moods: hc.moods,
+            contentWarnings: hc.contentWarnings,
+          }
+        : null,
+      // Include goodreads data for display
+      goodreads: gr
+        ? {
+            id: gr.goodreadsId,
+            url: gr.url,
+            rating: gr.rating ? parseFloat(gr.rating) : null,
+            ratingsCount: gr.ratingsCount,
+            coverUrl: gr.coverUrl,
+            genres: gr.genres,
+          }
+        : null,
     };
   }
 

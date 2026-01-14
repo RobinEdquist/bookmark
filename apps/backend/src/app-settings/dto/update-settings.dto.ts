@@ -16,6 +16,7 @@ const METADATA_SOURCES = [
   'manual',
   'embedded',
   'hardcover',
+  'goodreads',
   'filename',
   'folder_image',
 ] as const;

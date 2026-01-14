@@ -114,6 +114,13 @@ export class AppSettingsResponseDto {
   })
   mamClientConfigured!: boolean;
 
+  @ApiProperty({
+    example: false,
+    description:
+      'Whether Goodreads Finder is configured via GR_FINDER_URL environment variable',
+  })
+  grFinderConfigured!: boolean;
+
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
   createdAt!: Date;
 

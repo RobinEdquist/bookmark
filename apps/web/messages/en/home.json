@@ -1,4 +1,7 @@
 {
+  "announcement": {
+    "dismiss": "Got it"
+  },
   "stats": {
     "audiobooks": "Audiobooks",
     "totalDuration": "Total Duration",
@@ -21,6 +24,21 @@
     "goToSettings": "Go to Settings",
     "noLibraryUser": "Waiting for configuration",
     "noLibraryUserDescription": "The audiobook library hasn't been configured yet. Please contact an administrator."
+  },
+  "continueReading": {
+    "title": "Continue Reading",
+    "emptyTitle": "Ready to start?",
+    "emptyDescription": "Pick an ebook from your library to begin reading.",
+    "browseLibrary": "Browse Library",
+    "hide": "Hide from Continue Reading",
+    "hiding": "Hiding...",
+    "hideSuccess": "Hidden from Continue Reading",
+    "hideError": "Failed to hide ebook",
+    "noLibraryAdmin": "No library configured",
+    "noLibraryAdminDescription": "Configure your ebook library in settings to get started.",
+    "goToSettings": "Go to Settings",
+    "noLibraryUser": "Waiting for configuration",
+    "noLibraryUserDescription": "The ebook library hasn't been configured yet. Please contact an administrator."
   },
   "recentlyAdded": {
     "title": "Recently Added",

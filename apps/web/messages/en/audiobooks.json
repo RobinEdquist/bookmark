@@ -13,10 +13,26 @@
     "syncWithHardcover": "Link to Hardcover",
     "unlinkFromHardcover": "Unlink from Hardcover",
     "linkedToHardcover": "Linked to Hardcover",
+    "syncWithGoodreads": "Link to Goodreads",
+    "unlinkFromGoodreads": "Unlink from Goodreads",
     "rating": "{rating} ({count})",
     "missing": "File missing",
     "missingDescription": "The audio file for this audiobook could not be found",
     "addToList": "Add to list"
+  },
+  "hardcoverLink": {
+    "unlinking": "Unlinking...",
+    "toast": {
+      "unlinked": "Unlinked from Hardcover",
+      "unlinkFailed": "Failed to unlink from Hardcover"
+    }
+  },
+  "goodreadsLink": {
+    "unlinking": "Unlinking...",
+    "toast": {
+      "unlinked": "Unlinked from Goodreads",
+      "unlinkFailed": "Failed to unlink from Goodreads"
+    }
   },
   "deleteDialog": {
     "title": "Delete Audiobook",
@@ -60,6 +76,7 @@
     "download": "Download",
     "changeCover": "Change cover",
     "syncWithHardcover": "Sync with Hardcover",
+    "searchOnGoodreads": "Search on Goodreads",
     "author": "Author",
     "narrator": "Narrator",
     "series": "Series",

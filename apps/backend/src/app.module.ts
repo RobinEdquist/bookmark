@@ -21,6 +21,7 @@ import { LibraryModule } from './library/library.module';
 import { SeriesModule } from './series/series.module';
 import { EventsModule } from './events/events.module';
 import { ProgressModule } from './progress/progress.module';
+import { EbookProgressModule } from './ebook-progress/ebook-progress.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { PeopleModule } from './people/people.module';
@@ -29,6 +30,8 @@ import { HealthModule } from './health/health.module';
 import { MamClientModule } from './mam-client';
 import { RequestsModule } from './requests';
 import { ListsModule } from './lists/lists.module';
+import { GrFinderModule } from './gr-finder/gr-finder.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
@@ -133,6 +136,7 @@ import { CommonModule } from './common/common.module';
     SeriesModule,
     EventsModule,
     ProgressModule,
+    EbookProgressModule,
     TasksModule,
     ApiKeysModule,
     PeopleModule,
@@ -141,6 +145,8 @@ import { CommonModule } from './common/common.module';
     MamClientModule,
     RequestsModule,
     ListsModule,
+    GrFinderModule,
+    AnnouncementsModule,
   ],
   controllers: [],
   providers: [

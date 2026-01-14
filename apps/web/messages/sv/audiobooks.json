@@ -13,10 +13,26 @@
     "syncWithHardcover": "Länka till Hardcover",
     "unlinkFromHardcover": "Avlänka från Hardcover",
     "linkedToHardcover": "Länkad till Hardcover",
+    "syncWithGoodreads": "Länka till Goodreads",
+    "unlinkFromGoodreads": "Avlänka från Goodreads",
     "rating": "{rating} ({count})",
     "missing": "Fil saknas",
     "missingDescription": "Ljudfilen för denna ljudbok kunde inte hittas",
     "addToList": "Lägg till i lista"
+  },
+  "hardcoverLink": {
+    "unlinking": "Avlänkar...",
+    "toast": {
+      "unlinked": "Avlänkad från Hardcover",
+      "unlinkFailed": "Kunde inte avlänka från Hardcover"
+    }
+  },
+  "goodreadsLink": {
+    "unlinking": "Avlänkar...",
+    "toast": {
+      "unlinked": "Avlänkad från Goodreads",
+      "unlinkFailed": "Kunde inte avlänka från Goodreads"
+    }
   },
   "deleteDialog": {
     "title": "Ta bort ljudbok",
@@ -60,6 +76,7 @@
     "download": "Ladda ner",
     "changeCover": "Ändra omslag",
     "syncWithHardcover": "Synka med Hardcover",
+    "searchOnGoodreads": "Sök på Goodreads",
     "author": "Författare",
     "narrator": "Uppläsare",
     "series": "Serie",

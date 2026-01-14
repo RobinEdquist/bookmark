@@ -15,7 +15,16 @@
     "missingDescription": "E-bokfilen kunde inte hittas",
     "linkedToHardcover": "Länkad till Hardcover",
     "rating": "{rating} ({count})",
-    "addToList": "Lägg till i lista"
+    "addToList": "Lägg till i lista",
+    "syncWithGoodreads": "Länka till Goodreads",
+    "unlinkFromGoodreads": "Avlänka från Goodreads"
+  },
+  "goodreadsLink": {
+    "unlinking": "Avlänkar...",
+    "toast": {
+      "unlinked": "Avlänkad från Goodreads",
+      "unlinkFailed": "Kunde inte avlänka från Goodreads"
+    }
   },
   "deleteDialog": {
     "title": "Ta bort e-bok",
@@ -52,10 +61,14 @@
   "detail": {
     "error": "Kunde inte ladda e-bok",
     "backToLibrary": "Tillbaka till biblioteket",
+    "read": "Läs",
+    "continueReading": "Fortsätt läsa",
+    "readNotSupported": "Läsning i webbläsaren stöder endast EPUB-format",
     "download": "Ladda ner",
     "edit": "Redigera",
     "changeCover": "Ändra omslag",
     "syncWithHardcover": "Synka med Hardcover",
+    "searchOnGoodreads": "Sök på Goodreads",
     "author": "Författare",
     "series": "Serie",
     "pages": "Sidor",
@@ -69,6 +82,13 @@
     "publisher": "Förlag",
     "isbn": "ISBN",
     "language": "Språk"
+  },
+  "reader": {
+    "close": "Stäng läsaren",
+    "previousPage": "Föregående sida",
+    "nextPage": "Nästa sida",
+    "loading": "Laddar...",
+    "progress": "{percent}% klart"
   },
   "changeCover": {
     "title": "Ändra omslag",

@@ -17,12 +17,15 @@ import {
 import { useAudiobook } from "../../../../lib/use-audiobooks";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
+import { useGrFinderStatus } from "../../../../lib/use-goodreads";
 import { useProgress } from "../../../../lib/use-progress";
 import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
 import { usePlayer } from "../../../../components/providers/player-provider";
 import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audiobook-dialog";
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
 import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
+import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodreads-search-dialog";
+import { GoodreadsLinkCard } from "../../../../components/goodreads/goodreads-link-card";
 import { ChangeCoverDialog } from "../../../../components/audiobooks/change-cover-dialog";
 import { HeaderSearch } from "../../../../components/layout/header-search";
 import { ChapterImportDialog } from "../../../../components/chapters/chapter-import-dialog";
@@ -66,9 +69,11 @@ export default function AudiobookDetailPage({
   const { data: progress } = useProgress(id);
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
+  const { isConfigured: isGrFinderConfigured } = useGrFinderStatus();
   const { audiobook: currentlyPlaying, isPlaying, play, pause, resume } = usePlayer();
   const [editOpen, setEditOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
+  const [goodreadsSearchOpen, setGoodreadsSearchOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [chapterImportOpen, setChapterImportOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
@@ -157,6 +162,22 @@ export default function AudiobookDetailPage({
                 alt="Hardcover"
                 width={20}
                 height={20}
+              />
+            </Button>
+          )}
+          {isGrFinderConfigured && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setGoodreadsSearchOpen(true)}
+              title={t("searchOnGoodreads")}
+            >
+              <Image
+                src="/goodreads.svg"
+                alt="Goodreads"
+                width={20}
+                height={20}
+                className="dark:invert"
               />
             </Button>
           )}
@@ -290,6 +311,11 @@ export default function AudiobookDetailPage({
             {/* Hardcover Link */}
             {isHardcoverConfigured && (
               <HardcoverLinkCard mediaType="audiobook" mediaId={id} />
+            )}
+
+            {/* Goodreads Link */}
+            {isGrFinderConfigured && (
+              <GoodreadsLinkCard mediaType="audiobook" mediaId={id} />
             )}
           </div>
 
@@ -600,6 +626,17 @@ export default function AudiobookDetailPage({
           mediaTitle={audiobook.title}
           open={hardcoverSyncOpen}
           onOpenChange={setHardcoverSyncOpen}
+        />
+      )}
+
+      {isGrFinderConfigured && (
+        <GoodreadsSearchDialog
+          mediaType="audiobook"
+          mediaId={id}
+          mediaTitle={audiobook.title}
+          initialQuery={`${audiobook.title} ${authors}`}
+          open={goodreadsSearchOpen}
+          onOpenChange={setGoodreadsSearchOpen}
         />
       )}
 

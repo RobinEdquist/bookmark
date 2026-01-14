@@ -17,6 +17,7 @@ import {
   ChevronRight,
   BookOpen,
   List,
+  Moon,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Slider } from "@repo/ui/components/ui/slider";
@@ -31,6 +32,7 @@ import { Marquee } from "@repo/ui/components/ui/marquee";
 import { usePlayer } from "../providers/player-provider";
 import { ChapterDrawer } from "./chapter-drawer";
 import { SpeedDrawer } from "./speed-drawer";
+import { SleepTimerDrawer } from "./sleep-timer-drawer";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SKIP_BACKWARD_SECONDS = 15;
@@ -60,6 +62,7 @@ export function PlayerBar() {
     currentChapter,
     playbackRate,
     volume,
+    sleepTimer,
     pause,
     resume,
     stop,
@@ -72,11 +75,14 @@ export function PlayerBar() {
     setVolume,
     nextChapter,
     prevChapter,
+    startSleepTimer,
+    cancelSleepTimer,
   } = usePlayer();
 
   // Drawer states
   const [isChapterDrawerOpen, setIsChapterDrawerOpen] = useState(false);
   const [isSpeedDrawerOpen, setIsSpeedDrawerOpen] = useState(false);
+  const [isSleepTimerDrawerOpen, setIsSleepTimerDrawerOpen] = useState(false);
 
   // Progress mode: 'book' shows total book progress, 'chapter' shows current chapter progress
   const [progressMode, setProgressMode] = useState<"book" | "chapter">("book");
@@ -177,6 +183,30 @@ export function PlayerBar() {
   const toggleMute = useCallback(() => {
     setVolume(volume > 0 ? 0 : 1);
   }, [volume, setVolume]);
+
+  // Sleep timer handlers
+  const handleSelectSleepDuration = useCallback((minutes: number) => {
+    startSleepTimer("duration", minutes);
+  }, [startSleepTimer]);
+
+  const handleSelectEndOfChapter = useCallback(() => {
+    startSleepTimer("endOfChapter");
+  }, [startSleepTimer]);
+
+  // Format sleep timer remaining time for button display
+  const formatSleepTimerDisplay = useCallback((): string | null => {
+    if (!sleepTimer.active) return null;
+    if (sleepTimer.type === "endOfChapter") return t("chapter");
+    if (sleepTimer.remainingSeconds === null) return null;
+
+    const seconds = sleepTimer.remainingSeconds;
+    if (seconds >= 60) {
+      return `${Math.ceil(seconds / 60)}m`;
+    }
+    return `${seconds}s`;
+  }, [sleepTimer, t]);
+
+  const sleepTimerDisplay = formatSleepTimerDisplay();
 
   const progress = duration > 0 ? (currentPosition / duration) * 100 : 0;
 
@@ -295,7 +325,7 @@ export function PlayerBar() {
             <Button
               variant="default"
               size="icon"
-              className="h-9 w-9 sm:h-10 sm:w-10"
+              className="mx-3 h-9 w-9 sm:mx-2 sm:h-10 sm:w-10"
               onClick={isPlaying ? pause : resume}
               disabled={isLoading}
               aria-label={isPlaying ? t("pause") : t("play")}
@@ -374,16 +404,24 @@ export function PlayerBar() {
 
           {/* Right side controls */}
           <div className="flex items-center gap-1">
-            {/* Playback speed - mobile (opens drawer) */}
+            {/* Sleep timer button - desktop only */}
             <Button
               variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs font-medium sm:hidden"
-              onClick={() => setIsSpeedDrawerOpen(true)}
-              aria-label={t("speedValue", { rate: playbackRate })}
+              size="icon"
+              className={cn(
+                "hidden h-8 w-8 relative sm:flex",
+                sleepTimer.active && "text-primary"
+              )}
+              onClick={() => setIsSleepTimerDrawerOpen(true)}
+              aria-label={sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")}
               aria-haspopup="dialog"
             >
-              {playbackRate}x
+              <Moon className="h-4 w-4" aria-hidden="true" />
+              {sleepTimerDisplay && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-medium tabular-nums">
+                  {sleepTimerDisplay}
+                </span>
+              )}
             </Button>
 
             {/* Playback speed - desktop (dropdown) */}
@@ -452,7 +490,7 @@ export function PlayerBar() {
         </div>
 
         {/* Mobile progress bar with chapter nav - shown on small screens */}
-        <div className="flex items-center gap-1.5 px-3 pb-2 sm:hidden">
+        <div className="flex items-center gap-1.5 px-3 pb-1 sm:hidden">
           {/* Previous chapter */}
           {hasChapters && (
             <Button
@@ -517,6 +555,39 @@ export function PlayerBar() {
             </Button>
           )}
         </div>
+
+        {/* Mobile extra controls row - sleep timer and speed */}
+        <div className="flex items-center justify-center gap-4 px-3 pb-2 sm:hidden">
+          {/* Sleep timer - mobile */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn(
+              "h-8 gap-1.5 px-3",
+              sleepTimer.active && "text-primary"
+            )}
+            onClick={() => setIsSleepTimerDrawerOpen(true)}
+            aria-label={sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")}
+            aria-haspopup="dialog"
+          >
+            <Moon className="h-4 w-4" aria-hidden="true" />
+            <span className="text-xs font-medium">
+              {sleepTimerDisplay || t("sleepTimer")}
+            </span>
+          </Button>
+
+          {/* Playback speed - mobile */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 gap-1.5 px-3"
+            onClick={() => setIsSpeedDrawerOpen(true)}
+            aria-label={t("speedValue", { rate: playbackRate })}
+            aria-haspopup="dialog"
+          >
+            <span className="text-xs font-medium">{playbackRate}x {t("speed")}</span>
+          </Button>
+        </div>
         </motion.div>
       </AnimatePresence>
 
@@ -538,6 +609,19 @@ export function PlayerBar() {
         onOpenChange={setIsSpeedDrawerOpen}
         currentRate={playbackRate}
         onSelectRate={setPlaybackRate}
+      />
+
+      {/* Sleep timer drawer */}
+      <SleepTimerDrawer
+        open={isSleepTimerDrawerOpen}
+        onOpenChange={setIsSleepTimerDrawerOpen}
+        isActive={sleepTimer.active}
+        activeType={sleepTimer.type}
+        remainingSeconds={sleepTimer.remainingSeconds}
+        hasChapters={hasChapters}
+        onSelectDuration={handleSelectSleepDuration}
+        onSelectEndOfChapter={handleSelectEndOfChapter}
+        onCancel={cancelSleepTimer}
       />
     </>
   );

@@ -15,7 +15,16 @@
     "missingDescription": "The ebook file could not be found",
     "linkedToHardcover": "Linked to Hardcover",
     "rating": "{rating} ({count})",
-    "addToList": "Add to list"
+    "addToList": "Add to list",
+    "syncWithGoodreads": "Link to Goodreads",
+    "unlinkFromGoodreads": "Unlink from Goodreads"
+  },
+  "goodreadsLink": {
+    "unlinking": "Unlinking...",
+    "toast": {
+      "unlinked": "Unlinked from Goodreads",
+      "unlinkFailed": "Failed to unlink from Goodreads"
+    }
   },
   "deleteDialog": {
     "title": "Delete Ebook",
@@ -52,10 +61,14 @@
   "detail": {
     "error": "Failed to load ebook",
     "backToLibrary": "Back to Library",
+    "read": "Read",
+    "continueReading": "Continue Reading",
+    "readNotSupported": "In-browser reading only supports EPUB format",
     "download": "Download",
     "edit": "Edit",
     "changeCover": "Change cover",
     "syncWithHardcover": "Sync with Hardcover",
+    "searchOnGoodreads": "Search on Goodreads",
     "author": "Author",
     "series": "Series",
     "pages": "Pages",
@@ -69,6 +82,13 @@
     "publisher": "Publisher",
     "isbn": "ISBN",
     "language": "Language"
+  },
+  "reader": {
+    "close": "Close reader",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "loading": "Loading...",
+    "progress": "{percent}% complete"
   },
   "changeCover": {
     "title": "Change Cover",

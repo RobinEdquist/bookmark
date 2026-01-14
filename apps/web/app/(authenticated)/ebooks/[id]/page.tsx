@@ -11,11 +11,15 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { useEbook } from "../../../../lib/use-ebooks";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
+import { useGrFinderStatus } from "../../../../lib/use-goodreads";
 import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
 import { EditEbookDialog } from "../../../../components/ebooks/edit-ebook-dialog";
 import { ChangeEbookCoverDialog } from "../../../../components/ebooks/change-ebook-cover-dialog";
+import { ReadButton } from "../../../../components/ebooks/read-button";
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
 import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
+import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodreads-search-dialog";
+import { GoodreadsLinkCard } from "../../../../components/goodreads/goodreads-link-card";
 import { HeaderSearch } from "../../../../components/layout/header-search";
 
 function formatFileSize(bytes: number): string {
@@ -36,9 +40,11 @@ export default function EbookDetailPage({
   const { data: ebook, isLoading, error } = useEbook(id);
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
+  const { isConfigured: isGrFinderConfigured } = useGrFinderStatus();
   const [editOpen, setEditOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
+  const [goodreadsSearchOpen, setGoodreadsSearchOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
@@ -106,6 +112,22 @@ export default function EbookDetailPage({
               />
             </Button>
           )}
+          {isGrFinderConfigured && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setGoodreadsSearchOpen(true)}
+              title={t("searchOnGoodreads")}
+            >
+              <Image
+                src="/goodreads.svg"
+                alt="Goodreads"
+                width={20}
+                height={20}
+                className="dark:invert"
+              />
+            </Button>
+          )}
           {canEdit && (
             <Button
               variant="ghost"
@@ -155,7 +177,13 @@ export default function EbookDetailPage({
               )}
             </div>
 
-            <Button size="lg" className="w-full" onClick={handleDownload}>
+            <ReadButton
+              ebookId={id}
+              ebookTitle={ebook.title}
+              format={ebook.format}
+            />
+
+            <Button size="lg" className="w-full" variant="outline" onClick={handleDownload}>
               <Download className="mr-2 h-5 w-5" />
               {t("download")}
             </Button>
@@ -185,6 +213,11 @@ export default function EbookDetailPage({
             {/* Hardcover Link */}
             {isHardcoverConfigured && (
               <HardcoverLinkCard mediaType="ebook" mediaId={id} />
+            )}
+
+            {/* Goodreads Link */}
+            {isGrFinderConfigured && (
+              <GoodreadsLinkCard mediaType="ebook" mediaId={id} />
             )}
           </div>
 
@@ -384,6 +417,17 @@ export default function EbookDetailPage({
           mediaTitle={ebook.title}
           open={hardcoverSyncOpen}
           onOpenChange={setHardcoverSyncOpen}
+        />
+      )}
+
+      {isGrFinderConfigured && (
+        <GoodreadsSearchDialog
+          mediaType="ebook"
+          mediaId={id}
+          mediaTitle={ebook.title}
+          initialQuery={`${ebook.title} ${authors}`}
+          open={goodreadsSearchOpen}
+          onOpenChange={setGoodreadsSearchOpen}
         />
       )}
     </main>

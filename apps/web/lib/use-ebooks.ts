@@ -38,6 +38,9 @@ export interface EbookListItem {
   hardcoverLinked: boolean;
   hardcoverRating: number | null;
   hardcoverRatingsCount: number | null;
+  goodreadsLinked: boolean;
+  goodreadsRating: number | null;
+  goodreadsRatingsCount: number | null;
 }
 
 export interface EbookDetail {

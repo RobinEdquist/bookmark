@@ -82,6 +82,35 @@
       "unlinkFailed": "Failed to unlink"
     }
   },
+  "goodreadsSearch": {
+    "title": "Link to Goodreads",
+    "description": "Select a book from Goodreads to link with \"{title}\"",
+    "searchPlaceholder": "Search Goodreads...",
+    "search": "Search",
+    "resultsCount": "{count, plural, one {# result found} other {# results found}}",
+    "noResults": "No matching books found on Goodreads",
+    "error": "Failed to search Goodreads",
+    "cancel": "Cancel",
+    "link": "Link Book",
+    "linking": "Linking...",
+    "toast": {
+      "linked": "Successfully linked to Goodreads",
+      "linkFailed": "Failed to link"
+    }
+  },
+  "goodreadsLink": {
+    "title": "Goodreads",
+    "description": "Linked book metadata from Goodreads",
+    "unlink": "Unlink",
+    "unlinking": "Unlinking...",
+    "ratings": "ratings",
+    "genres": "Genres",
+    "viewOnGoodreads": "View on Goodreads",
+    "toast": {
+      "unlinked": "Unlinked from Goodreads",
+      "unlinkFailed": "Failed to unlink"
+    }
+  },
   "sort": {
     "label": "Sort",
     "title": "Title",

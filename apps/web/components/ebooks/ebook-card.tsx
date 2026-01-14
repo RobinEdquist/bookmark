@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download, Star, ListPlus } from "lucide-react";
+import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download, ListPlus } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -17,11 +17,15 @@ import {
 import type { EbookListItem } from "../../lib/use-ebooks";
 import { useDeleteEbook } from "../../lib/use-ebooks";
 import { useMyPermissions } from "../../lib/use-users";
+import { useGrFinderStatus, useGoodreadsUnlinkMedia } from "../../lib/use-goodreads";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { queryKeys } from "../../lib/query-keys";
 import { EditEbookDialog } from "./edit-ebook-dialog";
 import { DeleteEbookDialog } from "./delete-ebook-dialog";
 import { ChangeEbookCoverDialog } from "./change-ebook-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
+import { GoodreadsSearchDialog } from "../goodreads/goodreads-search-dialog";
 import { formatSeriesOrder } from "../../lib/format-series";
 
 interface EbookCardProps {
@@ -35,18 +39,34 @@ interface EbookCardProps {
 export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps) {
   const t = useTranslations("ebooks.card");
   const tDelete = useTranslations("ebooks.deleteDialog");
+  const tGoodreads = useTranslations("ebooks.goodreadsLink");
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [addToListOpen, setAddToListOpen] = useState(false);
+  const [goodreadsSyncOpen, setGoodreadsSyncOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
+  const { isConfigured: isGoodreadsConfigured } = useGrFinderStatus();
+  const { unlinkMedia: unlinkGoodreads, isUnlinking: isUnlinkingGoodreads } = useGoodreadsUnlinkMedia();
   const { mutateAsync: deleteEbook, isPending: isDeleting } = useDeleteEbook();
+  const queryClient = useQueryClient();
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const canDelete = permissions?.canDelete ?? false;
-  const showDropdown = canEdit || canDelete;
+  const showDropdown = canEdit || canDelete || isGoodreadsConfigured;
   const isMissing = ebook.status === "missing";
   const isLinkedToHardcover = ebook.hardcoverLinked;
+  const isLinkedToGoodreads = ebook.goodreadsLinked;
+
+  const handleUnlinkGoodreads = async () => {
+    try {
+      await unlinkGoodreads({ mediaType: "ebook", mediaId: ebook.id });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+      toast.success(tGoodreads("toast.unlinked"));
+    } catch {
+      toast.error(tGoodreads("toast.unlinkFailed"));
+    }
+  };
 
   const handleDelete = async () => {
     // If missing, delete immediately without confirmation
@@ -126,23 +146,39 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
         <div className="mt-3 flex items-start gap-1">
           <Link href={`/ebooks/${ebook.id}`} prefetch={false} className="min-w-0 flex-1">
             <div className="space-y-1">
-              {/* Rating and/or Hardcover badge */}
+              {/* Rating and/or Hardcover/Goodreads badge */}
               {isLinkedToHardcover && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  {ebook.hardcoverRating !== null && (
-                    <>
-                      <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-                      <span>{ebook.hardcoverRating.toFixed(1)}</span>
-                      <span>({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
-                    </>
-                  )}
                   <Image
                     src="/hardcover.svg"
                     alt="Hardcover"
                     width={12}
                     height={12}
-                    className={ebook.hardcoverRating !== null ? "ml-0.5 opacity-70" : "opacity-70"}
+                    className="opacity-70"
                   />
+                  {ebook.hardcoverRating !== null && (
+                    <>
+                      <span>{ebook.hardcoverRating.toFixed(1)}</span>
+                      <span>({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
+                    </>
+                  )}
+                </div>
+              )}
+              {isLinkedToGoodreads && !isLinkedToHardcover && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Image
+                    src="/goodreads.svg"
+                    alt="Goodreads"
+                    width={12}
+                    height={12}
+                    className="dark:invert opacity-70"
+                  />
+                  {ebook.goodreadsRating !== null && (
+                    <>
+                      <span>{ebook.goodreadsRating.toFixed(1)}</span>
+                      <span>({ebook.goodreadsRatingsCount?.toLocaleString() ?? 0})</span>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -207,6 +243,31 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                   <ListPlus className="h-4 w-4" />
                   {t("addToList")}
                 </DropdownMenuItem>
+                {isGoodreadsConfigured && <DropdownMenuSeparator />}
+                {isGoodreadsConfigured && !isLinkedToGoodreads && (
+                  <DropdownMenuItem onClick={() => setGoodreadsSyncOpen(true)}>
+                    <Image
+                      src="/goodreads.svg"
+                      alt="Goodreads"
+                      width={16}
+                      height={16}
+                      className="dark:invert"
+                    />
+                    {t("syncWithGoodreads")}
+                  </DropdownMenuItem>
+                )}
+                {isGoodreadsConfigured && isLinkedToGoodreads && (
+                  <DropdownMenuItem onClick={handleUnlinkGoodreads} disabled={isUnlinkingGoodreads}>
+                    <Image
+                      src="/goodreads.svg"
+                      alt="Goodreads"
+                      width={16}
+                      height={16}
+                      className="dark:invert"
+                    />
+                    {isUnlinkingGoodreads ? tGoodreads("unlinking") : t("unlinkFromGoodreads")}
+                  </DropdownMenuItem>
+                )}
                 {canDelete && <DropdownMenuSeparator />}
                 {canDelete && (
                   <DropdownMenuItem
@@ -257,6 +318,17 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
         open={addToListOpen}
         onOpenChange={setAddToListOpen}
       />
+
+      {isGoodreadsConfigured && (
+        <GoodreadsSearchDialog
+          mediaType="ebook"
+          mediaId={ebook.id}
+          mediaTitle={ebook.title}
+          initialQuery={ebook.title}
+          open={goodreadsSyncOpen}
+          onOpenChange={setGoodreadsSyncOpen}
+        />
+      )}
     </>
   );
 }

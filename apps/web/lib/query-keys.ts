@@ -108,6 +108,12 @@ export const queryKeys = {
       [...queryKeys.progress.all, "detail", audiobookId] as const,
     stats: () => [...queryKeys.progress.all, "stats"] as const,
   },
+  ebookProgress: {
+    all: ["ebook-progress"] as const,
+    list: () => [...queryKeys.ebookProgress.all, "list"] as const,
+    detail: (ebookId: string) =>
+      [...queryKeys.ebookProgress.all, "detail", ebookId] as const,
+  },
   tasks: {
     all: ["tasks"] as const,
     status: () => [...queryKeys.tasks.all, "status"] as const,
@@ -154,5 +160,17 @@ export const queryKeys = {
     forItem: (itemType: 'audiobook' | 'ebook', itemId: string) =>
       [...queryKeys.lists.all, 'for-item', itemType, itemId] as const,
     recent: (limit?: number) => [...queryKeys.lists.all, 'recent', limit] as const,
+  },
+  grFinder: {
+    all: ['gr-finder'] as const,
+    status: () => [...queryKeys.grFinder.all, 'status'] as const,
+    search: (query: string) => [...queryKeys.grFinder.all, 'search', query] as const,
+    link: (mediaType: "audiobook" | "ebook", mediaId: string) =>
+      [...queryKeys.grFinder.all, 'link', mediaType, mediaId] as const,
+  },
+  announcements: {
+    all: ['announcements'] as const,
+    active: () => [...queryKeys.announcements.all, 'active'] as const,
+    admin: () => [...queryKeys.announcements.all, 'admin'] as const,
   },
 } as const;

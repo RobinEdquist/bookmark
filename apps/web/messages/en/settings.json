@@ -7,7 +7,8 @@
     "users": "Users",
     "authentication": "Authentication",
     "appearance": "Appearance",
-    "integrations": "Integrations"
+    "integrations": "Integrations",
+    "announcements": "Announcements"
   },
   "libraries": {
     "title": "Libraries",
@@ -86,6 +87,7 @@
         "manual": "Manual Edit",
         "embedded": "Embedded Metadata",
         "hardcover": "Hardcover",
+        "goodreads": "Goodreads",
         "filename": "Filename",
         "folder_image": "Folder Image"
       },
@@ -396,6 +398,78 @@
         "autoSyncDisabled": "Auto-sync disabled",
         "autoSyncFailed": "Failed to update auto-sync setting"
       }
+    },
+    "goodreads": {
+      "title": "Goodreads Finder",
+      "description": "Search Goodreads for book metadata and series information",
+      "configured": "Configured",
+      "notConfigured": "Not configured",
+      "status": {
+        "active": "Integration Active",
+        "activeDescription": "Goodreads Finder is configured and ready to use. You can search for book metadata and series information.",
+        "inactive": "Configuration Required",
+        "inactiveDescription": "Set the GR_FINDER_URL environment variable to enable this integration."
+      }
+    }
+  },
+  "announcements": {
+    "title": "Announcements",
+    "description": "Create and manage announcements shown to all users on the home page",
+    "noAnnouncements": "No announcements yet",
+    "noAnnouncementsDescription": "Create an announcement to display a message to all users on the home page.",
+    "createAnnouncement": "Create Announcement",
+    "table": {
+      "title": "Title",
+      "message": "Message",
+      "status": "Status",
+      "createdBy": "Created By",
+      "createdAt": "Created",
+      "actions": "Actions"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    },
+    "createDialog": {
+      "title": "Create Announcement",
+      "description": "Create a new announcement to display on the home page",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Announcement title",
+      "messageLabel": "Message",
+      "messagePlaceholder": "Enter the announcement message...",
+      "iconUrlLabel": "Icon URL (optional)",
+      "iconUrlPlaceholder": "/custom-icon.svg",
+      "iconUrlHint": "Leave empty for default icon, or enter a URL for a custom icon",
+      "isActiveLabel": "Active",
+      "isActiveDescription": "Show this announcement to users",
+      "create": "Create Announcement",
+      "creating": "Creating..."
+    },
+    "editDialog": {
+      "title": "Edit Announcement",
+      "description": "Update the announcement details",
+      "save": "Save Changes",
+      "saving": "Saving..."
+    },
+    "deleteDialog": {
+      "title": "Delete Announcement",
+      "description": "Are you sure you want to delete this announcement? This action cannot be undone.",
+      "confirm": "Delete Announcement",
+      "deleting": "Deleting..."
+    },
+    "toast": {
+      "createSuccess": "Announcement created",
+      "createError": "Failed to create announcement",
+      "updateSuccess": "Announcement updated",
+      "updateError": "Failed to update announcement",
+      "deleteSuccess": "Announcement deleted",
+      "deleteError": "Failed to delete announcement"
     }
   },
   "restore": {

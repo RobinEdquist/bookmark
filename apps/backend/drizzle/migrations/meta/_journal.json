@@ -71,6 +71,34 @@
       "when": 1767003031074,
       "tag": "0009_add_lists",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1768296785567,
+      "tag": "0010_add_goodreads_linking_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1768395854817,
+      "tag": "0011_add_announcements",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1768400743197,
+      "tag": "0012_add_ebook_progress",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1768416012733,
+      "tag": "0013_remove_announcements_icon_url",
+      "breakpoints": true
     }
   ]
 }

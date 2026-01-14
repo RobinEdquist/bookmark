@@ -562,6 +562,60 @@ export function IntegrationsSettings() {
         </CardContent>
       </Card>
 
+      {/* Goodreads Finder */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2">
+            <CardTitle className="flex flex-wrap items-center gap-2">
+              {t("goodreads.title")}
+              {settings.grFinderConfigured ? (
+                <span className="flex items-center gap-1 text-sm font-normal text-green-600">
+                  <Check className="h-4 w-4" />
+                  {t("goodreads.configured")}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-sm font-normal text-muted-foreground">
+                  <X className="h-4 w-4" />
+                  {t("goodreads.notConfigured")}
+                </span>
+              )}
+            </CardTitle>
+            <CardDescription>{t("goodreads.description")}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {settings.grFinderConfigured ? (
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-900 dark:bg-green-950">
+              <div className="flex items-start gap-3">
+                <Check className="h-5 w-5 text-green-600 dark:text-green-500 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-green-900 dark:text-green-100">
+                    {t("goodreads.status.active")}
+                  </p>
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    {t("goodreads.status.activeDescription")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                    {t("goodreads.status.inactive")}
+                  </p>
+                  <p className="text-sm text-amber-800 dark:text-amber-200">
+                    {t("goodreads.status.inactiveDescription")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Manual Link Dialog */}
       {syncDialogItem?.audiobook && (
         <HardcoverSyncDialog

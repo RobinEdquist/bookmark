@@ -82,6 +82,35 @@
       "unlinkFailed": "Kunde inte ta bort länk"
     }
   },
+  "goodreadsSearch": {
+    "title": "Länka till Goodreads",
+    "description": "Välj en bok från Goodreads att länka med \"{title}\"",
+    "searchPlaceholder": "Sök på Goodreads...",
+    "search": "Sök",
+    "resultsCount": "{count, plural, one {# resultat hittades} other {# resultat hittades}}",
+    "noResults": "Inga matchande böcker hittades på Goodreads",
+    "error": "Sökningen på Goodreads misslyckades",
+    "cancel": "Avbryt",
+    "link": "Länka bok",
+    "linking": "Länkar...",
+    "toast": {
+      "linked": "Länkad till Goodreads",
+      "linkFailed": "Kunde inte länka"
+    }
+  },
+  "goodreadsLink": {
+    "title": "Goodreads",
+    "description": "Länkad bokmetadata från Goodreads",
+    "unlink": "Ta bort länk",
+    "unlinking": "Tar bort länk...",
+    "ratings": "betyg",
+    "genres": "Genrer",
+    "viewOnGoodreads": "Visa på Goodreads",
+    "toast": {
+      "unlinked": "Länk till Goodreads borttagen",
+      "unlinkFailed": "Kunde inte ta bort länk"
+    }
+  },
   "sort": {
     "label": "Sortera",
     "title": "Titel",

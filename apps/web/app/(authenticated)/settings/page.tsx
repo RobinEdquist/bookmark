@@ -8,10 +8,11 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { LibrariesSettings } from "../../../components/settings/libraries-settings";
 import { UsersSettings } from "../../../components/settings/users-settings";
 import { IntegrationsSettings } from "../../../components/settings/integrations-settings";
+import { AnnouncementsSettings } from "../../../components/settings/announcements-settings";
 import { authClient } from "../../../lib/auth-client";
 import { useUrlTab } from "../../../lib/use-url-tab";
 
-const VALID_TABS = ["libraries", "users", "integrations"] as const;
+const VALID_TABS = ["libraries", "users", "integrations", "announcements"] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 export default function SettingsPage() {
@@ -69,6 +70,7 @@ export default function SettingsPage() {
             <TabsTrigger value="libraries">{t("tabs.libraries")}</TabsTrigger>
             <TabsTrigger value="users">{t("tabs.users")}</TabsTrigger>
             <TabsTrigger value="integrations">{t("tabs.integrations")}</TabsTrigger>
+            <TabsTrigger value="announcements">{t("tabs.announcements")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="libraries">
@@ -81,6 +83,10 @@ export default function SettingsPage() {
 
           <TabsContent value="integrations">
             <IntegrationsSettings />
+          </TabsContent>
+
+          <TabsContent value="announcements">
+            <AnnouncementsSettings />
           </TabsContent>
         </Tabs>
       </div>

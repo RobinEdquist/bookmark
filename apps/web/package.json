@@ -25,6 +25,7 @@
     "next-intl": "^4.5.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-reader": "^2.0.15",
     "socket.io-client": "^4.8.1",
     "sonner": "^1.7.4"
   },

@@ -7,7 +7,8 @@
     "users": "Användare",
     "authentication": "Autentisering",
     "appearance": "Utseende",
-    "integrations": "Integrationer"
+    "integrations": "Integrationer",
+    "announcements": "Meddelanden"
   },
   "libraries": {
     "title": "Bibliotek",
@@ -86,6 +87,7 @@
         "manual": "Manuell redigering",
         "embedded": "Inbäddad metadata",
         "hardcover": "Hardcover",
+        "goodreads": "Goodreads",
         "filename": "Filnamn",
         "folder_image": "Mappbild"
       },
@@ -396,6 +398,78 @@
         "autoSyncDisabled": "Auto-synk inaktiverad",
         "autoSyncFailed": "Kunde inte uppdatera auto-synk-inställning"
       }
+    },
+    "goodreads": {
+      "title": "Goodreads Finder",
+      "description": "Sök Goodreads efter bokmetadata och serieinformation",
+      "configured": "Konfigurerad",
+      "notConfigured": "Ej konfigurerad",
+      "status": {
+        "active": "Integration aktiv",
+        "activeDescription": "Goodreads Finder är konfigurerad och redo att använda. Du kan söka efter bokmetadata och serieinformation.",
+        "inactive": "Konfiguration krävs",
+        "inactiveDescription": "Sätt miljövariabeln GR_FINDER_URL för att aktivera denna integration."
+      }
+    }
+  },
+  "announcements": {
+    "title": "Meddelanden",
+    "description": "Skapa och hantera meddelanden som visas för alla användare på startsidan",
+    "noAnnouncements": "Inga meddelanden ännu",
+    "noAnnouncementsDescription": "Skapa ett meddelande för att visa information till alla användare på startsidan.",
+    "createAnnouncement": "Skapa meddelande",
+    "table": {
+      "title": "Titel",
+      "message": "Meddelande",
+      "status": "Status",
+      "createdBy": "Skapad av",
+      "createdAt": "Skapad",
+      "actions": "Åtgärder"
+    },
+    "status": {
+      "active": "Aktiv",
+      "inactive": "Inaktiv"
+    },
+    "actions": {
+      "edit": "Redigera",
+      "delete": "Ta bort",
+      "activate": "Aktivera",
+      "deactivate": "Inaktivera"
+    },
+    "createDialog": {
+      "title": "Skapa meddelande",
+      "description": "Skapa ett nytt meddelande som visas på startsidan",
+      "titleLabel": "Titel",
+      "titlePlaceholder": "Meddelandetitel",
+      "messageLabel": "Meddelande",
+      "messagePlaceholder": "Ange meddelandetexten...",
+      "iconUrlLabel": "Ikon-URL (valfritt)",
+      "iconUrlPlaceholder": "/custom-icon.svg",
+      "iconUrlHint": "Lämna tomt för standardikon, eller ange en URL för en anpassad ikon",
+      "isActiveLabel": "Aktiv",
+      "isActiveDescription": "Visa detta meddelande för användare",
+      "create": "Skapa meddelande",
+      "creating": "Skapar..."
+    },
+    "editDialog": {
+      "title": "Redigera meddelande",
+      "description": "Uppdatera meddelandets detaljer",
+      "save": "Spara ändringar",
+      "saving": "Sparar..."
+    },
+    "deleteDialog": {
+      "title": "Ta bort meddelande",
+      "description": "Är du säker på att du vill ta bort detta meddelande? Denna åtgärd kan inte ångras.",
+      "confirm": "Ta bort meddelande",
+      "deleting": "Tar bort..."
+    },
+    "toast": {
+      "createSuccess": "Meddelande skapat",
+      "createError": "Kunde inte skapa meddelande",
+      "updateSuccess": "Meddelande uppdaterat",
+      "updateError": "Kunde inte uppdatera meddelande",
+      "deleteSuccess": "Meddelande borttaget",
+      "deleteError": "Kunde inte ta bort meddelande"
     }
   },
   "restore": {

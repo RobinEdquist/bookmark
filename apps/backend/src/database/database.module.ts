@@ -6,8 +6,11 @@ import { Pool } from 'pg';
 import * as authSchema from '../auth/schema';
 import * as appSettingsSchema from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
+import * as ebooksSchema from '../ebooks/schema';
+import * as ebookProgressSchema from '../ebook-progress/schema';
 import * as importErrorsSchema from '../import-errors/schema';
 import * as listsSchema from '../lists/schema';
+import * as announcementsSchema from '../announcements/schema';
 
 @Global()
 @Module({
@@ -25,8 +28,11 @@ import * as listsSchema from '../lists/schema';
             ...authSchema,
             ...appSettingsSchema,
             ...audiobooksSchema,
+            ...ebooksSchema,
+            ...ebookProgressSchema,
             ...importErrorsSchema,
             ...listsSchema,
+            ...announcementsSchema,
           },
         });
       },

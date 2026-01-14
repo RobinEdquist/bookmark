@@ -26,5 +26,10 @@
   "bookProgress": "Book progress",
   "bookSeek": "Seek through book",
   "chapterSeek": "Seek through chapter",
-  "viewAudiobook": "View {title}"
+  "viewAudiobook": "View {title}",
+  "sleepTimer": "Sleep timer",
+  "sleepTimerActive": "Sleep timer active",
+  "sleepTimerMinutes": "{minutes} min",
+  "sleepTimerEndOfChapter": "End of chapter",
+  "sleepTimerCancel": "Cancel timer"
 }

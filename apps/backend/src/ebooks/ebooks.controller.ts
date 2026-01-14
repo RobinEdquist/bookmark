@@ -408,6 +408,48 @@ export class EbooksController {
     stream.pipe(res);
   }
 
+  @Get(':id/stream')
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Stream EPUB file for in-browser reading',
+    description:
+      'Streams the EPUB file for use with react-reader. Only supports EPUB format. Access denied if ebook has tags blacklisted by the user.',
+  })
+  @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'EPUB file stream' })
+  @ApiResponse({
+    status: 400,
+    description: 'Only EPUB format supports in-browser reading',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - ebook has blacklisted tags',
+  })
+  @ApiResponse({ status: 404, description: 'Ebook not found' })
+  async stream(
+    @Param('id') id: string,
+    @Res() res: express.Response,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.ebooksService.verifyNotBlacklisted(id, user.id);
+    const downloadInfo = await this.ebooksService.getDownloadInfo(id);
+
+    // Only allow EPUB format for in-browser reading
+    if (downloadInfo.mimeType !== 'application/epub+zip') {
+      throw new BadRequestException(
+        'Only EPUB format supports in-browser reading',
+      );
+    }
+
+    res.setHeader('Content-Type', 'application/epub+zip');
+    res.setHeader('Content-Length', downloadInfo.fileSize.toString());
+    res.setHeader('Accept-Ranges', 'bytes');
+
+    const stream = fs.createReadStream(downloadInfo.filePath);
+    stream.pipe(res);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({

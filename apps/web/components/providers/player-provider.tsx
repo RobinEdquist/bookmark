@@ -12,6 +12,15 @@ import {
 import { toast } from "sonner";
 import type { AudiobookDetail, AudiobookChapter } from "../../lib/use-audiobooks";
 
+// Sleep timer state
+interface SleepTimerState {
+  active: boolean;
+  type: "duration" | "endOfChapter" | null;
+  remainingSeconds: number | null; // null for end-of-chapter mode
+  originalVolume: number;
+  isFading: boolean;
+}
+
 // Player state
 interface PlayerState {
   audiobook: AudiobookDetail | null;
@@ -23,6 +32,7 @@ interface PlayerState {
   playbackRate: number;
   volume: number;
   error: string | null;
+  sleepTimer: SleepTimerState;
 }
 
 // Player actions
@@ -40,6 +50,8 @@ interface PlayerActions {
   setVolume: (volume: number) => void;
   nextChapter: () => void;
   prevChapter: () => void;
+  startSleepTimer: (type: "duration" | "endOfChapter", minutes?: number) => void;
+  cancelSleepTimer: () => void;
 }
 
 // Playback session for tracking listening time
@@ -66,7 +78,19 @@ type PlayerAction =
   | { type: "SET_PLAYBACK_RATE"; payload: number }
   | { type: "SET_VOLUME"; payload: number }
   | { type: "SET_ERROR"; payload: string | null }
-  | { type: "STOP" };
+  | { type: "STOP" }
+  | { type: "START_SLEEP_TIMER"; payload: { type: "duration" | "endOfChapter"; seconds: number | null; originalVolume: number } }
+  | { type: "TICK_SLEEP_TIMER" }
+  | { type: "START_SLEEP_FADE" }
+  | { type: "CANCEL_SLEEP_TIMER" };
+
+const initialSleepTimerState: SleepTimerState = {
+  active: false,
+  type: null,
+  remainingSeconds: null,
+  originalVolume: 1,
+  isFading: false,
+};
 
 const initialState: PlayerState = {
   audiobook: null,
@@ -78,6 +102,7 @@ const initialState: PlayerState = {
   playbackRate: 1,
   volume: 1,
   error: null,
+  sleepTimer: initialSleepTimerState,
 };
 
 function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
@@ -110,6 +135,41 @@ function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
         ...initialState,
         volume: state.volume,
         playbackRate: state.playbackRate,
+      };
+    case "START_SLEEP_TIMER":
+      return {
+        ...state,
+        sleepTimer: {
+          active: true,
+          type: action.payload.type,
+          remainingSeconds: action.payload.seconds,
+          originalVolume: action.payload.originalVolume,
+          isFading: false,
+        },
+      };
+    case "TICK_SLEEP_TIMER":
+      if (!state.sleepTimer.active || state.sleepTimer.remainingSeconds === null) {
+        return state;
+      }
+      return {
+        ...state,
+        sleepTimer: {
+          ...state.sleepTimer,
+          remainingSeconds: Math.max(0, state.sleepTimer.remainingSeconds - 1),
+        },
+      };
+    case "START_SLEEP_FADE":
+      return {
+        ...state,
+        sleepTimer: {
+          ...state.sleepTimer,
+          isFading: true,
+        },
+      };
+    case "CANCEL_SLEEP_TIMER":
+      return {
+        ...state,
+        sleepTimer: initialSleepTimerState,
       };
     default:
       return state;
@@ -171,6 +231,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const isSeekingRef = useRef<boolean>(false); // True while user is dragging the slider
   const isStoppingRef = useRef<boolean>(false); // True when intentionally stopping (to ignore error events)
   const isInitializingRef = useRef<boolean>(false); // True during initial load until seek completes
+  const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const previousChapterIdRef = useRef<string | null>(null); // For detecting chapter changes
 
   // Initialize audio element
   useEffect(() => {
@@ -689,6 +751,158 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [state.audiobook, state.currentChapter, seek]);
 
+  // Sleep timer actions
+  const startSleepTimer = useCallback((type: "duration" | "endOfChapter", minutes?: number) => {
+    // Store the current volume to restore later
+    const originalVolume = volumeRef.current;
+
+    if (type === "duration" && minutes) {
+      dispatch({
+        type: "START_SLEEP_TIMER",
+        payload: { type, seconds: minutes * 60, originalVolume },
+      });
+    } else if (type === "endOfChapter") {
+      dispatch({
+        type: "START_SLEEP_TIMER",
+        payload: { type, seconds: null, originalVolume },
+      });
+      // Store current chapter ID for change detection
+      previousChapterIdRef.current = state.currentChapter?.id ?? null;
+    }
+  }, [state.currentChapter]);
+
+  const cancelSleepTimer = useCallback(() => {
+    // Clear the interval if running
+    if (sleepTimerIntervalRef.current) {
+      clearInterval(sleepTimerIntervalRef.current);
+      sleepTimerIntervalRef.current = null;
+    }
+
+    // Restore original volume if we were fading
+    if (state.sleepTimer.isFading && audioRef.current) {
+      audioRef.current.volume = state.sleepTimer.originalVolume;
+      volumeRef.current = state.sleepTimer.originalVolume;
+      dispatch({ type: "SET_VOLUME", payload: state.sleepTimer.originalVolume });
+    }
+
+    dispatch({ type: "CANCEL_SLEEP_TIMER" });
+  }, [state.sleepTimer.isFading, state.sleepTimer.originalVolume]);
+
+  // Sleep timer countdown effect
+  const sleepTimerActive = state.sleepTimer.active;
+  const sleepTimerType = state.sleepTimer.type;
+
+  useEffect(() => {
+    if (!sleepTimerActive || sleepTimerType !== "duration") {
+      // Clear interval if timer is not active or not duration-based
+      if (sleepTimerIntervalRef.current) {
+        clearInterval(sleepTimerIntervalRef.current);
+        sleepTimerIntervalRef.current = null;
+      }
+      return;
+    }
+
+    // Set up 1-second tick interval
+    sleepTimerIntervalRef.current = setInterval(() => {
+      dispatch({ type: "TICK_SLEEP_TIMER" });
+    }, 1000);
+
+    return () => {
+      if (sleepTimerIntervalRef.current) {
+        clearInterval(sleepTimerIntervalRef.current);
+        sleepTimerIntervalRef.current = null;
+      }
+    };
+  }, [sleepTimerActive, sleepTimerType]);
+
+  // Handle fade and pause when timer reaches 30 seconds or 0
+  const sleepTimerRemainingSeconds = state.sleepTimer.remainingSeconds;
+  const sleepTimerIsFading = state.sleepTimer.isFading;
+  const sleepTimerOriginalVolume = state.sleepTimer.originalVolume;
+
+  useEffect(() => {
+    if (!sleepTimerActive || sleepTimerRemainingSeconds === null) return;
+
+    const FADE_DURATION = 30; // seconds
+
+    // Start fading at 30 seconds
+    if (sleepTimerRemainingSeconds <= FADE_DURATION && !sleepTimerIsFading) {
+      dispatch({ type: "START_SLEEP_FADE" });
+    }
+
+    // Apply fade volume
+    if (sleepTimerIsFading && audioRef.current) {
+      const fadeProgress = sleepTimerRemainingSeconds / FADE_DURATION;
+      const fadedVolume = sleepTimerOriginalVolume * fadeProgress;
+      audioRef.current.volume = Math.max(0, fadedVolume);
+    }
+
+    // Timer expired - pause and restore
+    if (sleepTimerRemainingSeconds === 0) {
+      pause();
+      // Restore original volume in state (audio is paused so no audible jump)
+      if (audioRef.current) {
+        audioRef.current.volume = sleepTimerOriginalVolume;
+      }
+      volumeRef.current = sleepTimerOriginalVolume;
+      dispatch({ type: "SET_VOLUME", payload: sleepTimerOriginalVolume });
+      dispatch({ type: "CANCEL_SLEEP_TIMER" });
+    }
+  }, [sleepTimerActive, sleepTimerRemainingSeconds, sleepTimerIsFading, sleepTimerOriginalVolume, pause]);
+
+  // Handle end-of-chapter sleep timer
+  const currentChapterId = state.currentChapter?.id;
+  const isPlaying = state.isPlaying;
+
+  useEffect(() => {
+    if (!sleepTimerActive || sleepTimerType !== "endOfChapter" || !isPlaying) return;
+
+    // Detect chapter change
+    if (previousChapterIdRef.current && currentChapterId !== previousChapterIdRef.current) {
+      // Chapter changed - start fade and pause sequence
+      const fadeAndPause = () => {
+        const FADE_DURATION = 30; // seconds
+        const FADE_INTERVAL = 100; // ms
+        const steps = (FADE_DURATION * 1000) / FADE_INTERVAL;
+        const volumeStep = sleepTimerOriginalVolume / steps;
+
+        dispatch({ type: "START_SLEEP_FADE" });
+
+        let currentFadeVolume = sleepTimerOriginalVolume;
+        const fadeInterval = setInterval(() => {
+          currentFadeVolume = Math.max(0, currentFadeVolume - volumeStep);
+          if (audioRef.current) {
+            audioRef.current.volume = currentFadeVolume;
+          }
+
+          if (currentFadeVolume <= 0) {
+            clearInterval(fadeInterval);
+            pause();
+            // Restore original volume
+            if (audioRef.current) {
+              audioRef.current.volume = sleepTimerOriginalVolume;
+            }
+            volumeRef.current = sleepTimerOriginalVolume;
+            dispatch({ type: "SET_VOLUME", payload: sleepTimerOriginalVolume });
+            dispatch({ type: "CANCEL_SLEEP_TIMER" });
+          }
+        }, FADE_INTERVAL);
+      };
+
+      fadeAndPause();
+    }
+
+    // Update previous chapter ID
+    previousChapterIdRef.current = currentChapterId ?? null;
+  }, [sleepTimerActive, sleepTimerType, sleepTimerOriginalVolume, currentChapterId, isPlaying, pause]);
+
+  // Cancel sleep timer when audiobook changes or playback stops manually
+  useEffect(() => {
+    if (!state.audiobook && state.sleepTimer.active) {
+      dispatch({ type: "CANCEL_SLEEP_TIMER" });
+    }
+  }, [state.audiobook, state.sleepTimer.active]);
+
   // Set up Media Session action handlers
   useEffect(() => {
     if (!("mediaSession" in navigator)) return;
@@ -763,6 +977,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     setVolume,
     nextChapter,
     prevChapter,
+    startSleepTimer,
+    cancelSleepTimer,
   };
 
   return (

@@ -26,5 +26,10 @@
   "bookProgress": "Bokframsteg",
   "bookSeek": "Sök igenom boken",
   "chapterSeek": "Sök igenom kapitlet",
-  "viewAudiobook": "Visa {title}"
+  "viewAudiobook": "Visa {title}",
+  "sleepTimer": "Sovtimer",
+  "sleepTimerActive": "Sovtimer aktiv",
+  "sleepTimerMinutes": "{minutes} min",
+  "sleepTimerEndOfChapter": "Slut på kapitlet",
+  "sleepTimerCancel": "Avbryt timer"
 }
