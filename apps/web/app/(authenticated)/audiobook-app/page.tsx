@@ -2,7 +2,36 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { Smartphone, Apple, Headphones, Database, Server, AlertTriangle, QrCode, Camera, Settings, ExternalLink } from "lucide-react";
+import { Smartphone, Headphones, Database, Server, AlertTriangle, QrCode, Camera, Settings, ExternalLink } from "lucide-react";
+
+// Apple logo icon
+function AppleLogo({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 814 1000"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 781.5 0 648.5 0 522.5c0-203.3 132.1-311 262.4-311 69.1 0 126.7 45.3 170.1 45.3 41.4 0 106-47.3 185.2-47.3 29.9 0 137.4 2.6 208.4 99.4zM554.1 159.4c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z" />
+    </svg>
+  );
+}
+
+// Android logo icon
+function AndroidLogo({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path d="M17.523 15.341a.996.996 0 0 1-.996-.996V9.303a.996.996 0 1 1 1.992 0v5.042a.996.996 0 0 1-.996.996zm-11.046 0a.996.996 0 0 1-.996-.996V9.303a.996.996 0 1 1 1.992 0v5.042a.996.996 0 0 1-.996.996zm11.405-6.021c0-.107-.01-.213-.03-.316a4.463 4.463 0 0 0-1.527-2.907l.872-.873a.402.402 0 1 0-.568-.568l-.955.955a4.447 4.447 0 0 0-2.674-.89 4.447 4.447 0 0 0-2.674.89l-.955-.955a.402.402 0 0 0-.568.568l.872.873a4.463 4.463 0 0 0-1.527 2.907 1.02 1.02 0 0 0-.03.316v5.362c0 .553.448 1.001 1.001 1.001h7.762c.553 0 1.001-.448 1.001-1.001V9.32zm-7.924 1.187a.598.598 0 1 1 0-1.196.598.598 0 0 1 0 1.196zm4.084 0a.598.598 0 1 1 0-1.196.598.598 0 0 1 0 1.196z" />
+      <path d="M7.958 16.317v3.68a1.001 1.001 0 0 0 1.001 1.001h1.197v2.004c0 .553.448 1.001 1.001 1.001h.797a1.001 1.001 0 0 0 1.001-1.001v-2.004h1.092v2.004a1.001 1.001 0 0 0 1.001 1.001h.797a1.001 1.001 0 0 0 1.001-1.001v-2.004h1.197a1.001 1.001 0 0 0 1.001-1.001v-3.68H7.958z" />
+    </svg>
+  );
+}
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -129,7 +158,7 @@ export default function AudiobookAppPage() {
                   setSetupMethod("qr");
                 }}
               >
-                <Apple className="h-6 w-6" />
+                <AppleLogo className="h-6 w-6" />
                 <span>iOS</span>
               </Button>
               <Button
@@ -144,7 +173,7 @@ export default function AudiobookAppPage() {
                   setSetupMethod("qr");
                 }}
               >
-                <Smartphone className="h-6 w-6" />
+                <AndroidLogo className="h-6 w-6" />
                 <span>Android</span>
               </Button>
             </div>
