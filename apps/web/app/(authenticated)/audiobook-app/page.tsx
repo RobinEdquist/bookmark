@@ -299,6 +299,22 @@ export default function AudiobookAppPage() {
                               {t("connect.ios.scanNote")}
                             </p>
                           </div>
+
+                          {/* Open in App button for mobile users */}
+                          <Button
+                            asChild
+                            className="w-full max-w-xs"
+                          >
+                            <a href={qrCodeUrl || "#"}>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              {t("connect.ios.openInApp")}
+                            </a>
+                          </Button>
+
+                          <p className="text-xs text-muted-foreground">
+                            {t("connect.ios.openInAppNote")}
+                          </p>
+
                           <Button
                             variant="outline"
                             onClick={handleResetQrCode}

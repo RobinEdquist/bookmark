@@ -71,6 +71,8 @@
       "keyError": "Kunde inte generera anslutningskod",
       "scanInstructions": "Skanna denna QR-kod med din iPhone-kamera",
       "scanNote": "Se till att Happy Audio är installerat. När du skannar koden öppnas appen och ansluter automatiskt till din Bookmark-server.",
+      "openInApp": "Öppna i Happy Audio",
+      "openInAppNote": "Redan på din telefon? Tryck på knappen ovan för att ansluta direkt.",
       "done": "Klar"
     }
   }

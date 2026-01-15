@@ -71,6 +71,8 @@
       "keyError": "Failed to generate connection code",
       "scanInstructions": "Scan this QR code with your iPhone camera",
       "scanNote": "Make sure Happy Audio is installed. When you scan the code, it will open the app and automatically connect to your Bookmark server.",
+      "openInApp": "Open in Happy Audio",
+      "openInAppNote": "Already on your phone? Tap the button above to connect directly.",
       "done": "Done"
     }
   }
