@@ -23,6 +23,7 @@
     "motion": "^12.23.24",
     "next": "^16.0.6",
     "next-intl": "^4.5.5",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-reader": "^2.0.15",

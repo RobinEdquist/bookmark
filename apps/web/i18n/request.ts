@@ -18,6 +18,7 @@ export default getRequestConfig(async () => {
       audiobooks: (await import(`../messages/${locale}/audiobooks.json`)).default,
       ebooks: (await import(`../messages/${locale}/ebooks.json`)).default,
       eReader: (await import(`../messages/${locale}/eReader.json`)).default,
+      audiobookApp: (await import(`../messages/${locale}/audiobookApp.json`)).default,
       home: (await import(`../messages/${locale}/home.json`)).default,
       player: (await import(`../messages/${locale}/player.json`)).default,
       requests: (await import(`../messages/${locale}/requests.json`)).default,
