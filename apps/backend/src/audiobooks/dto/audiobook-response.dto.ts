@@ -126,6 +126,42 @@ export class HardcoverDataDto {
   contentWarnings?: string[] | null;
 }
 
+export class GoodreadsDataDto {
+  @ApiProperty({ example: '12345678', description: 'Goodreads book ID' })
+  id!: string;
+
+  @ApiProperty({
+    example: 'https://www.goodreads.com/book/show/12345678',
+    description: 'Goodreads book URL',
+  })
+  url!: string;
+
+  @ApiPropertyOptional({ example: 4.32, nullable: true })
+  rating?: number | null;
+
+  @ApiPropertyOptional({ example: 250000, nullable: true })
+  ratingsCount?: number | null;
+
+  @ApiPropertyOptional({
+    example: 'https://images.gr-assets.com/books/1234567890.jpg',
+    nullable: true,
+  })
+  coverUrl?: string | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['Fantasy', 'Fiction', 'Epic Fantasy'],
+    nullable: true,
+  })
+  genres?: string[] | null;
+
+  @ApiPropertyOptional({
+    example: 'A sweeping epic fantasy novel...',
+    nullable: true,
+  })
+  description?: string | null;
+}
+
 export class AudiobookListItemDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
@@ -178,6 +214,18 @@ export class AudiobookListItemDto {
 
   @ApiPropertyOptional({ example: 15000, nullable: true })
   hardcoverRatingsCount?: number | null;
+
+  @ApiProperty({
+    example: true,
+    description: 'Whether linked to Goodreads',
+  })
+  goodreadsLinked!: boolean;
+
+  @ApiPropertyOptional({ example: 4.32, nullable: true })
+  goodreadsRating?: number | null;
+
+  @ApiPropertyOptional({ example: 250000, nullable: true })
+  goodreadsRatingsCount?: number | null;
 }
 
 export class AudiobookListResponseDto {
@@ -273,6 +321,9 @@ export class AudiobookDetailDto {
 
   @ApiPropertyOptional({ type: HardcoverDataDto, nullable: true })
   hardcover?: HardcoverDataDto | null;
+
+  @ApiPropertyOptional({ type: GoodreadsDataDto, nullable: true })
+  goodreads?: GoodreadsDataDto | null;
 }
 
 export class UpdateCoverResponseDto {

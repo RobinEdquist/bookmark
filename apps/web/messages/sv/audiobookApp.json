@@ -1,0 +1,77 @@
+{
+  "description": "Anslut din mobila enhet för att lyssna på ljudböcker på språng.",
+  "happyAudio": {
+    "title": "Happy Audio",
+    "description": "En premiumapp för ljudböcker för iOS och Android",
+    "about": "Happy Audio är en snyggt designad ljudboksspelare skapad av samma utvecklare som Bookmark. Den stödjer flera ljudboksservrar och lokala filer, vilket ger dig flexibilitet i hur du hanterar ditt bibliotek.",
+    "features": {
+      "audiobookshelf": "Audiobookshelf",
+      "bookmark": "Bookmark",
+      "localData": "Lokala filer"
+    }
+  },
+  "connect": {
+    "title": "Anslut din enhet",
+    "description": "Välj din plattform för att se instruktioner för att ansluta Happy Audio till din Bookmark-server.",
+    "comingSoon": "Kommer snart",
+    "ios": {
+      "methods": {
+        "qr": "QR-kod",
+        "manual": "Manuellt"
+      },
+      "qr": {
+        "step1": {
+          "title": "Ladda ner Happy Audio",
+          "description": "Hämta Happy Audio från App Store på din iPhone eller iPad."
+        },
+        "step2": {
+          "title": "Generera QR-kod",
+          "description": "Klicka på knappen nedan för att generera en säker anslutnings-QR-kod."
+        },
+        "step3": {
+          "title": "Skanna med kameran",
+          "description": "Öppna Kamera-appen på din iOS-enhet och rikta den mot QR-koden för att ansluta."
+        }
+      },
+      "manual": {
+        "step1": {
+          "title": "Öppna Happy Audio",
+          "description": "Starta Happy Audio-appen på din iPhone eller iPad."
+        },
+        "step2": {
+          "title": "Gå till Inställningar",
+          "description": "Tryck på Inställningar i appen."
+        },
+        "step3": {
+          "title": "Anslut till Bookmark",
+          "description": "Under Serveranslutningar, tryck på Anslut för Bookmark. Ange serverdetaljerna som visas nedan."
+        },
+        "step4": {
+          "title": "Generera API-nyckel",
+          "description": "Gå till Preferenser i Bookmark och generera en API-nyckel. Kopiera nyckeln och klistra in den i Happy Audio-formuläret."
+        },
+        "step5": {
+          "title": "Testa och Spara",
+          "description": "Tryck på Testa för att verifiera att anslutningen fungerar, tryck sedan på Spara för att slutföra installationen."
+        },
+        "serverDetails": "Dina serverdetaljer",
+        "protocol": "Protokoll",
+        "host": "Värd",
+        "port": "Port",
+        "goToPreferences": "Gå till Preferenser"
+      },
+      "warning": {
+        "title": "Befintlig anslutning",
+        "description": "Du har redan en API-nyckel. Att generera en ny QR-kod kommer att skapa en ny nyckel och koppla bort alla befintliga appar eller e-läsare som använder den nuvarande nyckeln."
+      },
+      "generateQr": "Generera QR-kod",
+      "regenerateQr": "Regenerera QR-kod",
+      "generating": "Genererar...",
+      "keyGenerated": "Anslutnings-QR-kod genererades",
+      "keyError": "Kunde inte generera anslutningskod",
+      "scanInstructions": "Skanna denna QR-kod med din iPhone-kamera",
+      "scanNote": "Se till att Happy Audio är installerat. När du skannar koden öppnas appen och ansluter automatiskt till din Bookmark-server.",
+      "done": "Klar"
+    }
+  }
+}
