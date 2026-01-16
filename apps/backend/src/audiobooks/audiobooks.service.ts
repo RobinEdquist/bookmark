@@ -308,7 +308,7 @@ export class AudiobooksService {
               or(
                 ilike(hardcoverSchema.hardcoverBooks.title, searchPattern),
                 sql`EXISTS (
-                  SELECT 1 FROM unnest(${hardcoverSchema.hardcoverBooks.authorNames}) AS author_name
+                  SELECT 1 FROM jsonb_array_elements_text(${hardcoverSchema.hardcoverBooks.authorNames}) AS author_name
                   WHERE author_name ILIKE ${searchPattern}
                 )`,
               ),
