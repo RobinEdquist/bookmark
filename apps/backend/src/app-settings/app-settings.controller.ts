@@ -113,12 +113,21 @@ export class AppSettingsController {
       process.env.MAM_CLIENT_URL && process.env.MAM_CLIENT_API_KEY
     );
     const grFinderConfigured = !!process.env.GR_FINDER_URL;
+    const hardcoverConfigured = !!settings.hardcoverApiKey;
+
+    // Merge stored metadataPriority with defaults to ensure new sources are included
+    const metadataPriority = this.mergeMetadataPriority(
+      settings.metadataPriority,
+      grFinderConfigured,
+      hardcoverConfigured,
+    );
+
     return {
       signupsEnabled: settings.signupsEnabled,
       audiobookLibraryPath: settings.audiobookLibraryPath,
       ebookLibraryPath: settings.ebookLibraryPath,
       opdsEnabled: settings.opdsEnabled,
-      metadataPriority: settings.metadataPriority || DEFAULT_METADATA_PRIORITY,
+      metadataPriority,
       oidcButtonText: settings.oidcButtonText,
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
@@ -274,13 +283,21 @@ export class AppSettingsController {
       process.env.MAM_CLIENT_URL && process.env.MAM_CLIENT_API_KEY
     );
     const grFinderConfigured = !!process.env.GR_FINDER_URL;
+    const hardcoverConfigured = !!settings.hardcoverApiKey;
+
+    // Merge stored metadataPriority with defaults to ensure new sources are included
+    const metadataPriority = this.mergeMetadataPriority(
+      settings.metadataPriority,
+      grFinderConfigured,
+      hardcoverConfigured,
+    );
 
     return {
       signupsEnabled: settings.signupsEnabled,
       audiobookLibraryPath: settings.audiobookLibraryPath,
       ebookLibraryPath: settings.ebookLibraryPath,
       opdsEnabled: settings.opdsEnabled,
-      metadataPriority: settings.metadataPriority || DEFAULT_METADATA_PRIORITY,
+      metadataPriority,
       oidcButtonText: settings.oidcButtonText,
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
@@ -312,5 +329,55 @@ export class AppSettingsController {
       if (error instanceof BadRequestException) throw error;
       throw new BadRequestException('Path does not exist or is not accessible');
     }
+  }
+
+  /**
+   * Merges stored metadata priority with defaults and filters based on integration status.
+   * - Ensures new sources from DEFAULT_METADATA_PRIORITY are added
+   * - Removes goodreads if GR_FINDER_URL is not configured
+   * - Removes hardcover if Hardcover API key is not configured
+   */
+  private mergeMetadataPriority(
+    stored: MetadataFieldPriority | null,
+    grFinderConfigured: boolean,
+    hardcoverConfigured: boolean,
+  ): MetadataFieldPriority {
+    // Start with defaults if nothing stored
+    const base = stored || DEFAULT_METADATA_PRIORITY;
+
+    // Sources to filter out based on integration status
+    const disabledSources: string[] = [];
+    if (!grFinderConfigured) {
+      disabledSources.push('goodreads');
+    }
+    if (!hardcoverConfigured) {
+      disabledSources.push('hardcover');
+    }
+
+    const result: MetadataFieldPriority = {} as MetadataFieldPriority;
+
+    for (const field of Object.keys(DEFAULT_METADATA_PRIORITY) as Array<
+      keyof MetadataFieldPriority
+    >) {
+      const storedSources = base[field] || [];
+      const defaultSources = DEFAULT_METADATA_PRIORITY[field];
+
+      // Start with stored sources, maintaining their order
+      const mergedSources = [...storedSources];
+
+      // Add any new sources from defaults that aren't in stored
+      for (const source of defaultSources) {
+        if (!mergedSources.includes(source)) {
+          mergedSources.push(source);
+        }
+      }
+
+      // Filter out disabled integration sources
+      result[field] = mergedSources.filter(
+        (source) => !disabledSources.includes(source),
+      );
+    }
+
+    return result;
   }
 }
