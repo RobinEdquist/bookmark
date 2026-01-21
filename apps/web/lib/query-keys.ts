@@ -173,4 +173,8 @@ export const queryKeys = {
     active: () => [...queryKeys.announcements.all, 'active'] as const,
     admin: () => [...queryKeys.announcements.all, 'admin'] as const,
   },
+  adminGenres: {
+    all: ['admin-genres'] as const,
+    list: () => [...queryKeys.adminGenres.all, 'list'] as const,
+  },
 } as const;
