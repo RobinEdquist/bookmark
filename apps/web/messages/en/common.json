@@ -17,6 +17,7 @@
     "home": "Home",
     "audiobooks": "Audiobooks",
     "ebooks": "Ebooks",
+    "genres": "Genres",
     "series": "Series",
     "eReader": "E-Reader",
     "audiobookApp": "Audiobook App",
@@ -129,5 +130,13 @@
   "headerSearch": {
     "placeholder": "Search library...",
     "noResults": "No results found"
+  },
+  "genres": {
+    "title": "Genres",
+    "audiobooks": "Audiobooks",
+    "ebooks": "Ebooks",
+    "back": "Genres",
+    "empty": "No genres found",
+    "itemCount": "{count, plural, =1 {1 {type}} other {# {type}}}"
   }
 }

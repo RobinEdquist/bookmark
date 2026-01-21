@@ -17,6 +17,7 @@
     "home": "Hem",
     "audiobooks": "Ljudböcker",
     "ebooks": "E-böcker",
+    "genres": "Genrer",
     "series": "Serier",
     "eReader": "E-boksläsare",
     "audiobookApp": "Ljudboksapp",
@@ -129,5 +130,13 @@
   "headerSearch": {
     "placeholder": "Sök i biblioteket...",
     "noResults": "Inga resultat hittades"
+  },
+  "genres": {
+    "title": "Genrer",
+    "audiobooks": "Ljudböcker",
+    "ebooks": "E-böcker",
+    "back": "Genrer",
+    "empty": "Inga genrer hittades",
+    "itemCount": "{count, plural, =1 {1 {type}} other {# {type}}}"
   }
 }
