@@ -32,6 +32,7 @@ import { RequestsModule } from './requests';
 import { ListsModule } from './lists/lists.module';
 import { GrFinderModule } from './gr-finder/gr-finder.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
+import { GenresModule } from './genres/genres.module';
 import { APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
@@ -147,6 +148,7 @@ import { CommonModule } from './common/common.module';
     ListsModule,
     GrFinderModule,
     AnnouncementsModule,
+    GenresModule,
   ],
   controllers: [],
   providers: [
