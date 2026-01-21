@@ -7,5 +7,5 @@ export class RenameGenreDto {
   @IsString()
   @IsNotEmpty()
   @Transform(({ value }) => value?.trim())
-  name: string;
+  name!: string;
 }
