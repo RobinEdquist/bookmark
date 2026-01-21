@@ -1171,6 +1171,35 @@ export class EbooksService {
     return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
   }
 
+  async getGenres(
+    search?: string,
+    limit?: number,
+  ): Promise<{ id: string; name: string; count: number }[]> {
+    const conditions: SQL[] = [];
+
+    if (search) {
+      conditions.push(ilike(audiobookSchema.genres.name, `%${search}%`));
+    }
+
+    // Only return genres that have at least one ebook
+    const baseQuery = this.db
+      .select({
+        id: audiobookSchema.genres.id,
+        name: audiobookSchema.genres.name,
+        count: sql<number>`count(${schema.ebookGenres.ebookId})::int`,
+      })
+      .from(audiobookSchema.genres)
+      .innerJoin(
+        schema.ebookGenres,
+        eq(audiobookSchema.genres.id, schema.ebookGenres.genreId),
+      )
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .groupBy(audiobookSchema.genres.id, audiobookSchema.genres.name)
+      .orderBy(asc(audiobookSchema.genres.name));
+
+    return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
+  }
+
   async updateCoverFromFile(
     id: string,
     buffer: Buffer,

@@ -229,6 +229,35 @@ export class EbooksController {
     );
   }
 
+  @Get('genres')
+  @ApiOperation({
+    summary: 'List all ebook genres',
+    description: 'Returns a list of all genres with ebooks, including count',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter genres by name',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Number of items to return',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of genres with IDs, names, and counts',
+  })
+  async getGenres(
+    @Query('search') search?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.ebooksService.getGenres(
+      search,
+      limit ? parseInt(limit, 10) : undefined,
+    );
+  }
+
   @Get(':id')
   @ApiOperation({
     summary: 'Get ebook details',
