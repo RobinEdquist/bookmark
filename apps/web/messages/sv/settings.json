@@ -8,7 +8,8 @@
     "authentication": "Autentisering",
     "appearance": "Utseende",
     "integrations": "Integrationer",
-    "announcements": "Meddelanden"
+    "announcements": "Meddelanden",
+    "genres": "Genrer"
   },
   "libraries": {
     "title": "Bibliotek",
@@ -470,6 +471,55 @@
       "updateError": "Kunde inte uppdatera meddelande",
       "deleteSuccess": "Meddelande borttaget",
       "deleteError": "Kunde inte ta bort meddelande"
+    }
+  },
+  "genres": {
+    "title": "Genrer",
+    "description": "Hantera genrer som används för ljudböcker och e-böcker",
+    "table": {
+      "name": "Namn",
+      "audiobooks": "Ljudböcker",
+      "ebooks": "E-böcker",
+      "actions": "Åtgärder"
+    },
+    "empty": "Inga genrer hittades. Genrer skapas automatiskt när ljudböcker och e-böcker importeras.",
+    "rename": {
+      "title": "Byt namn på genre",
+      "label": "Namn",
+      "save": "Spara",
+      "saving": "Sparar...",
+      "cancel": "Avbryt"
+    },
+    "merge": {
+      "title": "Slå ihop genrer?",
+      "description": "\"{target}\" finns redan. Detta kommer slå ihop:",
+      "audiobooksFrom": "{count, plural, =1 {1 ljudbok} other {# ljudböcker}} från \"{source}\"",
+      "ebooksFrom": "{count, plural, =1 {1 e-bok} other {# e-böcker}} från \"{source}\"",
+      "into": "till \"{target}\" och ta bort \"{source}\".",
+      "warning": "Denna åtgärd kan inte ångras.",
+      "confirm": "Slå ihop",
+      "merging": "Slår ihop...",
+      "cancel": "Avbryt"
+    },
+    "delete": {
+      "title": "Ta bort genre?",
+      "description": "Detta kommer ta bort \"{name}\" från:",
+      "audiobooks": "{count, plural, =1 {1 ljudbok} other {# ljudböcker}}",
+      "ebooks": "{count, plural, =1 {1 e-bok} other {# e-böcker}}",
+      "note": "Ljudböckerna och e-böckerna finns kvar, endast genrekopplingen tas bort.",
+      "confirm": "Ta bort",
+      "deleting": "Tar bort...",
+      "cancel": "Avbryt"
+    },
+    "actions": {
+      "rename": "Byt namn",
+      "delete": "Ta bort"
+    },
+    "toast": {
+      "renamed": "Genre omdöpt",
+      "merged": "Genrer ihopslagna",
+      "deleted": "Genre borttagen",
+      "error": "Ett fel uppstod"
     }
   },
   "restore": {

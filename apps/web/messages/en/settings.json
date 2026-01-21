@@ -8,7 +8,8 @@
     "authentication": "Authentication",
     "appearance": "Appearance",
     "integrations": "Integrations",
-    "announcements": "Announcements"
+    "announcements": "Announcements",
+    "genres": "Genres"
   },
   "libraries": {
     "title": "Libraries",
@@ -470,6 +471,55 @@
       "updateError": "Failed to update announcement",
       "deleteSuccess": "Announcement deleted",
       "deleteError": "Failed to delete announcement"
+    }
+  },
+  "genres": {
+    "title": "Genres",
+    "description": "Manage genres used across audiobooks and ebooks",
+    "table": {
+      "name": "Name",
+      "audiobooks": "Audiobooks",
+      "ebooks": "Ebooks",
+      "actions": "Actions"
+    },
+    "empty": "No genres found. Genres are created automatically when importing audiobooks and ebooks.",
+    "rename": {
+      "title": "Rename Genre",
+      "label": "Name",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+    "merge": {
+      "title": "Merge Genres?",
+      "description": "\"{target}\" already exists. This will merge:",
+      "audiobooksFrom": "{count, plural, =1 {1 audiobook} other {# audiobooks}} from \"{source}\"",
+      "ebooksFrom": "{count, plural, =1 {1 ebook} other {# ebooks}} from \"{source}\"",
+      "into": "into \"{target}\" and delete \"{source}\".",
+      "warning": "This action cannot be undone.",
+      "confirm": "Merge",
+      "merging": "Merging...",
+      "cancel": "Cancel"
+    },
+    "delete": {
+      "title": "Delete Genre?",
+      "description": "This will remove \"{name}\" from:",
+      "audiobooks": "{count, plural, =1 {1 audiobook} other {# audiobooks}}",
+      "ebooks": "{count, plural, =1 {1 ebook} other {# ebooks}}",
+      "note": "The audiobooks and ebooks will remain, only the genre association will be removed.",
+      "confirm": "Delete",
+      "deleting": "Deleting...",
+      "cancel": "Cancel"
+    },
+    "actions": {
+      "rename": "Rename",
+      "delete": "Delete"
+    },
+    "toast": {
+      "renamed": "Genre renamed successfully",
+      "merged": "Genres merged successfully",
+      "deleted": "Genre deleted successfully",
+      "error": "An error occurred"
     }
   },
   "restore": {
