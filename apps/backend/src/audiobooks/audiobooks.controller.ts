@@ -257,7 +257,7 @@ export class AudiobooksController {
   })
   @ApiResponse({
     status: 200,
-    description: 'List of genres with IDs and names',
+    description: 'List of genres with IDs, names, and counts',
     type: [GenreDto],
   })
   async getGenres(

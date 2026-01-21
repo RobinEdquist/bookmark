@@ -1329,20 +1329,27 @@ export class AudiobooksService {
   async getGenres(
     search?: string,
     limit?: number,
-  ): Promise<{ id: string; name: string }[]> {
+  ): Promise<{ id: string; name: string; count: number }[]> {
     const conditions: SQL[] = [];
 
     if (search) {
       conditions.push(ilike(schema.genres.name, `%${search}%`));
     }
 
+    // Only return genres that have at least one audiobook
     const baseQuery = this.db
       .select({
         id: schema.genres.id,
         name: schema.genres.name,
+        count: sql<number>`count(${schema.audiobookGenres.audiobookId})::int`,
       })
       .from(schema.genres)
+      .innerJoin(
+        schema.audiobookGenres,
+        eq(schema.genres.id, schema.audiobookGenres.genreId),
+      )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .groupBy(schema.genres.id, schema.genres.name)
       .orderBy(asc(schema.genres.name));
 
     return limit !== undefined ? baseQuery.limit(limit) : baseQuery;
