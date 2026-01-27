@@ -9,10 +9,11 @@ import { LibrariesSettings } from "../../../components/settings/libraries-settin
 import { UsersSettings } from "../../../components/settings/users-settings";
 import { IntegrationsSettings } from "../../../components/settings/integrations-settings";
 import { AnnouncementsSettings } from "../../../components/settings/announcements-settings";
+import { GenresSettings } from "../../../components/settings/genres-settings";
 import { authClient } from "../../../lib/auth-client";
 import { useUrlTab } from "../../../lib/use-url-tab";
 
-const VALID_TABS = ["libraries", "users", "integrations", "announcements"] as const;
+const VALID_TABS = ["libraries", "users", "integrations", "announcements", "genres"] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 export default function SettingsPage() {
@@ -71,6 +72,7 @@ export default function SettingsPage() {
             <TabsTrigger value="users">{t("tabs.users")}</TabsTrigger>
             <TabsTrigger value="integrations">{t("tabs.integrations")}</TabsTrigger>
             <TabsTrigger value="announcements">{t("tabs.announcements")}</TabsTrigger>
+            <TabsTrigger value="genres">{t("tabs.genres")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="libraries">
@@ -87,6 +89,10 @@ export default function SettingsPage() {
 
           <TabsContent value="announcements">
             <AnnouncementsSettings />
+          </TabsContent>
+
+          <TabsContent value="genres">
+            <GenresSettings />
           </TabsContent>
         </Tabs>
       </div>
