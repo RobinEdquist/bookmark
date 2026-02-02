@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiTags,
   ApiOperation,
@@ -9,6 +18,7 @@ import {
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { CanRequestGuard } from '../common/guards/can-request.guard';
+import { MamClientService } from '../mam-client';
 import { RequestsService } from './requests.service';
 import { SearchMamDto, CreateRequestDto } from './dto';
 import {
@@ -24,7 +34,22 @@ import {
 @Controller('requests')
 @UseGuards(CanRequestGuard)
 export class RequestsController {
-  constructor(private readonly requestsService: RequestsService) {}
+  constructor(
+    private readonly requestsService: RequestsService,
+    private readonly mamClient: MamClientService,
+  ) {}
+
+  @Get('mam-image/:id')
+  @ApiOperation({
+    summary: 'Proxy MAM torrent thumbnail',
+    description: 'Proxies a torrent thumbnail image from the MAM CDN',
+  })
+  @ApiParam({ name: 'id', description: 'MAM torrent ID' })
+  @ApiResponse({ status: 200, description: 'Image data' })
+  @ApiResponse({ status: 404, description: 'Image not found' })
+  async proxyImage(@Param('id') id: string, @Res() res: Response) {
+    await this.mamClient.proxyImage(id, res);
+  }
 
   @Post('search')
   @ApiOperation({

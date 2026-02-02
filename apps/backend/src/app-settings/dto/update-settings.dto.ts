@@ -270,6 +270,15 @@ export class UpdateSettingsDto {
   autoApproveRequestsPerWeek?: number;
 
   @ApiPropertyOptional({
+    description:
+      'Whether to use personal freeleech wedges when downloading requested content',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  requestsUseFreeleech?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Default permission for new users to edit metadata',
     example: false,
   })

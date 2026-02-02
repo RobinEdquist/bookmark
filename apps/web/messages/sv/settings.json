@@ -350,7 +350,15 @@
         }
       },
       "autoApproveLimit": "Auto-godkänn förfrågningar per vecka",
-      "autoApproveLimitDescription": "Antal förfrågningar varje användare kan auto-godkänna per vecka. Sätt till 0 för att inaktivera."
+      "autoApproveLimitDescription": "Antal förfrågningar varje användare kan auto-godkänna per vecka. Sätt till 0 för att inaktivera.",
+      "freeleech": {
+        "label": "Använd freeleech-kuponger",
+        "description": "Använd automatiskt en personlig freeleech-kupong på varje torrent innan nedladdning. Om inga kuponger finns tillgängliga misslyckas nedladdningen.",
+        "toast": {
+          "enabled": "Freeleech-kuponger aktiverade",
+          "disabled": "Freeleech-kuponger inaktiverade"
+        }
+      }
     },
     "hardcover": {
       "title": "Hardcover",

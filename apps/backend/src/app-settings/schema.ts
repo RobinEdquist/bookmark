@@ -84,6 +84,9 @@ export const appSettings = pgTable(
     autoApproveRequestsPerWeek: integer('auto_approve_requests_per_week')
       .notNull()
       .default(0),
+    requestsUseFreeleech: boolean('requests_use_freeleech')
+      .notNull()
+      .default(false),
     // Default permissions for new users (signup and OIDC)
     defaultCanEditMetadata: boolean('default_can_edit_metadata')
       .notNull()

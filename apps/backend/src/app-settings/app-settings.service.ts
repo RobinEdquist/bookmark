@@ -49,6 +49,7 @@ export class AppSettingsService {
     requestsEbookCategory?: string;
     requestsComicsCategory?: string;
     autoApproveRequestsPerWeek?: number;
+    requestsUseFreeleech?: boolean;
     defaultCanEditMetadata?: boolean;
     defaultCanUpload?: boolean;
     defaultCanDelete?: boolean;

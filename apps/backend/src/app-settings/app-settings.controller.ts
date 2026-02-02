@@ -136,6 +136,7 @@ export class AppSettingsController {
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
       autoApproveRequestsPerWeek: settings.autoApproveRequestsPerWeek,
+      requestsUseFreeleech: settings.requestsUseFreeleech,
       defaultCanEditMetadata: settings.defaultCanEditMetadata,
       defaultCanUpload: settings.defaultCanUpload,
       defaultCanDelete: settings.defaultCanDelete,
@@ -182,6 +183,7 @@ export class AppSettingsController {
       dto.requestsEbookCategory === undefined &&
       dto.requestsComicsCategory === undefined &&
       dto.autoApproveRequestsPerWeek === undefined &&
+      dto.requestsUseFreeleech === undefined &&
       dto.defaultCanEditMetadata === undefined &&
       dto.defaultCanUpload === undefined &&
       dto.defaultCanDelete === undefined &&
@@ -236,6 +238,7 @@ export class AppSettingsController {
       requestsEbookCategory?: string;
       requestsComicsCategory?: string;
       autoApproveRequestsPerWeek?: number;
+      requestsUseFreeleech?: boolean;
       defaultCanEditMetadata?: boolean;
       defaultCanUpload?: boolean;
       defaultCanDelete?: boolean;
@@ -267,6 +270,8 @@ export class AppSettingsController {
       updates.requestsComicsCategory = dto.requestsComicsCategory;
     if (dto.autoApproveRequestsPerWeek !== undefined)
       updates.autoApproveRequestsPerWeek = dto.autoApproveRequestsPerWeek;
+    if (dto.requestsUseFreeleech !== undefined)
+      updates.requestsUseFreeleech = dto.requestsUseFreeleech;
     if (dto.defaultCanEditMetadata !== undefined)
       updates.defaultCanEditMetadata = dto.defaultCanEditMetadata;
     if (dto.defaultCanUpload !== undefined)
@@ -306,6 +311,7 @@ export class AppSettingsController {
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
       autoApproveRequestsPerWeek: settings.autoApproveRequestsPerWeek,
+      requestsUseFreeleech: settings.requestsUseFreeleech,
       defaultCanEditMetadata: settings.defaultCanEditMetadata,
       defaultCanUpload: settings.defaultCanUpload,
       defaultCanDelete: settings.defaultCanDelete,

@@ -1,0 +1,1 @@
+ALTER TABLE "app_settings" ADD COLUMN "requests_use_freeleech" boolean DEFAULT false NOT NULL;

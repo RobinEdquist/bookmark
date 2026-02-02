@@ -350,7 +350,15 @@
         }
       },
       "autoApproveLimit": "Auto-approve requests per week",
-      "autoApproveLimitDescription": "Number of requests each user can auto-approve per week. Set to 0 to disable."
+      "autoApproveLimitDescription": "Number of requests each user can auto-approve per week. Set to 0 to disable.",
+      "freeleech": {
+        "label": "Use Freeleech Wedges",
+        "description": "Automatically spend a personal freeleech wedge on each torrent before downloading. If no wedges are available, the download will fail.",
+        "toast": {
+          "enabled": "Freeleech wedges enabled",
+          "disabled": "Freeleech wedges disabled"
+        }
+      }
     },
     "hardcover": {
       "title": "Hardcover",

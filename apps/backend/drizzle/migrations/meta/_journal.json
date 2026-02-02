@@ -99,6 +99,13 @@
       "when": 1768416012733,
       "tag": "0013_remove_announcements_icon_url",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1770048203858,
+      "tag": "0014_add_requests_use_freeleech",
+      "breakpoints": true
     }
   ]
 }

@@ -186,6 +186,21 @@ export function IntegrationsSettings() {
     }
   };
 
+  const handleFreeleechToggle = async (enabled: boolean) => {
+    try {
+      await updateSettings({ requestsUseFreeleech: enabled });
+      toast.success(
+        enabled
+          ? t("requests.freeleech.toast.enabled")
+          : t("requests.freeleech.toast.disabled")
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("requests.toast.error")
+      );
+    }
+  };
+
   const handleAutoApproveLimitChange = async (value: number) => {
     const newValue = Math.max(0, value);
     setAutoApproveLimit(newValue);
@@ -345,6 +360,23 @@ export function IntegrationsSettings() {
                   {t("requests.autoApproveLimitDescription")}
                 </p>
               </div>
+
+              <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between mt-4">
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <Label htmlFor="use-freeleech" className="text-base font-medium">
+                    {t("requests.freeleech.label")}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t("requests.freeleech.description")}
+                  </p>
+                </div>
+                <Switch
+                  id="use-freeleech"
+                  checked={settings.requestsUseFreeleech}
+                  onCheckedChange={handleFreeleechToggle}
+                  disabled={isUpdatingSettings}
+                />
+              </fieldset>
             </div>
           )}
         </CardContent>

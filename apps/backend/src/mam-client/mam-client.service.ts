@@ -1,5 +1,6 @@
 import { Injectable, Logger, HttpException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Response } from 'express';
 import {
   MamSearchParams,
   MamSearchResponse,
@@ -97,6 +98,60 @@ export class MamClientService {
       'GET',
       `/torrents?hashes=${hashesParam}`,
     );
+  }
+
+  async proxyImage(torrentId: string, res: Response): Promise<void> {
+    if (!this.isConfigured()) {
+      throw new HttpException('MAM client not configured', 503);
+    }
+
+    const url = `${this.baseUrl}/image/${torrentId}`;
+
+    try {
+      const upstream = await fetch(url, {
+        headers: { 'X-API-Key': this.apiKey! },
+      });
+
+      if (!upstream.ok) {
+        throw new HttpException(`Image not found`, upstream.status);
+      }
+
+      // Forward relevant headers
+      const contentType = upstream.headers.get('content-type');
+      const cacheControl = upstream.headers.get('cache-control');
+      const etag = upstream.headers.get('etag');
+
+      if (contentType) res.setHeader('Content-Type', contentType);
+      if (cacheControl) {
+        res.setHeader('Cache-Control', cacheControl);
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+      if (etag) res.setHeader('ETag', etag);
+
+      // Stream the body
+      const body = upstream.body;
+      if (!body) {
+        res.status(204).end();
+        return;
+      }
+
+      const reader = body.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value);
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      res.end();
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      this.logger.error(`Failed to proxy image: ${error}`);
+      throw new HttpException('Failed to proxy image', 502);
+    }
   }
 
   async healthCheck(): Promise<boolean> {

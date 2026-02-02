@@ -213,7 +213,7 @@ export class RequestsService {
         narrator: this.parseMamInfoField(torrent.narrator_info),
         series: this.parseMamSeriesField(torrent.series_info),
         description: this.cleanDescription(torrent.description),
-        coverUrl: null, // MAM doesn't provide cover URLs in search
+        coverUrl: `/api/requests/mam-image/${torrent.id}`,
         contentType,
         category: torrent.catname || '',
         mamCategory: torrent.category,
@@ -447,9 +447,14 @@ export class RequestsService {
       category = categories.ebook;
     }
 
+    // Check if freeleech wedges should be used
+    const settings = await this.appSettingsService.getSettings();
+    const usePersonalFL = settings.requestsUseFreeleech;
+
     // Start download via MAM client
     const downloadResult = await this.mamClient.download(request.mamTorrentId, {
       category,
+      usePersonalFL: usePersonalFL || undefined,
     });
 
     // Get torrent info to cache folder name

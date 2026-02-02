@@ -93,6 +93,13 @@ export class AppSettingsResponseDto {
   @ApiProperty({ example: 5 })
   autoApproveRequestsPerWeek!: number;
 
+  @ApiProperty({
+    example: false,
+    description:
+      'Whether to use personal freeleech wedges when downloading requested content',
+  })
+  requestsUseFreeleech!: boolean;
+
   @ApiProperty({ example: true })
   defaultCanEditMetadata!: boolean;
 

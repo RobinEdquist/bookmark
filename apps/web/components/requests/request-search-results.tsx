@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Headphones, BookOpen, ChevronRight, Calendar, Tag, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -21,6 +22,7 @@ interface RequestSearchResultsProps {
     narrator?: string;
     series?: string;
     description?: string;
+    coverUrl?: string;
     contentType: ContentType;
     mamCategory: number;
   }) => void;
@@ -84,6 +86,7 @@ export function RequestSearchResults({
       narrator: item.narrator ?? undefined,
       series: seriesString,
       description: item.description ?? undefined,
+      coverUrl: item.coverUrl ?? undefined,
       contentType: item.contentType,
       mamCategory: item.mamCategory,
     });
@@ -113,21 +116,32 @@ export function RequestSearchResults({
                     }`}
                   />
 
-                  {/* Content Type Icon & Category */}
+                  {/* Cover Image / Content Type Icon & Category */}
                   <div className="my-4 flex shrink-0 flex-col items-center gap-1.5">
-                    <div
-                      className={`flex h-14 w-14 items-center justify-center rounded-lg ${
-                        isAudiobook
-                          ? "bg-primary/10 text-primary"
-                          : "bg-blue-500/10 text-blue-500"
-                      }`}
-                    >
-                      {isAudiobook ? (
-                        <Headphones className="h-7 w-7" />
-                      ) : (
-                        <BookOpen className="h-7 w-7" />
-                      )}
-                    </div>
+                    {item.coverUrl ? (
+                      <Image
+                        src={item.coverUrl}
+                        alt={item.title}
+                        width={72}
+                        height={72}
+                        className="h-[72px] w-[72px] rounded-lg object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div
+                        className={`flex h-14 w-14 items-center justify-center rounded-lg ${
+                          isAudiobook
+                            ? "bg-primary/10 text-primary"
+                            : "bg-blue-500/10 text-blue-500"
+                        }`}
+                      >
+                        {isAudiobook ? (
+                          <Headphones className="h-7 w-7" />
+                        ) : (
+                          <BookOpen className="h-7 w-7" />
+                        )}
+                      </div>
+                    )}
                     <span
                       className={`max-w-[72px] truncate rounded px-1.5 py-0.5 text-[10px] font-medium ${categoryColors.bg} ${categoryColors.text}`}
                       title={categoryName}
@@ -297,21 +311,32 @@ export function RequestSearchResults({
                     }`}
                   />
                   <div className="p-4 space-y-3">
-                    {/* Header: Icon + Title */}
+                    {/* Header: Cover/Icon + Title */}
                     <div className="flex items-start gap-3">
-                      <div
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
-                          isAudiobook
-                            ? "bg-primary/10 text-primary"
-                            : "bg-blue-500/10 text-blue-500"
-                        }`}
-                      >
-                        {isAudiobook ? (
-                          <Headphones className="h-6 w-6" />
-                        ) : (
-                          <BookOpen className="h-6 w-6" />
-                        )}
-                      </div>
+                      {item.coverUrl ? (
+                        <Image
+                          src={item.coverUrl}
+                          alt={item.title}
+                          width={48}
+                          height={48}
+                          className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div
+                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
+                            isAudiobook
+                              ? "bg-primary/10 text-primary"
+                              : "bg-blue-500/10 text-blue-500"
+                          }`}
+                        >
+                          {isAudiobook ? (
+                            <Headphones className="h-6 w-6" />
+                          ) : (
+                            <BookOpen className="h-6 w-6" />
+                          )}
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
                           <h3 className="font-semibold leading-tight line-clamp-2">{item.title}</h3>

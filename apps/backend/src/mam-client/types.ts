@@ -41,6 +41,7 @@ export interface MamDownloadOptions {
   tags?: string;
   paused?: boolean;
   savepath?: string;
+  usePersonalFL?: boolean; // Spend a personal freeleech wedge before downloading
 }
 
 export interface MamDownloadResponse {

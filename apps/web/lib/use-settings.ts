@@ -34,6 +34,7 @@ export interface Settings {
   requestsEbookCategory: string;
   requestsComicsCategory: string;
   autoApproveRequestsPerWeek: number;
+  requestsUseFreeleech: boolean;
   defaultCanEditMetadata: boolean;
   defaultCanUpload: boolean;
   defaultCanDelete: boolean;
@@ -59,6 +60,7 @@ export interface UpdateSettingsDto {
   requestsEbookCategory?: string;
   requestsComicsCategory?: string;
   autoApproveRequestsPerWeek?: number;
+  requestsUseFreeleech?: boolean;
   defaultCanEditMetadata?: boolean;
   defaultCanUpload?: boolean;
   defaultCanDelete?: boolean;

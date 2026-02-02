@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Headphones, BookOpen, Calendar, Tag, FileText, Globe, HardDrive, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
@@ -93,38 +94,53 @@ export function RequestDetailPanel({
           >
             {/* Header */}
             <div className="space-y-4 border-b p-6">
-              {/* Content Type Badge */}
-              <div className="flex items-center gap-2">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                  {item.contentType === "audiobook" ? (
-                    <Headphones className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <BookOpen className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Badge variant={item.contentType === "audiobook" ? "default" : "secondary"}>
-                    {item.contentType === "audiobook" ? t("badge.audiobook") : t("badge.ebook")}
-                  </Badge>
-                  {(() => {
-                    const categoryName = formatCategoryName(item.category);
-                    const colors = getCategoryColor(categoryName);
-                    return (
-                      <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colors.bg} ${colors.text}`}>
-                        {categoryName}
-                      </span>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold">{item.title}</h2>
-                {item.author && (
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {t("card.by", { author: item.author })}
-                  </p>
+              <div className="flex gap-4">
+                {/* Cover Image */}
+                {item.coverUrl ? (
+                  <Image
+                    src={item.coverUrl}
+                    alt={item.title}
+                    width={96}
+                    height={96}
+                    className="h-24 w-24 shrink-0 rounded-lg object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-muted">
+                    {item.contentType === "audiobook" ? (
+                      <Headphones className="h-8 w-8 text-muted-foreground" />
+                    ) : (
+                      <BookOpen className="h-8 w-8 text-muted-foreground" />
+                    )}
+                  </div>
                 )}
+
+                <div className="min-w-0 space-y-2">
+                  {/* Content Type Badge */}
+                  <div className="flex gap-2">
+                    <Badge variant={item.contentType === "audiobook" ? "default" : "secondary"}>
+                      {item.contentType === "audiobook" ? t("badge.audiobook") : t("badge.ebook")}
+                    </Badge>
+                    {(() => {
+                      const categoryName = formatCategoryName(item.category);
+                      const colors = getCategoryColor(categoryName);
+                      return (
+                        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colors.bg} ${colors.text}`}>
+                          {categoryName}
+                        </span>
+                      );
+                    })()}
+                  </div>
+
+                  <div>
+                    <h2 className="text-xl font-semibold">{item.title}</h2>
+                    {item.author && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t("card.by", { author: item.author })}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
 
