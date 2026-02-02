@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { ReactReader } from "react-reader";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Slider } from "@repo/ui/components/ui/slider";
 import { useUpdateEbookProgress } from "../../lib/use-ebook-progress";
@@ -26,6 +26,9 @@ export function EpubReader({
   const [showToolbar, setShowToolbar] = useState(true);
   const [currentPercent, setCurrentPercent] = useState(0);
   const [isGeneratingLocations, setIsGeneratingLocations] = useState(true);
+  const [epubData, setEpubData] = useState<ArrayBuffer | null>(null);
+  const [isLoadingEpub, setIsLoadingEpub] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renditionRef = useRef<any>(null);
   const tocRef = useRef<{ label: string; href: string }[]>([]);
@@ -54,6 +57,36 @@ export function EpubReader({
     },
     [ebookId, updateProgress]
   );
+
+  // Fetch EPUB file as ArrayBuffer on mount
+  useEffect(() => {
+    const fetchEpub = async () => {
+      try {
+        setIsLoadingEpub(true);
+        setLoadError(null);
+
+        const response = await fetch(`/api/ebooks/${ebookId}/stream`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to load ebook: ${response.statusText}`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        setEpubData(arrayBuffer);
+      } catch (error) {
+        console.error("Error loading EPUB:", error);
+        setLoadError(
+          error instanceof Error ? error.message : "Failed to load ebook"
+        );
+      } finally {
+        setIsLoadingEpub(false);
+      }
+    };
+
+    fetchEpub();
+  }, [ebookId]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -172,22 +205,46 @@ export function EpubReader({
 
       {/* Reader */}
       <div className="flex-1 relative">
-        <ReactReader
-          url={`/api/ebooks/${ebookId}/stream`}
-          location={location}
-          locationChanged={handleLocationChange}
-          getRendition={handleGetRendition}
-          showToc={false}
-          epubOptions={{
-            allowScriptedContent: false,
-          }}
-        />
-        {/* Invisible click overlay for toolbar toggle */}
-        <div
-          className="absolute inset-0 z-10 pointer-events-none"
-          style={{ pointerEvents: showToolbar ? "none" : "auto" }}
-          onClick={handleReaderClick}
-        />
+        {isLoadingEpub && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                {t("reader.loadingBook")}
+              </p>
+            </div>
+          </div>
+        )}
+        {loadError && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 text-center px-4">
+              <p className="text-sm text-destructive">{loadError}</p>
+              <Button variant="outline" size="sm" onClick={onClose}>
+                {t("reader.close")}
+              </Button>
+            </div>
+          </div>
+        )}
+        {epubData && (
+          <>
+            <ReactReader
+              url={epubData}
+              location={location}
+              locationChanged={handleLocationChange}
+              getRendition={handleGetRendition}
+              showToc={false}
+              epubOptions={{
+                allowScriptedContent: false,
+              }}
+            />
+            {/* Invisible click overlay for toolbar toggle */}
+            <div
+              className="absolute inset-0 z-10 pointer-events-none"
+              style={{ pointerEvents: showToolbar ? "none" : "auto" }}
+              onClick={handleReaderClick}
+            />
+          </>
+        )}
       </div>
 
       {/* Footer toolbar */}

@@ -88,6 +88,7 @@
     "previousPage": "Previous page",
     "nextPage": "Next page",
     "loading": "Loading...",
+    "loadingBook": "Loading book...",
     "progress": "{percent}% complete"
   },
   "changeCover": {
