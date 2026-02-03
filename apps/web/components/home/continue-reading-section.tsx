@@ -257,30 +257,9 @@ export function ContinueReadingSection() {
     }
   }
 
-  // Show empty state when library is configured but no in-progress ebooks
+  // Hide section when library is configured but no in-progress ebooks
   if (inProgressEbooks.length === 0) {
-    return (
-      <section className="space-y-4">
-        <h2 className="text-xl font-semibold tracking-tight">{t("title")}</h2>
-
-        <motion.div
-          className="flex flex-col items-center justify-center rounded-xl border bg-card p-8 text-center"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <div className="mb-4 rounded-full bg-primary/10 p-4">
-            <BookOpen className="h-8 w-8 text-primary" />
-          </div>
-          <h3 className="text-lg font-medium">{t("emptyTitle")}</h3>
-          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            {t("emptyDescription")}
-          </p>
-          <Button asChild className="mt-6">
-            <Link href="/ebooks">{t("browseLibrary")}</Link>
-          </Button>
-        </motion.div>
-      </section>
-    );
+    return null;
   }
 
   return (
