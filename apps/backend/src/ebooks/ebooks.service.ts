@@ -181,6 +181,7 @@ export class EbooksService {
   ): Promise<{ ebooks: EbookListItem[]; total: number }> {
     const {
       search,
+      genreId,
       language,
       sortBy = 'createdAt',
       sortOrder = 'desc',
@@ -316,6 +317,22 @@ export class EbooksService {
 
     if (language) {
       conditions.push(eq(schema.ebooks.language, language));
+    }
+
+    // Filter by genre using the ebookGenres junction table
+    if (genreId) {
+      const genreFilter = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(schema.ebookGenres)
+          .where(
+            and(
+              eq(schema.ebookGenres.ebookId, schema.ebooks.id),
+              eq(schema.ebookGenres.genreId, genreId),
+            ),
+          ),
+      );
+      conditions.push(genreFilter);
     }
 
     // Base query for ebooks

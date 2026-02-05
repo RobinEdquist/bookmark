@@ -186,6 +186,7 @@ export class AudiobooksService {
   ): Promise<{ audiobooks: AudiobookListItem[]; total: number }> {
     const {
       search,
+      genreId,
       language,
       sortBy = 'createdAt',
       sortOrder = 'desc',
@@ -330,6 +331,22 @@ export class AudiobooksService {
 
     if (language) {
       conditions.push(eq(schema.audiobooks.language, language));
+    }
+
+    // Filter by genre using the audiobookGenres junction table
+    if (genreId) {
+      const genreFilter = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(schema.audiobookGenres)
+          .where(
+            and(
+              eq(schema.audiobookGenres.audiobookId, schema.audiobooks.id),
+              eq(schema.audiobookGenres.genreId, genreId),
+            ),
+          ),
+      );
+      conditions.push(genreFilter);
     }
 
     // Base query for audiobooks
