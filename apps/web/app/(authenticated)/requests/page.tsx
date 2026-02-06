@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui
 import { Tabs as ContentTypeTabs, TabsList as ContentTypeTabsList, TabsTrigger as ContentTypeTabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { cn } from "@repo/ui/lib/utils";
-import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest, type SearchFilters, type MamSearchResult, type RequestResponse } from "../../../lib/use-requests";
+import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest, useLibrarySearch, type SearchFilters, type MamSearchResult, type RequestResponse } from "../../../lib/use-requests";
+import { LibraryMatchesSection } from "../../../components/requests/library-matches-section";
 import { useAutoApproveBudget } from "../../../lib/use-auto-approve-budget";
 import { RequestSearchResults } from "../../../components/requests/request-search-results";
 import { MyRequestsList } from "../../../components/requests/my-requests-list";
@@ -49,11 +50,16 @@ export default function RequestsPage() {
 
   // Local state for search results (to update without re-fetching from external API)
   const [localSearchResults, setLocalSearchResults] = useState<MamSearchResult[]>([]);
+  const [librarySearchQuery, setLibrarySearchQuery] = useState("");
 
   const { search, isSearching, data: searchResults } = useSearchMam();
   const { data: myRequests, isLoading: requestsLoading } = useMyRequests();
   const { createRequest, isCreating } = useCreateRequest();
   const { supportRequest, isSupporting } = useSupportRequest();
+  const { data: libraryResults, isLoading: librarySearching } = useLibrarySearch(
+    librarySearchQuery,
+    contentType
+  );
 
   // Sync local state with search mutation data
   useEffect(() => {
@@ -65,6 +71,8 @@ export default function RequestsPage() {
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
+      // Trigger both searches in parallel
+      setLibrarySearchQuery(searchQuery.trim());
       await search(searchQuery.trim(), filters);
     }
   };
@@ -150,6 +158,15 @@ export default function RequestsPage() {
         </form>
 
         <SearchFiltersPanel filters={filters} onChange={setFilters} />
+
+        {librarySearchQuery && (
+          <LibraryMatchesSection
+            audiobooks={libraryResults?.audiobooks ?? []}
+            ebooks={libraryResults?.ebooks ?? []}
+            isLoading={librarySearching}
+            contentType={contentType}
+          />
+        )}
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ViewTab)}>
           <TabsList>
