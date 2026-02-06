@@ -86,5 +86,10 @@
     "budget": "Auto-godkännanden: {remaining}/{limit} denna vecka",
     "autoApproved": "Auto-godkänd",
     "autoApprovedBy": "Auto-godkänd av {email}"
+  },
+  "libraryMatches": {
+    "title": "Finns i biblioteket",
+    "audiobooks": "Ljudböcker",
+    "ebooks": "E-böcker"
   }
 }

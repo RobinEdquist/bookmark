@@ -86,5 +86,10 @@
     "budget": "Auto-approvals: {remaining}/{limit} this week",
     "autoApproved": "Auto-approved",
     "autoApprovedBy": "Auto-approved by {email}"
+  },
+  "libraryMatches": {
+    "title": "Already in Library",
+    "audiobooks": "Audiobooks",
+    "ebooks": "Ebooks"
   }
 }
