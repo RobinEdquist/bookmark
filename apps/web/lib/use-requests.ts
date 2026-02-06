@@ -70,6 +70,25 @@ export interface SearchFilters {
   perPage?: number;
 }
 
+export interface LibrarySearchAuthor {
+  id: string;
+  name: string;
+}
+
+export interface LibrarySearchItem {
+  id: string;
+  title: string;
+  subtitle?: string;
+  coverUrl?: string;
+  authors: LibrarySearchAuthor[];
+  similarity: number;
+}
+
+export interface LibrarySearchResponse {
+  audiobooks: LibrarySearchItem[];
+  ebooks: LibrarySearchItem[];
+}
+
 // API functions
 async function searchMam(query: string, filters?: SearchFilters): Promise<SearchMamResponse> {
   const response = await fetch("/api/requests/search", {
@@ -143,6 +162,28 @@ async function supportRequest(requestId: string): Promise<RequestResponse> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || "Failed to support request");
+  }
+
+  return response.json();
+}
+
+async function searchLibrary(
+  query: string,
+  contentType: 'all' | 'audiobooks' | 'ebooks' = 'all',
+): Promise<LibrarySearchResponse> {
+  const params = new URLSearchParams({
+    query,
+    contentType,
+    limit: '10',
+  });
+
+  const response = await fetch(`/api/library/search?${params}`, {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Library search failed');
   }
 
   return response.json();
@@ -254,6 +295,15 @@ export function useSupportRequest() {
     isSupporting: mutation.isPending,
     error: mutation.error,
   };
+}
+
+export function useLibrarySearch(query: string, contentType: 'all' | 'audiobooks' | 'ebooks') {
+  return useQuery({
+    queryKey: queryKeys.library.search(query, contentType),
+    queryFn: () => searchLibrary(query, contentType),
+    enabled: query.length >= 2,
+    staleTime: 60 * 1000, // Cache for 1 minute
+  });
 }
 
 // Admin hooks
