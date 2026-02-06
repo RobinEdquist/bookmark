@@ -45,11 +45,11 @@ export class LibrarySearchItemDto {
   @ApiProperty()
   title!: string;
 
-  @ApiPropertyOptional()
-  subtitle?: string;
+  @ApiPropertyOptional({ nullable: true })
+  subtitle!: string | null;
 
-  @ApiPropertyOptional()
-  coverUrl?: string;
+  @ApiPropertyOptional({ nullable: true })
+  coverUrl!: string | null;
 
   @ApiProperty({ type: [LibrarySearchAuthorDto] })
   authors!: LibrarySearchAuthorDto[];

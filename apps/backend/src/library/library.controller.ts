@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, UseGuards, Query } from '@nestjs/common';
 import { AuthGuard } from '../common/guards/auth.guard';
 import {
   ApiTags,
@@ -12,6 +12,10 @@ import {
   LibraryStatsDto,
   LibraryAvailabilityDto,
 } from './dto/library-response.dto';
+import {
+  LibrarySearchQueryDto,
+  LibrarySearchResponseDto,
+} from './dto/library-search.dto';
 
 export interface LibraryAvailability {
   audiobooks: boolean;
@@ -65,5 +69,27 @@ export class LibraryController {
       ebooks: !!settings.ebookLibraryPath,
       opds: !!settings.opdsEnabled,
     };
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search library with fuzzy matching',
+    description:
+      'Searches audiobooks and ebooks using fuzzy text matching on title, subtitle, and author names',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results',
+    type: LibrarySearchResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async search(
+    @Query() query: LibrarySearchQueryDto,
+  ): Promise<LibrarySearchResponseDto> {
+    return this.libraryService.searchLibrary(
+      query.query,
+      query.contentType,
+      query.limit,
+    );
   }
 }
