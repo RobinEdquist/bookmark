@@ -25,6 +25,8 @@ export const queryKeys = {
     all: ["library"] as const,
     stats: () => [...queryKeys.library.all, "stats"] as const,
     availability: () => [...queryKeys.library.all, "availability"] as const,
+    search: (query: string, contentType: string) =>
+      [...queryKeys.library.all, "search", query, contentType] as const,
   },
   series: {
     all: ["series"] as const,
