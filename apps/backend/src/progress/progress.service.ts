@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, desc, eq, gte, sql, count, notExists } from 'drizzle-orm';
+import { and, desc, eq, gte, sql, count, notExists, sum } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as progressSchema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
@@ -46,6 +46,37 @@ export interface ListeningStats {
     audiobooksCompleted: number;
   };
   recentlyPlayed: ProgressWithAudiobook[];
+}
+
+export interface ListeningStatsItem {
+  id: string;
+  title: string;
+  authorName: string | null;
+  coverUrl: string | null;
+  timeListening: number;
+}
+
+export interface RecentSession {
+  id: string;
+  audiobookId: string;
+  audiobookTitle: string;
+  authorName: string | null;
+  coverUrl: string | null;
+  date: string;
+  timeListening: number;
+  startPosition: number;
+  endPosition: number;
+  startedAt: string;
+  endedAt: string;
+}
+
+export interface MobileListeningStats {
+  totalTime: number;
+  today: number;
+  items: Record<string, ListeningStatsItem>;
+  days: Record<string, number>;
+  dayOfWeek: Record<string, number>;
+  recentSessions: RecentSession[];
 }
 
 @Injectable()
@@ -376,5 +407,230 @@ export class ProgressService {
     if (result.rowCount === 0) {
       throw new NotFoundException('Progress record not found');
     }
+  }
+
+  /**
+   * Get mobile-friendly listening statistics.
+   * Includes daily breakdowns for contribution graphs and per-audiobook stats.
+   */
+  async getMobileListeningStats(userId: string): Promise<MobileListeningStats> {
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+
+    // Limit contribution graph to last year for performance
+    const oneYearAgo = new Date(now);
+    oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+
+    const dayNames = [
+      'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+    ];
+
+    // Run all queries in parallel
+    const [
+      totalTimeResult,
+      todayResult,
+      itemsResult,
+      daysResult,
+      dowResult,
+      recentSessionsResult,
+    ] = await Promise.all([
+      // Total listening time (all time)
+      this.db
+        .select({
+          total: sql<number>`COALESCE(SUM(${progressSchema.listeningSessions.durationSeconds}), 0)`,
+        })
+        .from(progressSchema.listeningSessions)
+        .where(eq(progressSchema.listeningSessions.userId, userId)),
+
+      // Today's listening time
+      this.db
+        .select({
+          total: sql<number>`COALESCE(SUM(${progressSchema.listeningSessions.durationSeconds}), 0)`,
+        })
+        .from(progressSchema.listeningSessions)
+        .where(
+          and(
+            eq(progressSchema.listeningSessions.userId, userId),
+            gte(progressSchema.listeningSessions.startedAt, todayStart),
+          ),
+        ),
+
+      // Per-audiobook stats with author
+      this.db
+        .select({
+          audiobookId: progressSchema.listeningSessions.audiobookId,
+          title: audiobookSchema.audiobooks.title,
+          coverUrl: audiobookSchema.audiobooks.coverUrl,
+          authorName: audiobookSchema.people.name,
+          timeListening: sum(progressSchema.listeningSessions.durationSeconds),
+        })
+        .from(progressSchema.listeningSessions)
+        .innerJoin(
+          audiobookSchema.audiobooks,
+          eq(
+            progressSchema.listeningSessions.audiobookId,
+            audiobookSchema.audiobooks.id,
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.audiobookAuthors,
+          and(
+            eq(
+              audiobookSchema.audiobooks.id,
+              audiobookSchema.audiobookAuthors.audiobookId,
+            ),
+            eq(audiobookSchema.audiobookAuthors.order, 0),
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.people,
+          eq(
+            audiobookSchema.audiobookAuthors.personId,
+            audiobookSchema.people.id,
+          ),
+        )
+        .where(eq(progressSchema.listeningSessions.userId, userId))
+        .groupBy(
+          progressSchema.listeningSessions.audiobookId,
+          audiobookSchema.audiobooks.id,
+          audiobookSchema.audiobooks.title,
+          audiobookSchema.audiobooks.coverUrl,
+          audiobookSchema.people.name,
+        ),
+
+      // Daily totals for contribution graph (limited to last year)
+      this.db
+        .select({
+          date: sql<string>`TO_CHAR(${progressSchema.listeningSessions.startedAt}, 'YYYY-MM-DD')`,
+          total: sum(progressSchema.listeningSessions.durationSeconds),
+        })
+        .from(progressSchema.listeningSessions)
+        .where(
+          and(
+            eq(progressSchema.listeningSessions.userId, userId),
+            gte(progressSchema.listeningSessions.startedAt, oneYearAgo),
+          ),
+        )
+        .groupBy(
+          sql`TO_CHAR(${progressSchema.listeningSessions.startedAt}, 'YYYY-MM-DD')`,
+        ),
+
+      // Day of week aggregation
+      this.db
+        .select({
+          dow: sql<number>`EXTRACT(DOW FROM ${progressSchema.listeningSessions.startedAt})`,
+          total: sum(progressSchema.listeningSessions.durationSeconds),
+        })
+        .from(progressSchema.listeningSessions)
+        .where(eq(progressSchema.listeningSessions.userId, userId))
+        .groupBy(
+          sql`EXTRACT(DOW FROM ${progressSchema.listeningSessions.startedAt})`,
+        ),
+
+      // Recent sessions with audiobook metadata
+      this.db
+        .select({
+          id: progressSchema.listeningSessions.id,
+          audiobookId: progressSchema.listeningSessions.audiobookId,
+          audiobookTitle: audiobookSchema.audiobooks.title,
+          coverUrl: audiobookSchema.audiobooks.coverUrl,
+          authorName: audiobookSchema.people.name,
+          durationSeconds: progressSchema.listeningSessions.durationSeconds,
+          startPosition: progressSchema.listeningSessions.startPosition,
+          endPosition: progressSchema.listeningSessions.endPosition,
+          startedAt: progressSchema.listeningSessions.startedAt,
+          endedAt: progressSchema.listeningSessions.endedAt,
+        })
+        .from(progressSchema.listeningSessions)
+        .innerJoin(
+          audiobookSchema.audiobooks,
+          eq(
+            progressSchema.listeningSessions.audiobookId,
+            audiobookSchema.audiobooks.id,
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.audiobookAuthors,
+          and(
+            eq(
+              audiobookSchema.audiobooks.id,
+              audiobookSchema.audiobookAuthors.audiobookId,
+            ),
+            eq(audiobookSchema.audiobookAuthors.order, 0),
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.people,
+          eq(
+            audiobookSchema.audiobookAuthors.personId,
+            audiobookSchema.people.id,
+          ),
+        )
+        .where(eq(progressSchema.listeningSessions.userId, userId))
+        .orderBy(desc(progressSchema.listeningSessions.startedAt))
+        .limit(20),
+    ]);
+
+    // Build items map
+    const items: Record<string, ListeningStatsItem> = {};
+    for (const row of itemsResult) {
+      items[row.audiobookId] = {
+        id: row.audiobookId,
+        title: row.title,
+        authorName: row.authorName,
+        coverUrl: row.coverUrl,
+        timeListening: Number(row.timeListening ?? 0),
+      };
+    }
+
+    // Build days map
+    const days: Record<string, number> = {};
+    for (const row of daysResult) {
+      days[row.date] = Number(row.total ?? 0);
+    }
+
+    // Build day of week map (initialize all days to 0)
+    const dayOfWeek: Record<string, number> = {};
+    for (const name of dayNames) {
+      dayOfWeek[name] = 0;
+    }
+    for (const row of dowResult) {
+      const dayIndex = Number(row.dow);
+      dayOfWeek[dayNames[dayIndex]] = Number(row.total ?? 0);
+    }
+
+    // Build recent sessions
+    const recentSessions: RecentSession[] = recentSessionsResult.map((row) => ({
+      id: row.id,
+      audiobookId: row.audiobookId,
+      audiobookTitle: row.audiobookTitle,
+      authorName: row.authorName,
+      coverUrl: row.coverUrl,
+      date: row.startedAt.toISOString().split('T')[0],
+      timeListening: row.durationSeconds,
+      startPosition: row.startPosition,
+      endPosition: row.endPosition,
+      startedAt: row.startedAt.toISOString(),
+      endedAt: row.endedAt.toISOString(),
+    }));
+
+    return {
+      totalTime: Number(totalTimeResult[0]?.total ?? 0),
+      today: Number(todayResult[0]?.total ?? 0),
+      items,
+      days,
+      dayOfWeek,
+      recentSessions,
+    };
   }
 }

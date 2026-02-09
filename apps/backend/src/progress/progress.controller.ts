@@ -24,12 +24,14 @@ import {
   ProgressWithAudiobookDto,
   ListeningStatsDto,
   CreateSessionResponseDto,
+  MobileListeningStatsDto,
 } from './dto/progress-response.dto';
 import {
   ProgressService,
   type ProgressResponse,
   type ProgressWithAudiobook,
   type ListeningStats,
+  type MobileListeningStats,
 } from './progress.service';
 
 @ApiTags('Progress')
@@ -74,6 +76,24 @@ export class ProgressController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ListeningStats> {
     return this.progressService.getListeningStats(user.id);
+  }
+
+  @Get('listening-stats')
+  @ApiOperation({
+    summary: 'Get mobile-friendly listening statistics',
+    description:
+      'Returns listening stats with daily breakdowns for contribution graphs and per-audiobook stats',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Mobile listening statistics',
+    type: MobileListeningStatsDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMobileListeningStats(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<MobileListeningStats> {
+    return this.progressService.getMobileListeningStats(user.id);
   }
 
   @Get(':audiobookId')
