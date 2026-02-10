@@ -22,6 +22,8 @@ import {
 export interface ComboboxOption {
   value: string;
   label: string;
+  /** Optional unique key for React. If not provided, value is used as key. */
+  key?: string;
 }
 
 interface CreatableComboboxProps {
@@ -155,7 +157,7 @@ export function CreatableCombobox({
             <CommandGroup>
               {filteredOptions.map((option) => (
                 <CommandItem
-                  key={option.value}
+                  key={option.key ?? option.value}
                   value={option.value}
                   onSelect={() => handleSelect(option.value)}
                 >

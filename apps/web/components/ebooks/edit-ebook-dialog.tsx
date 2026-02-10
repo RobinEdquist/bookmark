@@ -140,18 +140,21 @@ export function EditEbookDialog({
   // Track initial values to detect which fields actually changed
   const [initialState, setInitialState] = useState<InitialFormState | null>(null);
 
-  // Convert existing data to combobox options
+  // Convert existing data to combobox options (use ID as key to handle duplicates)
   const authorOptions = existingAuthors.map((a) => ({
+    key: a.id,
     value: a.name,
     label: a.name,
   }));
 
   const genreOptions = existingGenres.map((g) => ({
+    key: g.id,
     value: g.name,
     label: g.name,
   }));
 
   const tagOptions = existingTags.map((t) => ({
+    key: t.value, // t.value is the tag ID
     value: t.label,
     label: t.label,
   }));

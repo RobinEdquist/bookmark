@@ -667,23 +667,17 @@ export class RestoreImporterService {
     const trimmedName = name.trim();
 
     // Try to find existing person
-    const existing = await this.db
-      .select()
-      .from(audiobooksSchema.people)
-      .where(eq(audiobooksSchema.people.name, trimmedName))
-      .limit(1);
-
-    if (existing.length > 0) {
-      return existing[0].id;
-    }
-
-    // Create new person
-    const [newPerson] = await this.db
+    // Find or create person using upsert to handle race conditions
+    const [person] = await this.db
       .insert(audiobooksSchema.people)
       .values({ name: trimmedName })
+      .onConflictDoUpdate({
+        target: audiobooksSchema.people.name,
+        set: { name: trimmedName }, // No-op update to get the existing row
+      })
       .returning();
 
-    return newPerson.id;
+    return person.id;
   }
 
   /**
@@ -743,29 +737,22 @@ export class RestoreImporterService {
    */
   private async findOrCreatePerson(
     name: string,
-    type: 'author' | 'narrator',
+    _type: 'author' | 'narrator',
     tx: any,
   ): Promise<string> {
     const trimmedName = name.trim();
 
-    // Try to find existing person
-    const existing = await tx
-      .select()
-      .from(audiobooksSchema.people)
-      .where(eq(audiobooksSchema.people.name, trimmedName))
-      .limit(1);
-
-    if (existing.length > 0) {
-      return existing[0].id;
-    }
-
-    // Create new person
-    const [newPerson] = await tx
+    // Find or create person using upsert to handle race conditions
+    const [person] = await tx
       .insert(audiobooksSchema.people)
       .values({ name: trimmedName })
+      .onConflictDoUpdate({
+        target: audiobooksSchema.people.name,
+        set: { name: trimmedName }, // No-op update to get the existing row
+      })
       .returning();
 
-    return newPerson.id;
+    return person.id;
   }
 
   /**

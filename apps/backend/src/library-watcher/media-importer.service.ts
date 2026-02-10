@@ -761,18 +761,15 @@ export class MediaImporterService {
     for (let i = 0; i < names.length; i++) {
       const name = names[i];
 
-      let [person] = await this.db
-        .select()
-        .from(audiobooksSchema.people)
-        .where(eq(audiobooksSchema.people.name, name))
-        .limit(1);
-
-      if (!person) {
-        [person] = await this.db
-          .insert(audiobooksSchema.people)
-          .values({ name })
-          .returning();
-      }
+      // Find or create person using upsert to handle race conditions
+      const [person] = await this.db
+        .insert(audiobooksSchema.people)
+        .values({ name })
+        .onConflictDoUpdate({
+          target: audiobooksSchema.people.name,
+          set: { name }, // No-op update to get the existing row
+        })
+        .returning();
 
       if (role === 'author') {
         await this.db.insert(audiobooksSchema.audiobookAuthors).values({
@@ -815,18 +812,15 @@ export class MediaImporterService {
     for (let i = 0; i < names.length; i++) {
       const personName = names[i];
 
-      let [person] = await this.db
-        .select()
-        .from(audiobooksSchema.people)
-        .where(eq(audiobooksSchema.people.name, personName))
-        .limit(1);
-
-      if (!person) {
-        [person] = await this.db
-          .insert(audiobooksSchema.people)
-          .values({ name: personName })
-          .returning();
-      }
+      // Find or create person using upsert to handle race conditions
+      const [person] = await this.db
+        .insert(audiobooksSchema.people)
+        .values({ name: personName })
+        .onConflictDoUpdate({
+          target: audiobooksSchema.people.name,
+          set: { name: personName }, // No-op update to get the existing row
+        })
+        .returning();
 
       await this.db.insert(ebooksSchema.ebookAuthors).values({
         ebookId,

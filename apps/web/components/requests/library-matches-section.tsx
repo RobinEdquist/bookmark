@@ -87,6 +87,7 @@ function ScrollableRow({
                     fill
                     className="object-cover transition-transform group-hover:scale-105"
                     sizes="112px"
+                    unoptimized={item.coverUrl.startsWith("/api/")}
                   />
                 ) : (
                   <div className="flex h-full items-center justify-center">

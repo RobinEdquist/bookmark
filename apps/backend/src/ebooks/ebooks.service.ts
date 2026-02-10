@@ -989,19 +989,15 @@ export class EbooksService {
       const name = names[i].trim();
       if (!name) continue;
 
-      // Find or create person
-      let [person] = await this.db
-        .select()
-        .from(audiobookSchema.people)
-        .where(eq(audiobookSchema.people.name, name))
-        .limit(1);
-
-      if (!person) {
-        [person] = await this.db
-          .insert(audiobookSchema.people)
-          .values({ name })
-          .returning();
-      }
+      // Find or create person using upsert to handle race conditions
+      const [person] = await this.db
+        .insert(audiobookSchema.people)
+        .values({ name })
+        .onConflictDoUpdate({
+          target: audiobookSchema.people.name,
+          set: { name }, // No-op update to get the existing row
+        })
+        .returning();
 
       // Create relation
       await this.db.insert(schema.ebookAuthors).values({

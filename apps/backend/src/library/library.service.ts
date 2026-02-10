@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { ne, sql, count, sum, eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { CoverService } from '../common/cover.service';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as ebookSchema from '../ebooks/schema';
 
@@ -21,6 +22,7 @@ export class LibraryService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<Schema>,
+    private readonly coverService: CoverService,
   ) {}
 
   async getStats(): Promise<LibraryStats> {
@@ -121,6 +123,7 @@ export class LibraryService {
           a.title,
           a.subtitle,
           a.cover_url,
+          a.cover_source,
           GREATEST(
             COALESCE(similarity(a.title, ${query}), 0),
             COALESCE(similarity(a.subtitle, ${query}), 0),
@@ -145,6 +148,7 @@ export class LibraryService {
         title: string;
         subtitle: string | null;
         cover_url: string | null;
+        cover_source: string | null;
         similarity: number;
       }>) {
         const authorsResult = await this.db
@@ -166,7 +170,12 @@ export class LibraryService {
           id: row.id,
           title: row.title,
           subtitle: row.subtitle,
-          coverUrl: row.cover_url,
+          coverUrl: this.coverService.getCoverUrl(
+            row.id,
+            row.cover_url,
+            row.cover_source,
+            'audiobooks',
+          ),
           authors: authorsResult,
           similarity: Number(row.similarity),
         });
@@ -183,6 +192,7 @@ export class LibraryService {
           e.title,
           e.subtitle,
           e.cover_url,
+          e.cover_source,
           GREATEST(
             COALESCE(similarity(e.title, ${query}), 0),
             COALESCE(similarity(e.subtitle, ${query}), 0),
@@ -207,6 +217,7 @@ export class LibraryService {
         title: string;
         subtitle: string | null;
         cover_url: string | null;
+        cover_source: string | null;
         similarity: number;
       }>) {
         const authorsResult = await this.db
@@ -225,7 +236,12 @@ export class LibraryService {
           id: row.id,
           title: row.title,
           subtitle: row.subtitle,
-          coverUrl: row.cover_url,
+          coverUrl: this.coverService.getCoverUrl(
+            row.id,
+            row.cover_url,
+            row.cover_source,
+            'ebooks',
+          ),
           authors: authorsResult,
           similarity: Number(row.similarity),
         });

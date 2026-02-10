@@ -116,7 +116,7 @@ export const people = pgTable(
   'people',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    name: text('name').notNull(),
+    name: text('name').notNull().unique(),
     bio: text('bio'),
     imageUrl: text('image_url'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
