@@ -138,5 +138,12 @@
     "back": "Genres",
     "empty": "No genres found",
     "itemCount": "{count, plural, =1 {1 {type}} other {# {type}}}"
+  },
+  "quickAdd": {
+    "addAsGenre": "Add as genre",
+    "addAsTag": "Add as tag",
+    "added": "Added \"{name}\" as {type}",
+    "alreadyExists": "\"{name}\" already exists as {type}",
+    "addFailed": "Failed to add \"{name}\""
   }
 }

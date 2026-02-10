@@ -6,6 +6,8 @@ import { Star, ExternalLink, Unlink, BookOpen } from "lucide-react";
 import { useTheme } from "../../lib/use-theme";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
+import { QuickAddChip } from "../common/quick-add-chip";
+import { useQuickAddMetadata } from "../../lib/use-quick-add-metadata";
 import {
   Card,
   CardContent,
@@ -30,6 +32,7 @@ export function GoodreadsLinkCard({ mediaType, mediaId }: GoodreadsLinkCardProps
   const { isDark } = useTheme();
   const { link, isLoading } = useGoodreadsLink(mediaType, mediaId);
   const { unlinkMedia, isUnlinking } = useGoodreadsUnlinkMedia();
+  const { addAsGenre, addAsTag, canEdit: canQuickAdd, isAdding } = useQuickAddMetadata(mediaType, mediaId);
 
   const handleUnlink = async () => {
     try {
@@ -135,12 +138,15 @@ export function GoodreadsLinkCard({ mediaType, mediaId }: GoodreadsLinkCardProps
             </div>
             <div className="flex flex-wrap gap-1.5">
               {link.genres.map((genre) => (
-                <span
+                <QuickAddChip
                   key={genre}
-                  className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
-                >
-                  {genre}
-                </span>
+                  value={genre}
+                  variant="genre"
+                  onAddAsGenre={addAsGenre}
+                  onAddAsTag={addAsTag}
+                  canEdit={canQuickAdd}
+                  isAdding={isAdding}
+                />
               ))}
             </div>
           </div>

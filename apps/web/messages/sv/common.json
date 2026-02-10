@@ -138,5 +138,12 @@
     "back": "Genrer",
     "empty": "Inga genrer hittades",
     "itemCount": "{count, plural, =1 {1 {type}} other {# {type}}}"
+  },
+  "quickAdd": {
+    "addAsGenre": "Lägg till som genre",
+    "addAsTag": "Lägg till som tagg",
+    "added": "\"{name}\" tillagd som {type}",
+    "alreadyExists": "\"{name}\" finns redan som {type}",
+    "addFailed": "Kunde inte lägga till \"{name}\""
   }
 }

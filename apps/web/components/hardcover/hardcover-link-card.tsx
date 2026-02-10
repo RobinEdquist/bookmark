@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { Star, ExternalLink, Unlink, BookOpen, Tag, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
+import { QuickAddChip } from "../common/quick-add-chip";
+import { useQuickAddMetadata } from "../../lib/use-quick-add-metadata";
 import {
   Card,
   CardContent,
@@ -28,6 +30,7 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
   const t = useTranslations("common.hardcoverLink");
   const { link, isLoading } = useHardcoverLink(mediaType, mediaId);
   const { unlinkMedia, isUnlinking } = useHardcoverUnlinkMedia();
+  const { addAsGenre, addAsTag, canEdit: canQuickAdd, isAdding } = useQuickAddMetadata(mediaType, mediaId);
 
   const handleUnlink = async () => {
     try {
@@ -139,12 +142,15 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
             </div>
             <div className="flex flex-wrap gap-1.5">
               {link.genres.map((genre) => (
-                <span
+                <QuickAddChip
                   key={genre}
-                  className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
-                >
-                  {genre}
-                </span>
+                  value={genre}
+                  variant="genre"
+                  onAddAsGenre={addAsGenre}
+                  onAddAsTag={addAsTag}
+                  canEdit={canQuickAdd}
+                  isAdding={isAdding}
+                />
               ))}
             </div>
           </div>
@@ -159,12 +165,15 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
             </div>
             <div className="flex flex-wrap gap-1.5">
               {link.moods.map((mood) => (
-                <span
+                <QuickAddChip
                   key={mood}
-                  className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-                >
-                  {mood}
-                </span>
+                  value={mood}
+                  variant="mood"
+                  onAddAsGenre={addAsGenre}
+                  onAddAsTag={addAsTag}
+                  canEdit={canQuickAdd}
+                  isAdding={isAdding}
+                />
               ))}
             </div>
           </div>
@@ -179,12 +188,15 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
             </div>
             <div className="flex flex-wrap gap-1.5">
               {link.tags.map((tag) => (
-                <span
+                <QuickAddChip
                   key={tag}
-                  className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground"
-                >
-                  {tag}
-                </span>
+                  value={tag}
+                  variant="tag"
+                  onAddAsGenre={addAsGenre}
+                  onAddAsTag={addAsTag}
+                  canEdit={canQuickAdd}
+                  isAdding={isAdding}
+                />
               ))}
             </div>
           </div>
@@ -198,12 +210,15 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
             </div>
             <div className="flex flex-wrap gap-1.5">
               {link.contentWarnings.map((warning) => (
-                <span
+                <QuickAddChip
                   key={warning}
-                  className="rounded-full bg-destructive/10 px-2.5 py-0.5 text-xs font-medium text-destructive"
-                >
-                  {warning}
-                </span>
+                  value={warning}
+                  variant="contentWarning"
+                  onAddAsGenre={addAsGenre}
+                  onAddAsTag={addAsTag}
+                  canEdit={canQuickAdd}
+                  isAdding={isAdding}
+                />
               ))}
             </div>
           </div>
