@@ -30,7 +30,7 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
   const t = useTranslations("common.hardcoverLink");
   const { link, isLoading } = useHardcoverLink(mediaType, mediaId);
   const { unlinkMedia, isUnlinking } = useHardcoverUnlinkMedia();
-  const { addAsGenre, addAsTag, canEdit: canQuickAdd, isAdding } = useQuickAddMetadata(mediaType, mediaId);
+  const { addAsGenre, addAsTag, canEdit: canQuickAdd, isPending } = useQuickAddMetadata(mediaType, mediaId);
 
   const handleUnlink = async () => {
     try {
@@ -149,7 +149,7 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
                   onAddAsGenre={addAsGenre}
                   onAddAsTag={addAsTag}
                   canEdit={canQuickAdd}
-                  isAdding={isAdding}
+                  isPending={isPending}
                 />
               ))}
             </div>
@@ -172,7 +172,7 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
                   onAddAsGenre={addAsGenre}
                   onAddAsTag={addAsTag}
                   canEdit={canQuickAdd}
-                  isAdding={isAdding}
+                  isPending={isPending}
                 />
               ))}
             </div>
@@ -195,7 +195,7 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
                   onAddAsGenre={addAsGenre}
                   onAddAsTag={addAsTag}
                   canEdit={canQuickAdd}
-                  isAdding={isAdding}
+                  isPending={isPending}
                 />
               ))}
             </div>
@@ -217,7 +217,7 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
                   onAddAsGenre={addAsGenre}
                   onAddAsTag={addAsTag}
                   canEdit={canQuickAdd}
-                  isAdding={isAdding}
+                  isPending={isPending}
                 />
               ))}
             </div>

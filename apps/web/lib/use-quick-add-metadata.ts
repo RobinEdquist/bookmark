@@ -19,7 +19,7 @@ export function useQuickAddMetadata(mediaType: MediaType, mediaId: string) {
   const updateEbook = useUpdateEbook();
 
   const canEdit = permissions?.canEditMetadata ?? false;
-  const isAdding = updateAudiobook.isPending || updateEbook.isPending;
+  const isPending = updateAudiobook.isPending || updateEbook.isPending;
 
   const getMediaDetail = useCallback(() => {
     if (mediaType === "audiobook") {
@@ -98,5 +98,63 @@ export function useQuickAddMetadata(mediaType: MediaType, mediaId: string) {
     [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t]
   );
 
-  return { addAsGenre, addAsTag, canEdit, isAdding };
+  const removeGenre = useCallback(
+    async (name: string) => {
+      const detail = getMediaDetail();
+      if (!detail) return;
+
+      const newGenreNames = detail.genres
+        .map((g) => g.name)
+        .filter((n) => n.toLowerCase() !== name.toLowerCase());
+
+      try {
+        if (mediaType === "audiobook") {
+          await updateAudiobook.mutateAsync({
+            id: mediaId,
+            data: { genreNames: newGenreNames },
+          });
+        } else {
+          await updateEbook.mutateAsync({
+            id: mediaId,
+            data: { genreNames: newGenreNames },
+          });
+        }
+        toast.success(t("removed", { name, type: "genre" }));
+      } catch {
+        toast.error(t("removeFailed", { name }));
+      }
+    },
+    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t]
+  );
+
+  const removeTag = useCallback(
+    async (name: string) => {
+      const detail = getMediaDetail();
+      if (!detail) return;
+
+      const newTagNames = detail.tags
+        .map((tag) => tag.name)
+        .filter((n) => n.toLowerCase() !== name.toLowerCase());
+
+      try {
+        if (mediaType === "audiobook") {
+          await updateAudiobook.mutateAsync({
+            id: mediaId,
+            data: { tagNames: newTagNames },
+          });
+        } else {
+          await updateEbook.mutateAsync({
+            id: mediaId,
+            data: { tagNames: newTagNames },
+          });
+        }
+        toast.success(t("removed", { name, type: "tag" }));
+      } catch {
+        toast.error(t("removeFailed", { name }));
+      }
+    },
+    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t]
+  );
+
+  return { addAsGenre, addAsTag, removeGenre, removeTag, canEdit, isPending };
 }

@@ -32,7 +32,7 @@ export function GoodreadsLinkCard({ mediaType, mediaId }: GoodreadsLinkCardProps
   const { isDark } = useTheme();
   const { link, isLoading } = useGoodreadsLink(mediaType, mediaId);
   const { unlinkMedia, isUnlinking } = useGoodreadsUnlinkMedia();
-  const { addAsGenre, addAsTag, canEdit: canQuickAdd, isAdding } = useQuickAddMetadata(mediaType, mediaId);
+  const { addAsGenre, addAsTag, canEdit: canQuickAdd, isPending } = useQuickAddMetadata(mediaType, mediaId);
 
   const handleUnlink = async () => {
     try {
@@ -145,7 +145,7 @@ export function GoodreadsLinkCard({ mediaType, mediaId }: GoodreadsLinkCardProps
                   onAddAsGenre={addAsGenre}
                   onAddAsTag={addAsTag}
                   canEdit={canQuickAdd}
-                  isAdding={isAdding}
+                  isPending={isPending}
                 />
               ))}
             </div>

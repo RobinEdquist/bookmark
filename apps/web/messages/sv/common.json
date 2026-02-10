@@ -144,6 +144,9 @@
     "addAsTag": "Lägg till som tagg",
     "added": "\"{name}\" tillagd som {type}",
     "alreadyExists": "\"{name}\" finns redan som {type}",
-    "addFailed": "Kunde inte lägga till \"{name}\""
+    "addFailed": "Kunde inte lägga till \"{name}\"",
+    "remove": "Ta bort",
+    "removed": "\"{name}\" borttagen från {type}s",
+    "removeFailed": "Kunde inte ta bort \"{name}\""
   }
 }

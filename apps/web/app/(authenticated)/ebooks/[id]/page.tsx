@@ -21,6 +21,8 @@ import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-li
 import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodreads-search-dialog";
 import { GoodreadsLinkCard } from "../../../../components/goodreads/goodreads-link-card";
 import { HeaderSearch } from "../../../../components/layout/header-search";
+import { RemovableChip } from "../../../../components/common/removable-chip";
+import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
 
 function formatFileSize(bytes: number): string {
@@ -52,6 +54,7 @@ export default function EbookDetailPage({
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const canEdit = permissions?.canEditMetadata ?? false;
+  const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("ebook", id);
 
   const handleDownload = () => {
     window.open(`/api/ebooks/${id}/download`, "_blank");
@@ -194,20 +197,24 @@ export default function EbookDetailPage({
             {(ebook.genres.length > 0 || ebook.tags.length > 0) && (
               <div className="flex flex-wrap gap-2">
                 {ebook.genres.map((genre) => (
-                  <span
+                  <RemovableChip
                     key={genre.id}
-                    className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-                  >
-                    {genre.name}
-                  </span>
+                    value={genre.name}
+                    variant="genre"
+                    onRemove={removeGenre}
+                    canEdit={canEdit}
+                    isPending={isMetadataPending}
+                  />
                 ))}
                 {ebook.tags.map((tag) => (
-                  <span
+                  <RemovableChip
                     key={tag.id}
-                    className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
-                  >
-                    {tag.name}
-                  </span>
+                    value={tag.name}
+                    variant="tag"
+                    onRemove={removeTag}
+                    canEdit={canEdit}
+                    isPending={isMetadataPending}
+                  />
                 ))}
               </div>
             )}

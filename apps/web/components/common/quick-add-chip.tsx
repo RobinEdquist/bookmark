@@ -24,7 +24,7 @@ interface QuickAddChipProps {
   onAddAsGenre: (name: string) => void;
   onAddAsTag: (name: string) => void;
   canEdit: boolean;
-  isAdding: boolean;
+  isPending: boolean;
 }
 
 export function QuickAddChip({
@@ -33,7 +33,7 @@ export function QuickAddChip({
   onAddAsGenre,
   onAddAsTag,
   canEdit,
-  isAdding,
+  isPending,
 }: QuickAddChipProps) {
   const t = useTranslations("common.quickAdd");
 
@@ -58,7 +58,7 @@ export function QuickAddChip({
             <TooltipTrigger asChild>
               <button
                 type="button"
-                disabled={isAdding}
+                disabled={isPending}
                 onClick={(e) => {
                   e.stopPropagation();
                   onAddAsGenre(value);
@@ -78,7 +78,7 @@ export function QuickAddChip({
             <TooltipTrigger asChild>
               <button
                 type="button"
-                disabled={isAdding}
+                disabled={isPending}
                 onClick={(e) => {
                   e.stopPropagation();
                   onAddAsTag(value);

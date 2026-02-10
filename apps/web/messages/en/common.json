@@ -144,6 +144,9 @@
     "addAsTag": "Add as tag",
     "added": "Added \"{name}\" as {type}",
     "alreadyExists": "\"{name}\" already exists as {type}",
-    "addFailed": "Failed to add \"{name}\""
+    "addFailed": "Failed to add \"{name}\"",
+    "remove": "Remove",
+    "removed": "Removed \"{name}\" from {type}s",
+    "removeFailed": "Failed to remove \"{name}\""
   }
 }

@@ -28,6 +28,8 @@ import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodread
 import { GoodreadsLinkCard } from "../../../../components/goodreads/goodreads-link-card";
 import { ChangeCoverDialog } from "../../../../components/audiobooks/change-cover-dialog";
 import { HeaderSearch } from "../../../../components/layout/header-search";
+import { RemovableChip } from "../../../../components/common/removable-chip";
+import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
 import { ChapterImportDialog } from "../../../../components/chapters/chapter-import-dialog";
 
@@ -85,6 +87,7 @@ export default function AudiobookDetailPage({
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const canEdit = permissions?.canEditMetadata ?? false;
+  const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("audiobook", id);
   const isCurrentlyPlaying = currentlyPlaying?.id === id && isPlaying;
   const isThisAudiobookLoaded = currentlyPlaying?.id === id;
 
@@ -292,20 +295,24 @@ export default function AudiobookDetailPage({
             {(audiobook.genres.length > 0 || audiobook.tags.length > 0) && (
               <div className="flex flex-wrap gap-2">
                 {audiobook.genres.map((genre) => (
-                  <span
+                  <RemovableChip
                     key={genre.id}
-                    className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary"
-                  >
-                    {genre.name}
-                  </span>
+                    value={genre.name}
+                    variant="genre"
+                    onRemove={removeGenre}
+                    canEdit={canEdit}
+                    isPending={isMetadataPending}
+                  />
                 ))}
                 {audiobook.tags.map((tag) => (
-                  <span
+                  <RemovableChip
                     key={tag.id}
-                    className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
-                  >
-                    {tag.name}
-                  </span>
+                    value={tag.name}
+                    variant="tag"
+                    onRemove={removeTag}
+                    canEdit={canEdit}
+                    isPending={isMetadataPending}
+                  />
                 ))}
               </div>
             )}
