@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { ReactReader } from "react-reader";
-import { X, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { ReactReader, type IReactReaderStyle } from "react-reader";
+import { X, Loader2 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Slider } from "@repo/ui/components/ui/slider";
 import { useUpdateEbookProgress } from "../../lib/use-ebook-progress";
 import { useTranslations } from "next-intl";
+import { useTheme } from "../../lib/use-theme";
 
 interface EpubReaderProps {
   ebookId: string;
@@ -15,6 +16,21 @@ interface EpubReaderProps {
   onClose: () => void;
 }
 
+// Theme styles for epub.js content
+const lightTheme = {
+  body: {
+    background: "#ffffff",
+    color: "#1a1a1a",
+  },
+};
+
+const darkTheme = {
+  body: {
+    background: "#1a1a1a",
+    color: "#e5e5e5",
+  },
+};
+
 export function EpubReader({
   ebookId,
   ebookTitle,
@@ -22,6 +38,7 @@ export function EpubReader({
   onClose,
 }: EpubReaderProps) {
   const t = useTranslations("ebooks");
+  const { isDark } = useTheme();
   const [location, setLocation] = useState<string | number>(initialCfi || 0);
   const [showToolbar, setShowToolbar] = useState(true);
   const [currentPercent, setCurrentPercent] = useState(0);
@@ -34,6 +51,28 @@ export function EpubReader({
   const tocRef = useRef<{ label: string; href: string }[]>([]);
   const updateProgress = useUpdateEbookProgress();
   const hideToolbarTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // ReactReader container styles based on theme
+  const readerStyles = useMemo(
+    () => ({
+      readerArea: {
+        backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
+        transition: "background-color 0.3s ease",
+      },
+      loadingView: {
+        backgroundColor: isDark ? "#1a1a1a" : "#ffffff",
+      },
+    }),
+    [isDark]
+  ) as IReactReaderStyle;
+
+  // Apply theme to epub.js rendition when isDark changes
+  useEffect(() => {
+    if (renditionRef.current) {
+      const themeName = isDark ? "dark" : "light";
+      renditionRef.current.themes.select(themeName);
+    }
+  }, [isDark]);
 
   // Handle location change (page turn)
   const handleLocationChange = useCallback(
@@ -144,6 +183,11 @@ export function EpubReader({
     (rendition: any) => {
       renditionRef.current = rendition;
 
+      // Register themes for light and dark mode
+      rendition.themes.register("light", lightTheme);
+      rendition.themes.register("dark", darkTheme);
+      rendition.themes.select(isDark ? "dark" : "light");
+
       // Generate locations for percentage tracking
       rendition.book.ready.then(() => {
         setIsGeneratingLocations(true);
@@ -182,7 +226,7 @@ export function EpubReader({
         });
       });
     },
-    [initialCfi, handleLocationChange, handleReaderClick]
+    [initialCfi, isDark, handleLocationChange, handleReaderClick]
   );
 
   return (
@@ -233,6 +277,7 @@ export function EpubReader({
               locationChanged={handleLocationChange}
               getRendition={handleGetRendition}
               showToc={false}
+              readerStyles={readerStyles}
               epubOptions={{
                 allowScriptedContent: false,
               }}
@@ -253,32 +298,14 @@ export function EpubReader({
           showToolbar ? "translate-y-0" : "translate-y-full"
         }`}
       >
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => renditionRef.current?.prev()}
-          >
-            <ChevronLeft className="h-5 w-5" />
-            <span className="sr-only">{t("reader.previousPage")}</span>
-          </Button>
-          <div className="flex-1">
-            <Slider
-              value={[currentPercent]}
-              max={100}
-              step={1}
-              onValueChange={handleSliderChange}
-              disabled={isGeneratingLocations}
-            />
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => renditionRef.current?.next()}
-          >
-            <ChevronRight className="h-5 w-5" />
-            <span className="sr-only">{t("reader.nextPage")}</span>
-          </Button>
+        <div className="px-2">
+          <Slider
+            value={[currentPercent]}
+            max={100}
+            step={1}
+            onValueChange={handleSliderChange}
+            disabled={isGeneratingLocations}
+          />
         </div>
         <p className="text-center text-xs text-muted-foreground mt-2">
           {isGeneratingLocations
