@@ -314,12 +314,14 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
         />
       )}
 
-      <AddToListDialog
-        itemType="ebook"
-        itemId={ebook.id}
-        open={addToListOpen}
-        onOpenChange={setAddToListOpen}
-      />
+      {addToListOpen && (
+        <AddToListDialog
+          itemType="ebook"
+          itemId={ebook.id}
+          open={addToListOpen}
+          onOpenChange={setAddToListOpen}
+        />
+      )}
 
       {isGoodreadsConfigured && (
         <GoodreadsSearchDialog

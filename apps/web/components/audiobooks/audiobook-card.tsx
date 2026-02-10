@@ -359,12 +359,14 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
         />
       )}
 
-      <AddToListDialog
-        itemType="audiobook"
-        itemId={audiobook.id}
-        open={addToListOpen}
-        onOpenChange={setAddToListOpen}
-      />
+      {addToListOpen && (
+        <AddToListDialog
+          itemType="audiobook"
+          itemId={audiobook.id}
+          open={addToListOpen}
+          onOpenChange={setAddToListOpen}
+        />
+      )}
     </>
   );
 }
