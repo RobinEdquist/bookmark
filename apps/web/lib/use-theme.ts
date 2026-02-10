@@ -7,6 +7,7 @@ import {
   isValidSurfaceColor,
   DEFAULT_PRIMARY_COLOR,
   DEFAULT_SURFACE_COLOR,
+  surfaceColors,
   type PrimaryColor,
   type SurfaceColor,
 } from './theme-config';
@@ -133,6 +134,7 @@ export function useTheme() {
   return {
     primaryColor: colors.primaryColor,
     surfaceColor: colors.surfaceColor,
+    isDark: surfaceColors[colors.surfaceColor].isDark,
     setPrimaryColor,
     setSurfaceColor,
     setTheme,

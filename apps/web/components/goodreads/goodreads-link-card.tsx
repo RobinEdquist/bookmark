@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Star, ExternalLink, Unlink, BookOpen } from "lucide-react";
+import { useTheme } from "../../lib/use-theme";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -26,6 +27,7 @@ interface GoodreadsLinkCardProps {
 
 export function GoodreadsLinkCard({ mediaType, mediaId }: GoodreadsLinkCardProps) {
   const t = useTranslations("common.goodreadsLink");
+  const { isDark } = useTheme();
   const { link, isLoading } = useGoodreadsLink(mediaType, mediaId);
   const { unlinkMedia, isUnlinking } = useGoodreadsUnlinkMedia();
 
@@ -66,7 +68,7 @@ export function GoodreadsLinkCard({ mediaType, mediaId }: GoodreadsLinkCardProps
               alt="Goodreads"
               width={20}
               height={20}
-              className="dark:invert"
+              className={isDark ? "invert" : ""}
             />
             {t("title")}
           </CardTitle>

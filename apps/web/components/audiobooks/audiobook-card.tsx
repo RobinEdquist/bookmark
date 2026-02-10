@@ -29,6 +29,7 @@ import { DeleteAudiobookDialog } from "./delete-audiobook-dialog";
 import { ChangeCoverDialog } from "./change-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
 import { formatSeriesOrder } from "../../lib/format-series";
+import { useTheme } from "../../lib/use-theme";
 
 interface AudiobookCardProps {
   audiobook: AudiobookListItem;
@@ -43,6 +44,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
   const tLink = useTranslations("audiobooks.hardcoverLink");
   const tGoodreads = useTranslations("audiobooks.goodreadsLink");
   const tDelete = useTranslations("audiobooks.deleteDialog");
+  const { isDark } = useTheme();
   const [editOpen, setEditOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [goodreadsSyncOpen, setGoodreadsSyncOpen] = useState(false);
@@ -165,7 +167,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                     alt="Goodreads"
                     width={12}
                     height={12}
-                    className="dark:invert opacity-70"
+                    className={`opacity-70 ${isDark ? "invert" : ""}`}
                   />
                   {audiobook.goodreadsRating !== null && (
                     <>
@@ -275,7 +277,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                       alt="Goodreads"
                       width={16}
                       height={16}
-                      className="dark:invert"
+                      className={isDark ? "invert" : ""}
                     />
                     {t("syncWithGoodreads")}
                   </DropdownMenuItem>
@@ -287,7 +289,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
                       alt="Goodreads"
                       width={16}
                       height={16}
-                      className="dark:invert"
+                      className={isDark ? "invert" : ""}
                     />
                     {isUnlinkingGoodreads ? tGoodreads("unlinking") : t("unlinkFromGoodreads")}
                   </DropdownMenuItem>

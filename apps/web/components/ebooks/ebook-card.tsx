@@ -27,6 +27,7 @@ import { ChangeEbookCoverDialog } from "./change-ebook-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
 import { GoodreadsSearchDialog } from "../goodreads/goodreads-search-dialog";
 import { formatSeriesOrder } from "../../lib/format-series";
+import { useTheme } from "../../lib/use-theme";
 
 interface EbookCardProps {
   ebook: EbookListItem;
@@ -40,6 +41,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
   const t = useTranslations("ebooks.card");
   const tDelete = useTranslations("ebooks.deleteDialog");
   const tGoodreads = useTranslations("ebooks.goodreadsLink");
+  const { isDark } = useTheme();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
@@ -154,7 +156,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                     alt="Goodreads"
                     width={12}
                     height={12}
-                    className="dark:invert opacity-70"
+                    className={`opacity-70 ${isDark ? "invert" : ""}`}
                   />
                   {ebook.goodreadsRating !== null && (
                     <>
@@ -251,7 +253,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                       alt="Goodreads"
                       width={16}
                       height={16}
-                      className="dark:invert"
+                      className={isDark ? "invert" : ""}
                     />
                     {t("syncWithGoodreads")}
                   </DropdownMenuItem>
@@ -263,7 +265,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
                       alt="Goodreads"
                       width={16}
                       height={16}
-                      className="dark:invert"
+                      className={isDark ? "invert" : ""}
                     />
                     {isUnlinkingGoodreads ? tGoodreads("unlinking") : t("unlinkFromGoodreads")}
                   </DropdownMenuItem>

@@ -28,6 +28,7 @@ import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodread
 import { GoodreadsLinkCard } from "../../../../components/goodreads/goodreads-link-card";
 import { ChangeCoverDialog } from "../../../../components/audiobooks/change-cover-dialog";
 import { HeaderSearch } from "../../../../components/layout/header-search";
+import { useTheme } from "../../../../lib/use-theme";
 import { ChapterImportDialog } from "../../../../components/chapters/chapter-import-dialog";
 
 function formatDuration(seconds: number | null): string {
@@ -64,6 +65,7 @@ export default function AudiobookDetailPage({
 }) {
   const { id } = use(params);
   const t = useTranslations("audiobooks.detail");
+  const { isDark } = useTheme();
   const returnUrl = useLibraryReturnUrl("/audiobooks");
   const { data: audiobook, isLoading, error } = useAudiobook(id);
   const { data: progress } = useProgress(id);
@@ -177,7 +179,7 @@ export default function AudiobookDetailPage({
                 alt="Goodreads"
                 width={20}
                 height={20}
-                className="dark:invert"
+                className={isDark ? "invert" : ""}
               />
             </Button>
           )}

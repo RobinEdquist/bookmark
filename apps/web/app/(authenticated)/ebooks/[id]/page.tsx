@@ -21,6 +21,7 @@ import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-li
 import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodreads-search-dialog";
 import { GoodreadsLinkCard } from "../../../../components/goodreads/goodreads-link-card";
 import { HeaderSearch } from "../../../../components/layout/header-search";
+import { useTheme } from "../../../../lib/use-theme";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -36,6 +37,7 @@ export default function EbookDetailPage({
 }) {
   const { id } = use(params);
   const t = useTranslations("ebooks.detail");
+  const { isDark } = useTheme();
   const returnUrl = useLibraryReturnUrl("/ebooks");
   const { data: ebook, isLoading, error } = useEbook(id);
   const { data: permissions } = useMyPermissions();
@@ -124,7 +126,7 @@ export default function EbookDetailPage({
                 alt="Goodreads"
                 width={20}
                 height={20}
-                className="dark:invert"
+                className={isDark ? "invert" : ""}
               />
             </Button>
           )}

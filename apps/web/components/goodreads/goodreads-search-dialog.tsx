@@ -21,6 +21,7 @@ import {
   type GrFinderSearchResult,
   type MediaType,
 } from "../../lib/use-goodreads";
+import { useTheme } from "../../lib/use-theme";
 
 interface GoodreadsSearchDialogProps {
   mediaType: MediaType;
@@ -42,6 +43,7 @@ export function GoodreadsSearchDialog({
   onSuccess,
 }: GoodreadsSearchDialogProps) {
   const t = useTranslations("common.goodreadsSearch");
+  const { isDark } = useTheme();
   const [searchInput, setSearchInput] = useState(initialQuery);
   const [activeQuery, setActiveQuery] = useState(initialQuery);
   const [selectedBook, setSelectedBook] = useState<GrFinderSearchResult | null>(null);
@@ -104,7 +106,7 @@ export function GoodreadsSearchDialog({
               alt="Goodreads"
               width={24}
               height={24}
-              className="dark:invert"
+              className={isDark ? "invert" : ""}
             />
             {t("title")}
           </DialogTitle>
