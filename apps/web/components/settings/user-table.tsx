@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@repo/ui/components/ui/button";
 import type { User } from "../../lib/use-users";
 import { useTranslations } from "next-intl";
@@ -58,7 +59,12 @@ export function UserTable({
                       className="h-8 w-8 rounded-full"
                     />
                   )}
-                  <span className="font-medium">{user.name}</span>
+                  <Link
+                    href={`/users/${user.id}`}
+                    className="font-medium text-primary hover:underline"
+                  >
+                    {user.name}
+                  </Link>
                 </div>
               </td>
               <td className="px-4 py-3 text-muted-foreground">{user.email}</td>
