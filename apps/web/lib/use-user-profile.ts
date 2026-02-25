@@ -8,7 +8,9 @@ import { queryKeys } from "./query-keys";
 export interface UserProfile {
   id: string;
   name: string;
+  email: string;
   image: string | null;
+  role: string | null;
   createdAt: string;
 }
 

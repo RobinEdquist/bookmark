@@ -44,7 +44,9 @@ export class UserProfileService {
         .select({
           id: authSchema.user.id,
           name: authSchema.user.name,
+          email: authSchema.user.email,
           image: authSchema.user.image,
+          role: authSchema.user.role,
           createdAt: authSchema.user.createdAt,
         })
         .from(authSchema.user)
@@ -90,7 +92,9 @@ export class UserProfileService {
       user: {
         id: user.id,
         name: user.name,
+        email: user.email,
         image: user.image ?? null,
+        role: user.role ?? null,
         createdAt: user.createdAt.toISOString(),
       },
       totalListeningTime: Number(totalListeningResult[0]?.total ?? 0),

@@ -9,11 +9,17 @@ export class UserProfileDto {
   @ApiProperty({ example: 'Jane Doe' })
   name!: string;
 
+  @ApiProperty({ example: 'jane@example.com' })
+  email!: string;
+
   @ApiPropertyOptional({
     example: 'https://example.com/avatar.jpg',
     nullable: true,
   })
   image?: string | null;
+
+  @ApiPropertyOptional({ example: 'admin', nullable: true })
+  role?: string | null;
 
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
   createdAt!: string;
