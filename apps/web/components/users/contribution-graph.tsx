@@ -108,9 +108,13 @@ export function ContributionGraph({ days, isLoading }: ContributionGraphProps) {
           });
 
           // Track month labels at the first day of a new month in a week
+          // Skip labels too close to the previous one to avoid overlapping text
           const month = current.getMonth();
           if (month !== lastMonth) {
-            labels.push({ label: getLocaleMonth(month, current.getFullYear()), col: weekIndex });
+            const lastCol = labels.length > 0 ? labels[labels.length - 1]!.col : -4;
+            if (weekIndex - lastCol >= 3) {
+              labels.push({ label: getLocaleMonth(month, current.getFullYear()), col: weekIndex });
+            }
             lastMonth = month;
           }
         }
