@@ -303,23 +303,25 @@ export class ProgressService {
       )
       .orderBy(desc(progressSchema.userAudiobookProgress.updatedAt));
 
-    return results.map(({ progress, audiobook }) => ({
-      audiobookId: progress.audiobookId,
-      position: progress.currentPosition,
-      completed: progress.completed,
-      completedAt: progress.completedAt?.toISOString() ?? null,
-      startedAt: progress.startedAt.toISOString(),
-      updatedAt: progress.updatedAt.toISOString(),
-      audiobook: {
-        id: audiobook.id,
-        title: audiobook.title,
-        coverUrl: audiobook.coverUrl,
-        duration: audiobook.duration,
-      },
-      progressPercent: audiobook.duration
-        ? Math.round((progress.currentPosition / audiobook.duration) * 100)
-        : 0,
-    }));
+    return results
+      .map(({ progress, audiobook }) => ({
+        audiobookId: progress.audiobookId,
+        position: progress.currentPosition,
+        completed: progress.completed,
+        completedAt: progress.completedAt?.toISOString() ?? null,
+        startedAt: progress.startedAt.toISOString(),
+        updatedAt: progress.updatedAt.toISOString(),
+        audiobook: {
+          id: audiobook.id,
+          title: audiobook.title,
+          coverUrl: audiobook.coverUrl,
+          duration: audiobook.duration,
+        },
+        progressPercent: audiobook.duration
+          ? Math.round((progress.currentPosition / audiobook.duration) * 100)
+          : 0,
+      }))
+      .filter((item) => item.completed || item.progressPercent > 0);
   }
 
   /**

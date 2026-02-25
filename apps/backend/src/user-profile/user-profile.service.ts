@@ -230,6 +230,9 @@ export class UserProfileService {
           ? Math.round((row.currentPosition / row.duration) * 100)
           : 0;
 
+        // Skip items with negligible progress (rounds to 0%) unless completed
+        if (!row.completed && progressPercent <= 0) continue;
+
         items.push({
           id: row.id,
           type: 'audiobook',
@@ -311,6 +314,9 @@ export class UserProfileService {
       ebookTotal = ebookCountResult[0]?.count ?? 0;
 
       for (const row of ebookResults) {
+        // Skip items with negligible progress (rounds to 0%) unless completed
+        if (!row.completed && Math.round(row.progressPercent) <= 0) continue;
+
         items.push({
           id: row.id,
           type: 'ebook',
@@ -344,7 +350,7 @@ export class UserProfileService {
       items.sort((a, b) => b.progressPercent - a.progressPercent);
     }
 
-    const total = audiobookTotal + ebookTotal;
+    const total = items.length;
 
     // Apply pagination after sorting
     const paginatedItems = items.slice(offset, offset + limit);
