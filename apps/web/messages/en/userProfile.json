@@ -36,6 +36,8 @@
     "sortProgress": "Progress",
     "sortTitle": "Title",
     "progressLabel": "{percent}%",
+    "audiobookBadge": "Audio",
+    "ebookBadge": "Ebook",
     "completedLabel": "Completed",
     "startedAt": "Started {date}",
     "completedAt": "Completed {date}",

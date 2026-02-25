@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Headphones, BookOpen } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
@@ -163,8 +164,12 @@ export function LibraryProgressList({ userId }: LibraryProgressListProps) {
                         unoptimized={item.coverUrl.startsWith("/api/")}
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-muted text-sm">
-                        {item.type === "audiobook" ? "🎧" : "📖"}
+                      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                        {item.type === "audiobook" ? (
+                          <Headphones className="h-5 w-5" />
+                        ) : (
+                          <BookOpen className="h-5 w-5" />
+                        )}
                       </div>
                     )}
                   </div>
@@ -182,7 +187,7 @@ export function LibraryProgressList({ userId }: LibraryProgressListProps) {
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        {item.type === "audiobook" ? "Audio" : "Ebook"}
+                        {item.type === "audiobook" ? t("audiobookBadge") : t("ebookBadge")}
                       </span>
                     </div>
                     {item.authorName && (

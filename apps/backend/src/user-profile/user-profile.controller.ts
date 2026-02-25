@@ -163,7 +163,10 @@ export class UserProfileController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<LibraryProgressResponseDto> {
     const userId = this.resolveUserId(id, currentUser);
-    const limit = Math.min(Math.max(parseInt(limitParam as string, 10) || 20, 1), 100);
+    const limit = Math.min(
+      Math.max(parseInt(limitParam as string, 10) || 20, 1),
+      100,
+    );
     const offset = Math.max(parseInt(offsetParam as string, 10) || 0, 0);
     const validType = (['all', 'audiobook', 'ebook'] as const).includes(
       type as 'all' | 'audiobook' | 'ebook',
@@ -220,7 +223,10 @@ export class UserProfileController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<ListeningHistoryResponseDto> {
     const userId = this.resolveUserId(id, currentUser);
-    const limit = Math.min(Math.max(parseInt(limitParam as string, 10) || 20, 1), 100);
+    const limit = Math.min(
+      Math.max(parseInt(limitParam as string, 10) || 20, 1),
+      100,
+    );
     const offset = Math.max(parseInt(offsetParam as string, 10) || 0, 0);
     return this.userProfileService.getListeningHistory(userId, limit, offset);
   }

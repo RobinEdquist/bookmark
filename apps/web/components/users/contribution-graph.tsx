@@ -9,12 +9,27 @@ interface ContributionGraphProps {
   isLoading: boolean;
 }
 
-const MONTHS = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-];
+/** Derive a short month name from the locale using the Intl API. */
+function getLocaleMonth(monthIndex: number, year: number = 2024): string {
+  return new Date(year, monthIndex).toLocaleString(undefined, { month: "short" });
+}
 
-const DAY_LABELS = ["", "Mon", "", "Wed", "", "Fri", ""];
+/**
+ * Derive short day-of-week labels from the locale using the Intl API.
+ * Returns 7 entries for Sun(0)..Sat(6). We only display Mon, Wed, Fri
+ * (indices 1, 3, 5) to keep the graph compact.
+ */
+function getLocaleDayLabels(): string[] {
+  // Use a known week starting from a Sunday (2024-01-07 is a Sunday)
+  const base = new Date(2024, 0, 7);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+    return d.toLocaleString(undefined, { weekday: "short" });
+  });
+}
+
+const DAY_LABEL_INDICES = [1, 3, 5]; // Mon, Wed, Fri
 
 function getIntensity(value: number, max: number): number {
   if (value === 0 || max === 0) return 0;
@@ -95,7 +110,7 @@ export function ContributionGraph({ days, isLoading }: ContributionGraphProps) {
           // Track month labels at the first day of a new month in a week
           const month = current.getMonth();
           if (month !== lastMonth) {
-            labels.push({ label: MONTHS[month]!, col: weekIndex });
+            labels.push({ label: getLocaleMonth(month, current.getFullYear()), col: weekIndex });
             lastMonth = month;
           }
         }
@@ -141,58 +156,59 @@ export function ContributionGraph({ days, isLoading }: ContributionGraphProps) {
           </div>
 
           {/* Grid */}
-          <div className="flex gap-0">
-            {/* Day labels */}
-            <div
-              className="flex flex-col justify-between"
-              style={{ width: 28, flexShrink: 0 }}
-            >
-              {DAY_LABELS.map((label, i) => (
+          <div
+            className="grid"
+            style={{
+              gridTemplateColumns: `28px repeat(${weeks.length}, 12px)`,
+              gridTemplateRows: "repeat(7, 12px)",
+              gap: 2,
+            }}
+          >
+            {/* Day labels - placed in the first column */}
+            {(() => {
+              const dayLabels = getLocaleDayLabels();
+              return Array.from({ length: 7 }, (_, rowIdx) => (
                 <span
-                  key={i}
-                  className="text-xs text-muted-foreground leading-none"
-                  style={{ height: 12 }}
+                  key={`day-${rowIdx}`}
+                  className="text-xs text-muted-foreground leading-none flex items-center"
+                  style={{ gridColumn: 1, gridRow: rowIdx + 1 }}
                 >
-                  {label}
+                  {DAY_LABEL_INDICES.includes(rowIdx) ? dayLabels[rowIdx] : ""}
                 </span>
-              ))}
-            </div>
+              ));
+            })()}
 
-            {/* Weeks columns */}
-            <div className="flex" style={{ gap: 2 }}>
-              {weeks.map((week, wi) => (
-                <div key={wi} className="flex flex-col" style={{ gap: 2 }}>
-                  {week.days.map((day, di) => {
-                    if (!day) {
-                      return (
-                        <div
-                          key={di}
-                          style={{ width: 12, height: 12 }}
-                        />
-                      );
-                    }
+            {/* Day squares - each week is a column, each day is a row */}
+            {weeks.map((week, wi) =>
+              week.days.map((day, di) => {
+                if (!day) {
+                  return (
+                    <div
+                      key={`${wi}-${di}`}
+                      style={{ gridColumn: wi + 2, gridRow: di + 1, width: 12, height: 12 }}
+                    />
+                  );
+                }
 
-                    const intensity = getIntensity(day.value, maxValue);
-                    const tooltipText =
-                      day.value > 0
-                        ? t("tooltip", {
-                            date: day.date,
-                            duration: formatDuration(day.value),
-                          })
-                        : `${day.date}: ${t("noListening")}`;
+                const intensity = getIntensity(day.value, maxValue);
+                const tooltipText =
+                  day.value > 0
+                    ? t("tooltip", {
+                        date: day.date,
+                        duration: formatDuration(day.value),
+                      })
+                    : `${day.date}: ${t("noListening")}`;
 
-                    return (
-                      <div
-                        key={di}
-                        className={`rounded-sm ${INTENSITY_CLASSES[intensity]}`}
-                        style={{ width: 12, height: 12 }}
-                        title={tooltipText}
-                      />
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
+                return (
+                  <div
+                    key={`${wi}-${di}`}
+                    className={`rounded-sm ${INTENSITY_CLASSES[intensity]}`}
+                    style={{ gridColumn: wi + 2, gridRow: di + 1, width: 12, height: 12 }}
+                    title={tooltipText}
+                  />
+                );
+              })
+            )}
           </div>
 
           {/* Legend */}

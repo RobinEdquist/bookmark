@@ -1,0 +1,60 @@
+{
+  "title": "Användarprofil",
+  "back": "Tillbaka",
+  "memberSince": "Medlem sedan {date}",
+  "role": {
+    "admin": "Admin",
+    "user": "Användare"
+  },
+  "stats": {
+    "totalListeningTime": "Lyssningstid",
+    "booksCompleted": "Avslutade böcker",
+    "booksInProgress": "Pågående",
+    "longestStreak": "Längsta svit",
+    "days": "{count, plural, =1 {1 dag} other {# dagar}}",
+    "hours": "{hours}h {minutes}m",
+    "noData": "Ingen lyssningsdata ännu"
+  },
+  "activity": {
+    "title": "Lyssningsaktivitet",
+    "tooltip": "{date}: {duration}",
+    "less": "Mindre",
+    "more": "Mer",
+    "noListening": "Ingen lyssning"
+  },
+  "libraryProgress": {
+    "title": "Bibliotek",
+    "filterType": "Typ",
+    "filterStatus": "Status",
+    "sort": "Sortera",
+    "all": "Alla",
+    "audiobooks": "Ljudböcker",
+    "ebooks": "E-böcker",
+    "inProgress": "Pågående",
+    "completed": "Avslutade",
+    "sortRecent": "Senaste",
+    "sortProgress": "Framsteg",
+    "sortTitle": "Titel",
+    "progressLabel": "{percent}%",
+    "audiobookBadge": "Ljud",
+    "ebookBadge": "E-bok",
+    "completedLabel": "Avslutad",
+    "startedAt": "Startad {date}",
+    "completedAt": "Avslutad {date}",
+    "empty": "Inga böcker hittades",
+    "loadMore": "Ladda fler",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "pageInfo": "{start}-{end} av {total}"
+  },
+  "listeningHistory": {
+    "title": "Lyssningssessioner",
+    "empty": "Inga lyssningssessioner ännu",
+    "duration": "{duration}",
+    "position": "{start} \u2192 {end}",
+    "loadMore": "Ladda fler",
+    "showing": "Visar {count} av {total}",
+    "previous": "Föregående",
+    "next": "Nästa"
+  }
+}

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { Headphones } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
@@ -90,8 +91,8 @@ export function SessionLog({ userId }: SessionLogProps) {
                         unoptimized={session.coverUrl.startsWith("/api/")}
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-muted text-xs">
-                        🎧
+                      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
+                        <Headphones className="h-4 w-4" />
                       </div>
                     )}
                   </div>
