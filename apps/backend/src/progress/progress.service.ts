@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, desc, eq, gte, sql, count, notExists, sum } from 'drizzle-orm';
+import { and, desc, eq, gt, gte, sql, count, notExists, sum } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as progressSchema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
@@ -297,6 +297,7 @@ export class ProgressService {
         and(
           eq(progressSchema.userAudiobookProgress.userId, userId),
           eq(progressSchema.userAudiobookProgress.isHidden, false),
+          gt(progressSchema.userAudiobookProgress.currentPosition, 0),
           blacklistedTagsFilter,
         ),
       )
