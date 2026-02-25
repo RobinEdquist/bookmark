@@ -88,6 +88,7 @@ export function SessionLog({ userId }: SessionLogProps) {
                         alt={session.audiobookTitle}
                         fill
                         className="object-cover"
+                        sizes="40px"
                         unoptimized={session.coverUrl.startsWith("/api/")}
                       />
                     ) : (

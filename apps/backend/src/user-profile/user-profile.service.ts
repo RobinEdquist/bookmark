@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { and, count, desc, eq, gte, sql, sum } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { CoverService } from '../common/cover.service';
 import * as progressSchema from '../progress/schema';
 import * as ebookProgressSchema from '../ebook-progress/schema';
 import * as audiobookSchema from '../audiobooks/schema';
@@ -26,6 +27,7 @@ export class UserProfileService {
         typeof ebooksSchema &
         typeof authSchema
     >,
+    private readonly coverService: CoverService,
   ) {}
 
   /**
@@ -178,6 +180,7 @@ export class UserProfileService {
             id: audiobookSchema.audiobooks.id,
             title: audiobookSchema.audiobooks.title,
             coverUrl: audiobookSchema.audiobooks.coverUrl,
+            coverSource: audiobookSchema.audiobooks.coverSource,
             duration: audiobookSchema.audiobooks.duration,
             authorName: audiobookSchema.people.name,
             currentPosition:
@@ -232,7 +235,12 @@ export class UserProfileService {
           type: 'audiobook',
           title: row.title,
           authorName: row.authorName ?? null,
-          coverUrl: row.coverUrl ?? null,
+          coverUrl: this.coverService.getCoverUrl(
+            row.id,
+            row.coverUrl,
+            row.coverSource,
+            'audiobooks',
+          ),
           progressPercent,
           completed: row.completed,
           completedAt: row.completedAt?.toISOString() ?? null,
@@ -264,6 +272,7 @@ export class UserProfileService {
             id: ebooksSchema.ebooks.id,
             title: ebooksSchema.ebooks.title,
             coverUrl: ebooksSchema.ebooks.coverUrl,
+            coverSource: ebooksSchema.ebooks.coverSource,
             authorName: audiobookSchema.people.name,
             progressPercent:
               ebookProgressSchema.userEbookProgress.progressPercent,
@@ -307,7 +316,12 @@ export class UserProfileService {
           type: 'ebook',
           title: row.title,
           authorName: row.authorName ?? null,
-          coverUrl: row.coverUrl ?? null,
+          coverUrl: this.coverService.getCoverUrl(
+            row.id,
+            row.coverUrl,
+            row.coverSource,
+            'ebooks',
+          ),
           progressPercent: row.progressPercent,
           completed: row.completed,
           completedAt: row.completedAt?.toISOString() ?? null,
@@ -353,6 +367,7 @@ export class UserProfileService {
           audiobookId: progressSchema.listeningSessions.audiobookId,
           audiobookTitle: audiobookSchema.audiobooks.title,
           coverUrl: audiobookSchema.audiobooks.coverUrl,
+          coverSource: audiobookSchema.audiobooks.coverSource,
           authorName: audiobookSchema.people.name,
           durationSeconds: progressSchema.listeningSessions.durationSeconds,
           startPosition: progressSchema.listeningSessions.startPosition,
@@ -401,7 +416,12 @@ export class UserProfileService {
       audiobookId: row.audiobookId,
       audiobookTitle: row.audiobookTitle,
       authorName: row.authorName ?? null,
-      coverUrl: row.coverUrl ?? null,
+      coverUrl: this.coverService.getCoverUrl(
+        row.audiobookId,
+        row.coverUrl,
+        row.coverSource,
+        'audiobooks',
+      ),
       durationSeconds: row.durationSeconds,
       startPosition: row.startPosition,
       endPosition: row.endPosition,

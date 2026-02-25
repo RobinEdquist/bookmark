@@ -161,6 +161,7 @@ export function LibraryProgressList({ userId }: LibraryProgressListProps) {
                         alt={item.title}
                         fill
                         className="object-cover"
+                        sizes="48px"
                         unoptimized={item.coverUrl.startsWith("/api/")}
                       />
                     ) : (

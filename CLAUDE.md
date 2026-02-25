@@ -41,6 +41,7 @@ Bookmark is a self-hosted audiobook management and streaming platform. The goal 
 **AI Assistant Guidelines:**
 
 - **Always verify before stating facts** - When answering questions about URLs, paths, configurations, or implementation details, search the codebase or test the actual behavior rather than assuming based on patterns or library defaults. If uncertain, say so and offer to verify.
+- **Cover URLs must use `CoverService.getCoverUrl()`** - The database stores raw cover filenames (e.g., `abc123.jpg`) in the `cover_url` column. These are NOT valid image URLs. When returning cover URLs in API responses, you MUST use `CoverService.getCoverUrl(id, coverUrl, coverSource, apiPath)` to transform them into proper API URLs (e.g., `/api/audiobooks/{id}/cover`). Never pass raw `coverUrl` from the database directly to the frontend. This applies to ALL backend services that return cover image URLs — always check how `audiobooks.service.ts` and `ebooks.service.ts` handle covers and follow the same pattern.
 
 **Reference Document:** See `docs/scope.md` for the complete feature specification.
 

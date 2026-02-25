@@ -176,13 +176,58 @@ export class ProgressService {
   }
 
   /**
-   * Record a listening session
+   * Record a listening session.
+   * If a recent session exists for the same user+audiobook (ended within the
+   * last 10 minutes), the existing session is extended instead of creating a
+   * new row. This prevents duplicate overlapping sessions from clients that
+   * report progress periodically (e.g. mobile apps).
    */
+  private static readonly SESSION_MERGE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+
   async createSession(
     userId: string,
     audiobookId: string,
     dto: CreateSessionDto,
   ): Promise<{ id: string; durationSeconds: number }> {
+    const mergeThreshold = new Date(
+      Date.now() - ProgressService.SESSION_MERGE_WINDOW_MS,
+    );
+
+    // Look for a recent session to extend
+    const [existing] = await this.db
+      .select({
+        id: progressSchema.listeningSessions.id,
+      })
+      .from(progressSchema.listeningSessions)
+      .where(
+        and(
+          eq(progressSchema.listeningSessions.userId, userId),
+          eq(progressSchema.listeningSessions.audiobookId, audiobookId),
+          gte(progressSchema.listeningSessions.endedAt, mergeThreshold),
+        ),
+      )
+      .orderBy(desc(progressSchema.listeningSessions.endedAt))
+      .limit(1);
+
+    if (existing) {
+      // Extend the existing session
+      const [updated] = await this.db
+        .update(progressSchema.listeningSessions)
+        .set({
+          endedAt: new Date(dto.endedAt),
+          endPosition: dto.endPosition,
+          durationSeconds: dto.durationSeconds,
+        })
+        .where(eq(progressSchema.listeningSessions.id, existing.id))
+        .returning({
+          id: progressSchema.listeningSessions.id,
+          durationSeconds: progressSchema.listeningSessions.durationSeconds,
+        });
+
+      return updated;
+    }
+
+    // No recent session found — create a new one
     const [session] = await this.db
       .insert(progressSchema.listeningSessions)
       .values({
