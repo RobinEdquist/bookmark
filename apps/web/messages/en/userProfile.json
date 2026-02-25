@@ -1,0 +1,58 @@
+{
+  "title": "User Profile",
+  "back": "Back",
+  "memberSince": "Member since {date}",
+  "role": {
+    "admin": "Admin",
+    "user": "User"
+  },
+  "stats": {
+    "totalListeningTime": "Listening Time",
+    "booksCompleted": "Books Completed",
+    "booksInProgress": "In Progress",
+    "longestStreak": "Longest Streak",
+    "days": "{count, plural, =1 {1 day} other {# days}}",
+    "hours": "{hours}h {minutes}m",
+    "noData": "No listening data yet"
+  },
+  "activity": {
+    "title": "Listening Activity",
+    "tooltip": "{date}: {duration}",
+    "less": "Less",
+    "more": "More",
+    "noListening": "No listening"
+  },
+  "libraryProgress": {
+    "title": "Library",
+    "filterType": "Type",
+    "filterStatus": "Status",
+    "sort": "Sort",
+    "all": "All",
+    "audiobooks": "Audiobooks",
+    "ebooks": "Ebooks",
+    "inProgress": "In Progress",
+    "completed": "Completed",
+    "sortRecent": "Recent",
+    "sortProgress": "Progress",
+    "sortTitle": "Title",
+    "progressLabel": "{percent}%",
+    "completedLabel": "Completed",
+    "startedAt": "Started {date}",
+    "completedAt": "Completed {date}",
+    "empty": "No books found",
+    "loadMore": "Load More",
+    "previous": "Previous",
+    "next": "Next",
+    "pageInfo": "{start}-{end} of {total}"
+  },
+  "listeningHistory": {
+    "title": "Listening Sessions",
+    "empty": "No listening sessions yet",
+    "duration": "{duration}",
+    "position": "{start} \u2192 {end}",
+    "loadMore": "Load More",
+    "showing": "Showing {count} of {total}",
+    "previous": "Previous",
+    "next": "Next"
+  }
+}

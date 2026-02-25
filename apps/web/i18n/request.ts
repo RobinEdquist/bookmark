@@ -25,6 +25,7 @@ export default getRequestConfig(async () => {
       admin: (await import(`../messages/${locale}/admin.json`)).default,
       lists: (await import(`../messages/${locale}/lists.json`)).default,
       series: (await import(`../messages/${locale}/series.json`)).default,
+      userProfile: (await import(`../messages/${locale}/userProfile.json`)).default,
     },
   };
 });
