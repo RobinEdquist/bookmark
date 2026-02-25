@@ -15,6 +15,26 @@ export const queryKeys = {
       [...queryKeys.users.all, "list", filters] as const,
     detail: (id: string) => [...queryKeys.users.all, "detail", id] as const,
   },
+  userProfile: {
+    all: ["user-profile"] as const,
+    stats: (id: string) =>
+      [...queryKeys.userProfile.all, "stats", id] as const,
+    activity: (id: string, year: number) =>
+      [...queryKeys.userProfile.all, "activity", id, year] as const,
+    libraryProgress: (
+      id: string,
+      filters?: {
+        type?: string;
+        status?: string;
+        sort?: string;
+        limit?: number;
+        offset?: number;
+      }
+    ) =>
+      [...queryKeys.userProfile.all, "library-progress", id, filters] as const,
+    listeningHistory: (id: string, offset?: number) =>
+      [...queryKeys.userProfile.all, "listening-history", id, offset] as const,
+  },
   libraries: {
     all: ["libraries"] as const,
     list: (filters?: { search?: string }) =>
