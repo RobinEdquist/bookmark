@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { and, count, desc, eq, gte, sql, sum } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -19,7 +19,7 @@ import type {
 export class UserProfileService {
   constructor(
     @Inject(DATABASE_CONNECTION)
-    private db: NodePgDatabase<
+    private readonly db: NodePgDatabase<
       typeof progressSchema &
         typeof ebookProgressSchema &
         typeof audiobookSchema &
@@ -82,12 +82,16 @@ export class UserProfileService {
 
     const user = userResult[0];
 
+    if (!user) {
+      throw new NotFoundException(`User ${userId} not found`);
+    }
+
     return {
       user: {
-        id: user?.id ?? userId,
-        name: user?.name ?? 'Unknown',
-        image: user?.image ?? null,
-        createdAt: user?.createdAt?.toISOString() ?? new Date().toISOString(),
+        id: user.id,
+        name: user.name,
+        image: user.image ?? null,
+        createdAt: user.createdAt.toISOString(),
       },
       totalListeningTime: Number(totalListeningResult[0]?.total ?? 0),
       audiobooksCompleted: Number(audiobookProgressResult[0]?.completed ?? 0),
