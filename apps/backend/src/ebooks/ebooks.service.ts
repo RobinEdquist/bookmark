@@ -852,11 +852,27 @@ export class EbooksService {
 
     // Try to extract embedded cover from the EPUB
     if (coverSource === 'embedded') {
+      const coverPath = this.appDataService.getEbookCoverPath(id);
+
+      // Check if a cached version exists on disk
+      try {
+        const data = await fs.readFile(coverPath);
+        return { data, mimeType: 'image/jpeg' };
+      } catch {
+        // Not cached yet, extract from file
+      }
+
       try {
         const absolutePath = await this.resolveFilePath(filePath);
-        return await this.ebookMetadataProvider.extractCoverFromFile(
-          absolutePath,
-        );
+        const result =
+          await this.ebookMetadataProvider.extractCoverFromFile(absolutePath);
+
+        // Cache to disk for future requests
+        if (result) {
+          fs.writeFile(coverPath, result.data).catch(() => {});
+        }
+
+        return result;
       } catch {
         return null;
       }

@@ -1052,6 +1052,16 @@ export class AudiobooksService {
 
     // Try to extract embedded cover from the first audio file
     if (coverSource === 'embedded') {
+      const coverPath = this.appDataService.getAudiobookCoverPath(id);
+
+      // Check if a cached version exists on disk
+      try {
+        const data = await fs.readFile(coverPath);
+        return { data, mimeType: 'image/jpeg' };
+      } catch {
+        // Not cached yet, extract from file
+      }
+
       // Get the first audio file for this audiobook
       const files = await this.db
         .select({ filePath: schema.audiobookFiles.filePath })
@@ -1066,7 +1076,15 @@ export class AudiobooksService {
         const absoluteFilePath = await this.resolveFilePath(
           path.join(filePath, files[0].filePath),
         );
-        return this.metadataProvider.extractCover(absoluteFilePath);
+        const result =
+          await this.metadataProvider.extractCover(absoluteFilePath);
+
+        // Cache to disk for future requests
+        if (result) {
+          fs.writeFile(coverPath, result.data).catch(() => {});
+        }
+
+        return result;
       }
     }
 
