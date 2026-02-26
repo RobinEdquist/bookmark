@@ -5,10 +5,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import { ArrowLeft, Calendar, User, BookOpen, Library, Pencil, ChevronDown, ChevronUp, FileText, ImageIcon, Download } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowLeft, Calendar, User, BookOpen, Library, Pencil, ChevronDown, ChevronUp, FileText, ImageIcon, Download, CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/ui/alert-dialog";
 import { useEbook } from "../../../../lib/use-ebooks";
+import { useEbookProgress, useResetEbookProgress } from "../../../../lib/use-ebook-progress";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { useGrFinderStatus } from "../../../../lib/use-goodreads";
@@ -42,7 +55,9 @@ export default function EbookDetailPage({
   const { isDark } = useTheme();
   const returnUrl = useLibraryReturnUrl("/ebooks");
   const { data: ebook, isLoading, error } = useEbook(id);
+  const { data: ebookProgress } = useEbookProgress(id);
   const { data: permissions } = useMyPermissions();
+  const resetProgressMutation = useResetEbookProgress();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const { isConfigured: isGrFinderConfigured } = useGrFinderStatus();
   const [editOpen, setEditOpen] = useState(false);
@@ -55,6 +70,17 @@ export default function EbookDetailPage({
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("ebook", id);
+
+  const handleResetProgress = () => {
+    resetProgressMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success(t("progress.resetSuccess"));
+      },
+      onError: () => {
+        toast.error(t("progress.resetError"));
+      },
+    });
+  };
 
   const handleDownload = () => {
     window.open(`/api/ebooks/${id}/download`, "_blank");
@@ -192,6 +218,62 @@ export default function EbookDetailPage({
               <Download className="mr-2 h-5 w-5" />
               {t("download")}
             </Button>
+
+            {/* Progress indicator */}
+            {ebookProgress && ebookProgress.progressPercent > 0 && (
+              <div className="space-y-1.5">
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, ebookProgress.progressPercent)}%`,
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+                  {ebookProgress.completed ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                      <span>{t("progress.completed")}</span>
+                    </>
+                  ) : (
+                    <span>
+                      {t("progress.percentage", {
+                        percentage: ebookProgress.progressPercent,
+                      })}
+                    </span>
+                  )}
+                </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer w-full"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      {t("progress.reset")}
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("progress.resetConfirmTitle")}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t("progress.resetConfirmDescription")}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("progress.resetCancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleResetProgress}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {t("progress.resetConfirm")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            )}
 
             {/* Genres and Tags */}
             {(ebook.genres.length > 0 || ebook.tags.length > 0) && (

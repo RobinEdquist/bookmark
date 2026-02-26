@@ -1,10 +1,13 @@
 import {
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
   Param,
   Body,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -119,6 +122,28 @@ export class EbookProgressController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<EbookProgressResponse> {
     return this.ebookProgressService.updateProgress(user.id, ebookId, dto);
+  }
+
+  @Delete(':ebookId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Reset progress for an ebook',
+    description:
+      'Deletes all reading progress for a specific ebook. This action cannot be undone.',
+  })
+  @ApiParam({
+    name: 'ebookId',
+    description: 'Ebook UUID',
+    format: 'uuid',
+  })
+  @ApiResponse({ status: 204, description: 'Progress reset successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Progress record not found' })
+  async resetProgress(
+    @Param('ebookId') ebookId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    return this.ebookProgressService.resetProgress(user.id, ebookId);
   }
 
   @Post(':ebookId/hide')

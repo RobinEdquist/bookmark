@@ -62,20 +62,27 @@ export class UserProfileService {
         .from(progressSchema.listeningSessions)
         .where(eq(progressSchema.listeningSessions.userId, userId)),
 
-      // Audiobook progress counts
+      // Audiobook progress counts (filter out barely-started: progress rounds to 0%)
       this.db
         .select({
           completed: sql<number>`COALESCE(SUM(CASE WHEN ${progressSchema.userAudiobookProgress.completed} THEN 1 ELSE 0 END), 0)`,
-          inProgress: sql<number>`COALESCE(SUM(CASE WHEN NOT ${progressSchema.userAudiobookProgress.completed} THEN 1 ELSE 0 END), 0)`,
+          inProgress: sql<number>`COALESCE(SUM(CASE WHEN NOT ${progressSchema.userAudiobookProgress.completed} AND ROUND(${progressSchema.userAudiobookProgress.currentPosition}::numeric / NULLIF(${audiobookSchema.audiobooks.duration}, 0) * 100) > 0 THEN 1 ELSE 0 END), 0)`,
         })
         .from(progressSchema.userAudiobookProgress)
+        .leftJoin(
+          audiobookSchema.audiobooks,
+          eq(
+            progressSchema.userAudiobookProgress.audiobookId,
+            audiobookSchema.audiobooks.id,
+          ),
+        )
         .where(eq(progressSchema.userAudiobookProgress.userId, userId)),
 
-      // Ebook progress counts
+      // Ebook progress counts (filter out barely-started: progress_percent rounds to 0%)
       this.db
         .select({
           completed: sql<number>`COALESCE(SUM(CASE WHEN ${ebookProgressSchema.userEbookProgress.completed} THEN 1 ELSE 0 END), 0)`,
-          inProgress: sql<number>`COALESCE(SUM(CASE WHEN NOT ${ebookProgressSchema.userEbookProgress.completed} THEN 1 ELSE 0 END), 0)`,
+          inProgress: sql<number>`COALESCE(SUM(CASE WHEN NOT ${ebookProgressSchema.userEbookProgress.completed} AND ${ebookProgressSchema.userEbookProgress.progressPercent} > 0 THEN 1 ELSE 0 END), 0)`,
         })
         .from(ebookProgressSchema.userEbookProgress)
         .where(eq(ebookProgressSchema.userEbookProgress.userId, userId)),
@@ -361,7 +368,7 @@ export class UserProfileService {
           endedAt: progressSchema.listeningSessions.endedAt,
         })
         .from(progressSchema.listeningSessions)
-        .innerJoin(
+        .leftJoin(
           audiobookSchema.audiobooks,
           eq(
             progressSchema.listeningSessions.audiobookId,
@@ -399,14 +406,16 @@ export class UserProfileService {
     const items = results.map((row) => ({
       id: row.id,
       audiobookId: row.audiobookId,
-      audiobookTitle: row.audiobookTitle,
+      audiobookTitle: row.audiobookTitle ?? 'Unknown audiobook',
       authorName: row.authorName ?? null,
-      coverUrl: this.coverService.getCoverUrl(
-        row.audiobookId,
-        row.coverUrl,
-        row.coverSource,
-        'audiobooks',
-      ),
+      coverUrl: row.coverUrl
+        ? this.coverService.getCoverUrl(
+            row.audiobookId,
+            row.coverUrl,
+            row.coverSource,
+            'audiobooks',
+          )
+        : null,
       durationSeconds: row.durationSeconds,
       startPosition: row.startPosition,
       endPosition: row.endPosition,

@@ -4,8 +4,9 @@ import { use, useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download } from "lucide-react";
+import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download, RotateCcw } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -14,11 +15,22 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@repo/ui/components/ui/accordion";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@repo/ui/components/ui/alert-dialog";
 import { useAudiobook } from "../../../../lib/use-audiobooks";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { useGrFinderStatus } from "../../../../lib/use-goodreads";
-import { useProgress } from "../../../../lib/use-progress";
+import { useProgress, useResetProgress } from "../../../../lib/use-progress";
 import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
 import { usePlayer } from "../../../../components/providers/player-provider";
 import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audiobook-dialog";
@@ -88,6 +100,7 @@ export default function AudiobookDetailPage({
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("audiobook", id);
+  const resetProgressMutation = useResetProgress();
   const isCurrentlyPlaying = currentlyPlaying?.id === id && isPlaying;
   const isThisAudiobookLoaded = currentlyPlaying?.id === id;
 
@@ -106,6 +119,17 @@ export default function AudiobookDetailPage({
       const startPosition = progress?.position ?? 0;
       play(audiobook, startPosition);
     }
+  };
+
+  const handleResetProgress = () => {
+    resetProgressMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success(t("progress.resetSuccess"));
+      },
+      onError: () => {
+        toast.error(t("progress.resetError"));
+      },
+    });
   };
 
   const handleDownload = () => {
@@ -288,6 +312,34 @@ export default function AudiobookDetailPage({
                     </span>
                   )}
                 </div>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="h-3 w-3" />
+                      {t("progress.reset")}
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t("progress.resetConfirmTitle")}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t("progress.resetConfirmDescription")}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t("progress.resetCancel")}</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleResetProgress}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {t("progress.resetConfirm")}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
 

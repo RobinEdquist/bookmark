@@ -1,10 +1,13 @@
 import {
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
   Param,
   Body,
+  HttpCode,
+  HttpStatus,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -185,6 +188,28 @@ export class ProgressController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<{ id: string; durationSeconds: number }> {
     return this.progressService.createSession(user.id, audiobookId, dto);
+  }
+
+  @Delete(':audiobookId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Reset progress for an audiobook',
+    description:
+      'Deletes the listening progress for a specific audiobook. Listening sessions are preserved. This action cannot be undone.',
+  })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
+  @ApiResponse({ status: 204, description: 'Progress reset successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Progress record not found' })
+  async resetProgress(
+    @Param('audiobookId') audiobookId: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    return this.progressService.resetProgress(user.id, audiobookId);
   }
 
   @Post(':audiobookId/hide')

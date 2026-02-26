@@ -97,7 +97,14 @@
     "progress": {
       "percentage": "{percentage}% complete",
       "timeOf": "{current} of {total}",
-      "completed": "Completed"
+      "completed": "Completed",
+      "reset": "Reset Progress",
+      "resetConfirmTitle": "Reset Progress",
+      "resetConfirmDescription": "Are you sure you want to reset all listening progress for this audiobook? This cannot be undone.",
+      "resetConfirm": "Reset",
+      "resetCancel": "Cancel",
+      "resetSuccess": "Progress has been reset",
+      "resetError": "Failed to reset progress"
     }
   },
   "changeCover": {

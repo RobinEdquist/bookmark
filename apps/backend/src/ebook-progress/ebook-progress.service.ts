@@ -195,6 +195,24 @@ export class EbookProgressService {
   }
 
   /**
+   * Reset (delete) all progress for an ebook
+   */
+  async resetProgress(userId: string, ebookId: string): Promise<void> {
+    const result = await this.db
+      .delete(ebookProgressSchema.userEbookProgress)
+      .where(
+        and(
+          eq(ebookProgressSchema.userEbookProgress.userId, userId),
+          eq(ebookProgressSchema.userEbookProgress.ebookId, ebookId),
+        ),
+      );
+
+    if (result.rowCount === 0) {
+      throw new NotFoundException('Progress record not found');
+    }
+  }
+
+  /**
    * Hide an ebook from "continue reading"
    */
   async hideProgress(userId: string, ebookId: string): Promise<void> {

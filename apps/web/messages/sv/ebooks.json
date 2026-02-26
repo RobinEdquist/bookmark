@@ -78,6 +78,17 @@
     "showLess": "Visa mindre",
     "bookInSeries": "{series} #{order}",
     "fileInfo": "Fil",
+    "progress": {
+      "percentage": "{percentage}% klart",
+      "completed": "Avslutad",
+      "reset": "Återställ framsteg",
+      "resetConfirmTitle": "Återställ framsteg",
+      "resetConfirmDescription": "Är du säker på att du vill återställa all läsframsteg för denna e-bok? Detta kan inte ångras.",
+      "resetConfirm": "Återställ",
+      "resetCancel": "Avbryt",
+      "resetSuccess": "Framstegen har återställts",
+      "resetError": "Kunde inte återställa framstegen"
+    },
     "additionalInfo": "Ytterligare information",
     "publisher": "Förlag",
     "isbn": "ISBN",

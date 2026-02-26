@@ -63,6 +63,17 @@ async function updateEbookProgress(
   return response.json();
 }
 
+async function resetEbookProgress(ebookId: string): Promise<void> {
+  const response = await fetch(`/api/ebook-progress/${ebookId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to reset ebook progress");
+  }
+}
+
 async function hideEbookProgress(ebookId: string): Promise<void> {
   const response = await fetch(`/api/ebook-progress/${ebookId}/hide`, {
     method: "POST",
@@ -110,6 +121,24 @@ export function useUpdateEbookProgress() {
         data
       );
       // Invalidate the list to ensure consistency
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.ebookProgress.list(),
+      });
+    },
+  });
+}
+
+export function useResetEbookProgress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (ebookId: string) => resetEbookProgress(ebookId),
+    onSuccess: (_data, ebookId) => {
+      // Remove the specific progress cache
+      queryClient.removeQueries({
+        queryKey: queryKeys.ebookProgress.detail(ebookId),
+      });
+      // Invalidate the list
       queryClient.invalidateQueries({
         queryKey: queryKeys.ebookProgress.list(),
       });

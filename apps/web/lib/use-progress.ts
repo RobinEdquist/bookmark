@@ -141,6 +141,17 @@ export function useUpdateProgress() {
   });
 }
 
+async function resetProgress(audiobookId: string): Promise<void> {
+  const response = await fetch(`/api/progress/${audiobookId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to reset progress");
+  }
+}
+
 async function hideProgress(audiobookId: string): Promise<void> {
   const response = await fetch(`/api/progress/${audiobookId}/hide`, {
     method: "POST",
@@ -150,6 +161,27 @@ async function hideProgress(audiobookId: string): Promise<void> {
   if (!response.ok) {
     throw new Error("Failed to hide progress");
   }
+}
+
+export function useResetProgress() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (audiobookId: string) => resetProgress(audiobookId),
+    onSuccess: (_data, audiobookId) => {
+      // Remove the specific progress cache
+      queryClient.removeQueries({
+        queryKey: queryKeys.progress.detail(audiobookId),
+      });
+      // Invalidate the list and stats
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.progress.list(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.progress.stats(),
+      });
+    },
+  });
 }
 
 export function useHideProgress() {

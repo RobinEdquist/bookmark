@@ -449,6 +449,24 @@ export class ProgressService {
   }
 
   /**
+   * Reset (delete) progress for an audiobook. Listening sessions are preserved.
+   */
+  async resetProgress(userId: string, audiobookId: string): Promise<void> {
+    const result = await this.db
+      .delete(progressSchema.userAudiobookProgress)
+      .where(
+        and(
+          eq(progressSchema.userAudiobookProgress.userId, userId),
+          eq(progressSchema.userAudiobookProgress.audiobookId, audiobookId),
+        ),
+      );
+
+    if (result.rowCount === 0) {
+      throw new NotFoundException('Progress record not found');
+    }
+  }
+
+  /**
    * Hide an audiobook from "continue listening"
    */
   async hideProgress(userId: string, audiobookId: string): Promise<void> {

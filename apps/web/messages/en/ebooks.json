@@ -78,6 +78,17 @@
     "showLess": "Show less",
     "bookInSeries": "{series} #{order}",
     "fileInfo": "File",
+    "progress": {
+      "percentage": "{percentage}% complete",
+      "completed": "Completed",
+      "reset": "Reset Progress",
+      "resetConfirmTitle": "Reset Progress",
+      "resetConfirmDescription": "Are you sure you want to reset all reading progress for this ebook? This cannot be undone.",
+      "resetConfirm": "Reset",
+      "resetCancel": "Cancel",
+      "resetSuccess": "Progress has been reset",
+      "resetError": "Failed to reset progress"
+    },
     "additionalInfo": "Additional Information",
     "publisher": "Publisher",
     "isbn": "ISBN",
