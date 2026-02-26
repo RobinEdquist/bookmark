@@ -156,8 +156,6 @@ export class UserProfileService {
     sort: 'recent' | 'title' | 'progress',
   ): Promise<LibraryProgressResponseDto> {
     const items: LibraryProgressItemDto[] = [];
-    let audiobookTotal = 0;
-    let ebookTotal = 0;
 
     // Fetch audiobook progress if requested
     if (type === 'all' || type === 'audiobook') {
@@ -174,56 +172,46 @@ export class UserProfileService {
         );
       }
 
-      const [audiobookResults, audiobookCountResult] = await Promise.all([
-        this.db
-          .select({
-            id: audiobookSchema.audiobooks.id,
-            title: audiobookSchema.audiobooks.title,
-            coverUrl: audiobookSchema.audiobooks.coverUrl,
-            coverSource: audiobookSchema.audiobooks.coverSource,
-            duration: audiobookSchema.audiobooks.duration,
-            authorName: audiobookSchema.people.name,
-            currentPosition:
-              progressSchema.userAudiobookProgress.currentPosition,
-            completed: progressSchema.userAudiobookProgress.completed,
-            completedAt: progressSchema.userAudiobookProgress.completedAt,
-            startedAt: progressSchema.userAudiobookProgress.startedAt,
-            updatedAt: progressSchema.userAudiobookProgress.updatedAt,
-          })
-          .from(progressSchema.userAudiobookProgress)
-          .innerJoin(
-            audiobookSchema.audiobooks,
+      const audiobookResults = await this.db
+        .select({
+          id: audiobookSchema.audiobooks.id,
+          title: audiobookSchema.audiobooks.title,
+          coverUrl: audiobookSchema.audiobooks.coverUrl,
+          coverSource: audiobookSchema.audiobooks.coverSource,
+          duration: audiobookSchema.audiobooks.duration,
+          authorName: audiobookSchema.people.name,
+          currentPosition: progressSchema.userAudiobookProgress.currentPosition,
+          completed: progressSchema.userAudiobookProgress.completed,
+          completedAt: progressSchema.userAudiobookProgress.completedAt,
+          startedAt: progressSchema.userAudiobookProgress.startedAt,
+          updatedAt: progressSchema.userAudiobookProgress.updatedAt,
+        })
+        .from(progressSchema.userAudiobookProgress)
+        .innerJoin(
+          audiobookSchema.audiobooks,
+          eq(
+            progressSchema.userAudiobookProgress.audiobookId,
+            audiobookSchema.audiobooks.id,
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.audiobookAuthors,
+          and(
             eq(
-              progressSchema.userAudiobookProgress.audiobookId,
               audiobookSchema.audiobooks.id,
+              audiobookSchema.audiobookAuthors.audiobookId,
             ),
-          )
-          .leftJoin(
-            audiobookSchema.audiobookAuthors,
-            and(
-              eq(
-                audiobookSchema.audiobooks.id,
-                audiobookSchema.audiobookAuthors.audiobookId,
-              ),
-              eq(audiobookSchema.audiobookAuthors.order, 0),
-            ),
-          )
-          .leftJoin(
-            audiobookSchema.people,
-            eq(
-              audiobookSchema.audiobookAuthors.personId,
-              audiobookSchema.people.id,
-            ),
-          )
-          .where(and(...audiobookConditions)),
-
-        this.db
-          .select({ count: count() })
-          .from(progressSchema.userAudiobookProgress)
-          .where(and(...audiobookConditions)),
-      ]);
-
-      audiobookTotal = audiobookCountResult[0]?.count ?? 0;
+            eq(audiobookSchema.audiobookAuthors.order, 0),
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.people,
+          eq(
+            audiobookSchema.audiobookAuthors.personId,
+            audiobookSchema.people.id,
+          ),
+        )
+        .where(and(...audiobookConditions));
 
       for (const row of audiobookResults) {
         const progressPercent = row.duration
@@ -269,49 +257,40 @@ export class UserProfileService {
         );
       }
 
-      const [ebookResults, ebookCountResult] = await Promise.all([
-        this.db
-          .select({
-            id: ebooksSchema.ebooks.id,
-            title: ebooksSchema.ebooks.title,
-            coverUrl: ebooksSchema.ebooks.coverUrl,
-            coverSource: ebooksSchema.ebooks.coverSource,
-            authorName: audiobookSchema.people.name,
-            progressPercent:
-              ebookProgressSchema.userEbookProgress.progressPercent,
-            completed: ebookProgressSchema.userEbookProgress.completed,
-            completedAt: ebookProgressSchema.userEbookProgress.completedAt,
-            startedAt: ebookProgressSchema.userEbookProgress.startedAt,
-            updatedAt: ebookProgressSchema.userEbookProgress.updatedAt,
-          })
-          .from(ebookProgressSchema.userEbookProgress)
-          .innerJoin(
-            ebooksSchema.ebooks,
-            eq(
-              ebookProgressSchema.userEbookProgress.ebookId,
-              ebooksSchema.ebooks.id,
-            ),
-          )
-          .leftJoin(
-            ebooksSchema.ebookAuthors,
-            and(
-              eq(ebooksSchema.ebooks.id, ebooksSchema.ebookAuthors.ebookId),
-              eq(ebooksSchema.ebookAuthors.order, 0),
-            ),
-          )
-          .leftJoin(
-            audiobookSchema.people,
-            eq(ebooksSchema.ebookAuthors.personId, audiobookSchema.people.id),
-          )
-          .where(and(...ebookConditions)),
-
-        this.db
-          .select({ count: count() })
-          .from(ebookProgressSchema.userEbookProgress)
-          .where(and(...ebookConditions)),
-      ]);
-
-      ebookTotal = ebookCountResult[0]?.count ?? 0;
+      const ebookResults = await this.db
+        .select({
+          id: ebooksSchema.ebooks.id,
+          title: ebooksSchema.ebooks.title,
+          coverUrl: ebooksSchema.ebooks.coverUrl,
+          coverSource: ebooksSchema.ebooks.coverSource,
+          authorName: audiobookSchema.people.name,
+          progressPercent:
+            ebookProgressSchema.userEbookProgress.progressPercent,
+          completed: ebookProgressSchema.userEbookProgress.completed,
+          completedAt: ebookProgressSchema.userEbookProgress.completedAt,
+          startedAt: ebookProgressSchema.userEbookProgress.startedAt,
+          updatedAt: ebookProgressSchema.userEbookProgress.updatedAt,
+        })
+        .from(ebookProgressSchema.userEbookProgress)
+        .innerJoin(
+          ebooksSchema.ebooks,
+          eq(
+            ebookProgressSchema.userEbookProgress.ebookId,
+            ebooksSchema.ebooks.id,
+          ),
+        )
+        .leftJoin(
+          ebooksSchema.ebookAuthors,
+          and(
+            eq(ebooksSchema.ebooks.id, ebooksSchema.ebookAuthors.ebookId),
+            eq(ebooksSchema.ebookAuthors.order, 0),
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.people,
+          eq(ebooksSchema.ebookAuthors.personId, audiobookSchema.people.id),
+        )
+        .where(and(...ebookConditions));
 
       for (const row of ebookResults) {
         // Skip items with negligible progress (rounds to 0%) unless completed
