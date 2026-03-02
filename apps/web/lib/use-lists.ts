@@ -39,6 +39,7 @@ export interface TopRatedListItem {
 
 export interface TopListsResponse {
   topRated: TopRatedListItem[];
+  mostVoted: TopRatedListItem[];
 }
 
 export interface ListItemAudiobook {

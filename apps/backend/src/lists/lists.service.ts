@@ -21,7 +21,12 @@ import {
   AddItemDto,
   ReorderItemsDto,
 } from './dto';
-import { rankTopListItems, type RankableItem } from './top-list-ranking';
+import {
+  rankMostVotedItems,
+  rankTopListItems,
+  type RankableItem,
+  type RankedTopListItem,
+} from './top-list-ranking';
 
 type CombinedSchema = typeof listsSchema &
   typeof audiobooksSchema &
@@ -138,12 +143,25 @@ export class ListsService {
    */
   async findTop(userId: string, limit: number = 10) {
     const candidates = await this.getTopRankCandidates(userId);
-    const ranked = rankTopListItems(candidates, limit);
+    const rankedTopRated = rankTopListItems(candidates, limit);
+    const rankedMostVoted = rankMostVotedItems(candidates, limit);
 
-    const audiobookIds = ranked
+    const uniqueRankedItems = [
+      ...rankedTopRated,
+      ...rankedMostVoted.filter(
+        (mostVotedItem) =>
+          !rankedTopRated.some(
+            (topRatedItem) =>
+              topRatedItem.id === mostVotedItem.id &&
+              topRatedItem.type === mostVotedItem.type,
+          ),
+      ),
+    ];
+
+    const audiobookIds = uniqueRankedItems
       .filter((item) => item.type === 'audiobook')
       .map((item) => item.id);
-    const ebookIds = ranked
+    const ebookIds = uniqueRankedItems
       .filter((item) => item.type === 'ebook')
       .map((item) => item.id);
 
@@ -152,24 +170,27 @@ export class ListsService {
       this.getEbookAuthorsByIds(ebookIds),
     ]);
 
+    const mapRankedItem = (item: RankedTopListItem) => ({
+      id: item.id,
+      itemType: item.type,
+      title: item.title,
+      coverUrl:
+        item.type === 'audiobook'
+          ? `/api/audiobooks/${item.id}/cover`
+          : `/api/ebooks/${item.id}/cover`,
+      authors:
+        item.type === 'audiobook'
+          ? (audiobookAuthors.get(item.id) ?? [])
+          : (ebookAuthors.get(item.id) ?? []),
+      rating: item.rating,
+      ratingsCount: item.ratingsCount,
+      ratingSource: item.ratingSource,
+      weightedScore: item.weightedScore,
+    });
+
     return {
-      topRated: ranked.map((item) => ({
-        id: item.id,
-        itemType: item.type,
-        title: item.title,
-        coverUrl:
-          item.type === 'audiobook'
-            ? `/api/audiobooks/${item.id}/cover`
-            : `/api/ebooks/${item.id}/cover`,
-        authors:
-          item.type === 'audiobook'
-            ? (audiobookAuthors.get(item.id) ?? [])
-            : (ebookAuthors.get(item.id) ?? []),
-        rating: item.rating,
-        ratingsCount: item.ratingsCount,
-        ratingSource: item.ratingSource,
-        weightedScore: item.weightedScore,
-      })),
+      topRated: rankedTopRated.map(mapRankedItem),
+      mostVoted: rankedMostVoted.map(mapRankedItem),
     };
   }
 
@@ -252,7 +273,10 @@ export class ListsService {
         .from(ebooksSchema.ebooks)
         .leftJoin(
           goodreadsSchema.goodreadsEbookLinks,
-          eq(ebooksSchema.ebooks.id, goodreadsSchema.goodreadsEbookLinks.ebookId),
+          eq(
+            ebooksSchema.ebooks.id,
+            goodreadsSchema.goodreadsEbookLinks.ebookId,
+          ),
         )
         .leftJoin(
           goodreadsSchema.goodreadsBooks,
@@ -263,7 +287,10 @@ export class ListsService {
         )
         .leftJoin(
           hardcoverSchema.hardcoverEbookLinks,
-          eq(ebooksSchema.ebooks.id, hardcoverSchema.hardcoverEbookLinks.ebookId),
+          eq(
+            ebooksSchema.ebooks.id,
+            hardcoverSchema.hardcoverEbookLinks.ebookId,
+          ),
         )
         .leftJoin(
           hardcoverSchema.hardcoverBooks,
@@ -290,7 +317,9 @@ export class ListsService {
                     eq(usersSchema.userBlacklistedTags.userId, userId),
                   ),
                 )
-                .where(eq(ebooksSchema.ebookTags.ebookId, ebooksSchema.ebooks.id)),
+                .where(
+                  eq(ebooksSchema.ebookTags.ebookId, ebooksSchema.ebooks.id),
+                ),
             ),
           ),
         ),
@@ -347,7 +376,9 @@ export class ListsService {
           audiobooksSchema.people.id,
         ),
       )
-      .where(inArray(audiobooksSchema.audiobookAuthors.audiobookId, audiobookIds))
+      .where(
+        inArray(audiobooksSchema.audiobookAuthors.audiobookId, audiobookIds),
+      )
       .orderBy(
         asc(audiobooksSchema.audiobookAuthors.audiobookId),
         asc(audiobooksSchema.audiobookAuthors.order),

@@ -96,7 +96,7 @@ export class ListsController {
   @ApiOperation({
     summary: 'Get top-rated library items',
     description:
-      'Returns top items ranked by weighted rating score, preferring Goodreads ratings when available',
+      'Returns top items ranked by weighted rating score and by most votes, preferring Goodreads ratings when available',
   })
   @ApiQuery({
     name: 'limit',

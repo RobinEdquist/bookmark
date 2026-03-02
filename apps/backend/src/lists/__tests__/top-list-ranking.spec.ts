@@ -1,6 +1,7 @@
 import {
   calculateWeightedRatingScore,
   resolvePreferredRating,
+  rankMostVotedItems,
   rankTopListItems,
   type RankableItem,
 } from '../top-list-ranking';
@@ -103,6 +104,65 @@ describe('top-list-ranking', () => {
       ];
 
       const ranked = rankTopListItems(items, 10);
+      expect(ranked).toEqual([]);
+    });
+  });
+
+  describe('rankMostVotedItems', () => {
+    it('ranks items by ratings count descending using preferred source', () => {
+      const items: RankableItem[] = [
+        {
+          id: 'a',
+          title: 'Higher score fewer votes',
+          type: 'audiobook',
+          goodreadsRating: 4.8,
+          goodreadsRatingsCount: 90_000,
+          hardcoverRating: 4.9,
+          hardcoverRatingsCount: 200,
+        },
+        {
+          id: 'b',
+          title: 'Lower score more votes',
+          type: 'ebook',
+          goodreadsRating: 4.2,
+          goodreadsRatingsCount: 400_000,
+          hardcoverRating: 4.5,
+          hardcoverRatingsCount: 100,
+        },
+        {
+          id: 'c',
+          title: 'Hardcover only',
+          type: 'audiobook',
+          goodreadsRating: null,
+          goodreadsRatingsCount: null,
+          hardcoverRating: 4.4,
+          hardcoverRatingsCount: 250_000,
+        },
+      ];
+
+      const ranked = rankMostVotedItems(items, 3);
+
+      expect(ranked).toHaveLength(3);
+      expect(ranked[0]?.id).toBe('b');
+      expect(ranked[1]?.id).toBe('c');
+      expect(ranked[2]?.id).toBe('a');
+      expect(ranked[1]?.ratingSource).toBe('hardcover');
+    });
+
+    it('filters items without usable ratings for most-voted list too', () => {
+      const items: RankableItem[] = [
+        {
+          id: 'a',
+          title: 'Unrated',
+          type: 'audiobook',
+          goodreadsRating: null,
+          goodreadsRatingsCount: null,
+          hardcoverRating: null,
+          hardcoverRatingsCount: null,
+        },
+      ];
+
+      const ranked = rankMostVotedItems(items, 10);
       expect(ranked).toEqual([]);
     });
   });

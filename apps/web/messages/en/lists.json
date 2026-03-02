@@ -75,6 +75,7 @@
     "title": "Top Lists",
     "description": "Ranking list quality with a weighted score that balances rating and vote count.",
     "weightedTopTenTitle": "Top 10 by weighted rating",
+    "mostVotesTitle": "Top 10 by most votes",
     "loading": "Loading top list...",
     "empty": "No rated items available yet.",
     "goodreadsLabel": "Goodreads",

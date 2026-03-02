@@ -75,6 +75,7 @@
     "title": "Topplistor",
     "description": "Rangordning med en viktad poäng som balanserar betyg och antal röster.",
     "weightedTopTenTitle": "Topp 10 efter viktat betyg",
+    "mostVotesTitle": "Topp 10 efter flest röster",
     "loading": "Laddar topplista...",
     "empty": "Inga betygsatta objekt ännu.",
     "goodreadsLabel": "Goodreads",

@@ -79,7 +79,7 @@ export function rankTopListItems(
   items: RankableItem[],
   limit: number,
 ): RankedTopListItem[] {
-  return items
+  const ranked = items
     .map((item) => {
       const preferred = resolvePreferredRating(item);
       if (
@@ -102,13 +102,60 @@ export function rankTopListItems(
         weightedScore,
       };
     })
-    .filter((item): item is RankedTopListItem => item !== null)
+    .filter((item): item is RankedTopListItem => item !== null);
+
+  return ranked
     .sort((a, b) => {
       if (b.weightedScore !== a.weightedScore) {
         return b.weightedScore - a.weightedScore;
       }
       if (b.ratingsCount !== a.ratingsCount) {
         return b.ratingsCount - a.ratingsCount;
+      }
+      if (b.rating !== a.rating) {
+        return b.rating - a.rating;
+      }
+      return a.title.localeCompare(b.title);
+    })
+    .slice(0, limit);
+}
+
+export function rankMostVotedItems(
+  items: RankableItem[],
+  limit: number,
+): RankedTopListItem[] {
+  const ranked = items
+    .map((item) => {
+      const preferred = resolvePreferredRating(item);
+      if (
+        preferred.source === null ||
+        preferred.rating === null ||
+        Number.isNaN(preferred.rating)
+      ) {
+        return null;
+      }
+
+      const ratingsCount = normalizeCount(preferred.ratingsCount);
+      const rating = clampRating(preferred.rating);
+      const weightedScore = calculateWeightedRatingScore(rating, ratingsCount);
+
+      return {
+        ...item,
+        ratingSource: preferred.source,
+        rating,
+        ratingsCount,
+        weightedScore,
+      };
+    })
+    .filter((item): item is RankedTopListItem => item !== null);
+
+  return ranked
+    .sort((a, b) => {
+      if (b.ratingsCount !== a.ratingsCount) {
+        return b.ratingsCount - a.ratingsCount;
+      }
+      if (b.weightedScore !== a.weightedScore) {
+        return b.weightedScore - a.weightedScore;
       }
       if (b.rating !== a.rating) {
         return b.rating - a.rating;
