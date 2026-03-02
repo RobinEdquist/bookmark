@@ -35,6 +35,7 @@ import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadata.provider';
+import { splitPersonNames } from '../common/utils/name.utils';
 
 export interface EbookListItem {
   id: string;
@@ -546,7 +547,7 @@ export class EbooksService {
       // Apply priority-based resolution for authors
       const embeddedAuthorNames = authors.map((a) => a.name);
       const hardcoverAuthorNames = hc?.authorNames || [];
-      const goodreadsAuthorName = gr?.author ? [gr.author] : [];
+      const goodreadsAuthorNames = splitPersonNames(gr?.author);
       const resolvedAuthorNames =
         this.resolveFieldByPriority(
           'author',
@@ -554,7 +555,7 @@ export class EbooksService {
             manual: embeddedAuthorNames,
             embedded: embeddedAuthorNames,
             hardcover: hardcoverAuthorNames,
-            goodreads: goodreadsAuthorName,
+            goodreads: goodreadsAuthorNames,
           },
           metadataPriority.author,
           manualFields,
@@ -567,8 +568,8 @@ export class EbooksService {
               id: `hc-author-${idx}`,
               name,
             }))
-          : resolvedAuthorNames === goodreadsAuthorName && gr
-            ? goodreadsAuthorName.map((name, idx) => ({
+          : resolvedAuthorNames === goodreadsAuthorNames && gr
+            ? goodreadsAuthorNames.map((name, idx) => ({
                 id: `gr-author-${idx}`,
                 name,
               }))
@@ -1000,9 +1001,11 @@ export class EbooksService {
       .delete(schema.ebookAuthors)
       .where(eq(schema.ebookAuthors.ebookId, ebookId));
 
+    const normalizedNames = splitPersonNames(names);
+
     // Create new relations
-    for (let i = 0; i < names.length; i++) {
-      const name = names[i].trim();
+    for (let i = 0; i < normalizedNames.length; i++) {
+      const name = normalizedNames[i];
       if (!name) continue;
 
       // Find or create person using upsert to handle race conditions

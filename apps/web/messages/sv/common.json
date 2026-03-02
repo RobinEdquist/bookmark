@@ -22,9 +22,10 @@
     "eReader": "E-boksläsare",
     "audiobookApp": "Ljudboksapp",
     "requests": "Förfrågningar",
-    "manageRequests": "Hantera förfrågningar",
-    "lists": "Listor",
-    "settings": "Inställningar",
+  "manageRequests": "Hantera förfrågningar",
+  "lists": "Listor",
+  "topList": "Topplista",
+  "settings": "Inställningar",
     "myStats": "Min statistik",
     "preferences": "Preferenser",
     "signOut": "Logga ut"

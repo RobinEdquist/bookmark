@@ -30,6 +30,7 @@ import {
   inferTitleFromPath,
 } from './utils/text.utils';
 import { generateChaptersFromFiles } from './utils/chapter.utils';
+import { splitPersonNames } from '../common/utils/name.utils';
 
 @Injectable()
 export class MediaImporterService {
@@ -745,18 +746,7 @@ export class MediaImporterService {
     nameOrNames: string,
     role: 'author' | 'narrator',
   ): Promise<void> {
-    // Split by comma, trim whitespace, and deduplicate (case-insensitive)
-    const seen = new Set<string>();
-    const names = nameOrNames
-      .split(',')
-      .map((n) => n.trim())
-      .filter((n) => {
-        if (n.length === 0) return false;
-        const lower = n.toLowerCase();
-        if (seen.has(lower)) return false;
-        seen.add(lower);
-        return true;
-      });
+    const names = splitPersonNames(nameOrNames);
 
     for (let i = 0; i < names.length; i++) {
       const name = names[i];
@@ -788,26 +778,15 @@ export class MediaImporterService {
   }
 
   /**
-   * Creates or links a single person to an ebook.
-   * For comma-separated names, callers should split first or use createOrLinkEbookPersons.
+   * Creates or links one or more author names to an ebook.
+   * Supports comma-separated names (e.g., "Author A, Author B").
    */
   private async createOrLinkEbookPerson(
     ebookId: string,
     name: string,
     order: number,
   ): Promise<void> {
-    // Split by comma, trim whitespace, and deduplicate (case-insensitive)
-    const seen = new Set<string>();
-    const names = name
-      .split(',')
-      .map((n) => n.trim())
-      .filter((n) => {
-        if (n.length === 0) return false;
-        const lower = n.toLowerCase();
-        if (seen.has(lower)) return false;
-        seen.add(lower);
-        return true;
-      });
+    const names = splitPersonNames(name);
 
     for (let i = 0; i < names.length; i++) {
       const personName = names[i];

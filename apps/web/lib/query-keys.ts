@@ -182,6 +182,7 @@ export const queryKeys = {
     forItem: (itemType: 'audiobook' | 'ebook', itemId: string) =>
       [...queryKeys.lists.all, 'for-item', itemType, itemId] as const,
     recent: (limit?: number) => [...queryKeys.lists.all, 'recent', limit] as const,
+    top: (limit?: number) => [...queryKeys.lists.all, 'top', limit] as const,
   },
   grFinder: {
     all: ['gr-finder'] as const,

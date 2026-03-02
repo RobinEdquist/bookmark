@@ -15,6 +15,7 @@ import * as hardcoverSchema from './schema';
 import { eq, asc, and, isNull, inArray } from 'drizzle-orm';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
+import { splitPersonNames } from '../common/utils/name.utils';
 
 type CombinedSchema = typeof appSettingsSchema &
   typeof audiobooksSchema &
@@ -341,6 +342,8 @@ export class HardcoverService {
   private async findOrCreateHardcoverBook(
     hardcoverBook: HardcoverBookDocument,
   ): Promise<typeof hardcoverSchema.hardcoverBooks.$inferSelect> {
+    const normalizedAuthorNames = splitPersonNames(hardcoverBook.author_names);
+
     // Check if book already exists
     const existing = await this.db
       .select()
@@ -356,7 +359,7 @@ export class HardcoverService {
           slug: hardcoverBook.slug,
           title: hardcoverBook.title,
           description: hardcoverBook.description || null,
-          authorNames: hardcoverBook.author_names || [],
+          authorNames: normalizedAuthorNames,
           contentWarnings: hardcoverBook.content_warnings || [],
           featuredSeriesName:
             hardcoverBook.featured_series?.series?.name || null,
@@ -391,7 +394,7 @@ export class HardcoverService {
         slug: hardcoverBook.slug,
         title: hardcoverBook.title,
         description: hardcoverBook.description || null,
-        authorNames: hardcoverBook.author_names || [],
+        authorNames: normalizedAuthorNames,
         contentWarnings: hardcoverBook.content_warnings || [],
         featuredSeriesName: hardcoverBook.featured_series?.name || null,
         featuredSeriesPosition: hardcoverBook.featured_series?.position

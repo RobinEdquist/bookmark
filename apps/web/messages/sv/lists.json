@@ -70,5 +70,18 @@
     "itemRemoved": "Objekt borttaget från listan",
     "removeError": "Kunde inte ta bort objekt",
     "notFound": "Listan hittades inte"
+  },
+  "topList": {
+    "title": "Topplistor",
+    "description": "Rangordning med en viktad poäng som balanserar betyg och antal röster.",
+    "weightedTopTenTitle": "Topp 10 efter viktat betyg",
+    "loading": "Laddar topplista...",
+    "empty": "Inga betygsatta objekt ännu.",
+    "goodreadsLabel": "Goodreads",
+    "hardcoverLabel": "Hardcover",
+    "votes": "röster",
+    "audiobook": "Ljudbok",
+    "ebook": "E-bok",
+    "unknownAuthor": "Okänd författare"
   }
 }

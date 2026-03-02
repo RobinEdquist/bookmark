@@ -34,6 +34,7 @@ import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
+import { splitPersonNames } from '../common/utils/name.utils';
 
 export interface AudiobookListItem {
   id: string;
@@ -578,7 +579,7 @@ export class AudiobooksService {
       // Apply priority-based resolution for authors
       const embeddedAuthorNames = authors.map((a) => a.name);
       const hardcoverAuthorNames = hc?.authorNames || [];
-      const goodreadsAuthorName = gr?.author ? [gr.author] : [];
+      const goodreadsAuthorNames = splitPersonNames(gr?.author);
       const resolvedAuthorNames =
         this.resolveFieldByPriority(
           'author',
@@ -586,7 +587,7 @@ export class AudiobooksService {
             manual: embeddedAuthorNames,
             embedded: embeddedAuthorNames,
             hardcover: hardcoverAuthorNames,
-            goodreads: goodreadsAuthorName,
+            goodreads: goodreadsAuthorNames,
           },
           metadataPriority.author,
           manualFields,
@@ -599,8 +600,8 @@ export class AudiobooksService {
               id: `hc-author-${idx}`,
               name,
             }))
-          : resolvedAuthorNames === goodreadsAuthorName && gr
-            ? goodreadsAuthorName.map((name, idx) => ({
+          : resolvedAuthorNames === goodreadsAuthorNames && gr
+            ? goodreadsAuthorNames.map((name, idx) => ({
                 id: `gr-author-${idx}`,
                 name,
               }))
@@ -897,7 +898,7 @@ export class AudiobooksService {
     // Authors - need to handle as array of names
     const embeddedAuthorNames = authors.map((a) => a.name);
     const hardcoverAuthorNames = hc?.authorNames || [];
-    const goodreadsAuthorName = gr?.author ? [gr.author] : [];
+    const goodreadsAuthorNames = splitPersonNames(gr?.author);
     const resolvedAuthorNames =
       this.resolveFieldByPriority(
         'author',
@@ -905,7 +906,7 @@ export class AudiobooksService {
           manual: embeddedAuthorNames,
           embedded: embeddedAuthorNames,
           hardcover: hardcoverAuthorNames,
-          goodreads: goodreadsAuthorName,
+          goodreads: goodreadsAuthorNames,
         },
         metadataPriority.author,
         manualFields,
@@ -919,8 +920,8 @@ export class AudiobooksService {
             name,
             imageUrl: null,
           }))
-        : resolvedAuthorNames === goodreadsAuthorName && gr
-          ? goodreadsAuthorName.map((name, idx) => ({
+        : resolvedAuthorNames === goodreadsAuthorNames && gr
+          ? goodreadsAuthorNames.map((name, idx) => ({
               id: `gr-author-${idx}`,
               name,
               imageUrl: null,
@@ -1230,9 +1231,11 @@ export class AudiobooksService {
       .delete(relationTable)
       .where(eq(relationTable.audiobookId, audiobookId));
 
+    const normalizedNames = splitPersonNames(names);
+
     // Create new relations
-    for (let i = 0; i < names.length; i++) {
-      const name = names[i].trim();
+    for (let i = 0; i < normalizedNames.length; i++) {
+      const name = normalizedNames[i];
       if (!name) continue;
 
       // Find or create person using upsert to handle race conditions

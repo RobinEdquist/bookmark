@@ -25,6 +25,22 @@ export interface RecentListsResponse {
   lists: List[];
 }
 
+export interface TopRatedListItem {
+  id: string;
+  itemType: "audiobook" | "ebook";
+  title: string;
+  coverUrl: string;
+  authors: string[];
+  rating: number;
+  ratingsCount: number;
+  ratingSource: "goodreads" | "hardcover";
+  weightedScore: number;
+}
+
+export interface TopListsResponse {
+  topRated: TopRatedListItem[];
+}
+
 export interface ListItemAudiobook {
   id: string;
   title: string;
@@ -130,6 +146,18 @@ async function fetchRecentLists(limit: number = 12): Promise<RecentListsResponse
 
   if (!response.ok) {
     throw new Error("Failed to fetch recent lists");
+  }
+
+  return response.json();
+}
+
+async function fetchTopLists(limit: number = 10): Promise<TopListsResponse> {
+  const response = await fetch(`/api/lists/top?limit=${limit}`, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch top lists");
   }
 
   return response.json();
@@ -271,6 +299,14 @@ export function useRecentLists(limit: number = 12) {
   return useQuery({
     queryKey: queryKeys.lists.recent(limit),
     queryFn: () => fetchRecentLists(limit),
+    staleTime: 60 * 1000, // 1 minute
+  });
+}
+
+export function useTopLists(limit: number = 10) {
+  return useQuery({
+    queryKey: queryKeys.lists.top(limit),
+    queryFn: () => fetchTopLists(limit),
     staleTime: 60 * 1000, // 1 minute
   });
 }

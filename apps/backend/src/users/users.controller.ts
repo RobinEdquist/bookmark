@@ -22,6 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
+import { AuthGuard } from '../common/guards/auth.guard';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from '../auth/schema';
@@ -43,6 +44,7 @@ import type { UserResponse, UserListResponse } from './dto/user-response.dto';
 @ApiTags('Users')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('users')
 export class UsersController {
   constructor(

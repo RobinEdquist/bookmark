@@ -5,6 +5,7 @@ import {
   Param,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,11 +16,13 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
+import { AuthGuard } from '../common/guards/auth.guard';
 import { AnnouncementsService } from './announcements.service';
 
 @ApiTags('Announcements')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('announcements')
 export class AnnouncementsController {
   constructor(private readonly announcementsService: AnnouncementsService) {}

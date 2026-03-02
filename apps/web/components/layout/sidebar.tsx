@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Home, Headphones, BookOpen, TabletSmartphone, Smartphone, Settings, User, LogOut, Search, ClipboardList, ListMusic, Library, LayoutGrid, BarChart3 } from "lucide-react";
+import { Home, Headphones, BookOpen, TabletSmartphone, Smartphone, Settings, User, LogOut, Search, ClipboardList, ListMusic, Library, LayoutGrid, BarChart3, Trophy } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/auth-client";
@@ -46,6 +46,7 @@ export function Sidebar({ isAdmin, onNavigate }: SidebarProps) {
     { href: "/genres", icon: LayoutGrid, labelKey: "genres", show: (availability?.audiobooks ?? false) || (availability?.ebooks ?? false) },
     { href: "/series", icon: Library, labelKey: "series", show: true },
     { href: "/lists", icon: ListMusic, labelKey: "lists", show: true },
+    { href: "/top-list", icon: Trophy, labelKey: "topList", show: true },
     { href: "/audiobook-app", icon: Smartphone, labelKey: "audiobookApp", show: permissions?.canGenerateApiKeys ?? false },
     { href: "/e-reader", icon: TabletSmartphone, labelKey: "eReader", show: availability?.opds ?? false },
     { href: "/requests", icon: Search, labelKey: "requests", show: showRequests },

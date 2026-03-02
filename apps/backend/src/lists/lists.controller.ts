@@ -9,6 +9,7 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,6 +21,7 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
+import { AuthGuard } from '../common/guards/auth.guard';
 import { ListsService } from './lists.service';
 import {
   CreateListDto,
@@ -31,6 +33,7 @@ import {
 @ApiTags('Lists')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('lists')
 export class ListsController {
   constructor(private readonly listsService: ListsService) {}
@@ -87,6 +90,31 @@ export class ListsController {
       50,
     );
     return this.listsService.findRecent(user.id, parsedLimit);
+  }
+
+  @Get('top')
+  @ApiOperation({
+    summary: 'Get top-rated library items',
+    description:
+      'Returns top items ranked by weighted rating score, preferring Goodreads ratings when available',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    type: Number,
+    description: 'Max items to return (default 10, max 50)',
+  })
+  @ApiResponse({ status: 200, description: 'Top-ranked items' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async findTop(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = Math.min(
+      Math.max(parseInt(limit || '10', 10) || 10, 1),
+      50,
+    );
+    return this.listsService.findTop(user.id, parsedLimit);
   }
 
   @Get(':id')

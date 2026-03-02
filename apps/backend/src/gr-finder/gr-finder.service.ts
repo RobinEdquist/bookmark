@@ -5,6 +5,7 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { audiobooks } from '../audiobooks/schema';
 import { ebooks } from '../ebooks/schema';
 import * as goodreadsSchema from './schema';
+import { splitPersonNames } from '../common/utils/name.utils';
 
 export type MediaType = 'audiobook' | 'ebook';
 
@@ -224,6 +225,9 @@ export class GrFinderService {
   }
 
   private async findOrCreateGoodreadsBook(book: GoodreadsBookInput) {
+    const normalizedAuthor =
+      splitPersonNames(book.author).join(', ') || book.author.trim();
+
     // Check if book already exists
     const [existing] = await this.db
       .select()
@@ -239,7 +243,7 @@ export class GrFinderService {
         .update(goodreadsSchema.goodreadsBooks)
         .set({
           title: book.title,
-          author: book.author,
+          author: normalizedAuthor,
           description: book.description ?? existing.description,
           coverUrl: book.cover_url ?? existing.coverUrl,
           url: book.url,
@@ -260,7 +264,7 @@ export class GrFinderService {
       .values({
         goodreadsId: book.goodreads_id,
         title: book.title,
-        author: book.author,
+        author: normalizedAuthor,
         description: book.description ?? null,
         coverUrl: book.cover_url ?? null,
         url: book.url,

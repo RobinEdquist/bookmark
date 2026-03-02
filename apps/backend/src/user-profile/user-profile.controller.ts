@@ -4,6 +4,7 @@ import {
   Param,
   Query,
   ForbiddenException,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,6 +16,7 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
+import { AuthGuard } from '../common/guards/auth.guard';
 import { UserProfileService } from './user-profile.service';
 import {
   UserProfileStatsDto,
@@ -26,6 +28,7 @@ import {
 @ApiTags('User Profile')
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
+@UseGuards(AuthGuard)
 @Controller('user-profile')
 export class UserProfileController {
   constructor(private readonly userProfileService: UserProfileService) {}

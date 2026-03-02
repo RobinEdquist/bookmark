@@ -70,5 +70,18 @@
     "itemRemoved": "Item removed from list",
     "removeError": "Failed to remove item",
     "notFound": "List not found"
+  },
+  "topList": {
+    "title": "Top Lists",
+    "description": "Ranking list quality with a weighted score that balances rating and vote count.",
+    "weightedTopTenTitle": "Top 10 by weighted rating",
+    "loading": "Loading top list...",
+    "empty": "No rated items available yet.",
+    "goodreadsLabel": "Goodreads",
+    "hardcoverLabel": "Hardcover",
+    "votes": "votes",
+    "audiobook": "Audiobook",
+    "ebook": "Ebook",
+    "unknownAuthor": "Unknown author"
   }
 }

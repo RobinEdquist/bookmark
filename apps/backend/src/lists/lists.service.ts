@@ -6,23 +6,30 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, desc, asc, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, ne, notExists, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as listsSchema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as authSchema from '../auth/schema';
+import * as usersSchema from '../users/schema';
+import * as hardcoverSchema from '../hardcover/schema';
+import * as goodreadsSchema from '../gr-finder/schema';
 import {
   CreateListDto,
   UpdateListDto,
   AddItemDto,
   ReorderItemsDto,
 } from './dto';
+import { rankTopListItems, type RankableItem } from './top-list-ranking';
 
 type CombinedSchema = typeof listsSchema &
   typeof audiobooksSchema &
   typeof ebooksSchema &
-  typeof authSchema;
+  typeof authSchema &
+  typeof usersSchema &
+  typeof hardcoverSchema &
+  typeof goodreadsSchema;
 
 @Injectable()
 export class ListsService {
@@ -124,6 +131,269 @@ export class ListsService {
     );
 
     return { lists: listsWithPreviews };
+  }
+
+  /**
+   * Get top-rated items across audiobooks and ebooks.
+   */
+  async findTop(userId: string, limit: number = 10) {
+    const candidates = await this.getTopRankCandidates(userId);
+    const ranked = rankTopListItems(candidates, limit);
+
+    const audiobookIds = ranked
+      .filter((item) => item.type === 'audiobook')
+      .map((item) => item.id);
+    const ebookIds = ranked
+      .filter((item) => item.type === 'ebook')
+      .map((item) => item.id);
+
+    const [audiobookAuthors, ebookAuthors] = await Promise.all([
+      this.getAudiobookAuthorsByIds(audiobookIds),
+      this.getEbookAuthorsByIds(ebookIds),
+    ]);
+
+    return {
+      topRated: ranked.map((item) => ({
+        id: item.id,
+        itemType: item.type,
+        title: item.title,
+        coverUrl:
+          item.type === 'audiobook'
+            ? `/api/audiobooks/${item.id}/cover`
+            : `/api/ebooks/${item.id}/cover`,
+        authors:
+          item.type === 'audiobook'
+            ? (audiobookAuthors.get(item.id) ?? [])
+            : (ebookAuthors.get(item.id) ?? []),
+        rating: item.rating,
+        ratingsCount: item.ratingsCount,
+        ratingSource: item.ratingSource,
+        weightedScore: item.weightedScore,
+      })),
+    };
+  }
+
+  private async getTopRankCandidates(userId: string): Promise<RankableItem[]> {
+    const [audiobookRows, ebookRows] = await Promise.all([
+      this.db
+        .select({
+          id: audiobooksSchema.audiobooks.id,
+          title: audiobooksSchema.audiobooks.title,
+          goodreadsRating: goodreadsSchema.goodreadsBooks.rating,
+          goodreadsRatingsCount: goodreadsSchema.goodreadsBooks.ratingsCount,
+          hardcoverRating: hardcoverSchema.hardcoverBooks.rating,
+          hardcoverRatingsCount: hardcoverSchema.hardcoverBooks.ratingsCount,
+        })
+        .from(audiobooksSchema.audiobooks)
+        .leftJoin(
+          goodreadsSchema.goodreadsAudiobookLinks,
+          eq(
+            audiobooksSchema.audiobooks.id,
+            goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
+          ),
+        )
+        .leftJoin(
+          goodreadsSchema.goodreadsBooks,
+          eq(
+            goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
+            goodreadsSchema.goodreadsBooks.id,
+          ),
+        )
+        .leftJoin(
+          hardcoverSchema.hardcoverAudiobookLinks,
+          eq(
+            audiobooksSchema.audiobooks.id,
+            hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+          ),
+        )
+        .leftJoin(
+          hardcoverSchema.hardcoverBooks,
+          eq(
+            hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+            hardcoverSchema.hardcoverBooks.id,
+          ),
+        )
+        .where(
+          and(
+            ne(audiobooksSchema.audiobooks.status, 'hidden'),
+            // Privacy: exclude items that match the requesting user's blacklisted tags.
+            notExists(
+              this.db
+                .select({ one: sql`1` })
+                .from(audiobooksSchema.audiobookTags)
+                .innerJoin(
+                  usersSchema.userBlacklistedTags,
+                  and(
+                    eq(
+                      audiobooksSchema.audiobookTags.tagId,
+                      usersSchema.userBlacklistedTags.tagId,
+                    ),
+                    eq(usersSchema.userBlacklistedTags.userId, userId),
+                  ),
+                )
+                .where(
+                  eq(
+                    audiobooksSchema.audiobookTags.audiobookId,
+                    audiobooksSchema.audiobooks.id,
+                  ),
+                ),
+            ),
+          ),
+        ),
+      this.db
+        .select({
+          id: ebooksSchema.ebooks.id,
+          title: ebooksSchema.ebooks.title,
+          goodreadsRating: goodreadsSchema.goodreadsBooks.rating,
+          goodreadsRatingsCount: goodreadsSchema.goodreadsBooks.ratingsCount,
+          hardcoverRating: hardcoverSchema.hardcoverBooks.rating,
+          hardcoverRatingsCount: hardcoverSchema.hardcoverBooks.ratingsCount,
+        })
+        .from(ebooksSchema.ebooks)
+        .leftJoin(
+          goodreadsSchema.goodreadsEbookLinks,
+          eq(ebooksSchema.ebooks.id, goodreadsSchema.goodreadsEbookLinks.ebookId),
+        )
+        .leftJoin(
+          goodreadsSchema.goodreadsBooks,
+          eq(
+            goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+            goodreadsSchema.goodreadsBooks.id,
+          ),
+        )
+        .leftJoin(
+          hardcoverSchema.hardcoverEbookLinks,
+          eq(ebooksSchema.ebooks.id, hardcoverSchema.hardcoverEbookLinks.ebookId),
+        )
+        .leftJoin(
+          hardcoverSchema.hardcoverBooks,
+          eq(
+            hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+            hardcoverSchema.hardcoverBooks.id,
+          ),
+        )
+        .where(
+          and(
+            ne(ebooksSchema.ebooks.status, 'hidden'),
+            // Privacy: exclude items that match the requesting user's blacklisted tags.
+            notExists(
+              this.db
+                .select({ one: sql`1` })
+                .from(ebooksSchema.ebookTags)
+                .innerJoin(
+                  usersSchema.userBlacklistedTags,
+                  and(
+                    eq(
+                      ebooksSchema.ebookTags.tagId,
+                      usersSchema.userBlacklistedTags.tagId,
+                    ),
+                    eq(usersSchema.userBlacklistedTags.userId, userId),
+                  ),
+                )
+                .where(eq(ebooksSchema.ebookTags.ebookId, ebooksSchema.ebooks.id)),
+            ),
+          ),
+        ),
+    ]);
+
+    return [
+      ...audiobookRows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        type: 'audiobook' as const,
+        goodreadsRating: this.parseRating(row.goodreadsRating),
+        goodreadsRatingsCount: row.goodreadsRatingsCount ?? null,
+        hardcoverRating: this.parseRating(row.hardcoverRating),
+        hardcoverRatingsCount: row.hardcoverRatingsCount ?? null,
+      })),
+      ...ebookRows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        type: 'ebook' as const,
+        goodreadsRating: this.parseRating(row.goodreadsRating),
+        goodreadsRatingsCount: row.goodreadsRatingsCount ?? null,
+        hardcoverRating: this.parseRating(row.hardcoverRating),
+        hardcoverRatingsCount: row.hardcoverRatingsCount ?? null,
+      })),
+    ];
+  }
+
+  private parseRating(value: string | null): number | null {
+    if (value === null) {
+      return null;
+    }
+
+    const parsed = parseFloat(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  private async getAudiobookAuthorsByIds(
+    audiobookIds: string[],
+  ): Promise<Map<string, string[]>> {
+    if (audiobookIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.db
+      .select({
+        audiobookId: audiobooksSchema.audiobookAuthors.audiobookId,
+        authorName: audiobooksSchema.people.name,
+      })
+      .from(audiobooksSchema.audiobookAuthors)
+      .innerJoin(
+        audiobooksSchema.people,
+        eq(
+          audiobooksSchema.audiobookAuthors.personId,
+          audiobooksSchema.people.id,
+        ),
+      )
+      .where(inArray(audiobooksSchema.audiobookAuthors.audiobookId, audiobookIds))
+      .orderBy(
+        asc(audiobooksSchema.audiobookAuthors.audiobookId),
+        asc(audiobooksSchema.audiobookAuthors.order),
+      );
+
+    const map = new Map<string, string[]>();
+    for (const row of rows) {
+      const current = map.get(row.audiobookId) ?? [];
+      current.push(row.authorName);
+      map.set(row.audiobookId, current);
+    }
+
+    return map;
+  }
+
+  private async getEbookAuthorsByIds(
+    ebookIds: string[],
+  ): Promise<Map<string, string[]>> {
+    if (ebookIds.length === 0) {
+      return new Map();
+    }
+
+    const rows = await this.db
+      .select({
+        ebookId: ebooksSchema.ebookAuthors.ebookId,
+        authorName: audiobooksSchema.people.name,
+      })
+      .from(ebooksSchema.ebookAuthors)
+      .innerJoin(
+        audiobooksSchema.people,
+        eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
+      )
+      .where(inArray(ebooksSchema.ebookAuthors.ebookId, ebookIds))
+      .orderBy(
+        asc(ebooksSchema.ebookAuthors.ebookId),
+        asc(ebooksSchema.ebookAuthors.order),
+      );
+
+    const map = new Map<string, string[]>();
+    for (const row of rows) {
+      const current = map.get(row.ebookId) ?? [];
+      current.push(row.authorName);
+      map.set(row.ebookId, current);
+    }
+
+    return map;
   }
 
   /**

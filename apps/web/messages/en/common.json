@@ -22,9 +22,10 @@
     "eReader": "E-Reader",
     "audiobookApp": "Audiobook App",
     "requests": "Requests",
-    "manageRequests": "Manage Requests",
-    "lists": "Lists",
-    "settings": "Settings",
+  "manageRequests": "Manage Requests",
+  "lists": "Lists",
+  "topList": "Top List",
+  "settings": "Settings",
     "myStats": "My Stats",
     "preferences": "Preferences",
     "signOut": "Sign Out"
