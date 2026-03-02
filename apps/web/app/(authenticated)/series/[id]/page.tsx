@@ -1,14 +1,30 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { ArrowLeft, Headphones, BookOpen, Clock, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  Headphones,
+  BookOpen,
+  Clock,
+  FileText,
+  MoreVertical,
+  Pencil,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/ui/dropdown-menu";
 import { useSeriesDetail } from "../../../../lib/use-series";
+import { useMyPermissions } from "../../../../lib/use-users";
 import { formatSeriesOrder } from "../../../../lib/format-series";
+import { EditSeriesDialog } from "../../../../components/series/edit-series-dialog";
 
 interface SeriesDetailPageProps {
   params: Promise<{ id: string }>;
@@ -28,6 +44,9 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
   const { id } = use(params);
   const t = useTranslations("series");
   const { data: series, isLoading, error } = useSeriesDetail(id);
+  const { data: permissions } = useMyPermissions();
+  const [editOpen, setEditOpen] = useState(false);
+  const canEdit = permissions?.canEditMetadata ?? false;
 
   if (isLoading) {
     return (
@@ -69,12 +88,33 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
       <div className="mx-auto w-full max-w-6xl">
         {/* Header */}
         <div className="mb-8">
-          <Button asChild variant="ghost" size="sm" className="mb-4">
-            <Link href="/series">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              {t("detail.backToSeries")}
-            </Link>
-          </Button>
+          <div className="mb-4 flex items-center justify-between">
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/series">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                {t("detail.backToSeries")}
+              </Link>
+            </Button>
+            {canEdit && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={t("detail.editMenu.open")}
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-4 w-4" />
+                    {t("detail.editMenu.edit")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
           <h1 className="text-2xl font-bold lg:text-3xl">{series.name}</h1>
           {series.description && (
             <p className="mt-2 text-muted-foreground">{series.description}</p>
@@ -226,6 +266,14 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
           </div>
         )}
       </div>
+
+      {canEdit && (
+        <EditSeriesDialog
+          series={series}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
+      )}
     </div>
   );
 }

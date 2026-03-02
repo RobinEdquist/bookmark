@@ -18,6 +18,19 @@
   "detail": {
     "backToSeries": "Back to Series",
     "notFound": "Series not found",
+    "editMenu": {
+      "open": "Open series menu",
+      "edit": "Edit series"
+    },
+    "editDialog": {
+      "title": "Edit series",
+      "name": "Name",
+      "namePlaceholder": "Enter series name",
+      "save": "Save",
+      "cancel": "Cancel",
+      "success": "Series updated",
+      "error": "Failed to update series"
+    },
     "audiobooksSection": "Audiobooks",
     "ebooksSection": "Ebooks",
     "audiobookCount": "{count, plural, =1 {1 audiobook} other {# audiobooks}}",

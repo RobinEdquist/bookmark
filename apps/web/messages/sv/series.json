@@ -18,6 +18,19 @@
   "detail": {
     "backToSeries": "Tillbaka till serier",
     "notFound": "Serien hittades inte",
+    "editMenu": {
+      "open": "Öppna seriemeny",
+      "edit": "Redigera serie"
+    },
+    "editDialog": {
+      "title": "Redigera serie",
+      "name": "Namn",
+      "namePlaceholder": "Ange serienamn",
+      "save": "Spara",
+      "cancel": "Avbryt",
+      "success": "Serien uppdaterades",
+      "error": "Kunde inte uppdatera serien"
+    },
     "audiobooksSection": "Ljudböcker",
     "ebooksSection": "E-böcker",
     "audiobookCount": "{count, plural, =1 {1 ljudbok} other {# ljudböcker}}",

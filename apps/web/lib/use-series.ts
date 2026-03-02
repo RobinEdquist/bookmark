@@ -1,6 +1,11 @@
 "use client";
 
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
 export interface SeriesAudiobook {
@@ -52,6 +57,16 @@ export interface SeriesDetail {
   ebooks: SeriesDetailEbook[];
   audiobookCount: number;
   ebookCount: number;
+}
+
+export interface UpdateSeriesData {
+  name: string;
+}
+
+export interface UpdatedSeries {
+  id: string;
+  name: string;
+  description: string | null;
 }
 
 export type SeriesSortBy = "name" | "lastUpdated" | "bookCount";
@@ -166,6 +181,52 @@ export function useSeriesDetail(id: string) {
     queryFn: () => fetchSeriesDetail(id),
     staleTime: 60 * 1000, // 1 minute
     enabled: !!id,
+  });
+}
+
+async function updateSeries(
+  id: string,
+  data: UpdateSeriesData
+): Promise<UpdatedSeries> {
+  const response = await fetch(`/api/series/${id}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to update series");
+  }
+
+  return response.json();
+}
+
+export function useUpdateSeries() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateSeriesData }) =>
+      updateSeries(id, data),
+    onSuccess: (updatedSeries) => {
+      queryClient.setQueryData<SeriesDetail | undefined>(
+        queryKeys.series.detail(updatedSeries.id),
+        (previous) =>
+          previous
+            ? {
+                ...previous,
+                name: updatedSeries.name,
+                description: updatedSeries.description,
+              }
+            : previous
+      );
+
+      queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+    },
   });
 }
 

@@ -1,4 +1,9 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, desc, sql, asc, ilike } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -54,6 +59,12 @@ export interface SeriesDetail {
   ebooks: SeriesDetailEbook[];
   audiobookCount: number;
   ebookCount: number;
+}
+
+export interface UpdatedSeries {
+  id: string;
+  name: string;
+  description: string | null;
 }
 
 export type SortBy = 'name' | 'lastUpdated' | 'bookCount';
@@ -464,6 +475,29 @@ export class SeriesService {
       audiobookCount: audiobooks.length,
       ebookCount: ebooks.length,
     };
+  }
+
+  async update(id: string, data: { name: string }): Promise<UpdatedSeries> {
+    const trimmedName = data.name.trim();
+    if (!trimmedName) {
+      throw new BadRequestException('Series name cannot be empty');
+    }
+
+    const [updatedSeries] = await this.db
+      .update(schema.series)
+      .set({ name: trimmedName })
+      .where(eq(schema.series.id, id))
+      .returning({
+        id: schema.series.id,
+        name: schema.series.name,
+        description: schema.series.description,
+      });
+
+    if (!updatedSeries) {
+      throw new NotFoundException('Series not found');
+    }
+
+    return updatedSeries;
   }
 
   private getAudiobookCoverUrl(

@@ -1,4 +1,12 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthGuard } from '../common/guards/auth.guard';
 import {
   ApiTags,
@@ -10,6 +18,8 @@ import {
 } from '@nestjs/swagger';
 import { SeriesService } from './series.service';
 import { SeriesListResponseDto } from './dto/series-response.dto';
+import { UpdateSeriesDto } from './dto/update-series.dto';
+import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 
 @ApiTags('Series')
 @ApiSecurity('better-auth.session_token')
@@ -113,5 +123,26 @@ export class SeriesController {
   @ApiResponse({ status: 404, description: 'Series not found' })
   async getById(@Param('id') id: string) {
     return this.seriesService.getById(id);
+  }
+
+  @Patch(':id')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({
+    summary: 'Update series metadata',
+    description: 'Updates editable series metadata fields',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'Series ID',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Series metadata updated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Series not found' })
+  async update(@Param('id') id: string, @Body() body: UpdateSeriesDto) {
+    return this.seriesService.update(id, body);
   }
 }
