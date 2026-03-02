@@ -37,6 +37,24 @@ describe('top-list-ranking', () => {
         ratingsCount: 2400,
       });
     });
+
+    it('honors source priority when both ratings exist', () => {
+      const result = resolvePreferredRating(
+        {
+          goodreadsRating: 4.1,
+          goodreadsRatingsCount: 5000,
+          hardcoverRating: 4.5,
+          hardcoverRatingsCount: 1000,
+        },
+        ['hardcover', 'goodreads'],
+      );
+
+      expect(result).toEqual({
+        source: 'hardcover',
+        rating: 4.5,
+        ratingsCount: 1000,
+      });
+    });
   });
 
   describe('calculateWeightedRatingScore', () => {
@@ -88,6 +106,25 @@ describe('top-list-ranking', () => {
       expect(ranked[1]?.id).toBe('c');
       expect(ranked[1]?.ratingSource).toBe('hardcover');
       expect(ranked[2]?.id).toBe('a');
+    });
+
+    it('uses source priority for weighted ranking', () => {
+      const items: RankableItem[] = [
+        {
+          id: 'a',
+          title: 'Prefer hardcover',
+          type: 'audiobook',
+          goodreadsRating: 4.2,
+          goodreadsRatingsCount: 100_000,
+          hardcoverRating: 4.6,
+          hardcoverRatingsCount: 4_000,
+        },
+      ];
+
+      const ranked = rankTopListItems(items, 10, ['hardcover', 'goodreads']);
+      expect(ranked[0]?.ratingSource).toBe('hardcover');
+      expect(ranked[0]?.rating).toBe(4.6);
+      expect(ranked[0]?.ratingsCount).toBe(4000);
     });
 
     it('filters items without usable ratings', () => {

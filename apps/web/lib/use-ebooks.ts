@@ -199,6 +199,8 @@ export function useUpdateEbook() {
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
       // Invalidate tags in case new tags were created
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
+      // Invalidate lists/top-lists that surface ebook metadata
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
 }
@@ -228,6 +230,8 @@ export function useDeleteEbook() {
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
       // Remove from detail cache
       queryClient.removeQueries({ queryKey: queryKeys.ebooks.detail(id) });
+      // Invalidate lists/top-lists that may contain this ebook
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
 }
@@ -271,6 +275,8 @@ export function useUpdateEbookCover() {
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
       // Invalidate the detail to refresh cover
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(ebookId) });
+      // Invalidate lists/top-lists to refresh covers there too
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
 }

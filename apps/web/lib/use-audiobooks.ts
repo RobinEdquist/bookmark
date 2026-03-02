@@ -253,6 +253,8 @@ export function useUpdateAudiobook() {
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
       // Invalidate tags in case new tags were created
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
+      // Invalidate lists/top-lists that surface audiobook metadata
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
 }
@@ -404,6 +406,8 @@ export function useDeleteAudiobook() {
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
       // Remove from detail cache
       queryClient.removeQueries({ queryKey: queryKeys.audiobooks.detail(id) });
+      // Invalidate lists/top-lists that may contain this audiobook
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
 }
@@ -447,6 +451,8 @@ export function useUpdateCover() {
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
       // Invalidate the detail to refresh cover
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(audiobookId) });
+      // Invalidate lists/top-lists to refresh covers there too
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
 }

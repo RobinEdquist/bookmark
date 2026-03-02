@@ -450,6 +450,7 @@ export function useHardcoverLinkMedia() {
         queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(variables.mediaId) });
       }
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
 
@@ -500,6 +501,7 @@ export function useHardcoverUnlinkMedia() {
         queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(variables.mediaId) });
       }
+      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
   });
 

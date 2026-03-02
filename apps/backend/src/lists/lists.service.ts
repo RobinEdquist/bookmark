@@ -15,6 +15,8 @@ import * as authSchema from '../auth/schema';
 import * as usersSchema from '../users/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
+import { AppSettingsService } from '../app-settings/app-settings.service';
+import type { MetadataFieldPriority } from '../app-settings/schema';
 import {
   CreateListDto,
   UpdateListDto,
@@ -22,6 +24,7 @@ import {
   ReorderItemsDto,
 } from './dto';
 import {
+  type RatingSource,
   rankMostVotedItems,
   rankTopListItems,
   type RankableItem,
@@ -41,6 +44,7 @@ export class ListsService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<CombinedSchema>,
+    private appSettingsService: AppSettingsService,
   ) {}
 
   /**
@@ -142,9 +146,22 @@ export class ListsService {
    * Get top-rated items across audiobooks and ebooks.
    */
   async findTop(userId: string, limit: number = 10) {
-    const candidates = await this.getTopRankCandidates(userId);
-    const rankedTopRated = rankTopListItems(candidates, limit);
-    const rankedMostVoted = rankMostVotedItems(candidates, limit);
+    const [candidates, metadataPriority] = await Promise.all([
+      this.getTopRankCandidates(userId),
+      this.appSettingsService.getMetadataPriority(),
+    ]);
+    const ratingSourcePriority =
+      this.getRatingSourcePriorityFromMetadata(metadataPriority);
+    const rankedTopRated = rankTopListItems(
+      candidates,
+      limit,
+      ratingSourcePriority,
+    );
+    const rankedMostVoted = rankMostVotedItems(
+      candidates,
+      limit,
+      ratingSourcePriority,
+    );
 
     const uniqueRankedItems = [
       ...rankedTopRated,
@@ -354,6 +371,25 @@ export class ListsService {
 
     const parsed = parseFloat(value);
     return Number.isNaN(parsed) ? null : parsed;
+  }
+
+  private getRatingSourcePriorityFromMetadata(
+    metadataPriority: MetadataFieldPriority,
+  ): RatingSource[] {
+    const prioritized = metadataPriority.title.filter(
+      (source): source is RatingSource =>
+        source === 'goodreads' || source === 'hardcover',
+    );
+    const unique = [...new Set(prioritized)];
+
+    if (!unique.includes('goodreads')) {
+      unique.push('goodreads');
+    }
+    if (!unique.includes('hardcover')) {
+      unique.push('hardcover');
+    }
+
+    return unique;
   }
 
   private async getAudiobookAuthorsByIds(

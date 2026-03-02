@@ -17,6 +17,8 @@ export interface ResolvedRating {
   ratingsCount: number | null;
 }
 
+export type RatingSource = 'goodreads' | 'hardcover';
+
 export interface RankedTopListItem extends RankableItem {
   ratingSource: 'goodreads' | 'hardcover';
   rating: number;
@@ -38,21 +40,25 @@ function normalizeCount(count: number | null): number {
   return Math.max(0, Math.floor(count));
 }
 
-export function resolvePreferredRating(data: RatingCandidates): ResolvedRating {
-  if (data.goodreadsRating !== null) {
-    return {
-      source: 'goodreads',
-      rating: data.goodreadsRating,
-      ratingsCount: data.goodreadsRatingsCount,
-    };
-  }
-
-  if (data.hardcoverRating !== null) {
-    return {
-      source: 'hardcover',
-      rating: data.hardcoverRating,
-      ratingsCount: data.hardcoverRatingsCount,
-    };
+export function resolvePreferredRating(
+  data: RatingCandidates,
+  sourcePriority: RatingSource[] = ['goodreads', 'hardcover'],
+): ResolvedRating {
+  for (const source of sourcePriority) {
+    if (source === 'goodreads' && data.goodreadsRating !== null) {
+      return {
+        source: 'goodreads',
+        rating: data.goodreadsRating,
+        ratingsCount: data.goodreadsRatingsCount,
+      };
+    }
+    if (source === 'hardcover' && data.hardcoverRating !== null) {
+      return {
+        source: 'hardcover',
+        rating: data.hardcoverRating,
+        ratingsCount: data.hardcoverRatingsCount,
+      };
+    }
   }
 
   return {
@@ -78,10 +84,11 @@ export function calculateWeightedRatingScore(
 export function rankTopListItems(
   items: RankableItem[],
   limit: number,
+  sourcePriority: RatingSource[] = ['goodreads', 'hardcover'],
 ): RankedTopListItem[] {
   const ranked = items
     .map((item) => {
-      const preferred = resolvePreferredRating(item);
+      const preferred = resolvePreferredRating(item, sourcePriority);
       if (
         preferred.source === null ||
         preferred.rating === null ||
@@ -123,10 +130,11 @@ export function rankTopListItems(
 export function rankMostVotedItems(
   items: RankableItem[],
   limit: number,
+  sourcePriority: RatingSource[] = ['goodreads', 'hardcover'],
 ): RankedTopListItem[] {
   const ranked = items
     .map((item) => {
-      const preferred = resolvePreferredRating(item);
+      const preferred = resolvePreferredRating(item, sourcePriority);
       if (
         preferred.source === null ||
         preferred.rating === null ||

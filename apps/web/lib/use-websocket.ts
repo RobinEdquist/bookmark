@@ -44,6 +44,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
           // Also invalidate series since they contain audiobook data
           queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
+          // Lists depend on audiobook metadata and availability
+          queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
           // Invalidate library stats since counts may have changed (but not availability - that only changes when library paths change)
           queryClient.invalidateQueries({ queryKey: queryKeys.library.stats() });
           // If specific audiobook, also invalidate its hardcover link
@@ -57,6 +59,8 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
         // Ebook events invalidate all ebook queries
         case type.startsWith("ebook."):
           queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+          // Lists depend on ebook metadata and availability
+          queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
           // Invalidate library stats since counts may have changed (but not availability - that only changes when library paths change)
           queryClient.invalidateQueries({ queryKey: queryKeys.library.stats() });
           break;
@@ -66,6 +70,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
           // Also invalidate audiobooks since they may reference series
           queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
           break;
 
         // Library scan events invalidate library stats, audiobooks, and ebooks
@@ -74,6 +79,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
           queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
           queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
           break;
 
         // Hardcover sync events invalidate hardcover and audiobook queries
@@ -83,6 +89,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
           // Invalidate ebook lists since linked status/rating may have changed
           queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
           if (entityId) {
             // Invalidate the specific media that was linked
             queryClient.invalidateQueries({
