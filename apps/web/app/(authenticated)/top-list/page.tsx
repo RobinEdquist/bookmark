@@ -27,9 +27,22 @@ function RankedItemsList({
     <ol className="space-y-3">
       {items.map((item, index) => {
         const itemHref =
-          item.itemType === "audiobook"
-            ? `/audiobooks/${item.id}`
-            : `/ebooks/${item.id}`;
+          item.primaryVersionType === "audiobook"
+            ? `/audiobooks/${item.primaryVersionId}`
+            : `/ebooks/${item.primaryVersionId}`;
+        const versions =
+          item.versions.length > 0
+            ? item.versions
+            : [{ id: item.id, itemType: item.itemType, title: item.title }];
+        const hasMultipleVersions = versions.length > 1;
+        const versionCountByType = versions.reduce(
+          (acc, version) => {
+            acc[version.itemType] += 1;
+            return acc;
+          },
+          { audiobook: 0, ebook: 0 }
+        );
+        const seenVersionByType = { audiobook: 0, ebook: 0 };
         const sourceLabel =
           item.ratingSource === "goodreads"
             ? goodreadsLabel
@@ -37,7 +50,7 @@ function RankedItemsList({
 
         return (
           <li
-            key={`${item.itemType}-${item.id}`}
+            key={item.id}
             className="flex items-center gap-3 rounded-lg border p-3"
           >
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
@@ -65,8 +78,46 @@ function RankedItemsList({
                 {item.authors.length > 0 ? item.authors.join(", ") : unknownAuthor}
               </p>
               <p className="line-clamp-1 text-xs text-muted-foreground">
-                {item.itemType === "audiobook" ? audiobookLabel : ebookLabel}
+                {hasMultipleVersions
+                  ? versions
+                      .map((version) =>
+                        version.itemType === "audiobook" ? audiobookLabel : ebookLabel
+                      )
+                      .filter((value, position, array) => array.indexOf(value) === position)
+                      .join(" + ")
+                  : item.itemType === "audiobook"
+                    ? audiobookLabel
+                    : ebookLabel}
               </p>
+              {hasMultipleVersions ? (
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {versions.map((version) => {
+                    seenVersionByType[version.itemType] += 1;
+                    const baseLabel =
+                      version.itemType === "audiobook" ? audiobookLabel : ebookLabel;
+                    const sequenceLabel =
+                      versionCountByType[version.itemType] > 1
+                        ? ` ${seenVersionByType[version.itemType]}`
+                        : "";
+                    const versionHref =
+                      version.itemType === "audiobook"
+                        ? `/audiobooks/${version.id}`
+                        : `/ebooks/${version.id}`;
+
+                    return (
+                      <Link
+                        key={`${version.itemType}-${version.id}`}
+                        href={versionHref}
+                        className="rounded-full border px-2 py-0.5 text-[11px] text-muted-foreground hover:bg-muted"
+                        title={version.title}
+                      >
+                        {baseLabel}
+                        {sequenceLabel}
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
 
             <div className="shrink-0 text-right">

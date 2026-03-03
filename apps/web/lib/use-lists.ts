@@ -27,6 +27,9 @@ export interface RecentListsResponse {
 
 export interface TopRatedListItem {
   id: string;
+  idSource: "goodreads" | "hardcover" | "media";
+  primaryVersionId: string;
+  primaryVersionType: "audiobook" | "ebook";
   itemType: "audiobook" | "ebook";
   title: string;
   coverUrl: string;
@@ -35,6 +38,11 @@ export interface TopRatedListItem {
   ratingsCount: number;
   ratingSource: "goodreads" | "hardcover";
   weightedScore: number;
+  versions: {
+    id: string;
+    itemType: "audiobook" | "ebook";
+    title: string;
+  }[];
 }
 
 export interface TopListsResponse {

@@ -9,6 +9,19 @@ export interface RankableItem extends RatingCandidates {
   id: string;
   title: string;
   type: 'audiobook' | 'ebook';
+  goodreadsBookId?: string | null;
+  hardcoverBookId?: string | null;
+}
+
+export interface GroupedRankableItems {
+  groupId: string;
+  representative: RankableItem;
+  members: RankableItem[];
+}
+
+export interface CanonicalGroupIdentity {
+  id: string;
+  source: 'goodreads' | 'hardcover' | 'media';
 }
 
 export interface ResolvedRating {
@@ -79,6 +92,186 @@ export function calculateWeightedRatingScore(
     (votes / (votes + PRIOR_WEIGHT)) * normalizedRating +
     (PRIOR_WEIGHT / (votes + PRIOR_WEIGHT)) * PRIOR_MEAN
   );
+}
+
+function getLinkageKeys(item: RankableItem): string[] {
+  const keys: string[] = [];
+
+  if (item.goodreadsBookId) {
+    keys.push(`goodreads:${item.goodreadsBookId}`);
+  }
+  if (item.hardcoverBookId) {
+    keys.push(`hardcover:${item.hardcoverBookId}`);
+  }
+
+  return keys;
+}
+
+function getUniqueSortedValues(values: Array<string | null | undefined>): string[] {
+  return [...new Set(values.filter((value): value is string => Boolean(value)))].sort();
+}
+
+export function getCanonicalGroupIdentity(
+  members: RankableItem[],
+): CanonicalGroupIdentity {
+  const goodreadsIds = getUniqueSortedValues(
+    members.map((member) => member.goodreadsBookId),
+  );
+  if (goodreadsIds[0]) {
+    return {
+      id: goodreadsIds[0],
+      source: 'goodreads',
+    };
+  }
+
+  const hardcoverIds = getUniqueSortedValues(
+    members.map((member) => member.hardcoverBookId),
+  );
+  if (hardcoverIds[0]) {
+    return {
+      id: hardcoverIds[0],
+      source: 'hardcover',
+    };
+  }
+
+  const mediaIds = members
+    .map((member) => `${member.type}:${member.id}`)
+    .sort();
+  return {
+    id: mediaIds[0] ?? 'media:unknown',
+    source: 'media',
+  };
+}
+
+function getRankingSnapshot(
+  item: RankableItem,
+  sourcePriority: RatingSource[],
+): {
+  hasRating: boolean;
+  weightedScore: number;
+  ratingsCount: number;
+  rating: number;
+} {
+  const preferred = resolvePreferredRating(item, sourcePriority);
+  if (
+    preferred.source === null ||
+    preferred.rating === null ||
+    Number.isNaN(preferred.rating)
+  ) {
+    return {
+      hasRating: false,
+      weightedScore: 0,
+      ratingsCount: 0,
+      rating: 0,
+    };
+  }
+
+  const ratingsCount = normalizeCount(preferred.ratingsCount);
+  const rating = clampRating(preferred.rating);
+  const weightedScore = calculateWeightedRatingScore(rating, ratingsCount);
+
+  return {
+    hasRating: true,
+    weightedScore,
+    ratingsCount,
+    rating,
+  };
+}
+
+function pickRepresentative(
+  members: RankableItem[],
+  sourcePriority: RatingSource[],
+): RankableItem {
+  const sorted = [...members].sort((a, b) => {
+    const aSnapshot = getRankingSnapshot(a, sourcePriority);
+    const bSnapshot = getRankingSnapshot(b, sourcePriority);
+
+    if (aSnapshot.hasRating !== bSnapshot.hasRating) {
+      return aSnapshot.hasRating ? -1 : 1;
+    }
+    if (bSnapshot.weightedScore !== aSnapshot.weightedScore) {
+      return bSnapshot.weightedScore - aSnapshot.weightedScore;
+    }
+    if (bSnapshot.ratingsCount !== aSnapshot.ratingsCount) {
+      return bSnapshot.ratingsCount - aSnapshot.ratingsCount;
+    }
+    if (bSnapshot.rating !== aSnapshot.rating) {
+      return bSnapshot.rating - aSnapshot.rating;
+    }
+    if (a.type !== b.type) {
+      return a.type === 'audiobook' ? -1 : 1;
+    }
+    const titleComparison = a.title.localeCompare(b.title);
+    if (titleComparison !== 0) {
+      return titleComparison;
+    }
+    return a.id.localeCompare(b.id);
+  });
+
+  return sorted[0] ?? members[0];
+}
+
+export function groupRankableItemsBySource(
+  items: RankableItem[],
+  sourcePriority: RatingSource[] = ['goodreads', 'hardcover'],
+): GroupedRankableItems[] {
+  if (items.length === 0) {
+    return [];
+  }
+
+  const parent = items.map((_, index) => index);
+  const sourceToIndex = new Map<string, number>();
+
+  const find = (index: number): number => {
+    if (parent[index] === index) {
+      return index;
+    }
+    const root = find(parent[index] ?? index);
+    parent[index] = root;
+    return root;
+  };
+
+  const union = (a: number, b: number): void => {
+    const rootA = find(a);
+    const rootB = find(b);
+    if (rootA !== rootB) {
+      parent[rootB] = rootA;
+    }
+  };
+
+  items.forEach((item, index) => {
+    for (const key of getLinkageKeys(item)) {
+      const existingIndex = sourceToIndex.get(key);
+      if (existingIndex === undefined) {
+        sourceToIndex.set(key, index);
+      } else {
+        union(index, existingIndex);
+      }
+    }
+  });
+
+  const groupsByRoot = new Map<number, RankableItem[]>();
+  items.forEach((item, index) => {
+    const root = find(index);
+    const members = groupsByRoot.get(root) ?? [];
+    members.push(item);
+    groupsByRoot.set(root, members);
+  });
+
+  return Array.from(groupsByRoot.values()).map((members) => {
+    const representative = pickRepresentative(members, sourcePriority);
+    const linkageKeys = [...new Set(members.flatMap(getLinkageKeys))].sort();
+    const groupId =
+      linkageKeys[0] !== undefined
+        ? `source:${linkageKeys.join('|')}`
+        : `media:${representative.type}:${representative.id}`;
+
+    return {
+      groupId,
+      representative,
+      members,
+    };
+  });
 }
 
 export function rankTopListItems(

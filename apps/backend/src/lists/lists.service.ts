@@ -24,7 +24,9 @@ import {
   ReorderItemsDto,
 } from './dto';
 import {
+  getCanonicalGroupIdentity,
   type RatingSource,
+  groupRankableItemsBySource,
   rankMostVotedItems,
   rankTopListItems,
   type RankableItem,
@@ -38,6 +40,12 @@ type CombinedSchema = typeof listsSchema &
   typeof usersSchema &
   typeof hardcoverSchema &
   typeof goodreadsSchema;
+
+type TopListVersion = {
+  id: string;
+  itemType: 'audiobook' | 'ebook';
+  title: string;
+};
 
 @Injectable()
 export class ListsService {
@@ -152,13 +160,26 @@ export class ListsService {
     ]);
     const ratingSourcePriority =
       this.getRatingSourcePriorityFromMetadata(metadataPriority);
-    const rankedTopRated = rankTopListItems(
+    const groupedCandidates = groupRankableItemsBySource(
       candidates,
+      ratingSourcePriority,
+    );
+    const representativeCandidates = groupedCandidates.map(
+      (group) => group.representative,
+    );
+    const groupsByRepresentative = new Map(
+      groupedCandidates.map((group) => [
+        this.toTopListItemKey(group.representative),
+        group,
+      ]),
+    );
+    const rankedTopRated = rankTopListItems(
+      representativeCandidates,
       limit,
       ratingSourcePriority,
     );
     const rankedMostVoted = rankMostVotedItems(
-      candidates,
+      representativeCandidates,
       limit,
       ratingSourcePriority,
     );
@@ -187,28 +208,58 @@ export class ListsService {
       this.getEbookAuthorsByIds(ebookIds),
     ]);
 
-    const mapRankedItem = (item: RankedTopListItem) => ({
-      id: item.id,
-      itemType: item.type,
-      title: item.title,
-      coverUrl:
-        item.type === 'audiobook'
-          ? `/api/audiobooks/${item.id}/cover`
-          : `/api/ebooks/${item.id}/cover`,
-      authors:
-        item.type === 'audiobook'
-          ? (audiobookAuthors.get(item.id) ?? [])
-          : (ebookAuthors.get(item.id) ?? []),
-      rating: item.rating,
-      ratingsCount: item.ratingsCount,
-      ratingSource: item.ratingSource,
-      weightedScore: item.weightedScore,
-    });
+    const mapRankedItem = (item: RankedTopListItem) => {
+      const groupMembers = groupsByRepresentative.get(
+        this.toTopListItemKey(item),
+      )?.members ?? [item];
+      const canonicalId = getCanonicalGroupIdentity(groupMembers);
+
+      return {
+        id: canonicalId.id,
+        idSource: canonicalId.source,
+        primaryVersionId: item.id,
+        primaryVersionType: item.type,
+        itemType: item.type,
+        title: item.title,
+        coverUrl:
+          item.type === 'audiobook'
+            ? `/api/audiobooks/${item.id}/cover`
+            : `/api/ebooks/${item.id}/cover`,
+        authors:
+          item.type === 'audiobook'
+            ? (audiobookAuthors.get(item.id) ?? [])
+            : (ebookAuthors.get(item.id) ?? []),
+        rating: item.rating,
+        ratingsCount: item.ratingsCount,
+        ratingSource: item.ratingSource,
+        weightedScore: item.weightedScore,
+        versions: this.toTopListVersions(groupMembers),
+      };
+    };
 
     return {
       topRated: rankedTopRated.map(mapRankedItem),
       mostVoted: rankedMostVoted.map(mapRankedItem),
     };
+  }
+
+  private toTopListItemKey(item: Pick<RankableItem, 'id' | 'type'>): string {
+    return `${item.type}:${item.id}`;
+  }
+
+  private toTopListVersions(items: RankableItem[]): TopListVersion[] {
+    return items
+      .map((item) => ({
+        id: item.id,
+        itemType: item.type,
+        title: item.title,
+      }))
+      .sort((a, b) => {
+        if (a.itemType !== b.itemType) {
+          return a.itemType === 'audiobook' ? -1 : 1;
+        }
+        return a.title.localeCompare(b.title);
+      });
   }
 
   private async getTopRankCandidates(userId: string): Promise<RankableItem[]> {
@@ -217,6 +268,8 @@ export class ListsService {
         .select({
           id: audiobooksSchema.audiobooks.id,
           title: audiobooksSchema.audiobooks.title,
+          goodreadsBookId: goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
+          hardcoverBookId: hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
           goodreadsRating: goodreadsSchema.goodreadsBooks.rating,
           goodreadsRatingsCount: goodreadsSchema.goodreadsBooks.ratingsCount,
           hardcoverRating: hardcoverSchema.hardcoverBooks.rating,
@@ -282,6 +335,8 @@ export class ListsService {
         .select({
           id: ebooksSchema.ebooks.id,
           title: ebooksSchema.ebooks.title,
+          goodreadsBookId: goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+          hardcoverBookId: hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
           goodreadsRating: goodreadsSchema.goodreadsBooks.rating,
           goodreadsRatingsCount: goodreadsSchema.goodreadsBooks.ratingsCount,
           hardcoverRating: hardcoverSchema.hardcoverBooks.rating,
@@ -347,6 +402,8 @@ export class ListsService {
         id: row.id,
         title: row.title,
         type: 'audiobook' as const,
+        goodreadsBookId: row.goodreadsBookId ?? null,
+        hardcoverBookId: row.hardcoverBookId ?? null,
         goodreadsRating: this.parseRating(row.goodreadsRating),
         goodreadsRatingsCount: row.goodreadsRatingsCount ?? null,
         hardcoverRating: this.parseRating(row.hardcoverRating),
@@ -356,6 +413,8 @@ export class ListsService {
         id: row.id,
         title: row.title,
         type: 'ebook' as const,
+        goodreadsBookId: row.goodreadsBookId ?? null,
+        hardcoverBookId: row.hardcoverBookId ?? null,
         goodreadsRating: this.parseRating(row.goodreadsRating),
         goodreadsRatingsCount: row.goodreadsRatingsCount ?? null,
         hardcoverRating: this.parseRating(row.hardcoverRating),

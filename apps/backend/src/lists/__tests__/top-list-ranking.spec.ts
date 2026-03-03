@@ -1,5 +1,7 @@
 import {
   calculateWeightedRatingScore,
+  getCanonicalGroupIdentity,
+  groupRankableItemsBySource,
   resolvePreferredRating,
   rankMostVotedItems,
   rankTopListItems,
@@ -201,6 +203,134 @@ describe('top-list-ranking', () => {
 
       const ranked = rankMostVotedItems(items, 10);
       expect(ranked).toEqual([]);
+    });
+  });
+
+  describe('groupRankableItemsBySource', () => {
+    it('groups items that share the same goodreads source id', () => {
+      const items: RankableItem[] = [
+        {
+          id: 'audio-1',
+          title: 'Dune (Audio)',
+          type: 'audiobook',
+          goodreadsBookId: 'gr-dune',
+          hardcoverBookId: null,
+          goodreadsRating: 4.3,
+          goodreadsRatingsCount: 1_000_000,
+          hardcoverRating: null,
+          hardcoverRatingsCount: null,
+        },
+        {
+          id: 'ebook-1',
+          title: 'Dune (Ebook)',
+          type: 'ebook',
+          goodreadsBookId: 'gr-dune',
+          hardcoverBookId: null,
+          goodreadsRating: 4.3,
+          goodreadsRatingsCount: 1_000_000,
+          hardcoverRating: null,
+          hardcoverRatingsCount: null,
+        },
+      ];
+
+      const groups = groupRankableItemsBySource(items);
+
+      expect(groups).toHaveLength(1);
+      expect(groups[0]?.members.map((member) => member.id).sort()).toEqual([
+        'audio-1',
+        'ebook-1',
+      ]);
+    });
+
+    it('merges groups transitively when an item links both source types', () => {
+      const items: RankableItem[] = [
+        {
+          id: 'audio-1',
+          title: 'Bridge item',
+          type: 'audiobook',
+          goodreadsBookId: 'gr-123',
+          hardcoverBookId: 'hc-123',
+          goodreadsRating: 4.1,
+          goodreadsRatingsCount: 1_000,
+          hardcoverRating: 4.2,
+          hardcoverRatingsCount: 500,
+        },
+        {
+          id: 'audio-2',
+          title: 'Goodreads sibling',
+          type: 'audiobook',
+          goodreadsBookId: 'gr-123',
+          hardcoverBookId: null,
+          goodreadsRating: 4.1,
+          goodreadsRatingsCount: 1_000,
+          hardcoverRating: null,
+          hardcoverRatingsCount: null,
+        },
+        {
+          id: 'ebook-1',
+          title: 'Hardcover sibling',
+          type: 'ebook',
+          goodreadsBookId: null,
+          hardcoverBookId: 'hc-123',
+          goodreadsRating: null,
+          goodreadsRatingsCount: null,
+          hardcoverRating: 4.2,
+          hardcoverRatingsCount: 500,
+        },
+      ];
+
+      const groups = groupRankableItemsBySource(items);
+
+      expect(groups).toHaveLength(1);
+      expect(groups[0]?.members.map((member) => member.id).sort()).toEqual([
+        'audio-1',
+        'audio-2',
+        'ebook-1',
+      ]);
+    });
+  });
+
+  describe('getCanonicalGroupIdentity', () => {
+    it('prefers goodreads id when available', () => {
+      const identity = getCanonicalGroupIdentity([
+        {
+          id: 'audio-1',
+          title: 'Book',
+          type: 'audiobook',
+          goodreadsBookId: 'gr-123',
+          hardcoverBookId: 'hc-999',
+          goodreadsRating: 4,
+          goodreadsRatingsCount: 1000,
+          hardcoverRating: 4,
+          hardcoverRatingsCount: 1000,
+        },
+      ]);
+
+      expect(identity).toEqual({
+        id: 'gr-123',
+        source: 'goodreads',
+      });
+    });
+
+    it('falls back to hardcover id when no goodreads id exists', () => {
+      const identity = getCanonicalGroupIdentity([
+        {
+          id: 'ebook-1',
+          title: 'Book',
+          type: 'ebook',
+          goodreadsBookId: null,
+          hardcoverBookId: 'hc-123',
+          goodreadsRating: null,
+          goodreadsRatingsCount: null,
+          hardcoverRating: 4,
+          hardcoverRatingsCount: 1000,
+        },
+      ]);
+
+      expect(identity).toEqual({
+        id: 'hc-123',
+        source: 'hardcover',
+      });
     });
   });
 });
