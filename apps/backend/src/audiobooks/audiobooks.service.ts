@@ -25,6 +25,7 @@ import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
 import * as schema from './schema';
+import * as ebookSchema from '../ebooks/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
 import * as usersSchema from '../users/schema';
@@ -1358,6 +1359,31 @@ export class AudiobooksService {
         order: entry.order,
       });
     }
+
+    await this.deleteOrphanedSeries();
+  }
+
+  private async deleteOrphanedSeries() {
+    await this.db
+      .delete(schema.series)
+      .where(
+        and(
+          notExists(
+            this.db
+              .select({ one: sql`1` })
+              .from(schema.audiobookSeries)
+              .where(
+                eq(schema.audiobookSeries.seriesId, schema.series.id),
+              ),
+          ),
+          notExists(
+            this.db
+              .select({ one: sql`1` })
+              .from(ebookSchema.ebookSeries)
+              .where(eq(ebookSchema.ebookSeries.seriesId, schema.series.id)),
+          ),
+        ),
+      );
   }
 
   async getGenres(
@@ -1728,6 +1754,7 @@ export class AudiobooksService {
       await this.db
         .delete(schema.audiobooks)
         .where(eq(schema.audiobooks.id, id));
+      await this.deleteOrphanedSeries();
 
       this.appEvents.audiobookDeleted(id);
     } else {

@@ -197,6 +197,8 @@ export function useUpdateEbook() {
       );
       // Invalidate the list to reflect changes
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+      // Invalidate series list/detail data in case series membership changed
+      queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
       // Invalidate tags in case new tags were created
       queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
       // Invalidate lists/top-lists that surface ebook metadata
@@ -228,6 +230,8 @@ export function useDeleteEbook() {
     onSuccess: (_, { id }) => {
       // Invalidate the list
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+      // Invalidate series list/detail data in case this removal changed series
+      queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
       // Remove from detail cache
       queryClient.removeQueries({ queryKey: queryKeys.ebooks.detail(id) });
       // Invalidate lists/top-lists that may contain this ebook
