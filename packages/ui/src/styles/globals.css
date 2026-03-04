@@ -77,7 +77,7 @@ body {
   color: hsl(var(--foreground));
   background-image: radial-gradient(
     ellipse 150% 100% at 50% 0%,
-    hsl(var(--primary) / 0.12),
+    color-mix(in srgb, hsl(var(--primary)) 12%, transparent),
     transparent 70%
   );
   background-attachment: fixed;
