@@ -5,16 +5,12 @@ import { Menu, Search, X, ArrowLeft } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { Sidebar } from "./sidebar";
-import { SortSelect } from "../library/sort-select";
-import { type SortField, type SortOrder } from "../../lib/use-sort-preference";
 
 interface MobileLibraryHeaderProps {
   searchPlaceholder: string;
   searchValue: string;
   onSearchChange: (value: string) => void;
-  sortBy: SortField;
-  sortOrder: SortOrder;
-  onSortChange: (field: SortField) => void;
+  sortControl: React.ReactNode;
   isAdmin: boolean;
 }
 
@@ -22,9 +18,7 @@ export function MobileLibraryHeader({
   searchPlaceholder,
   searchValue,
   onSearchChange,
-  sortBy,
-  sortOrder,
-  onSortChange,
+  sortControl,
   isAdmin,
 }: MobileLibraryHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -114,11 +108,7 @@ export function MobileLibraryHeader({
               >
                 <Search className="h-5 w-5" />
               </Button>
-              <SortSelect
-                sortBy={sortBy}
-                sortOrder={sortOrder}
-                onSortChange={onSortChange}
-              />
+              {sortControl}
             </div>
           </>
         )}
