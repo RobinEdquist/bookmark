@@ -4,6 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Loader2, Star, Trophy } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
 import { type TopRatedListItem, useTopLists } from "../../../lib/use-lists";
 
 function RankedItemsList({
@@ -142,7 +148,7 @@ export default function TopListPage() {
 
   return (
     <div className="flex flex-col p-4 lg:p-8">
-      <div className="mx-auto w-full max-w-5xl">
+      <div className="mx-auto w-full max-w-7xl">
         <div className="mb-8 space-y-2">
           <div className="flex items-center gap-3">
             <Trophy className="h-6 w-6 text-primary" />
@@ -151,55 +157,61 @@ export default function TopListPage() {
           <p className="text-sm text-muted-foreground">{t("description")}</p>
         </div>
 
-        <section className="space-y-4 rounded-xl border p-4 sm:p-6">
-          <h2 className="text-lg font-semibold">{t("weightedTopTenTitle")}</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("weightedTopTenTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10 text-muted-foreground">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {t("loading")}
+              </div>
+            ) : !data?.topRated.length ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                {t("empty")}
+              </p>
+            ) : (
+              <RankedItemsList
+                items={data.topRated}
+                goodreadsLabel={t("goodreadsLabel")}
+                hardcoverLabel={t("hardcoverLabel")}
+                audiobookLabel={t("audiobook")}
+                ebookLabel={t("ebook")}
+                unknownAuthor={t("unknownAuthor")}
+                votesLabel={t("votes")}
+              />
+            )}
+          </CardContent>
+        </Card>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              {t("loading")}
-            </div>
-          ) : !data?.topRated.length ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              {t("empty")}
-            </p>
-          ) : (
-            <RankedItemsList
-              items={data.topRated}
-              goodreadsLabel={t("goodreadsLabel")}
-              hardcoverLabel={t("hardcoverLabel")}
-              audiobookLabel={t("audiobook")}
-              ebookLabel={t("ebook")}
-              unknownAuthor={t("unknownAuthor")}
-              votesLabel={t("votes")}
-            />
-          )}
-        </section>
-
-        <section className="mt-6 space-y-4 rounded-xl border p-4 sm:p-6">
-          <h2 className="text-lg font-semibold">{t("mostVotesTitle")}</h2>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-10 text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              {t("loading")}
-            </div>
-          ) : !data?.mostVoted.length ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">
-              {t("empty")}
-            </p>
-          ) : (
-            <RankedItemsList
-              items={data.mostVoted}
-              goodreadsLabel={t("goodreadsLabel")}
-              hardcoverLabel={t("hardcoverLabel")}
-              audiobookLabel={t("audiobook")}
-              ebookLabel={t("ebook")}
-              unknownAuthor={t("unknownAuthor")}
-              votesLabel={t("votes")}
-            />
-          )}
-        </section>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>{t("mostVotesTitle")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-10 text-muted-foreground">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                {t("loading")}
+              </div>
+            ) : !data?.mostVoted.length ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                {t("empty")}
+              </p>
+            ) : (
+              <RankedItemsList
+                items={data.mostVoted}
+                goodreadsLabel={t("goodreadsLabel")}
+                hardcoverLabel={t("hardcoverLabel")}
+                audiobookLabel={t("audiobook")}
+                ebookLabel={t("ebook")}
+                unknownAuthor={t("unknownAuthor")}
+                votesLabel={t("votes")}
+              />
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

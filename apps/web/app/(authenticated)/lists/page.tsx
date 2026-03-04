@@ -24,7 +24,7 @@ export default function ListsPage() {
 
   return (
     <div className="flex flex-col p-4 lg:p-8">
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
