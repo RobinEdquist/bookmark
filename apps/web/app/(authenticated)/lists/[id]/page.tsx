@@ -135,7 +135,7 @@ export default function ListDetailPage({ params }: ListDetailPageProps) {
 
   return (
     <div className="flex flex-col p-4 lg:p-8">
-      <div className="mx-auto w-full max-w-4xl">
+      <div className="mx-auto w-full max-w-7xl">
         {/* Header */}
         <div className="mb-6">
           <Link

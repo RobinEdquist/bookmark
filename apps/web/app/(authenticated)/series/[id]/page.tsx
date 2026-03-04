@@ -51,7 +51,7 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col p-4 lg:p-8">
-        <div className="mx-auto w-full max-w-6xl">
+        <div className="mx-auto w-full max-w-7xl">
           {/* Back button skeleton */}
           <Skeleton className="mb-6 h-9 w-32" />
           {/* Title skeleton */}
@@ -85,7 +85,7 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
 
   return (
     <div className="flex flex-col p-4 lg:p-8">
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full max-w-7xl">
         {/* Header */}
         <div className="mb-8">
           <div className="mb-4 flex items-center justify-between">
