@@ -3,8 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Search, X, Loader2 } from "lucide-react";
-import { Input } from "@repo/ui/components/ui/input";
 import { AudiobookGrid } from "../../../components/audiobooks/audiobook-grid";
 import { useInfiniteAudiobooks } from "../../../lib/use-audiobooks";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
@@ -16,7 +14,7 @@ import {
   useRestoreScrollPosition,
   clearScrollState,
 } from "../../../lib/use-scroll-position";
-import { MobileLibraryHeader } from "../../../components/layout/mobile-library-header";
+import { LibraryPageHeader } from "../../../components/library/library-page-header";
 import { authClient } from "../../../lib/auth-client";
 
 export default function AudiobooksPage() {
@@ -113,50 +111,20 @@ export default function AudiobooksPage() {
 
   return (
     <div className="flex flex-col">
-      {/* Mobile header */}
-      <MobileLibraryHeader
+      <LibraryPageHeader
         searchPlaceholder={t("search")}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        onSortChange={setSortField}
-        isAdmin={isAdmin}
-      />
-
-      {/* Desktop header */}
-      <header className="sticky top-0 z-10 hidden border-b border-border/50 bg-background/80 px-8 py-4 backdrop-blur-sm lg:block">
-        <div className="mx-auto flex max-w-7xl items-center gap-4">
-          <div className="relative w-64">
-            {isSearching ? (
-              <Loader2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-            ) : (
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            )}
-            <Input
-              type="text"
-              placeholder={t("search")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-9"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+        isSearching={isSearching}
+        sortControl={
           <SortSelect
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSortChange={setSortField}
           />
-        </div>
-      </header>
+        }
+        isAdmin={isAdmin}
+      />
 
       <div
         className={`p-4 pt-4 transition-opacity duration-300 lg:p-8 lg:pt-6 ${

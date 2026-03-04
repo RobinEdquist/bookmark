@@ -3,11 +3,10 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Search, X } from "lucide-react";
-import { Input } from "@repo/ui/components/ui/input";
-import { Button } from "@repo/ui/components/ui/button";
 import { SeriesGrid } from "../../../components/series/series-grid";
 import { SeriesSortSelect } from "../../../components/series/series-sort-select";
+import { LibraryPageHeader } from "../../../components/library/library-page-header";
+import { authClient } from "../../../lib/auth-client";
 import {
   useInfiniteSeries,
   type SeriesSortBy,
@@ -33,6 +32,9 @@ export default function SeriesPage() {
 
   // Debounce search
   const debouncedSearch = useDebouncedValue(searchInput, 300);
+
+  const { data: session } = authClient.useSession();
+  const isAdmin = session?.user?.role === "admin";
 
   // Update URL when filters change (using useEffect for side effects)
   useEffect(() => {
@@ -67,11 +69,6 @@ export default function SeriesPage() {
     []
   );
 
-  // Clear search
-  const handleClearSearch = useCallback(() => {
-    setSearchInput("");
-  }, []);
-
   // Fetch series with current filters
   const {
     data,
@@ -93,41 +90,19 @@ export default function SeriesPage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* Header */}
-      <div className="sticky top-0 z-10 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 p-4 lg:p-6">
-          <h1 className="text-xl font-semibold lg:text-2xl">{t("title")}</h1>
-          <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="text"
-                placeholder={t("search")}
-                value={searchInput}
-                onChange={(e) => handleSearchChange(e.target.value)}
-                className="w-[200px] pl-9 pr-8 lg:w-[280px]"
-              />
-              {searchInput && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2"
-                  onClick={handleClearSearch}
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-            {/* Sort */}
-            <SeriesSortSelect
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onSortChange={handleSortChange}
-            />
-          </div>
-        </div>
-      </div>
+      <LibraryPageHeader
+        searchPlaceholder={t("search")}
+        searchValue={searchInput}
+        onSearchChange={handleSearchChange}
+        sortControl={
+          <SeriesSortSelect
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={handleSortChange}
+          />
+        }
+        isAdmin={isAdmin}
+      />
 
       {/* Content */}
       <div className="flex-1 p-4 lg:p-6">
