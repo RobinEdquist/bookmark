@@ -377,11 +377,52 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       syncProgress(actualPosition);
     };
 
-    const handleEnded = () => {
-      // Audio file ended - might need to load next file for multi-file audiobooks
-      // For now, just sync and stop
-      dispatch({ type: "SET_PLAYING", payload: false });
-      recordSession();
+    const handleEnded = async () => {
+      // Calculate where the next file would start
+      const nextPosition = fileStartPositionRef.current + audio.duration;
+
+      // Check if there's more content (another file to play)
+      if (state.audiobook && nextPosition < state.duration - 1) {
+        try {
+          // Get stream info for the next file
+          const response = await fetch(
+            `/api/audiobooks/${state.audiobook.id}/stream?position=${Math.floor(nextPosition)}`,
+            { method: "HEAD", credentials: "include" }
+          );
+          if (!response.ok) throw new Error("Stream not available");
+
+          const fileStartPosition = parseInt(
+            response.headers.get("X-File-Start-Position") || "0",
+            10
+          );
+          fileStartPositionRef.current = fileStartPosition;
+
+          // Load the next file
+          const streamUrl = `/api/audiobooks/${state.audiobook.id}/stream?position=${Math.floor(fileStartPosition)}`;
+          audio.src = streamUrl;
+
+          const handleCanPlay = () => {
+            audio.removeEventListener("canplay", handleCanPlay);
+            audio.playbackRate = playbackRateRef.current;
+            audio.volume = volumeRef.current;
+          };
+          audio.addEventListener("canplay", handleCanPlay);
+
+          dispatch({ type: "SET_POSITION", payload: nextPosition });
+          await audio.play();
+        } catch (error) {
+          console.error("[Player] Failed to load next file:", error);
+          dispatch({ type: "SET_PLAYING", payload: false });
+          recordSession();
+        }
+      } else {
+        // Audiobook finished
+        dispatch({ type: "SET_PLAYING", payload: false });
+        recordSession();
+        if (state.audiobook) {
+          syncProgress(state.duration);
+        }
+      }
     };
 
     const handleError = (e: Event) => {
@@ -412,7 +453,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
     };
-  }, [state.audiobook, state.currentChapter, syncProgress, recordSession]);
+  }, [state.audiobook, state.currentChapter, state.duration, syncProgress, recordSession]);
 
   // Set up periodic sync (every 60s while playing)
   useEffect(() => {

@@ -31,9 +31,11 @@ describe('AudiobooksService', () => {
       const selectQuery = {
         from: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockResolvedValue([
-          { id: 'audiobook-1', filePath: '', status: 'missing' },
-        ]),
+        limit: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'audiobook-1', filePath: '', status: 'missing' },
+          ]),
       };
       const select = jest.fn().mockReturnValue(selectQuery);
       const where = jest.fn().mockResolvedValue(undefined);

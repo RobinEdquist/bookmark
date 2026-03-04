@@ -1364,26 +1364,22 @@ export class AudiobooksService {
   }
 
   private async deleteOrphanedSeries() {
-    await this.db
-      .delete(schema.series)
-      .where(
-        and(
-          notExists(
-            this.db
-              .select({ one: sql`1` })
-              .from(schema.audiobookSeries)
-              .where(
-                eq(schema.audiobookSeries.seriesId, schema.series.id),
-              ),
-          ),
-          notExists(
-            this.db
-              .select({ one: sql`1` })
-              .from(ebookSchema.ebookSeries)
-              .where(eq(ebookSchema.ebookSeries.seriesId, schema.series.id)),
-          ),
+    await this.db.delete(schema.series).where(
+      and(
+        notExists(
+          this.db
+            .select({ one: sql`1` })
+            .from(schema.audiobookSeries)
+            .where(eq(schema.audiobookSeries.seriesId, schema.series.id)),
         ),
-      );
+        notExists(
+          this.db
+            .select({ one: sql`1` })
+            .from(ebookSchema.ebookSeries)
+            .where(eq(ebookSchema.ebookSeries.seriesId, schema.series.id)),
+        ),
+      ),
+    );
   }
 
   async getGenres(

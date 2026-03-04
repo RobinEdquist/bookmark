@@ -107,8 +107,12 @@ function getLinkageKeys(item: RankableItem): string[] {
   return keys;
 }
 
-function getUniqueSortedValues(values: Array<string | null | undefined>): string[] {
-  return [...new Set(values.filter((value): value is string => Boolean(value)))].sort();
+function getUniqueSortedValues(
+  values: Array<string | null | undefined>,
+): string[] {
+  return [
+    ...new Set(values.filter((value): value is string => Boolean(value))),
+  ].sort();
 }
 
 export function getCanonicalGroupIdentity(

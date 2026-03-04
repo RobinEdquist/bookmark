@@ -268,8 +268,10 @@ export class ListsService {
         .select({
           id: audiobooksSchema.audiobooks.id,
           title: audiobooksSchema.audiobooks.title,
-          goodreadsBookId: goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
-          hardcoverBookId: hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+          goodreadsBookId:
+            goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
+          hardcoverBookId:
+            hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
           goodreadsRating: goodreadsSchema.goodreadsBooks.rating,
           goodreadsRatingsCount: goodreadsSchema.goodreadsBooks.ratingsCount,
           hardcoverRating: hardcoverSchema.hardcoverBooks.rating,
