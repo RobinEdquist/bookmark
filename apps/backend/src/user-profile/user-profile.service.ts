@@ -324,22 +324,36 @@ export class UserProfileService {
       }
     }
 
+    // Deduplicate by id+type, keeping the most recently updated entry
+    const seen = new Map<string, LibraryProgressItemDto>();
+    for (const item of items) {
+      const key = `${item.type}:${item.id}`;
+      const existing = seen.get(key);
+      if (
+        !existing ||
+        new Date(item.updatedAt) > new Date(existing.updatedAt)
+      ) {
+        seen.set(key, item);
+      }
+    }
+    const dedupedItems = Array.from(seen.values());
+
     // Sort combined results
     if (sort === 'recent') {
-      items.sort(
+      dedupedItems.sort(
         (a, b) =>
           new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
       );
     } else if (sort === 'title') {
-      items.sort((a, b) => a.title.localeCompare(b.title));
+      dedupedItems.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sort === 'progress') {
-      items.sort((a, b) => b.progressPercent - a.progressPercent);
+      dedupedItems.sort((a, b) => b.progressPercent - a.progressPercent);
     }
 
-    const total = items.length;
+    const total = dedupedItems.length;
 
     // Apply pagination after sorting
-    const paginatedItems = items.slice(offset, offset + limit);
+    const paginatedItems = dedupedItems.slice(offset, offset + limit);
 
     return { items: paginatedItems, total };
   }
