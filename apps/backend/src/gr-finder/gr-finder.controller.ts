@@ -9,6 +9,7 @@ import {
   UseGuards,
   BadRequestException,
   InternalServerErrorException,
+  NotFoundException,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -89,6 +90,98 @@ export class GrFinderController {
       return await this.grFinderService.search(query);
     } catch (error) {
       if (error instanceof BadRequestException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Search failed',
+      );
+    }
+  }
+
+  @Get('search/audiobook/:audiobookId')
+  @ApiOperation({
+    summary: 'Search Goodreads by audiobook',
+    description:
+      'Search Goodreads using audiobook metadata (title, subtitle, authors)',
+  })
+  @ApiParam({
+    name: 'audiobookId',
+    description: 'Audiobook UUID',
+    format: 'uuid',
+  })
+  @ApiQuery({ name: 'q', required: false, description: 'Custom search query' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results with computed query',
+  })
+  @ApiResponse({ status: 400, description: 'Service not configured' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Audiobook not found' })
+  async searchByAudiobook(
+    @Param('audiobookId') audiobookId: string,
+    @Query('q') customQuery?: string,
+  ) {
+    if (!this.grFinderService.isConfigured()) {
+      throw new BadRequestException('Goodreads Finder is not configured');
+    }
+
+    try {
+      return await this.grFinderService.searchByMediaId(
+        'audiobook',
+        audiobookId,
+        customQuery,
+      );
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        error instanceof Error ? error.message : 'Search failed',
+      );
+    }
+  }
+
+  @Get('search/ebook/:ebookId')
+  @ApiOperation({
+    summary: 'Search Goodreads by ebook',
+    description:
+      'Search Goodreads using ebook metadata (title, subtitle, authors)',
+  })
+  @ApiParam({
+    name: 'ebookId',
+    description: 'Ebook UUID',
+    format: 'uuid',
+  })
+  @ApiQuery({ name: 'q', required: false, description: 'Custom search query' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results with computed query',
+  })
+  @ApiResponse({ status: 400, description: 'Service not configured' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Ebook not found' })
+  async searchByEbook(
+    @Param('ebookId') ebookId: string,
+    @Query('q') customQuery?: string,
+  ) {
+    if (!this.grFinderService.isConfigured()) {
+      throw new BadRequestException('Goodreads Finder is not configured');
+    }
+
+    try {
+      return await this.grFinderService.searchByMediaId(
+        'ebook',
+        ebookId,
+        customQuery,
+      );
+    } catch (error) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
         throw error;
       }
       throw new InternalServerErrorException(

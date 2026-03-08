@@ -328,7 +328,6 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
           mediaType="ebook"
           mediaId={ebook.id}
           mediaTitle={ebook.title}
-          initialQuery={ebook.title}
           open={goodreadsSyncOpen}
           onOpenChange={setGoodreadsSyncOpen}
         />

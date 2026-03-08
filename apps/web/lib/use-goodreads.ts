@@ -90,6 +90,48 @@ export function useGrFinderSearch(query: string, enabled: boolean = true) {
   });
 }
 
+// ============ Media-based Search ============
+
+async function searchGrFinderByMedia(
+  mediaType: MediaType,
+  mediaId: string,
+  customQuery?: string
+): Promise<GrFinderSearchResponse & { query: string }> {
+  const endpoint =
+    mediaType === "audiobook"
+      ? `/api/gr-finder/search/audiobook/${mediaId}`
+      : `/api/gr-finder/search/ebook/${mediaId}`;
+
+  const searchParams = new URLSearchParams();
+  if (customQuery) searchParams.set("q", customQuery);
+
+  const url = `${endpoint}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
+
+  const response = await fetch(url, {
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Search failed");
+  }
+
+  return response.json();
+}
+
+export function useGrFinderSearchByMedia(
+  mediaType: MediaType,
+  mediaId: string,
+  enabled: boolean = true,
+  customQuery?: string
+) {
+  return useQuery({
+    queryKey: queryKeys.grFinder.searchByMedia(mediaType, mediaId, customQuery),
+    queryFn: () => searchGrFinderByMedia(mediaType, mediaId, customQuery),
+    enabled: !!mediaId && enabled,
+  });
+}
+
 // ============ Goodreads Link Hooks ============
 
 async function fetchGoodreadsLink(

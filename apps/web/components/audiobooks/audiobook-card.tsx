@@ -334,7 +334,6 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
           mediaType="audiobook"
           mediaId={audiobook.id}
           mediaTitle={audiobook.title}
-          initialQuery={audiobook.title}
           open={goodreadsSyncOpen}
           onOpenChange={setGoodreadsSyncOpen}
         />

@@ -1,9 +1,9 @@
 import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common';
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
-import { audiobooks } from '../audiobooks/schema';
-import { ebooks } from '../ebooks/schema';
+import { audiobooks, audiobookAuthors, people } from '../audiobooks/schema';
+import { ebooks, ebookAuthors } from '../ebooks/schema';
 import * as goodreadsSchema from './schema';
 import { splitPersonNames } from '../common/utils/name.utils';
 
@@ -95,6 +95,87 @@ export class GrFinderService {
 
     const data = (await response.json()) as GrFinderSearchResponse;
     return data;
+  }
+
+  async searchByMediaId(
+    mediaType: MediaType,
+    mediaId: string,
+    customQuery?: string,
+  ): Promise<GrFinderSearchResponse & { query: string }> {
+    let searchQuery: string;
+
+    if (customQuery) {
+      searchQuery = customQuery;
+    } else {
+      let title: string;
+      let subtitle: string | null;
+      let authorNames: string[];
+
+      if (mediaType === 'audiobook') {
+        const [audiobook] = await this.db
+          .select({
+            title: audiobooks.title,
+            subtitle: audiobooks.subtitle,
+          })
+          .from(audiobooks)
+          .where(eq(audiobooks.id, mediaId))
+          .limit(1);
+
+        if (!audiobook) {
+          throw new NotFoundException('Audiobook not found');
+        }
+
+        title = audiobook.title;
+        subtitle = audiobook.subtitle;
+
+        const authors = await this.db
+          .select({ name: people.name })
+          .from(audiobookAuthors)
+          .innerJoin(people, eq(audiobookAuthors.personId, people.id))
+          .where(eq(audiobookAuthors.audiobookId, mediaId))
+          .orderBy(asc(audiobookAuthors.order));
+
+        authorNames = authors.map((a) => a.name);
+      } else {
+        const [ebook] = await this.db
+          .select({
+            title: ebooks.title,
+            subtitle: ebooks.subtitle,
+          })
+          .from(ebooks)
+          .where(eq(ebooks.id, mediaId))
+          .limit(1);
+
+        if (!ebook) {
+          throw new NotFoundException('Ebook not found');
+        }
+
+        title = ebook.title;
+        subtitle = ebook.subtitle;
+
+        const authors = await this.db
+          .select({ name: people.name })
+          .from(ebookAuthors)
+          .innerJoin(people, eq(ebookAuthors.personId, people.id))
+          .where(eq(ebookAuthors.ebookId, mediaId))
+          .orderBy(asc(ebookAuthors.order));
+
+        authorNames = authors.map((a) => a.name);
+      }
+
+      const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
+      searchQuery =
+        authorNames.length > 0
+          ? `${fullTitle} ${authorNames.join(' ')}`
+          : fullTitle;
+    }
+
+    const result = await this.search(searchQuery);
+
+    return {
+      ...result,
+      query: searchQuery,
+    };
   }
 
   async getBookDetails(goodreadsId: string): Promise<GrFinderBookDetails> {

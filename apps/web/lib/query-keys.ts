@@ -188,6 +188,8 @@ export const queryKeys = {
     all: ['gr-finder'] as const,
     status: () => [...queryKeys.grFinder.all, 'status'] as const,
     search: (query: string) => [...queryKeys.grFinder.all, 'search', query] as const,
+    searchByMedia: (mediaType: "audiobook" | "ebook", mediaId: string, customQuery?: string) =>
+      [...queryKeys.grFinder.all, 'search-by-media', mediaType, mediaId, customQuery] as const,
     link: (mediaType: "audiobook" | "ebook", mediaId: string) =>
       [...queryKeys.grFinder.all, 'link', mediaType, mediaId] as const,
   },

@@ -16,7 +16,7 @@ import {
 } from "@repo/ui/components/ui/dialog";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
-  useGrFinderSearch,
+  useGrFinderSearchByMedia,
   useGoodreadsLinkMedia,
   type GrFinderSearchResult,
   type MediaType,
@@ -27,7 +27,6 @@ interface GoodreadsSearchDialogProps {
   mediaType: MediaType;
   mediaId: string;
   mediaTitle: string;
-  initialQuery: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -37,40 +36,44 @@ export function GoodreadsSearchDialog({
   mediaType,
   mediaId,
   mediaTitle,
-  initialQuery,
   open,
   onOpenChange,
   onSuccess,
 }: GoodreadsSearchDialogProps) {
   const t = useTranslations("common.goodreadsSearch");
   const { isDark } = useTheme();
-  const [searchInput, setSearchInput] = useState(initialQuery);
-  const [activeQuery, setActiveQuery] = useState(initialQuery);
+  const [searchInput, setSearchInput] = useState("");
+  const [customQuery, setCustomQuery] = useState<string | undefined>(undefined);
   const [selectedBook, setSelectedBook] = useState<GrFinderSearchResult | null>(null);
 
-  // Auto-search on initial query change (when dialog opens)
-  useEffect(() => {
-    if (open && initialQuery) {
-      setSearchInput(initialQuery);
-      setActiveQuery(initialQuery);
-    }
-  }, [open, initialQuery]);
+  const { data, isLoading, error } = useGrFinderSearchByMedia(
+    mediaType,
+    mediaId,
+    open,
+    customQuery
+  );
 
-  const { data, isLoading, error } = useGrFinderSearch(activeQuery, open);
+  // Update search input when we get the default query from the API
+  useEffect(() => {
+    if (data?.query && !customQuery) {
+      setSearchInput(data.query);
+    }
+  }, [data?.query, customQuery]);
+
   const { linkMedia, isLinking } = useGoodreadsLinkMedia();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
-      setActiveQuery(searchInput.trim());
+      setCustomQuery(searchInput.trim());
       setSelectedBook(null);
     }
   };
 
   const handleClose = () => {
     setSelectedBook(null);
-    setSearchInput(initialQuery);
-    setActiveQuery(initialQuery);
+    setSearchInput("");
+    setCustomQuery(undefined);
     onOpenChange(false);
   };
 
