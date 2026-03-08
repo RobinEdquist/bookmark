@@ -62,20 +62,13 @@ export class UserProfileService {
         .from(progressSchema.listeningSessions)
         .where(eq(progressSchema.listeningSessions.userId, userId)),
 
-      // Audiobook progress counts (filter out barely-started: progress rounds to 0%)
+      // Audiobook progress counts (filter out barely-started: require >= 5 min listened)
       this.db
         .select({
           completed: sql<number>`COALESCE(SUM(CASE WHEN ${progressSchema.userAudiobookProgress.completed} THEN 1 ELSE 0 END), 0)`,
-          inProgress: sql<number>`COALESCE(SUM(CASE WHEN NOT ${progressSchema.userAudiobookProgress.completed} AND ROUND(${progressSchema.userAudiobookProgress.currentPosition}::numeric / NULLIF(${audiobookSchema.audiobooks.duration}, 0) * 100) > 0 THEN 1 ELSE 0 END), 0)`,
+          inProgress: sql<number>`COALESCE(SUM(CASE WHEN NOT ${progressSchema.userAudiobookProgress.completed} AND ${progressSchema.userAudiobookProgress.currentPosition} > 300 THEN 1 ELSE 0 END), 0)`,
         })
         .from(progressSchema.userAudiobookProgress)
-        .leftJoin(
-          audiobookSchema.audiobooks,
-          eq(
-            progressSchema.userAudiobookProgress.audiobookId,
-            audiobookSchema.audiobooks.id,
-          ),
-        )
         .where(eq(progressSchema.userAudiobookProgress.userId, userId)),
 
       // Ebook progress counts (filter out barely-started: progress_percent rounds to 0%)
@@ -225,8 +218,8 @@ export class UserProfileService {
           ? Math.round((row.currentPosition / row.duration) * 100)
           : 0;
 
-        // Skip items with negligible progress (rounds to 0%) unless completed
-        if (!row.completed && progressPercent <= 0) continue;
+        // Skip items with negligible progress (< 5 min listened) unless completed
+        if (!row.completed && row.currentPosition <= 300) continue;
 
         items.push({
           id: row.id,

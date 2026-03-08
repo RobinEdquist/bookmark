@@ -18,47 +18,7 @@ interface ReadButtonProps {
   format: string;
 }
 
-export function ReadButton({ ebookId, ebookTitle, format }: ReadButtonProps) {
-  const t = useTranslations("ebooks");
-  const [isReaderOpen, setIsReaderOpen] = useState(false);
-  const { data: progress } = useEbookProgress(ebookId);
-
-  const isEpub = format.toLowerCase() === "epub";
-  const hasProgress = progress && progress.progressPercent > 0;
-
-  if (isReaderOpen) {
-    return (
-      <EpubReader
-        ebookId={ebookId}
-        ebookTitle={ebookTitle}
-        initialCfi={progress?.cfi}
-        onClose={() => setIsReaderOpen(false)}
-      />
-    );
-  }
-
-  const button = (
-    <Button
-      size="lg"
-      className="w-full"
-      onClick={() => setIsReaderOpen(true)}
-      disabled={!isEpub}
-    >
-      <BookOpen className="mr-2 h-5 w-5" />
-      {hasProgress ? t("detail.continueReading") : t("detail.read")}
-    </Button>
-  );
-
-  if (!isEpub) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{button}</TooltipTrigger>
-        <TooltipContent>
-          <p>{t("detail.readNotSupported")}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return button;
+// TODO: Re-enable once epub iframe sandbox/scripting issues are resolved
+export function ReadButton(_props: ReadButtonProps) {
+  return null;
 }
