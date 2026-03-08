@@ -63,10 +63,11 @@ export class UserProfileService {
         .where(eq(progressSchema.listeningSessions.userId, userId)),
 
       // Audiobook progress counts (filter out barely-started: require >= 5 min listened)
+      // Use COUNT(DISTINCT audiobook_id) to handle duplicate progress records
       this.db
         .select({
-          completed: sql<number>`COALESCE(SUM(CASE WHEN ${progressSchema.userAudiobookProgress.completed} THEN 1 ELSE 0 END), 0)`,
-          inProgress: sql<number>`COALESCE(SUM(CASE WHEN NOT ${progressSchema.userAudiobookProgress.completed} AND ${progressSchema.userAudiobookProgress.currentPosition} > 300 THEN 1 ELSE 0 END), 0)`,
+          completed: sql<number>`COUNT(DISTINCT CASE WHEN ${progressSchema.userAudiobookProgress.completed} THEN ${progressSchema.userAudiobookProgress.audiobookId} END)`,
+          inProgress: sql<number>`COUNT(DISTINCT CASE WHEN NOT ${progressSchema.userAudiobookProgress.completed} AND ${progressSchema.userAudiobookProgress.currentPosition} > 300 THEN ${progressSchema.userAudiobookProgress.audiobookId} END)`,
         })
         .from(progressSchema.userAudiobookProgress)
         .innerJoin(
