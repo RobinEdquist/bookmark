@@ -40,7 +40,6 @@ export function EpubReader({
   const t = useTranslations("ebooks");
   const { isDark } = useTheme();
   const [location, setLocation] = useState<string | number>(initialCfi || 0);
-  const [showToolbar, setShowToolbar] = useState(true);
   const [currentPercent, setCurrentPercent] = useState(0);
   const [isGeneratingLocations, setIsGeneratingLocations] = useState(true);
   const [epubData, setEpubData] = useState<ArrayBuffer | null>(null);
@@ -50,7 +49,6 @@ export function EpubReader({
   const renditionRef = useRef<any>(null);
   const tocRef = useRef<{ label: string; href: string }[]>([]);
   const updateProgress = useUpdateEbookProgress();
-  const hideToolbarTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // ReactReader container styles based on theme
   const readerStyles = useMemo(
@@ -74,7 +72,7 @@ export function EpubReader({
     }
   }, [isDark]);
 
-  // Handle location change (page turn)
+  // Handle location change from ReactReader (page turn, navigation, etc.)
   const handleLocationChange = useCallback(
     (cfi: string) => {
       setLocation(cfi);
@@ -86,7 +84,7 @@ export function EpubReader({
         const percentRounded = Math.round(percent * 100);
         setCurrentPercent(percentRounded);
 
-        // Save progress on every page turn (debounced by mutation)
+        // Save progress on every page turn
         updateProgress.mutate({
           ebookId,
           cfi,
@@ -127,15 +125,11 @@ export function EpubReader({
     fetchEpub();
   }, [ebookId]);
 
-  // Keyboard navigation
+  // Escape key to close reader
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         onClose();
-      } else if (e.key === "ArrowLeft") {
-        renditionRef.current?.prev();
-      } else if (e.key === "ArrowRight") {
-        renditionRef.current?.next();
       }
     };
 
@@ -143,36 +137,14 @@ export function EpubReader({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  // Auto-hide toolbar after inactivity
-  useEffect(() => {
-    if (showToolbar) {
-      if (hideToolbarTimeout.current) {
-        clearTimeout(hideToolbarTimeout.current);
-      }
-      hideToolbarTimeout.current = setTimeout(() => {
-        setShowToolbar(false);
-      }, 5000);
-    }
-
-    return () => {
-      if (hideToolbarTimeout.current) {
-        clearTimeout(hideToolbarTimeout.current);
-      }
-    };
-  }, [showToolbar]);
-
-  // Toggle toolbar on tap/click
-  const handleReaderClick = useCallback(() => {
-    setShowToolbar((prev) => !prev);
-  }, []);
-
   // Handle slider change for navigation
   const handleSliderChange = useCallback((value: number[]) => {
     const percentValue = value[0];
     if (percentValue === undefined) return;
     const percent = percentValue / 100;
     if (renditionRef.current?.book?.locations?.length()) {
-      const cfi = renditionRef.current.book.locations.cfiFromPercentage(percent);
+      const cfi =
+        renditionRef.current.book.locations.cfiFromPercentage(percent);
       renditionRef.current.display(cfi);
     }
   }, []);
@@ -189,54 +161,40 @@ export function EpubReader({
       rendition.themes.select(isDark ? "dark" : "light");
 
       // Generate locations for percentage tracking
-      rendition.book.ready.then(() => {
-        setIsGeneratingLocations(true);
-        return rendition.book.locations.generate(1024);
-      }).then(() => {
-        setIsGeneratingLocations(false);
-        // Recalculate percent after locations are generated
-        if (initialCfi && renditionRef.current?.book?.locations?.length()) {
-          const percent = renditionRef.current.book.locations.percentageFromCfi(initialCfi);
-          setCurrentPercent(Math.round(percent * 100));
-        }
-      });
-
-      // Get table of contents
-      rendition.book.loaded.navigation.then((nav: { toc: Array<{ label: string; href: string }> }) => {
-        tocRef.current = nav.toc.map((item: { label: string; href: string }) => ({
-          label: item.label,
-          href: item.href,
-        }));
-      });
-
-      // Add click handler for navigation within content
-      rendition.on("relocated", (location: { start: { cfi: string } }) => {
-        handleLocationChange(location.start.cfi);
-      });
-
-      // Handle touch/click on content for toolbar toggle
-      rendition.on("rendered", (_section: unknown, view: { document: Document }) => {
-        const doc = view.document;
-        doc.addEventListener("click", (e: MouseEvent) => {
-          // Don't toggle if clicking on links
-          const target = e.target as HTMLElement;
-          if (target.tagName !== "A") {
-            handleReaderClick();
+      rendition.book.ready
+        .then(() => {
+          setIsGeneratingLocations(true);
+          return rendition.book.locations.generate(1024);
+        })
+        .then(() => {
+          setIsGeneratingLocations(false);
+          // Recalculate percent after locations are generated
+          if (initialCfi && renditionRef.current?.book?.locations?.length()) {
+            const percent =
+              renditionRef.current.book.locations.percentageFromCfi(initialCfi);
+            setCurrentPercent(Math.round(percent * 100));
           }
         });
-      });
+
+      // Get table of contents
+      rendition.book.loaded.navigation.then(
+        (nav: { toc: Array<{ label: string; href: string }> }) => {
+          tocRef.current = nav.toc.map(
+            (item: { label: string; href: string }) => ({
+              label: item.label,
+              href: item.href,
+            })
+          );
+        }
+      );
     },
-    [initialCfi, isDark, handleLocationChange, handleReaderClick]
+    [initialCfi, isDark]
   );
 
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
-      {/* Header toolbar */}
-      <header
-        className={`absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur border-b transition-transform duration-300 ${
-          showToolbar ? "translate-y-0" : "-translate-y-full"
-        }`}
-      >
+      {/* Header with close button */}
+      <header className="absolute top-0 inset-x-0 z-20 flex items-center justify-between px-4 py-3 bg-background/95 backdrop-blur border-b">
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-5 w-5" />
           <span className="sr-only">{t("reader.close")}</span>
@@ -247,8 +205,8 @@ export function EpubReader({
         <div className="w-10" /> {/* Spacer for centering */}
       </header>
 
-      {/* Reader */}
-      <div className="flex-1 relative">
+      {/* Reader area - ReactReader handles its own prev/next navigation */}
+      <div className="flex-1 relative pt-[52px] pb-[72px]">
         {isLoadingEpub && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
@@ -270,34 +228,22 @@ export function EpubReader({
           </div>
         )}
         {epubData && (
-          <>
-            <ReactReader
-              url={epubData}
-              location={location}
-              locationChanged={handleLocationChange}
-              getRendition={handleGetRendition}
-              showToc={false}
-              readerStyles={readerStyles}
-              epubOptions={{
-                allowScriptedContent: false,
-              }}
-            />
-            {/* Invisible click overlay for toolbar toggle */}
-            <div
-              className="absolute inset-0 z-10 pointer-events-none"
-              style={{ pointerEvents: showToolbar ? "none" : "auto" }}
-              onClick={handleReaderClick}
-            />
-          </>
+          <ReactReader
+            url={epubData}
+            location={location}
+            locationChanged={handleLocationChange}
+            getRendition={handleGetRendition}
+            showToc={false}
+            readerStyles={readerStyles}
+            epubOptions={{
+              allowScriptedContent: false,
+            }}
+          />
         )}
       </div>
 
-      {/* Footer toolbar */}
-      <footer
-        className={`absolute bottom-0 inset-x-0 z-20 px-4 py-3 bg-background/95 backdrop-blur border-t transition-transform duration-300 ${
-          showToolbar ? "translate-y-0" : "translate-y-full"
-        }`}
-      >
+      {/* Footer with progress slider */}
+      <footer className="absolute bottom-0 inset-x-0 z-20 px-4 py-3 bg-background/95 backdrop-blur border-t">
         <div className="px-2">
           <Slider
             value={[currentPercent]}
