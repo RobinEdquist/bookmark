@@ -511,25 +511,20 @@ export default function AudiobookDetailPage({
               <div>
                 <h3 className="mb-2 font-semibold">{t("description")}</h3>
                 <div className="relative">
-                  <motion.div
+                  <div
                     ref={descriptionRef}
-                    className="text-sm leading-relaxed text-muted-foreground [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_strong]:font-semibold [&_em]:italic overflow-hidden"
-                    initial={false}
-                    animate={{
-                      height: descriptionExpanded
-                        ? descriptionRef.current?.scrollHeight ?? "auto"
-                        : descriptionOverflows
-                          ? 200
-                          : "auto",
+                    className="text-sm leading-relaxed text-muted-foreground [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_strong]:font-semibold [&_em]:italic overflow-hidden transition-[max-height] duration-300 ease-in-out"
+                    style={{
+                      maxHeight: descriptionExpanded
+                        ? descriptionRef.current?.scrollHeight ?? 9999
+                        : 200,
                     }}
-                    transition={{ duration: 0.3, ease: "easeInOut" }}
                     dangerouslySetInnerHTML={{ __html: audiobook.description }}
                   />
-                  <motion.div
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent"
-                    initial={false}
-                    animate={{ opacity: descriptionOverflows && !descriptionExpanded ? 1 : 0 }}
-                    transition={{ duration: 0.2 }}
+                  <div
+                    className={`pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent transition-opacity duration-200 ${
+                      descriptionOverflows && !descriptionExpanded ? "opacity-100" : "opacity-0"
+                    }`}
                   />
                 </div>
                 {descriptionOverflows && (
