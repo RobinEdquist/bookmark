@@ -205,7 +205,7 @@ export class ImportErrorsService {
       .where(
         and(
           eq(schema.importErrors.filePath, filePath),
-          eq(schema.importErrors.status, 'resolved'),
+          sql`${schema.importErrors.status} IN ('resolved', 'retrying', 'pending')`,
         ),
       );
   }

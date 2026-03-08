@@ -49,6 +49,30 @@ async function retryImport(errorId: string): Promise<{ success: boolean; message
   return response.json();
 }
 
+async function dismissImportError(errorId: string): Promise<{ success: boolean }> {
+  const response = await fetch(`/api/admin/import-errors/${errorId}/ignore`, {
+    method: "POST",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to dismiss import error");
+  }
+
+  return response.json();
+}
+
+async function deleteImportError(errorId: string): Promise<void> {
+  const response = await fetch(`/api/admin/import-errors/${errorId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete import error");
+  }
+}
+
 export function useImportErrors() {
   return useQuery({
     queryKey: queryKeys.importErrors.list(),
@@ -63,7 +87,28 @@ export function useRetryImport() {
   return useMutation({
     mutationFn: retryImport,
     onSuccess: () => {
-      // Invalidate all import errors queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: queryKeys.importErrors.all });
+    },
+  });
+}
+
+export function useDismissImportError() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: dismissImportError,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.importErrors.all });
+    },
+  });
+}
+
+export function useDeleteImportError() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deleteImportError,
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.importErrors.all });
     },
   });

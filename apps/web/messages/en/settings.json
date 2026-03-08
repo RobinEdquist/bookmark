@@ -117,6 +117,8 @@
       "noErrors": "No import errors",
       "retry": "Retry",
       "retrying": "Retrying...",
+      "dismiss": "Dismiss",
+      "delete": "Delete",
       "details": "Details",
       "fullPath": "Full Path",
       "attempts": "Attempts",
@@ -125,7 +127,11 @@
       "stackTrace": "Stack trace",
       "toast": {
         "retryQueued": "Retry queued",
-        "retryFailed": "Failed to retry import"
+        "retryFailed": "Failed to retry import",
+        "dismissed": "Error dismissed",
+        "dismissFailed": "Failed to dismiss error",
+        "deleted": "Error deleted",
+        "deleteFailed": "Failed to delete error"
       }
     },
     "rescan": {

@@ -117,6 +117,8 @@
       "noErrors": "Inga importfel",
       "retry": "Försök igen",
       "retrying": "Försöker igen...",
+      "dismiss": "Ignorera",
+      "delete": "Ta bort",
       "details": "Detaljer",
       "fullPath": "Fullständig sökväg",
       "attempts": "Försök",
@@ -125,7 +127,11 @@
       "stackTrace": "Stackspårning",
       "toast": {
         "retryQueued": "Nytt försök köat",
-        "retryFailed": "Kunde inte köa nytt försök"
+        "retryFailed": "Kunde inte köa nytt försök",
+        "dismissed": "Fel ignorerat",
+        "dismissFailed": "Kunde inte ignorera felet",
+        "deleted": "Fel borttaget",
+        "deleteFailed": "Kunde inte ta bort felet"
       }
     },
     "rescan": {

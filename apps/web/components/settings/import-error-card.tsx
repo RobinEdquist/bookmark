@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { RefreshCw, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { RefreshCw, Loader2, ChevronDown, ChevronUp, X, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -10,7 +10,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@repo/ui/components/ui/collapsible";
-import { useRetryImport, type ImportError } from "../../lib/use-import-errors";
+import {
+  useRetryImport,
+  useDismissImportError,
+  useDeleteImportError,
+  type ImportError,
+} from "../../lib/use-import-errors";
 
 interface ImportErrorCardProps {
   error: ImportError;
@@ -28,7 +33,9 @@ function formatDate(dateString: string): string {
 export function ImportErrorCard({ error }: ImportErrorCardProps) {
   const t = useTranslations("settings.libraries.importErrors");
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const { mutate: retry, isPending } = useRetryImport();
+  const { mutate: retry, isPending: isRetrying } = useRetryImport();
+  const { mutate: dismiss, isPending: isDismissing } = useDismissImportError();
+  const { mutate: deleteError, isPending: isDeleting } = useDeleteImportError();
 
   const handleRetry = () => {
     retry(error.id, {
@@ -37,6 +44,28 @@ export function ImportErrorCard({ error }: ImportErrorCardProps) {
       },
       onError: () => {
         toast.error(t("toast.retryFailed"));
+      },
+    });
+  };
+
+  const handleDismiss = () => {
+    dismiss(error.id, {
+      onSuccess: () => {
+        toast.success(t("toast.dismissed"));
+      },
+      onError: () => {
+        toast.error(t("toast.dismissFailed"));
+      },
+    });
+  };
+
+  const handleDelete = () => {
+    deleteError(error.id, {
+      onSuccess: () => {
+        toast.success(t("toast.deleted"));
+      },
+      onError: () => {
+        toast.error(t("toast.deleteFailed"));
       },
     });
   };
@@ -52,20 +81,48 @@ export function ImportErrorCard({ error }: ImportErrorCardProps) {
             {error.errorMessage}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRetry}
-          disabled={isPending || error.status === "retrying"}
-          className="shrink-0"
-        >
-          {isPending || error.status === "retrying" ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-1" />
-          ) : (
-            <RefreshCw className="h-4 w-4 mr-1" />
-          )}
-          {isPending || error.status === "retrying" ? t("retrying") : t("retry")}
-        </Button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRetry}
+            disabled={isRetrying || error.status === "retrying"}
+          >
+            {isRetrying || error.status === "retrying" ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-1" />
+            )}
+            {isRetrying || error.status === "retrying" ? t("retrying") : t("retry")}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDismiss}
+            disabled={isDismissing}
+            title={t("dismiss")}
+          >
+            {isDismissing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <X className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            disabled={isDeleting}
+            title={t("delete")}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            {isDeleting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Trash2 className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
       <Collapsible open={detailsOpen} onOpenChange={setDetailsOpen}>
