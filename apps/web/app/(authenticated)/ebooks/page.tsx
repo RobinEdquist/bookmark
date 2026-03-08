@@ -9,6 +9,7 @@ import { useDebouncedValue } from "../../../lib/use-debounced-value";
 import { SortSelect } from "../../../components/library/sort-select";
 import { useSortPreference } from "../../../lib/use-sort-preference";
 import { useSaveLibraryUrl } from "../../../lib/use-library-return-url";
+import { useSaveLibraryNavigation } from "../../../lib/use-library-navigation";
 import {
   useSaveScrollPosition,
   useRestoreScrollPosition,
@@ -75,6 +76,9 @@ export default function EbooksPage() {
 
   // Flatten pages into single array
   const ebooks = data?.pages.flatMap((page) => page.ebooks) ?? [];
+
+  // Save ordered item IDs for next/prev navigation on detail pages
+  useSaveLibraryNavigation("/ebooks", ebooks.map((e) => e.id));
 
   // Scroll position restoration
   const pagesLoaded = data?.pages.length ?? 0;

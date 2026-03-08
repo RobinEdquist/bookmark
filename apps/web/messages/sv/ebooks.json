@@ -61,6 +61,8 @@
   "detail": {
     "error": "Kunde inte ladda e-bok",
     "backToLibrary": "Tillbaka till biblioteket",
+    "previous": "Föregående e-bok",
+    "next": "Nästa e-bok",
     "read": "Läs",
     "continueReading": "Fortsätt läsa",
     "readNotSupported": "Läsning i webbläsaren stöder endast EPUB-format",

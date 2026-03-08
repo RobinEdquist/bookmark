@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { ArrowLeft, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download, RotateCcw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download, RotateCcw } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -32,6 +32,7 @@ import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { useGrFinderStatus } from "../../../../lib/use-goodreads";
 import { useProgress, useResetProgress } from "../../../../lib/use-progress";
 import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
+import { useLibraryNavigation } from "../../../../lib/use-library-navigation";
 import { usePlayer } from "../../../../components/providers/player-provider";
 import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audiobook-dialog";
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
@@ -81,6 +82,7 @@ export default function AudiobookDetailPage({
   const t = useTranslations("audiobooks.detail");
   const { isDark } = useTheme();
   const returnUrl = useLibraryReturnUrl("/audiobooks");
+  const { previousId, nextId } = useLibraryNavigation("/audiobooks", id);
   const { data: audiobook, isLoading, error } = useAudiobook(id);
   const { data: progress } = useProgress(id);
   const { data: permissions } = useMyPermissions();
@@ -177,6 +179,40 @@ export default function AudiobookDetailPage({
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
+          {(previousId || nextId) && (
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild={!!previousId}
+                disabled={!previousId}
+                title={t("previous")}
+              >
+                {previousId ? (
+                  <Link href={`/audiobooks/${previousId}`}>
+                    <ChevronLeft className="h-5 w-5" />
+                  </Link>
+                ) : (
+                  <ChevronLeft className="h-5 w-5" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild={!!nextId}
+                disabled={!nextId}
+                title={t("next")}
+              >
+                {nextId ? (
+                  <Link href={`/audiobooks/${nextId}`}>
+                    <ChevronRight className="h-5 w-5" />
+                  </Link>
+                ) : (
+                  <ChevronRight className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          )}
           <HeaderSearch mediaType="audiobook" />
           <div className="flex-1" />
           {isHardcoverConfigured && (

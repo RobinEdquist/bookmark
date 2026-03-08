@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import { toast } from "sonner";
-import { ArrowLeft, Calendar, User, BookOpen, Library, Pencil, ChevronDown, ChevronUp, FileText, ImageIcon, Download, CheckCircle2, RotateCcw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, User, BookOpen, Library, Pencil, ChevronDown, ChevronUp, FileText, ImageIcon, Download, CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -26,6 +26,7 @@ import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { useGrFinderStatus } from "../../../../lib/use-goodreads";
 import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
+import { useLibraryNavigation } from "../../../../lib/use-library-navigation";
 import { EditEbookDialog } from "../../../../components/ebooks/edit-ebook-dialog";
 import { ChangeEbookCoverDialog } from "../../../../components/ebooks/change-ebook-cover-dialog";
 import { ReadButton } from "../../../../components/ebooks/read-button";
@@ -54,6 +55,7 @@ export default function EbookDetailPage({
   const t = useTranslations("ebooks.detail");
   const { isDark } = useTheme();
   const returnUrl = useLibraryReturnUrl("/ebooks");
+  const { previousId, nextId } = useLibraryNavigation("/ebooks", id);
   const { data: ebook, isLoading, error } = useEbook(id);
   const { data: ebookProgress } = useEbookProgress(id);
   const { data: permissions } = useMyPermissions();
@@ -126,6 +128,40 @@ export default function EbookDetailPage({
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
+          {(previousId || nextId) && (
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild={!!previousId}
+                disabled={!previousId}
+                title={t("previous")}
+              >
+                {previousId ? (
+                  <Link href={`/ebooks/${previousId}`}>
+                    <ChevronLeft className="h-5 w-5" />
+                  </Link>
+                ) : (
+                  <ChevronLeft className="h-5 w-5" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild={!!nextId}
+                disabled={!nextId}
+                title={t("next")}
+              >
+                {nextId ? (
+                  <Link href={`/ebooks/${nextId}`}>
+                    <ChevronRight className="h-5 w-5" />
+                  </Link>
+                ) : (
+                  <ChevronRight className="h-5 w-5" />
+                )}
+              </Button>
+            </div>
+          )}
           <HeaderSearch mediaType="ebook" />
           <div className="flex-1" />
           {isHardcoverConfigured && (

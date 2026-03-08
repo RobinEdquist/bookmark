@@ -61,6 +61,8 @@
   "detail": {
     "error": "Failed to load ebook",
     "backToLibrary": "Back to Library",
+    "previous": "Previous ebook",
+    "next": "Next ebook",
     "read": "Read",
     "continueReading": "Continue Reading",
     "readNotSupported": "In-browser reading only supports EPUB format",

@@ -69,6 +69,8 @@
   "detail": {
     "error": "Kunde inte ladda ljudbok",
     "backToLibrary": "Tillbaka till biblioteket",
+    "previous": "Föregående ljudbok",
+    "next": "Nästa ljudbok",
     "play": "Spela",
     "pause": "Pausa",
     "resume": "Fortsätt",

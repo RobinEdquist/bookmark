@@ -69,6 +69,8 @@
   "detail": {
     "error": "Failed to load audiobook",
     "backToLibrary": "Back to Library",
+    "previous": "Previous audiobook",
+    "next": "Next audiobook",
     "play": "Play",
     "pause": "Pause",
     "resume": "Resume",
