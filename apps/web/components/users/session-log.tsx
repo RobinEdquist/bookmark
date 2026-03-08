@@ -81,21 +81,21 @@ export function SessionLog({ userId }: SessionLogProps) {
                   className="flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
                 >
                   {/* Cover */}
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded">
-                    {session.coverUrl ? (
-                      <Image
-                        src={session.coverUrl}
-                        alt={session.audiobookTitle}
-                        fill
-                        className="object-cover"
-                        sizes="40px"
-                        unoptimized={session.coverUrl.startsWith("/api/")}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
-                        <Headphones className="h-4 w-4" />
-                      </div>
-                    )}
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
+                    <Image
+                      src={`/api/audiobooks/${session.audiobookId}/cover`}
+                      alt={session.audiobookTitle}
+                      fill
+                      className="object-cover"
+                      sizes="40px"
+                      unoptimized
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                    <div className="absolute inset-0 flex h-full w-full items-center justify-center -z-10 text-muted-foreground">
+                      <Headphones className="h-4 w-4" />
+                    </div>
                   </div>
 
                   {/* Info */}

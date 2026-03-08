@@ -154,25 +154,25 @@ export function LibraryProgressList({ userId }: LibraryProgressListProps) {
                   className="flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
                 >
                   {/* Cover thumbnail */}
-                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded">
-                    {item.coverUrl ? (
-                      <Image
-                        src={item.coverUrl}
-                        alt={item.title}
-                        fill
-                        className="object-cover"
-                        sizes="48px"
-                        unoptimized={item.coverUrl.startsWith("/api/")}
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">
-                        {item.type === "audiobook" ? (
-                          <Headphones className="h-5 w-5" />
-                        ) : (
-                          <BookOpen className="h-5 w-5" />
-                        )}
-                      </div>
-                    )}
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
+                    <Image
+                      src={`/api/${item.type === "audiobook" ? "audiobooks" : "ebooks"}/${item.id}/cover`}
+                      alt={item.title}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                      unoptimized
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                    <div className="absolute inset-0 flex h-full w-full items-center justify-center -z-10 text-muted-foreground">
+                      {item.type === "audiobook" ? (
+                        <Headphones className="h-5 w-5" />
+                      ) : (
+                        <BookOpen className="h-5 w-5" />
+                      )}
+                    </div>
                   </div>
 
                   {/* Info */}

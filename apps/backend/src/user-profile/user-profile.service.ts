@@ -1,13 +1,21 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, count, desc, eq, gte, sql, sum } from 'drizzle-orm';
+import { and, count, desc, eq, gte, inArray, sql, sum } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
+import { AppSettingsService } from '../app-settings/app-settings.service';
+import type {
+  MetadataSource,
+  MetadataFieldPriority,
+} from '../app-settings/schema';
+import { splitPersonNames } from '../common/utils/name.utils';
 import * as progressSchema from '../progress/schema';
 import * as ebookProgressSchema from '../ebook-progress/schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as authSchema from '../auth/schema';
+import * as hardcoverSchema from '../hardcover/schema';
+import * as goodreadsSchema from '../gr-finder/schema';
 import type {
   UserProfileStatsDto,
   UserProfileActivityDto,
@@ -28,7 +36,52 @@ export class UserProfileService {
         typeof authSchema
     >,
     private readonly coverService: CoverService,
+    private readonly appSettingsService: AppSettingsService,
   ) {}
+
+  /**
+   * Resolve a field value based on metadata priority settings.
+   * Manual edits always take priority, then follows the configured order.
+   */
+  private resolveFieldByPriority<T>(
+    fieldName: keyof MetadataFieldPriority,
+    sources: {
+      manual: T | null | undefined;
+      embedded: T | null | undefined;
+      hardcover: T | null | undefined;
+      goodreads?: T | null | undefined;
+    },
+    priority: MetadataSource[],
+    manualFields: string[],
+  ): T | null {
+    if (manualFields.includes(fieldName)) {
+      const value = sources.manual;
+      if (this.hasValue(value)) return value;
+    }
+
+    for (const source of priority) {
+      if (source === 'manual') {
+        continue;
+      } else if (source === 'embedded') {
+        const value = sources.embedded;
+        if (this.hasValue(value)) return value;
+      } else if (source === 'hardcover') {
+        const value = sources.hardcover;
+        if (this.hasValue(value)) return value;
+      } else if (source === 'goodreads') {
+        const value = sources.goodreads;
+        if (this.hasValue(value)) return value;
+      }
+    }
+    return sources.embedded ?? null;
+  }
+
+  private hasValue<T>(value: T | null | undefined): value is T {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string' && value.trim() === '') return false;
+    if (Array.isArray(value) && value.length === 0) return false;
+    return true;
+  }
 
   /**
    * Get aggregated stats for a user profile.
@@ -165,6 +218,38 @@ export class UserProfileService {
   ): Promise<LibraryProgressResponseDto> {
     const items: LibraryProgressItemDto[] = [];
 
+    // Raw results collected before metadata resolution
+    interface RawAudiobookRow {
+      id: string;
+      title: string;
+      manualFields: string[] | null;
+      coverUrl: string | null;
+      coverSource: string | null;
+      duration: number | null;
+      authorName: string | null;
+      currentPosition: number;
+      completed: boolean;
+      completedAt: Date | null;
+      startedAt: Date;
+      updatedAt: Date;
+    }
+    interface RawEbookRow {
+      id: string;
+      title: string;
+      manualFields: string[] | null;
+      coverUrl: string | null;
+      coverSource: string | null;
+      authorName: string | null;
+      progressPercent: number;
+      completed: boolean;
+      completedAt: Date | null;
+      startedAt: Date;
+      updatedAt: Date;
+    }
+
+    let audiobookRows: RawAudiobookRow[] = [];
+    let ebookRows: RawEbookRow[] = [];
+
     // Fetch audiobook progress if requested
     if (type === 'all' || type === 'audiobook') {
       const audiobookConditions = [
@@ -180,74 +265,52 @@ export class UserProfileService {
         );
       }
 
-      const audiobookResults = await this.db
-        .select({
-          id: audiobookSchema.audiobooks.id,
-          title: audiobookSchema.audiobooks.title,
-          coverUrl: audiobookSchema.audiobooks.coverUrl,
-          coverSource: audiobookSchema.audiobooks.coverSource,
-          duration: audiobookSchema.audiobooks.duration,
-          authorName: audiobookSchema.people.name,
-          currentPosition: progressSchema.userAudiobookProgress.currentPosition,
-          completed: progressSchema.userAudiobookProgress.completed,
-          completedAt: progressSchema.userAudiobookProgress.completedAt,
-          startedAt: progressSchema.userAudiobookProgress.startedAt,
-          updatedAt: progressSchema.userAudiobookProgress.updatedAt,
-        })
-        .from(progressSchema.userAudiobookProgress)
-        .innerJoin(
-          audiobookSchema.audiobooks,
-          eq(
-            progressSchema.userAudiobookProgress.audiobookId,
-            audiobookSchema.audiobooks.id,
-          ),
-        )
-        .leftJoin(
-          audiobookSchema.audiobookAuthors,
-          and(
+      audiobookRows = (
+        await this.db
+          .select({
+            id: audiobookSchema.audiobooks.id,
+            title: audiobookSchema.audiobooks.title,
+            manualFields: audiobookSchema.audiobooks.manualFields,
+            coverUrl: audiobookSchema.audiobooks.coverUrl,
+            coverSource: audiobookSchema.audiobooks.coverSource,
+            duration: audiobookSchema.audiobooks.duration,
+            authorName: audiobookSchema.people.name,
+            currentPosition:
+              progressSchema.userAudiobookProgress.currentPosition,
+            completed: progressSchema.userAudiobookProgress.completed,
+            completedAt: progressSchema.userAudiobookProgress.completedAt,
+            startedAt: progressSchema.userAudiobookProgress.startedAt,
+            updatedAt: progressSchema.userAudiobookProgress.updatedAt,
+          })
+          .from(progressSchema.userAudiobookProgress)
+          .innerJoin(
+            audiobookSchema.audiobooks,
             eq(
+              progressSchema.userAudiobookProgress.audiobookId,
               audiobookSchema.audiobooks.id,
-              audiobookSchema.audiobookAuthors.audiobookId,
             ),
-            eq(audiobookSchema.audiobookAuthors.order, 0),
-          ),
-        )
-        .leftJoin(
-          audiobookSchema.people,
-          eq(
-            audiobookSchema.audiobookAuthors.personId,
-            audiobookSchema.people.id,
-          ),
-        )
-        .where(and(...audiobookConditions));
-
-      for (const row of audiobookResults) {
-        const progressPercent = row.duration
-          ? Math.round((row.currentPosition / row.duration) * 100)
-          : 0;
-
-        // Skip items with negligible progress (< 5 min listened) unless completed
-        if (!row.completed && row.currentPosition <= 300) continue;
-
-        items.push({
-          id: row.id,
-          type: 'audiobook',
-          title: row.title,
-          authorName: row.authorName ?? null,
-          coverUrl: this.coverService.getCoverUrl(
-            row.id,
-            row.coverUrl,
-            row.coverSource,
-            'audiobooks',
-          ),
-          progressPercent,
-          completed: row.completed,
-          completedAt: row.completedAt?.toISOString() ?? null,
-          startedAt: row.startedAt.toISOString(),
-          updatedAt: row.updatedAt.toISOString(),
-          duration: row.duration ?? null,
-        });
-      }
+          )
+          .leftJoin(
+            audiobookSchema.audiobookAuthors,
+            and(
+              eq(
+                audiobookSchema.audiobooks.id,
+                audiobookSchema.audiobookAuthors.audiobookId,
+              ),
+              eq(audiobookSchema.audiobookAuthors.order, 0),
+            ),
+          )
+          .leftJoin(
+            audiobookSchema.people,
+            eq(
+              audiobookSchema.audiobookAuthors.personId,
+              audiobookSchema.people.id,
+            ),
+          )
+          .where(and(...audiobookConditions))
+      ).filter(
+        (row) => row.completed || row.currentPosition > 300,
+      ) as RawAudiobookRow[];
     }
 
     // Fetch ebook progress if requested
@@ -265,64 +328,278 @@ export class UserProfileService {
         );
       }
 
-      const ebookResults = await this.db
-        .select({
-          id: ebooksSchema.ebooks.id,
-          title: ebooksSchema.ebooks.title,
-          coverUrl: ebooksSchema.ebooks.coverUrl,
-          coverSource: ebooksSchema.ebooks.coverSource,
-          authorName: audiobookSchema.people.name,
-          progressPercent:
-            ebookProgressSchema.userEbookProgress.progressPercent,
-          completed: ebookProgressSchema.userEbookProgress.completed,
-          completedAt: ebookProgressSchema.userEbookProgress.completedAt,
-          startedAt: ebookProgressSchema.userEbookProgress.startedAt,
-          updatedAt: ebookProgressSchema.userEbookProgress.updatedAt,
-        })
-        .from(ebookProgressSchema.userEbookProgress)
-        .innerJoin(
-          ebooksSchema.ebooks,
-          eq(
-            ebookProgressSchema.userEbookProgress.ebookId,
-            ebooksSchema.ebooks.id,
-          ),
-        )
-        .leftJoin(
-          ebooksSchema.ebookAuthors,
-          and(
-            eq(ebooksSchema.ebooks.id, ebooksSchema.ebookAuthors.ebookId),
-            eq(ebooksSchema.ebookAuthors.order, 0),
-          ),
-        )
-        .leftJoin(
-          audiobookSchema.people,
-          eq(ebooksSchema.ebookAuthors.personId, audiobookSchema.people.id),
-        )
-        .where(and(...ebookConditions));
+      ebookRows = (
+        await this.db
+          .select({
+            id: ebooksSchema.ebooks.id,
+            title: ebooksSchema.ebooks.title,
+            manualFields: ebooksSchema.ebooks.manualFields,
+            coverUrl: ebooksSchema.ebooks.coverUrl,
+            coverSource: ebooksSchema.ebooks.coverSource,
+            authorName: audiobookSchema.people.name,
+            progressPercent:
+              ebookProgressSchema.userEbookProgress.progressPercent,
+            completed: ebookProgressSchema.userEbookProgress.completed,
+            completedAt: ebookProgressSchema.userEbookProgress.completedAt,
+            startedAt: ebookProgressSchema.userEbookProgress.startedAt,
+            updatedAt: ebookProgressSchema.userEbookProgress.updatedAt,
+          })
+          .from(ebookProgressSchema.userEbookProgress)
+          .innerJoin(
+            ebooksSchema.ebooks,
+            eq(
+              ebookProgressSchema.userEbookProgress.ebookId,
+              ebooksSchema.ebooks.id,
+            ),
+          )
+          .leftJoin(
+            ebooksSchema.ebookAuthors,
+            and(
+              eq(ebooksSchema.ebooks.id, ebooksSchema.ebookAuthors.ebookId),
+              eq(ebooksSchema.ebookAuthors.order, 0),
+            ),
+          )
+          .leftJoin(
+            audiobookSchema.people,
+            eq(ebooksSchema.ebookAuthors.personId, audiobookSchema.people.id),
+          )
+          .where(and(...ebookConditions))
+      ).filter(
+        (row) => row.completed || Math.round(row.progressPercent) > 0,
+      ) as RawEbookRow[];
+    }
 
-      for (const row of ebookResults) {
-        // Skip items with negligible progress (rounds to 0%) unless completed
-        if (!row.completed && Math.round(row.progressPercent) <= 0) continue;
+    // Batch-fetch metadata sources for priority resolution
+    const audiobookIds = audiobookRows.map((r) => r.id);
+    const ebookIds = ebookRows.map((r) => r.id);
 
-        items.push({
-          id: row.id,
-          type: 'ebook',
-          title: row.title,
-          authorName: row.authorName ?? null,
-          coverUrl: this.coverService.getCoverUrl(
-            row.id,
-            row.coverUrl,
-            row.coverSource,
-            'ebooks',
-          ),
-          progressPercent: row.progressPercent,
-          completed: row.completed,
-          completedAt: row.completedAt?.toISOString() ?? null,
-          startedAt: row.startedAt.toISOString(),
-          updatedAt: row.updatedAt.toISOString(),
-          duration: null,
-        });
-      }
+    const [
+      hardcoverAbLinks,
+      goodreadsAbLinks,
+      hardcoverEbLinks,
+      goodreadsEbLinks,
+      metadataPriority,
+    ] = await Promise.all([
+      audiobookIds.length > 0
+        ? this.db
+            .select({
+              audiobookId: hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+              hardcoverBook: hardcoverSchema.hardcoverBooks,
+            })
+            .from(hardcoverSchema.hardcoverAudiobookLinks)
+            .innerJoin(
+              hardcoverSchema.hardcoverBooks,
+              eq(
+                hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+                hardcoverSchema.hardcoverBooks.id,
+              ),
+            )
+            .where(
+              inArray(
+                hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+                audiobookIds,
+              ),
+            )
+        : [],
+      audiobookIds.length > 0
+        ? this.db
+            .select({
+              audiobookId: goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
+              goodreadsBook: goodreadsSchema.goodreadsBooks,
+            })
+            .from(goodreadsSchema.goodreadsAudiobookLinks)
+            .innerJoin(
+              goodreadsSchema.goodreadsBooks,
+              eq(
+                goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
+                goodreadsSchema.goodreadsBooks.id,
+              ),
+            )
+            .where(
+              inArray(
+                goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
+                audiobookIds,
+              ),
+            )
+        : [],
+      ebookIds.length > 0
+        ? this.db
+            .select({
+              ebookId: hardcoverSchema.hardcoverEbookLinks.ebookId,
+              hardcoverBook: hardcoverSchema.hardcoverBooks,
+            })
+            .from(hardcoverSchema.hardcoverEbookLinks)
+            .innerJoin(
+              hardcoverSchema.hardcoverBooks,
+              eq(
+                hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+                hardcoverSchema.hardcoverBooks.id,
+              ),
+            )
+            .where(
+              inArray(hardcoverSchema.hardcoverEbookLinks.ebookId, ebookIds),
+            )
+        : [],
+      ebookIds.length > 0
+        ? this.db
+            .select({
+              ebookId: goodreadsSchema.goodreadsEbookLinks.ebookId,
+              goodreadsBook: goodreadsSchema.goodreadsBooks,
+            })
+            .from(goodreadsSchema.goodreadsEbookLinks)
+            .innerJoin(
+              goodreadsSchema.goodreadsBooks,
+              eq(
+                goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+                goodreadsSchema.goodreadsBooks.id,
+              ),
+            )
+            .where(
+              inArray(goodreadsSchema.goodreadsEbookLinks.ebookId, ebookIds),
+            )
+        : [],
+      this.appSettingsService.getMetadataPriority(),
+    ]);
+
+    // Build lookup maps
+    type HardcoverBook = typeof hardcoverSchema.hardcoverBooks.$inferSelect;
+    type GoodreadsBook = typeof goodreadsSchema.goodreadsBooks.$inferSelect;
+
+    const hcAbMap = new Map<string, HardcoverBook>(
+      hardcoverAbLinks.map(
+        (l) => [l.audiobookId, l.hardcoverBook] as [string, HardcoverBook],
+      ),
+    );
+    const grAbMap = new Map<string, GoodreadsBook>(
+      goodreadsAbLinks.map(
+        (l) => [l.audiobookId, l.goodreadsBook] as [string, GoodreadsBook],
+      ),
+    );
+    const hcEbMap = new Map<string, HardcoverBook>(
+      hardcoverEbLinks.map(
+        (l) => [l.ebookId, l.hardcoverBook] as [string, HardcoverBook],
+      ),
+    );
+    const grEbMap = new Map<string, GoodreadsBook>(
+      goodreadsEbLinks.map(
+        (l) => [l.ebookId, l.goodreadsBook] as [string, GoodreadsBook],
+      ),
+    );
+
+    // Build audiobook items with metadata priority resolution
+    for (const row of audiobookRows) {
+      const manualFields = (row.manualFields as string[]) || [];
+      const hc = hcAbMap.get(row.id) || null;
+      const gr = grAbMap.get(row.id) || null;
+
+      const resolvedTitle =
+        this.resolveFieldByPriority(
+          'title',
+          {
+            manual: row.title,
+            embedded: row.title,
+            hardcover: hc?.title,
+            goodreads: gr?.title,
+          },
+          metadataPriority.title,
+          manualFields,
+        ) || row.title;
+
+      const hardcoverAuthorNames = hc?.authorNames || [];
+      const goodreadsAuthorName = gr?.author
+        ? splitPersonNames(gr.author)[0]
+        : null;
+      const resolvedAuthorName =
+        this.resolveFieldByPriority(
+          'author',
+          {
+            manual: row.authorName,
+            embedded: row.authorName,
+            hardcover: hardcoverAuthorNames[0] ?? null,
+            goodreads: goodreadsAuthorName,
+          },
+          metadataPriority.author,
+          manualFields,
+        ) ?? null;
+
+      const progressPercent = row.duration
+        ? Math.round((row.currentPosition / row.duration) * 100)
+        : 0;
+
+      items.push({
+        id: row.id,
+        type: 'audiobook',
+        title: resolvedTitle,
+        authorName: resolvedAuthorName,
+        coverUrl: this.coverService.getCoverUrl(
+          row.id,
+          row.coverUrl,
+          row.coverSource,
+          'audiobooks',
+        ),
+        progressPercent,
+        completed: row.completed,
+        completedAt: row.completedAt?.toISOString() ?? null,
+        startedAt: row.startedAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        duration: row.duration ?? null,
+      });
+    }
+
+    // Build ebook items with metadata priority resolution
+    for (const row of ebookRows) {
+      const manualFields = (row.manualFields as string[]) || [];
+      const hc = hcEbMap.get(row.id) || null;
+      const gr = grEbMap.get(row.id) || null;
+
+      const resolvedTitle =
+        this.resolveFieldByPriority(
+          'title',
+          {
+            manual: row.title,
+            embedded: row.title,
+            hardcover: hc?.title,
+            goodreads: gr?.title,
+          },
+          metadataPriority.title,
+          manualFields,
+        ) || row.title;
+
+      const hardcoverAuthorNames = hc?.authorNames || [];
+      const goodreadsAuthorName = gr?.author
+        ? splitPersonNames(gr.author)[0]
+        : null;
+      const resolvedAuthorName =
+        this.resolveFieldByPriority(
+          'author',
+          {
+            manual: row.authorName,
+            embedded: row.authorName,
+            hardcover: hardcoverAuthorNames[0] ?? null,
+            goodreads: goodreadsAuthorName,
+          },
+          metadataPriority.author,
+          manualFields,
+        ) ?? null;
+
+      items.push({
+        id: row.id,
+        type: 'ebook',
+        title: resolvedTitle,
+        authorName: resolvedAuthorName,
+        coverUrl: this.coverService.getCoverUrl(
+          row.id,
+          row.coverUrl,
+          row.coverSource,
+          'ebooks',
+        ),
+        progressPercent: row.progressPercent,
+        completed: row.completed,
+        completedAt: row.completedAt?.toISOString() ?? null,
+        startedAt: row.startedAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        duration: null,
+      });
     }
 
     // Deduplicate by id+type, keeping the most recently updated entry
@@ -373,6 +650,7 @@ export class UserProfileService {
           id: progressSchema.listeningSessions.id,
           audiobookId: progressSchema.listeningSessions.audiobookId,
           audiobookTitle: audiobookSchema.audiobooks.title,
+          manualFields: audiobookSchema.audiobooks.manualFields,
           coverUrl: audiobookSchema.audiobooks.coverUrl,
           coverSource: audiobookSchema.audiobooks.coverSource,
           authorName: audiobookSchema.people.name,
@@ -418,25 +696,127 @@ export class UserProfileService {
         .where(eq(progressSchema.listeningSessions.userId, userId)),
     ]);
 
-    const items = results.map((row) => ({
-      id: row.id,
-      audiobookId: row.audiobookId,
-      audiobookTitle: row.audiobookTitle ?? 'Unknown audiobook',
-      authorName: row.authorName ?? null,
-      coverUrl: row.coverUrl
-        ? this.coverService.getCoverUrl(
-            row.audiobookId,
-            row.coverUrl,
-            row.coverSource,
-            'audiobooks',
-          )
-        : null,
-      durationSeconds: row.durationSeconds,
-      startPosition: row.startPosition,
-      endPosition: row.endPosition,
-      startedAt: row.startedAt.toISOString(),
-      endedAt: row.endedAt.toISOString(),
-    }));
+    // Batch-fetch metadata sources for priority resolution
+    const audiobookIds = [...new Set(results.map((r) => r.audiobookId))];
+
+    const [hardcoverLinks, goodreadsLinks, metadataPriority] =
+      await Promise.all([
+        audiobookIds.length > 0
+          ? this.db
+              .select({
+                audiobookId:
+                  hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+                hardcoverBook: hardcoverSchema.hardcoverBooks,
+              })
+              .from(hardcoverSchema.hardcoverAudiobookLinks)
+              .innerJoin(
+                hardcoverSchema.hardcoverBooks,
+                eq(
+                  hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+                  hardcoverSchema.hardcoverBooks.id,
+                ),
+              )
+              .where(
+                inArray(
+                  hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+                  audiobookIds,
+                ),
+              )
+          : [],
+        audiobookIds.length > 0
+          ? this.db
+              .select({
+                audiobookId:
+                  goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
+                goodreadsBook: goodreadsSchema.goodreadsBooks,
+              })
+              .from(goodreadsSchema.goodreadsAudiobookLinks)
+              .innerJoin(
+                goodreadsSchema.goodreadsBooks,
+                eq(
+                  goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
+                  goodreadsSchema.goodreadsBooks.id,
+                ),
+              )
+              .where(
+                inArray(
+                  goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
+                  audiobookIds,
+                ),
+              )
+          : [],
+        this.appSettingsService.getMetadataPriority(),
+      ]);
+
+    type HardcoverBook = typeof hardcoverSchema.hardcoverBooks.$inferSelect;
+    type GoodreadsBook = typeof goodreadsSchema.goodreadsBooks.$inferSelect;
+
+    const hcMap = new Map<string, HardcoverBook>(
+      hardcoverLinks.map(
+        (l) => [l.audiobookId, l.hardcoverBook] as [string, HardcoverBook],
+      ),
+    );
+    const grMap = new Map<string, GoodreadsBook>(
+      goodreadsLinks.map(
+        (l) => [l.audiobookId, l.goodreadsBook] as [string, GoodreadsBook],
+      ),
+    );
+
+    const items = results.map((row) => {
+      const manualFields = (row.manualFields as string[]) || [];
+      const hc = hcMap.get(row.audiobookId) || null;
+      const gr = grMap.get(row.audiobookId) || null;
+
+      const resolvedTitle =
+        this.resolveFieldByPriority(
+          'title',
+          {
+            manual: row.audiobookTitle,
+            embedded: row.audiobookTitle,
+            hardcover: hc?.title,
+            goodreads: gr?.title,
+          },
+          metadataPriority.title,
+          manualFields,
+        ) ||
+        row.audiobookTitle ||
+        'Unknown audiobook';
+
+      const hardcoverAuthorNames = hc?.authorNames || [];
+      const goodreadsAuthorName = gr?.author
+        ? splitPersonNames(gr.author)[0]
+        : null;
+      const resolvedAuthorName =
+        this.resolveFieldByPriority(
+          'author',
+          {
+            manual: row.authorName,
+            embedded: row.authorName,
+            hardcover: hardcoverAuthorNames[0] ?? null,
+            goodreads: goodreadsAuthorName,
+          },
+          metadataPriority.author,
+          manualFields,
+        ) ?? null;
+
+      return {
+        id: row.id,
+        audiobookId: row.audiobookId,
+        audiobookTitle: resolvedTitle,
+        authorName: resolvedAuthorName,
+        coverUrl: this.coverService.getCoverUrl(
+          row.audiobookId,
+          row.coverUrl,
+          row.coverSource,
+          'audiobooks',
+        ),
+        durationSeconds: row.durationSeconds,
+        startPosition: row.startPosition,
+        endPosition: row.endPosition,
+        startedAt: row.startedAt.toISOString(),
+        endedAt: row.endedAt.toISOString(),
+      };
+    });
 
     return { items, total: totalResult[0]?.count ?? 0 };
   }
