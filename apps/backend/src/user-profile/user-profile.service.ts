@@ -69,6 +69,13 @@ export class UserProfileService {
           inProgress: sql<number>`COALESCE(SUM(CASE WHEN NOT ${progressSchema.userAudiobookProgress.completed} AND ${progressSchema.userAudiobookProgress.currentPosition} > 300 THEN 1 ELSE 0 END), 0)`,
         })
         .from(progressSchema.userAudiobookProgress)
+        .innerJoin(
+          audiobookSchema.audiobooks,
+          eq(
+            progressSchema.userAudiobookProgress.audiobookId,
+            audiobookSchema.audiobooks.id,
+          ),
+        )
         .where(eq(progressSchema.userAudiobookProgress.userId, userId)),
 
       // Ebook progress counts (filter out barely-started: progress_percent rounds to 0%)
