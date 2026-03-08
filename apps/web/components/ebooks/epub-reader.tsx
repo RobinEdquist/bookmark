@@ -236,7 +236,7 @@ export function EpubReader({
             showToc={false}
             readerStyles={readerStyles}
             epubOptions={{
-              allowScriptedContent: false,
+              allowScriptedContent: true,
             }}
           />
         )}
