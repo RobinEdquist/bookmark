@@ -313,7 +313,7 @@ export class ProgressService {
       )
       .orderBy(desc(progressSchema.userAudiobookProgress.updatedAt));
 
-    return results
+    const mapped = results
       .map(({ progress, audiobook }) => ({
         audiobookId: progress.audiobookId,
         position: progress.currentPosition,
@@ -332,6 +332,19 @@ export class ProgressService {
           : 0,
       }))
       .filter((item) => item.completed || item.progressPercent > 0);
+
+    // Deduplicate by audiobookId, keeping the most recently updated entry
+    const deduped = new Map<string, ProgressWithAudiobook>();
+    for (const item of mapped) {
+      const existing = deduped.get(item.audiobookId);
+      if (
+        !existing ||
+        new Date(item.updatedAt) > new Date(existing.updatedAt)
+      ) {
+        deduped.set(item.audiobookId, item);
+      }
+    }
+    return Array.from(deduped.values());
   }
 
   /**
