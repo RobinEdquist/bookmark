@@ -552,7 +552,6 @@ export default function EbookDetailPage({
           mediaType="ebook"
           mediaId={id}
           mediaTitle={ebook.title}
-          initialQuery={`${ebook.title} ${authors}`}
           open={goodreadsSearchOpen}
           onOpenChange={setGoodreadsSearchOpen}
         />

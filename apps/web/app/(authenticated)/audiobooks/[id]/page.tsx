@@ -731,7 +731,6 @@ export default function AudiobookDetailPage({
           mediaType="audiobook"
           mediaId={id}
           mediaTitle={audiobook.title}
-          initialQuery={`${audiobook.title} ${authors}`}
           open={goodreadsSearchOpen}
           onOpenChange={setGoodreadsSearchOpen}
         />
