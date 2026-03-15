@@ -6,6 +6,7 @@ import {
   eq,
   gt,
   gte,
+  lte,
   sql,
   count,
   notExists,
@@ -189,8 +190,9 @@ export class ProgressService {
    * Record a listening session.
    * If a recent session exists for the same user+audiobook (ended within the
    * last 10 minutes), the existing session is extended instead of creating a
-   * new row. This prevents duplicate overlapping sessions from clients that
-   * report progress periodically (e.g. mobile apps).
+   * new row. As a fallback, sessions whose positions overlap on the same
+   * calendar day are also merged. This prevents duplicate overlapping sessions
+   * from clients that report progress periodically (e.g. mobile apps).
    */
   private static readonly SESSION_MERGE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -199,14 +201,15 @@ export class ProgressService {
     audiobookId: string,
     dto: CreateSessionDto,
   ): Promise<{ id: string; durationSeconds: number }> {
+    // Strategy 1: Time-window merge (session ended within last 10 minutes)
     const mergeThreshold = new Date(
       Date.now() - ProgressService.SESSION_MERGE_WINDOW_MS,
     );
 
-    // Look for a recent session to extend
-    const [existing] = await this.db
+    const [timeWindowMatch] = await this.db
       .select({
         id: progressSchema.listeningSessions.id,
+        durationSeconds: progressSchema.listeningSessions.durationSeconds,
       })
       .from(progressSchema.listeningSessions)
       .where(
@@ -219,25 +222,22 @@ export class ProgressService {
       .orderBy(desc(progressSchema.listeningSessions.endedAt))
       .limit(1);
 
-    if (existing) {
-      // Extend the existing session
-      const [updated] = await this.db
-        .update(progressSchema.listeningSessions)
-        .set({
-          endedAt: new Date(dto.endedAt),
-          endPosition: dto.endPosition,
-          durationSeconds: dto.durationSeconds,
-        })
-        .where(eq(progressSchema.listeningSessions.id, existing.id))
-        .returning({
-          id: progressSchema.listeningSessions.id,
-          durationSeconds: progressSchema.listeningSessions.durationSeconds,
-        });
-
-      return updated;
+    if (timeWindowMatch) {
+      return this.extendSession(timeWindowMatch, dto);
     }
 
-    // No recent session found — create a new one
+    // Strategy 2: Position-overlap merge on the same calendar day
+    const positionOverlapMatch = await this.findPositionOverlapSession(
+      userId,
+      audiobookId,
+      dto,
+    );
+
+    if (positionOverlapMatch) {
+      return this.extendSession(positionOverlapMatch, dto);
+    }
+
+    // No merge candidate found — create a new session
     const [session] = await this.db
       .insert(progressSchema.listeningSessions)
       .values({
@@ -255,6 +255,67 @@ export class ProgressService {
       });
 
     return session;
+  }
+
+  /**
+   * Extend an existing session with values from a new session DTO.
+   * Uses MAX semantics for endedAt, endPosition, and durationSeconds.
+   */
+  private async extendSession(
+    existing: { id: string; durationSeconds: number },
+    dto: CreateSessionDto,
+  ): Promise<{ id: string; durationSeconds: number }> {
+    const [updated] = await this.db
+      .update(progressSchema.listeningSessions)
+      .set({
+        endedAt: new Date(dto.endedAt),
+        endPosition: dto.endPosition,
+        durationSeconds: Math.max(
+          existing.durationSeconds,
+          dto.durationSeconds,
+        ),
+      })
+      .where(eq(progressSchema.listeningSessions.id, existing.id))
+      .returning({
+        id: progressSchema.listeningSessions.id,
+        durationSeconds: progressSchema.listeningSessions.durationSeconds,
+      });
+
+    return updated;
+  }
+
+  /**
+   * Find an existing session for the same user+audiobook on the same calendar
+   * day where the new session's startPosition falls within the existing
+   * session's [startPosition, endPosition] range.
+   */
+  private async findPositionOverlapSession(
+    userId: string,
+    audiobookId: string,
+    dto: CreateSessionDto,
+  ): Promise<{ id: string; durationSeconds: number } | undefined> {
+    const [match] = await this.db
+      .select({
+        id: progressSchema.listeningSessions.id,
+        durationSeconds: progressSchema.listeningSessions.durationSeconds,
+      })
+      .from(progressSchema.listeningSessions)
+      .where(
+        and(
+          eq(progressSchema.listeningSessions.userId, userId),
+          eq(progressSchema.listeningSessions.audiobookId, audiobookId),
+          lte(
+            progressSchema.listeningSessions.startPosition,
+            dto.startPosition,
+          ),
+          gte(progressSchema.listeningSessions.endPosition, dto.startPosition),
+          sql`DATE(${progressSchema.listeningSessions.startedAt}) = DATE(${new Date(dto.startedAt)})`,
+        ),
+      )
+      .orderBy(desc(progressSchema.listeningSessions.endedAt))
+      .limit(1);
+
+    return match;
   }
 
   /**

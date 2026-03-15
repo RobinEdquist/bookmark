@@ -115,6 +115,184 @@ describe('ProgressService', () => {
     });
   });
 
+  describe('createSession', () => {
+    const baseDto = {
+      startedAt: '2026-03-15T10:00:00Z',
+      endedAt: '2026-03-15T10:05:00Z',
+      startPosition: 100,
+      endPosition: 400,
+      durationSeconds: 300,
+    };
+
+    function buildSelectChain(result: any[]) {
+      return {
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockResolvedValue(result),
+      };
+    }
+
+    function buildInsertChain(result: any) {
+      const returning = jest.fn().mockResolvedValue([result]);
+      const values = jest.fn().mockReturnValue({ returning });
+      const insert = jest.fn().mockReturnValue({ values });
+      return { insert, values, returning };
+    }
+
+    function buildUpdateChain(result: any) {
+      const returning = jest.fn().mockResolvedValue([result]);
+      const where = jest.fn().mockReturnValue({ returning });
+      const set = jest.fn().mockReturnValue({ where });
+      const update = jest.fn().mockReturnValue({ set });
+      return { update, set, where, returning };
+    }
+
+    it('creates a new session when no existing session found', async () => {
+      const emptySelect = buildSelectChain([]);
+      const { insert } = buildInsertChain({
+        id: 'new-session',
+        durationSeconds: 300,
+      });
+
+      // select is called twice (time-window, then position-overlap), both empty
+      const selectFn = jest.fn().mockReturnValue(emptySelect);
+
+      const db = createMockDb({ select: selectFn, insert });
+      const service = new ProgressService(db);
+
+      const result = await service.createSession('user-1', 'ab-1', baseDto);
+
+      expect(result.id).toBe('new-session');
+      expect(result.durationSeconds).toBe(300);
+      expect(insert).toHaveBeenCalled();
+    });
+
+    it('merges with existing session within 10-minute time window', async () => {
+      const existingSession = { id: 'existing-1', durationSeconds: 200 };
+      const timeWindowSelect = buildSelectChain([existingSession]);
+
+      const { update } = buildUpdateChain({
+        id: 'existing-1',
+        durationSeconds: 300,
+      });
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(timeWindowSelect),
+        update,
+      });
+      const service = new ProgressService(db);
+
+      const result = await service.createSession('user-1', 'ab-1', baseDto);
+
+      expect(result.id).toBe('existing-1');
+      expect(result.durationSeconds).toBe(300);
+      expect(update).toHaveBeenCalled();
+    });
+
+    it('merges with existing session when positions overlap on same day', async () => {
+      const existingSession = { id: 'existing-2', durationSeconds: 150 };
+
+      // First call (time-window): no match. Second call (position-overlap): match.
+      const emptySelect = buildSelectChain([]);
+      const overlapSelect = buildSelectChain([existingSession]);
+
+      const selectFn = jest
+        .fn()
+        .mockReturnValueOnce(emptySelect)
+        .mockReturnValueOnce(overlapSelect);
+
+      const { update } = buildUpdateChain({
+        id: 'existing-2',
+        durationSeconds: 300,
+      });
+
+      const db = createMockDb({ select: selectFn, update });
+      const service = new ProgressService(db);
+
+      const result = await service.createSession('user-1', 'ab-1', baseDto);
+
+      expect(result.id).toBe('existing-2');
+      expect(result.durationSeconds).toBe(300);
+      expect(update).toHaveBeenCalled();
+    });
+
+    it('does NOT merge sessions on different days even with position overlap', async () => {
+      // Both selects return empty (time-window miss + position-overlap miss because different day)
+      const emptySelect = buildSelectChain([]);
+      const selectFn = jest.fn().mockReturnValue(emptySelect);
+
+      const { insert } = buildInsertChain({
+        id: 'new-session',
+        durationSeconds: 300,
+      });
+
+      const db = createMockDb({ select: selectFn, insert });
+      const service = new ProgressService(db);
+
+      const result = await service.createSession('user-1', 'ab-1', baseDto);
+
+      // Both selects returned empty, so a new session is created
+      expect(result.id).toBe('new-session');
+      expect(insert).toHaveBeenCalled();
+      // select called twice: once for time-window, once for position-overlap
+      expect(selectFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('does NOT merge non-overlapping sessions on the same day', async () => {
+      // Both selects return empty (no time-window match, no position overlap)
+      const emptySelect = buildSelectChain([]);
+      const selectFn = jest.fn().mockReturnValue(emptySelect);
+
+      const { insert } = buildInsertChain({
+        id: 'new-session',
+        durationSeconds: 300,
+      });
+
+      const db = createMockDb({ select: selectFn, insert });
+      const service = new ProgressService(db);
+
+      const result = await service.createSession('user-1', 'ab-1', baseDto);
+
+      expect(result.id).toBe('new-session');
+      expect(insert).toHaveBeenCalled();
+      expect(selectFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('uses MAX of durations when merging via extendSession', async () => {
+      // Existing session has a LARGER duration than the new one
+      const existingSession = { id: 'existing-3', durationSeconds: 500 };
+      const timeWindowSelect = buildSelectChain([existingSession]);
+
+      const updateReturning = jest.fn().mockResolvedValue([
+        {
+          id: 'existing-3',
+          durationSeconds: 500,
+        },
+      ]);
+      const updateWhere = jest
+        .fn()
+        .mockReturnValue({ returning: updateReturning });
+      const updateSet = jest.fn().mockReturnValue({ where: updateWhere });
+      const update = jest.fn().mockReturnValue({ set: updateSet });
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(timeWindowSelect),
+        update,
+      });
+      const service = new ProgressService(db);
+
+      await service.createSession('user-1', 'ab-1', {
+        ...baseDto,
+        durationSeconds: 200, // smaller than existing 500
+      });
+
+      // Verify set was called with MAX(500, 200) = 500
+      const setArg = updateSet.mock.calls[0][0];
+      expect(setArg.durationSeconds).toBe(500);
+    });
+  });
+
   describe('getAllProgress - deduplication', () => {
     it('deduplicates results by audiobookId, keeping the most recent', async () => {
       const olderDate = new Date('2026-03-08T16:30:00Z');
