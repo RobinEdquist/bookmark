@@ -454,4 +454,469 @@ describe('ProgressService', () => {
       expect(results[0].position).toBe(4075);
     });
   });
+
+  describe('getProgress', () => {
+    it('returns mapped progress when record exists', async () => {
+      const now = new Date('2026-03-15T10:00:00Z');
+      const completedAt = new Date('2026-03-14T08:00:00Z');
+
+      const progressRow = {
+        id: 'progress-1',
+        userId: 'user-1',
+        audiobookId: 'audiobook-1',
+        currentPosition: 500,
+        completed: true,
+        completedAt,
+        isHidden: false,
+        startedAt: now,
+        updatedAt: now,
+      };
+
+      const selectQuery = {
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockResolvedValue([progressRow]),
+      };
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(selectQuery),
+      });
+
+      const service = new ProgressService(db);
+      const result = await service.getProgress('user-1', 'audiobook-1');
+
+      expect(result).toEqual({
+        audiobookId: 'audiobook-1',
+        position: 500,
+        completed: true,
+        completedAt: completedAt.toISOString(),
+        startedAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      });
+    });
+
+    it('returns null when no progress record exists', async () => {
+      const selectQuery = {
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockResolvedValue([]),
+      };
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(selectQuery),
+      });
+
+      const service = new ProgressService(db);
+      const result = await service.getProgress('user-1', 'audiobook-1');
+
+      expect(result).toBeNull();
+    });
+
+    it('returns completedAt as null when not completed', async () => {
+      const now = new Date('2026-03-15T10:00:00Z');
+
+      const progressRow = {
+        id: 'progress-1',
+        userId: 'user-1',
+        audiobookId: 'audiobook-1',
+        currentPosition: 120,
+        completed: false,
+        completedAt: null,
+        isHidden: false,
+        startedAt: now,
+        updatedAt: now,
+      };
+
+      const selectQuery = {
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockResolvedValue([progressRow]),
+      };
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(selectQuery),
+      });
+
+      const service = new ProgressService(db);
+      const result = await service.getProgress('user-1', 'audiobook-1');
+
+      expect(result).not.toBeNull();
+      expect(result!.completedAt).toBeNull();
+      expect(result!.completed).toBe(false);
+    });
+
+    it('maps position from currentPosition field', async () => {
+      const now = new Date();
+      const progressRow = {
+        id: 'progress-1',
+        userId: 'user-1',
+        audiobookId: 'audiobook-1',
+        currentPosition: 9999,
+        completed: false,
+        completedAt: null,
+        isHidden: false,
+        startedAt: now,
+        updatedAt: now,
+      };
+
+      const selectQuery = {
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockResolvedValue([progressRow]),
+      };
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(selectQuery),
+      });
+
+      const service = new ProgressService(db);
+      const result = await service.getProgress('user-1', 'audiobook-1');
+
+      expect(result!.position).toBe(9999);
+    });
+
+    it('queries the userAudiobookProgress table', async () => {
+      const selectQuery = {
+        from: jest.fn().mockReturnThis(),
+        where: jest.fn().mockResolvedValue([]),
+      };
+
+      const selectFn = jest.fn().mockReturnValue(selectQuery);
+      const db = createMockDb({ select: selectFn });
+
+      const service = new ProgressService(db);
+      await service.getProgress('user-1', 'audiobook-1');
+
+      expect(selectFn).toHaveBeenCalled();
+      expect(selectQuery.from).toHaveBeenCalledWith(
+        progressSchema.userAudiobookProgress,
+      );
+    });
+  });
+
+  describe('getListeningStats', () => {
+    function buildStatsDb(overrides: {
+      todayStats?: any[];
+      weekStats?: any[];
+      monthStats?: any[];
+      allTimeStats?: any[];
+      progressStats?: any[];
+      allProgressResults?: any[];
+    }) {
+      const {
+        todayStats = [{ duration: 0, sessions: 0 }],
+        weekStats = [{ duration: 0, sessions: 0 }],
+        monthStats = [{ duration: 0, sessions: 0 }],
+        allTimeStats = [{ duration: 0 }],
+        progressStats = [{ started: 0, completed: 0 }],
+        allProgressResults = [],
+      } = overrides;
+
+      // getListeningStats runs 5 selects via Promise.all, then getAllProgress
+      // runs its own select. The Promise.all queries resolve via .from().where(),
+      // while getAllProgress uses .from().innerJoin().where().orderBy().
+      const selectCalls = [
+        todayStats,
+        weekStats,
+        monthStats,
+        allTimeStats,
+        progressStats,
+        allProgressResults,
+      ];
+
+      let callIndex = 0;
+      const selectFn = jest.fn().mockImplementation(() => {
+        const idx = callIndex++;
+        const result = selectCalls[idx] ?? [];
+
+        // Build a chain object that supports both patterns:
+        // .from().where() and .from().innerJoin().where().orderBy()
+        const chain: any = {};
+        chain.from = jest.fn().mockReturnValue(chain);
+        chain.innerJoin = jest.fn().mockReturnValue(chain);
+        chain.where = jest.fn().mockReturnValue(chain);
+        chain.orderBy = jest.fn().mockResolvedValue(result);
+
+        // For the simple .from().where() pattern (first 5 calls),
+        // where() must resolve directly to the result
+        if (idx < 5) {
+          chain.where = jest.fn().mockResolvedValue(result);
+        }
+
+        return chain;
+      });
+
+      return createMockDb({ select: selectFn });
+    }
+
+    it('returns correct structure with all zero stats', async () => {
+      const db = buildStatsDb({});
+      const service = new ProgressService(db);
+      const stats = await service.getListeningStats('user-1');
+
+      expect(stats).toEqual({
+        today: { durationSeconds: 0, sessionsCount: 0 },
+        thisWeek: { durationSeconds: 0, sessionsCount: 0 },
+        thisMonth: { durationSeconds: 0, sessionsCount: 0 },
+        allTime: {
+          durationSeconds: 0,
+          audiobooksStarted: 0,
+          audiobooksCompleted: 0,
+        },
+        recentlyPlayed: [],
+      });
+    });
+
+    it('maps today stats from first query result', async () => {
+      const db = buildStatsDb({
+        todayStats: [{ duration: 3600, sessions: 5 }],
+      });
+      const service = new ProgressService(db);
+      const stats = await service.getListeningStats('user-1');
+
+      expect(stats.today.durationSeconds).toBe(3600);
+      expect(stats.today.sessionsCount).toBe(5);
+    });
+
+    it('maps week stats from second query result', async () => {
+      const db = buildStatsDb({
+        weekStats: [{ duration: 14400, sessions: 12 }],
+      });
+      const service = new ProgressService(db);
+      const stats = await service.getListeningStats('user-1');
+
+      expect(stats.thisWeek.durationSeconds).toBe(14400);
+      expect(stats.thisWeek.sessionsCount).toBe(12);
+    });
+
+    it('maps month stats from third query result', async () => {
+      const db = buildStatsDb({
+        monthStats: [{ duration: 86400, sessions: 50 }],
+      });
+      const service = new ProgressService(db);
+      const stats = await service.getListeningStats('user-1');
+
+      expect(stats.thisMonth.durationSeconds).toBe(86400);
+      expect(stats.thisMonth.sessionsCount).toBe(50);
+    });
+
+    it('maps allTime stats including audiobooks started and completed', async () => {
+      const db = buildStatsDb({
+        allTimeStats: [{ duration: 360000 }],
+        progressStats: [{ started: 10, completed: 3 }],
+      });
+      const service = new ProgressService(db);
+      const stats = await service.getListeningStats('user-1');
+
+      expect(stats.allTime.durationSeconds).toBe(360000);
+      expect(stats.allTime.audiobooksStarted).toBe(10);
+      expect(stats.allTime.audiobooksCompleted).toBe(3);
+    });
+
+    it('filters out completed audiobooks from recentlyPlayed', async () => {
+      const now = new Date('2026-03-15T10:00:00Z');
+
+      const db = buildStatsDb({});
+      const service = new ProgressService(db);
+
+      // Spy on getAllProgress to return controlled data
+      jest.spyOn(service, 'getAllProgress').mockResolvedValue([
+        {
+          audiobookId: 'ab-1',
+          position: 500,
+          completed: true,
+          completedAt: now.toISOString(),
+          startedAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+          audiobook: {
+            id: 'ab-1',
+            title: 'Completed Book',
+            coverUrl: null,
+            duration: 500,
+          },
+          progressPercent: 100,
+        },
+        {
+          audiobookId: 'ab-2',
+          position: 100,
+          completed: false,
+          completedAt: null,
+          startedAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+          audiobook: {
+            id: 'ab-2',
+            title: 'In Progress Book',
+            coverUrl: null,
+            duration: 1000,
+          },
+          progressPercent: 10,
+        },
+      ]);
+
+      const stats = await service.getListeningStats('user-1');
+
+      // Completed books are filtered out of recentlyPlayed
+      expect(stats.recentlyPlayed).toHaveLength(1);
+      expect(stats.recentlyPlayed[0].audiobookId).toBe('ab-2');
+    });
+
+    it('limits recentlyPlayed to 5 items', async () => {
+      const now = new Date('2026-03-15T10:00:00Z');
+
+      const db = buildStatsDb({});
+      const service = new ProgressService(db);
+
+      // Spy on getAllProgress to return 8 in-progress items
+      jest.spyOn(service, 'getAllProgress').mockResolvedValue(
+        Array.from({ length: 8 }, (_, i) => ({
+          audiobookId: `ab-${i}`,
+          position: 100,
+          completed: false,
+          completedAt: null,
+          startedAt: now.toISOString(),
+          updatedAt: now.toISOString(),
+          audiobook: {
+            id: `ab-${i}`,
+            title: `Book ${i}`,
+            coverUrl: null,
+            duration: 1000,
+          },
+          progressPercent: 10,
+        })),
+      );
+
+      const stats = await service.getListeningStats('user-1');
+
+      expect(stats.recentlyPlayed.length).toBeLessThanOrEqual(5);
+    });
+
+    it('converts string duration values to numbers', async () => {
+      // SQL aggregates sometimes return strings
+      const db = buildStatsDb({
+        todayStats: [{ duration: '1800', sessions: 3 }],
+        allTimeStats: [{ duration: '99999' }],
+      });
+      const service = new ProgressService(db);
+      const stats = await service.getListeningStats('user-1');
+
+      expect(stats.today.durationSeconds).toBe(1800);
+      expect(stats.allTime.durationSeconds).toBe(99999);
+    });
+  });
+
+  describe('resetProgress', () => {
+    it('deletes the progress record successfully', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 1 });
+      const deleteFn = jest.fn().mockReturnValue({ where });
+
+      const db = createMockDb({ delete: deleteFn });
+      const service = new ProgressService(db);
+
+      await expect(
+        service.resetProgress('user-1', 'audiobook-1'),
+      ).resolves.toBeUndefined();
+
+      expect(deleteFn).toHaveBeenCalledWith(
+        progressSchema.userAudiobookProgress,
+      );
+    });
+
+    it('throws NotFoundException when rowCount is 0', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 0 });
+      const deleteFn = jest.fn().mockReturnValue({ where });
+
+      const db = createMockDb({ delete: deleteFn });
+      const service = new ProgressService(db);
+
+      await expect(
+        service.resetProgress('user-1', 'nonexistent'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFoundException with correct message', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 0 });
+      const deleteFn = jest.fn().mockReturnValue({ where });
+
+      const db = createMockDb({ delete: deleteFn });
+      const service = new ProgressService(db);
+
+      await expect(
+        service.resetProgress('user-1', 'nonexistent'),
+      ).rejects.toThrow('Progress record not found');
+    });
+
+    it('returns void on success (no return value)', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 1 });
+      const deleteFn = jest.fn().mockReturnValue({ where });
+
+      const db = createMockDb({ delete: deleteFn });
+      const service = new ProgressService(db);
+
+      const result = await service.resetProgress('user-1', 'audiobook-1');
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('hideProgress', () => {
+    it('sets isHidden to true on the progress record', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 1 });
+      const set = jest.fn().mockReturnValue({ where });
+      const update = jest.fn().mockReturnValue({ set });
+
+      const db = createMockDb({ update });
+      const service = new ProgressService(db);
+
+      await service.hideProgress('user-1', 'audiobook-1');
+
+      expect(update).toHaveBeenCalledWith(progressSchema.userAudiobookProgress);
+      expect(set).toHaveBeenCalledWith({ isHidden: true });
+    });
+
+    it('throws NotFoundException when rowCount is 0', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 0 });
+      const set = jest.fn().mockReturnValue({ where });
+      const update = jest.fn().mockReturnValue({ set });
+
+      const db = createMockDb({ update });
+      const service = new ProgressService(db);
+
+      await expect(
+        service.hideProgress('user-1', 'nonexistent'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws NotFoundException with correct message', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 0 });
+      const set = jest.fn().mockReturnValue({ where });
+      const update = jest.fn().mockReturnValue({ set });
+
+      const db = createMockDb({ update });
+      const service = new ProgressService(db);
+
+      await expect(
+        service.hideProgress('user-1', 'nonexistent'),
+      ).rejects.toThrow('Progress record not found');
+    });
+
+    it('returns void on success', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 1 });
+      const set = jest.fn().mockReturnValue({ where });
+      const update = jest.fn().mockReturnValue({ set });
+
+      const db = createMockDb({ update });
+      const service = new ProgressService(db);
+
+      const result = await service.hideProgress('user-1', 'audiobook-1');
+      expect(result).toBeUndefined();
+    });
+
+    it('succeeds when rowCount is greater than 0', async () => {
+      const where = jest.fn().mockResolvedValue({ rowCount: 2 });
+      const set = jest.fn().mockReturnValue({ where });
+      const update = jest.fn().mockReturnValue({ set });
+
+      const db = createMockDb({ update });
+      const service = new ProgressService(db);
+
+      await expect(
+        service.hideProgress('user-1', 'audiobook-1'),
+      ).resolves.toBeUndefined();
+    });
+  });
 });
