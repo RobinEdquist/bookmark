@@ -63,6 +63,9 @@ export default async function globalSetup() {
   console.log(`  ✅ PostgreSQL started at ${connectionUri}`);
   global.__PW_POSTGRES_CONTAINER__ = container;
 
+  // Expose DATABASE_URL to test workers for seeding
+  process.env.DATABASE_URL = connectionUri;
+
   const env = {
     ...process.env,
     DATABASE_URL: connectionUri,
