@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { EventEmitter } from 'events';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -712,24 +712,40 @@ export class RestoreImporterService {
   private async findOrCreateGenreNoTx(name: string): Promise<string> {
     const trimmedName = name.trim();
 
-    // Try to find existing genre
+    // Try to find existing genre (case-insensitive)
     const existing = await this.db
       .select()
       .from(audiobooksSchema.genres)
-      .where(eq(audiobooksSchema.genres.name, trimmedName))
+      .where(
+        sql`LOWER(${audiobooksSchema.genres.name}) = LOWER(${trimmedName})`,
+      )
       .limit(1);
 
     if (existing.length > 0) {
       return existing[0].id;
     }
 
-    // Create new genre
-    const [newGenre] = await this.db
+    // Create new genre, handle race condition with onConflictDoNothing
+    const result = await this.db
       .insert(audiobooksSchema.genres)
       .values({ name: trimmedName })
+      .onConflictDoNothing()
       .returning();
 
-    return newGenre.id;
+    if (result.length > 0) {
+      return result[0].id;
+    }
+
+    // Race condition: re-fetch
+    const [existing2] = await this.db
+      .select()
+      .from(audiobooksSchema.genres)
+      .where(
+        sql`LOWER(${audiobooksSchema.genres.name}) = LOWER(${trimmedName})`,
+      )
+      .limit(1);
+
+    return existing2.id;
   }
 
   /**
@@ -787,24 +803,40 @@ export class RestoreImporterService {
   private async findOrCreateGenre(name: string, tx: any): Promise<string> {
     const trimmedName = name.trim();
 
-    // Try to find existing genre
+    // Try to find existing genre (case-insensitive)
     const existing = await tx
       .select()
       .from(audiobooksSchema.genres)
-      .where(eq(audiobooksSchema.genres.name, trimmedName))
+      .where(
+        sql`LOWER(${audiobooksSchema.genres.name}) = LOWER(${trimmedName})`,
+      )
       .limit(1);
 
     if (existing.length > 0) {
       return existing[0].id;
     }
 
-    // Create new genre
-    const [newGenre] = await tx
+    // Create new genre, handle race condition with onConflictDoNothing
+    const result = await tx
       .insert(audiobooksSchema.genres)
       .values({ name: trimmedName })
+      .onConflictDoNothing()
       .returning();
 
-    return newGenre.id;
+    if (result.length > 0) {
+      return result[0].id;
+    }
+
+    // Race condition: re-fetch
+    const [existing2] = await tx
+      .select()
+      .from(audiobooksSchema.genres)
+      .where(
+        sql`LOWER(${audiobooksSchema.genres.name}) = LOWER(${trimmedName})`,
+      )
+      .limit(1);
+
+    return existing2.id;
   }
 
   /**

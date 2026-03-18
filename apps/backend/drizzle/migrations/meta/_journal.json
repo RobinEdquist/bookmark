@@ -127,6 +127,13 @@
       "when": 1771000000000,
       "tag": "0017_fix_duplicate_progress",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1773831917329,
+      "tag": "0018_deduplicate-genres-tags-unique-lower",
+      "breakpoints": true
     }
   ]
 }

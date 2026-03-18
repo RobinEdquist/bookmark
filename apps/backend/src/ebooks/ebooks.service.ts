@@ -1038,18 +1038,32 @@ export class EbooksService {
       const trimmedName = name.trim();
       if (!trimmedName) continue;
 
-      // Find or create genre
+      // Find or create genre (case-insensitive)
       let [genre] = await this.db
         .select()
         .from(audiobookSchema.genres)
-        .where(eq(audiobookSchema.genres.name, trimmedName))
+        .where(
+          sql`LOWER(${audiobookSchema.genres.name}) = LOWER(${trimmedName})`,
+        )
         .limit(1);
 
       if (!genre) {
-        [genre] = await this.db
+        const result = await this.db
           .insert(audiobookSchema.genres)
           .values({ name: trimmedName })
+          .onConflictDoNothing()
           .returning();
+        if (result.length > 0) {
+          genre = result[0];
+        } else {
+          [genre] = await this.db
+            .select()
+            .from(audiobookSchema.genres)
+            .where(
+              sql`LOWER(${audiobookSchema.genres.name}) = LOWER(${trimmedName})`,
+            )
+            .limit(1);
+        }
       }
 
       // Create relation
@@ -1071,18 +1085,30 @@ export class EbooksService {
       const trimmedName = name.trim();
       if (!trimmedName) continue;
 
-      // Find or create tag
+      // Find or create tag (case-insensitive)
       let [tag] = await this.db
         .select()
         .from(audiobookSchema.tags)
-        .where(eq(audiobookSchema.tags.name, trimmedName))
+        .where(sql`LOWER(${audiobookSchema.tags.name}) = LOWER(${trimmedName})`)
         .limit(1);
 
       if (!tag) {
-        [tag] = await this.db
+        const result = await this.db
           .insert(audiobookSchema.tags)
           .values({ name: trimmedName })
+          .onConflictDoNothing()
           .returning();
+        if (result.length > 0) {
+          tag = result[0];
+        } else {
+          [tag] = await this.db
+            .select()
+            .from(audiobookSchema.tags)
+            .where(
+              sql`LOWER(${audiobookSchema.tags.name}) = LOWER(${trimmedName})`,
+            )
+            .limit(1);
+        }
       }
 
       // Create relation
