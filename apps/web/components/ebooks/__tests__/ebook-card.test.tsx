@@ -175,9 +175,9 @@ describe("EbookCard", () => {
     expect(screen.queryByTitle("missingDescription")).not.toBeInTheDocument();
   });
 
-  it("does not render dropdown menu when user has no permissions and integrations are off", () => {
+  it("renders dropdown menu even when user has no permissions (for add to list)", () => {
     render(<EbookCard ebook={createEbook()} />);
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByRole("button")).toBeInTheDocument();
   });
 
   it("renders dropdown menu when user has edit permissions", () => {

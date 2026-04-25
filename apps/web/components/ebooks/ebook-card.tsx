@@ -55,7 +55,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const canDelete = permissions?.canDelete ?? false;
-  const showDropdown = canEdit || canDelete || isGoodreadsConfigured;
+  const showDropdown = true;
   const isMissing = ebook.status === "missing";
   const isLinkedToHardcover = ebook.hardcoverLinked;
   const isLinkedToGoodreads = ebook.goodreadsLinked;

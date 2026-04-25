@@ -61,7 +61,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const canDelete = permissions?.canDelete ?? false;
-  const showDropdown = canEdit || canDelete || isHardcoverConfigured || isGoodreadsConfigured;
+  const showDropdown = true;
   const isLinkedToHardcover = audiobook.hardcoverLinked;
   const isLinkedToGoodreads = audiobook.goodreadsLinked;
   const isMissing = audiobook.status === "missing";
