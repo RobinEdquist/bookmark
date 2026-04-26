@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
   and,
@@ -134,7 +134,6 @@ export class ProgressService {
     audiobookId: string,
     dto: UpdateProgressDto,
   ): Promise<ProgressResponse> {
-    // Get audiobook duration to check if completed
     const [audiobook] = await this.db
       .select({ duration: audiobookSchema.audiobooks.duration })
       .from(audiobookSchema.audiobooks)
@@ -144,12 +143,36 @@ export class ProgressService {
       throw new NotFoundException('Audiobook not found');
     }
 
-    // Check if this position means completed (within 30 seconds of end)
+    // Stale-write check. Only enforced when the client opts in by sending
+    // updatedAt; legacy callers (web client) keep last-write-wins semantics.
+    if (dto.updatedAt) {
+      const incoming = new Date(dto.updatedAt);
+      const [existing] = await this.db
+        .select()
+        .from(progressSchema.userAudiobookProgress)
+        .where(
+          and(
+            eq(progressSchema.userAudiobookProgress.userId, userId),
+            eq(progressSchema.userAudiobookProgress.audiobookId, audiobookId),
+          ),
+        );
+      if (existing && existing.updatedAt > incoming) {
+        throw new ConflictException({
+          audiobookId: existing.audiobookId,
+          position: existing.currentPosition,
+          completed: existing.completed,
+          completedAt: existing.completedAt?.toISOString() ?? null,
+          startedAt: existing.startedAt.toISOString(),
+          updatedAt: existing.updatedAt.toISOString(),
+        });
+      }
+    }
+
     const isCompleted = audiobook.duration
       ? dto.position >= audiobook.duration - 30
       : false;
+    const writeAt = dto.updatedAt ? new Date(dto.updatedAt) : new Date();
 
-    // Upsert the progress record
     const [progress] = await this.db
       .insert(progressSchema.userAudiobookProgress)
       .values({
@@ -157,7 +180,8 @@ export class ProgressService {
         audiobookId,
         currentPosition: dto.position,
         completed: isCompleted,
-        completedAt: isCompleted ? new Date() : null,
+        completedAt: isCompleted ? writeAt : null,
+        updatedAt: writeAt,
       })
       .onConflictDoUpdate({
         target: [
@@ -168,10 +192,10 @@ export class ProgressService {
           currentPosition: dto.position,
           completed: isCompleted,
           completedAt: isCompleted
-            ? new Date()
+            ? writeAt
             : sql`${progressSchema.userAudiobookProgress.completedAt}`,
-          isHidden: false, // Reset hidden when user plays again
-          updatedAt: new Date(),
+          isHidden: false,
+          updatedAt: writeAt,
         },
       })
       .returning();
