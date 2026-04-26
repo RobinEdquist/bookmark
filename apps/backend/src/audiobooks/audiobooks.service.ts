@@ -189,6 +189,8 @@ export class AudiobooksService {
     const {
       search,
       genreId,
+      seriesId,
+      authorId,
       language,
       sortBy = 'createdAt',
       sortOrder = 'desc',
@@ -349,6 +351,38 @@ export class AudiobooksService {
           ),
       );
       conditions.push(genreFilter);
+    }
+
+    // Filter by series using the audiobookSeries junction table
+    if (seriesId) {
+      const seriesFilter = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(schema.audiobookSeries)
+          .where(
+            and(
+              eq(schema.audiobookSeries.audiobookId, schema.audiobooks.id),
+              eq(schema.audiobookSeries.seriesId, seriesId),
+            ),
+          ),
+      );
+      conditions.push(seriesFilter);
+    }
+
+    // Filter by author using the audiobookAuthors junction table
+    if (authorId) {
+      const authorFilter = exists(
+        this.db
+          .select({ one: sql`1` })
+          .from(schema.audiobookAuthors)
+          .where(
+            and(
+              eq(schema.audiobookAuthors.audiobookId, schema.audiobooks.id),
+              eq(schema.audiobookAuthors.personId, authorId),
+            ),
+          ),
+      );
+      conditions.push(authorFilter);
     }
 
     // Base query for audiobooks
