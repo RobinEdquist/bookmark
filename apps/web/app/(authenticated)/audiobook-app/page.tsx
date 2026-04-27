@@ -78,13 +78,30 @@ export default function AudiobookAppPage() {
     return `happyaudio://bookmark/connect?protocol=${serverDetails.protocol}&host=${serverDetails.host}&port=${serverDetails.port}&key=${generatedKey}`;
   }, [serverDetails, generatedKey]);
 
-  const handleGenerateQrCode = async () => {
+  // Bookmark Android deeplink: scheme `bookmark`, host `setup`, with the
+  // server URL and key as query params. SetupViewModel.onDeeplink pre-fills
+  // both fields from this format (DeeplinkParser.kt:8-16).
+  const androidServerUrl = useMemo(() => {
+    if (!serverDetails) return null;
+    const { protocol, host, port } = serverDetails;
+    const isStandardPort =
+      (protocol === "https" && port === "443") ||
+      (protocol === "http" && port === "80");
+    return `${protocol}://${host}${isStandardPort ? "" : `:${port}`}`;
+  }, [serverDetails]);
+
+  const androidQrCodeUrl = useMemo(() => {
+    if (!androidServerUrl || !generatedKey) return null;
+    return `bookmark://setup?server=${encodeURIComponent(androidServerUrl)}&key=${encodeURIComponent(generatedKey)}`;
+  }, [androidServerUrl, generatedKey]);
+
+  const handleGenerateQrCode = async (platform: Platform) => {
     try {
       const result = await createApiKey.mutateAsync();
       setGeneratedKey(result.key);
-      toast.success(t("connect.ios.keyGenerated"));
+      toast.success(t(`connect.${platform}.keyGenerated`));
     } catch {
-      toast.error(t("connect.ios.keyError"));
+      toast.error(t(`connect.${platform}.keyError`));
     }
   };
 
@@ -266,7 +283,7 @@ export default function AudiobookAppPage() {
 
                         {/* Generate QR Code Button */}
                         <Button
-                          onClick={handleGenerateQrCode}
+                          onClick={() => handleGenerateQrCode("ios")}
                           disabled={createApiKey.isPending}
                           className="w-full"
                         >
@@ -412,12 +429,194 @@ export default function AudiobookAppPage() {
               </div>
             )}
 
-            {/* Android Instructions - Coming Soon */}
+            {/* Android Instructions */}
             {selectedPlatform === "android" && (
-              <div className="rounded-lg bg-muted/50 p-6 text-center">
-                <p className="text-muted-foreground">
-                  {t("connect.comingSoon")}
-                </p>
+              <div className="space-y-4">
+                {/* Setup method toggle */}
+                <div className="flex rounded-lg bg-muted p-1">
+                  <button
+                    onClick={() => {
+                      setSetupMethod("qr");
+                      setGeneratedKey(null);
+                    }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      setupMethod === "qr"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <QrCode className="h-4 w-4" />
+                    {t("connect.android.methods.qr")}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSetupMethod("manual");
+                      setGeneratedKey(null);
+                    }}
+                    className={cn(
+                      "flex-1 flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                      setupMethod === "manual"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <Settings className="h-4 w-4" />
+                    {t("connect.android.methods.manual")}
+                  </button>
+                </div>
+
+                {/* QR Code Setup */}
+                {setupMethod === "qr" && (
+                  <>
+                    {!generatedKey ? (
+                      <>
+                        {/* Instructions */}
+                        <div className="rounded-lg bg-muted/50 p-4 space-y-4">
+                          <div className="flex items-start gap-3">
+                            <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
+                              1
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">{t("connect.android.qr.step1.title")}</p>
+                              <p className="text-sm text-muted-foreground">{t("connect.android.qr.step1.description")}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
+                              2
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">{t("connect.android.qr.step2.title")}</p>
+                              <p className="text-sm text-muted-foreground">{t("connect.android.qr.step2.description")}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-start gap-3">
+                            <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
+                              3
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">{t("connect.android.qr.step3.title")}</p>
+                              <p className="text-sm text-muted-foreground">{t("connect.android.qr.step3.description")}</p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Warning about breaking existing connections */}
+                        {existingApiKey && (
+                          <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
+                              <div className="space-y-1">
+                                <p className="text-sm font-medium text-amber-600">{t("connect.android.warning.title")}</p>
+                                <p className="text-sm text-amber-600/80">{t("connect.android.warning.description")}</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Generate QR Code Button */}
+                        <Button
+                          onClick={() => handleGenerateQrCode("android")}
+                          disabled={createApiKey.isPending}
+                          className="w-full"
+                        >
+                          <QrCode className="h-4 w-4 mr-2" />
+                          {createApiKey.isPending
+                            ? t("connect.android.generating")
+                            : existingApiKey
+                              ? t("connect.android.regenerateQr")
+                              : t("connect.android.generateQr")
+                          }
+                        </Button>
+                      </>
+                    ) : (
+                      <>
+                        {/* QR Code Display */}
+                        <div className="flex flex-col items-center space-y-4">
+                          <div className="bg-white p-4 rounded-lg">
+                            <QRCodeSVG
+                              value={androidQrCodeUrl || ""}
+                              size={200}
+                              level="M"
+                            />
+                          </div>
+                          <div className="text-center space-y-2">
+                            <div className="flex items-center justify-center gap-2 text-sm font-medium">
+                              <Camera className="h-4 w-4" />
+                              {t("connect.android.scanInstructions")}
+                            </div>
+                            <p className="text-xs text-muted-foreground max-w-xs">
+                              {t("connect.android.scanNote")}
+                            </p>
+                          </div>
+
+                          {/* Open in App button for mobile users */}
+                          <Button
+                            asChild
+                            className="w-full max-w-xs"
+                          >
+                            <a href={androidQrCodeUrl || "#"}>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              {t("connect.android.openInApp")}
+                            </a>
+                          </Button>
+
+                          <p className="text-xs text-muted-foreground">
+                            {t("connect.android.openInAppNote")}
+                          </p>
+
+                          <Button
+                            variant="outline"
+                            onClick={handleResetQrCode}
+                          >
+                            {t("connect.android.done")}
+                          </Button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
+
+                {/* Manual Setup */}
+                {setupMethod === "manual" && (
+                  <div className="space-y-4">
+                    {/* Instructions */}
+                    <div className="rounded-lg bg-muted/50 p-4 space-y-4">
+                      {(["step1", "step2", "step3", "step4", "step5"] as const).map((stepKey, i) => (
+                        <div key={stepKey} className="flex items-start gap-3">
+                          <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
+                            {i + 1}
+                          </div>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">{t(`connect.android.manual.${stepKey}.title`)}</p>
+                            <p className="text-sm text-muted-foreground">{t(`connect.android.manual.${stepKey}.description`)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Server URL Card — Bookmark's setup screen takes the
+                        full URL in one field, so we surface it pre-assembled
+                        rather than splitting protocol/host/port. */}
+                    {androidServerUrl && (
+                      <div className="rounded-lg border p-4 space-y-2">
+                        <p className="text-sm font-medium">{t("connect.android.manual.serverDetails")}</p>
+                        <code className="block font-mono bg-muted px-3 py-2 rounded text-xs break-all">
+                          {androidServerUrl}
+                        </code>
+                      </div>
+                    )}
+
+                    {/* Link to Preferences */}
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link href="/preferences">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        {t("connect.android.manual.goToPreferences")}
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>

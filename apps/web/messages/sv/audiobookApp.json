@@ -12,8 +12,66 @@
   },
   "connect": {
     "title": "Anslut din enhet",
-    "description": "Välj din plattform för att se instruktioner för att ansluta Happy Audio till din Bookmark-server.",
+    "description": "Välj din plattform för att se instruktioner för att ansluta din ljudboksapp till din Bookmark-server.",
     "comingSoon": "Kommer snart",
+    "android": {
+      "methods": {
+        "qr": "QR-kod",
+        "manual": "Manuellt"
+      },
+      "qr": {
+        "step1": {
+          "title": "Installera Bookmark",
+          "description": "Installera Bookmark-appen på din Android-enhet."
+        },
+        "step2": {
+          "title": "Generera QR-kod",
+          "description": "Klicka på knappen nedan för att generera en säker anslutnings-QR-kod."
+        },
+        "step3": {
+          "title": "Skanna eller tryck för att öppna",
+          "description": "Skanna QR-koden med telefonens kamera, eller öppna länken från enheten — Bookmark startar med server och nyckel ifyllda."
+        }
+      },
+      "manual": {
+        "step1": {
+          "title": "Öppna Bookmark",
+          "description": "Starta Bookmark-appen på din Android-enhet."
+        },
+        "step2": {
+          "title": "Generera API-nyckel",
+          "description": "Gå till Preferenser i denna webbapp och generera en API-nyckel. Kopiera nyckeln till nästa steg."
+        },
+        "step3": {
+          "title": "Ange server-URL",
+          "description": "På Bookmarks installationsskärm, klistra in server-URL:en som visas nedan."
+        },
+        "step4": {
+          "title": "Ange API-nyckel",
+          "description": "Klistra in API-nyckeln du genererade."
+        },
+        "step5": {
+          "title": "Anslut",
+          "description": "Tryck på Anslut för att verifiera uppgifterna och slutföra installationen."
+        },
+        "serverDetails": "Din server-URL",
+        "goToPreferences": "Gå till Preferenser"
+      },
+      "warning": {
+        "title": "Befintlig anslutning",
+        "description": "Du har redan en API-nyckel. Att generera en ny QR-kod skapar en ny nyckel och kopplar bort alla befintliga appar eller e-läsare som använder den nuvarande nyckeln."
+      },
+      "generateQr": "Generera QR-kod",
+      "regenerateQr": "Regenerera QR-kod",
+      "generating": "Genererar...",
+      "keyGenerated": "Anslutnings-QR-kod genererades",
+      "keyError": "Kunde inte generera anslutningskod",
+      "scanInstructions": "Skanna denna QR-kod med din Android-telefons kamera",
+      "scanNote": "Se till att Bookmark är installerad. När du skannar koden öppnas appen med server och nyckel ifyllda — tryck på Anslut i appen för att slutföra.",
+      "openInApp": "Öppna i Bookmark",
+      "openInAppNote": "Redan på din telefon? Tryck på knappen ovan för att öppna Bookmark med dina uppgifter ifyllda.",
+      "done": "Klar"
+    },
     "ios": {
       "methods": {
         "qr": "QR-kod",

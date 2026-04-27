@@ -12,8 +12,66 @@
   },
   "connect": {
     "title": "Connect Your Device",
-    "description": "Select your platform to see instructions for connecting Happy Audio to your Bookmark server.",
+    "description": "Select your platform to see instructions for connecting your audiobook app to your Bookmark server.",
     "comingSoon": "Coming soon",
+    "android": {
+      "methods": {
+        "qr": "QR Code",
+        "manual": "Manual"
+      },
+      "qr": {
+        "step1": {
+          "title": "Install Bookmark",
+          "description": "Install the Bookmark app on your Android device."
+        },
+        "step2": {
+          "title": "Generate QR Code",
+          "description": "Click the button below to generate a secure connection QR code."
+        },
+        "step3": {
+          "title": "Scan or tap to open",
+          "description": "Scan the QR code with your phone's camera, or open the link from your device — Bookmark will launch with your server and key pre-filled."
+        }
+      },
+      "manual": {
+        "step1": {
+          "title": "Open Bookmark",
+          "description": "Launch the Bookmark app on your Android device."
+        },
+        "step2": {
+          "title": "Generate API Key",
+          "description": "Go to Preferences in this web app and generate an API key. Copy the key for the next step."
+        },
+        "step3": {
+          "title": "Enter server URL",
+          "description": "On Bookmark's setup screen, paste the server URL shown below."
+        },
+        "step4": {
+          "title": "Enter API key",
+          "description": "Paste the API key you generated."
+        },
+        "step5": {
+          "title": "Connect",
+          "description": "Tap Connect to verify the credentials and finish setup."
+        },
+        "serverDetails": "Your Server URL",
+        "goToPreferences": "Go to Preferences"
+      },
+      "warning": {
+        "title": "Existing Connection",
+        "description": "You already have an API key. Generating a new QR code will create a new key and disconnect any existing apps or e-readers using the current key."
+      },
+      "generateQr": "Generate QR Code",
+      "regenerateQr": "Regenerate QR Code",
+      "generating": "Generating...",
+      "keyGenerated": "Connection QR code generated successfully",
+      "keyError": "Failed to generate connection code",
+      "scanInstructions": "Scan this QR code with your Android phone's camera",
+      "scanNote": "Make sure Bookmark is installed. When you scan the code, the app will open with your server and key pre-filled — tap Connect inside the app to finish.",
+      "openInApp": "Open in Bookmark",
+      "openInAppNote": "Already on your phone? Tap the button above to open Bookmark with your details pre-filled.",
+      "done": "Done"
+    },
     "ios": {
       "methods": {
         "qr": "QR Code",
