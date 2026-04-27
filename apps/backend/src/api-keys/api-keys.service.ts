@@ -1,7 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and } from 'drizzle-orm';
-import { IncomingHttpHeaders } from 'http';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { apiKey } from '../auth/api-key.schema';
 import * as authSchema from '../auth/schema';
@@ -85,25 +84,20 @@ export class ApiKeysService {
   async revokeApiKey(
     keyId: string,
     userId: string,
-    authInstance: any,
-    headers: IncomingHttpHeaders,
   ): Promise<{ success: boolean }> {
-    // Verify key belongs to user first
-    const keys = await this.db
-      .select({ id: apiKey.id })
-      .from(apiKey)
+    // Direct DB delete scoped to (keyId, userId). We can't go through
+    // Better Auth's deleteApiKey here because that endpoint requires the
+    // owner's session cookie, but this route is reachable via API-key auth
+    // (e.g. mobile sign-out). The (id, userId) predicate is the same
+    // ownership check Better Auth would enforce, so this stays safe.
+    const result = await this.db
+      .delete(apiKey)
       .where(and(eq(apiKey.id, keyId), eq(apiKey.userId, userId)))
-      .limit(1);
+      .returning({ id: apiKey.id });
 
-    if (keys.length === 0) {
+    if (result.length === 0) {
       throw new NotFoundException('API key not found');
     }
-
-    // Use Better Auth API with the request headers for authentication
-    await authInstance.api.deleteApiKey({
-      body: { keyId },
-      headers,
-    });
 
     return { success: true };
   }

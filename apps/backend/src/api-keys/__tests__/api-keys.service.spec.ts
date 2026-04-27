@@ -160,50 +160,24 @@ describe('ApiKeysService', () => {
   // -----------------------------------------------------------------------
   describe('revokeApiKey', () => {
     it('throws NotFoundException when key not found', async () => {
-      const selectChain = createChainMock([
-        'from',
-        'where',
-        'limit',
-        'orderBy',
-      ]);
-      selectChain.limit.mockResolvedValue([]);
-      db.select.mockReturnValue(selectChain);
-
-      const authInstance = createMockAuth();
-      const headers = { authorization: 'Bearer token' };
+      const deleteChain = createChainMock(['where', 'returning']);
+      deleteChain.returning.mockResolvedValue([]);
+      db.delete.mockReturnValue(deleteChain);
 
       await expect(
-        service.revokeApiKey('nonexistent', USER_ID, authInstance, headers),
+        service.revokeApiKey('nonexistent', USER_ID),
       ).rejects.toBeInstanceOf(NotFoundException);
-
-      expect(authInstance.api.deleteApiKey).not.toHaveBeenCalled();
     });
 
-    it('succeeds when key exists and belongs to user', async () => {
-      const selectChain = createChainMock([
-        'from',
-        'where',
-        'limit',
-        'orderBy',
-      ]);
-      selectChain.limit.mockResolvedValue([{ id: KEY_ID }]);
-      db.select.mockReturnValue(selectChain);
+    it('deletes the row when key exists and belongs to user', async () => {
+      const deleteChain = createChainMock(['where', 'returning']);
+      deleteChain.returning.mockResolvedValue([{ id: KEY_ID }]);
+      db.delete.mockReturnValue(deleteChain);
 
-      const authInstance = createMockAuth();
-      const headers = { authorization: 'Bearer token' };
-
-      const result = await service.revokeApiKey(
-        KEY_ID,
-        USER_ID,
-        authInstance,
-        headers,
-      );
+      const result = await service.revokeApiKey(KEY_ID, USER_ID);
 
       expect(result).toEqual({ success: true });
-      expect(authInstance.api.deleteApiKey).toHaveBeenCalledWith({
-        body: { keyId: KEY_ID },
-        headers,
-      });
+      expect(db.delete).toHaveBeenCalled();
     });
   });
 

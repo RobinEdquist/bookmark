@@ -4,7 +4,6 @@ import {
   Post,
   Delete,
   Param,
-  Headers,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -27,7 +26,6 @@ import {
 } from './dto/api-key-response.dto';
 import { ApiKeyPermissionGuard } from '../common/guards/api-key-permission.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
-import type { IncomingHttpHeaders } from 'http';
 
 @ApiTags('API Keys')
 @ApiSecurity('better-auth.session_token')
@@ -105,14 +103,8 @@ export class ApiKeysController {
   async revokeApiKey(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
-    @Headers() headers: IncomingHttpHeaders,
   ) {
-    return this.apiKeysService.revokeApiKey(
-      id,
-      user.id,
-      this.authService.instance,
-      headers,
-    );
+    return this.apiKeysService.revokeApiKey(id, user.id);
   }
 
   // ===== Admin Endpoints =====
