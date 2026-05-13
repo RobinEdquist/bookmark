@@ -19,6 +19,7 @@ import { useAllProgress, useHideProgress, type ProgressWithAudiobook } from "../
 import { useAudiobook } from "../../lib/use-audiobooks";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
 import { useMyPermissions } from "../../lib/use-users";
+import { useTheme } from "../../lib/use-theme";
 import { usePlayer } from "../providers/player-provider";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
 
@@ -27,6 +28,7 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
   const { audiobook: playerAudiobook, isPlaying, play, pause, resume } = usePlayer();
   const { data: audiobookDetail } = useAudiobook(progress.audiobook.id);
   const { mutate: hideProgress, isPending: isHiding } = useHideProgress();
+  const { isDark } = useTheme();
 
   const isThisPlaying = playerAudiobook?.id === progress.audiobook.id && isPlaying;
   const isThisLoaded = playerAudiobook?.id === progress.audiobook.id;
@@ -126,7 +128,7 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
                     alt="Goodreads"
                     width={12}
                     height={12}
-                    className="opacity-70"
+                    className={`opacity-70 ${isDark ? "invert" : ""}`}
                   />
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
                   <span>{audiobookDetail.goodreads.rating.toFixed(2)}</span>
