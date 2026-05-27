@@ -29,6 +29,7 @@ export const hardcoverBooks = pgTable(
     hardcoverId: text('hardcover_id').notNull(),
     slug: text('slug').notNull(),
     title: text('title').notNull(),
+    subtitle: text('subtitle'),
     description: text('description'),
     authorNames: jsonb('author_names').$type<string[]>().notNull().default([]),
     contentWarnings: jsonb('content_warnings')

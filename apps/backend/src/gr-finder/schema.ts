@@ -20,6 +20,7 @@ export const goodreadsBooks = pgTable(
     id: uuid('id').primaryKey().defaultRandom(),
     goodreadsId: text('goodreads_id').notNull(),
     title: text('title').notNull(),
+    subtitle: text('subtitle'),
     author: text('author').notNull(),
     description: text('description'),
     coverUrl: text('cover_url'),

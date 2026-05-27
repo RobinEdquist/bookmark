@@ -16,6 +16,7 @@ import { eq, asc, and, isNull, inArray } from 'drizzle-orm';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 import { splitPersonNames } from '../common/utils/name.utils';
+import { splitTitleSubtitle } from '../common/utils/title.utils';
 
 type CombinedSchema = typeof appSettingsSchema &
   typeof audiobooksSchema &
@@ -343,6 +344,11 @@ export class HardcoverService {
     hardcoverBook: HardcoverBookDocument,
   ): Promise<typeof hardcoverSchema.hardcoverBooks.$inferSelect> {
     const normalizedAuthorNames = splitPersonNames(hardcoverBook.author_names);
+    // Hardcover stores `"Title: Subtitle"` in a single field; split into our
+    // separate columns so the subtitle isn't baked into the title.
+    const { title: splitTitle, subtitle: splitSubtitle } = splitTitleSubtitle(
+      hardcoverBook.title,
+    );
 
     // Check if book already exists
     const existing = await this.db
@@ -357,7 +363,8 @@ export class HardcoverService {
         .update(hardcoverSchema.hardcoverBooks)
         .set({
           slug: hardcoverBook.slug,
-          title: hardcoverBook.title,
+          title: splitTitle ?? hardcoverBook.title,
+          subtitle: splitSubtitle,
           description: hardcoverBook.description || null,
           authorNames: normalizedAuthorNames,
           contentWarnings: hardcoverBook.content_warnings || [],
@@ -392,7 +399,8 @@ export class HardcoverService {
       .values({
         hardcoverId: hardcoverBook.id,
         slug: hardcoverBook.slug,
-        title: hardcoverBook.title,
+        title: splitTitle ?? hardcoverBook.title,
+        subtitle: splitSubtitle,
         description: hardcoverBook.description || null,
         authorNames: normalizedAuthorNames,
         contentWarnings: hardcoverBook.content_warnings || [],
@@ -420,7 +428,6 @@ export class HardcoverService {
     query?: string;
     error?: string;
   }> {
-    // Fetch the audiobook with its authors
     const audiobook = await this.db
       .select({
         title: audiobooksSchema.audiobooks.title,
@@ -434,29 +441,8 @@ export class HardcoverService {
       throw new NotFoundException('Audiobook not found');
     }
 
-    // Fetch authors for this audiobook
-    const authors = await this.db
-      .select({
-        name: audiobooksSchema.people.name,
-      })
-      .from(audiobooksSchema.audiobookAuthors)
-      .innerJoin(
-        audiobooksSchema.people,
-        eq(
-          audiobooksSchema.audiobookAuthors.personId,
-          audiobooksSchema.people.id,
-        ),
-      )
-      .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, audiobookId))
-      .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
-
     const { title, subtitle } = audiobook[0];
-
-    const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-
-    // Build search query: "title author1 author2"
-    const authorNames = authors.map((a) => a.name).join(' ');
-    const searchQuery = authorNames ? `${fullTitle} ${authorNames}` : fullTitle;
+    const searchQuery = subtitle ? `${title}: ${subtitle}` : title;
 
     const result = await this.searchBooks(searchQuery);
 
@@ -483,7 +469,6 @@ export class HardcoverService {
       // Use custom query provided by user
       searchQuery = customQuery;
     } else {
-      // Fetch the audiobook with its authors
       const audiobook = await this.db
         .select({
           title: audiobooksSchema.audiobooks.title,
@@ -497,29 +482,8 @@ export class HardcoverService {
         throw new NotFoundException('Audiobook not found');
       }
 
-      // Fetch authors for this audiobook
-      const authors = await this.db
-        .select({
-          name: audiobooksSchema.people.name,
-        })
-        .from(audiobooksSchema.audiobookAuthors)
-        .innerJoin(
-          audiobooksSchema.people,
-          eq(
-            audiobooksSchema.audiobookAuthors.personId,
-            audiobooksSchema.people.id,
-          ),
-        )
-        .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, audiobookId))
-        .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
-
       const { title, subtitle } = audiobook[0];
-
-      const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-
-      // Build search query: "title author1 author2"
-      const authorNames = authors.map((a) => a.name).join(' ');
-      searchQuery = authorNames ? `${fullTitle} ${authorNames}` : fullTitle;
+      searchQuery = subtitle ? `${title}: ${subtitle}` : title;
     }
 
     const result = await this.searchBooks(searchQuery, page, perPage);
@@ -725,7 +689,6 @@ export class HardcoverService {
   }> {
     let title: string;
     let subtitle: string | null;
-    let authorNames: string[];
 
     if (mediaType === 'audiobook') {
       const audiobook = await this.db
@@ -743,21 +706,6 @@ export class HardcoverService {
 
       title = audiobook[0].title;
       subtitle = audiobook[0].subtitle;
-
-      const authors = await this.db
-        .select({ name: audiobooksSchema.people.name })
-        .from(audiobooksSchema.audiobookAuthors)
-        .innerJoin(
-          audiobooksSchema.people,
-          eq(
-            audiobooksSchema.audiobookAuthors.personId,
-            audiobooksSchema.people.id,
-          ),
-        )
-        .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, mediaId))
-        .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
-
-      authorNames = authors.map((a) => a.name);
     } else {
       const ebook = await this.db
         .select({
@@ -774,25 +722,9 @@ export class HardcoverService {
 
       title = ebook[0].title;
       subtitle = ebook[0].subtitle;
-
-      const authors = await this.db
-        .select({ name: audiobooksSchema.people.name })
-        .from(ebooksSchema.ebookAuthors)
-        .innerJoin(
-          audiobooksSchema.people,
-          eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
-        )
-        .where(eq(ebooksSchema.ebookAuthors.ebookId, mediaId))
-        .orderBy(asc(ebooksSchema.ebookAuthors.order));
-
-      authorNames = authors.map((a) => a.name);
     }
 
-    const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-    const searchQuery =
-      authorNames.length > 0
-        ? `${fullTitle} ${authorNames.join(' ')}`
-        : fullTitle;
+    const searchQuery = subtitle ? `${title}: ${subtitle}` : title;
 
     const result = await this.searchBooks(searchQuery);
 
@@ -822,7 +754,6 @@ export class HardcoverService {
     } else {
       let title: string;
       let subtitle: string | null;
-      let authorNames: string[];
 
       if (mediaType === 'audiobook') {
         const audiobook = await this.db
@@ -840,21 +771,6 @@ export class HardcoverService {
 
         title = audiobook[0].title;
         subtitle = audiobook[0].subtitle;
-
-        const authors = await this.db
-          .select({ name: audiobooksSchema.people.name })
-          .from(audiobooksSchema.audiobookAuthors)
-          .innerJoin(
-            audiobooksSchema.people,
-            eq(
-              audiobooksSchema.audiobookAuthors.personId,
-              audiobooksSchema.people.id,
-            ),
-          )
-          .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, mediaId))
-          .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
-
-        authorNames = authors.map((a) => a.name);
       } else {
         const ebook = await this.db
           .select({
@@ -871,25 +787,9 @@ export class HardcoverService {
 
         title = ebook[0].title;
         subtitle = ebook[0].subtitle;
-
-        const authors = await this.db
-          .select({ name: audiobooksSchema.people.name })
-          .from(ebooksSchema.ebookAuthors)
-          .innerJoin(
-            audiobooksSchema.people,
-            eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
-          )
-          .where(eq(ebooksSchema.ebookAuthors.ebookId, mediaId))
-          .orderBy(asc(ebooksSchema.ebookAuthors.order));
-
-        authorNames = authors.map((a) => a.name);
       }
 
-      const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-      searchQuery =
-        authorNames.length > 0
-          ? `${fullTitle} ${authorNames.join(' ')}`
-          : fullTitle;
+      searchQuery = subtitle ? `${title}: ${subtitle}` : title;
     }
 
     const result = await this.searchBooks(searchQuery, page, perPage);

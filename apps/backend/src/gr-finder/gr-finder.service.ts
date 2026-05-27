@@ -1,11 +1,12 @@
 import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common';
-import { eq, asc } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
-import { audiobooks, audiobookAuthors, people } from '../audiobooks/schema';
-import { ebooks, ebookAuthors } from '../ebooks/schema';
+import { audiobooks } from '../audiobooks/schema';
+import { ebooks } from '../ebooks/schema';
 import * as goodreadsSchema from './schema';
 import { splitPersonNames } from '../common/utils/name.utils';
+import { splitTitleSubtitle } from '../common/utils/title.utils';
 
 export type MediaType = 'audiobook' | 'ebook';
 
@@ -109,7 +110,6 @@ export class GrFinderService {
     } else {
       let title: string;
       let subtitle: string | null;
-      let authorNames: string[];
 
       if (mediaType === 'audiobook') {
         const [audiobook] = await this.db
@@ -127,15 +127,6 @@ export class GrFinderService {
 
         title = audiobook.title;
         subtitle = audiobook.subtitle;
-
-        const authors = await this.db
-          .select({ name: people.name })
-          .from(audiobookAuthors)
-          .innerJoin(people, eq(audiobookAuthors.personId, people.id))
-          .where(eq(audiobookAuthors.audiobookId, mediaId))
-          .orderBy(asc(audiobookAuthors.order));
-
-        authorNames = authors.map((a) => a.name);
       } else {
         const [ebook] = await this.db
           .select({
@@ -152,22 +143,9 @@ export class GrFinderService {
 
         title = ebook.title;
         subtitle = ebook.subtitle;
-
-        const authors = await this.db
-          .select({ name: people.name })
-          .from(ebookAuthors)
-          .innerJoin(people, eq(ebookAuthors.personId, people.id))
-          .where(eq(ebookAuthors.ebookId, mediaId))
-          .orderBy(asc(ebookAuthors.order));
-
-        authorNames = authors.map((a) => a.name);
       }
 
-      const fullTitle = subtitle ? `${title}: ${subtitle}` : title;
-      searchQuery =
-        authorNames.length > 0
-          ? `${fullTitle} ${authorNames.join(' ')}`
-          : fullTitle;
+      searchQuery = subtitle ? `${title}: ${subtitle}` : title;
     }
 
     const result = await this.search(searchQuery);
@@ -308,6 +286,11 @@ export class GrFinderService {
   private async findOrCreateGoodreadsBook(book: GoodreadsBookInput) {
     const normalizedAuthor =
       splitPersonNames(book.author).join(', ') || book.author.trim();
+    // Goodreads stores `"Title: Subtitle"` in a single field; split into our
+    // separate columns so the subtitle isn't baked into the title.
+    const { title: splitTitle, subtitle: splitSubtitle } = splitTitleSubtitle(
+      book.title,
+    );
 
     // Check if book already exists
     const [existing] = await this.db
@@ -323,7 +306,8 @@ export class GrFinderService {
       const [updated] = await this.db
         .update(goodreadsSchema.goodreadsBooks)
         .set({
-          title: book.title,
+          title: splitTitle ?? book.title,
+          subtitle: splitSubtitle,
           author: normalizedAuthor,
           description: book.description ?? existing.description,
           coverUrl: book.cover_url ?? existing.coverUrl,
@@ -344,7 +328,8 @@ export class GrFinderService {
       .insert(goodreadsSchema.goodreadsBooks)
       .values({
         goodreadsId: book.goodreads_id,
-        title: book.title,
+        title: splitTitle ?? book.title,
+        subtitle: splitSubtitle,
         author: normalizedAuthor,
         description: book.description ?? null,
         coverUrl: book.cover_url ?? null,

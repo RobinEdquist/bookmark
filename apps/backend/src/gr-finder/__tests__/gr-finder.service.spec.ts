@@ -153,27 +153,13 @@ describe('GrFinderService', () => {
       expect(result.query).toBe('custom search term');
     });
 
-    it('builds query from audiobook title and authors', async () => {
-      // Mock audiobook select
+    it('builds query from the audiobook title', async () => {
       const audiobookSelectChain = createChainMock(['from', 'where', 'limit']);
       audiobookSelectChain.limit.mockResolvedValue([
         { title: 'The Great Gatsby', subtitle: null },
       ]);
 
-      // Mock authors select
-      const authorsSelectChain = createChainMock([
-        'from',
-        'innerJoin',
-        'where',
-        'orderBy',
-      ]);
-      authorsSelectChain.orderBy.mockResolvedValue([
-        { name: 'F. Scott Fitzgerald' },
-      ]);
-
-      db.select
-        .mockReturnValueOnce(audiobookSelectChain)
-        .mockReturnValueOnce(authorsSelectChain);
+      db.select.mockReturnValueOnce(audiobookSelectChain);
 
       mockFetch.mockResolvedValue({
         ok: true,
@@ -182,7 +168,7 @@ describe('GrFinderService', () => {
 
       const result = await service.searchByMediaId('audiobook', AUDIOBOOK_ID);
 
-      expect(result.query).toBe('The Great Gatsby F. Scott Fitzgerald');
+      expect(result.query).toBe('The Great Gatsby');
     });
 
     it('throws NotFoundException for missing audiobook', async () => {
@@ -195,23 +181,13 @@ describe('GrFinderService', () => {
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
-    it('builds query from ebook title and authors', async () => {
+    it('builds query from ebook title and subtitle', async () => {
       const ebookSelectChain = createChainMock(['from', 'where', 'limit']);
       ebookSelectChain.limit.mockResolvedValue([
         { title: 'Dune', subtitle: 'A Science Fiction Epic' },
       ]);
 
-      const authorsSelectChain = createChainMock([
-        'from',
-        'innerJoin',
-        'where',
-        'orderBy',
-      ]);
-      authorsSelectChain.orderBy.mockResolvedValue([{ name: 'Frank Herbert' }]);
-
-      db.select
-        .mockReturnValueOnce(ebookSelectChain)
-        .mockReturnValueOnce(authorsSelectChain);
+      db.select.mockReturnValueOnce(ebookSelectChain);
 
       mockFetch.mockResolvedValue({
         ok: true,
@@ -220,7 +196,7 @@ describe('GrFinderService', () => {
 
       const result = await service.searchByMediaId('ebook', EBOOK_ID);
 
-      expect(result.query).toBe('Dune: A Science Fiction Epic Frank Herbert');
+      expect(result.query).toBe('Dune: A Science Fiction Epic');
     });
 
     it('throws NotFoundException for missing ebook', async () => {

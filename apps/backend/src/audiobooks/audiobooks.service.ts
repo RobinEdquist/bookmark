@@ -36,6 +36,7 @@ import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
 import { splitPersonNames } from '../common/utils/name.utils';
+import { stripDuplicateSubtitle } from '../common/utils/title.utils';
 
 export interface AudiobookListItem {
   id: string;
@@ -584,28 +585,34 @@ export class AudiobooksService {
       const hc = hardcoverDataMap.get(ab.id) || null;
       const gr = goodreadsDataMap.get(ab.id) || null;
 
-      // Apply priority-based resolution for title
+      // Apply priority-based resolution for title.
+      // Hardcover/Goodreads store the full "Title: Subtitle" in one field, so
+      // strip the embedded subtitle off those external titles before resolving
+      // — otherwise the subtitle would render twice (once inline in the title,
+      // once on the dedicated subtitle line).
       const resolvedTitle =
         this.resolveFieldByPriority(
           'title',
           {
             manual: ab.title,
             embedded: ab.title,
-            hardcover: hc?.title,
-            goodreads: gr?.title,
+            hardcover: stripDuplicateSubtitle(hc?.title, ab.subtitle),
+            goodreads: stripDuplicateSubtitle(gr?.title, ab.subtitle),
           },
           metadataPriority.title,
           manualFields,
         ) || ab.title;
 
-      // Apply priority-based resolution for subtitle
+      // Apply priority-based resolution for subtitle.
+      // External sources populate `subtitle` when their incoming title has the
+      // form `"Title: Subtitle"` — see splitTitleSubtitle in title.utils.
       const resolvedSubtitle = this.resolveFieldByPriority(
         'subtitle',
         {
           manual: ab.subtitle,
           embedded: ab.subtitle,
-          hardcover: null,
-          goodreads: null,
+          hardcover: hc?.subtitle,
+          goodreads: gr?.subtitle,
         },
         metadataPriority.subtitle,
         manualFields,
@@ -851,28 +858,31 @@ export class AudiobooksService {
     // Apply priority-based merging for each field
     // For scalar fields, use the helper. For relations, we need special handling.
 
-    // Title - always required, fallback to embedded
+    // Title - always required, fallback to embedded.
+    // External sources combine subtitle into the title field; strip it so the
+    // subtitle line below doesn't render the same text twice.
     const resolvedTitle =
       this.resolveFieldByPriority(
         'title',
         {
           manual: ab.title,
           embedded: ab.title,
-          hardcover: hc?.title,
-          goodreads: gr?.title,
+          hardcover: stripDuplicateSubtitle(hc?.title, ab.subtitle),
+          goodreads: stripDuplicateSubtitle(gr?.title, ab.subtitle),
         },
         metadataPriority.title,
         manualFields,
       ) || ab.title;
 
-    // Subtitle
+    // Subtitle. External sources populate this when their incoming title has
+    // the form `"Title: Subtitle"` — see splitTitleSubtitle in title.utils.
     const resolvedSubtitle = this.resolveFieldByPriority(
       'subtitle',
       {
         manual: ab.subtitle,
         embedded: ab.subtitle,
-        hardcover: null,
-        goodreads: null,
+        hardcover: hc?.subtitle,
+        goodreads: gr?.subtitle,
       },
       metadataPriority.subtitle,
       manualFields,

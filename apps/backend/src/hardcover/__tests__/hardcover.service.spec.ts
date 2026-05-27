@@ -305,27 +305,14 @@ describe('HardcoverService', () => {
   });
 
   describe('searchByAudiobookId', () => {
-    it('should build query from title and authors', async () => {
-      // 1st select: audiobook title
+    it('should build query from the audiobook title', async () => {
       const audiobookChain = createChainMock(['from', 'where', 'limit']);
       audiobookChain.limit.mockResolvedValueOnce([
         { title: 'The Way of Kings', subtitle: null },
       ]);
       db.select.mockReturnValueOnce(audiobookChain);
 
-      // 2nd select: authors via join
-      const authorsChain = createChainMock([
-        'from',
-        'innerJoin',
-        'where',
-        'orderBy',
-      ]);
-      authorsChain.orderBy.mockResolvedValueOnce([
-        { name: 'Brandon Sanderson' },
-      ]);
-      db.select.mockReturnValueOnce(authorsChain);
-
-      // 3rd select: getApiKey inside searchBooks
+      // getApiKey inside searchBooks
       const settingsChain = createChainMock(['from', 'where', 'limit']);
       settingsChain.limit.mockResolvedValueOnce([
         { hardcoverApiKey: 'test-key' },
@@ -338,7 +325,7 @@ describe('HardcoverService', () => {
 
       const result = await service.searchByAudiobookId('audiobook-1');
 
-      expect(result.query).toBe('The Way of Kings Brandon Sanderson');
+      expect(result.query).toBe('The Way of Kings');
       expect(result.success).toBe(true);
     });
 
@@ -349,17 +336,6 @@ describe('HardcoverService', () => {
       ]);
       db.select.mockReturnValueOnce(audiobookChain);
 
-      const authorsChain = createChainMock([
-        'from',
-        'innerJoin',
-        'where',
-        'orderBy',
-      ]);
-      authorsChain.orderBy.mockResolvedValueOnce([
-        { name: 'Brandon Sanderson' },
-      ]);
-      db.select.mockReturnValueOnce(authorsChain);
-
       const settingsChain = createChainMock(['from', 'where', 'limit']);
       settingsChain.limit.mockResolvedValueOnce([
         { hardcoverApiKey: 'test-key' },
@@ -371,9 +347,7 @@ describe('HardcoverService', () => {
       });
 
       const result = await service.searchByAudiobookId('audiobook-1');
-      expect(result.query).toBe(
-        'The Stormlight Archive: The Way of Kings Brandon Sanderson',
-      );
+      expect(result.query).toBe('The Stormlight Archive: The Way of Kings');
     });
 
     it('should throw NotFoundException for missing audiobook', async () => {

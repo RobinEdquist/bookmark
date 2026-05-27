@@ -36,6 +36,7 @@ import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadata.provider';
 import { splitPersonNames } from '../common/utils/name.utils';
+import { stripDuplicateSubtitle } from '../common/utils/title.utils';
 
 export interface EbookListItem {
   id: string;
@@ -517,28 +518,34 @@ export class EbooksService {
       const hc = hardcoverDataMap.get(eb.id) || null;
       const gr = goodreadsDataMap.get(eb.id) || null;
 
-      // Apply priority-based resolution for title
+      // Apply priority-based resolution for title.
+      // Hardcover/Goodreads store the full "Title: Subtitle" in one field, so
+      // strip the embedded subtitle off those external titles before resolving
+      // — otherwise the subtitle would render twice (once inline in the title,
+      // once on the dedicated subtitle line).
       const resolvedTitle =
         this.resolveFieldByPriority(
           'title',
           {
             manual: eb.title,
             embedded: eb.title,
-            hardcover: hc?.title,
-            goodreads: gr?.title,
+            hardcover: stripDuplicateSubtitle(hc?.title, eb.subtitle),
+            goodreads: stripDuplicateSubtitle(gr?.title, eb.subtitle),
           },
           metadataPriority.title,
           manualFields,
         ) || eb.title;
 
-      // Apply priority-based resolution for subtitle
+      // Apply priority-based resolution for subtitle.
+      // External sources populate `subtitle` when their incoming title has the
+      // form `"Title: Subtitle"` — see splitTitleSubtitle in title.utils.
       const resolvedSubtitle = this.resolveFieldByPriority(
         'subtitle',
         {
           manual: eb.subtitle,
           embedded: eb.subtitle,
-          hardcover: null,
-          goodreads: null,
+          hardcover: hc?.subtitle,
+          goodreads: gr?.subtitle,
         },
         metadataPriority.subtitle,
         manualFields,
