@@ -171,8 +171,11 @@ export class RequestsService {
       browse_lang: languages?.length ? languages : undefined,
     });
 
+    // MAM returns `data: null` when there are no results — normalize to an empty array.
+    const torrents = mamResponse.data ?? [];
+
     // Get MAM torrent IDs to check for existing requests (convert to strings for DB query)
-    const mamIdStrings = mamResponse.data.map((t) => String(t.id));
+    const mamIdStrings = torrents.map((t) => String(t.id));
 
     // Fetch existing requests for these torrents
     const existingRequests =
@@ -201,7 +204,7 @@ export class RequestsService {
     );
 
     // Map results
-    const results: MamSearchResultDto[] = mamResponse.data.map((torrent) => {
+    const results: MamSearchResultDto[] = torrents.map((torrent) => {
       const existing = requestMap.get(String(torrent.id));
       const contentType: ContentType =
         torrent.main_cat === 13 ? 'audiobook' : 'ebook';
@@ -231,7 +234,7 @@ export class RequestsService {
 
     return {
       results,
-      total: mamResponse.total_found,
+      total: mamResponse.total_found ?? 0,
     };
   }
 

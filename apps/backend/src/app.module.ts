@@ -52,11 +52,9 @@ import { CommonModule } from './common/common.module';
         const isProduction = configService.get('NODE_ENV') === 'production';
         const logLevel = configService.get('LOG_LEVEL', 'info');
 
-        // Create multistream to route errors/fatal to stderr, rest to stdout
+        // Route every log to stdout, and additionally mirror error/fatal to stderr.
         const streams: pino.StreamEntry[] = [
-          // stdout for info, debug, trace, warn
           { level: 'trace', stream: process.stdout },
-          // stderr for error and fatal (overwrites lower levels for these)
           { level: 'error', stream: process.stderr },
         ];
 
@@ -66,7 +64,7 @@ import { CommonModule } from './common/common.module';
             // In development, use pino-pretty transport
             // In production, use multistream for stderr/stdout split
             ...(isProduction
-              ? { stream: pino.multistream(streams, { dedupe: true }) }
+              ? { stream: pino.multistream(streams) }
               : {
                   transport: {
                     target: 'pino-pretty',

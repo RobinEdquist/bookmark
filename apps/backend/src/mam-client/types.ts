@@ -30,7 +30,8 @@ export interface MamTorrent {
 }
 
 export interface MamSearchResponse {
-  data: MamTorrent[];
+  // MAM returns `null` (not an empty array) when there are no results.
+  data: MamTorrent[] | null;
   total: number;
   total_found: number;
 }
