@@ -36,7 +36,7 @@ import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
 import { splitPersonNames } from '../common/utils/name.utils';
-import { stripDuplicateSubtitle } from '../common/utils/title.utils';
+import { resolveExternalTitle } from '../common/utils/title.utils';
 
 export interface AudiobookListItem {
   id: string;
@@ -586,18 +586,28 @@ export class AudiobooksService {
       const gr = goodreadsDataMap.get(ab.id) || null;
 
       // Apply priority-based resolution for title.
-      // Hardcover/Goodreads store the full "Title: Subtitle" in one field, so
-      // strip the embedded subtitle off those external titles before resolving
-      // — otherwise the subtitle would render twice (once inline in the title,
-      // once on the dedicated subtitle line).
+      // Hardcover/Goodreads historically stored "Title: Subtitle" in one field;
+      // resolveExternalTitle normalizes that against the embedded title/subtitle
+      // so the subtitle line below doesn't end up duplicating text already
+      // baked into the resolved title.
       const resolvedTitle =
         this.resolveFieldByPriority(
           'title',
           {
             manual: ab.title,
             embedded: ab.title,
-            hardcover: stripDuplicateSubtitle(hc?.title, ab.subtitle),
-            goodreads: stripDuplicateSubtitle(gr?.title, ab.subtitle),
+            hardcover: resolveExternalTitle(
+              hc?.title,
+              hc?.subtitle,
+              ab.title,
+              ab.subtitle,
+            ),
+            goodreads: resolveExternalTitle(
+              gr?.title,
+              gr?.subtitle,
+              ab.title,
+              ab.subtitle,
+            ),
           },
           metadataPriority.title,
           manualFields,
@@ -859,16 +869,27 @@ export class AudiobooksService {
     // For scalar fields, use the helper. For relations, we need special handling.
 
     // Title - always required, fallback to embedded.
-    // External sources combine subtitle into the title field; strip it so the
-    // subtitle line below doesn't render the same text twice.
+    // resolveExternalTitle normalizes legacy combined "Title: Subtitle" values
+    // against the embedded title/subtitle so the subtitle line below doesn't
+    // duplicate text already baked into the resolved title.
     const resolvedTitle =
       this.resolveFieldByPriority(
         'title',
         {
           manual: ab.title,
           embedded: ab.title,
-          hardcover: stripDuplicateSubtitle(hc?.title, ab.subtitle),
-          goodreads: stripDuplicateSubtitle(gr?.title, ab.subtitle),
+          hardcover: resolveExternalTitle(
+            hc?.title,
+            hc?.subtitle,
+            ab.title,
+            ab.subtitle,
+          ),
+          goodreads: resolveExternalTitle(
+            gr?.title,
+            gr?.subtitle,
+            ab.title,
+            ab.subtitle,
+          ),
         },
         metadataPriority.title,
         manualFields,

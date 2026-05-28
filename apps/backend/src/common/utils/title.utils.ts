@@ -49,3 +49,45 @@ export function splitTitleSubtitle(
 
   return { title, subtitle };
 }
+
+/**
+ * Resolve the title to display for an external source (Hardcover/Goodreads),
+ * accounting for legacy combined titles.
+ *
+ * External sources historically packed `"Title: Subtitle"` into a single field.
+ * Recent ingest splits incoming titles into `title`/`subtitle` columns, but old
+ * rows still have the combined value with `subtitle = null`. Without cleanup,
+ * the list view renders `"<Title>: <Subtitle>"` plus the embedded subtitle on
+ * its own line — visually broken and inconsistent with the detail view.
+ *
+ * Resolution order:
+ * 1. External `subtitle` is set → row was ingested post-fix, title is clean.
+ * 2. External title ends with `": <embeddedSubtitle>"` → strip that exact
+ *    suffix (preserves titles where the colon is part of the real name).
+ * 3. External title starts with `"<embeddedTitle>: "` → it was synthesized
+ *    from the embedded title plus some other subtitle the external source
+ *    bundled in; return the embedded-title prefix.
+ * 4. Otherwise leave it alone — we don't have enough signal to split safely.
+ */
+export function resolveExternalTitle(
+  externalTitle: string | null | undefined,
+  externalSubtitle: string | null | undefined,
+  embeddedTitle: string | null | undefined,
+  embeddedSubtitle: string | null | undefined,
+): string | null | undefined {
+  if (!externalTitle) return externalTitle;
+  if (externalSubtitle) return externalTitle;
+
+  const stripped = stripDuplicateSubtitle(externalTitle, embeddedSubtitle);
+  if (stripped !== externalTitle) return stripped;
+
+  if (embeddedTitle) {
+    const prefix = `${embeddedTitle}: `;
+    if (externalTitle.toLowerCase().startsWith(prefix.toLowerCase())) {
+      const head = externalTitle.slice(0, embeddedTitle.length).trim();
+      if (head) return head;
+    }
+  }
+
+  return externalTitle;
+}

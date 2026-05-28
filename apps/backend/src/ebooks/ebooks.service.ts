@@ -36,7 +36,7 @@ import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadata.provider';
 import { splitPersonNames } from '../common/utils/name.utils';
-import { stripDuplicateSubtitle } from '../common/utils/title.utils';
+import { resolveExternalTitle } from '../common/utils/title.utils';
 
 export interface EbookListItem {
   id: string;
@@ -519,18 +519,28 @@ export class EbooksService {
       const gr = goodreadsDataMap.get(eb.id) || null;
 
       // Apply priority-based resolution for title.
-      // Hardcover/Goodreads store the full "Title: Subtitle" in one field, so
-      // strip the embedded subtitle off those external titles before resolving
-      // — otherwise the subtitle would render twice (once inline in the title,
-      // once on the dedicated subtitle line).
+      // Hardcover/Goodreads historically stored "Title: Subtitle" in one field;
+      // resolveExternalTitle normalizes that against the embedded title/subtitle
+      // so the subtitle line below doesn't end up duplicating text already
+      // baked into the resolved title.
       const resolvedTitle =
         this.resolveFieldByPriority(
           'title',
           {
             manual: eb.title,
             embedded: eb.title,
-            hardcover: stripDuplicateSubtitle(hc?.title, eb.subtitle),
-            goodreads: stripDuplicateSubtitle(gr?.title, eb.subtitle),
+            hardcover: resolveExternalTitle(
+              hc?.title,
+              hc?.subtitle,
+              eb.title,
+              eb.subtitle,
+            ),
+            goodreads: resolveExternalTitle(
+              gr?.title,
+              gr?.subtitle,
+              eb.title,
+              eb.subtitle,
+            ),
           },
           metadataPriority.title,
           manualFields,
@@ -770,7 +780,44 @@ export class EbooksService {
     const gr = goodreadsData[0]?.goodreadsBook || null;
     const manualFields = (eb.manualFields as string[]) || [];
 
-    // Resolve description using configured metadata priority
+    // Resolve scalar fields using configured metadata priority. Mirrors the
+    // resolution done in `findAll` so the detail/edit view shows the same
+    // values as the list, instead of always returning embedded values.
+    const resolvedTitle =
+      this.resolveFieldByPriority(
+        'title',
+        {
+          manual: eb.title,
+          embedded: eb.title,
+          hardcover: resolveExternalTitle(
+            hc?.title,
+            hc?.subtitle,
+            eb.title,
+            eb.subtitle,
+          ),
+          goodreads: resolveExternalTitle(
+            gr?.title,
+            gr?.subtitle,
+            eb.title,
+            eb.subtitle,
+          ),
+        },
+        metadataPriority.title,
+        manualFields,
+      ) || eb.title;
+
+    const resolvedSubtitle = this.resolveFieldByPriority(
+      'subtitle',
+      {
+        manual: eb.subtitle,
+        embedded: eb.subtitle,
+        hardcover: hc?.subtitle,
+        goodreads: gr?.subtitle,
+      },
+      metadataPriority.subtitle,
+      manualFields,
+    );
+
     const resolvedDescription = this.resolveFieldByPriority(
       'description',
       {
@@ -783,12 +830,115 @@ export class EbooksService {
       manualFields,
     );
 
+    const resolvedPublisher = this.resolveFieldByPriority(
+      'publisher',
+      {
+        manual: eb.publisher,
+        embedded: eb.publisher,
+        hardcover: null,
+        goodreads: null,
+      },
+      metadataPriority.publisher,
+      manualFields,
+    );
+
+    const resolvedPublishedDate = this.resolveFieldByPriority(
+      'publishedDate',
+      {
+        manual: eb.publishedDate,
+        embedded: eb.publishedDate,
+        hardcover: null,
+        goodreads: null,
+      },
+      metadataPriority.publishedDate,
+      manualFields,
+    );
+
+    const resolvedLanguage = this.resolveFieldByPriority(
+      'language',
+      {
+        manual: eb.language,
+        embedded: eb.language,
+        hardcover: null,
+        goodreads: null,
+      },
+      metadataPriority.language,
+      manualFields,
+    );
+
+    // Authors — resolve names array via priority, then materialize virtual
+    // author objects when an external source wins (matches list behavior).
+    const embeddedAuthorNames = authors.map((a) => a.name);
+    const hardcoverAuthorNames = hc?.authorNames || [];
+    const goodreadsAuthorNames = splitPersonNames(gr?.author);
+    const resolvedAuthorNames =
+      this.resolveFieldByPriority(
+        'author',
+        {
+          manual: embeddedAuthorNames,
+          embedded: embeddedAuthorNames,
+          hardcover: hardcoverAuthorNames,
+          goodreads: goodreadsAuthorNames,
+        },
+        metadataPriority.author,
+        manualFields,
+      ) || embeddedAuthorNames;
+
+    const resolvedAuthors =
+      resolvedAuthorNames === hardcoverAuthorNames && hc
+        ? hardcoverAuthorNames.map((name, idx) => ({
+            id: `hc-author-${idx}`,
+            name,
+            imageUrl: null,
+          }))
+        : resolvedAuthorNames === goodreadsAuthorNames && gr
+          ? goodreadsAuthorNames.map((name, idx) => ({
+              id: `gr-author-${idx}`,
+              name,
+              imageUrl: null,
+            }))
+          : authors;
+
+    // Series — Hardcover provides a featured series; Goodreads doesn't.
+    const embeddedSeriesNames = seriesData.map((s) => s.name);
+    const hardcoverSeriesName = hc?.featuredSeriesName
+      ? [hc.featuredSeriesName]
+      : [];
+    const resolvedSeriesNames =
+      this.resolveFieldByPriority(
+        'series',
+        {
+          manual: embeddedSeriesNames,
+          embedded: embeddedSeriesNames,
+          hardcover: hardcoverSeriesName,
+          goodreads: [],
+        },
+        metadataPriority.series,
+        manualFields,
+      ) || embeddedSeriesNames;
+
+    const resolvedSeries =
+      resolvedSeriesNames === hardcoverSeriesName && hc?.featuredSeriesName
+        ? [
+            {
+              id: `hc-series-0`,
+              name: hc.featuredSeriesName,
+              order: hc.featuredSeriesPosition || '0',
+            },
+          ]
+        : seriesData;
+
     return {
       ...eb,
+      title: resolvedTitle,
+      subtitle: resolvedSubtitle,
       description: resolvedDescription,
+      publisher: resolvedPublisher,
+      publishedDate: resolvedPublishedDate,
+      language: resolvedLanguage,
       coverUrl: this.getCoverUrl(eb.id, eb.coverUrl, eb.coverSource),
-      authors,
-      series: seriesData,
+      authors: resolvedAuthors,
+      series: resolvedSeries,
       genres,
       tags,
       // Include hardcover data for display

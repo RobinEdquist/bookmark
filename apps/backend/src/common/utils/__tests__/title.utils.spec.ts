@@ -1,4 +1,8 @@
-import { splitTitleSubtitle, stripDuplicateSubtitle } from '../title.utils';
+import {
+  resolveExternalTitle,
+  splitTitleSubtitle,
+  stripDuplicateSubtitle,
+} from '../title.utils';
 
 describe('stripDuplicateSubtitle', () => {
   it('strips an exact subtitle suffix', () => {
@@ -91,5 +95,77 @@ describe('splitTitleSubtitle', () => {
       subtitle: null,
     });
     expect(splitTitleSubtitle('')).toEqual({ title: null, subtitle: null });
+  });
+});
+
+describe('resolveExternalTitle', () => {
+  it('returns the external title as-is when external subtitle is set', () => {
+    expect(
+      resolveExternalTitle(
+        'Come as You Are',
+        'The Surprising New Science',
+        'Come as You Are',
+        'Revised and Updated',
+      ),
+    ).toBe('Come as You Are');
+  });
+
+  it('strips a matching embedded subtitle suffix', () => {
+    expect(
+      resolveExternalTitle(
+        'Project Hail Mary: A Novel',
+        null,
+        'Project Hail Mary',
+        'A Novel',
+      ),
+    ).toBe('Project Hail Mary');
+  });
+
+  it('falls back to the embedded title prefix when the external subtitle does not match', () => {
+    // Legacy combined external title where the baked-in subtitle differs from
+    // the embedded subtitle — this is the "Come as You Are" case.
+    expect(
+      resolveExternalTitle(
+        'Come as You Are: The Surprising New Science That Will Transform Your Sex Life',
+        null,
+        'Come as You Are',
+        'Revised and Updated',
+      ),
+    ).toBe('Come as You Are');
+  });
+
+  it('matches the embedded-title prefix case-insensitively', () => {
+    expect(
+      resolveExternalTitle(
+        'COME AS YOU ARE: something',
+        null,
+        'Come as You Are',
+        null,
+      ),
+    ).toBe('COME AS YOU ARE');
+  });
+
+  it('leaves the external title alone when neither hint matches', () => {
+    expect(
+      resolveExternalTitle(
+        'Some External Title',
+        null,
+        'A Completely Different Embedded Title',
+        'And subtitle',
+      ),
+    ).toBe('Some External Title');
+  });
+
+  it('does not aggressively split titles that genuinely contain a colon', () => {
+    // Embedded title is the full "Foo: Bar", so the external "Foo: Bar"
+    // should not be reduced to "Foo".
+    expect(resolveExternalTitle('Foo: Bar', null, 'Foo: Bar', null)).toBe(
+      'Foo: Bar',
+    );
+  });
+
+  it('passes through null and undefined external titles', () => {
+    expect(resolveExternalTitle(null, null, 'x', 'y')).toBeNull();
+    expect(resolveExternalTitle(undefined, null, 'x', 'y')).toBeUndefined();
   });
 });
