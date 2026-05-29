@@ -1,11 +1,12 @@
 "use client";
 
-import { use, useState, useRef, useEffect } from "react";
+import { use, useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
+import DOMPurify from "dompurify";
 import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download, RotateCcw } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -99,6 +100,10 @@ export default function AudiobookDetailPage({
   const [chaptersOpen, setChaptersOpen] = useState<string | undefined>(undefined);
   const [filesOpen, setFilesOpen] = useState<string | undefined>(undefined);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  const sanitizedDescription = useMemo(
+    () => (audiobook?.description ? DOMPurify.sanitize(audiobook.description) : ""),
+    [audiobook?.description],
+  );
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("audiobook", id);
@@ -519,7 +524,7 @@ export default function AudiobookDetailPage({
                         ? descriptionRef.current?.scrollHeight ?? 9999
                         : 200,
                     }}
-                    dangerouslySetInnerHTML={{ __html: audiobook.description }}
+                    dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                   />
                   <div
                     className={`pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent transition-opacity duration-200 ${

@@ -1,11 +1,12 @@
 "use client";
 
-import { use, useState, useRef, useEffect } from "react";
+import { use, useState, useRef, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import { toast } from "sonner";
+import DOMPurify from "dompurify";
 import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, User, BookOpen, Library, Pencil, ChevronDown, ChevronUp, FileText, ImageIcon, Download, CheckCircle2, RotateCcw } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -69,6 +70,10 @@ export default function EbookDetailPage({
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  const sanitizedDescription = useMemo(
+    () => (ebook?.description ? DOMPurify.sanitize(ebook.description) : ""),
+    [ebook?.description],
+  );
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("ebook", id);
@@ -453,7 +458,7 @@ export default function EbookDetailPage({
                         ? descriptionRef.current?.scrollHeight ?? 9999
                         : 200,
                     }}
-                    dangerouslySetInnerHTML={{ __html: ebook.description }}
+                    dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                   />
                   <div
                     className={`pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent transition-opacity duration-200 ${

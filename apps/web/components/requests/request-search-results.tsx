@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { Headphones, BookOpen, ChevronRight, Calendar, Tag, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -38,6 +39,10 @@ function formatDate(dateString: string): string {
   } catch {
     return dateString;
   }
+}
+
+function stripHtml(html: string): string {
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
 }
 
 export function RequestSearchResults({
@@ -192,7 +197,7 @@ export function RequestSearchResults({
 
                     {item.description && (
                       <p className="line-clamp-2 pr-4 text-sm text-muted-foreground [&_img]:hidden [&_strong]:font-semibold [&_em]:italic">
-                        {item.description.replace(/<[^>]*>/g, '')}
+                        {stripHtml(item.description)}
                       </p>
                     )}
 
@@ -387,7 +392,7 @@ export function RequestSearchResults({
                     {/* Description */}
                     {item.description && (
                       <p className="line-clamp-2 text-sm text-muted-foreground">
-                        {item.description.replace(/<[^>]*>/g, '')}
+                        {stripHtml(item.description)}
                       </p>
                     )}
 
