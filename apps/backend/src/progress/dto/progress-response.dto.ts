@@ -1,4 +1,9 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiExtraModels,
+  ApiProperty,
+  ApiPropertyOptional,
+  getSchemaPath,
+} from '@nestjs/swagger';
 
 export class ProgressResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
@@ -165,6 +170,7 @@ export class RecentSessionDto {
   endedAt!: string;
 }
 
+@ApiExtraModels(ListeningStatsItemDto)
 export class MobileListeningStatsDto {
   @ApiProperty({
     example: 345600,
@@ -180,9 +186,7 @@ export class MobileListeningStatsDto {
 
   @ApiProperty({
     type: 'object',
-    additionalProperties: {
-      $ref: '#/components/schemas/ListeningStatsItemDto',
-    },
+    additionalProperties: { $ref: getSchemaPath(ListeningStatsItemDto) },
     description: 'Per-audiobook listening stats keyed by audiobook ID',
   })
   items!: Record<string, ListeningStatsItemDto>;
