@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * One of the discrete audiobook/ebook versions grouped under a canonical work
@@ -22,7 +22,8 @@ export class TopListVersionDto {
 export class TopListItemDto {
   @ApiProperty({
     example: '550e8400-e29b-41d4-a716-446655440000',
-    description: 'Canonical work identifier (id of the highest-priority source mapping)',
+    description:
+      'Canonical work identifier (id of the highest-priority source mapping)',
   })
   id!: string;
 
@@ -56,10 +57,16 @@ export class TopListItemDto {
   @ApiProperty({ type: [String], example: ['Frank Herbert'] })
   authors!: string[];
 
-  @ApiProperty({ example: 4.21, description: 'Average rating from the chosen source' })
+  @ApiProperty({
+    example: 4.21,
+    description: 'Average rating from the chosen source',
+  })
   rating!: number;
 
-  @ApiProperty({ example: 1284, description: 'Number of ratings backing the score' })
+  @ApiProperty({
+    example: 1284,
+    description: 'Number of ratings backing the score',
+  })
   ratingsCount!: number;
 
   @ApiProperty({
@@ -83,9 +90,15 @@ export class TopListItemDto {
  * GET /api/lists/top response.
  */
 export class ListsTopDto {
-  @ApiProperty({ type: [TopListItemDto], description: 'Items sorted by weighted rating' })
+  @ApiProperty({
+    type: [TopListItemDto],
+    description: 'Items sorted by weighted rating',
+  })
   topRated!: TopListItemDto[];
 
-  @ApiProperty({ type: [TopListItemDto], description: 'Items sorted by total ratings count' })
+  @ApiProperty({
+    type: [TopListItemDto],
+    description: 'Items sorted by total ratings count',
+  })
   mostVoted!: TopListItemDto[];
 }
