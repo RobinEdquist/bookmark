@@ -140,6 +140,15 @@ There are no rate limits for self-hosted instances. Be mindful of your server re
       },
       'api-key',
     )
+    .addBasicAuth(
+      {
+        type: 'http',
+        scheme: 'basic',
+        description:
+          'HTTP Basic auth for OPDS endpoints — use any username with an API key (bkmrk_…) as the password',
+      },
+      'basic',
+    )
     .addTag('Audiobooks', 'Manage your audiobook library')
     .addTag('Ebooks', 'Manage your ebook library')
     .addTag('Progress', 'Track reading/listening progress')
