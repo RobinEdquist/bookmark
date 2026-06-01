@@ -28,6 +28,13 @@ import {
   UpdateListDto,
   AddItemDto,
   ReorderItemsDto,
+  ListDto,
+  ListsGroupedDto,
+  ListsRecentDto,
+  ListsTopDto,
+  ListDetailDto,
+  ListItemDto,
+  ListWithContainsFlagDto,
 } from './dto';
 
 @ApiTags('Lists')
@@ -43,7 +50,11 @@ export class ListsController {
     summary: 'Get all lists',
     description: 'Returns user lists and public lists from other users',
   })
-  @ApiResponse({ status: 200, description: 'Lists grouped by ownership' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lists grouped by ownership',
+    type: ListsGroupedDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(@CurrentUser() user: AuthenticatedUser) {
     return this.listsService.findAll(user.id);
@@ -57,7 +68,12 @@ export class ListsController {
   })
   @ApiQuery({ name: 'itemType', enum: ['audiobook', 'ebook'] })
   @ApiQuery({ name: 'itemId', type: String })
-  @ApiResponse({ status: 200, description: 'Lists with containsItem flag' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lists with containsItem flag',
+    type: ListWithContainsFlagDto,
+    isArray: true,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getListsForItem(
     @Query('itemType') itemType: 'audiobook' | 'ebook',
@@ -79,7 +95,11 @@ export class ListsController {
     type: Number,
     description: 'Max lists to return (default 12, max 50)',
   })
-  @ApiResponse({ status: 200, description: 'Recently updated lists' })
+  @ApiResponse({
+    status: 200,
+    description: 'Recently updated lists',
+    type: ListsRecentDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findRecent(
     @CurrentUser() user: AuthenticatedUser,
@@ -104,7 +124,11 @@ export class ListsController {
     type: Number,
     description: 'Max items to return (default 10, max 50)',
   })
-  @ApiResponse({ status: 200, description: 'Top-ranked items' })
+  @ApiResponse({
+    status: 200,
+    description: 'Top-ranked items',
+    type: ListsTopDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findTop(
     @CurrentUser() user: AuthenticatedUser,
@@ -124,7 +148,11 @@ export class ListsController {
       'Returns a list with its items. Accessible if owner or public.',
   })
   @ApiParam({ name: 'id', description: 'List ID' })
-  @ApiResponse({ status: 200, description: 'List with items' })
+  @ApiResponse({
+    status: 200,
+    description: 'List with items',
+    type: ListDetailDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
@@ -143,7 +171,7 @@ export class ListsController {
     summary: 'Create a list',
     description: 'Creates a new list for the current user',
   })
-  @ApiResponse({ status: 201, description: 'List created' })
+  @ApiResponse({ status: 201, description: 'List created', type: ListDto })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async create(
@@ -159,7 +187,7 @@ export class ListsController {
     description: 'Updates list name and/or visibility',
   })
   @ApiParam({ name: 'id', description: 'List ID' })
-  @ApiResponse({ status: 200, description: 'List updated' })
+  @ApiResponse({ status: 200, description: 'List updated', type: ListDto })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - not owner' })
@@ -196,7 +224,7 @@ export class ListsController {
     description: 'Adds an audiobook or ebook to a list',
   })
   @ApiParam({ name: 'id', description: 'List ID' })
-  @ApiResponse({ status: 201, description: 'Item added' })
+  @ApiResponse({ status: 201, description: 'Item added', type: ListItemDto })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - not owner' })
