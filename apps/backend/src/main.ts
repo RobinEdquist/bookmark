@@ -122,12 +122,16 @@ There are no rate limits for self-hosted instances. Be mindful of your server re
     `.trim(),
     )
     .setVersion('1.0')
-    .addCookieAuth('better-auth.session_token', {
-      type: 'apiKey',
-      in: 'cookie',
-      name: 'better-auth.session_token',
-      description: 'Session cookie set by the authentication endpoints',
-    })
+    .addCookieAuth(
+      'better-auth.session_token',
+      {
+        type: 'apiKey',
+        in: 'cookie',
+        name: 'better-auth.session_token',
+        description: 'Session cookie set by the authentication endpoints',
+      },
+      'better-auth.session_token',
+    )
     .addBearerAuth(
       {
         type: 'http',
