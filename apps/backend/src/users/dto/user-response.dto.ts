@@ -24,10 +24,10 @@ export class ApiKeyInfoDto {
   @ApiProperty({ example: true })
   hasKey!: boolean;
 
-  @ApiPropertyOptional({ example: '2024-01-15T12:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2024-01-15T12:00:00.000Z', nullable: true })
   lastUsed?: string | null;
 
-  @ApiPropertyOptional({ example: '192.168.1.1', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '192.168.1.1', nullable: true })
   lastIp?: string | null;
 }
 

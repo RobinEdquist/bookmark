@@ -14,6 +14,7 @@ export class SeriesItemDto {
   name!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'J.R.R. Tolkien',
     description: 'Primary author of the series',
   })
@@ -23,12 +24,14 @@ export class SeriesItemDto {
   bookCount!: number;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/covers/series/abc123.jpg',
     description: 'Cover image URL',
   })
   coverUrl?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '2024-01-15T12:00:00.000Z',
     description: 'When the series was last updated',
   })

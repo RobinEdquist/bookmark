@@ -12,6 +12,7 @@ export class UpdateProgressDto {
   position!: number;
 
   @ApiPropertyOptional({
+    type: String,
     description:
       'Client wall-clock timestamp (ISO-8601) at which this position was observed. ' +
       'When present and older than the server-side row, the server returns 409 Conflict ' +

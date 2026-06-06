@@ -13,12 +13,13 @@ export class UserProfileDto {
   email!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://example.com/avatar.jpg',
     nullable: true,
   })
   image?: string | null;
 
-  @ApiPropertyOptional({ example: 'admin', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'admin', nullable: true })
   role?: string | null;
 
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
@@ -84,10 +85,11 @@ export class LibraryProgressItemDto {
   @ApiProperty({ example: 'The Way of Kings' })
   title!: string;
 
-  @ApiPropertyOptional({ example: 'Brandon Sanderson', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Brandon Sanderson', nullable: true })
   authorName?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/api/audiobooks/550e8400-e29b-41d4-a716-446655440000/cover',
     nullable: true,
   })
@@ -99,7 +101,7 @@ export class LibraryProgressItemDto {
   @ApiProperty({ example: false })
   completed!: boolean;
 
-  @ApiPropertyOptional({ example: '2024-01-15T12:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2024-01-15T12:00:00.000Z', nullable: true })
   completedAt?: string | null;
 
   @ApiProperty({ example: '2024-01-10T08:00:00.000Z' })
@@ -109,6 +111,7 @@ export class LibraryProgressItemDto {
   updatedAt!: string;
 
   @ApiPropertyOptional({
+    type: Number,
     example: 54000,
     description: 'Duration in seconds (audiobooks only)',
     nullable: true,
@@ -136,10 +139,11 @@ export class ListeningHistoryItemDto {
   @ApiProperty({ example: 'Project Hail Mary' })
   audiobookTitle!: string;
 
-  @ApiPropertyOptional({ example: 'Andy Weir', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Andy Weir', nullable: true })
   authorName?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/api/audiobooks/550e8400-e29b-41d4-a716-446655440000/cover',
     nullable: true,
   })

@@ -15,7 +15,7 @@ export class ProgressResponseDto {
   @ApiProperty({ example: false })
   completed!: boolean;
 
-  @ApiPropertyOptional({ example: '2024-01-15T12:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2024-01-15T12:00:00.000Z', nullable: true })
   completedAt?: string | null;
 
   @ApiProperty({ example: '2024-01-10T08:00:00.000Z' })
@@ -33,12 +33,14 @@ export class ProgressAudiobookDto {
   title!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/api/audiobooks/550e8400-e29b-41d4-a716-446655440000/cover',
     nullable: true,
   })
   coverUrl?: string | null;
 
   @ApiPropertyOptional({
+    type: Number,
     example: 54000,
     description: 'Duration in seconds',
     nullable: true,
@@ -113,10 +115,11 @@ export class ListeningStatsItemDto {
   @ApiProperty({ example: 'Project Hail Mary' })
   title!: string;
 
-  @ApiPropertyOptional({ example: 'Andy Weir', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Andy Weir', nullable: true })
   authorName?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/api/audiobooks/550e8400-e29b-41d4-a716-446655440000/cover',
     nullable: true,
   })
@@ -139,10 +142,11 @@ export class RecentSessionDto {
   @ApiProperty({ example: 'Project Hail Mary' })
   audiobookTitle!: string;
 
-  @ApiPropertyOptional({ example: 'Andy Weir', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Andy Weir', nullable: true })
   authorName?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/api/audiobooks/550e8400-e29b-41d4-a716-446655440000/cover',
     nullable: true,
   })

@@ -4,10 +4,11 @@ export class ApiKeyResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
 
-  @ApiPropertyOptional({ example: 'My API Key', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'My API Key', nullable: true })
   name?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'bkmrk_abc',
     description: 'First few characters of the key',
     nullable: true,
@@ -17,10 +18,10 @@ export class ApiKeyResponseDto {
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
   createdAt!: Date;
 
-  @ApiPropertyOptional({ example: '2024-01-20T08:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2024-01-20T08:00:00.000Z', nullable: true })
   lastRequest?: Date | null;
 
-  @ApiPropertyOptional({ example: '192.168.1.1', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '192.168.1.1', nullable: true })
   lastIp?: string | null;
 }
 
@@ -28,7 +29,7 @@ export class ApiKeyCreateResponseDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
 
-  @ApiPropertyOptional({ example: 'My API Key', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'My API Key', nullable: true })
   name?: string | null;
 
   @ApiProperty({
@@ -37,7 +38,7 @@ export class ApiKeyCreateResponseDto {
   })
   key!: string;
 
-  @ApiPropertyOptional({ example: 'bkmrk_abc', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'bkmrk_abc', nullable: true })
   start?: string | null;
 
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })

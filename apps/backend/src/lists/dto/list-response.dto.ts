@@ -83,7 +83,7 @@ export class ListItemAudiobookSummaryDto {
   @ApiProperty({ example: 'Dune' })
   title!: string;
 
-  @ApiPropertyOptional({ example: 'A Novel', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'A Novel', nullable: true })
   subtitle?: string | null;
 
   @ApiProperty({ example: 75720, description: 'Duration in seconds' })
@@ -111,10 +111,11 @@ export class ListItemEbookSummaryDto {
   @ApiProperty({ example: 'Dune' })
   title!: string;
 
-  @ApiPropertyOptional({ example: 'A Novel', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'A Novel', nullable: true })
   subtitle?: string | null;
 
   @ApiPropertyOptional({
+    type: Number,
     example: 412,
     description: 'Number of pages',
     nullable: true,
@@ -147,12 +148,14 @@ export class ListItemWithDetailsDto {
   itemType!: 'audiobook' | 'ebook';
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
   audiobookId?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
