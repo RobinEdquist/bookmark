@@ -42,21 +42,22 @@ export class UserResponseDto {
   email!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://example.com/avatar.jpg',
     nullable: true,
   })
   image?: string | null;
 
-  @ApiPropertyOptional({ example: 'user', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'user', nullable: true })
   role?: string | null;
 
-  @ApiPropertyOptional({ example: false, nullable: true })
+  @ApiPropertyOptional({ type: Boolean, example: false, nullable: true })
   banned?: boolean | null;
 
-  @ApiPropertyOptional({ example: 'Violation of terms', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Violation of terms', nullable: true })
   banReason?: string | null;
 
-  @ApiPropertyOptional({ example: '2024-02-15T12:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2024-02-15T12:00:00.000Z', nullable: true })
   banExpires?: string | null;
 
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
