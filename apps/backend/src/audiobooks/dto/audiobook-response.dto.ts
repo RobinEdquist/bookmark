@@ -88,8 +88,12 @@ export class AudiobookFileDto {
 }
 
 export class HardcoverDataDto {
-  @ApiProperty({ example: 12345 })
-  id!: number;
+  // Stored as text in the DB (see hardcover/schema.ts) and surfaced as a
+  // string at runtime — keep the DTO honest so generated clients decode it
+  // correctly. Hardcover IDs are integers semantically, but the boundary
+  // contract is a string.
+  @ApiProperty({ type: String, example: '12345' })
+  id!: string;
 
   @ApiProperty({ example: 'the-way-of-kings' })
   slug!: string;

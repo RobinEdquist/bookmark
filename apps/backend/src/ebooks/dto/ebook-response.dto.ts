@@ -34,8 +34,10 @@ export class EbookGenreDto {
 }
 
 export class EbookHardcoverDataDto {
-  @ApiProperty({ example: 12345 })
-  id!: number;
+  // Same as HardcoverDataDto: the DB column is text and the runtime emits a
+  // string. Keep the DTO honest.
+  @ApiProperty({ type: String, example: '12345' })
+  id!: string;
 
   @ApiProperty({ example: 'the-way-of-kings' })
   slug!: string;
