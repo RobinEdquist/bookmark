@@ -3,6 +3,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class UpdateProgressDto {
   @ApiProperty({
+    type: 'integer',
     description: 'Current playback position in seconds',
     example: 3600,
     minimum: 0,
