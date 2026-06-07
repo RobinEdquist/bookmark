@@ -1927,15 +1927,25 @@ export class AudiobooksService {
         m4a: 'audio/mp4',
         m4b: 'audio/mp4',
         ogg: 'audio/ogg',
+        opus: 'audio/ogg',
         flac: 'audio/flac',
         wav: 'audio/wav',
+        aac: 'audio/aac',
       };
+      const ext = path
+        .extname(file.filePath)
+        .toLowerCase()
+        .replace(/^\./, '');
+      const mimeType =
+        mimeTypes[ext] ??
+        mimeTypes[file.format.toLowerCase()] ??
+        'application/octet-stream';
 
       return {
         isZip: false,
         filePath: absolutePath,
         fileName: file.fileName,
-        mimeType: mimeTypes[file.format.toLowerCase()] || 'audio/mpeg',
+        mimeType,
         fileSize: file.sizeBytes,
       };
     }
@@ -2046,16 +2056,29 @@ export class AudiobooksService {
       path.join(audiobook[0].filePath, targetFile.filePath),
     );
 
-    // Determine MIME type from format
+    // Determine MIME type. The `format` column is populated from the metadata
+    // library and is a human-readable string ("MPEG-4", "Ogg", "MPEG 1 Layer
+    // 3", etc.) — it doesn't match keys like "m4b" reliably. Prefer the file
+    // extension, which is deterministic, and fall back to format only when no
+    // extension is present.
     const mimeTypes: Record<string, string> = {
       mp3: 'audio/mpeg',
       m4a: 'audio/mp4',
       m4b: 'audio/mp4',
       ogg: 'audio/ogg',
+      opus: 'audio/ogg',
       flac: 'audio/flac',
       wav: 'audio/wav',
+      aac: 'audio/aac',
     };
-    const mimeType = mimeTypes[targetFile.format.toLowerCase()] || 'audio/mpeg';
+    const ext = path
+      .extname(targetFile.filePath)
+      .toLowerCase()
+      .replace(/^\./, '');
+    const mimeType =
+      mimeTypes[ext] ??
+      mimeTypes[targetFile.format.toLowerCase()] ??
+      'application/octet-stream';
 
     return {
       filePath: absolutePath,
