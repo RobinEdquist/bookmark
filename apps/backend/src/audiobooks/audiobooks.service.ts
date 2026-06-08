@@ -1936,9 +1936,12 @@ export class AudiobooksService {
         .extname(file.filePath)
         .toLowerCase()
         .replace(/^\./, '');
+      // Same precedence as the stream endpoint: trust metadata-derived
+      // format over the disk extension so a mislabelled file still serves
+      // the right Content-Type.
       const mimeType =
+        this.mimeTypeForFormat(file.format) ??
         mimeTypes[ext] ??
-        mimeTypes[file.format.toLowerCase()] ??
         'application/octet-stream';
 
       return {
@@ -2075,9 +2078,13 @@ export class AudiobooksService {
       .extname(targetFile.filePath)
       .toLowerCase()
       .replace(/^\./, '');
+    // Prefer format-derived mime when the extension lookup misses or might
+    // be misleading (e.g. a file mislabelled `.ogg` whose actual container
+    // is MPEG-4). iOS's local-file decoder picks codec from the extension,
+    // so a wrong Content-Type here cascades into broken downloaded files.
     const mimeType =
+      this.mimeTypeForFormat(targetFile.format) ??
       mimeTypes[ext] ??
-      mimeTypes[targetFile.format.toLowerCase()] ??
       'application/octet-stream';
 
     return {
@@ -2090,5 +2097,41 @@ export class AudiobooksService {
       fileIndex,
       fileStartPosition,
     };
+  }
+
+  /**
+   * Normalises the `format` value returned by the metadata library
+   * (e.g. "MPEG-4", "Ogg", "MPEG 1 Layer 3") to an HTTP mime type. Returns
+   * undefined when the format string is empty or unrecognised so callers
+   * can fall back to extension-based lookup.
+   */
+  private mimeTypeForFormat(format: string | null | undefined): string | undefined {
+    if (!format) return undefined;
+    const f = format.toLowerCase().trim();
+    if (!f) return undefined;
+    if (
+      f.startsWith('mpeg-4') ||
+      f.startsWith('mpeg 4') ||
+      f === 'mp4' ||
+      f === 'm4a' ||
+      f === 'm4b' ||
+      f.includes('mp4')
+    ) {
+      return 'audio/mp4';
+    }
+    if (f === 'aac' || f.includes('aac')) return 'audio/aac';
+    if (
+      f === 'mp3' ||
+      f.includes('mpeg 1 layer 3') ||
+      f.includes('mpeg-1 layer 3') ||
+      (f.startsWith('mpeg') && f.includes('layer 3'))
+    ) {
+      return 'audio/mpeg';
+    }
+    if (f === 'flac' || f.includes('flac')) return 'audio/flac';
+    if (f === 'wav' || f.includes('wave') || f.includes('wav')) return 'audio/wav';
+    if (f === 'ogg' || f.includes('vorbis') || f.includes('ogg')) return 'audio/ogg';
+    if (f === 'opus' || f.includes('opus')) return 'audio/ogg';
+    return undefined;
   }
 }
