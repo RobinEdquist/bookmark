@@ -18,7 +18,11 @@ export class ApiKeyResponseDto {
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
   createdAt!: Date;
 
-  @ApiPropertyOptional({ type: String, example: '2024-01-20T08:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '2024-01-20T08:00:00.000Z',
+    nullable: true,
+  })
   lastRequest?: Date | null;
 
   @ApiPropertyOptional({ type: String, example: '192.168.1.1', nullable: true })
@@ -47,7 +51,7 @@ export class ApiKeyCreateResponseDto {
 
 export class RevokeApiKeyResponseDto {
   @ApiProperty({ example: true })
-  revoked!: boolean;
+  success!: boolean;
 }
 
 // Keep the interfaces for backward compatibility with services

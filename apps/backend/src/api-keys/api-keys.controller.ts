@@ -179,12 +179,11 @@ export class ApiKeysController {
   @ApiParam({ name: 'userId', description: 'User UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
-    description: 'API key revoked successfully',
+    description: 'All API keys revoked',
     type: RevokeApiKeyResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  @ApiResponse({ status: 404, description: 'User has no API keys' })
   async revokeUserApiKey(@Param('userId') userId: string) {
     return this.apiKeysService.revokeUserApiKeyByUserId(userId);
   }
