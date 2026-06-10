@@ -8,6 +8,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, desc } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { apiKey } from '../auth/api-key.schema';
+import { parseLastIp } from './api-key-metadata.util';
 import * as authSchema from '../auth/schema';
 import type {
   ApiKeyResponse,
@@ -45,22 +46,8 @@ export class ApiKeysService {
       start: key.start,
       createdAt: key.createdAt,
       lastRequest: key.lastRequest,
-      lastIp: this.parseLastIp(key.metadata),
+      lastIp: parseLastIp(key.metadata),
     }));
-  }
-
-  private parseLastIp(metadata: string | null): string | null {
-    if (!metadata) return null;
-    try {
-      const parsed: unknown = JSON.parse(metadata);
-      if (parsed && typeof parsed === 'object' && 'lastIp' in parsed) {
-        const ip = (parsed as Record<string, unknown>).lastIp;
-        return typeof ip === 'string' && ip.length > 0 ? ip : null;
-      }
-    } catch {
-      // Invalid JSON, treat as no recorded IP
-    }
-    return null;
   }
 
   async createApiKey(

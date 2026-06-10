@@ -617,7 +617,6 @@ describe('UsersService', () => {
       db.select.mockReturnValueOnce(
         chainable([
           {
-            id: 'key-1',
             lastRequest,
             metadata: JSON.stringify({ lastIp: '192.168.1.1' }),
           },
@@ -627,8 +626,33 @@ describe('UsersService', () => {
       const result = await service.getApiKeyInfo('user-1');
 
       expect(result).toEqual({
-        hasKey: true,
+        count: 1,
         lastUsed: lastRequest.toISOString(),
+        lastIp: '192.168.1.1',
+      });
+    });
+
+    it('should return count and most-recently-used key info when multiple keys exist', async () => {
+      const olderRequest = new Date('2024-05-01');
+      const newerRequest = new Date('2024-06-01');
+      db.select.mockReturnValueOnce(
+        chainable([
+          {
+            lastRequest: olderRequest,
+            metadata: JSON.stringify({ lastIp: '10.0.0.1' }),
+          },
+          {
+            lastRequest: newerRequest,
+            metadata: JSON.stringify({ lastIp: '192.168.1.1' }),
+          },
+        ]),
+      );
+
+      const result = await service.getApiKeyInfo('user-1');
+
+      expect(result).toEqual({
+        count: 2,
+        lastUsed: newerRequest.toISOString(),
         lastIp: '192.168.1.1',
       });
     });
@@ -637,7 +661,6 @@ describe('UsersService', () => {
       db.select.mockReturnValueOnce(
         chainable([
           {
-            id: 'key-1',
             lastRequest: null,
             metadata: null,
           },
@@ -647,7 +670,7 @@ describe('UsersService', () => {
       const result = await service.getApiKeyInfo('user-1');
 
       expect(result).toEqual({
-        hasKey: true,
+        count: 1,
         lastUsed: null,
         lastIp: null,
       });
@@ -657,7 +680,6 @@ describe('UsersService', () => {
       db.select.mockReturnValueOnce(
         chainable([
           {
-            id: 'key-1',
             lastRequest: null,
             metadata: 'invalid-json',
           },
@@ -667,7 +689,7 @@ describe('UsersService', () => {
       const result = await service.getApiKeyInfo('user-1');
 
       expect(result).toEqual({
-        hasKey: true,
+        count: 1,
         lastUsed: null,
         lastIp: null,
       });

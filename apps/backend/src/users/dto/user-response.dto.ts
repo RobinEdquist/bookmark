@@ -21,10 +21,14 @@ export class UserPermissionsResponseDto {
 }
 
 export class ApiKeyInfoDto {
-  @ApiProperty({ example: true })
-  hasKey!: boolean;
+  @ApiProperty({ example: 2, description: 'Number of active API keys' })
+  count!: number;
 
-  @ApiPropertyOptional({ type: String, example: '2024-01-15T12:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '2024-01-15T12:00:00.000Z',
+    nullable: true,
+  })
   lastUsed?: string | null;
 
   @ApiPropertyOptional({ type: String, example: '192.168.1.1', nullable: true })
@@ -54,10 +58,18 @@ export class UserResponseDto {
   @ApiPropertyOptional({ type: Boolean, example: false, nullable: true })
   banned?: boolean | null;
 
-  @ApiPropertyOptional({ type: String, example: 'Violation of terms', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Violation of terms',
+    nullable: true,
+  })
   banReason?: string | null;
 
-  @ApiPropertyOptional({ type: String, example: '2024-02-15T12:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '2024-02-15T12:00:00.000Z',
+    nullable: true,
+  })
   banExpires?: string | null;
 
   @ApiProperty({ example: '2024-01-01T00:00:00.000Z' })
@@ -105,7 +117,7 @@ export interface UserPermissionsResponse {
 }
 
 export interface ApiKeyInfo {
-  hasKey: boolean;
+  count: number;
   lastUsed: string | null;
   lastIp: string | null;
 }
