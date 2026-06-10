@@ -56,7 +56,7 @@ export class ApiKeysController {
     description: 'Forbidden - user does not have API key permission',
   })
   async getMyApiKey(@CurrentUser() user: AuthenticatedUser) {
-    return this.apiKeysService.getUserApiKey(user.id);
+    return this.apiKeysService.getUserApiKeys(user.id);
   }
 
   @Post()
@@ -125,7 +125,7 @@ export class ApiKeysController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getUserApiKey(@Param('userId') userId: string) {
-    return this.apiKeysService.getUserApiKey(userId);
+    return this.apiKeysService.getUserApiKeys(userId);
   }
 
   @Delete('user/:userId')

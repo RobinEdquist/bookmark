@@ -48,37 +48,52 @@ describe('ApiKeysService', () => {
   });
 
   // -----------------------------------------------------------------------
-  // getUserApiKey
+  // getUserApiKeys
   // -----------------------------------------------------------------------
-  describe('getUserApiKey', () => {
-    it('returns null when no keys found', async () => {
+  describe('getUserApiKeys', () => {
+    it('returns empty array when no keys found', async () => {
       const selectChain = createChainMock([
         'from',
         'where',
         'limit',
         'orderBy',
       ]);
-      selectChain.limit.mockResolvedValue([]);
+      selectChain.orderBy.mockResolvedValue([]);
       db.select.mockReturnValue(selectChain);
 
-      const result = await service.getUserApiKey(USER_ID);
+      const result = await service.getUserApiKeys(USER_ID);
 
-      expect(result).toBeNull();
+      expect(result).toEqual([]);
     });
 
-    it('returns key with parsed metadata', async () => {
+    it('returns all enabled keys with parsed metadata', async () => {
+      const secondKeyRow = {
+        ...mockKeyRow,
+        id: 'key-2',
+        name: 'My iPhone',
+        metadata: null,
+      };
       const selectChain = createChainMock([
         'from',
         'where',
         'limit',
         'orderBy',
       ]);
-      selectChain.limit.mockResolvedValue([mockKeyRow]);
+      selectChain.orderBy.mockResolvedValue([secondKeyRow, mockKeyRow]);
       db.select.mockReturnValue(selectChain);
 
-      const result = await service.getUserApiKey(USER_ID);
+      const result = await service.getUserApiKeys(USER_ID);
 
-      expect(result).toEqual({
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 'key-2',
+        name: 'My iPhone',
+        start: 'sk_test_',
+        createdAt: mockKeyRow.createdAt,
+        lastRequest: mockKeyRow.lastRequest,
+        lastIp: null,
+      });
+      expect(result[1]).toEqual({
         id: KEY_ID,
         name: 'OPDS Access Key',
         start: 'sk_test_',
@@ -95,31 +110,15 @@ describe('ApiKeysService', () => {
         'limit',
         'orderBy',
       ]);
-      selectChain.limit.mockResolvedValue([
+      selectChain.orderBy.mockResolvedValue([
         { ...mockKeyRow, metadata: 'not-valid-json' },
       ]);
       db.select.mockReturnValue(selectChain);
 
-      const result = await service.getUserApiKey(USER_ID);
+      const result = await service.getUserApiKeys(USER_ID);
 
-      expect(result).not.toBeNull();
-      expect(result!.lastIp).toBeNull();
-    });
-
-    it('returns null lastIp when metadata is null', async () => {
-      const selectChain = createChainMock([
-        'from',
-        'where',
-        'limit',
-        'orderBy',
-      ]);
-      selectChain.limit.mockResolvedValue([{ ...mockKeyRow, metadata: null }]);
-      db.select.mockReturnValue(selectChain);
-
-      const result = await service.getUserApiKey(USER_ID);
-
-      expect(result).not.toBeNull();
-      expect(result!.lastIp).toBeNull();
+      expect(result).toHaveLength(1);
+      expect(result[0]!.lastIp).toBeNull();
     });
   });
 

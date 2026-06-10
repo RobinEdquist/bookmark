@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { apiKey } from '../auth/api-key.schema';
 import * as authSchema from '../auth/schema';
@@ -18,7 +18,7 @@ export class ApiKeysService {
     private readonly db: NodePgDatabase<Schema>,
   ) {}
 
-  async getUserApiKey(userId: string): Promise<ApiKeyResponse | null> {
+  async getUserApiKeys(userId: string): Promise<ApiKeyResponse[]> {
     const keys = await this.db
       .select({
         id: apiKey.id,
@@ -30,31 +30,30 @@ export class ApiKeysService {
       })
       .from(apiKey)
       .where(and(eq(apiKey.userId, userId), eq(apiKey.enabled, true)))
-      .limit(1);
+      .orderBy(desc(apiKey.createdAt));
 
-    if (keys.length === 0) return null;
-
-    const key = keys[0];
-    let metadata: Record<string, unknown> = {};
-    if (key.metadata) {
-      try {
-        const parsed = JSON.parse(key.metadata);
-        if (parsed && typeof parsed === 'object') {
-          metadata = parsed;
-        }
-      } catch {
-        // Invalid JSON, use empty object
-      }
-    }
-
-    return {
+    return keys.map((key) => ({
       id: key.id,
       name: key.name,
       start: key.start,
       createdAt: key.createdAt,
       lastRequest: key.lastRequest,
-      lastIp: (metadata.lastIp as string) || null,
-    };
+      lastIp: this.parseLastIp(key.metadata),
+    }));
+  }
+
+  private parseLastIp(metadata: string | null): string | null {
+    if (!metadata) return null;
+    try {
+      const parsed: unknown = JSON.parse(metadata);
+      if (parsed && typeof parsed === 'object' && 'lastIp' in parsed) {
+        const ip = (parsed as Record<string, unknown>).lastIp;
+        return typeof ip === 'string' && ip.length > 0 ? ip : null;
+      }
+    } catch {
+      // Invalid JSON, treat as no recorded IP
+    }
+    return null;
   }
 
   async createApiKey(
