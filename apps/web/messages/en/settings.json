@@ -166,7 +166,7 @@
       "actions": "Actions"
     },
     "apiKey": {
-      "activeCount": "{count, plural, one {1 key} other {# keys}}",
+      "activeCount": "{count, plural, =1 {1 key} other {# keys}}",
       "none": "None",
       "lastUsed": "Last used"
     },

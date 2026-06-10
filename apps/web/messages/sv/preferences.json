@@ -27,8 +27,8 @@
     "noKeys": "Du har inga API-nycklar ännu. Skapa en för att använda med OPDS-läsare eller appar.",
     "create": "Skapa API-nyckel",
     "revoke": "Återkalla",
-    "revokeSuccess": "API-nyckeln återkallades",
-    "keyCount": "{count} av {max} nycklar använda",
+    "revokeSuccess": "API-nyckel återkallad",
+    "keyCount": "{count} av {max} nycklar används",
     "limitReached": "Du har nått det maximala antalet API-nycklar. Återkalla en för att skapa en ny.",
     "errors": {
       "createFailed": "Kunde inte skapa API-nyckel",

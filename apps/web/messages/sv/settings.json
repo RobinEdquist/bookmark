@@ -166,7 +166,7 @@
       "actions": "Åtgärder"
     },
     "apiKey": {
-      "activeCount": "{count, plural, one {1 nyckel} other {# nycklar}}",
+      "activeCount": "{count, plural, =1 {1 nyckel} other {# nycklar}}",
       "none": "Ingen",
       "lastUsed": "Senast använd"
     },
