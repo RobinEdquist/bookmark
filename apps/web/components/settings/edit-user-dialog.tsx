@@ -18,7 +18,11 @@ import {
 import { MultiSelect } from "@repo/ui/components/ui/multi-select";
 import { useUpdateUser, type User } from "../../lib/use-users";
 import { useTags } from "../../lib/use-tags";
-import { useRevokeUserApiKey } from "../../lib/use-api-keys";
+import {
+  useRevokeUserApiKey,
+  useRevokeUserApiKeyById,
+  useUserApiKeys,
+} from "../../lib/use-api-keys";
 import { useSettings } from "../../lib/use-settings";
 
 interface EditUserDialogProps {
@@ -31,6 +35,8 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const t = useTranslations("settings.users");
   const updateUser = useUpdateUser();
   const revokeUserApiKey = useRevokeUserApiKey();
+  const revokeUserApiKeyById = useRevokeUserApiKeyById();
+  const { data: userApiKeys = [] } = useUserApiKeys(user?.id, open);
   const { data: availableTags = [] } = useTags();
   const { settings } = useSettings();
 
@@ -43,8 +49,6 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
   const [canRequestContent, setCanRequestContent] = useState(false);
   const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
-  const [hasApiKey, setHasApiKey] = useState(false);
-
   useEffect(() => {
     if (user) {
       setName(user.name);
@@ -56,7 +60,6 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       setCanGenerateApiKeys(user.permissions.canGenerateApiKeys);
       setCanRequestContent(user.permissions.canRequestContent);
       setBlacklistedTags(user.blacklistedTags);
-      setHasApiKey(user.apiKey?.hasKey ?? false);
     }
   }, [user]);
 
@@ -223,56 +226,76 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
             </div>
           )}
 
-          {hasApiKey && user?.apiKey && (
+          {user && userApiKeys.length > 0 && (
             <div className="space-y-2">
               <Label>{t("apiKeySection.title")}</Label>
-              <div className="rounded-lg border p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    {t("apiKeySection.status")}
-                  </span>
-                  <span className="inline-flex rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-600">
-                    {t("apiKeySection.active")}
-                  </span>
-                </div>
-                {user.apiKey.lastUsed && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      {t("apiKeySection.lastUsed")}
-                    </span>
-                    <span className="text-sm">
-                      {new Date(user.apiKey.lastUsed).toLocaleDateString()}
-                    </span>
+              <div className="space-y-2">
+                {userApiKeys.map((key) => (
+                  <div key={key.id} className="rounded-lg border p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-medium">
+                        {key.name}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 text-destructive hover:text-destructive"
+                        onClick={async () => {
+                          try {
+                            await revokeUserApiKeyById.mutateAsync({
+                              userId: user.id,
+                              keyId: key.id,
+                            });
+                            toast.success(t("apiKeySection.revokeSuccess"));
+                          } catch {
+                            toast.error(t("apiKeySection.revokeError"));
+                          }
+                        }}
+                        disabled={revokeUserApiKeyById.isPending}
+                      >
+                        {t("apiKeySection.revoke")}
+                      </Button>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">
+                        {t("apiKeySection.lastUsed")}
+                      </span>
+                      <span className="text-sm">
+                        {key.lastRequest
+                          ? new Date(key.lastRequest).toLocaleDateString()
+                          : t("apiKeySection.never")}
+                      </span>
+                    </div>
+                    {key.lastIp && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">
+                          {t("apiKeySection.lastIp")}
+                        </span>
+                        <span className="text-sm font-mono">{key.lastIp}</span>
+                      </div>
+                    )}
                   </div>
+                ))}
+                {userApiKeys.length > 1 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-destructive hover:text-destructive"
+                    onClick={async () => {
+                      try {
+                        await revokeUserApiKey.mutateAsync(user.id);
+                        toast.success(t("apiKeySection.revokeAllSuccess"));
+                      } catch {
+                        toast.error(t("apiKeySection.revokeError"));
+                      }
+                    }}
+                    disabled={revokeUserApiKey.isPending}
+                  >
+                    {t("apiKeySection.revokeAll")}
+                  </Button>
                 )}
-                {user.apiKey.lastIp && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">
-                      {t("apiKeySection.lastIp")}
-                    </span>
-                    <span className="text-sm font-mono">{user.apiKey.lastIp}</span>
-                  </div>
-                )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2 w-full text-destructive hover:text-destructive"
-                  onClick={async () => {
-                    try {
-                      await revokeUserApiKey.mutateAsync(user.id);
-                      setHasApiKey(false);
-                      toast.success(t("apiKeySection.revokeSuccess"));
-                    } catch {
-                      toast.error(t("apiKeySection.revokeError"));
-                    }
-                  }}
-                  disabled={revokeUserApiKey.isPending}
-                >
-                  {revokeUserApiKey.isPending
-                    ? t("apiKeySection.revoking")
-                    : t("apiKeySection.revoke")}
-                </Button>
               </div>
             </div>
           )}

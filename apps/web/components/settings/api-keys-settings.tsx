@@ -130,6 +130,7 @@ export function ApiKeysSettings() {
                       size="icon"
                       className="h-7 w-7 shrink-0"
                       onClick={handleCopyUrl}
+                      aria-label={t("serverUrl")}
                     >
                       {urlCopied ? (
                         <Check className="h-3.5 w-3.5 text-green-500" />

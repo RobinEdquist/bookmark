@@ -94,10 +94,10 @@ export function UserTable({
                 {new Date(user.createdAt).toDateString()}
               </td>
               <td className="px-4 py-3">
-                {user.apiKey?.hasKey ? (
+                {user.apiKey && user.apiKey.count > 0 ? (
                   <div className="flex flex-col">
                     <span className="inline-flex w-fit rounded-full bg-green-500/10 px-2 py-1 text-xs font-medium text-green-600">
-                      {t("apiKey.active")}
+                      {t("apiKey.activeCount", { count: user.apiKey.count })}
                     </span>
                     {user.apiKey.lastUsed && (
                       <span className="mt-1 text-xs text-muted-foreground">
