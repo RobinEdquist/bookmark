@@ -41,7 +41,8 @@
       "namePlaceholder": "e.g. My iPhone, KOReader",
       "nameHint": "Optional. A default name is used if left blank.",
       "cancel": "Cancel",
-      "create": "Create"
+      "create": "Create",
+      "creating": "Creating..."
     },
     "createdDialog": {
       "title": "API Key Created",

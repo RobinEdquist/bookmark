@@ -30,6 +30,11 @@ export function CreateApiKeyDialog({
   const t = useTranslations("preferences.apiKeys.createDialog");
   const [name, setName] = useState("");
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) setName("");
+    onOpenChange(nextOpen);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onCreate(name.trim());
@@ -37,7 +42,7 @@ export function CreateApiKeyDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
@@ -52,6 +57,7 @@ export function CreateApiKeyDialog({
               onChange={(e) => setName(e.target.value)}
               placeholder={t("namePlaceholder")}
               maxLength={100}
+              autoFocus
             />
             <p className="text-xs text-muted-foreground">{t("nameHint")}</p>
           </div>
@@ -59,12 +65,13 @@ export function CreateApiKeyDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              disabled={isLoading}
+              onClick={() => handleOpenChange(false)}
             >
               {t("cancel")}
             </Button>
             <Button type="submit" disabled={isLoading}>
-              {t("create")}
+              {isLoading ? t("creating") : t("create")}
             </Button>
           </DialogFooter>
         </form>

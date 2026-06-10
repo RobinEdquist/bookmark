@@ -41,7 +41,8 @@
       "namePlaceholder": "t.ex. Min iPhone, KOReader",
       "nameHint": "Valfritt. Ett standardnamn används om fältet lämnas tomt.",
       "cancel": "Avbryt",
-      "create": "Skapa"
+      "create": "Skapa",
+      "creating": "Skapar..."
     },
     "createdDialog": {
       "title": "API-nyckel skapad",
