@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Delete,
+  Body,
   Param,
   UseGuards,
   HttpCode,
@@ -24,6 +25,7 @@ import {
   ApiKeyCreateResponseDto,
   RevokeApiKeyResponseDto,
 } from './dto/api-key-response.dto';
+import { CreateApiKeyDto } from './dto/create-api-key.dto';
 import { ApiKeyPermissionGuard } from '../common/guards/api-key-permission.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 
@@ -42,21 +44,22 @@ export class ApiKeysController {
   @Get('me')
   @UseGuards(ApiKeyPermissionGuard)
   @ApiOperation({
-    summary: 'Get my API key',
-    description: "Returns the current user's API key if one exists",
+    summary: 'List my API keys',
+    description: "Returns all of the current user's active API keys",
   })
   @ApiResponse({
     status: 200,
-    description: 'API key details or null if none exists',
+    description: 'List of API keys (empty array if none exist)',
     type: ApiKeyResponseDto,
+    isArray: true,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
     description: 'Forbidden - user does not have API key permission',
   })
-  async getMyApiKey(@CurrentUser() user: AuthenticatedUser) {
-    return this.apiKeysService.getUserApiKey(user.id);
+  async getMyApiKeys(@CurrentUser() user: AuthenticatedUser) {
+    return this.apiKeysService.getUserApiKeys(user.id);
   }
 
   @Post()
@@ -64,7 +67,7 @@ export class ApiKeysController {
   @ApiOperation({
     summary: 'Create API key',
     description:
-      'Generate a new API key for the current user. Only one key per user is allowed - creating a new key revokes any existing key.',
+      'Generate a new API key for the current user. Users can hold up to 10 active keys.',
   })
   @ApiResponse({
     status: 201,
@@ -77,8 +80,19 @@ export class ApiKeysController {
     status: 403,
     description: 'Forbidden - user does not have API key permission',
   })
-  async createApiKey(@CurrentUser() user: AuthenticatedUser) {
-    return this.apiKeysService.createApiKey(user.id, this.authService.instance);
+  @ApiResponse({
+    status: 409,
+    description: 'Conflict - maximum number of API keys reached',
+  })
+  async createApiKey(
+    @Body() dto: CreateApiKeyDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.apiKeysService.createApiKey(
+      user.id,
+      this.authService.instance,
+      dto.name,
+    );
   }
 
   @Delete(':id')
@@ -112,30 +126,33 @@ export class ApiKeysController {
   @Get('user/:userId')
   @UseGuards(AdminGuard)
   @ApiOperation({
-    summary: 'Get user API key (Admin)',
+    summary: 'List user API keys (Admin)',
     description:
-      'Get API key details for a specific user. Requires admin role.',
+      'List all active API keys for a specific user. Requires admin role.',
   })
   @ApiParam({ name: 'userId', description: 'User UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
-    description: 'API key details or null if none exists',
+    description: 'List of API keys (empty array if none exist)',
     type: ApiKeyResponseDto,
+    isArray: true,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getUserApiKey(@Param('userId') userId: string) {
-    return this.apiKeysService.getUserApiKey(userId);
+  async getUserApiKeys(@Param('userId') userId: string) {
+    return this.apiKeysService.getUserApiKeys(userId);
   }
 
-  @Delete('user/:userId')
+  @Delete('user/:userId/:keyId')
   @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Revoke user API key (Admin)',
-    description: 'Revoke the API key for a specific user. Requires admin role.',
+    summary: 'Revoke one user API key (Admin)',
+    description:
+      'Revoke a single API key for a specific user. Requires admin role.',
   })
   @ApiParam({ name: 'userId', description: 'User UUID', format: 'uuid' })
+  @ApiParam({ name: 'keyId', description: 'API key ID to revoke' })
   @ApiResponse({
     status: 200,
     description: 'API key revoked successfully',
@@ -143,7 +160,30 @@ export class ApiKeysController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  @ApiResponse({ status: 404, description: 'User has no API key' })
+  @ApiResponse({ status: 404, description: 'API key not found' })
+  async revokeUserApiKeyById(
+    @Param('userId') userId: string,
+    @Param('keyId') keyId: string,
+  ) {
+    return this.apiKeysService.revokeApiKey(keyId, userId);
+  }
+
+  @Delete('user/:userId')
+  @UseGuards(AdminGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Revoke all user API keys (Admin)',
+    description:
+      'Revoke all API keys for a specific user. Requires admin role.',
+  })
+  @ApiParam({ name: 'userId', description: 'User UUID', format: 'uuid' })
+  @ApiResponse({
+    status: 200,
+    description: 'All API keys revoked',
+    type: RevokeApiKeyResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async revokeUserApiKey(@Param('userId') userId: string) {
     return this.apiKeysService.revokeUserApiKeyByUserId(userId);
   }

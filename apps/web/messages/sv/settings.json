@@ -166,20 +166,21 @@
       "actions": "Åtgärder"
     },
     "apiKey": {
-      "active": "Aktiv",
+      "activeCount": "{count, plural, =1 {1 nyckel} other {# nycklar}}",
       "none": "Ingen",
       "lastUsed": "Senast använd"
     },
     "apiKeySection": {
-      "title": "API-nyckel",
-      "status": "Status",
-      "active": "Aktiv",
+      "title": "API-nycklar",
       "lastUsed": "Senast använd",
       "lastIp": "Senaste IP",
-      "revoke": "Återkalla API-nyckel",
-      "revoking": "Återkallar...",
+      "never": "Aldrig",
+      "revoke": "Återkalla",
+      "revokeAll": "Återkalla alla nycklar",
       "revokeSuccess": "API-nyckel återkallad",
-      "revokeError": "Kunde inte återkalla API-nyckel"
+      "revokeAllSuccess": "Alla API-nycklar återkallade",
+      "revokeError": "Kunde inte återkalla API-nyckel",
+      "unnamedKey": "Namnlös nyckel"
     },
     "status": {
       "active": "Aktiv",

@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as authSchema from '../auth/schema';
 import { apiKey } from '../auth/api-key.schema';
+import { parseLastIp } from '../api-keys/api-key-metadata.util';
 import * as userSchema from './schema';
 import type { CreateUserDto } from './dto/create-user.dto';
 import type { UpdateUserDto, BanUserDto } from './dto/update-user.dto';
@@ -351,39 +352,34 @@ export class UsersService {
   }
 
   async getApiKeyInfo(userId: string): Promise<{
-    hasKey: boolean;
+    count: number;
     lastUsed: string | null;
     lastIp: string | null;
   } | null> {
     const keys = await this.db
       .select({
-        id: apiKey.id,
         lastRequest: apiKey.lastRequest,
         metadata: apiKey.metadata,
       })
       .from(apiKey)
-      .where(and(eq(apiKey.userId, userId), eq(apiKey.enabled, true)))
-      .limit(1);
+      .where(and(eq(apiKey.userId, userId), eq(apiKey.enabled, true)));
 
     if (keys.length === 0) return null;
 
-    const key = keys[0];
-    let metadata: Record<string, unknown> = {};
-    if (key.metadata) {
-      try {
-        const parsed = JSON.parse(key.metadata);
-        if (parsed && typeof parsed === 'object') {
-          metadata = parsed;
-        }
-      } catch {
-        // Invalid JSON, use empty object
+    let mostRecent = keys[0];
+    for (const key of keys) {
+      if (
+        key.lastRequest &&
+        (!mostRecent.lastRequest || key.lastRequest > mostRecent.lastRequest)
+      ) {
+        mostRecent = key;
       }
     }
 
     return {
-      hasKey: true,
-      lastUsed: key.lastRequest?.toISOString() ?? null,
-      lastIp: (metadata.lastIp as string) ?? null,
+      count: keys.length,
+      lastUsed: mostRecent.lastRequest?.toISOString() ?? null,
+      lastIp: mostRecent.lastRequest ? parseLastIp(mostRecent.metadata) : null,
     };
   }
 

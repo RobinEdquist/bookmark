@@ -2,6 +2,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+export const MAX_API_KEYS = 10;
+
 export interface ApiKeyInfo {
   id: string;
   name: string | null;
@@ -19,20 +21,28 @@ export interface ApiKeyCreated {
   createdAt: string;
 }
 
-async function fetchMyApiKey(): Promise<ApiKeyInfo | null> {
+async function fetchMyApiKeys(): Promise<ApiKeyInfo[]> {
   const res = await fetch("/api/api-keys/me", { credentials: "include" });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new Error("Failed to fetch API key");
+  if (!res.ok) throw new Error("Failed to fetch API keys");
   const data = await res.json();
-  // Backend returns null with 200 status when no key exists
-  return data ?? null;
+  return data ?? [];
 }
 
-async function createApiKey(): Promise<ApiKeyCreated> {
+export class ApiKeyLimitError extends Error {
+  constructor() {
+    super("API key limit reached");
+    this.name = "ApiKeyLimitError";
+  }
+}
+
+async function createApiKey(input: { name?: string }): Promise<ApiKeyCreated> {
   const res = await fetch("/api/api-keys", {
     method: "POST",
     credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input.name ? { name: input.name } : {}),
   });
+  if (res.status === 409) throw new ApiKeyLimitError();
   if (!res.ok) throw new Error("Failed to create API key");
   return res.json();
 }
@@ -45,10 +55,10 @@ async function revokeApiKey(id: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to revoke API key");
 }
 
-export function useMyApiKey() {
+export function useMyApiKeys() {
   return useQuery({
     queryKey: ["api-keys", "me"],
-    queryFn: fetchMyApiKey,
+    queryFn: fetchMyApiKeys,
   });
 }
 
@@ -67,26 +77,63 @@ export function useRevokeApiKey() {
   return useMutation({
     mutationFn: revokeApiKey,
     onSuccess: () => {
-      // Set the data to null immediately, then invalidate to refetch
-      queryClient.setQueryData(["api-keys", "me"], null);
       queryClient.invalidateQueries({ queryKey: ["api-keys"] });
     },
   });
 }
 
 // Admin hooks
-async function revokeUserApiKey(userId: string): Promise<void> {
+async function fetchUserApiKeys(userId: string): Promise<ApiKeyInfo[]> {
   const res = await fetch(`/api/api-keys/user/${userId}`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to fetch user API keys");
+  const data = await res.json();
+  return data ?? [];
+}
+
+async function revokeUserApiKeyById(input: {
+  userId: string;
+  keyId: string;
+}): Promise<void> {
+  const res = await fetch(`/api/api-keys/user/${input.userId}/${input.keyId}`, {
     method: "DELETE",
     credentials: "include",
   });
   if (!res.ok) throw new Error("Failed to revoke user API key");
 }
 
+async function revokeUserApiKeys(userId: string): Promise<void> {
+  const res = await fetch(`/api/api-keys/user/${userId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to revoke user API keys");
+}
+
+export function useUserApiKeys(userId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["api-keys", "user", userId],
+    queryFn: () => fetchUserApiKeys(userId as string),
+    enabled: enabled && !!userId,
+  });
+}
+
+export function useRevokeUserApiKeyById() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: revokeUserApiKeyById,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["api-keys"] });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
+}
+
 export function useRevokeUserApiKey() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: revokeUserApiKey,
+    mutationFn: revokeUserApiKeys,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["api-keys"] });
       queryClient.invalidateQueries({ queryKey: ["users"] });

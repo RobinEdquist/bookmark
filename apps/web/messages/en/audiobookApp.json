@@ -57,15 +57,15 @@
         "serverDetails": "Your Server URL",
         "goToPreferences": "Go to Preferences"
       },
-      "warning": {
-        "title": "Existing Connection",
-        "description": "You already have an API key. Generating a new QR code will create a new key and disconnect any existing apps or e-readers using the current key."
+      "limitReached": {
+        "title": "API key limit reached",
+        "description": "You've reached the maximum of {max} API keys. Remove an unused key in Preferences before generating a new connection."
       },
       "generateQr": "Generate QR Code",
-      "regenerateQr": "Regenerate QR Code",
       "generating": "Generating...",
       "keyGenerated": "Connection QR code generated successfully",
       "keyError": "Failed to generate connection code",
+      "keyLimitError": "API key limit reached. Remove an unused key in Preferences first.",
       "scanInstructions": "Scan this QR code with your Android phone's camera",
       "scanNote": "Make sure Bookmark is installed. When you scan the code, the app will open with your server and key pre-filled — tap Connect inside the app to finish.",
       "openInApp": "Open in Bookmark",
@@ -118,15 +118,15 @@
         "port": "Port",
         "goToPreferences": "Go to Preferences"
       },
-      "warning": {
-        "title": "Existing Connection",
-        "description": "You already have an API key. Generating a new QR code will create a new key and disconnect any existing apps or e-readers using the current key."
+      "limitReached": {
+        "title": "API key limit reached",
+        "description": "You've reached the maximum of {max} API keys. Remove an unused key in Preferences before generating a new connection."
       },
       "generateQr": "Generate QR Code",
-      "regenerateQr": "Regenerate QR Code",
       "generating": "Generating...",
       "keyGenerated": "Connection QR code generated successfully",
       "keyError": "Failed to generate connection code",
+      "keyLimitError": "API key limit reached. Remove an unused key in Preferences first.",
       "scanInstructions": "Scan this QR code with your iPhone camera",
       "scanNote": "Make sure Happy Audio is installed. When you scan the code, it will open the app and automatically connect to your Bookmark server.",
       "openInApp": "Open in Happy Audio",

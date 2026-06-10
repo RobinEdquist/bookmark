@@ -17,7 +17,6 @@ interface RevokeApiKeyDialogProps {
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   isLoading?: boolean;
-  isRegenerate?: boolean;
 }
 
 export function RevokeApiKeyDialog({
@@ -25,7 +24,6 @@ export function RevokeApiKeyDialog({
   onOpenChange,
   onConfirm,
   isLoading,
-  isRegenerate,
 }: RevokeApiKeyDialogProps) {
   const t = useTranslations("preferences.apiKeys.revokeDialog");
 
@@ -33,19 +31,15 @@ export function RevokeApiKeyDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>
-            {isRegenerate ? t("regenerateTitle") : t("title")}
-          </AlertDialogTitle>
-          <AlertDialogDescription>
-            {isRegenerate ? t("regenerateDescription") : t("description")}
-          </AlertDialogDescription>
+          <AlertDialogTitle>{t("title")}</AlertDialogTitle>
+          <AlertDialogDescription>{t("description")}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>
             {t("cancel")}
           </AlertDialogCancel>
           <AlertDialogAction onClick={onConfirm} disabled={isLoading}>
-            {isRegenerate ? t("regenerateConfirm") : t("confirm")}
+            {t("confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

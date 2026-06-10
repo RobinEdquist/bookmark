@@ -1,6 +1,6 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { createMockDb, createChainMock, type MockDb } from '@test-utils';
-import { ApiKeysService } from '../api-keys.service';
+import { ApiKeysService, MAX_API_KEYS_PER_USER } from '../api-keys.service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -48,37 +48,52 @@ describe('ApiKeysService', () => {
   });
 
   // -----------------------------------------------------------------------
-  // getUserApiKey
+  // getUserApiKeys
   // -----------------------------------------------------------------------
-  describe('getUserApiKey', () => {
-    it('returns null when no keys found', async () => {
+  describe('getUserApiKeys', () => {
+    it('returns empty array when no keys found', async () => {
       const selectChain = createChainMock([
         'from',
         'where',
         'limit',
         'orderBy',
       ]);
-      selectChain.limit.mockResolvedValue([]);
+      selectChain.orderBy.mockResolvedValue([]);
       db.select.mockReturnValue(selectChain);
 
-      const result = await service.getUserApiKey(USER_ID);
+      const result = await service.getUserApiKeys(USER_ID);
 
-      expect(result).toBeNull();
+      expect(result).toEqual([]);
     });
 
-    it('returns key with parsed metadata', async () => {
+    it('returns all enabled keys with parsed metadata', async () => {
+      const secondKeyRow = {
+        ...mockKeyRow,
+        id: 'key-2',
+        name: 'My iPhone',
+        metadata: null,
+      };
       const selectChain = createChainMock([
         'from',
         'where',
         'limit',
         'orderBy',
       ]);
-      selectChain.limit.mockResolvedValue([mockKeyRow]);
+      selectChain.orderBy.mockResolvedValue([secondKeyRow, mockKeyRow]);
       db.select.mockReturnValue(selectChain);
 
-      const result = await service.getUserApiKey(USER_ID);
+      const result = await service.getUserApiKeys(USER_ID);
 
-      expect(result).toEqual({
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: 'key-2',
+        name: 'My iPhone',
+        start: 'sk_test_',
+        createdAt: mockKeyRow.createdAt,
+        lastRequest: mockKeyRow.lastRequest,
+        lastIp: null,
+      });
+      expect(result[1]).toEqual({
         id: KEY_ID,
         name: 'OPDS Access Key',
         start: 'sk_test_',
@@ -95,31 +110,15 @@ describe('ApiKeysService', () => {
         'limit',
         'orderBy',
       ]);
-      selectChain.limit.mockResolvedValue([
+      selectChain.orderBy.mockResolvedValue([
         { ...mockKeyRow, metadata: 'not-valid-json' },
       ]);
       db.select.mockReturnValue(selectChain);
 
-      const result = await service.getUserApiKey(USER_ID);
+      const result = await service.getUserApiKeys(USER_ID);
 
-      expect(result).not.toBeNull();
-      expect(result!.lastIp).toBeNull();
-    });
-
-    it('returns null lastIp when metadata is null', async () => {
-      const selectChain = createChainMock([
-        'from',
-        'where',
-        'limit',
-        'orderBy',
-      ]);
-      selectChain.limit.mockResolvedValue([{ ...mockKeyRow, metadata: null }]);
-      db.select.mockReturnValue(selectChain);
-
-      const result = await service.getUserApiKey(USER_ID);
-
-      expect(result).not.toBeNull();
-      expect(result!.lastIp).toBeNull();
+      expect(result).toHaveLength(1);
+      expect(result[0]!.lastIp).toBeNull();
     });
   });
 
@@ -127,24 +126,28 @@ describe('ApiKeysService', () => {
   // createApiKey
   // -----------------------------------------------------------------------
   describe('createApiKey', () => {
-    it('revokes existing keys first then creates new key', async () => {
-      // Mock the delete chain for revokeAllUserKeys
-      const deleteChain = createChainMock(['where', 'returning']);
-      deleteChain.where.mockResolvedValue(undefined);
-      db.delete.mockReturnValue(deleteChain);
+    function mockExistingKeyCount(count: number) {
+      const selectChain = createChainMock(['from', 'where', 'orderBy']);
+      selectChain.where.mockResolvedValue(
+        Array.from({ length: count }, (_, i) => ({ id: `key-${i}` })),
+      );
+      db.select.mockReturnValue(selectChain);
+    }
 
+    it('creates a key without revoking existing keys', async () => {
+      mockExistingKeyCount(2);
       const authInstance = createMockAuth();
 
-      const result = await service.createApiKey(USER_ID, authInstance);
+      const result = await service.createApiKey(
+        USER_ID,
+        authInstance,
+        'My iPhone',
+      );
 
-      // Should have called delete to revoke existing keys
-      expect(db.delete).toHaveBeenCalled();
-
-      // Should have created new key via auth instance
+      expect(db.delete).not.toHaveBeenCalled();
       expect(authInstance.api.createApiKey).toHaveBeenCalledWith({
-        body: { name: 'OPDS Access Key', userId: USER_ID },
+        body: { name: 'My iPhone', userId: USER_ID },
       });
-
       expect(result).toEqual({
         id: 'new-key-id',
         name: 'OPDS Access Key',
@@ -152,6 +155,47 @@ describe('ApiKeysService', () => {
         start: 'sk_test_',
         createdAt: expect.any(Date),
       });
+    });
+
+    it('uses a dated default name when name is missing', async () => {
+      mockExistingKeyCount(0);
+      const authInstance = createMockAuth();
+
+      await service.createApiKey(USER_ID, authInstance);
+
+      const callBody = authInstance.api.createApiKey.mock.calls[0][0].body;
+      expect(callBody.name).toMatch(/^API Key \d{4}-\d{2}-\d{2}$/);
+      expect(callBody.userId).toBe(USER_ID);
+    });
+
+    it('uses the default name when provided name is blank', async () => {
+      mockExistingKeyCount(0);
+      const authInstance = createMockAuth();
+
+      await service.createApiKey(USER_ID, authInstance, '   ');
+
+      const callBody = authInstance.api.createApiKey.mock.calls[0][0].body;
+      expect(callBody.name).toMatch(/^API Key \d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('trims the provided name', async () => {
+      mockExistingKeyCount(0);
+      const authInstance = createMockAuth();
+
+      await service.createApiKey(USER_ID, authInstance, '  KOReader  ');
+
+      const callBody = authInstance.api.createApiKey.mock.calls[0][0].body;
+      expect(callBody.name).toBe('KOReader');
+    });
+
+    it('throws ConflictException when the user already has 10 keys', async () => {
+      mockExistingKeyCount(MAX_API_KEYS_PER_USER);
+      const authInstance = createMockAuth();
+
+      await expect(
+        service.createApiKey(USER_ID, authInstance, 'One Too Many'),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(authInstance.api.createApiKey).not.toHaveBeenCalled();
     });
   });
 

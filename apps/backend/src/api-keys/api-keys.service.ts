@@ -1,8 +1,14 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { apiKey } from '../auth/api-key.schema';
+import { parseLastIp } from './api-key-metadata.util';
 import * as authSchema from '../auth/schema';
 import type {
   ApiKeyResponse,
@@ -11,6 +17,8 @@ import type {
 
 type Schema = typeof authSchema & { apiKey: typeof apiKey };
 
+export const MAX_API_KEYS_PER_USER = 10;
+
 @Injectable()
 export class ApiKeysService {
   constructor(
@@ -18,7 +26,7 @@ export class ApiKeysService {
     private readonly db: NodePgDatabase<Schema>,
   ) {}
 
-  async getUserApiKey(userId: string): Promise<ApiKeyResponse | null> {
+  async getUserApiKeys(userId: string): Promise<ApiKeyResponse[]> {
     const keys = await this.db
       .select({
         id: apiKey.id,
@@ -30,44 +38,41 @@ export class ApiKeysService {
       })
       .from(apiKey)
       .where(and(eq(apiKey.userId, userId), eq(apiKey.enabled, true)))
-      .limit(1);
+      .orderBy(desc(apiKey.createdAt));
 
-    if (keys.length === 0) return null;
-
-    const key = keys[0];
-    let metadata: Record<string, unknown> = {};
-    if (key.metadata) {
-      try {
-        const parsed = JSON.parse(key.metadata);
-        if (parsed && typeof parsed === 'object') {
-          metadata = parsed;
-        }
-      } catch {
-        // Invalid JSON, use empty object
-      }
-    }
-
-    return {
+    return keys.map((key) => ({
       id: key.id,
       name: key.name,
       start: key.start,
       createdAt: key.createdAt,
       lastRequest: key.lastRequest,
-      lastIp: (metadata.lastIp as string) || null,
-    };
+      lastIp: parseLastIp(key.metadata),
+    }));
   }
 
   async createApiKey(
     userId: string,
     authInstance: any,
+    name?: string,
   ): Promise<ApiKeyCreateResponse> {
-    // Revoke any existing keys first
-    await this.revokeAllUserKeys(userId);
+    const existing = await this.db
+      .select({ id: apiKey.id })
+      .from(apiKey)
+      .where(and(eq(apiKey.userId, userId), eq(apiKey.enabled, true)));
+
+    if (existing.length >= MAX_API_KEYS_PER_USER) {
+      throw new ConflictException(
+        `Maximum of ${MAX_API_KEYS_PER_USER} API keys reached`,
+      );
+    }
+
+    const keyName =
+      name?.trim() || `API Key ${new Date().toISOString().slice(0, 10)}`;
 
     // Create new key via Better Auth
     const result = await authInstance.api.createApiKey({
       body: {
-        name: 'OPDS Access Key',
+        name: keyName,
         userId,
       },
     });
