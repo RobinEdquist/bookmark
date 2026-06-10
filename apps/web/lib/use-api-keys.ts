@@ -28,6 +28,13 @@ async function fetchMyApiKeys(): Promise<ApiKeyInfo[]> {
   return data ?? [];
 }
 
+export class ApiKeyLimitError extends Error {
+  constructor() {
+    super("API key limit reached");
+    this.name = "ApiKeyLimitError";
+  }
+}
+
 async function createApiKey(input: { name?: string }): Promise<ApiKeyCreated> {
   const res = await fetch("/api/api-keys", {
     method: "POST",
@@ -35,6 +42,7 @@ async function createApiKey(input: { name?: string }): Promise<ApiKeyCreated> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input.name ? { name: input.name } : {}),
   });
+  if (res.status === 409) throw new ApiKeyLimitError();
   if (!res.ok) throw new Error("Failed to create API key");
   return res.json();
 }

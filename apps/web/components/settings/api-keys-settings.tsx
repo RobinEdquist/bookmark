@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Key, RefreshCw, Trash2, Copy, Check } from "lucide-react";
+import { Key, Plus, Trash2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import {
   Card,
@@ -13,25 +13,31 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Button } from "@repo/ui/components/ui/button";
 import {
-  useMyApiKey,
+  useMyApiKeys,
   useCreateApiKey,
   useRevokeApiKey,
+  ApiKeyLimitError,
+  MAX_API_KEYS,
   type ApiKeyCreated,
+  type ApiKeyInfo,
 } from "../../lib/use-api-keys";
 import { ApiKeyCreatedDialog } from "./api-key-created-dialog";
+import { CreateApiKeyDialog } from "./create-api-key-dialog";
 import { RevokeApiKeyDialog } from "./revoke-api-key-dialog";
 
 export function ApiKeysSettings() {
   const t = useTranslations("preferences.apiKeys");
-  const { data: apiKey, isLoading } = useMyApiKey();
+  const { data: apiKeys = [], isLoading } = useMyApiKeys();
   const createMutation = useCreateApiKey();
   const revokeMutation = useRevokeApiKey();
 
   const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null);
-  const [showRevokeDialog, setShowRevokeDialog] = useState(false);
-  const [showRegenerateConfirm, setShowRegenerateConfirm] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState<ApiKeyInfo | null>(null);
   const [serverUrl, setServerUrl] = useState("");
   const [urlCopied, setUrlCopied] = useState(false);
+
+  const atLimit = apiKeys.length >= MAX_API_KEYS;
 
   useEffect(() => {
     setServerUrl(window.location.origin);
@@ -47,31 +53,27 @@ export function ApiKeysSettings() {
     }
   };
 
-  const handleGenerate = async () => {
+  const handleCreate = async (name: string) => {
     try {
-      const result = await createMutation.mutateAsync();
+      const result = await createMutation.mutateAsync({
+        name: name || undefined,
+      });
+      setShowCreateDialog(false);
       setCreatedKey(result);
-    } catch {
-      toast.error(t("errors.createFailed"));
+    } catch (error) {
+      toast.error(
+        error instanceof ApiKeyLimitError
+          ? t("limitReached")
+          : t("errors.createFailed"),
+      );
     }
-  };
-
-  const handleRegenerate = () => {
-    if (apiKey) {
-      setShowRegenerateConfirm(true);
-    }
-  };
-
-  const confirmRegenerate = async () => {
-    setShowRegenerateConfirm(false);
-    await handleGenerate();
   };
 
   const handleRevoke = async () => {
-    if (!apiKey) return;
+    if (!revokeTarget) return;
     try {
-      await revokeMutation.mutateAsync(apiKey.id);
-      setShowRevokeDialog(false);
+      await revokeMutation.mutateAsync(revokeTarget.id);
+      setRevokeTarget(null);
       toast.success(t("revokeSuccess"));
     } catch {
       toast.error(t("errors.revokeFailed"));
@@ -114,10 +116,10 @@ export function ApiKeysSettings() {
           <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent>
-          {apiKey ? (
-            <div className="space-y-4">
-              <div className="space-y-3 rounded-lg border p-4">
-                <div className="flex items-center justify-between gap-2">
+          <div className="space-y-4">
+            {apiKeys.length > 0 ? (
+              <>
+                <div className="flex items-center justify-between gap-2 rounded-lg border p-4">
                   <span className="text-sm font-medium">{t("serverUrl")}</span>
                   <div className="flex items-center gap-2">
                     <code className="rounded bg-muted px-2 py-1 font-mono text-sm truncate max-w-[200px]">
@@ -137,59 +139,80 @@ export function ApiKeysSettings() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{t("keyLabel")}</span>
-                  <code className="rounded bg-muted px-2 py-1 font-mono text-sm">
-                    {apiKey.start}••••••••
-                  </code>
+                <div className="space-y-3">
+                  {apiKeys.map((apiKey) => (
+                    <div
+                      key={apiKey.id}
+                      className="space-y-2 rounded-lg border p-4"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-medium">
+                          {apiKey.name}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <code className="rounded bg-muted px-2 py-1 font-mono text-sm">
+                            {apiKey.start}••••••••
+                          </code>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 shrink-0 text-destructive hover:text-destructive"
+                            onClick={() => setRevokeTarget(apiKey)}
+                            disabled={revokeMutation.isPending}
+                            aria-label={t("revoke")}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{t("lastUsed")}</span>
+                        <span>
+                          {apiKey.lastRequest
+                            ? `${formatDate(apiKey.lastRequest)}${apiKey.lastIp ? ` from ${apiKey.lastIp}` : ""}`
+                            : t("never")}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span>{t("created")}</span>
+                        <span>{formatDate(apiKey.createdAt)}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{t("lastUsed")}</span>
-                  <span>
-                    {apiKey.lastRequest
-                      ? `${formatDate(apiKey.lastRequest)}${apiKey.lastIp ? ` from ${apiKey.lastIp}` : ""}`
-                      : t("never")}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm text-muted-foreground">
-                  <span>{t("created")}</span>
-                  <span>{formatDate(apiKey.createdAt)}</span>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleRegenerate}
-                  disabled={createMutation.isPending}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  {t("regenerate")}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowRevokeDialog(true)}
-                  disabled={revokeMutation.isPending}
-                  className="text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  {t("revoke")}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">{t("noKey")}</p>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">{t("noKeys")}</p>
+            )}
+            <div className="flex items-center gap-3">
               <Button
-                onClick={handleGenerate}
-                disabled={createMutation.isPending}
+                onClick={() => setShowCreateDialog(true)}
+                disabled={createMutation.isPending || atLimit}
               >
-                <Key className="mr-2 h-4 w-4" />
-                {t("generate")}
+                <Plus className="mr-2 h-4 w-4" />
+                {t("create")}
               </Button>
+              {apiKeys.length > 0 && (
+                <span className="text-sm text-muted-foreground">
+                  {t("keyCount", { count: apiKeys.length, max: MAX_API_KEYS })}
+                </span>
+              )}
             </div>
-          )}
+            {atLimit && (
+              <p className="text-sm text-muted-foreground">
+                {t("limitReached")}
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
+
+      <CreateApiKeyDialog
+        open={showCreateDialog}
+        onOpenChange={setShowCreateDialog}
+        onCreate={handleCreate}
+        isLoading={createMutation.isPending}
+      />
 
       <ApiKeyCreatedDialog
         apiKey={createdKey}
@@ -197,18 +220,10 @@ export function ApiKeysSettings() {
       />
 
       <RevokeApiKeyDialog
-        open={showRevokeDialog}
-        onOpenChange={setShowRevokeDialog}
+        open={!!revokeTarget}
+        onOpenChange={(open) => !open && setRevokeTarget(null)}
         onConfirm={handleRevoke}
         isLoading={revokeMutation.isPending}
-      />
-
-      <RevokeApiKeyDialog
-        open={showRegenerateConfirm}
-        onOpenChange={setShowRegenerateConfirm}
-        onConfirm={confirmRegenerate}
-        isLoading={createMutation.isPending}
-        isRegenerate
       />
     </>
   );
