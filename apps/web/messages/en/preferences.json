@@ -16,22 +16,32 @@
     }
   },
   "apiKeys": {
-    "title": "API Key",
-    "description": "Manage your API key for OPDS access",
+    "title": "API Keys",
+    "description": "Manage your API keys for OPDS access and apps",
     "serverUrl": "Server URL",
     "copied": "Copied!",
     "keyLabel": "Your API Key",
     "lastUsed": "Last used",
     "created": "Created",
     "never": "Never",
-    "noKey": "You don't have an API key yet. Generate one to use with OPDS readers.",
-    "generate": "Generate API Key",
-    "regenerate": "Regenerate",
+    "noKeys": "You don't have any API keys yet. Create one to use with OPDS readers or apps.",
+    "create": "Create API Key",
     "revoke": "Revoke",
     "revokeSuccess": "API key revoked successfully",
+    "keyCount": "{count} of {max} keys used",
+    "limitReached": "You have reached the maximum number of API keys. Revoke one to create a new one.",
     "errors": {
       "createFailed": "Failed to create API key",
       "revokeFailed": "Failed to revoke API key"
+    },
+    "createDialog": {
+      "title": "Create API Key",
+      "description": "Give your key a name so you can recognize it later.",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. My iPhone, KOReader",
+      "nameHint": "Optional. A default name is used if left blank.",
+      "cancel": "Cancel",
+      "create": "Create"
     },
     "createdDialog": {
       "title": "API Key Created",
@@ -41,12 +51,9 @@
     },
     "revokeDialog": {
       "title": "Revoke API Key",
-      "description": "Are you sure you want to revoke this API key? Any OPDS readers using this key will no longer be able to access your library.",
-      "regenerateTitle": "Regenerate API Key",
-      "regenerateDescription": "This will revoke your current API key and create a new one. Any OPDS readers using the old key will need to be updated.",
+      "description": "Are you sure you want to revoke this API key? Any device or app using this key will no longer be able to access your library.",
       "cancel": "Cancel",
-      "confirm": "Revoke",
-      "regenerateConfirm": "Regenerate"
+      "confirm": "Revoke"
     }
   }
 }

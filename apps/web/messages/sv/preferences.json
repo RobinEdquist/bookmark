@@ -16,22 +16,32 @@
     }
   },
   "apiKeys": {
-    "title": "API-nyckel",
-    "description": "Hantera din API-nyckel för OPDS-åtkomst",
+    "title": "API-nycklar",
+    "description": "Hantera dina API-nycklar för OPDS-åtkomst och appar",
     "serverUrl": "Server-URL",
     "copied": "Kopierad!",
     "keyLabel": "Din API-nyckel",
     "lastUsed": "Senast använd",
     "created": "Skapad",
     "never": "Aldrig",
-    "noKey": "Du har ingen API-nyckel ännu. Generera en för att använda med OPDS-läsare.",
-    "generate": "Generera API-nyckel",
-    "regenerate": "Återskapa",
+    "noKeys": "Du har inga API-nycklar ännu. Skapa en för att använda med OPDS-läsare eller appar.",
+    "create": "Skapa API-nyckel",
     "revoke": "Återkalla",
     "revokeSuccess": "API-nyckeln återkallades",
+    "keyCount": "{count} av {max} nycklar använda",
+    "limitReached": "Du har nått det maximala antalet API-nycklar. Återkalla en för att skapa en ny.",
     "errors": {
       "createFailed": "Kunde inte skapa API-nyckel",
       "revokeFailed": "Kunde inte återkalla API-nyckel"
+    },
+    "createDialog": {
+      "title": "Skapa API-nyckel",
+      "description": "Ge din nyckel ett namn så att du känner igen den senare.",
+      "nameLabel": "Namn",
+      "namePlaceholder": "t.ex. Min iPhone, KOReader",
+      "nameHint": "Valfritt. Ett standardnamn används om fältet lämnas tomt.",
+      "cancel": "Avbryt",
+      "create": "Skapa"
     },
     "createdDialog": {
       "title": "API-nyckel skapad",
@@ -41,12 +51,9 @@
     },
     "revokeDialog": {
       "title": "Återkalla API-nyckel",
-      "description": "Är du säker på att du vill återkalla denna API-nyckel? OPDS-läsare som använder denna nyckel kommer inte längre kunna komma åt ditt bibliotek.",
-      "regenerateTitle": "Återskapa API-nyckel",
-      "regenerateDescription": "Detta kommer återkalla din nuvarande API-nyckel och skapa en ny. OPDS-läsare som använder den gamla nyckeln måste uppdateras.",
+      "description": "Är du säker på att du vill återkalla denna API-nyckel? Enheter eller appar som använder denna nyckel kommer inte längre kunna komma åt ditt bibliotek.",
       "cancel": "Avbryt",
-      "confirm": "Återkalla",
-      "regenerateConfirm": "Återskapa"
+      "confirm": "Återkalla"
     }
   }
 }

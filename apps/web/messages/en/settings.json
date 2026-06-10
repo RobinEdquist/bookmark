@@ -166,19 +166,19 @@
       "actions": "Actions"
     },
     "apiKey": {
-      "active": "Active",
+      "activeCount": "{count, plural, one {1 key} other {# keys}}",
       "none": "None",
       "lastUsed": "Last used"
     },
     "apiKeySection": {
-      "title": "API Key",
-      "status": "Status",
-      "active": "Active",
+      "title": "API Keys",
       "lastUsed": "Last used",
       "lastIp": "Last IP",
-      "revoke": "Revoke API Key",
-      "revoking": "Revoking...",
+      "never": "Never",
+      "revoke": "Revoke",
+      "revokeAll": "Revoke All Keys",
       "revokeSuccess": "API key revoked",
+      "revokeAllSuccess": "All API keys revoked",
       "revokeError": "Failed to revoke API key"
     },
     "status": {
