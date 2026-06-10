@@ -179,7 +179,8 @@
       "revokeAll": "Återkalla alla nycklar",
       "revokeSuccess": "API-nyckel återkallad",
       "revokeAllSuccess": "Alla API-nycklar återkallade",
-      "revokeError": "Kunde inte återkalla API-nyckel"
+      "revokeError": "Kunde inte återkalla API-nyckel",
+      "unnamedKey": "Namnlös nyckel"
     },
     "status": {
       "active": "Aktiv",

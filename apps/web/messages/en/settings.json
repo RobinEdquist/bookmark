@@ -179,7 +179,8 @@
       "revokeAll": "Revoke All Keys",
       "revokeSuccess": "API key revoked",
       "revokeAllSuccess": "All API keys revoked",
-      "revokeError": "Failed to revoke API key"
+      "revokeError": "Failed to revoke API key",
+      "unnamedKey": "Unnamed key"
     },
     "status": {
       "active": "Active",

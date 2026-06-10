@@ -234,7 +234,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                   <div key={key.id} className="rounded-lg border p-3 space-y-2">
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-sm font-medium">
-                        {key.name}
+                        {key.name ?? t("apiKeySection.unnamedKey")}
                       </span>
                       <Button
                         type="button"
@@ -252,7 +252,10 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                             toast.error(t("apiKeySection.revokeError"));
                           }
                         }}
-                        disabled={revokeUserApiKeyById.isPending}
+                        disabled={
+                          revokeUserApiKeyById.isPending &&
+                          revokeUserApiKeyById.variables?.keyId === key.id
+                        }
                       >
                         {t("apiKeySection.revoke")}
                       </Button>
@@ -291,7 +294,10 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                         toast.error(t("apiKeySection.revokeError"));
                       }
                     }}
-                    disabled={revokeUserApiKey.isPending}
+                    disabled={
+                      revokeUserApiKey.isPending ||
+                      revokeUserApiKeyById.isPending
+                    }
                   >
                     {t("apiKeySection.revokeAll")}
                   </Button>

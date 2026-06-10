@@ -130,7 +130,7 @@ export function ApiKeysSettings() {
                       size="icon"
                       className="h-7 w-7 shrink-0"
                       onClick={handleCopyUrl}
-                      aria-label={t("serverUrl")}
+                      aria-label={t("copyServerUrl")}
                     >
                       {urlCopied ? (
                         <Check className="h-3.5 w-3.5 text-green-500" />
@@ -148,7 +148,7 @@ export function ApiKeysSettings() {
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="truncate text-sm font-medium">
-                          {apiKey.name}
+                          {apiKey.name ?? t("unnamedKey")}
                         </span>
                         <div className="flex items-center gap-2">
                           <code className="rounded bg-muted px-2 py-1 font-mono text-sm">
