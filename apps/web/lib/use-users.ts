@@ -11,8 +11,8 @@ export interface UserPermissions {
   canRequestContent: boolean;
 }
 
-export interface ApiKeyInfo {
-  hasKey: boolean;
+export interface ApiKeySummary {
+  count: number;
   lastUsed: string | null;
   lastIp: string | null;
 }
@@ -29,7 +29,7 @@ export interface User {
   createdAt: string;
   permissions: UserPermissions;
   blacklistedTags: string[];
-  apiKey: ApiKeyInfo | null;
+  apiKey: ApiKeySummary | null;
 }
 
 export interface CreateUserInput {

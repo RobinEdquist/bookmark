@@ -44,7 +44,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Button } from "@repo/ui/components/ui/button";
 import { cn } from "@repo/ui/lib/utils";
-import { useCreateApiKey, useMyApiKey } from "../../../lib/use-api-keys";
+import { useCreateApiKey, useMyApiKeys } from "../../../lib/use-api-keys";
 
 type Platform = "ios" | "android";
 type SetupMethod = "qr" | "manual";
@@ -56,7 +56,8 @@ export default function AudiobookAppPage() {
   const [setupMethod, setSetupMethod] = useState<SetupMethod>("qr");
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
-  const { data: existingApiKey } = useMyApiKey();
+  const { data: apiKeys } = useMyApiKeys();
+  const existingApiKey = apiKeys && apiKeys.length > 0;
   const createApiKey = useCreateApiKey();
 
   // Get server connection details
@@ -97,7 +98,7 @@ export default function AudiobookAppPage() {
 
   const handleGenerateQrCode = async (platform: Platform) => {
     try {
-      const result = await createApiKey.mutateAsync();
+      const result = await createApiKey.mutateAsync({});
       setGeneratedKey(result.key);
       toast.success(t(`connect.${platform}.keyGenerated`));
     } catch {
