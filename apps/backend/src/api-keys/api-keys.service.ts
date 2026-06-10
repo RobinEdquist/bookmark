@@ -1,4 +1,9 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, and, desc } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -10,6 +15,8 @@ import type {
 } from './dto/api-key-response.dto';
 
 type Schema = typeof authSchema & { apiKey: typeof apiKey };
+
+export const MAX_API_KEYS_PER_USER = 10;
 
 @Injectable()
 export class ApiKeysService {
@@ -59,14 +66,26 @@ export class ApiKeysService {
   async createApiKey(
     userId: string,
     authInstance: any,
+    name?: string,
   ): Promise<ApiKeyCreateResponse> {
-    // Revoke any existing keys first
-    await this.revokeAllUserKeys(userId);
+    const existing = await this.db
+      .select({ id: apiKey.id })
+      .from(apiKey)
+      .where(and(eq(apiKey.userId, userId), eq(apiKey.enabled, true)));
+
+    if (existing.length >= MAX_API_KEYS_PER_USER) {
+      throw new ConflictException(
+        `Maximum of ${MAX_API_KEYS_PER_USER} API keys reached`,
+      );
+    }
+
+    const keyName =
+      name?.trim() || `API Key ${new Date().toISOString().slice(0, 10)}`;
 
     // Create new key via Better Auth
     const result = await authInstance.api.createApiKey({
       body: {
-        name: 'OPDS Access Key',
+        name: keyName,
         userId,
       },
     });
