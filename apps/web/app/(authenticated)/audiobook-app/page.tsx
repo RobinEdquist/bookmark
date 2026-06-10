@@ -44,7 +44,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Button } from "@repo/ui/components/ui/button";
 import { cn } from "@repo/ui/lib/utils";
-import { useCreateApiKey, useMyApiKeys } from "../../../lib/use-api-keys";
+import { useCreateApiKey, useMyApiKeys, MAX_API_KEYS, ApiKeyLimitError } from "../../../lib/use-api-keys";
 
 type Platform = "ios" | "android";
 type SetupMethod = "qr" | "manual";
@@ -57,7 +57,7 @@ export default function AudiobookAppPage() {
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
   const { data: apiKeys } = useMyApiKeys();
-  const existingApiKey = apiKeys && apiKeys.length > 0;
+  const atLimit = (apiKeys?.length ?? 0) >= MAX_API_KEYS;
   const createApiKey = useCreateApiKey();
 
   // Get server connection details
@@ -101,8 +101,12 @@ export default function AudiobookAppPage() {
       const result = await createApiKey.mutateAsync({});
       setGeneratedKey(result.key);
       toast.success(t(`connect.${platform}.keyGenerated`));
-    } catch {
-      toast.error(t(`connect.${platform}.keyError`));
+    } catch (error) {
+      toast.error(
+        error instanceof ApiKeyLimitError
+          ? t(`connect.${platform}.keyLimitError`)
+          : t(`connect.${platform}.keyError`),
+      );
     }
   };
 
@@ -269,14 +273,14 @@ export default function AudiobookAppPage() {
                           </div>
                         </div>
 
-                        {/* Warning about breaking existing connections */}
-                        {existingApiKey && (
+                        {/* Notice when the API key cap is reached */}
+                        {atLimit && (
                           <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
                             <div className="flex items-start gap-3">
                               <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                               <div className="space-y-1">
-                                <p className="text-sm font-medium text-amber-600">{t("connect.ios.warning.title")}</p>
-                                <p className="text-sm text-amber-600/80">{t("connect.ios.warning.description")}</p>
+                                <p className="text-sm font-medium text-amber-600">{t("connect.ios.limitReached.title")}</p>
+                                <p className="text-sm text-amber-600/80">{t("connect.ios.limitReached.description", { max: MAX_API_KEYS })}</p>
                               </div>
                             </div>
                           </div>
@@ -285,16 +289,13 @@ export default function AudiobookAppPage() {
                         {/* Generate QR Code Button */}
                         <Button
                           onClick={() => handleGenerateQrCode("ios")}
-                          disabled={createApiKey.isPending}
+                          disabled={createApiKey.isPending || atLimit}
                           className="w-full"
                         >
                           <QrCode className="h-4 w-4 mr-2" />
                           {createApiKey.isPending
                             ? t("connect.ios.generating")
-                            : existingApiKey
-                              ? t("connect.ios.regenerateQr")
-                              : t("connect.ios.generateQr")
-                          }
+                            : t("connect.ios.generateQr")}
                         </Button>
                       </>
                     ) : (
@@ -503,14 +504,14 @@ export default function AudiobookAppPage() {
                           </div>
                         </div>
 
-                        {/* Warning about breaking existing connections */}
-                        {existingApiKey && (
+                        {/* Notice when the API key cap is reached */}
+                        {atLimit && (
                           <div className="rounded-lg border border-amber-500/50 bg-amber-500/10 p-4">
                             <div className="flex items-start gap-3">
                               <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                               <div className="space-y-1">
-                                <p className="text-sm font-medium text-amber-600">{t("connect.android.warning.title")}</p>
-                                <p className="text-sm text-amber-600/80">{t("connect.android.warning.description")}</p>
+                                <p className="text-sm font-medium text-amber-600">{t("connect.android.limitReached.title")}</p>
+                                <p className="text-sm text-amber-600/80">{t("connect.android.limitReached.description", { max: MAX_API_KEYS })}</p>
                               </div>
                             </div>
                           </div>
@@ -519,16 +520,13 @@ export default function AudiobookAppPage() {
                         {/* Generate QR Code Button */}
                         <Button
                           onClick={() => handleGenerateQrCode("android")}
-                          disabled={createApiKey.isPending}
+                          disabled={createApiKey.isPending || atLimit}
                           className="w-full"
                         >
                           <QrCode className="h-4 w-4 mr-2" />
                           {createApiKey.isPending
                             ? t("connect.android.generating")
-                            : existingApiKey
-                              ? t("connect.android.regenerateQr")
-                              : t("connect.android.generateQr")
-                          }
+                            : t("connect.android.generateQr")}
                         </Button>
                       </>
                     ) : (

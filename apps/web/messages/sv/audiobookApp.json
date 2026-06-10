@@ -57,15 +57,15 @@
         "serverDetails": "Din server-URL",
         "goToPreferences": "Gå till Preferenser"
       },
-      "warning": {
-        "title": "Befintlig anslutning",
-        "description": "Du har redan en API-nyckel. Att generera en ny QR-kod skapar en ny nyckel och kopplar bort alla befintliga appar eller e-läsare som använder den nuvarande nyckeln."
+      "limitReached": {
+        "title": "Gräns för API-nycklar nådd",
+        "description": "Du har nått maxgränsen på {max} API-nycklar. Ta bort en oanvänd nyckel under Inställningar innan du skapar en ny anslutning."
       },
       "generateQr": "Generera QR-kod",
-      "regenerateQr": "Regenerera QR-kod",
       "generating": "Genererar...",
       "keyGenerated": "Anslutnings-QR-kod genererades",
       "keyError": "Kunde inte generera anslutningskod",
+      "keyLimitError": "Gräns för API-nycklar nådd. Ta bort en oanvänd nyckel under Inställningar först.",
       "scanInstructions": "Skanna denna QR-kod med din Android-telefons kamera",
       "scanNote": "Se till att Bookmark är installerad. När du skannar koden öppnas appen med server och nyckel ifyllda — tryck på Anslut i appen för att slutföra.",
       "openInApp": "Öppna i Bookmark",
@@ -118,15 +118,15 @@
         "port": "Port",
         "goToPreferences": "Gå till Preferenser"
       },
-      "warning": {
-        "title": "Befintlig anslutning",
-        "description": "Du har redan en API-nyckel. Att generera en ny QR-kod kommer att skapa en ny nyckel och koppla bort alla befintliga appar eller e-läsare som använder den nuvarande nyckeln."
+      "limitReached": {
+        "title": "Gräns för API-nycklar nådd",
+        "description": "Du har nått maxgränsen på {max} API-nycklar. Ta bort en oanvänd nyckel under Inställningar innan du skapar en ny anslutning."
       },
       "generateQr": "Generera QR-kod",
-      "regenerateQr": "Regenerera QR-kod",
       "generating": "Genererar...",
       "keyGenerated": "Anslutnings-QR-kod genererades",
       "keyError": "Kunde inte generera anslutningskod",
+      "keyLimitError": "Gräns för API-nycklar nådd. Ta bort en oanvänd nyckel under Inställningar först.",
       "scanInstructions": "Skanna denna QR-kod med din iPhone-kamera",
       "scanNote": "Se till att Happy Audio är installerat. När du skannar koden öppnas appen och ansluter automatiskt till din Bookmark-server.",
       "openInApp": "Öppna i Happy Audio",
