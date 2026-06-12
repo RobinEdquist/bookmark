@@ -73,6 +73,9 @@ describe('comic-archive.utils', () => {
     it('uses frontCoverPageIndex when valid', () => {
       expect(pickCoverIndex(5, 2)).toBe(2);
     });
+    it('accepts an explicit 0 (FrontCover is the first page)', () => {
+      expect(pickCoverIndex(5, 0)).toBe(0);
+    });
     it('falls back to 0 when index is null or out of range', () => {
       expect(pickCoverIndex(5, null)).toBe(0);
       expect(pickCoverIndex(5, 9)).toBe(0);
@@ -82,9 +85,12 @@ describe('comic-archive.utils', () => {
   describe('readComicArchive (cbz)', () => {
     it('reads page count, ComicInfo.xml and cover image', async () => {
       const cbzPath = path.join(tmpDir, 'test.cbz');
+      // p1.jpg gets distinguishable bytes so we can assert the cover is the
+      // natural-sort-first entry, not just any image in the archive.
+      const p1Bytes = Buffer.concat([PNG_1X1, Buffer.from([0x01])]);
       await buildCbz(cbzPath, [
         { name: 'p2.jpg', data: PNG_1X1 },
-        { name: 'p1.jpg', data: PNG_1X1 },
+        { name: 'p1.jpg', data: p1Bytes },
         { name: 'p10.jpg', data: PNG_1X1 },
         {
           name: 'ComicInfo.xml',
@@ -96,7 +102,7 @@ describe('comic-archive.utils', () => {
       expect(result.pageCount).toBe(3);
       expect(result.comicInfoXml).toContain('<Series>Test</Series>');
       expect(result.coverImage).not.toBeNull();
-      expect(result.coverImage!.data.length).toBeGreaterThan(0);
+      expect(result.coverImage!.data.equals(p1Bytes)).toBe(true);
     });
 
     it('handles archives without ComicInfo.xml', async () => {

@@ -101,6 +101,7 @@ async function readCbr(
   filePath: string,
   coverIndex: number,
 ): Promise<ComicArchiveContents> {
+  // node-unrar-js requires the entire archive in memory (no streaming API).
   const buf = await fs.readFile(filePath);
   // node-unrar-js requires a plain ArrayBuffer (not Buffer/SharedArrayBuffer)
   // Deviation: use buf.buffer.slice(...) with explicit cast to ArrayBuffer,
