@@ -69,38 +69,26 @@ async function readCbz(
   filePath: string,
   coverIndex: number,
 ): Promise<ComicArchiveContents> {
-  // unzipper.Open.file resolves to a CentralDirectory with a `files` array
-  // (each entry has .path, .type ('File'|'Directory'), and .buffer())
   const directory = await unzipper.Open.file(filePath);
-  const fileEntries = directory.files.filter(
-    (f: { type: string }) => f.type === 'File',
-  );
+  const fileEntries = directory.files.filter((f) => f.type === 'File');
 
   const imageNames = naturalSortImageEntries(
-    fileEntries
-      .map((f: { path: string }) => f.path)
-      .filter((p: string) => isImageEntry(p)),
+    fileEntries.map((f) => f.path).filter(isImageEntry),
   );
 
   let comicInfoXml: string | null = null;
-  const infoEntry = fileEntries.find((f: { path: string }) =>
-    isComicInfoEntry(f.path),
-  );
+  const infoEntry = fileEntries.find((f) => isComicInfoEntry(f.path));
   if (infoEntry) {
-    comicInfoXml = (
-      await (infoEntry as { buffer: () => Promise<Buffer> }).buffer()
-    ).toString('utf-8');
+    comicInfoXml = (await infoEntry.buffer()).toString('utf-8');
   }
 
   let coverImage: { data: Buffer; extension: string } | null = null;
   if (imageNames.length > 0) {
     const targetName = imageNames[Math.min(coverIndex, imageNames.length - 1)];
-    const coverEntry = fileEntries.find(
-      (f: { path: string }) => f.path === targetName,
-    );
+    const coverEntry = fileEntries.find((f) => f.path === targetName);
     if (coverEntry) {
       coverImage = {
-        data: await (coverEntry as { buffer: () => Promise<Buffer> }).buffer(),
+        data: await coverEntry.buffer(),
         extension: path.extname(targetName).toLowerCase(),
       };
     }
