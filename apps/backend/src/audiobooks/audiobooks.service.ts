@@ -1076,7 +1076,7 @@ export class AudiobooksService {
   private getCoverUrl(
     id: string,
     coverUrl: string | null,
-    coverSource: 'embedded' | 'uploaded' | 'filesystem' | null,
+    coverSource: 'embedded' | 'uploaded' | 'filesystem' | 'folder_image' | null,
   ): string | null {
     return this.coverService.getCoverUrl(
       id,
@@ -1932,10 +1932,7 @@ export class AudiobooksService {
         wav: 'audio/wav',
         aac: 'audio/aac',
       };
-      const ext = path
-        .extname(file.filePath)
-        .toLowerCase()
-        .replace(/^\./, '');
+      const ext = path.extname(file.filePath).toLowerCase().replace(/^\./, '');
       // Same precedence as the stream endpoint: trust metadata-derived
       // format over the disk extension so a mislabelled file still serves
       // the right Content-Type.
@@ -2105,7 +2102,9 @@ export class AudiobooksService {
    * undefined when the format string is empty or unrecognised so callers
    * can fall back to extension-based lookup.
    */
-  private mimeTypeForFormat(format: string | null | undefined): string | undefined {
+  private mimeTypeForFormat(
+    format: string | null | undefined,
+  ): string | undefined {
     if (!format) return undefined;
     const f = format.toLowerCase().trim();
     if (!f) return undefined;
@@ -2129,8 +2128,10 @@ export class AudiobooksService {
       return 'audio/mpeg';
     }
     if (f === 'flac' || f.includes('flac')) return 'audio/flac';
-    if (f === 'wav' || f.includes('wave') || f.includes('wav')) return 'audio/wav';
-    if (f === 'ogg' || f.includes('vorbis') || f.includes('ogg')) return 'audio/ogg';
+    if (f === 'wav' || f.includes('wave') || f.includes('wav'))
+      return 'audio/wav';
+    if (f === 'ogg' || f.includes('vorbis') || f.includes('ogg'))
+      return 'audio/ogg';
     if (f === 'opus' || f.includes('opus')) return 'audio/ogg';
     return undefined;
   }
