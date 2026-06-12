@@ -972,7 +972,7 @@ export class EbooksService {
   private getCoverUrl(
     id: string,
     coverUrl: string | null,
-    coverSource: 'embedded' | 'uploaded' | 'filesystem' | 'folder_image' | null,
+    coverSource: 'embedded' | 'uploaded' | 'folder_image' | null,
   ): string | null {
     return this.coverService.getCoverUrl(id, coverUrl, coverSource, 'ebooks');
   }

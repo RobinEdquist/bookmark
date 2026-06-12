@@ -503,7 +503,7 @@ export class SeriesService {
   private getAudiobookCoverUrl(
     id: string,
     coverUrl: string | null,
-    coverSource: 'embedded' | 'uploaded' | 'filesystem' | 'folder_image' | null,
+    coverSource: 'embedded' | 'uploaded' | 'folder_image' | null,
   ): string | null {
     if (coverSource || coverUrl) {
       return `/api/audiobooks/${id}/cover`;
@@ -514,7 +514,7 @@ export class SeriesService {
   private getEbookCoverUrl(
     id: string,
     coverUrl: string | null,
-    coverSource: 'embedded' | 'uploaded' | 'filesystem' | 'folder_image' | null,
+    coverSource: 'embedded' | 'uploaded' | 'folder_image' | null,
   ): string | null {
     if (coverSource || coverUrl) {
       return `/api/ebooks/${id}/cover`;
