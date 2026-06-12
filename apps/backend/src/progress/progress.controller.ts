@@ -162,17 +162,28 @@ export class ProgressController {
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<ProgressResponse> {
     try {
-      return await this.progressService.updateProgress(user.id, audiobookId, dto);
+      return await this.progressService.updateProgress(
+        user.id,
+        audiobookId,
+        dto,
+      );
     } catch (err) {
       // Surface the actual exception so 500s aren't silent. NestJS's default
       // filter swallows the stack trace from the response, but the container
       // log here will show what's actually breaking.
-      // eslint-disable-next-line no-console
+
       console.error('[ProgressController.updateProgress] failed', {
         userId: user.id,
         audiobookId,
         dto,
-        error: err instanceof Error ? { message: err.message, stack: err.stack, cause: (err as { cause?: unknown }).cause } : err,
+        error:
+          err instanceof Error
+            ? {
+                message: err.message,
+                stack: err.stack,
+                cause: (err as { cause?: unknown }).cause,
+              }
+            : err,
       });
       throw err;
     }

@@ -281,7 +281,11 @@ export class AudiobookDetailDto {
   @ApiPropertyOptional({ type: String, example: 'en', nullable: true })
   language?: string | null;
 
-  @ApiPropertyOptional({ type: String, example: '978-0765326355', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '978-0765326355',
+    nullable: true,
+  })
   isbn?: string | null;
 
   @ApiPropertyOptional({ type: String, example: 'B003P2WO5E', nullable: true })
