@@ -60,11 +60,11 @@ export class AppDataService implements OnModuleInit {
     return path.join(this.basePath, 'ebook-covers');
   }
 
-  private getComicSeriesCoversPath(): string {
+  getComicSeriesCoversPath(): string {
     return path.join(this.basePath, 'comic-series-covers');
   }
 
-  private getComicBookCoversPath(): string {
+  getComicBookCoversPath(): string {
     return path.join(this.basePath, 'comic-book-covers');
   }
 
