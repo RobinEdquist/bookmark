@@ -57,6 +57,7 @@ export function mapComicInfoFormat(raw: string | null): ComicBookFormat {
   if (/one[- ]?shot/.test(value)) return 'one_shot';
   if (/special/.test(value)) return 'special';
   if (/graphic novel|\bgn\b/.test(value)) return 'graphic_novel';
+  // Unrecognized non-empty formats (e.g. Hardcover, Limited Series) deliberately fall through to 'other'
   return 'other';
 }
 

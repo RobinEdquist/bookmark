@@ -32,6 +32,32 @@ describe('parseMylarSeriesJson', () => {
     });
   });
 
+  it('coerces string-typed numeric fields', () => {
+    const json = JSON.stringify({
+      version: '1.0.2',
+      metadata: {
+        type: 'comicSeries',
+        publisher: 'Image Comics',
+        imprint: null,
+        name: 'Saga',
+        comicid: '39342',
+        year: '2012',
+        description_text: 'Epic space opera.',
+        volume: null,
+        booktype: 'Print',
+        age_rating: 'Mature',
+        total_issues: '54',
+        publication_run: '2012 - 2018',
+        status: 'Ended',
+      },
+    });
+    const result = parseMylarSeriesJson(json);
+    expect(result).not.toBeNull();
+    expect(result!.comicvineVolumeId).toBe(39342);
+    expect(result!.year).toBe(2012);
+    expect(result!.totalIssues).toBe(54);
+  });
+
   it('returns null for invalid JSON', () => {
     expect(parseMylarSeriesJson('{nope')).toBeNull();
   });

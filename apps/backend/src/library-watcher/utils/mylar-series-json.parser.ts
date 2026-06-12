@@ -26,8 +26,14 @@ export function parseMylarSeriesJson(
 
   const str = (v: unknown): string | null =>
     typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
-  const num = (v: unknown): number | null =>
-    typeof v === 'number' && Number.isFinite(v) ? v : null;
+  const num = (v: unknown): number | null => {
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string' && v.trim() !== '') {
+      const n = parseInt(v.trim(), 10);
+      return Number.isNaN(n) ? null : n;
+    }
+    return null;
+  };
 
   return {
     name: str(metadata.name),
