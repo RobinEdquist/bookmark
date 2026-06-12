@@ -11,6 +11,7 @@ describe('parseComicFilename', () => {
       {
         title: string;
         number: string | null;
+        sortNumber: number | null;
         format: string;
         year: number | null;
         countInSeries: number | null;
@@ -22,6 +23,7 @@ describe('parseComicFilename', () => {
       {
         title: 'Saga',
         number: '43',
+        sortNumber: 43,
         format: 'single_issue',
         year: 2017,
         countInSeries: null,
@@ -32,6 +34,7 @@ describe('parseComicFilename', () => {
       {
         title: 'Saga',
         number: '43',
+        sortNumber: 43,
         format: 'single_issue',
         year: 2017,
         countInSeries: 54,
@@ -42,6 +45,7 @@ describe('parseComicFilename', () => {
       {
         title: 'Monstress',
         number: '4',
+        sortNumber: 4,
         format: 'tpb',
         year: 2019,
         countInSeries: null,
@@ -52,6 +56,7 @@ describe('parseComicFilename', () => {
       {
         title: 'Monstress',
         number: '4',
+        sortNumber: 4,
         format: 'tpb',
         year: 2019,
         countInSeries: null,
@@ -62,6 +67,7 @@ describe('parseComicFilename', () => {
       {
         title: 'X-Men',
         number: 'Annual 1',
+        sortNumber: 1,
         format: 'annual',
         year: 1991,
         countInSeries: null,
@@ -72,6 +78,7 @@ describe('parseComicFilename', () => {
       {
         title: 'Saga Compendium',
         number: '1',
+        sortNumber: 1,
         format: 'omnibus',
         year: null,
         countInSeries: null,
@@ -82,6 +89,7 @@ describe('parseComicFilename', () => {
       {
         title: 'Watchmen',
         number: null,
+        sortNumber: null,
         format: 'single_issue',
         year: null,
         countInSeries: null,
@@ -92,6 +100,7 @@ describe('parseComicFilename', () => {
       {
         title: 'Paper Girls',
         number: '1.5',
+        sortNumber: 1.5,
         format: 'single_issue',
         year: 2016,
         countInSeries: null,
@@ -103,6 +112,7 @@ describe('parseComicFilename', () => {
     const result = parseComicFilename(fileName);
     expect(result.title).toBe(expected.title);
     expect(result.number).toBe(expected.number);
+    expect(result.sortNumber).toBe(expected.sortNumber);
     expect(result.format).toBe(expected.format);
     expect(result.year).toBe(expected.year);
     expect(result.countInSeries).toBe(expected.countInSeries);
