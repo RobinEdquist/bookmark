@@ -18,6 +18,8 @@
     "linking": "Linking…",
     "startYear": "Started {year}",
     "issueCount": "{count, plural, one {# issue} other {# issues}}",
+    "issuesCount": "{count, plural, one {# issue} other {# issues}}",
+    "collectedEdition": "Collected edition",
     "issueNumber": "Issue #{number}",
     "coverDate": "Cover date {date}",
     "openAction": "Match with ComicVine",

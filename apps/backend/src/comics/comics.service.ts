@@ -413,6 +413,22 @@ export class ComicsService {
       await this.appSettingsService.getComicMetadataPriority();
     const mf = series.manualFields ?? [];
 
+    // Missing-issue detection: gaps in the integer issue numbering up to the expected count.
+    const presentInts = new Set<number>();
+    for (const b of books) {
+      // Only count plain single issues (skip annuals/TPBs/one-shots and non-integer numbers like "1.5").
+      if (b.format !== 'single_issue' || b.number == null) continue;
+      const n = Number(b.number);
+      if (Number.isInteger(n) && n > 0) presentInts.add(n);
+    }
+    const maxPresent = presentInts.size ? Math.max(...presentInts) : 0;
+    // Expected ceiling: the linked ComicVine volume's issue count, else the highest issue we have.
+    const ceiling = volume?.countOfIssues ?? maxPresent;
+    const missingIssues: string[] = [];
+    for (let i = 1; i <= ceiling; i++) {
+      if (!presentInts.has(i)) missingIssues.push(String(i));
+    }
+
     return {
       id: series.id,
       title:
@@ -476,6 +492,7 @@ export class ComicsService {
         siteDetailUrl: volume?.siteDetailUrl ?? null,
         imageUrl: volume?.imageUrl ?? null,
       },
+      missingIssues,
       createdAt: series.createdAt,
       updatedAt: series.updatedAt,
     };

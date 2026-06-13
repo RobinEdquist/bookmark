@@ -1277,6 +1277,69 @@ describe('ComicvineService', () => {
   });
 
   // =========================================================================
+  // searchVolumesForSeries — ranked results
+  // =========================================================================
+
+  describe('searchVolumesForSeries — ranked results', () => {
+    it('returns the single-issue volume BEFORE the collected edition of the same series', async () => {
+      // Step 1: Promise.all([series select, book count select])
+      // Series row select: .from().where().limit()
+      const seriesChain = createChainMock(['from', 'where', 'limit']);
+      seriesChain.limit.mockResolvedValueOnce([
+        { title: 'Saga', startYear: 2012 },
+      ]);
+      db.select.mockReturnValueOnce(seriesChain);
+
+      // Book count select: .from().where()
+      const bookCountChain = createChainMock(['from', 'where']);
+      bookCountChain.where.mockResolvedValueOnce([{ count: 54 }]);
+      db.select.mockReturnValueOnce(bookCountChain);
+
+      // Step 2: searchVolumes → getClient() → getApiKey() → DB select
+      const apiKeyChain = createChainMock(['from', 'where', 'limit']);
+      apiKeyChain.limit.mockResolvedValueOnce([{ comicvineApiKey: 'cv-key' }]);
+      db.select.mockReturnValueOnce(apiKeyChain);
+
+      // Step 3: API client returns two volumes: single-issue + compendium
+      mockSearchVolumes.mockResolvedValueOnce({
+        totalResults: 2,
+        results: [
+          // Compendium listed FIRST by CV API — should end up ranked LOWER
+          {
+            id: 2,
+            name: 'Saga Compendium One',
+            start_year: 2012,
+            count_of_issues: 1,
+          },
+          // Regular series listed SECOND by CV API — should end up ranked HIGHER
+          {
+            id: 1,
+            name: 'Saga',
+            start_year: 2012,
+            count_of_issues: 54,
+          },
+        ],
+      });
+
+      const result = await service.searchVolumesForSeries('series-saga');
+
+      // The regular Saga volume should be first (higher rank)
+      expect(result.results[0].name).toBe('Saga');
+      expect(result.results[0].isCollected).toBe(false);
+
+      // The compendium should be second (lower rank due to collected edition penalty)
+      expect(
+        result.results.find((r) => r.name === 'Saga Compendium One')
+          ?.isCollected,
+      ).toBe(true);
+
+      // Query should be the series title
+      expect(result.query).toBe('Saga');
+      expect(result.totalResults).toBe(2);
+    });
+  });
+
+  // =========================================================================
   // cleanupOrphanedCache
   // =========================================================================
 

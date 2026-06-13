@@ -2,6 +2,8 @@ import {
   normalizeComicTitle,
   scoreVolumeMatch,
   pickAutoMatch,
+  isLikelyCollectedEdition,
+  rankVolumeCandidate,
 } from '../match-confidence';
 
 // ---------------------------------------------------------------------------
@@ -305,5 +307,47 @@ describe('pickAutoMatch', () => {
       candidate('X-Factor', 1992, 149), // within ±1
     ]);
     expect(result).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// isLikelyCollectedEdition
+// ---------------------------------------------------------------------------
+
+describe('isLikelyCollectedEdition', () => {
+  it.each([
+    ['Saga', false],
+    ['Saga Compendium One', true],
+    ['Saga Deluxe Edition', true],
+    ['Batman: The Complete Edition', true],
+    ['Saga TPB', true],
+    ['X-Men Omnibus', true],
+  ])('"%s" -> %s', (name, expected) => {
+    expect(isLikelyCollectedEdition(name)).toBe(expected);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rankVolumeCandidate
+// ---------------------------------------------------------------------------
+
+describe('rankVolumeCandidate', () => {
+  const local = { title: 'Saga', startYear: 2012, bookCount: 54 };
+  it('ranks the single-issue volume above a same-year collected edition', () => {
+    const singles = { id: 1, name: 'Saga', startYear: 2012, countOfIssues: 54 };
+    const collected = { id: 2, name: 'Saga Compendium One', startYear: 2012, countOfIssues: 1 };
+    expect(rankVolumeCandidate(local, singles)).toBeGreaterThan(rankVolumeCandidate(local, collected));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// scoreVolumeMatch — collected editions are not auto-linkable
+// ---------------------------------------------------------------------------
+
+describe('scoreVolumeMatch — collected editions are not auto-linkable', () => {
+  it('does not auto-link a volume whose name marks it collected, even on exact title+year', () => {
+    const local = { title: 'Saga', startYear: 2012, bookCount: 54 };
+    const namedCollected = { id: 3, name: 'Saga Deluxe Edition', startYear: 2012, countOfIssues: 3 };
+    expect(scoreVolumeMatch(local, namedCollected).autoLinkable).toBe(false);
   });
 });

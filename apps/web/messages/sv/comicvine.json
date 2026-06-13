@@ -18,6 +18,8 @@
     "linking": "Länkar…",
     "startYear": "Startade {year}",
     "issueCount": "{count, plural, one {# nummer} other {# nummer}}",
+    "issuesCount": "{count, plural, one {# nummer} other {# nummer}}",
+    "collectedEdition": "Samlingsutgåva",
     "issueNumber": "Nummer #{number}",
     "coverDate": "Omslagsdatum {date}",
     "openAction": "Matcha mot ComicVine",
