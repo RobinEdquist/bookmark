@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-export type SortField = "title" | "createdAt" | "author" | "rating" | "series";
+export type SortField = "title" | "createdAt" | "author" | "rating" | "series" | "recentlyAdded" | "startYear";
 export type SortOrder = "asc" | "desc";
 
 export interface SortPreference {
@@ -15,6 +15,11 @@ const DEFAULT_SORT: SortPreference = {
   sortOrder: "desc",
 };
 
+const DEFAULT_SORT_COMICS: SortPreference = {
+  sortBy: "title",
+  sortOrder: "asc",
+};
+
 // Default directions when selecting a new sort field
 const DEFAULT_DIRECTIONS: Record<SortField, SortOrder> = {
   title: "asc",
@@ -22,9 +27,11 @@ const DEFAULT_DIRECTIONS: Record<SortField, SortOrder> = {
   author: "asc",
   rating: "desc",
   series: "asc",
+  recentlyAdded: "desc",
+  startYear: "asc",
 };
 
-function getStorageKey(libraryType: "audiobooks" | "ebooks"): string {
+function getStorageKey(libraryType: "audiobooks" | "ebooks" | "comics"): string {
   return `bookmark-${libraryType}-sort`;
 }
 
@@ -41,7 +48,7 @@ function loadFromStorage(key: string): SortPreference | null {
       parsed &&
       typeof parsed.sortBy === "string" &&
       typeof parsed.sortOrder === "string" &&
-      ["title", "createdAt", "author", "rating", "series"].includes(parsed.sortBy) &&
+      ["title", "createdAt", "author", "rating", "series", "recentlyAdded", "startYear"].includes(parsed.sortBy) &&
       ["asc", "desc"].includes(parsed.sortOrder)
     ) {
       return parsed as SortPreference;
@@ -57,8 +64,10 @@ function saveToStorage(key: string, preference: SortPreference): void {
   localStorage.setItem(key, JSON.stringify(preference));
 }
 
-export function useSortPreference(libraryType: "audiobooks" | "ebooks") {
-  const [preference, setPreference] = useState<SortPreference>(DEFAULT_SORT);
+export function useSortPreference(libraryType: "audiobooks" | "ebooks" | "comics") {
+  const [preference, setPreference] = useState<SortPreference>(
+    libraryType === "comics" ? DEFAULT_SORT_COMICS : DEFAULT_SORT
+  );
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load from localStorage on mount

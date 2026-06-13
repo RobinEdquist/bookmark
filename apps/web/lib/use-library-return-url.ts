@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type LibraryPath = "/audiobooks" | "/ebooks";
+type LibraryPath = "/audiobooks" | "/ebooks" | "/comics";
 
 /**
  * Call this on library pages to save the current URL (including search params)

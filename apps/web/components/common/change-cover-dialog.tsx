@@ -27,7 +27,7 @@ import {
   ALLOWED_TYPES,
 } from "../../lib/use-cover-upload";
 
-export type MediaType = "audiobook" | "ebook";
+export type MediaType = "audiobook" | "ebook" | "comic";
 
 export interface ChangeCoverDialogTranslations {
   title: string;
@@ -59,7 +59,7 @@ export interface ChangeCoverDialogTranslations {
 }
 
 export interface ChangeCoverDialogProps {
-  /** The entity ID (audiobook or ebook) */
+  /** The entity ID (audiobook, ebook, or comic) */
   entityId: string;
   /** The entity title for display */
   entityTitle: string;
@@ -137,8 +137,8 @@ export function ChangeCoverDialog({
     }
   };
 
-  // Different aspect ratios for audiobooks vs ebooks
-  const previewClass = mediaType === "ebook" ? "w-32 h-48" : "w-32 h-32";
+  // Different aspect ratios for audiobooks vs ebooks/comics
+  const previewClass = mediaType === "ebook" || mediaType === "comic" ? "w-32 h-48" : "w-32 h-32";
   const inputId = `${mediaType}-cover-file-input`;
   const urlInputId = `${mediaType}-cover-url`;
 

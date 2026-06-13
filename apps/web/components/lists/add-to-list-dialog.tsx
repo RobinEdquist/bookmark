@@ -20,7 +20,7 @@ import {
 import { CreateListDialog } from "./create-list-dialog";
 
 interface AddToListDialogProps {
-  itemType: "audiobook" | "ebook";
+  itemType: "audiobook" | "ebook" | "comic_series";
   itemId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;

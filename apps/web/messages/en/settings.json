@@ -34,11 +34,32 @@
       "notConfigured": "Not configured",
       "browse": "Browse",
       "remove": "Remove library path",
+      "scan": "Scan now",
+      "scanning": "Scanning...",
       "toast": {
         "updateSuccess": "Ebook library path updated",
         "updateError": "Failed to update ebook library path",
         "removeSuccess": "Ebook library path removed",
-        "removeError": "Failed to remove ebook library path"
+        "removeError": "Failed to remove ebook library path",
+        "scanSuccess": "Scan complete: {added} added, {errors} errors",
+        "scanError": "Failed to scan ebook library"
+      }
+    },
+    "comicLibrary": {
+      "label": "Comic Library",
+      "description": "The folder where your comics are stored",
+      "notConfigured": "Not configured",
+      "browse": "Browse",
+      "remove": "Remove library path",
+      "scan": "Scan now",
+      "scanning": "Scanning...",
+      "toast": {
+        "updateSuccess": "Comic library path updated",
+        "updateError": "Failed to update comic library path",
+        "removeSuccess": "Comic library path removed",
+        "removeError": "Failed to remove comic library path",
+        "scanSuccess": "Scan complete: {added} added, {errors} errors",
+        "scanError": "Failed to scan comic library"
       }
     },
     "opds": {
@@ -61,6 +82,8 @@
       "audiobookDescription": "Choose the folder where your audiobooks are stored",
       "ebookTitle": "Select Ebook Library",
       "ebookDescription": "Choose the folder where your ebooks are stored",
+      "comicTitle": "Select Comic Library",
+      "comicDescription": "Choose the folder where your comics are stored",
       "emptyFolder": "This folder is empty",
       "createFolder": "Create Folder",
       "createFolderPlaceholder": "New folder name",

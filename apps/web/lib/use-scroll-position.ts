@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type LibraryPath = "/audiobooks" | "/ebooks";
+type LibraryPath = "/audiobooks" | "/ebooks" | "/comics";
 
 interface ScrollState {
   position: number;

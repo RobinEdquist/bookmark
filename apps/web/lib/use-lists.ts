@@ -70,16 +70,26 @@ export interface ListItemEbook {
   authors: string[];
 }
 
+export interface ListItemComicSeries {
+  id: string;
+  title: string;
+  publisher: string | null;
+  status: "available" | "missing" | "importing" | "hidden";
+  coverUrl: string | null;
+}
+
 export interface ListItem {
   id: string;
   listId: string;
-  itemType: "audiobook" | "ebook";
+  itemType: "audiobook" | "ebook" | "comic_series";
   audiobookId: string | null;
   ebookId: string | null;
+  comicSeriesId: string | null;
   order: number;
   createdAt: string;
   audiobook: ListItemAudiobook | null;
   ebook: ListItemEbook | null;
+  comicSeries: ListItemComicSeries | null;
 }
 
 export interface ListDetail extends List {
@@ -129,7 +139,7 @@ async function fetchList(id: string): Promise<ListDetail> {
 }
 
 async function fetchListsForItem(
-  itemType: "audiobook" | "ebook",
+  itemType: "audiobook" | "ebook" | "comic_series",
   itemId: string
 ): Promise<ListForItem[]> {
   const params = new URLSearchParams({
@@ -221,7 +231,7 @@ async function deleteList(id: string): Promise<void> {
 
 async function addToList(data: {
   listId: string;
-  itemType: "audiobook" | "ebook";
+  itemType: "audiobook" | "ebook" | "comic_series";
   itemId: string;
 }): Promise<ListItem> {
   const response = await fetch(`/api/lists/${data.listId}/items`, {
@@ -294,7 +304,7 @@ export function useList(id: string) {
 }
 
 export function useListsForItem(
-  itemType: "audiobook" | "ebook",
+  itemType: "audiobook" | "ebook" | "comic_series",
   itemId: string
 ) {
   return useQuery({
@@ -361,7 +371,15 @@ export function useAddToList() {
 
   return useMutation({
     mutationFn: addToList,
-    onMutate: async ({ listId, itemType, itemId }) => {
+    onMutate: async ({
+      listId,
+      itemType,
+      itemId,
+    }: {
+      listId: string;
+      itemType: "audiobook" | "ebook" | "comic_series";
+      itemId: string;
+    }) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({
         queryKey: queryKeys.lists.forItem(itemType, itemId),
@@ -412,10 +430,15 @@ export function useRemoveFromList() {
     mutationFn: ({ listId, itemId }: {
       listId: string;
       itemId: string;
-      itemType?: "audiobook" | "ebook";
+      itemType?: "audiobook" | "ebook" | "comic_series";
       mediaItemId?: string;
     }) => removeFromList({ listId, itemId }),
-    onMutate: async ({ listId, itemType, mediaItemId }) => {
+    onMutate: async ({ listId, itemType, mediaItemId }: {
+      listId: string;
+      itemId: string;
+      itemType?: "audiobook" | "ebook" | "comic_series";
+      mediaItemId?: string;
+    }) => {
       // If itemType and mediaItemId provided, optimistically update forItem query
       if (itemType && mediaItemId) {
         await queryClient.cancelQueries({
@@ -437,14 +460,21 @@ export function useRemoveFromList() {
           );
         }
 
-        return { previousLists, itemType, mediaItemId };
+        return {
+        previousLists,
+        itemType: itemType as "audiobook" | "ebook" | "comic_series",
+        mediaItemId,
+      };
       }
       return {};
     },
     onError: (_, __, context) => {
       if (context?.previousLists && context.itemType && context.mediaItemId) {
         queryClient.setQueryData(
-          queryKeys.lists.forItem(context.itemType, context.mediaItemId),
+          queryKeys.lists.forItem(
+            context.itemType as "audiobook" | "ebook" | "comic_series",
+            context.mediaItemId
+          ),
           context.previousLists
         );
       }

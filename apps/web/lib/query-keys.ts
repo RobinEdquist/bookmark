@@ -110,6 +110,31 @@ export const queryKeys = {
     publishers: (search?: string) => [...queryKeys.ebooks.all, "publishers", search] as const,
     genres: (search?: string) => [...queryKeys.ebooks.all, "genres", search] as const,
   },
+  comics: {
+    all: ["comics"] as const,
+    list: (filters?: {
+      search?: string;
+      publisher?: string;
+      genreId?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.comics.all, "list", filters] as const,
+    infinite: (filters?: {
+      search?: string;
+      publisher?: string;
+      genreId?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.comics.all, "infinite", filters] as const,
+    seriesDetail: (id: string) =>
+      [...queryKeys.comics.all, "seriesDetail", id] as const,
+    bookDetail: (id: string) =>
+      [...queryKeys.comics.all, "bookDetail", id] as const,
+    publishers: (search?: string) =>
+      [...queryKeys.comics.all, "publishers", search] as const,
+    genres: (search?: string) =>
+      [...queryKeys.comics.all, "genres", search] as const,
+  },
   filesystem: {
     all: ["filesystem"] as const,
     browse: (path: string) => [...queryKeys.filesystem.all, "browse", path] as const,
@@ -179,7 +204,7 @@ export const queryKeys = {
     all: ['lists'] as const,
     list: () => [...queryKeys.lists.all, 'list'] as const,
     detail: (id: string) => [...queryKeys.lists.all, 'detail', id] as const,
-    forItem: (itemType: 'audiobook' | 'ebook', itemId: string) =>
+    forItem: (itemType: 'audiobook' | 'ebook' | 'comic_series', itemId: string) =>
       [...queryKeys.lists.all, 'for-item', itemType, itemId] as const,
     recent: (limit?: number) => [...queryKeys.lists.all, 'recent', limit] as const,
     top: (limit?: number) => [...queryKeys.lists.all, 'top', limit] as const,

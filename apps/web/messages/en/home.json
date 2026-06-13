@@ -48,6 +48,10 @@
     "title": "Recently Added Ebooks",
     "seeAll": "See all"
   },
+  "recentlyAddedComics": {
+    "title": "Recently Added Comics",
+    "seeAll": "See all"
+  },
   "recentlyUpdatedSeries": {
     "title": "Recently Updated Series",
     "seeAll": "See all",

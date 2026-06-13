@@ -1,0 +1,3 @@
+ALTER TABLE "list_items" ADD COLUMN "comic_series_id" uuid;--> statement-breakpoint
+ALTER TABLE "list_items" ADD CONSTRAINT "list_items_comic_series_id_comic_series_id_fk" FOREIGN KEY ("comic_series_id") REFERENCES "public"."comic_series"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "list_items_comic_series_id_idx" ON "list_items" USING btree ("comic_series_id");

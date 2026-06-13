@@ -67,6 +67,7 @@
     "dragToReorder": "Drag to reorder",
     "audiobook": "Audiobook",
     "ebook": "Ebook",
+    "comicSeries": "Comic Series",
     "itemRemoved": "Item removed from list",
     "removeError": "Failed to remove item",
     "notFound": "List not found"

@@ -62,6 +62,19 @@ const mockAppSettings = {
   }),
 } as any;
 
+const mockCoverService = {
+  getCoverUrl: jest
+    .fn()
+    .mockImplementation(
+      (
+        id: string,
+        _coverUrl: string | null,
+        _coverSource: unknown,
+        apiPath: string,
+      ) => `/api/${apiPath}/${id}/cover`,
+    ),
+} as any;
+
 const USER_ID = 'user-1';
 const OTHER_USER_ID = 'user-2';
 const LIST_ID = 'list-1';
@@ -85,7 +98,7 @@ describe('ListsService', () => {
       const chain = chainMock([created]);
       const insert = jest.fn().mockReturnValue(chain);
       const db = createMockDb({ insert });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.create(USER_ID, { name: 'Favourites' });
 
@@ -108,7 +121,7 @@ describe('ListsService', () => {
       const chain = chainMock([created]);
       const insert = jest.fn().mockReturnValue(chain);
       const db = createMockDb({ insert });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.create(USER_ID, {
         name: 'Public List',
@@ -144,7 +157,7 @@ describe('ListsService', () => {
         [{ userId: USER_ID }],
         [{ id: LIST_ID, name: 'Updated', isPublic: false }],
       );
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.update(LIST_ID, USER_ID, {
         name: 'Updated',
@@ -163,7 +176,7 @@ describe('ListsService', () => {
         [{ userId: USER_ID }],
         [{ id: LIST_ID, name: 'My List', isPublic: true }],
       );
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.update(LIST_ID, USER_ID, { isPublic: true });
 
@@ -175,7 +188,7 @@ describe('ListsService', () => {
         [{ userId: USER_ID }],
         [{ id: LIST_ID, name: 'New Name', isPublic: true }],
       );
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.update(LIST_ID, USER_ID, {
         name: 'New Name',
@@ -190,7 +203,7 @@ describe('ListsService', () => {
 
     it('throws NotFoundException when list does not exist', async () => {
       const { db } = setupUpdateMocks([], []);
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.update('missing-id', USER_ID, { name: 'Nope' }),
@@ -199,7 +212,7 @@ describe('ListsService', () => {
 
     it('throws ForbiddenException when user does not own the list', async () => {
       const { db } = setupUpdateMocks([{ userId: OTHER_USER_ID }], []);
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.update(LIST_ID, USER_ID, { name: 'Nope' }),
@@ -217,7 +230,7 @@ describe('ListsService', () => {
       const select = jest.fn().mockReturnValue(ownershipChain);
       const del = jest.fn().mockReturnValue(deleteChain);
       const db = createMockDb({ select, delete: del });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.delete(LIST_ID, USER_ID);
 
@@ -228,7 +241,7 @@ describe('ListsService', () => {
       const ownershipChain = chainMock([]);
       const select = jest.fn().mockReturnValue(ownershipChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.delete('missing-id', USER_ID),
@@ -239,7 +252,7 @@ describe('ListsService', () => {
       const ownershipChain = chainMock([{ userId: OTHER_USER_ID }]);
       const select = jest.fn().mockReturnValue(ownershipChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(service.delete(LIST_ID, USER_ID)).rejects.toBeInstanceOf(
         ForbiddenException,
@@ -264,7 +277,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([listRow]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.findById(LIST_ID, USER_ID);
 
@@ -282,7 +295,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([listRow]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.findById(LIST_ID, USER_ID);
 
@@ -293,7 +306,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.findById('missing-id', USER_ID),
@@ -311,7 +324,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([listRow]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(service.findById(LIST_ID, USER_ID)).rejects.toBeInstanceOf(
         ForbiddenException,
@@ -410,7 +423,7 @@ describe('ListsService', () => {
         alreadyInList: false,
         maxOrder: 2,
       });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.addItem(LIST_ID, USER_ID, {
         itemType: 'audiobook',
@@ -427,7 +440,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.addItem('missing-list', USER_ID, {
@@ -441,7 +454,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([{ userId: OTHER_USER_ID }]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.addItem(LIST_ID, USER_ID, {
@@ -457,7 +470,7 @@ describe('ListsService', () => {
         itemExists: false,
         alreadyInList: false,
       });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.addItem(LIST_ID, USER_ID, {
@@ -473,7 +486,7 @@ describe('ListsService', () => {
         itemExists: true,
         alreadyInList: true,
       });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.addItem(LIST_ID, USER_ID, {
@@ -490,7 +503,7 @@ describe('ListsService', () => {
         alreadyInList: false,
         maxOrder: -1,
       });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.addItem(LIST_ID, USER_ID, {
         itemType: 'audiobook',
@@ -508,7 +521,7 @@ describe('ListsService', () => {
         itemExists: true,
         alreadyInList: false,
       });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.addItem(LIST_ID, USER_ID, {
         itemType: 'audiobook',
@@ -519,9 +532,49 @@ describe('ListsService', () => {
         expect.objectContaining({
           audiobookId: 'ab-1',
           ebookId: null,
+          comicSeriesId: null,
           itemType: 'audiobook',
         }),
       );
+    });
+
+    it('sets comicSeriesId for comic_series items and audiobookId/ebookId to null', async () => {
+      const { db, insertChain } = setupAddItemMocks({
+        ownerUserId: USER_ID,
+        itemExists: true,
+        alreadyInList: false,
+      });
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
+
+      await service.addItem(LIST_ID, USER_ID, {
+        itemType: 'comic_series',
+        itemId: 'cs-1',
+      });
+
+      expect(insertChain.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          audiobookId: null,
+          ebookId: null,
+          comicSeriesId: 'cs-1',
+          itemType: 'comic_series',
+        }),
+      );
+    });
+
+    it('throws NotFoundException when comic series does not exist', async () => {
+      const { db } = setupAddItemMocks({
+        ownerUserId: USER_ID,
+        itemExists: false,
+        alreadyInList: false,
+      });
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
+
+      await expect(
+        service.addItem(LIST_ID, USER_ID, {
+          itemType: 'comic_series',
+          itemId: 'missing-cs',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('updates updatedAt on the list after adding an item', async () => {
@@ -530,7 +583,7 @@ describe('ListsService', () => {
         itemExists: true,
         alreadyInList: false,
       });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.addItem(LIST_ID, USER_ID, {
         itemType: 'audiobook',
@@ -559,7 +612,7 @@ describe('ListsService', () => {
       const del = jest.fn().mockReturnValue(deleteChain);
       const update = jest.fn().mockReturnValue(updateChain);
       const db = createMockDb({ select, delete: del, update });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.removeItem(LIST_ID, 'item-1', USER_ID);
 
@@ -574,7 +627,7 @@ describe('ListsService', () => {
       const select = jest.fn().mockReturnValue(ownershipChain);
       const del = jest.fn().mockReturnValue(deleteChain);
       const db = createMockDb({ select, delete: del });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.removeItem(LIST_ID, 'missing-item', USER_ID),
@@ -585,7 +638,7 @@ describe('ListsService', () => {
       const ownershipChain = chainMock([]);
       const select = jest.fn().mockReturnValue(ownershipChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.removeItem('missing-list', 'item-1', USER_ID),
@@ -596,7 +649,7 @@ describe('ListsService', () => {
       const ownershipChain = chainMock([{ userId: OTHER_USER_ID }]);
       const select = jest.fn().mockReturnValue(ownershipChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.removeItem(LIST_ID, 'item-1', USER_ID),
@@ -612,7 +665,7 @@ describe('ListsService', () => {
       const del = jest.fn().mockReturnValue(deleteChain);
       const update = jest.fn().mockReturnValue(updateChain);
       const db = createMockDb({ select, delete: del, update });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.removeItem(LIST_ID, 'item-1', USER_ID);
 
@@ -642,7 +695,7 @@ describe('ListsService', () => {
       const update = jest.fn().mockReturnValue(updateChain);
 
       const db = createMockDb({ select, transaction, update });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.reorderItems(LIST_ID, USER_ID, {
         itemIds: ['item-a', 'item-b', 'item-c'],
@@ -672,7 +725,7 @@ describe('ListsService', () => {
       const update = jest.fn().mockReturnValue(updateChain);
 
       const db = createMockDb({ select, transaction, update });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.reorderItems(LIST_ID, USER_ID, { itemIds: ['a'] });
 
@@ -683,7 +736,7 @@ describe('ListsService', () => {
       const ownershipChain = chainMock([]);
       const select = jest.fn().mockReturnValue(ownershipChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.reorderItems('missing', USER_ID, { itemIds: ['a'] }),
@@ -694,7 +747,7 @@ describe('ListsService', () => {
       const ownershipChain = chainMock([{ userId: OTHER_USER_ID }]);
       const select = jest.fn().mockReturnValue(ownershipChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(
         service.reorderItems(LIST_ID, USER_ID, { itemIds: ['a'] }),
@@ -716,7 +769,7 @@ describe('ListsService', () => {
       const update = jest.fn().mockReturnValue(updateChain);
 
       const db = createMockDb({ select, transaction, update });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await service.reorderItems(LIST_ID, USER_ID, { itemIds: [] });
 
@@ -735,7 +788,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.findAll(USER_ID);
 
@@ -754,7 +807,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.findRecent(USER_ID, 5);
 
@@ -771,7 +824,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.getListsForItem(
         USER_ID,
@@ -793,7 +846,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.findTop(USER_ID, 10);
 
@@ -807,7 +860,7 @@ describe('ListsService', () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.findTop(USER_ID, 5);
 
@@ -828,7 +881,7 @@ describe('ListsService', () => {
           cover: [],
         }),
       } as any;
-      const service = new ListsService(db, appSettings);
+      const service = new ListsService(db, appSettings, mockCoverService);
 
       await service.findTop(USER_ID);
 
@@ -846,7 +899,7 @@ describe('ListsService', () => {
       const select = jest.fn().mockReturnValue(ownershipChain);
       const del = jest.fn().mockReturnValue(deleteChain);
       const db = createMockDb({ select, delete: del });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       // Should not throw
       await expect(service.delete(LIST_ID, USER_ID)).resolves.toBeUndefined();
@@ -856,7 +909,7 @@ describe('ListsService', () => {
       const ownershipChain = chainMock([{ userId: OTHER_USER_ID }]);
       const select = jest.fn().mockReturnValue(ownershipChain);
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       await expect(service.delete(LIST_ID, USER_ID)).rejects.toBeInstanceOf(
         ForbiddenException,
@@ -880,7 +933,7 @@ describe('ListsService', () => {
           cover: [],
         }),
       } as any;
-      const service = new ListsService(db, appSettings);
+      const service = new ListsService(db, appSettings, mockCoverService);
 
       // Should not throw - the private method adds missing sources
       const result = await service.findTop(USER_ID);
@@ -899,7 +952,7 @@ describe('ListsService', () => {
           cover: [],
         }),
       } as any;
-      const service = new ListsService(db, appSettings);
+      const service = new ListsService(db, appSettings, mockCoverService);
 
       // Should not throw
       const result = await service.findTop(USER_ID);
@@ -943,7 +996,7 @@ describe('ListsService', () => {
       });
 
       const db = createMockDb({ select });
-      const service = new ListsService(db, mockAppSettings);
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
 
       const result = await service.findTop(USER_ID);
 

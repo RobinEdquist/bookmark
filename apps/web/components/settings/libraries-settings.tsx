@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, X, Rss, Copy, Check, Upload, Link2, RefreshCw } from "lucide-react";
+import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, BookImage, X, Rss, Copy, Check, Upload, Link2, RefreshCw, ScanLine } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -103,6 +103,9 @@ export function LibrariesSettings() {
   const { settings, isLoading, error, updateSettings, isUpdating } = useSettings();
   const [audiobookFolderPickerOpen, setAudiobookFolderPickerOpen] = useState(false);
   const [ebookFolderPickerOpen, setEbookFolderPickerOpen] = useState(false);
+  const [comicFolderPickerOpen, setComicFolderPickerOpen] = useState(false);
+  const [isEbookScanning, setIsEbookScanning] = useState(false);
+  const [isComicScanning, setIsComicScanning] = useState(false);
   const [opdsCopied, setOpdsCopied] = useState(false);
   const { isConfigured: hardcoverConfigured } = useHardcoverStatus();
   const { queueAllUnlinked } = useQueueAllUnlinked();
@@ -152,6 +155,68 @@ export function LibrariesSettings() {
       toast.error(
         err instanceof Error ? err.message : t("ebookLibrary.toast.removeError")
       );
+    }
+  };
+
+  const handleScanEbooks = async () => {
+    setIsEbookScanning(true);
+    try {
+      const response = await fetch("/api/admin/library-watcher/scan-ebooks", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || t("ebookLibrary.toast.scanError"));
+      }
+      const data = (await response.json()) as { success: boolean; result: { added: number; errors: Array<{ path: string; error: string }> } };
+      toast.success(t("ebookLibrary.toast.scanSuccess", { added: data.result.added, errors: data.result.errors.length }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("ebookLibrary.toast.scanError"));
+    } finally {
+      setIsEbookScanning(false);
+    }
+  };
+
+  const handleSelectComicPath = async (path: string) => {
+    try {
+      await updateSettings({ comicLibraryPath: path });
+      toast.success(t("comicLibrary.toast.updateSuccess"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("comicLibrary.toast.updateError")
+      );
+    }
+  };
+
+  const handleRemoveComicPath = async () => {
+    try {
+      await updateSettings({ comicLibraryPath: null });
+      toast.success(t("comicLibrary.toast.removeSuccess"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("comicLibrary.toast.removeError")
+      );
+    }
+  };
+
+  const handleScanComics = async () => {
+    setIsComicScanning(true);
+    try {
+      const response = await fetch("/api/admin/library-watcher/scan-comics", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || t("comicLibrary.toast.scanError"));
+      }
+      const data = (await response.json()) as { success: boolean; result: { added: number; errors: Array<{ path: string; error: string }> } };
+      toast.success(t("comicLibrary.toast.scanSuccess", { added: data.result.added, errors: data.result.errors.length }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("comicLibrary.toast.scanError"));
+    } finally {
+      setIsComicScanning(false);
     }
   };
 
@@ -379,6 +444,89 @@ export function LibrariesSettings() {
                   {settings?.ebookLibraryPath || t("ebookLibrary.notConfigured")}
                 </code>
               </div>
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleScanEbooks}
+                  disabled={isEbookScanning || !settings?.ebookLibraryPath}
+                >
+                  {isEbookScanning ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      {t("ebookLibrary.scanning")}
+                    </>
+                  ) : (
+                    <>
+                      <ScanLine className="mr-2 h-4 w-4" />
+                      {t("ebookLibrary.scan")}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </fieldset>
+
+          {/* Comic Library Path */}
+          <fieldset className="rounded-lg border p-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <BookImage className="h-4 w-4 shrink-0" />
+                    {t("comicLibrary.label")}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t("comicLibrary.description")}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {settings?.comicLibraryPath && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleRemoveComicPath}
+                      disabled={isUpdating}
+                      title={t("comicLibrary.remove")}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    onClick={() => setComicFolderPickerOpen(true)}
+                    disabled={isUpdating}
+                  >
+                    {t("comicLibrary.browse")}
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Folder className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                <code className="text-sm bg-muted px-2 py-0.5 rounded break-all">
+                  {settings?.comicLibraryPath || t("comicLibrary.notConfigured")}
+                </code>
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleScanComics}
+                  disabled={isComicScanning || !settings?.comicLibraryPath}
+                >
+                  {isComicScanning ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      {t("comicLibrary.scanning")}
+                    </>
+                  ) : (
+                    <>
+                      <ScanLine className="mr-2 h-4 w-4" />
+                      {t("comicLibrary.scan")}
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </fieldset>
 
@@ -583,6 +731,14 @@ export function LibrariesSettings() {
         initialPath={settings?.ebookLibraryPath || '/library/ebooks'}
         title={t("folderPicker.ebookTitle")}
         description={t("folderPicker.ebookDescription")}
+      />
+      <FolderPickerDialog
+        open={comicFolderPickerOpen}
+        onOpenChange={setComicFolderPickerOpen}
+        onSelect={handleSelectComicPath}
+        initialPath={settings?.comicLibraryPath || '/library/comics'}
+        title={t("folderPicker.comicTitle")}
+        description={t("folderPicker.comicDescription")}
       />
     </div>
   );

@@ -148,6 +148,13 @@
       "when": 1781305175245,
       "tag": "0020_add_comics_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1781353947659,
+      "tag": "0021_add_comic_series_to_lists",
+      "breakpoints": true
     }
   ]
 }

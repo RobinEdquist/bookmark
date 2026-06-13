@@ -202,6 +202,7 @@ export function buildListItem(overrides?: Partial<ListItem>): ListItem {
     itemType: 'audiobook',
     audiobookId: 'test-audiobook-1',
     ebookId: null,
+    comicSeriesId: null,
     order: 0,
     createdAt: now(),
     ...overrides,

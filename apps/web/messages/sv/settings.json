@@ -34,11 +34,32 @@
       "notConfigured": "Ej konfigurerad",
       "browse": "Bläddra",
       "remove": "Ta bort bibliotekssökväg",
+      "scan": "Skanna nu",
+      "scanning": "Skannar...",
       "toast": {
         "updateSuccess": "E-boksbibliotekssökväg uppdaterad",
         "updateError": "Kunde inte uppdatera e-boksbibliotekssökväg",
         "removeSuccess": "E-boksbibliotekssökväg borttagen",
-        "removeError": "Kunde inte ta bort e-boksbibliotekssökväg"
+        "removeError": "Kunde inte ta bort e-boksbibliotekssökväg",
+        "scanSuccess": "Skanning klar: {added} tillagda, {errors} fel",
+        "scanError": "Kunde inte skanna e-boksbiblioteket"
+      }
+    },
+    "comicLibrary": {
+      "label": "Seriebibliotek",
+      "description": "Mappen där dina serier lagras",
+      "notConfigured": "Ej konfigurerad",
+      "browse": "Bläddra",
+      "remove": "Ta bort bibliotekssökväg",
+      "scan": "Skanna nu",
+      "scanning": "Skannar...",
+      "toast": {
+        "updateSuccess": "Seriebibliotekssökväg uppdaterad",
+        "updateError": "Kunde inte uppdatera seriebibliotekssökväg",
+        "removeSuccess": "Seriebibliotekssökväg borttagen",
+        "removeError": "Kunde inte ta bort seriebibliotekssökväg",
+        "scanSuccess": "Skanning klar: {added} tillagda, {errors} fel",
+        "scanError": "Kunde inte skanna seriebiblioteket"
       }
     },
     "opds": {
@@ -61,6 +82,8 @@
       "audiobookDescription": "Välj mappen där dina ljudböcker finns",
       "ebookTitle": "Välj e-boksbibliotek",
       "ebookDescription": "Välj mappen där dina e-böcker finns",
+      "comicTitle": "Välj seriebibliotek",
+      "comicDescription": "Välj mappen där dina serier lagras",
       "emptyFolder": "Mappen är tom",
       "createFolder": "Skapa mapp",
       "createFolderPlaceholder": "Nytt mappnamn",

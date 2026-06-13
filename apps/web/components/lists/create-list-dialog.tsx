@@ -21,7 +21,7 @@ interface CreateListDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialItem?: {
-    itemType: "audiobook" | "ebook";
+    itemType: "audiobook" | "ebook" | "comic_series";
     itemId: string;
   };
 }
