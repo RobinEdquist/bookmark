@@ -1,0 +1,50 @@
+{
+  "matchDialog": {
+    "titleSeries": "Link to ComicVine",
+    "titleBook": "Link issue to ComicVine",
+    "descriptionSeries": "Select a ComicVine volume to link with \"{title}\"",
+    "descriptionBook": "Select a ComicVine issue to link with \"{title}\"",
+    "searchPlaceholder": "Search ComicVine…",
+    "search": "Search",
+    "resultsCount": "{count, plural, one {# result found} other {# results found}}",
+    "noResults": "No matching results on ComicVine",
+    "error": "Failed to search ComicVine",
+    "seriesNotLinked": "Link this series to a ComicVine volume first, then you can match its issues.",
+    "previous": "Previous",
+    "next": "Next",
+    "pageInfo": "Page {current} of {total}",
+    "cancel": "Cancel",
+    "link": "Link",
+    "linking": "Linking…",
+    "startYear": "Started {year}",
+    "issueCount": "{count, plural, one {# issue} other {# issues}}",
+    "issueNumber": "Issue #{number}",
+    "coverDate": "Cover date {date}",
+    "toast": {
+      "linked": "Linked to ComicVine",
+      "linkFailed": "Failed to link"
+    }
+  },
+  "linkCard": {
+    "titleSeries": "ComicVine",
+    "titleBook": "ComicVine",
+    "descriptionSeries": "Linked volume metadata from ComicVine",
+    "descriptionBook": "Linked issue metadata from ComicVine",
+    "unlink": "Unlink",
+    "unlinking": "Unlinking…",
+    "attribution": "Data from Comic Vine",
+    "viewOnComicVine": "View on Comic Vine",
+    "suggestedCreators": "Creators from ComicVine",
+    "addCreator": "Add",
+    "publisher": "Publisher",
+    "issueCount": "Issues",
+    "startYear": "Year",
+    "toast": {
+      "unlinked": "Unlinked from ComicVine",
+      "linkFailed": "Failed to link",
+      "unlinkFailed": "Failed to unlink",
+      "creatorAdded": "Creator added",
+      "creatorFailed": "Failed to add creator"
+    }
+  }
+}

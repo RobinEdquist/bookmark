@@ -141,6 +141,7 @@ interface VolumeForSeriesResponse {
   totalResults: number;
   results: ComicvineVolume[];
   currentLink: ComicvineSeriesLink | null;
+  query: string;
 }
 
 /**
