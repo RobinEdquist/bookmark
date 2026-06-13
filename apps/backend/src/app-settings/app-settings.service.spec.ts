@@ -1,5 +1,8 @@
 import { AppSettingsService } from './app-settings.service';
-import { DEFAULT_METADATA_PRIORITY } from './schema';
+import {
+  DEFAULT_METADATA_PRIORITY,
+  DEFAULT_COMIC_METADATA_PRIORITY,
+} from './schema';
 import * as schema from './schema';
 
 // ---------------------------------------------------------------------------
@@ -454,6 +457,72 @@ describe('AppSettingsService', () => {
       const service = new AppSettingsService(db, createMockAppEvents());
 
       expect(await service.getOidcAutoCreateUsers()).toBe('disabled');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // comicMetadataPriority via updateSettings
+  // -----------------------------------------------------------------------
+  describe('comicMetadataPriority updateSettings', () => {
+    it('persists comicMetadataPriority when provided', async () => {
+      const customPriority = {
+        ...DEFAULT_COMIC_METADATA_PRIORITY,
+        title: ['manual', 'comicvine'] as any,
+      };
+      const updated = buildDefaultSettings({
+        comicMetadataPriority: customPriority,
+      });
+      const updateChain = chainMock([updated]);
+      const db = createMockDb({
+        update: jest.fn().mockReturnValue(updateChain),
+      });
+      const service = new AppSettingsService(db, createMockAppEvents());
+
+      const result = await service.updateSettings({
+        comicMetadataPriority: customPriority,
+      });
+
+      expect(updateChain.set).toHaveBeenCalledWith({
+        comicMetadataPriority: customPriority,
+      });
+      expect(result).toEqual(updated);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // getComicMetadataPriority
+  // -----------------------------------------------------------------------
+  describe('getComicMetadataPriority', () => {
+    it('returns stored comic metadata priority when set', async () => {
+      const customPriority = {
+        ...DEFAULT_COMIC_METADATA_PRIORITY,
+        title: ['comicvine', 'manual'] as any,
+      };
+      const settings = buildDefaultSettings({
+        comicMetadataPriority: customPriority,
+      });
+      const selectChain = chainMock([settings]);
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(selectChain),
+      });
+      const service = new AppSettingsService(db, createMockAppEvents());
+
+      const result = await service.getComicMetadataPriority();
+
+      expect(result).toEqual(customPriority);
+    });
+
+    it('returns DEFAULT_COMIC_METADATA_PRIORITY when not set', async () => {
+      const settings = buildDefaultSettings({ comicMetadataPriority: null });
+      const selectChain = chainMock([settings]);
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(selectChain),
+      });
+      const service = new AppSettingsService(db, createMockAppEvents());
+
+      const result = await service.getComicMetadataPriority();
+
+      expect(result).toEqual(DEFAULT_COMIC_METADATA_PRIORITY);
     });
   });
 });

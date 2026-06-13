@@ -196,13 +196,9 @@ export class ComicvineController {
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
 
-    // Load the series title from the service
+    // Current link (so the UI can show what's already linked) + a title-prefilled volume search.
     const seriesLink = await this.comicvineService.getSeriesLink(seriesId);
 
-    // Fall back to a plain series title search via service-level context
-    // We need the series title — load it by attempting match which returns the title.
-    // Since this is a search-prefill endpoint, we call searchVolumes with any
-    // cached title. Use a dedicated helper in the service.
     const result = await this.comicvineService.searchVolumesForSeries(
       seriesId,
       pageNum,
