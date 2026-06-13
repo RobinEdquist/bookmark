@@ -59,7 +59,7 @@ export interface ChangeCoverDialogTranslations {
 }
 
 export interface ChangeCoverDialogProps {
-  /** The entity ID (audiobook or ebook) */
+  /** The entity ID (audiobook, ebook, or comic) */
   entityId: string;
   /** The entity title for display */
   entityTitle: string;

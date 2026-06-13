@@ -23,8 +23,6 @@ interface ComicSeriesCardProps {
   series: ComicSeriesListItem;
   /** Called when user wants to edit this series (for shared dialog) */
   onEdit?: () => void;
-  /** If true, the card won't render its own edit dialog */
-  externalEditDialog?: boolean;
 }
 
 export function ComicSeriesCard({

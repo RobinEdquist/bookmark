@@ -133,7 +133,6 @@ export function ComicSeriesGrid({
             key={s.id}
             series={s}
             onEdit={() => handleOpenEdit(s.id)}
-            externalEditDialog
           />
         ))}
       </motion.div>
