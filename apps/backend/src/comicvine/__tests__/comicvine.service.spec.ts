@@ -1087,6 +1087,196 @@ describe('ComicvineService', () => {
   });
 
   // =========================================================================
+  // mock E2E flow (api key → match series → match book)
+  // =========================================================================
+
+  describe('mock E2E flow (api key → match series → match book)', () => {
+    it('returns no_api_key and never constructs the client when no key is set', async () => {
+      // getApiKey → null
+      const settingsChain = createChainMock(['from', 'where', 'limit']);
+      settingsChain.limit.mockResolvedValueOnce([{ comicvineApiKey: null }]);
+      db.select.mockReturnValueOnce(settingsChain);
+
+      const result = await service.matchSeries('any-series-id');
+
+      expect(result.outcome).toBe('no_api_key');
+      // Client methods must never have been invoked
+      expect(mockGetVolume).not.toHaveBeenCalled();
+      expect(mockSearchVolumes).not.toHaveBeenCalled();
+      expect(mockGetVolumeIssues).not.toHaveBeenCalled();
+      // No DB writes
+      expect(db.insert).not.toHaveBeenCalled();
+      expect(db.update).not.toHaveBeenCalled();
+    });
+
+    it('links series via cvinfo pin: bypasses search, upserts volume, inserts link row', async () => {
+      // getApiKey → key present
+      const settingsChain = createChainMock(['from', 'where', 'limit']);
+      settingsChain.limit.mockResolvedValueOnce([
+        { comicvineApiKey: 'e2e-cv-key' },
+      ]);
+      db.select.mockReturnValueOnce(settingsChain);
+
+      // Load series with a comicvineVolumeId pin
+      const seriesChain = createChainMock(['from', 'where', 'limit']);
+      seriesChain.limit.mockResolvedValueOnce([
+        {
+          id: 'e2e-series-1',
+          title: 'X-Men',
+          startYear: 1963,
+          comicvineVolumeId: 12345,
+        },
+      ]);
+      db.select.mockReturnValueOnce(seriesChain);
+
+      // getVolume returns the pinned volume
+      const cvVolume = buildCvVolume({ id: 12345 });
+      mockGetVolume.mockResolvedValueOnce({
+        totalResults: 1,
+        results: cvVolume,
+      });
+
+      // linkSeriesToVolume: upsertVolume (single insert…onConflictDoUpdate…returning)
+      const cachedVol = { id: 'e2e-vol-uuid', comicvineVolumeId: 12345 };
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedVol));
+
+      // delete existing link
+      const deleteChain = createChainMock(['where']);
+      deleteChain.where.mockResolvedValueOnce(undefined);
+      db.delete.mockReturnValueOnce(deleteChain);
+
+      // insert new link (comicvine_volume_links)
+      const linkInsert = createChainMock(['values']);
+      linkInsert.values.mockResolvedValueOnce(undefined);
+      db.insert.mockReturnValueOnce(linkInsert);
+
+      // update series comicvineVolumeId pin
+      const updateChain = createChainMock(['set', 'where']);
+      updateChain.where.mockResolvedValueOnce(undefined);
+      db.update.mockReturnValueOnce(updateChain);
+
+      const result = await service.matchSeries('e2e-series-1');
+
+      // Outcome: linked with correct cvId
+      expect(result.outcome).toBe('linked');
+      expect((result as { outcome: 'linked'; cvId: number }).cvId).toBe(12345);
+
+      // Pin bypasses search — searchVolumes must NOT have been called
+      expect(mockSearchVolumes).not.toHaveBeenCalled();
+
+      // getVolume WAS called with the pinned id
+      expect(mockGetVolume).toHaveBeenCalledWith(12345);
+
+      // Two inserts: one upsert for the volume cache row + one for the link row
+      expect(db.insert).toHaveBeenCalledTimes(2);
+
+      // comicvineSyncCompleted event was emitted
+      expect(mockAppEvents.comicvineSyncCompleted).toHaveBeenCalledWith(
+        'series',
+        'e2e-series-1',
+      );
+    });
+
+    it('links book to issue when series is already linked (volume row + link row present)', async () => {
+      // getApiKey for matchBook's internal getClient call
+      const settingsChain = createChainMock(['from', 'where', 'limit']);
+      settingsChain.limit.mockResolvedValueOnce([
+        { comicvineApiKey: 'e2e-cv-key' },
+      ]);
+      db.select.mockReturnValueOnce(settingsChain);
+
+      // Load book: number "1", belongs to 'e2e-series-1'
+      const bookChain = createChainMock(['from', 'where', 'limit']);
+      bookChain.limit.mockResolvedValueOnce([
+        {
+          id: 'e2e-book-1',
+          seriesId: 'e2e-series-1',
+          number: '1',
+          coverDate: '1963-09-01',
+        },
+      ]);
+      db.select.mockReturnValueOnce(bookChain);
+
+      // Volume link check: series has a linked volume
+      const volLinkChain = createChainMock([
+        'from',
+        'innerJoin',
+        'where',
+        'limit',
+      ]);
+      volLinkChain.limit.mockResolvedValueOnce([
+        { comicvineVolumeRowId: 'e2e-vol-uuid', comicvineVolumeId: 12345 },
+      ]);
+      db.select.mockReturnValueOnce(volLinkChain);
+
+      // getVolumeIssuesPaged calls getClient which calls getApiKey again
+      const settingsChain2 = createChainMock(['from', 'where', 'limit']);
+      settingsChain2.limit.mockResolvedValueOnce([
+        { comicvineApiKey: 'e2e-cv-key' },
+      ]);
+      db.select.mockReturnValueOnce(settingsChain2);
+
+      // getVolumeIssues API returns issue list including issue_number "1"
+      const cvIssue = buildCvIssue({ id: 99001, issue_number: '1' });
+      mockGetVolumeIssues.mockResolvedValueOnce({
+        totalResults: 1,
+        results: [cvIssue],
+      });
+
+      // upsertIssue call 1: from getVolumeIssuesPaged (caching all issues in the page)
+      const cachedIssue = {
+        id: 'e2e-issue-uuid',
+        comicvineIssueId: 99001,
+        issueNumber: '1',
+        coverDate: '1963-09-01',
+        storeDate: null,
+        name: 'X-Men #1',
+        description: 'First issue.',
+        imageUrl: 'https://comicvine.com/images/xmen1.jpg',
+        siteDetailUrl: 'https://comicvine.gamespot.com/x-men-1/4000-99001/',
+        personCredits: [{ name: 'Stan Lee', role: 'writer' }],
+        characterCredits: ['Cyclops'],
+        storyArcCredits: [],
+        comicvineVolumeId: 12345,
+        syncedAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedIssue)); // call 1 (getVolumeIssuesPaged)
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedIssue)); // call 2 (linkBookToIssue re-upsert)
+
+      // linkBookToIssue: delete existing issue link
+      const deleteChain = createChainMock(['where']);
+      deleteChain.where.mockResolvedValueOnce(undefined);
+      db.delete.mockReturnValueOnce(deleteChain);
+
+      // linkBookToIssue: insert new issue link (comicvine_issue_links)
+      const issueLinkInsert = createChainMock(['values']);
+      issueLinkInsert.values.mockResolvedValueOnce(undefined);
+      db.insert.mockReturnValueOnce(issueLinkInsert);
+
+      // linkBookToIssue: update book comicvineIssueId
+      const bookUpdateChain = createChainMock(['set', 'where']);
+      bookUpdateChain.where.mockResolvedValueOnce(undefined);
+      db.update.mockReturnValueOnce(bookUpdateChain);
+
+      const result = await service.matchBook('e2e-book-1');
+
+      // Outcome: linked
+      expect(result.outcome).toBe('linked');
+
+      // A comicvine_issue_links insert occurred (third db.insert call)
+      expect(db.insert).toHaveBeenCalledTimes(3);
+
+      // comicvineSyncCompleted event for the book
+      expect(mockAppEvents.comicvineSyncCompleted).toHaveBeenCalledWith(
+        'book',
+        'e2e-book-1',
+      );
+    });
+  });
+
+  // =========================================================================
   // cleanupOrphanedCache
   // =========================================================================
 
