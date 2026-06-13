@@ -27,6 +27,12 @@
   },
   "detail": {
     "back": "Tillbaka till serier",
+    "error": "Det gick inte att ladda serien",
+    "previous": "Föregående serie",
+    "next": "Nästa serie",
+    "edit": "Redigera serie",
+    "changeCover": "Ändra omslag",
+    "delete": "Ta bort serie",
     "publisher": "Förlag",
     "imprint": "Imprint",
     "year": "År",
@@ -35,6 +41,10 @@
     "issues": "Nummer",
     "books": "Böcker",
     "creators": "Upphovspersoner",
+    "genres": "Genrer",
+    "description": "Beskrivning",
+    "showMore": "Visa mer",
+    "showLess": "Visa mindre",
     "downloadSeries": "Ladda ner alla",
     "noBooks": "Inga böcker i den här serien"
   },

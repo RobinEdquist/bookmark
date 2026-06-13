@@ -27,6 +27,12 @@
   },
   "detail": {
     "back": "Back to comics",
+    "error": "Failed to load series",
+    "previous": "Previous series",
+    "next": "Next series",
+    "edit": "Edit series",
+    "changeCover": "Change cover",
+    "delete": "Delete series",
     "publisher": "Publisher",
     "imprint": "Imprint",
     "year": "Year",
@@ -35,6 +41,10 @@
     "issues": "Issues",
     "books": "Books",
     "creators": "Creators",
+    "genres": "Genres",
+    "description": "Description",
+    "showMore": "Show more",
+    "showLess": "Show less",
     "downloadSeries": "Download all",
     "noBooks": "No books in this series"
   },
