@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Plus, X } from "lucide-react";
@@ -55,6 +55,8 @@ const ROLES: ComicCreatorRole[] = [
 ];
 
 interface CreatorRow {
+  /** Stable client-side identity for React keys (not sent to the backend) */
+  id: number;
   name: string;
   role: ComicCreatorRole;
 }
@@ -74,6 +76,7 @@ interface EditComicBookDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Compares creators by value (name/role only) — the client-side `id` is ignored.
 function creatorsEqual(a: CreatorRow[], b: CreatorRow[]): boolean {
   if (a.length !== b.length) return false;
   return a.every(
@@ -94,6 +97,9 @@ export function EditComicBookDialog({
     open ? bookId : "",
   );
   const updateBook = useUpdateComicBook();
+
+  // Monotonic counter for assigning stable client-side ids to creator rows.
+  const nextCreatorId = useRef(0);
 
   // Form state
   const [title, setTitle] = useState("");
@@ -118,7 +124,7 @@ export function EditComicBookDialog({
       const summaryVal = book.summary ?? "";
       const creatorsVal: CreatorRow[] = [...book.creators]
         .sort((a, b) => a.order - b.order)
-        .map((c) => ({ name: c.name, role: c.role }));
+        .map((c) => ({ id: nextCreatorId.current++, name: c.name, role: c.role }));
 
       setTitle(titleVal);
       setNumber(numberVal);
@@ -151,7 +157,7 @@ export function EditComicBookDialog({
       setCoverDateError(null);
       return true;
     }
-    setCoverDateError("Format must be YYYY-MM-DD");
+    setCoverDateError(t("fields.coverDateError"));
     return false;
   };
 
@@ -163,22 +169,25 @@ export function EditComicBookDialog({
   };
 
   const handleAddCreator = () => {
-    setCreators((prev) => [...prev, { name: "", role: "writer" }]);
+    setCreators((prev) => [
+      ...prev,
+      { id: nextCreatorId.current++, name: "", role: "writer" },
+    ]);
   };
 
-  const handleRemoveCreator = (index: number) => {
-    setCreators((prev) => prev.filter((_, i) => i !== index));
+  const handleRemoveCreator = (id: number) => {
+    setCreators((prev) => prev.filter((row) => row.id !== id));
   };
 
-  const handleCreatorNameChange = (index: number, value: string) => {
+  const handleCreatorNameChange = (id: number, value: string) => {
     setCreators((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, name: value } : row)),
+      prev.map((row) => (row.id === id ? { ...row, name: value } : row)),
     );
   };
 
-  const handleCreatorRoleChange = (index: number, value: ComicCreatorRole) => {
+  const handleCreatorRoleChange = (id: number, value: ComicCreatorRole) => {
     setCreators((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, role: value } : row)),
+      prev.map((row) => (row.id === id ? { ...row, role: value } : row)),
     );
   };
 
@@ -311,9 +320,17 @@ export function EditComicBookDialog({
                 placeholder="YYYY-MM-DD"
                 disabled={isLoading}
                 aria-invalid={!!coverDateError}
+                aria-describedby={
+                  coverDateError ? "book-coverDate-error" : undefined
+                }
               />
               {coverDateError && (
-                <p className="text-sm text-destructive">{coverDateError}</p>
+                <p
+                  id="book-coverDate-error"
+                  className="text-sm text-destructive"
+                >
+                  {coverDateError}
+                </p>
               )}
             </div>
 
@@ -336,11 +353,11 @@ export function EditComicBookDialog({
               <Label>{t("fields.creators")}</Label>
 
               {creators.map((row, index) => (
-                <div key={index} className="flex items-center gap-2">
+                <div key={row.id} className="flex items-center gap-2">
                   <Input
                     value={row.name}
                     onChange={(e) =>
-                      handleCreatorNameChange(index, e.target.value)
+                      handleCreatorNameChange(row.id, e.target.value)
                     }
                     placeholder={t("fields.creatorName")}
                     disabled={isLoading}
@@ -350,7 +367,7 @@ export function EditComicBookDialog({
                   <Select
                     value={row.role}
                     onValueChange={(v) =>
-                      handleCreatorRoleChange(index, v as ComicCreatorRole)
+                      handleCreatorRoleChange(row.id, v as ComicCreatorRole)
                     }
                     disabled={isLoading}
                   >
@@ -372,10 +389,10 @@ export function EditComicBookDialog({
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => handleRemoveCreator(index)}
+                    onClick={() => handleRemoveCreator(row.id)}
                     disabled={isLoading}
                     className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-                    aria-label={`Remove creator ${index + 1}`}
+                    aria-label={t("fields.removeCreator")}
                   >
                     <X className="h-4 w-4" />
                   </Button>

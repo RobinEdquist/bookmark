@@ -123,11 +123,13 @@
       "number": "Number",
       "format": "Format",
       "coverDate": "Cover date",
+      "coverDateError": "Format must be YYYY-MM-DD",
       "summary": "Summary",
       "creators": "Creators",
       "creatorName": "Name",
       "creatorRole": "Role",
-      "addCreator": "Add creator"
+      "addCreator": "Add creator",
+      "removeCreator": "Remove creator"
     },
     "save": "Save",
     "saveAndClose": "Save & Close",

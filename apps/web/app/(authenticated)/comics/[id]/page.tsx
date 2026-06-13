@@ -36,7 +36,7 @@ import { DeleteComicSeriesDialog } from "../../../../components/comics/delete-co
 import { EditComicBookDialog } from "../../../../components/comics/edit-comic-book-dialog";
 import { ChangeComicBookCoverDialog } from "../../../../components/comics/change-comic-book-cover-dialog";
 import { DeleteComicBookDialog } from "../../../../components/comics/delete-comic-book-dialog";
-import { ComicBookList } from "../../../../components/comics/comic-book-list";
+import { ComicBookList, formatDesignation } from "../../../../components/comics/comic-book-list";
 import type { ComicCreatorRole } from "../../../../lib/use-comics";
 
 export default function ComicSeriesDetailPage({
@@ -469,7 +469,7 @@ export default function ComicSeriesDetailPage({
       {canEdit && editBookId && (
         <EditComicBookDialog
           bookId={editBookId}
-          open={editBookId !== null}
+          open={true}
           onOpenChange={(open) => { if (!open) setEditBookId(null); }}
         />
       )}
@@ -477,9 +477,12 @@ export default function ComicSeriesDetailPage({
       {canEdit && coverBookId && (
         <ChangeComicBookCoverDialog
           bookId={coverBookId}
-          bookTitle={series.books.find((b) => b.id === coverBookId)?.title ?? coverBookId}
+          bookTitle={(() => {
+            const b = series.books.find((x) => x.id === coverBookId);
+            return b ? (b.title ?? formatDesignation(b, t)) : "";
+          })()}
           currentCoverUrl={series.books.find((b) => b.id === coverBookId)?.coverUrl ?? null}
-          open={coverBookId !== null}
+          open={true}
           onOpenChange={(open) => { if (!open) setCoverBookId(null); }}
         />
       )}
@@ -487,8 +490,11 @@ export default function ComicSeriesDetailPage({
       {canDelete && deleteBookId && (
         <DeleteComicBookDialog
           bookId={deleteBookId}
-          bookTitle={series.books.find((b) => b.id === deleteBookId)?.title ?? deleteBookId}
-          open={deleteBookId !== null}
+          bookTitle={(() => {
+            const b = series.books.find((x) => x.id === deleteBookId);
+            return b ? (b.title ?? formatDesignation(b, t)) : "";
+          })()}
+          open={true}
           onOpenChange={(open) => { if (!open) setDeleteBookId(null); }}
         />
       )}

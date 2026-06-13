@@ -123,11 +123,13 @@
       "number": "Nummer",
       "format": "Format",
       "coverDate": "Omslagsdatum",
+      "coverDateError": "Formatet måste vara ÅÅÅÅ-MM-DD",
       "summary": "Sammanfattning",
       "creators": "Upphovspersoner",
       "creatorName": "Namn",
       "creatorRole": "Roll",
-      "addCreator": "Lägg till upphovsperson"
+      "addCreator": "Lägg till upphovsperson",
+      "removeCreator": "Ta bort upphovsperson"
     },
     "save": "Spara",
     "saveAndClose": "Spara och stäng",
