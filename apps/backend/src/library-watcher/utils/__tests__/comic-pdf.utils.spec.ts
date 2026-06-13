@@ -41,4 +41,14 @@ describe('readComicPdf', () => {
     await fs.writeFile(badPath, Buffer.from('not a pdf'));
     await expect(readComicPdf(badPath)).rejects.toThrow();
   });
+
+  it('still reads a valid PDF after a corrupt-file failure (no poisoned state)', async () => {
+    const badPath = path.join(tmpDir, 'bad2.pdf');
+    await fs.writeFile(badPath, Buffer.from('not a pdf'));
+    await expect(readComicPdf(badPath)).rejects.toThrow();
+
+    const result = await readComicPdf(pdfPath);
+    expect(result.pageCount).toBe(3);
+    expect(result.coverImage).not.toBeNull();
+  });
 });

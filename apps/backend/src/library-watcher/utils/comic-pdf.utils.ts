@@ -31,33 +31,40 @@ export async function readComicPdf(
     useSystemFonts: true,
     disableFontFace: true,
   });
-  const doc = await loadingTask.promise;
 
-  let coverImage: { data: Buffer; extension: string } | null = null;
   try {
-    const page = await doc.getPage(1);
-    const viewport = page.getViewport({ scale: 2 });
-    const canvas = createCanvas(
-      Math.ceil(viewport.width),
-      Math.ceil(viewport.height),
-    );
-    const ctx = canvas.getContext('2d');
-    await page.render({
-      // pdfjs v6 RenderParameters: canvas is required but accepts null.
-      // When canvas is null, pdfjs uses canvasContext directly for drawing.
-      // @napi-rs/canvas context is API-compatible; cast satisfies the DOM type.
-      canvas: null,
-      canvasContext: ctx as unknown as CanvasRenderingContext2D,
-      viewport,
-    }).promise;
-    coverImage = { data: canvas.toBuffer('image/png'), extension: '.png' };
-  } catch {
-    // Rendering failure is non-fatal — page count alone is still useful
-    coverImage = null;
-  }
+    const doc = await loadingTask.promise;
 
-  const pageCount = doc.numPages;
-  // destroy() is on PDFDocumentLoadingTask, not PDFDocumentProxy
-  await loadingTask.destroy();
-  return { pageCount, coverImage };
+    let coverImage: { data: Buffer; extension: string } | null = null;
+    try {
+      const page = await doc.getPage(1);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = createCanvas(
+        Math.ceil(viewport.width),
+        Math.ceil(viewport.height),
+      );
+      const ctx = canvas.getContext('2d');
+      await page.render({
+        // pdfjs v6 RenderParameters: canvas is required but accepts null.
+        // When canvas is null, pdfjs uses canvasContext directly for drawing.
+        // @napi-rs/canvas context is API-compatible; cast satisfies the DOM type.
+        canvas: null,
+        canvasContext: ctx as unknown as CanvasRenderingContext2D,
+        viewport,
+      }).promise;
+      coverImage = { data: canvas.toBuffer('image/png'), extension: '.png' };
+    } catch {
+      // Rendering failure is non-fatal — page count alone is still useful
+      coverImage = null;
+    }
+
+    return { pageCount: doc.numPages, coverImage };
+  } finally {
+    // Always destroy the loading task, also when loadingTask.promise rejects
+    // (corrupt PDF) — otherwise pdfjs internal state leaks in the long-running
+    // worker. In pdfjs v6 destroy() resolves cleanly even after a failed load
+    // (verified against 6.0.227), but its source has a re-throw path; guard so
+    // a cleanup failure can never mask the original error.
+    await loadingTask.destroy().catch(() => undefined);
+  }
 }
