@@ -102,4 +102,9 @@ export class AppEventsService {
   comicSeriesDeleted(id: string): void {
     this.emit({ type: 'comic.series.deleted', entityId: id });
   }
+
+  // ComicVine sync events (Task 4 stubs — wired in Task 6)
+  comicvineSyncCompleted(level: 'series' | 'book', id: string): void {
+    this.emit({ type: `comicvine.sync.completed.${level}`, entityId: id });
+  }
 }

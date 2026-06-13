@@ -449,6 +449,59 @@
         "inactive": "Configuration Required",
         "inactiveDescription": "Set the GR_FINDER_URL environment variable to enable this integration."
       }
+    },
+    "comicvine": {
+      "title": "Comic Vine",
+      "description": "Connect to Comic Vine to fetch comic series & issue metadata",
+      "notConnected": "Not connected",
+      "connected": "Connected",
+      "apiKeyLabel": "API Key",
+      "apiKeyPlaceholder": "Enter your Comic Vine API key",
+      "apiKeyHelp": "Get your API key from",
+      "saveAndValidate": "Save & Validate",
+      "validating": "Validating…",
+      "disconnect": "Disconnect",
+      "disconnecting": "Disconnecting…",
+      "attribution": "Data from Comic Vine — used under non-commercial terms. A link back to Comic Vine is shown wherever its data appears.",
+      "autoSync": {
+        "label": "Auto-sync on import",
+        "description": "Automatically match new comic imports to Comic Vine",
+        "warning": "Recommended only after your initial library import is complete. Conservative matching sends ambiguous matches to the review queue below."
+      },
+      "syncQueue": {
+        "title": "Sync Queue",
+        "description": "Status of automatic Comic Vine matching",
+        "pending": "{count} pending",
+        "needsReview": "{count} need review",
+        "failed": "{count} failed",
+        "needsReviewLabel": "Matches needing review",
+        "failedLabel": "Failed matches",
+        "matchNow": "Match now",
+        "dismiss": "Dismiss",
+        "queueAllUnlinked": "Queue all unlinked series",
+        "queueing": "Queueing…",
+        "seriesLabel": "Series",
+        "bookLabel": "Issue",
+        "untitled": "Untitled",
+        "unknownError": "Unknown error",
+        "empty": "The sync queue is empty",
+        "toast": {
+          "dismissed": "Item dismissed",
+          "dismissFailed": "Failed to dismiss",
+          "queued": "{count} series queued",
+          "queueFailed": "Failed to queue",
+          "notConfigured": "Connect Comic Vine first"
+        }
+      },
+      "toast": {
+        "connected": "Connected to Comic Vine",
+        "connectionFailed": "Failed to connect",
+        "disconnected": "Disconnected from Comic Vine",
+        "disconnectFailed": "Failed to disconnect",
+        "autoSyncEnabled": "Auto-sync enabled",
+        "autoSyncDisabled": "Auto-sync disabled",
+        "autoSyncFailed": "Failed to update auto-sync"
+      }
     }
   },
   "announcements": {

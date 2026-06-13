@@ -22,6 +22,7 @@ import {
   ImageIcon,
   Download,
   Trash2,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -37,6 +38,9 @@ import { EditComicBookDialog } from "../../../../components/comics/edit-comic-bo
 import { ChangeComicBookCoverDialog } from "../../../../components/comics/change-comic-book-cover-dialog";
 import { DeleteComicBookDialog } from "../../../../components/comics/delete-comic-book-dialog";
 import { ComicBookList, formatDesignation } from "../../../../components/comics/comic-book-list";
+import { useComicvineStatus } from "../../../../lib/use-comicvine";
+import { ComicvineMatchDialog } from "../../../../components/comicvine/comicvine-match-dialog";
+import { ComicvineLinkCard } from "../../../../components/comicvine/comicvine-link-card";
 import type { ComicCreatorRole } from "../../../../lib/use-comics";
 
 export default function ComicSeriesDetailPage({
@@ -46,6 +50,7 @@ export default function ComicSeriesDetailPage({
 }) {
   const { id } = use(params);
   const t = useTranslations("comics");
+  const tcv = useTranslations("comicvine.matchDialog");
   const router = useRouter();
   const returnUrl = useLibraryReturnUrl("/comics");
   const { previousId, nextId } = useLibraryNavigation("/comics", id);
@@ -66,6 +71,9 @@ export default function ComicSeriesDetailPage({
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const canDelete = permissions?.canDelete ?? false;
+  const isAdmin = permissions?.isAdmin ?? false;
+  const { isConfigured: isComicvineConfigured } = useComicvineStatus(isAdmin);
+  const [comicvineMatchOpen, setComicvineMatchOpen] = useState(false);
 
   const sanitizedDescription = useMemo(
     () =>
@@ -164,6 +172,16 @@ export default function ComicSeriesDetailPage({
             </div>
           )}
           <div className="flex-1" />
+          {isAdmin && isComicvineConfigured && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setComicvineMatchOpen(true)}
+              title={tcv("openAction")}
+            >
+              <Sparkles className="h-5 w-5" />
+            </Button>
+          )}
           {/* Download all */}
           <Button
             variant="ghost"
@@ -424,6 +442,12 @@ export default function ComicSeriesDetailPage({
           </div>
         </motion.div>
 
+        {isAdmin && isComicvineConfigured && (
+          <div className="mt-8">
+            <ComicvineLinkCard level="series" entityId={id} />
+          </div>
+        )}
+
         {/* Book list with book-level action callbacks */}
         <div className="mt-10">
           <ComicBookList
@@ -462,6 +486,16 @@ export default function ComicSeriesDetailPage({
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
           onDeleted={() => router.push("/comics")}
+        />
+      )}
+
+      {isAdmin && isComicvineConfigured && (
+        <ComicvineMatchDialog
+          level="series"
+          entityId={id}
+          entityTitle={series.title}
+          open={comicvineMatchOpen}
+          onOpenChange={setComicvineMatchOpen}
         />
       )}
 

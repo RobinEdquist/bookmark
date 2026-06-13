@@ -29,6 +29,13 @@ import {
   type FailedSyncItem,
 } from "../../lib/use-hardcover";
 import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
+import {
+  useComicvineStatus,
+  useComicvineConnect,
+  useComicvineDisconnect,
+  useComicvineAutoSync,
+} from "../../lib/use-comicvine";
+import { ComicvineQueuePanel } from "../comicvine/comicvine-queue-panel";
 import { useSettings } from "../../lib/use-settings";
 import {
   Tooltip,
@@ -47,6 +54,17 @@ export function IntegrationsSettings() {
   const { pendingCount, failedCount, failedItems } = useHardcoverQueueStatus();
   const { dismissItem, isDismissing } = useHardcoverDismissFailedItem();
   const { settings, updateSettings, isUpdating: isUpdatingSettings } = useSettings();
+
+  // ComicVine integration state (distinct names to avoid hardcover collisions)
+  const { isConfigured: isCvConfigured, autoSyncOnImport: cvAutoSync } =
+    useComicvineStatus();
+  const { connect: cvConnect, isConnecting: isCvConnecting } =
+    useComicvineConnect();
+  const { disconnect: cvDisconnect, isDisconnecting: isCvDisconnecting } =
+    useComicvineDisconnect();
+  const { setAutoSync: setCvAutoSync, isUpdating: isCvUpdatingAutoSync } =
+    useComicvineAutoSync();
+  const [cvApiKey, setCvApiKey] = useState("");
 
   const [apiKey, setApiKey] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,6 +140,48 @@ export function IntegrationsSettings() {
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : t("hardcover.toast.autoSyncFailed")
+      );
+    }
+  };
+
+  const handleCvConnect = async () => {
+    try {
+      const result = await cvConnect(cvApiKey);
+      if (result.valid) {
+        toast.success(t("comicvine.toast.connected"));
+        setCvApiKey("");
+      } else {
+        toast.error(result.error ?? t("comicvine.toast.connectionFailed"));
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("comicvine.toast.connectionFailed")
+      );
+    }
+  };
+
+  const handleCvDisconnect = async () => {
+    try {
+      await cvDisconnect();
+      toast.success(t("comicvine.toast.disconnected"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("comicvine.toast.disconnectFailed")
+      );
+    }
+  };
+
+  const handleCvAutoSyncToggle = async (enabled: boolean) => {
+    try {
+      await setCvAutoSync(enabled);
+      toast.success(
+        enabled
+          ? t("comicvine.toast.autoSyncEnabled")
+          : t("comicvine.toast.autoSyncDisabled")
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("comicvine.toast.autoSyncFailed")
       );
     }
   };
@@ -643,6 +703,124 @@ export function IntegrationsSettings() {
                   </p>
                 </div>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Comic Vine */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2">
+            <CardTitle className="flex flex-wrap items-center gap-2">
+              {t("comicvine.title")}
+              {isCvConfigured ? (
+                <span className="flex items-center gap-1 text-sm font-normal text-green-600">
+                  <Check className="h-4 w-4" />
+                  {t("comicvine.connected")}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-sm font-normal text-muted-foreground">
+                  <X className="h-4 w-4" />
+                  {t("comicvine.notConnected")}
+                </span>
+              )}
+            </CardTitle>
+            <CardDescription>{t("comicvine.description")}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {!isCvConfigured ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="cvApiKey">{t("comicvine.apiKeyLabel")}</Label>
+                <Input
+                  id="cvApiKey"
+                  type="password"
+                  placeholder={t("comicvine.apiKeyPlaceholder")}
+                  value={cvApiKey}
+                  onChange={(e) => setCvApiKey(e.target.value)}
+                  disabled={isCvConnecting}
+                />
+                <p className="text-sm text-muted-foreground">
+                  {t("comicvine.apiKeyHelp")}{" "}
+                  <a
+                    href="https://comicvine.gamespot.com/api/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    comicvine.gamespot.com/api
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </p>
+              </div>
+              <Button
+                onClick={handleCvConnect}
+                disabled={!cvApiKey || isCvConnecting}
+              >
+                {isCvConnecting
+                  ? t("comicvine.validating")
+                  : t("comicvine.saveAndValidate")}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="font-medium">{t("comicvine.title")}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("comicvine.connected")}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  onClick={handleCvDisconnect}
+                  disabled={isCvDisconnecting}
+                  className="shrink-0"
+                >
+                  {isCvDisconnecting
+                    ? t("comicvine.disconnecting")
+                    : t("comicvine.disconnect")}
+                </Button>
+              </div>
+
+              <fieldset className="rounded-lg border p-4 space-y-3">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 flex-1 space-y-0.5">
+                    <Label
+                      htmlFor="cv-auto-sync-enabled"
+                      className="text-base font-medium"
+                    >
+                      {t("comicvine.autoSync.label")}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {t("comicvine.autoSync.description")}
+                    </p>
+                  </div>
+                  <Switch
+                    id="cv-auto-sync-enabled"
+                    checked={cvAutoSync}
+                    onCheckedChange={handleCvAutoSyncToggle}
+                    disabled={isCvUpdatingAutoSync}
+                    className="shrink-0"
+                  />
+                </div>
+                <p className="text-sm text-amber-600 dark:text-amber-500 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                  {t("comicvine.autoSync.warning")}
+                </p>
+              </fieldset>
+
+              {/* Attribution note — always visible when connected */}
+              <div className="rounded-lg border bg-muted/40 p-4">
+                <p className="text-sm text-muted-foreground">
+                  {t("comicvine.attribution")}
+                </p>
+              </div>
+
+              {/* Sync queue panel */}
+              <ComicvineQueuePanel />
             </div>
           )}
         </CardContent>

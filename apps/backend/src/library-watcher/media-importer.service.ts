@@ -1,5 +1,5 @@
 // apps/backend/src/library-watcher/media-importer.service.ts
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, sql } from 'drizzle-orm';
 import * as path from 'path';
@@ -16,6 +16,7 @@ import { EbookMetadataProvider } from './metadata/ebook-metadata.provider';
 import { ComicMetadataProvider } from './metadata/comic-metadata.provider';
 import { ImportErrorsService } from '../import-errors/import-errors.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
+import { ComicvineService } from '../comicvine/comicvine.service';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 import {
@@ -60,6 +61,8 @@ export class MediaImporterService {
     private ebookMetadataProvider: EbookMetadataProvider,
     private importErrorsService: ImportErrorsService,
     private hardcoverService: HardcoverService,
+    @Inject(forwardRef(() => ComicvineService))
+    private comicvineService: ComicvineService,
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
     private requestsService: RequestsService,
@@ -568,6 +571,22 @@ export class MediaImporterService {
         );
         this.appEvents.comicSeriesCreated(series.id);
         this.wsEvents.comicSeriesCreated(series.id);
+
+        // Queue for ComicVine auto-sync (mirror Hardcover trigger pattern)
+        try {
+          const autoSyncEnabled =
+            await this.comicvineService.getAutoSyncOnImport();
+          if (autoSyncEnabled) {
+            await this.comicvineService.addToSyncQueue('series', series.id);
+            this.logger.log(
+              `Queued comic series ${series.id} for ComicVine sync`,
+            );
+          }
+        } catch (error) {
+          this.logger.warn(
+            `Failed to queue comic series ${series.id} for ComicVine sync: ${error}`,
+          );
+        }
       } else {
         this.appEvents.comicSeriesUpdated(series.id);
         this.wsEvents.comicSeriesUpdated(series.id);
@@ -599,6 +618,7 @@ export class MediaImporterService {
     let description: string | null = null;
     let totalIssueCount: number | null = null;
     let ageRating: string | null = null;
+    let comicvineVolumeId: number | null = null;
 
     // Mylar series.json enrichment (folder-based series only)
     if (!unit.isRootOneShot) {
@@ -614,6 +634,8 @@ export class MediaImporterService {
           description = mylar.description;
           totalIssueCount = mylar.totalIssues;
           ageRating = mylar.ageRating;
+          // Store the cvinfo pin from Mylar — Phase 2 uses this for exact matching
+          comicvineVolumeId = mylar.comicvineVolumeId;
         }
       } catch {
         // No series.json — fine
@@ -632,6 +654,7 @@ export class MediaImporterService {
         ageRating,
         folderPath: relativeFolderPath,
         status: 'available',
+        ...(comicvineVolumeId != null ? { comicvineVolumeId } : {}),
       })
       .returning();
 

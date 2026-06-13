@@ -5,7 +5,12 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import * as authSchema from '../auth/schema';
 import { eq } from 'drizzle-orm';
-import { DEFAULT_METADATA_PRIORITY, MetadataFieldPriority } from './schema';
+import {
+  DEFAULT_METADATA_PRIORITY,
+  DEFAULT_COMIC_METADATA_PRIORITY,
+  MetadataFieldPriority,
+  ComicMetadataFieldPriority,
+} from './schema';
 import { AppEventsService } from '../events/app-events.service';
 
 @Injectable()
@@ -41,6 +46,7 @@ export class AppSettingsService {
     comicLibraryPath?: string | null;
     watcherEnabled?: boolean;
     metadataPriority?: MetadataFieldPriority;
+    comicMetadataPriority?: ComicMetadataFieldPriority;
     opdsEnabled?: boolean;
     oidcButtonText?: string;
     emailPasswordEnabled?: boolean;
@@ -167,5 +173,10 @@ export class AppSettingsService {
       .from(authSchema.user)
       .limit(1);
     return users.length > 0;
+  }
+
+  async getComicMetadataPriority(): Promise<ComicMetadataFieldPriority> {
+    const settings = await this.getSettings();
+    return settings.comicMetadataPriority || DEFAULT_COMIC_METADATA_PRIORITY;
   }
 }

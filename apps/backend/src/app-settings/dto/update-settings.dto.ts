@@ -155,6 +155,114 @@ export class MetadataFieldPriorityInputDto {
   cover?: string[];
 }
 
+const COMIC_METADATA_SOURCES = [
+  'manual',
+  'embedded',
+  'comicvine',
+  'filename',
+] as const;
+
+export class ComicMetadataFieldPriorityInputDto {
+  @ApiPropertyOptional({
+    description: 'Priority order for comic title metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  title?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Priority order for comic description metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  description?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Priority order for comic publisher metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  publisher?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Priority order for comic startYear metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine', 'filename'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  startYear?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Priority order for comic genres metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  genres?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Priority order for comic bookTitle metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  bookTitle?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Priority order for comic bookNumber metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine', 'filename'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  bookNumber?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Priority order for comic bookSummary metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  bookSummary?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Priority order for comic coverDate metadata sources',
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine'],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsIn(COMIC_METADATA_SOURCES, { each: true })
+  coverDate?: string[];
+}
+
 export class UpdateSettingsDto {
   @ApiPropertyOptional({
     description: 'Whether new user signups are enabled',
@@ -202,6 +310,15 @@ export class UpdateSettingsDto {
   @ValidateNested()
   @Type(() => MetadataFieldPriorityInputDto)
   metadataPriority?: MetadataFieldPriorityInputDto;
+
+  @ApiPropertyOptional({
+    description: 'Comic metadata source priority configuration',
+    type: ComicMetadataFieldPriorityInputDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ComicMetadataFieldPriorityInputDto)
+  comicMetadataPriority?: ComicMetadataFieldPriorityInputDto;
 
   @ApiPropertyOptional({
     description: 'Whether OPDS feed is enabled',

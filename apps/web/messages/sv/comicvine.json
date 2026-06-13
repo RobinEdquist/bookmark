@@ -1,0 +1,51 @@
+{
+  "matchDialog": {
+    "titleSeries": "Länka till ComicVine",
+    "titleBook": "Länka nummer till ComicVine",
+    "descriptionSeries": "Välj en ComicVine-volym att länka med \"{title}\"",
+    "descriptionBook": "Välj ett ComicVine-nummer att länka med \"{title}\"",
+    "searchPlaceholder": "Sök i ComicVine…",
+    "search": "Sök",
+    "resultsCount": "{count, plural, one {# resultat hittades} other {# resultat hittades}}",
+    "noResults": "Inga matchande resultat på ComicVine",
+    "error": "Det gick inte att söka i ComicVine",
+    "seriesNotLinked": "Länka den här serien till en ComicVine-volym först, sedan kan du matcha dess nummer.",
+    "previous": "Föregående",
+    "next": "Nästa",
+    "pageInfo": "Sida {current} av {total}",
+    "cancel": "Avbryt",
+    "link": "Länka",
+    "linking": "Länkar…",
+    "startYear": "Startade {year}",
+    "issueCount": "{count, plural, one {# nummer} other {# nummer}}",
+    "issueNumber": "Nummer #{number}",
+    "coverDate": "Omslagsdatum {date}",
+    "openAction": "Matcha mot ComicVine",
+    "toast": {
+      "linked": "Länkad till ComicVine",
+      "linkFailed": "Det gick inte att länka"
+    }
+  },
+  "linkCard": {
+    "titleSeries": "ComicVine",
+    "titleBook": "ComicVine",
+    "descriptionSeries": "Länkad volymmetadata från ComicVine",
+    "descriptionBook": "Länkad nummermetadata från ComicVine",
+    "unlink": "Ta bort länk",
+    "unlinking": "Tar bort länk…",
+    "attribution": "Data från Comic Vine",
+    "viewOnComicVine": "Visa på Comic Vine",
+    "suggestedCreators": "Upphovspersoner från ComicVine",
+    "addCreator": "Lägg till",
+    "publisher": "Förlag",
+    "issueCount": "Nummer",
+    "startYear": "År",
+    "toast": {
+      "unlinked": "Länk till ComicVine borttagen",
+      "linkFailed": "Det gick inte att länka",
+      "unlinkFailed": "Det gick inte att ta bort länken",
+      "creatorAdded": "Upphovsperson tillagd",
+      "creatorFailed": "Det gick inte att lägga till upphovsperson"
+    }
+  }
+}

@@ -80,6 +80,9 @@ export const comicSeries = pgTable(
     status: comicSeriesStatusEnum('status').notNull().default('available'),
     missingAt: timestamp('missing_at'),
     manualFields: jsonb('manual_fields').$type<string[]>().default([]),
+    // ComicVine numeric volume id (cvinfo pin); nullable — set when known from
+    // Mylar series.json or after a successful match. Used for exact re-matching.
+    comicvineVolumeId: integer('comicvine_volume_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -93,6 +96,7 @@ export const comicSeries = pgTable(
     index('comic_series_start_year_idx').on(table.startYear),
     index('comic_series_status_idx').on(table.status),
     index('comic_series_created_at_idx').on(table.createdAt),
+    index('comic_series_comicvine_volume_id_idx').on(table.comicvineVolumeId),
   ],
 );
 
@@ -123,6 +127,8 @@ export const comicBooks = pgTable(
     status: comicBookStatusEnum('status').notNull().default('available'),
     missingAt: timestamp('missing_at'),
     manualFields: jsonb('manual_fields').$type<string[]>().default([]),
+    // ComicVine numeric issue id (exact-match pin); nullable.
+    comicvineIssueId: integer('comicvine_issue_id'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -136,6 +142,7 @@ export const comicBooks = pgTable(
     index('comic_books_cover_date_idx').on(table.coverDate),
     index('comic_books_status_idx').on(table.status),
     index('comic_books_created_at_idx').on(table.createdAt),
+    index('comic_books_comicvine_issue_id_idx').on(table.comicvineIssueId),
   ],
 );
 

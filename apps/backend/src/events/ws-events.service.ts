@@ -29,6 +29,12 @@ export interface HardcoverTaskStatus {
   failedCount: number;
 }
 
+export interface ComicvineTaskStatus {
+  pendingCount: number;
+  needsReviewCount: number;
+  failedCount: number;
+}
+
 export interface RescanStatus {
   isRescanning: boolean;
   phase?: 'preparing' | 'rescanning';
@@ -43,6 +49,7 @@ export class WsEventsService {
   private readonly logger = new Logger(WsEventsService.name);
   private lastImportStatusJson: string | null = null;
   private lastHardcoverStatusJson: string | null = null;
+  private lastComicvineStatusJson: string | null = null;
   private lastScanStatusJson: string | null = null;
   private lastRescanStatusJson: string | null = null;
 
@@ -73,6 +80,8 @@ export class WsEventsService {
     if (eventType.startsWith('series.')) return 'series';
     if (eventType.startsWith('library.')) return 'library';
     if (eventType.startsWith('hardcover.')) return 'hardcover';
+    if (eventType.startsWith('comicvine.')) return 'comicvine';
+    if (eventType.startsWith('tasks.comicvine.')) return 'tasks';
     if (eventType.startsWith('settings.')) return 'settings';
     if (eventType.startsWith('tasks.')) return 'tasks';
     return null;
@@ -215,6 +224,27 @@ export class WsEventsService {
 
     this.lastRescanStatusJson = statusJson;
     this.emit({ type: 'tasks.rescan.status', payload: status });
+  }
+
+  // ComicVine sync events (Task 4 stubs — wired in Task 6)
+  comicvineSyncCompleted(level: 'series' | 'book', id: string): void {
+    this.emit({ type: `comicvine.sync.completed.${level}`, entityId: id });
+  }
+
+  /**
+   * Push comicvine sync task status update to all connected clients.
+   * Debounced - only emits if status has changed.
+   */
+  comicvineSyncStatusUpdated(status: ComicvineTaskStatus): void {
+    const statusJson = JSON.stringify(status);
+
+    // Debounce: only emit if status actually changed
+    if (statusJson === this.lastComicvineStatusJson) {
+      return;
+    }
+
+    this.lastComicvineStatusJson = statusJson;
+    this.emit({ type: 'tasks.comicvine.status', payload: status });
   }
 
   /**

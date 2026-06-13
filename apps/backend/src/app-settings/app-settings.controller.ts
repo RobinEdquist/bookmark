@@ -25,7 +25,12 @@ import {
 } from './dto/settings-response.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import * as fs from 'fs/promises';
-import { MetadataFieldPriority, DEFAULT_METADATA_PRIORITY } from './schema';
+import {
+  MetadataFieldPriority,
+  DEFAULT_METADATA_PRIORITY,
+  ComicMetadataFieldPriority,
+  DEFAULT_COMIC_METADATA_PRIORITY,
+} from './schema';
 
 @ApiTags('Settings')
 @Controller('settings')
@@ -114,12 +119,18 @@ export class AppSettingsController {
     );
     const grFinderConfigured = !!process.env.GR_FINDER_URL;
     const hardcoverConfigured = !!settings.hardcoverApiKey;
+    const comicvineConfigured = !!settings.comicvineApiKey;
 
     // Merge stored metadataPriority with defaults to ensure new sources are included
     const metadataPriority = this.mergeMetadataPriority(
       settings.metadataPriority,
       grFinderConfigured,
       hardcoverConfigured,
+    );
+
+    const comicMetadataPriority = this.mergeComicMetadataPriority(
+      settings.comicMetadataPriority,
+      comicvineConfigured,
     );
 
     return {
@@ -129,6 +140,7 @@ export class AppSettingsController {
       comicLibraryPath: settings.comicLibraryPath,
       opdsEnabled: settings.opdsEnabled,
       metadataPriority,
+      comicMetadataPriority,
       oidcButtonText: settings.oidcButtonText,
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
@@ -176,6 +188,7 @@ export class AppSettingsController {
       dto.ebookLibraryPath === undefined &&
       dto.comicLibraryPath === undefined &&
       dto.metadataPriority === undefined &&
+      dto.comicMetadataPriority === undefined &&
       dto.opdsEnabled === undefined &&
       dto.oidcButtonText === undefined &&
       dto.emailPasswordEnabled === undefined &&
@@ -237,6 +250,7 @@ export class AppSettingsController {
       ebookLibraryPath?: string | null;
       comicLibraryPath?: string | null;
       metadataPriority?: MetadataFieldPriority;
+      comicMetadataPriority?: ComicMetadataFieldPriority;
       opdsEnabled?: boolean;
       oidcButtonText?: string;
       emailPasswordEnabled?: boolean;
@@ -263,6 +277,9 @@ export class AppSettingsController {
       updates.comicLibraryPath = dto.comicLibraryPath;
     if (dto.metadataPriority !== undefined)
       updates.metadataPriority = dto.metadataPriority as MetadataFieldPriority;
+    if (dto.comicMetadataPriority !== undefined)
+      updates.comicMetadataPriority =
+        dto.comicMetadataPriority as ComicMetadataFieldPriority;
     if (dto.opdsEnabled !== undefined) updates.opdsEnabled = dto.opdsEnabled;
     if (dto.oidcButtonText !== undefined)
       updates.oidcButtonText = dto.oidcButtonText;
@@ -299,12 +316,18 @@ export class AppSettingsController {
     );
     const grFinderConfigured = !!process.env.GR_FINDER_URL;
     const hardcoverConfigured = !!settings.hardcoverApiKey;
+    const comicvineConfigured = !!settings.comicvineApiKey;
 
     // Merge stored metadataPriority with defaults to ensure new sources are included
     const metadataPriority = this.mergeMetadataPriority(
       settings.metadataPriority,
       grFinderConfigured,
       hardcoverConfigured,
+    );
+
+    const comicMetadataPriority = this.mergeComicMetadataPriority(
+      settings.comicMetadataPriority,
+      comicvineConfigured,
     );
 
     return {
@@ -314,6 +337,7 @@ export class AppSettingsController {
       comicLibraryPath: settings.comicLibraryPath,
       opdsEnabled: settings.opdsEnabled,
       metadataPriority,
+      comicMetadataPriority,
       oidcButtonText: settings.oidcButtonText,
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
@@ -346,6 +370,34 @@ export class AppSettingsController {
       if (error instanceof BadRequestException) throw error;
       throw new BadRequestException('Path does not exist or is not accessible');
     }
+  }
+
+  /**
+   * Merges stored comic metadata priority with defaults and filters based on integration status.
+   * - Ensures new sources from DEFAULT_COMIC_METADATA_PRIORITY are added
+   * - Removes comicvine if ComicVine API key is not configured
+   */
+  private mergeComicMetadataPriority(
+    stored: ComicMetadataFieldPriority | null,
+    comicvineConfigured: boolean,
+  ): ComicMetadataFieldPriority {
+    const base = stored || DEFAULT_COMIC_METADATA_PRIORITY;
+    const disabled: string[] = comicvineConfigured ? [] : ['comicvine'];
+    const result = {} as ComicMetadataFieldPriority;
+
+    for (const field of Object.keys(DEFAULT_COMIC_METADATA_PRIORITY) as Array<
+      keyof ComicMetadataFieldPriority
+    >) {
+      const merged = [...(base[field] || [])];
+      for (const s of DEFAULT_COMIC_METADATA_PRIORITY[field]) {
+        if (!merged.includes(s)) merged.push(s);
+      }
+      result[field] = merged.filter(
+        (s) => !disabled.includes(s),
+      ) as ComicMetadataFieldPriority[typeof field];
+    }
+
+    return result;
   }
 
   /**

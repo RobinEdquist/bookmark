@@ -32,6 +32,44 @@ export class MetadataFieldPriorityDto {
   cover!: string[];
 }
 
+export class ComicMetadataFieldPriorityDto {
+  @ApiProperty({
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine', 'filename'],
+  })
+  title!: string[];
+
+  @ApiProperty({ type: [String], example: ['manual', 'embedded', 'comicvine'] })
+  description!: string[];
+
+  @ApiProperty({ type: [String], example: ['manual', 'embedded', 'comicvine'] })
+  publisher!: string[];
+
+  @ApiProperty({
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine', 'filename'],
+  })
+  startYear!: string[];
+
+  @ApiProperty({ type: [String], example: ['manual', 'embedded', 'comicvine'] })
+  genres!: string[];
+
+  @ApiProperty({ type: [String], example: ['manual', 'embedded', 'comicvine'] })
+  bookTitle!: string[];
+
+  @ApiProperty({
+    type: [String],
+    example: ['manual', 'embedded', 'comicvine', 'filename'],
+  })
+  bookNumber!: string[];
+
+  @ApiProperty({ type: [String], example: ['manual', 'embedded', 'comicvine'] })
+  bookSummary!: string[];
+
+  @ApiProperty({ type: [String], example: ['manual', 'embedded', 'comicvine'] })
+  coverDate!: string[];
+}
+
 export class PublicSettingsResponseDto {
   @ApiProperty({ example: true })
   signupsEnabled!: boolean;
@@ -71,6 +109,9 @@ export class AppSettingsResponseDto {
 
   @ApiProperty({ type: MetadataFieldPriorityDto })
   metadataPriority!: MetadataFieldPriorityDto;
+
+  @ApiProperty({ type: ComicMetadataFieldPriorityDto })
+  comicMetadataPriority!: ComicMetadataFieldPriorityDto;
 
   @ApiPropertyOptional({ example: 'Sign in with SSO', nullable: true })
   oidcButtonText?: string | null;
