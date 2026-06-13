@@ -246,8 +246,16 @@ export class ComicsController {
   })
   @ApiParam({ name: 'id', description: 'Comic series UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - series has blacklisted tags',
+  })
   @ApiResponse({ status: 404, description: 'Cover not found' })
-  async getSeriesCover(@Param('id') id: string) {
+  async getSeriesCover(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.comicsService.verifySeriesNotBlacklisted(id, user.id);
     const coverPath = await this.comicsService.getSeriesCoverFilePath(id);
 
     if (!coverPath) {
@@ -443,8 +451,16 @@ export class ComicsController {
   })
   @ApiParam({ name: 'id', description: 'Comic book UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiResponse({
+    status: 403,
+    description: 'Access denied - series has blacklisted tags',
+  })
   @ApiResponse({ status: 404, description: 'Cover not found' })
-  async getBookCover(@Param('id') id: string) {
+  async getBookCover(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    await this.comicsService.verifyBookNotBlacklisted(id, user.id);
     const coverPath = await this.comicsService.getBookCoverFilePath(id);
 
     if (!coverPath) {
