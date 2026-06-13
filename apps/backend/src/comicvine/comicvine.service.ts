@@ -753,6 +753,18 @@ export class ComicvineService {
       .where(eq(comicvineSchema.comicvineSyncQueue.id, id));
   }
 
+  /**
+   * Reset a queue item back to 'pending' so it can be retried.
+   * Used by the processor when a transient rate-limit error is received —
+   * the item must not be left in 'processing' state permanently.
+   */
+  async markPending(id: string): Promise<void> {
+    await this.db
+      .update(comicvineSchema.comicvineSyncQueue)
+      .set({ status: 'pending', errorMessage: null })
+      .where(eq(comicvineSchema.comicvineSyncQueue.id, id));
+  }
+
   async removeFromQueue(id: string): Promise<void> {
     await this.db
       .delete(comicvineSchema.comicvineSyncQueue)
