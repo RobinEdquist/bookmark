@@ -14,17 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import type { ComicBookListItem, ComicBookFormat } from "../../lib/use-comics";
-
-// -----------------------------------------------------------------------
-// formatFileSize — shared utility (matches ebooks/[id]/page.tsx logic)
-// -----------------------------------------------------------------------
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
+import { formatFileSize } from "../../lib/format-file-size";
 
 // -----------------------------------------------------------------------
 // formatDesignation — EXPORTED so Task 9 book detail page can import it
@@ -159,9 +149,11 @@ function BookRow({
             />
           ) : (
             <div
-              className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50" : ""}`}
+              className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50 grayscale" : ""}`}
             >
-              <span className="text-lg text-muted-foreground">📖</span>
+              <span className="text-lg text-muted-foreground" aria-hidden="true">
+                📖
+              </span>
             </div>
           )}
           {isMissing && (
@@ -229,7 +221,7 @@ function BookRow({
             </DropdownMenuItem>
           )}
 
-          <DropdownMenuSeparator />
+          {(onEditBook || onChangeBookCover) && <DropdownMenuSeparator />}
 
           {onEditBook && (
             <DropdownMenuItem

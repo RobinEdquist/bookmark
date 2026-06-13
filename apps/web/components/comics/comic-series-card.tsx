@@ -83,7 +83,9 @@ export function ComicSeriesCard({
               />
             ) : (
               <div className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50" : ""}`}>
-                <span className="text-4xl text-muted-foreground">📚</span>
+                <span className="text-4xl text-muted-foreground" aria-hidden="true">
+                  📚
+                </span>
               </div>
             )}
             {/* Missing status overlay */}

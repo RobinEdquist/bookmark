@@ -46,6 +46,7 @@ import { RemovableChip } from "../../../../components/common/removable-chip";
 import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
 import { ChapterImportDialog } from "../../../../components/chapters/chapter-import-dialog";
+import { formatFileSize } from "../../../../lib/format-file-size";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "—";
@@ -65,13 +66,6 @@ function formatChapterTime(seconds: number): string {
     return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   }
   return `${minutes}:${secs.toString().padStart(2, "0")}`;
-}
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 export default function AudiobookDetailPage({

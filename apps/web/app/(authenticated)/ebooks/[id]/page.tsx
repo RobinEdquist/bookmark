@@ -39,13 +39,7 @@ import { HeaderSearch } from "../../../../components/layout/header-search";
 import { RemovableChip } from "../../../../components/common/removable-chip";
 import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
-
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
+import { formatFileSize } from "../../../../lib/format-file-size";
 
 export default function EbookDetailPage({
   params,
