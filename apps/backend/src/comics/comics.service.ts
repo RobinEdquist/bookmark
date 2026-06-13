@@ -20,6 +20,7 @@ import {
   sql,
   SQL,
 } from 'drizzle-orm';
+import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -44,6 +45,12 @@ export interface ComicSeriesFilters {
   limit?: number;
   offset?: number;
 }
+
+const CONTAINER_MIME: Record<string, string> = {
+  cbz: 'application/vnd.comicbook+zip',
+  cbr: 'application/vnd.comicbook-rar',
+  pdf: 'application/pdf',
+};
 
 type Db = NodePgDatabase<
   typeof schema & typeof audiobooksSchema & typeof usersSchema
@@ -651,5 +658,199 @@ export class ComicsService {
       )
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(asc(audiobooksSchema.genres.name));
+  }
+
+  // ===== COVERS =====
+
+  private seriesCoverConfig(seriesId: string) {
+    return {
+      entityId: seriesId,
+      apiPath: 'comics/series',
+      getCoverPath: (id: string) => this.appData.getComicSeriesCoverPath(id),
+      verifyExists: async (id: string) => {
+        const [row] = await this.db
+          .select({ id: schema.comicSeries.id })
+          .from(schema.comicSeries)
+          .where(eq(schema.comicSeries.id, id))
+          .limit(1);
+        if (!row) throw new NotFoundException('Comic series not found');
+      },
+      updateCoverMetadata: async (id: string, coverUrl: string) => {
+        await this.db
+          .update(schema.comicSeries)
+          .set({ coverUrl, coverSource: 'uploaded' })
+          .where(eq(schema.comicSeries.id, id));
+      },
+      emitUpdateEvent: (id: string) => {
+        this.wsEvents.comicSeriesUpdated(id);
+      },
+    };
+  }
+
+  private bookCoverConfig(bookId: string) {
+    return {
+      entityId: bookId,
+      apiPath: 'comics/books',
+      getCoverPath: (id: string) => this.appData.getComicBookCoverPath(id),
+      verifyExists: async (id: string) => {
+        const [row] = await this.db
+          .select({ id: schema.comicBooks.id })
+          .from(schema.comicBooks)
+          .where(eq(schema.comicBooks.id, id))
+          .limit(1);
+        if (!row) throw new NotFoundException('Comic book not found');
+      },
+      updateCoverMetadata: async (id: string, coverUrl: string) => {
+        await this.db
+          .update(schema.comicBooks)
+          .set({ coverUrl, coverSource: 'uploaded' })
+          .where(eq(schema.comicBooks.id, id));
+      },
+      emitUpdateEvent: (id: string) => {
+        this.wsEvents.comicBookUpdated(id);
+      },
+    };
+  }
+
+  async updateSeriesCoverFromFile(
+    seriesId: string,
+    buffer: Buffer,
+  ): Promise<{ coverUrl: string }> {
+    return this.coverService.updateCoverFromFile(
+      buffer,
+      this.seriesCoverConfig(seriesId),
+    );
+  }
+
+  async updateSeriesCoverFromUrl(
+    seriesId: string,
+    url: string,
+  ): Promise<{ coverUrl: string }> {
+    return this.coverService.updateCoverFromUrl(
+      url,
+      this.seriesCoverConfig(seriesId),
+    );
+  }
+
+  async updateBookCoverFromFile(
+    bookId: string,
+    buffer: Buffer,
+  ): Promise<{ coverUrl: string }> {
+    return this.coverService.updateCoverFromFile(
+      buffer,
+      this.bookCoverConfig(bookId),
+    );
+  }
+
+  async updateBookCoverFromUrl(
+    bookId: string,
+    url: string,
+  ): Promise<{ coverUrl: string }> {
+    return this.coverService.updateCoverFromUrl(
+      url,
+      this.bookCoverConfig(bookId),
+    );
+  }
+
+  /** Absolute path to the series cover JPEG, or null if none exists. */
+  async getSeriesCoverFilePath(seriesId: string): Promise<string | null> {
+    const coverPath = this.appData.getComicSeriesCoverPath(seriesId);
+    if (fs.existsSync(coverPath)) return coverPath;
+    return null;
+  }
+
+  /**
+   * Absolute path to the book cover JPEG. Lazily re-extracts from the
+   * comic file if the cached cover is missing but the book has an
+   * embedded cover (mirrors the ebook cover behavior).
+   */
+  async getBookCoverFilePath(bookId: string): Promise<string | null> {
+    const coverPath = this.appData.getComicBookCoverPath(bookId);
+    if (fs.existsSync(coverPath)) return coverPath;
+
+    const [book] = await this.db
+      .select()
+      .from(schema.comicBooks)
+      .where(eq(schema.comicBooks.id, bookId))
+      .limit(1);
+    if (!book || !book.coverSource) return null;
+
+    try {
+      const absolute = await this.resolveFilePath(book.filePath);
+      const cover =
+        await this.comicMetadataProvider.extractCoverFromFile(absolute);
+      if (!cover) return null;
+      const processed = await this.imageProcessing.processCover(cover.data);
+      await fsPromises.writeFile(coverPath, processed);
+      return coverPath;
+    } catch (error) {
+      this.logger.warn(
+        `Lazy cover extraction failed for book ${bookId}: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  // ===== DOWNLOADS =====
+
+  async getBookDownloadInfo(bookId: string): Promise<{
+    filePath: string;
+    fileName: string;
+    mimeType: string;
+    fileSize: number;
+  }> {
+    const [book] = await this.db
+      .select()
+      .from(schema.comicBooks)
+      .where(eq(schema.comicBooks.id, bookId))
+      .limit(1);
+    if (!book) throw new NotFoundException('Comic book not found');
+
+    const filePath = await this.resolveFilePath(book.filePath);
+    return {
+      filePath,
+      fileName: book.fileName,
+      mimeType: CONTAINER_MIME[book.container] ?? 'application/octet-stream',
+      fileSize: book.sizeBytes,
+    };
+  }
+
+  async getSeriesDownloadInfo(seriesId: string): Promise<{
+    seriesTitle: string;
+    files: Array<{ absolutePath: string; fileName: string }>;
+  }> {
+    const [series] = await this.db
+      .select({ title: schema.comicSeries.title })
+      .from(schema.comicSeries)
+      .where(eq(schema.comicSeries.id, seriesId))
+      .limit(1);
+    if (!series) throw new NotFoundException('Comic series not found');
+
+    const books = await this.db
+      .select({
+        filePath: schema.comicBooks.filePath,
+        fileName: schema.comicBooks.fileName,
+      })
+      .from(schema.comicBooks)
+      .where(
+        and(
+          eq(schema.comicBooks.seriesId, seriesId),
+          ne(schema.comicBooks.status, 'hidden'),
+        ),
+      )
+      .orderBy(sql`${schema.comicBooks.sortNumber} ASC NULLS LAST`);
+
+    if (books.length === 0) {
+      throw new NotFoundException('Series has no downloadable books');
+    }
+
+    const files: Array<{ absolutePath: string; fileName: string }> = [];
+    for (const book of books) {
+      files.push({
+        absolutePath: await this.resolveFilePath(book.filePath),
+        fileName: book.fileName,
+      });
+    }
+    return { seriesTitle: series.title, files };
   }
 }

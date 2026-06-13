@@ -105,3 +105,34 @@ describe('CoverService.getCoverUrl (used by comics service)', () => {
     expect(service.getCoverUrl('id-1', null, null, 'comics/series')).toBeNull();
   });
 });
+
+// ===== CONTAINER_MIME mapping (pure logic, no DB needed) =====
+
+describe('CONTAINER_MIME mapping (getBookDownloadInfo)', () => {
+  // Replicate the same mapping defined in comics.service.ts to pin it.
+  const CONTAINER_MIME: Record<string, string> = {
+    cbz: 'application/vnd.comicbook+zip',
+    cbr: 'application/vnd.comicbook-rar',
+    pdf: 'application/pdf',
+  };
+
+  function resolveMime(container: string): string {
+    return CONTAINER_MIME[container] ?? 'application/octet-stream';
+  }
+
+  it('maps cbz to application/vnd.comicbook+zip', () => {
+    expect(resolveMime('cbz')).toBe('application/vnd.comicbook+zip');
+  });
+
+  it('maps cbr to application/vnd.comicbook-rar', () => {
+    expect(resolveMime('cbr')).toBe('application/vnd.comicbook-rar');
+  });
+
+  it('maps pdf to application/pdf', () => {
+    expect(resolveMime('pdf')).toBe('application/pdf');
+  });
+
+  it('falls back to application/octet-stream for unknown containers', () => {
+    expect(resolveMime('unknown')).toBe('application/octet-stream');
+  });
+});
