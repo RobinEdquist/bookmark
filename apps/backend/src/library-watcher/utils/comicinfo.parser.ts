@@ -36,6 +36,11 @@ export interface ParsedComicInfo {
   format: ComicBookFormat;
   formatRaw: string | null;
   frontCoverPageIndex: number | null;
+  storyArcs: { name: string; number: number | null }[];
+  characters: string[];
+  teams: string[];
+  locations: string[];
+  web: string | null;
 }
 
 const CREATOR_FIELD_ROLES: Array<[string, ComicCreatorRole]> = [
@@ -151,5 +156,17 @@ export function parseComicInfoXml(xml: string): ParsedComicInfo | null {
     format: mapComicInfoFormat(formatRaw),
     formatRaw,
     frontCoverPageIndex,
+    characters: splitList(root.Characters),
+    teams: splitList(root.Teams),
+    locations: splitList(root.Locations),
+    web: asString(root.Web),
+    storyArcs: (() => {
+      const names = splitList(root.StoryArc);
+      const numbers = splitList(root.StoryArcNumber);
+      return names.map((name, i) => {
+        const n = numbers[i] != null ? parseInt(numbers[i], 10) : NaN;
+        return { name, number: Number.isNaN(n) ? null : n };
+      });
+    })(),
   };
 }
