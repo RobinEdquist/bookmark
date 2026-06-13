@@ -2,6 +2,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
   IsIn,
   IsInt,
   IsOptional,
@@ -179,6 +180,10 @@ export class UpdateComicBookDto {
   summary?: string | null;
 
   @IsOptional()
+  @IsString()
+  ageRating?: string | null;
+
+  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ComicCreatorInputDto)
@@ -189,4 +194,42 @@ export class UpdateComicCoverDto {
   @IsOptional()
   @IsString()
   url?: string;
+}
+
+export class BatchBookDataDto {
+  @IsOptional()
+  @IsIn([
+    'single_issue',
+    'annual',
+    'tpb',
+    'omnibus',
+    'one_shot',
+    'special',
+    'graphic_novel',
+    'other',
+  ])
+  format?:
+    | 'single_issue'
+    | 'annual'
+    | 'tpb'
+    | 'omnibus'
+    | 'one_shot'
+    | 'special'
+    | 'graphic_novel'
+    | 'other';
+
+  @IsOptional()
+  @IsString()
+  ageRating?: string | null;
+}
+
+export class BatchUpdateComicBooksDto {
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  ids!: string[];
+
+  @ValidateNested()
+  @Type(() => BatchBookDataDto)
+  data!: BatchBookDataDto;
 }

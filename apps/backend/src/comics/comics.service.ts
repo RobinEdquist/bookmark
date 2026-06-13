@@ -482,7 +482,8 @@ export class ComicsService {
       if (n == null) return acc;
       return acc == null ? n : Math.max(acc, n);
     }, null);
-    const ceiling = volume?.countOfIssues ?? maxIssueCountFromFile ?? maxPresent;
+    const ceiling =
+      volume?.countOfIssues ?? maxIssueCountFromFile ?? maxPresent;
     const missingIssues: string[] = [];
     for (let i = 1; i <= ceiling; i++) {
       if (!presentInts.has(i)) missingIssues.push(String(i));
@@ -825,6 +826,7 @@ export class ComicsService {
       format?: (typeof schema.comicBooks.$inferSelect)['format'];
       coverDate?: string | null;
       summary?: string | null;
+      ageRating?: string | null;
       creators?: Array<{
         name: string;
         role:
@@ -904,6 +906,33 @@ export class ComicsService {
 
     this.wsEvents.comicBookUpdated(id);
     return { success: true };
+  }
+
+  async updateBooksBatch(
+    ids: string[],
+    data: {
+      format?: (typeof schema.comicBooks.$inferSelect)['format'];
+      ageRating?: string | null;
+    },
+  ): Promise<{ updated: number }> {
+    if (Object.keys(data).length === 0) {
+      return { updated: 0 };
+    }
+    let updated = 0;
+    for (const id of ids) {
+      try {
+        await this.updateBook(id, data);
+        updated++;
+      } catch (err) {
+        if (err instanceof NotFoundException) {
+          // skip missing books
+          this.logger.warn(`Batch update: book ${id} not found, skipping`);
+        } else {
+          throw err;
+        }
+      }
+    }
+    return { updated };
   }
 
   // ===== DELETES =====

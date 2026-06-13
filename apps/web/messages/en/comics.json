@@ -194,5 +194,19 @@
       "loadFailed": "Failed to load image from URL",
       "failed": "Failed to update cover"
     }
+  },
+  "batchEdit": {
+    "title": "Edit {count, plural, one {# book} other {# books}}",
+    "selectMode": "Select books",
+    "cancelSelect": "Cancel selection",
+    "editSelected": "Edit {count, plural, one {# selected} other {# selected}}",
+    "selectedCount": "{count, plural, one {# selected} other {# selected}}",
+    "noChange": "No change",
+    "ageRatingPlaceholder": "e.g. T, M, All Ages",
+    "apply": "Apply to {count, plural, one {# book} other {# books}}",
+    "success": "Updated {count, plural, one {# book} other {# books}}",
+    "error": "Failed to update books",
+    "select": "Select book",
+    "deselect": "Deselect book"
   }
 }

@@ -1212,7 +1212,8 @@ describe('ComicsService.getSeriesById — missing-issue ceiling fallback via iss
     // Expected missing: 51, 52, 53, 54 (since #51..#54 not present).
     // Wait — makeBook now accepts issueCountFromFile as third param.
     const books: unknown[] = [];
-    for (let i = 1; i <= 50; i++) books.push(makeBook(String(i), 'single_issue', 54));
+    for (let i = 1; i <= 50; i++)
+      books.push(makeBook(String(i), 'single_issue', 54));
 
     const { service } = buildServiceForMissingIssueTest({
       books,
@@ -1232,7 +1233,8 @@ describe('ComicsService.getSeriesById — missing-issue ceiling fallback via iss
     // Books #1..#50 with issueCountFromFile: 54; volume.countOfIssues: 52.
     // CV count wins → ceiling = 52 → missing = 51, 52.
     const books: unknown[] = [];
-    for (let i = 1; i <= 50; i++) books.push(makeBook(String(i), 'single_issue', 54));
+    for (let i = 1; i <= 50; i++)
+      books.push(makeBook(String(i), 'single_issue', 54));
 
     const volumeRows = [
       {
@@ -1257,6 +1259,310 @@ describe('ComicsService.getSeriesById — missing-issue ceiling fallback via iss
     expect(result.missingIssues).toContain('52');
     expect(result.missingIssues).not.toContain('53');
     expect(result.missingIssues).toHaveLength(2);
+  });
+});
+
+// ===== updateBook: ageRating field =====
+
+describe('ComicsService.updateBook — ageRating field', () => {
+  function buildServiceForAgeRating(bookRow: unknown | null) {
+    const deleteMock = jest
+      .fn()
+      .mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) });
+    const insertMock = jest.fn().mockReturnValue({
+      values: jest.fn().mockReturnValue({
+        onConflictDoUpdate: jest.fn().mockReturnValue({
+          returning: jest.fn().mockResolvedValue([{ id: 'person-uuid-1' }]),
+        }),
+        onConflictDoNothing: jest.fn().mockResolvedValue(undefined),
+      }),
+    });
+    const updateMock = jest.fn().mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue(undefined),
+      }),
+    });
+    const selectMock = jest
+      .fn()
+      .mockReturnValue(chainMock(bookRow !== null ? [bookRow] : []));
+
+    const db = {
+      select: selectMock,
+      delete: deleteMock,
+      insert: insertMock,
+      update: updateMock,
+    } as never;
+
+    const appSettings = {
+      getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+    } as never;
+    const stub = {} as never;
+    const wsEvents = { comicBookUpdated: jest.fn() } as never;
+
+    const service = new ComicsService(
+      db,
+      appSettings,
+      stub, // coverService
+      stub, // imageProcessing
+      stub, // appData
+      stub, // comicMetadataProvider
+      stub, // appEvents
+      wsEvents,
+    );
+
+    return { service, updateMock };
+  }
+
+  const baseBook = {
+    id: 'book-1',
+    seriesId: 'series-1',
+    manualFields: [] as string[],
+    number: null,
+    title: null,
+    format: 'single_issue',
+    coverDate: null,
+    summary: null,
+    ageRating: null,
+    coverUrl: null,
+    coverSource: null,
+    status: 'available',
+  };
+
+  it('writes ageRating value into the DB update', async () => {
+    const { service, updateMock } = buildServiceForAgeRating(baseBook);
+
+    await service.updateBook('book-1', { ageRating: 'Teen' });
+
+    const setCalls = updateMock.mock.results
+      .map((r) => r.value)
+      .map((chain) => chain.set.mock.calls[0]?.[0]);
+    expect(setCalls.some((data) => data?.ageRating === 'Teen')).toBe(true);
+  });
+
+  it('records ageRating in manualFields when provided', async () => {
+    const { service, updateMock } = buildServiceForAgeRating(baseBook);
+
+    await service.updateBook('book-1', { ageRating: 'Mature' });
+
+    const setCalls = updateMock.mock.results
+      .map((r) => r.value)
+      .map((chain) => chain.set.mock.calls[0]?.[0]);
+    expect(
+      setCalls.some((data) => data?.manualFields?.includes('ageRating')),
+    ).toBe(true);
+  });
+
+  it('accepts null to clear ageRating and records it in manualFields', async () => {
+    const bookWithRating = {
+      ...baseBook,
+      ageRating: 'Teen',
+      manualFields: ['ageRating'],
+    };
+    const { service, updateMock } = buildServiceForAgeRating(bookWithRating);
+
+    await service.updateBook('book-1', { ageRating: null });
+
+    const setCalls = updateMock.mock.results
+      .map((r) => r.value)
+      .map((chain) => chain.set.mock.calls[0]?.[0]);
+    expect(setCalls.some((data) => data?.ageRating === null)).toBe(true);
+    // manualFields should still contain ageRating (deduped from Set)
+    expect(
+      setCalls.some((data) => data?.manualFields?.includes('ageRating')),
+    ).toBe(true);
+  });
+});
+
+// ===== updateBooksBatch =====
+
+describe('ComicsService.updateBooksBatch', () => {
+  function buildServiceForBatch(bookRows: { id: string }[]) {
+    const updateMock = jest.fn().mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue(undefined),
+      }),
+    });
+
+    // selectMock returns the matching book for each id lookup.
+    // updateBook calls select once per book id — return the right row each time.
+    const selectMock = jest.fn().mockImplementation(() =>
+      chainMock(
+        bookRows.length > 0
+          ? [
+              {
+                id: 'any',
+                seriesId: 'series-1',
+                manualFields: [],
+                number: null,
+                title: null,
+                format: 'single_issue',
+                coverDate: null,
+                summary: null,
+                ageRating: null,
+                coverUrl: null,
+                coverSource: null,
+                status: 'available',
+              },
+            ]
+          : [],
+      ),
+    );
+
+    const db = {
+      select: selectMock,
+      delete: jest
+        .fn()
+        .mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) }),
+      insert: jest.fn(),
+      update: updateMock,
+    } as never;
+
+    const appSettings = {
+      getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+    } as never;
+    const stub = {} as never;
+    const wsEvents = { comicBookUpdated: jest.fn() } as never;
+
+    const service = new ComicsService(
+      db,
+      appSettings,
+      stub,
+      stub,
+      stub,
+      stub,
+      stub,
+      wsEvents,
+    );
+
+    return { service, updateMock, selectMock };
+  }
+
+  it('returns { updated: 0 } without touching the DB when data is empty', async () => {
+    const { service, updateMock } = buildServiceForBatch([
+      { id: 'a' },
+      { id: 'b' },
+    ]);
+
+    const result = await service.updateBooksBatch(['a', 'b'], {});
+
+    expect(result).toEqual({ updated: 0 });
+    expect(updateMock).not.toHaveBeenCalled();
+  });
+
+  it('calls updateBook for each id and returns { updated: N }', async () => {
+    const { service, updateMock } = buildServiceForBatch([
+      { id: 'a' },
+      { id: 'b' },
+    ]);
+
+    const result = await service.updateBooksBatch(['a', 'b'], {
+      format: 'tpb',
+    });
+
+    expect(result).toEqual({ updated: 2 });
+    // updateBook calls db.update once per book
+    expect(updateMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('applies format to all books in the batch', async () => {
+    const { service, updateMock } = buildServiceForBatch([
+      { id: 'a' },
+      { id: 'b' },
+    ]);
+
+    await service.updateBooksBatch(['a', 'b'], { format: 'tpb' });
+
+    const setCalls = updateMock.mock.results.flatMap((r) =>
+      r.value.set.mock.calls.map((c: unknown[]) => c[0]),
+    );
+    expect(
+      setCalls.every((data: Record<string, unknown>) => data?.format === 'tpb'),
+    ).toBe(true);
+  });
+
+  it('applies ageRating to all books in the batch', async () => {
+    const { service, updateMock } = buildServiceForBatch([
+      { id: 'a' },
+      { id: 'b' },
+    ]);
+
+    await service.updateBooksBatch(['a', 'b'], { ageRating: 'Mature' });
+
+    const setCalls = updateMock.mock.results.flatMap((r) =>
+      r.value.set.mock.calls.map((c: unknown[]) => c[0]),
+    );
+    expect(
+      setCalls.every(
+        (data: Record<string, unknown>) => data?.ageRating === 'Mature',
+      ),
+    ).toBe(true);
+  });
+
+  it('skips missing books (NotFoundException) and still updates the others', async () => {
+    // First book not found (select returns []), second found
+    const deleteMock = jest
+      .fn()
+      .mockReturnValue({ where: jest.fn().mockResolvedValue(undefined) });
+    const updateMock = jest.fn().mockReturnValue({
+      set: jest.fn().mockReturnValue({
+        where: jest.fn().mockResolvedValue(undefined),
+      }),
+    });
+
+    let selectCallCount = 0;
+    const selectMock = jest.fn().mockImplementation(() => {
+      selectCallCount++;
+      // First call returns no book (not found), second call returns a book
+      if (selectCallCount === 1) return chainMock([]);
+      return chainMock([
+        {
+          id: 'b',
+          seriesId: 'series-1',
+          manualFields: [],
+          number: null,
+          title: null,
+          format: 'single_issue',
+          coverDate: null,
+          summary: null,
+          ageRating: null,
+          coverUrl: null,
+          coverSource: null,
+          status: 'available',
+        },
+      ]);
+    });
+
+    const db = {
+      select: selectMock,
+      delete: deleteMock,
+      insert: jest.fn(),
+      update: updateMock,
+    } as never;
+
+    const appSettings = {
+      getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+    } as never;
+    const stub = {} as never;
+    const wsEvents = { comicBookUpdated: jest.fn() } as never;
+
+    const service = new ComicsService(
+      db,
+      appSettings,
+      stub,
+      stub,
+      stub,
+      stub,
+      stub,
+      wsEvents,
+    );
+
+    // 'a' is missing, 'b' is found — should update 1
+    const result = await service.updateBooksBatch(['a', 'b'], {
+      format: 'tpb',
+    });
+
+    expect(result).toEqual({ updated: 1 });
+    expect(updateMock).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { MoreVertical, Pencil, Trash2, ImageIcon, Download, Eye, AlertTriangle } from "lucide-react";
+import { MoreVertical, Pencil, Trash2, ImageIcon, Download, Eye, AlertTriangle, CheckSquare, Square } from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -54,6 +54,9 @@ interface ComicBookListProps {
   onEditBook?: (id: string) => void;
   onChangeBookCover?: (id: string) => void;
   onDeleteBook?: (id: string) => void;
+  selectionMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }
 
 // -----------------------------------------------------------------------
@@ -65,6 +68,9 @@ export function ComicBookList({
   onEditBook,
   onChangeBookCover,
   onDeleteBook,
+  selectionMode,
+  selectedIds,
+  onToggleSelect,
 }: ComicBookListProps) {
   const t = useTranslations("comics");
 
@@ -87,6 +93,9 @@ export function ComicBookList({
           onEditBook={onEditBook}
           onChangeBookCover={onChangeBookCover}
           onDeleteBook={onDeleteBook}
+          selectionMode={selectionMode}
+          isSelected={selectedIds?.has(book.id)}
+          onToggleSelect={onToggleSelect}
         />
       ))}
     </ul>
@@ -103,6 +112,9 @@ interface BookRowProps {
   onEditBook?: (id: string) => void;
   onChangeBookCover?: (id: string) => void;
   onDeleteBook?: (id: string) => void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }
 
 function BookRow({
@@ -112,6 +124,9 @@ function BookRow({
   onEditBook,
   onChangeBookCover,
   onDeleteBook,
+  selectionMode,
+  isSelected,
+  onToggleSelect,
 }: BookRowProps) {
   const isMissing = book.status === "missing";
   const detailHref = `/comics/${seriesId}/books/${book.id}`;
@@ -129,7 +144,25 @@ function BookRow({
   };
 
   return (
-    <li className="flex items-center gap-3 py-3">
+    <li
+      className={`flex items-center gap-3 py-3${selectionMode ? " cursor-pointer" : ""}`}
+      onClick={selectionMode ? () => onToggleSelect?.(book.id) : undefined}
+    >
+      {/* Selection checkbox — only shown in selection mode */}
+      {selectionMode && (
+        <button
+          type="button"
+          className="shrink-0 text-muted-foreground hover:text-foreground"
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(book.id); }}
+          aria-label={isSelected ? t("batchEdit.deselect") : t("batchEdit.select")}
+        >
+          {isSelected ? (
+            <CheckSquare className="h-5 w-5 text-primary" />
+          ) : (
+            <Square className="h-5 w-5" />
+          )}
+        </button>
+      )}
       {/* Cover thumbnail — wrapped in Link; dropdown is a sibling */}
       <Link
         href={detailHref}

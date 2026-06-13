@@ -194,5 +194,19 @@
       "loadFailed": "Det gick inte att ladda bilden från URL:en",
       "failed": "Det gick inte att uppdatera omslaget"
     }
+  },
+  "batchEdit": {
+    "title": "Redigera {count, plural, one {# bok} other {# böcker}}",
+    "selectMode": "Välj böcker",
+    "cancelSelect": "Avbryt val",
+    "editSelected": "Redigera {count, plural, one {# vald} other {# valda}}",
+    "selectedCount": "{count, plural, one {# vald} other {# valda}}",
+    "noChange": "Ingen ändring",
+    "ageRatingPlaceholder": "t.ex. T, M, Alla åldrar",
+    "apply": "Tillämpa på {count, plural, one {# bok} other {# böcker}}",
+    "success": "Uppdaterade {count, plural, one {# bok} other {# böcker}}",
+    "error": "Det gick inte att uppdatera böckerna",
+    "select": "Välj bok",
+    "deselect": "Avmarkera bok"
   }
 }

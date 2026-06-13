@@ -318,6 +318,44 @@ export function useUpdateComicBook() {
   });
 }
 
+export interface UpdateComicBooksBatchInput {
+  ids: string[];
+  data: {
+    format?: ComicBookFormat;
+    ageRating?: string | null;
+  };
+}
+
+async function updateComicBooksBatch(
+  input: UpdateComicBooksBatchInput
+): Promise<{ updated: number }> {
+  const response = await fetch("/api/comics/books/batch", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to batch update comic books");
+  }
+  return response.json();
+}
+
+export function useUpdateComicBooksBatch(seriesId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdateComicBooksBatchInput) =>
+      updateComicBooksBatch(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.comics.seriesDetail(seriesId),
+      });
+      queryClient.invalidateQueries({ queryKey: queryKeys.comics.all });
+    },
+  });
+}
+
 async function deleteComicSeries(
   id: string,
   deleteFiles: boolean
