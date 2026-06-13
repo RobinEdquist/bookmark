@@ -55,7 +55,11 @@
     "oneShot": "Engångsnummer",
     "untitled": "Namnlös",
     "coverDate": "Omslagsdatum",
+    "storeDate": "Butiksdatum",
     "pages": "{count} sidor",
+    "pageCount": "Sidor",
+    "container": "Container",
+    "fileSize": "Filstorlek",
     "download": "Ladda ner",
     "summary": "Sammanfattning",
     "view": "Visa"
@@ -132,7 +136,9 @@
     "previous": "Föregående",
     "next": "Nästa",
     "success": "Serien har uppdaterats",
-    "error": "Det gick inte att uppdatera serien"
+    "error": "Det gick inte att uppdatera serien",
+    "bookSuccess": "Boken har uppdaterats",
+    "bookError": "Det gick inte att uppdatera boken"
   },
   "deleteDialog": {
     "seriesTitle": "Ta bort serie?",
@@ -144,7 +150,9 @@
     "cancel": "Avbryt",
     "deleting": "Tar bort...",
     "success": "Serien har tagits bort",
-    "error": "Det gick inte att ta bort serien"
+    "error": "Det gick inte att ta bort serien",
+    "bookSuccess": "Boken har tagits bort",
+    "bookError": "Det gick inte att ta bort boken"
   },
   "changeCover": {
     "title": "Ändra omslag",

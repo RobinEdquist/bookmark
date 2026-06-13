@@ -55,7 +55,11 @@
     "oneShot": "One-shot",
     "untitled": "Untitled",
     "coverDate": "Cover date",
+    "storeDate": "Store date",
     "pages": "{count} pages",
+    "pageCount": "Pages",
+    "container": "Container",
+    "fileSize": "File size",
     "download": "Download",
     "summary": "Summary",
     "view": "View"
@@ -132,7 +136,9 @@
     "previous": "Previous",
     "next": "Next",
     "success": "Series updated successfully",
-    "error": "Failed to update series"
+    "error": "Failed to update series",
+    "bookSuccess": "Book updated successfully",
+    "bookError": "Failed to update book"
   },
   "deleteDialog": {
     "seriesTitle": "Delete series?",
@@ -144,7 +150,9 @@
     "cancel": "Cancel",
     "deleting": "Deleting...",
     "success": "Series deleted successfully",
-    "error": "Failed to delete series"
+    "error": "Failed to delete series",
+    "bookSuccess": "Book deleted successfully",
+    "bookError": "Failed to delete book"
   },
   "changeCover": {
     "title": "Change Cover",

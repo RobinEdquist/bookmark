@@ -33,6 +33,9 @@ import { useLibraryNavigation } from "../../../../lib/use-library-navigation";
 import { EditComicSeriesDialog } from "../../../../components/comics/edit-comic-series-dialog";
 import { ChangeComicSeriesCoverDialog } from "../../../../components/comics/change-comic-series-cover-dialog";
 import { DeleteComicSeriesDialog } from "../../../../components/comics/delete-comic-series-dialog";
+import { EditComicBookDialog } from "../../../../components/comics/edit-comic-book-dialog";
+import { ChangeComicBookCoverDialog } from "../../../../components/comics/change-comic-book-cover-dialog";
+import { DeleteComicBookDialog } from "../../../../components/comics/delete-comic-book-dialog";
 import { ComicBookList } from "../../../../components/comics/comic-book-list";
 import type { ComicCreatorRole } from "../../../../lib/use-comics";
 
@@ -53,6 +56,11 @@ export default function ComicSeriesDetailPage({
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+
+  // Book-level dialog state (id of the book being actioned, or null)
+  const [editBookId, setEditBookId] = useState<string | null>(null);
+  const [coverBookId, setCoverBookId] = useState<string | null>(null);
+  const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
@@ -416,9 +424,15 @@ export default function ComicSeriesDetailPage({
           </div>
         </motion.div>
 
-        {/* Book list — book-level edit/cover/delete dialogs wired in Task 9 */}
+        {/* Book list with book-level action callbacks */}
         <div className="mt-10">
-          <ComicBookList books={series.books} seriesId={id} />
+          <ComicBookList
+            books={series.books}
+            seriesId={id}
+            onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
+            onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
+            onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
+          />
         </div>
       </div>
 
@@ -448,6 +462,34 @@ export default function ComicSeriesDetailPage({
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
           onDeleted={() => router.push("/comics")}
+        />
+      )}
+
+      {/* Book-level dialogs */}
+      {canEdit && editBookId && (
+        <EditComicBookDialog
+          bookId={editBookId}
+          open={editBookId !== null}
+          onOpenChange={(open) => { if (!open) setEditBookId(null); }}
+        />
+      )}
+
+      {canEdit && coverBookId && (
+        <ChangeComicBookCoverDialog
+          bookId={coverBookId}
+          bookTitle={series.books.find((b) => b.id === coverBookId)?.title ?? coverBookId}
+          currentCoverUrl={series.books.find((b) => b.id === coverBookId)?.coverUrl ?? null}
+          open={coverBookId !== null}
+          onOpenChange={(open) => { if (!open) setCoverBookId(null); }}
+        />
+      )}
+
+      {canDelete && deleteBookId && (
+        <DeleteComicBookDialog
+          bookId={deleteBookId}
+          bookTitle={series.books.find((b) => b.id === deleteBookId)?.title ?? deleteBookId}
+          open={deleteBookId !== null}
+          onOpenChange={(open) => { if (!open) setDeleteBookId(null); }}
         />
       )}
     </main>
