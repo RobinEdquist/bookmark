@@ -449,6 +449,59 @@
         "inactive": "Konfiguration krävs",
         "inactiveDescription": "Sätt miljövariabeln GR_FINDER_URL för att aktivera denna integration."
       }
+    },
+    "comicvine": {
+      "title": "Comic Vine",
+      "description": "Anslut till Comic Vine för att hämta metadata om seriealbum och nummer",
+      "notConnected": "Ej ansluten",
+      "connected": "Ansluten",
+      "apiKeyLabel": "API-nyckel",
+      "apiKeyPlaceholder": "Ange din Comic Vine API-nyckel",
+      "apiKeyHelp": "Hämta din API-nyckel från",
+      "saveAndValidate": "Spara och validera",
+      "validating": "Validerar…",
+      "disconnect": "Koppla från",
+      "disconnecting": "Kopplar från…",
+      "attribution": "Data från Comic Vine — används under icke-kommersiella villkor. En länk tillbaka till Comic Vine visas överallt där dess data används.",
+      "autoSync": {
+        "label": "Auto-synk vid import",
+        "description": "Matcha automatiskt nya serieimporter mot Comic Vine",
+        "warning": "Rekommenderas först efter att din initiala biblioteksimport är klar. Konservativ matchning skickar tvetydiga träffar till granskningskön nedan."
+      },
+      "syncQueue": {
+        "title": "Synkkö",
+        "description": "Status för automatisk Comic Vine-matchning",
+        "pending": "{count} väntande",
+        "needsReview": "{count} kräver granskning",
+        "failed": "{count} misslyckade",
+        "needsReviewLabel": "Matchningar som kräver granskning",
+        "failedLabel": "Misslyckade matchningar",
+        "matchNow": "Matcha nu",
+        "dismiss": "Avfärda",
+        "queueAllUnlinked": "Köa alla olänkade serier",
+        "queueing": "Köar…",
+        "seriesLabel": "Serie",
+        "bookLabel": "Nummer",
+        "untitled": "Utan titel",
+        "unknownError": "Okänt fel",
+        "empty": "Synkkön är tom",
+        "toast": {
+          "dismissed": "Objekt avfärdat",
+          "dismissFailed": "Kunde inte avfärda",
+          "queued": "{count} serier köade",
+          "queueFailed": "Kunde inte köa",
+          "notConfigured": "Anslut Comic Vine först"
+        }
+      },
+      "toast": {
+        "connected": "Ansluten till Comic Vine",
+        "connectionFailed": "Anslutningen misslyckades",
+        "disconnected": "Frånkopplad från Comic Vine",
+        "disconnectFailed": "Frånkoppling misslyckades",
+        "autoSyncEnabled": "Auto-synk aktiverad",
+        "autoSyncDisabled": "Auto-synk inaktiverad",
+        "autoSyncFailed": "Kunde inte uppdatera auto-synk"
+      }
     }
   },
   "announcements": {
