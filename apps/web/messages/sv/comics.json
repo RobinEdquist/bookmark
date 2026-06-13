@@ -18,7 +18,9 @@
   "filters": {
     "search": "Sök serier...",
     "allPublishers": "Alla förlag",
-    "allGenres": "Alla genrer"
+    "allGenres": "Alla genrer",
+    "filteredBy": "Filtrerat efter: {value}",
+    "clearFilter": "Rensa filter"
   },
   "sort": {
     "title": "Titel",
@@ -46,7 +48,9 @@
     "showLess": "Visa mindre",
     "downloadSeries": "Ladda ner alla",
     "noBooks": "Inga böcker i den här serien",
-    "missingIssues": "Saknas: {issues}"
+    "missingIssues": "Saknas: {issues}",
+    "storyArcs": "Serieberättelser",
+    "characters": "Karaktärer"
   },
   "book": {
     "issue": "Nummer {number}",
@@ -63,7 +67,13 @@
     "fileSize": "Filstorlek",
     "download": "Ladda ner",
     "summary": "Sammanfattning",
-    "view": "Visa"
+    "view": "Visa",
+    "ageRating": "Åldersgräns",
+    "web": "Visa på webben",
+    "storyArcs": "Serieberättelser",
+    "characters": "Karaktärer",
+    "teams": "Grupper",
+    "locations": "Platser"
   },
   "format": {
     "single_issue": "Nummer",

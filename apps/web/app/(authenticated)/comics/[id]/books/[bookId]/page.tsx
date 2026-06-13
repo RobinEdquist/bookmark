@@ -320,6 +320,30 @@ export default function ComicBookDetailPage({
               )}
             </div>
 
+            {/* Age rating + web link */}
+            {(data.ageRating || data.web) && (
+              <div className="flex flex-wrap items-center gap-4 text-sm">
+                {data.ageRating && (
+                  <span className="text-muted-foreground">
+                    <span className="font-medium text-foreground">
+                      {t("book.ageRating")}:
+                    </span>{" "}
+                    {data.ageRating}
+                  </span>
+                )}
+                {data.web && (
+                  <a
+                    href={data.web}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline"
+                  >
+                    {t("book.web")}
+                  </a>
+                )}
+              </div>
+            )}
+
             {/* Creators grouped by role */}
             {creatorsByRole.size > 0 && (
               <div className="rounded-lg border border-border/50 p-4">
@@ -335,6 +359,84 @@ export default function ComicBookDetailPage({
                   ))}
                 </dl>
               </div>
+            )}
+
+            {/* Metadata tag chips: Story Arcs, Characters, Teams, Locations */}
+            {data.metadataTags && (
+              <>
+                {data.metadataTags.storyArcs.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t("book.storyArcs")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {data.metadataTags.storyArcs.map((arc) => (
+                        <Link
+                          key={arc}
+                          href={`/comics?metadataTag=${encodeURIComponent(`story_arc:${arc}`)}`}
+                          className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                        >
+                          {arc}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {data.metadataTags.characters.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t("book.characters")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {data.metadataTags.characters.map((char) => (
+                        <Link
+                          key={char}
+                          href={`/comics?metadataTag=${encodeURIComponent(`character:${char}`)}`}
+                          className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                        >
+                          {char}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {data.metadataTags.teams.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t("book.teams")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {data.metadataTags.teams.map((team) => (
+                        <Link
+                          key={team}
+                          href={`/comics?metadataTag=${encodeURIComponent(`team:${team}`)}`}
+                          className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                        >
+                          {team}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {data.metadataTags.locations.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t("book.locations")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {data.metadataTags.locations.map((loc) => (
+                        <Link
+                          key={loc}
+                          href={`/comics?metadataTag=${encodeURIComponent(`location:${loc}`)}`}
+                          className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                        >
+                          {loc}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             {/* Summary */}

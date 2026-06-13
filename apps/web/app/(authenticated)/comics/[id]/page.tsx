@@ -399,6 +399,48 @@ export default function ComicSeriesDetailPage({
               </div>
             )}
 
+            {/* Aggregated metadata tag chips: Story Arcs, Characters */}
+            {series.aggregatedTags && (
+              <>
+                {series.aggregatedTags.storyArcs.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t("detail.storyArcs")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {series.aggregatedTags.storyArcs.map((arc) => (
+                        <Link
+                          key={arc}
+                          href={`/comics?metadataTag=${encodeURIComponent(`story_arc:${arc}`)}`}
+                          className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                        >
+                          {arc}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {series.aggregatedTags.characters.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t("detail.characters")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {series.aggregatedTags.characters.map((char) => (
+                        <Link
+                          key={char}
+                          href={`/comics?metadataTag=${encodeURIComponent(`character:${char}`)}`}
+                          className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                        >
+                          {char}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Description — expandable, sanitized HTML (mirrors ebook detail) */}
             {series.description && (
               <div>
