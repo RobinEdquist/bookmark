@@ -432,10 +432,11 @@ async function queueAllUnlinkedSeries(): Promise<QueueAllUnlinkedResponse> {
 // Hooks
 // ---------------------------------------------------------------------------
 
-export function useComicvineStatus() {
+export function useComicvineStatus(enabled = true) {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: queryKeys.comicvine.status(),
     queryFn: fetchComicvineStatus,
+    enabled,
   });
 
   return {

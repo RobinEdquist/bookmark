@@ -20,6 +20,7 @@
     "issueCount": "{count, plural, one {# issue} other {# issues}}",
     "issueNumber": "Issue #{number}",
     "coverDate": "Cover date {date}",
+    "openAction": "Match with ComicVine",
     "toast": {
       "linked": "Linked to ComicVine",
       "linkFailed": "Failed to link"

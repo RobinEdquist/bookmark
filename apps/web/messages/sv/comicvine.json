@@ -20,6 +20,7 @@
     "issueCount": "{count, plural, one {# nummer} other {# nummer}}",
     "issueNumber": "Nummer #{number}",
     "coverDate": "Omslagsdatum {date}",
+    "openAction": "Matcha mot ComicVine",
     "toast": {
       "linked": "Länkad till ComicVine",
       "linkFailed": "Det gick inte att länka"
