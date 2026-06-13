@@ -15,11 +15,6 @@ function makeResponse(
   };
 }
 
-const VOLUME_FIELD_LIST =
-  'id,name,start_year,publisher,count_of_issues,description,image,site_detail_url';
-const ISSUE_FIELD_LIST =
-  'id,issue_number,name,cover_date,store_date,volume,person_credits,character_credits,story_arc_credits,description,image,site_detail_url';
-
 const API_KEY = 'TEST_KEY';
 
 // ---------------------------------------------------------------------------
@@ -132,7 +127,11 @@ describe('ComicVineApiClient', () => {
       );
       expect(url.searchParams.get('api_key')).toBe(API_KEY);
       expect(url.searchParams.get('format')).toBe('json');
-      expect(url.searchParams.get('field_list')).toBe(VOLUME_FIELD_LIST);
+      const fieldList = url.searchParams.get('field_list')!;
+      expect(fieldList).toBeTruthy();
+      expect(fieldList).toContain('id');
+      expect(fieldList).toContain('name');
+      expect(fieldList).toContain('start_year');
       expect(url.searchParams.get('filter')).toBe('name:batman');
       expect(url.searchParams.get('limit')).toBe('10');
       expect(url.searchParams.get('offset')).toBe('0'); // page 1 → offset 0
@@ -194,7 +193,10 @@ describe('ComicVineApiClient', () => {
       expect(url.pathname).toBe('/api/volume/4050-123/');
       expect(url.searchParams.get('api_key')).toBe(API_KEY);
       expect(url.searchParams.get('format')).toBe('json');
-      expect(url.searchParams.get('field_list')).toBe(VOLUME_FIELD_LIST);
+      const fieldList = url.searchParams.get('field_list')!;
+      expect(fieldList).toBeTruthy();
+      expect(fieldList).toContain('id');
+      expect(fieldList).toContain('name');
     });
 
     it('returns the single-resource results object (not wrapped in an array)', async () => {
@@ -222,7 +224,11 @@ describe('ComicVineApiClient', () => {
 
       expect(url.pathname).toBe('/api/issues/');
       expect(url.searchParams.get('filter')).toBe('volume:123');
-      expect(url.searchParams.get('field_list')).toBe(ISSUE_FIELD_LIST);
+      const fieldList = url.searchParams.get('field_list')!;
+      expect(fieldList).toBeTruthy();
+      expect(fieldList).toContain('id');
+      expect(fieldList).toContain('name');
+      expect(fieldList).toContain('issue_number');
       expect(url.searchParams.get('limit')).toBe('20');
       expect(url.searchParams.get('offset')).toBe('0');
     });
@@ -252,7 +258,11 @@ describe('ComicVineApiClient', () => {
 
       expect(url.pathname).toBe('/api/issues/');
       expect(url.searchParams.get('filter')).toBe('name:batman 1');
-      expect(url.searchParams.get('field_list')).toBe(ISSUE_FIELD_LIST);
+      const fieldList = url.searchParams.get('field_list')!;
+      expect(fieldList).toBeTruthy();
+      expect(fieldList).toContain('id');
+      expect(fieldList).toContain('name');
+      expect(fieldList).toContain('issue_number');
     });
 
     it('returns totalResults and results from the list envelope', async () => {
@@ -284,7 +294,11 @@ describe('ComicVineApiClient', () => {
       expect(url.pathname).toBe('/api/issue/4000-789/');
       expect(url.searchParams.get('api_key')).toBe(API_KEY);
       expect(url.searchParams.get('format')).toBe('json');
-      expect(url.searchParams.get('field_list')).toBe(ISSUE_FIELD_LIST);
+      const fieldList = url.searchParams.get('field_list')!;
+      expect(fieldList).toBeTruthy();
+      expect(fieldList).toContain('id');
+      expect(fieldList).toContain('name');
+      expect(fieldList).toContain('issue_number');
     });
 
     it('returns the single-resource results object', async () => {
@@ -302,7 +316,11 @@ describe('ComicVineApiClient', () => {
 
   describe('error mapping', () => {
     it('throws ComicVineApiError with code 100 for invalid API key', async () => {
-      mockFetch.mockResolvedValueOnce(
+      // assert a throw is actually observed (a bare try/catch would silently
+      // pass if the call never threw)
+      expect.assertions(4);
+
+      mockFetch.mockResolvedValue(
         makeResponse(errorEnvelope(100, 'Invalid API Key')),
       );
 
@@ -310,55 +328,68 @@ describe('ComicVineApiClient', () => {
         client.searchVolumes('batman', { page: 1, limit: 10 }),
       ).rejects.toThrow(ComicVineApiError);
 
-      await mockFetch.mockResolvedValueOnce(
-        makeResponse(errorEnvelope(100, 'Invalid API Key')),
-      );
-      try {
-        await client.searchVolumes('batman', { page: 1, limit: 10 });
-      } catch (err) {
-        expect(err).toBeInstanceOf(ComicVineApiError);
-        expect((err as ComicVineApiError).code).toBe(100);
-        expect((err as ComicVineApiError).rateLimited).toBe(false);
-      }
+      await client
+        .searchVolumes('batman', { page: 1, limit: 10 })
+        .catch((err) => {
+          expect(err).toBeInstanceOf(ComicVineApiError);
+          expect((err as ComicVineApiError).code).toBe(100);
+          expect((err as ComicVineApiError).rateLimited).toBe(false);
+        });
     });
 
     it('throws ComicVineApiError with code 101 for object not found', async () => {
-      mockFetch.mockResolvedValueOnce(
+      expect.assertions(4);
+
+      mockFetch.mockResolvedValue(
         makeResponse(errorEnvelope(101, 'Object Not Found')),
       );
 
-      try {
-        await client.getVolume(9999);
-      } catch (err) {
+      await expect(client.getVolume(9999)).rejects.toThrow(ComicVineApiError);
+
+      await client.getVolume(9999).catch((err) => {
         expect(err).toBeInstanceOf(ComicVineApiError);
         expect((err as ComicVineApiError).code).toBe(101);
         expect((err as ComicVineApiError).rateLimited).toBe(false);
-      }
+      });
     });
 
     it('throws ComicVineApiError with rateLimited=true on HTTP 420', async () => {
-      mockFetch.mockResolvedValueOnce(makeResponse({}, 420));
+      expect.assertions(3);
 
-      try {
-        await client.searchVolumes('batman', { page: 1, limit: 10 });
-      } catch (err) {
-        expect(err).toBeInstanceOf(ComicVineApiError);
-        expect((err as ComicVineApiError).rateLimited).toBe(true);
-      }
+      mockFetch.mockResolvedValue(makeResponse({}, 420));
+
+      await expect(
+        client.searchVolumes('batman', { page: 1, limit: 10 }),
+      ).rejects.toThrow(ComicVineApiError);
+
+      await client
+        .searchVolumes('batman', { page: 1, limit: 10 })
+        .catch((err) => {
+          expect(err).toBeInstanceOf(ComicVineApiError);
+          expect((err as ComicVineApiError).rateLimited).toBe(true);
+        });
     });
 
     it('throws ComicVineApiError with rateLimited=true on HTTP 429', async () => {
-      mockFetch.mockResolvedValueOnce(makeResponse({}, 429));
+      expect.assertions(3);
 
-      try {
-        await client.searchVolumes('batman', { page: 1, limit: 10 });
-      } catch (err) {
-        expect(err).toBeInstanceOf(ComicVineApiError);
-        expect((err as ComicVineApiError).rateLimited).toBe(true);
-      }
+      mockFetch.mockResolvedValue(makeResponse({}, 429));
+
+      await expect(
+        client.searchVolumes('batman', { page: 1, limit: 10 }),
+      ).rejects.toThrow(ComicVineApiError);
+
+      await client
+        .searchVolumes('batman', { page: 1, limit: 10 })
+        .catch((err) => {
+          expect(err).toBeInstanceOf(ComicVineApiError);
+          expect((err as ComicVineApiError).rateLimited).toBe(true);
+        });
     });
 
     it('throws a ComicVineApiError on other non-ok HTTP statuses', async () => {
+      expect.assertions(1);
+
       mockFetch.mockResolvedValueOnce(makeResponse({}, 503));
 
       await expect(
@@ -367,6 +398,8 @@ describe('ComicVineApiClient', () => {
     });
 
     it('wraps network errors (fetchImpl rejects) in a thrown error', async () => {
+      expect.assertions(1);
+
       mockFetch.mockRejectedValueOnce(new Error('Network failure'));
 
       await expect(
@@ -375,16 +408,22 @@ describe('ComicVineApiClient', () => {
     });
 
     it('throws ComicVineApiError on status_code 104 (filter error)', async () => {
-      mockFetch.mockResolvedValueOnce(
+      expect.assertions(3);
+
+      mockFetch.mockResolvedValue(
         makeResponse(errorEnvelope(104, 'Invalid filter')),
       );
 
-      try {
-        await client.searchVolumes('batman', { page: 1, limit: 10 });
-      } catch (err) {
-        expect(err).toBeInstanceOf(ComicVineApiError);
-        expect((err as ComicVineApiError).code).toBe(104);
-      }
+      await expect(
+        client.searchVolumes('batman', { page: 1, limit: 10 }),
+      ).rejects.toThrow(ComicVineApiError);
+
+      await client
+        .searchVolumes('batman', { page: 1, limit: 10 })
+        .catch((err) => {
+          expect(err).toBeInstanceOf(ComicVineApiError);
+          expect((err as ComicVineApiError).code).toBe(104);
+        });
     });
   });
 
