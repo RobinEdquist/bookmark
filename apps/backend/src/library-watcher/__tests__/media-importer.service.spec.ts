@@ -40,7 +40,11 @@ jest.mock('fs/promises', () => ({
 }));
 
 import { MediaImporterService } from '../media-importer.service';
-import { AudiobookUnit, EbookUnit } from '../media-detector.service';
+import {
+  AudiobookUnit,
+  ComicSeriesUnit,
+  EbookUnit,
+} from '../media-detector.service';
 
 // ---- Helper factories ----
 
@@ -142,17 +146,22 @@ function createMockDeps() {
       audiobookUpdated: jest.fn(),
       audiobookDeleted: jest.fn(),
       ebookCreated: jest.fn(),
+      comicSeriesCreated: jest.fn(),
+      comicSeriesUpdated: jest.fn(),
     } as any,
     wsEvents: {
       audiobookCreated: jest.fn(),
       audiobookUpdated: jest.fn(),
       ebookCreated: jest.fn(),
+      comicSeriesCreated: jest.fn(),
+      comicSeriesUpdated: jest.fn(),
     } as any,
     requestsService: {
       tryMatchImport: jest.fn().mockResolvedValue(false),
     } as any,
     appSettingsService: {
       getAudiobookLibraryPath: jest.fn().mockResolvedValue('/library'),
+      getComicLibraryPath: jest.fn().mockResolvedValue('/library/comics'),
     } as any,
     comicMetadataProvider: {
       extractMetadata: jest.fn(),
@@ -961,6 +970,242 @@ describe('MediaImporterService', () => {
 
       const setCall = db._chains.update.set.mock.calls[0][0];
       expect(setCall).not.toHaveProperty('coverSource');
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // reExtractComicBook
+  // ------------------------------------------------------------------
+  describe('reExtractComicBook', () => {
+    function setupBookRescanMocks(book: Record<string, unknown> | null) {
+      db._chains.select.limit.mockResolvedValueOnce(book ? [book] : []);
+    }
+
+    it('returns false when comic book not found', async () => {
+      setupBookRescanMocks(null);
+
+      const result = await service.reExtractComicBook('nonexistent-id');
+
+      expect(result).toBe(false);
+    });
+
+    it('returns false when no comic library path is configured', async () => {
+      setupBookRescanMocks({
+        id: 'book-1',
+        fileName: 'Test #1.cbz',
+        filePath: 'Saga/Test #1.cbz',
+        number: null,
+        title: null,
+        format: 'single_issue',
+        coverDate: null,
+        summary: null,
+        pageCount: null,
+        manualFields: [],
+      });
+
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValueOnce(null);
+
+      const result = await service.reExtractComicBook('book-1');
+
+      expect(result).toBe(false);
+    });
+
+    it('updates number and sortNumber when book had null number and file parses to #51', async () => {
+      setupBookRescanMocks({
+        id: 'book-51',
+        fileName: 'Saga Vol.2012 #51 (April 2018).cbz',
+        filePath: 'Saga/Saga Vol.2012 #51 (April 2018).cbz',
+        number: null,
+        title: null,
+        format: 'single_issue',
+        coverDate: null,
+        summary: null,
+        pageCount: null,
+        manualFields: [],
+      });
+
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValueOnce('/library/comics');
+
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        comicInfo: null, // no embedded ComicInfo — rely on filename
+        pageCount: 0,
+        cover: null,
+      });
+
+      const result = await service.reExtractComicBook('book-51');
+
+      expect(result).toBe(true);
+      // The update should include number: '51' and a non-null sortNumber
+      const setCall = db._chains.update.set.mock.calls[0][0];
+      expect(setCall.number).toBe('51');
+      expect(setCall.sortNumber).not.toBeNull();
+    });
+
+    it('preserves manual title when manualFields includes title', async () => {
+      setupBookRescanMocks({
+        id: 'book-52',
+        fileName: 'Saga Vol.2012 #52.cbz',
+        filePath: 'Saga/Saga Vol.2012 #52.cbz',
+        number: '51', // stale value from DB
+        title: 'My Title', // manually set
+        format: 'single_issue',
+        coverDate: null,
+        summary: null,
+        pageCount: null,
+        manualFields: ['title'],
+      });
+
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValueOnce('/library/comics');
+
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        comicInfo: { title: 'File Title', number: '52' } as any,
+        pageCount: 20,
+        cover: null,
+      });
+
+      const result = await service.reExtractComicBook('book-52');
+
+      expect(result).toBe(true);
+      const setCall = db._chains.update.set.mock.calls[0][0];
+      // number should be updated (not in manualFields)
+      expect(setCall.number).toBe('52');
+      // title must NOT be in the update object (it is in manualFields)
+      expect(setCall).not.toHaveProperty('title');
+    });
+
+    it('returns false and logs error when file extraction throws', async () => {
+      setupBookRescanMocks({
+        id: 'book-err',
+        fileName: 'Bad.cbz',
+        filePath: 'Series/Bad.cbz',
+        number: '1',
+        title: null,
+        format: 'single_issue',
+        coverDate: null,
+        summary: null,
+        pageCount: null,
+        manualFields: [],
+      });
+
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValueOnce('/library/comics');
+
+      deps.comicMetadataProvider.extractMetadata.mockRejectedValueOnce(
+        new Error('corrupt archive'),
+      );
+
+      const result = await service.reExtractComicBook('book-err');
+
+      expect(result).toBe(false);
+      // Should NOT have called update (we failed before building updates)
+      expect(db.update).not.toHaveBeenCalled();
+    });
+
+    it('does not call update when all fields are locked in manualFields', async () => {
+      // When every derivable field is in manualFields, nothing should be updated
+      setupBookRescanMocks({
+        id: 'book-locked',
+        fileName: 'Series #10.cbz',
+        filePath: 'Series/Series #10.cbz',
+        number: '10',
+        title: 'Old Title',
+        format: 'single_issue',
+        coverDate: '2020-01-01',
+        summary: 'Old summary',
+        pageCount: 24,
+        manualFields: [
+          'number',
+          'title',
+          'format',
+          'coverDate',
+          'summary',
+          'pageCount',
+        ],
+      });
+
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValueOnce('/library/comics');
+
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        comicInfo: {
+          number: '99',
+          title: 'New Title',
+          formatRaw: 'Annual',
+          format: 'annual',
+          coverDate: '2024-05-01',
+          summary: 'New summary',
+        } as any,
+        pageCount: 48,
+        cover: null,
+      });
+
+      const result = await service.reExtractComicBook('book-locked');
+
+      expect(result).toBe(true);
+      // All fields are locked — no update should happen
+      expect(db.update).not.toHaveBeenCalled();
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // importComicSeriesUnit
+  // ------------------------------------------------------------------
+  describe('importComicSeriesUnit', () => {
+    function makeComicSeriesUnit(
+      overrides?: Partial<ComicSeriesUnit>,
+    ): ComicSeriesUnit {
+      return {
+        path: '/library/comics/Saga (2012)',
+        folderName: 'Saga (2012)',
+        isRootOneShot: false,
+        books: [
+          {
+            path: '/library/comics/Saga (2012)/Saga Vol.2012 #51 (April 2018).cbz',
+            fileName: 'Saga Vol.2012 #51 (April 2018).cbz',
+          },
+        ],
+        ...overrides,
+      };
+    }
+
+    it('uses parsed filename title when ComicInfo.xml is absent', async () => {
+      // Stub: no existing series, no existing book
+      db._chains.select.limit.mockResolvedValue([]);
+
+      // Stub: comicMetadataProvider returns no ComicInfo (info = null)
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        comicInfo: null,
+        pageCount: 0,
+        cover: null,
+      });
+
+      await service.importComicSeriesUnit(
+        makeComicSeriesUnit(),
+        '/library/comics',
+      );
+
+      // Find the comicBooks insert (it has a seriesId field, unlike the series insert)
+      const bookInsertCall = db._chains.insert.values.mock.calls.find(
+        (call: any[]) =>
+          call[0] && typeof call[0] === 'object' && 'seriesId' in call[0],
+      );
+
+      expect(bookInsertCall).toBeDefined();
+      const bookValues = bookInsertCall![0] as Record<string, unknown>;
+
+      // number should be extracted from the filename
+      expect(bookValues.number).toBe('51');
+      // title must NOT be null — it should fall back to the parsed series title
+      expect(bookValues.title).not.toBeNull();
+      expect(bookValues.title).toBe('Saga');
     });
   });
 });

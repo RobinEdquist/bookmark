@@ -709,6 +709,8 @@ export class MediaImporterService {
       const info = metadata.comicInfo;
 
       const number = info?.number ?? parsed.number;
+      const title =
+        sanitizeText(info?.title) ?? sanitizeText(parsed.title) ?? null;
       // ComicInfo Format wins only when actually present in the file
       const format = info?.formatRaw ? info.format : parsed.format;
       const container = this.resolveComicContainer(fileName);
@@ -718,7 +720,7 @@ export class MediaImporterService {
         .insert(comicsSchema.comicBooks)
         .values({
           seriesId,
-          title: sanitizeText(info?.title),
+          title,
           number,
           sortNumber: sortNumber !== null ? String(sortNumber) : null,
           format,
@@ -1173,6 +1175,126 @@ export class MediaImporterService {
       );
       return false;
     }
+  }
+
+  // ===== COMIC BOOK RESCAN =====
+
+  /**
+   * Re-extract metadata from a single comic book file and update the
+   * database row.  Fields listed in `manualFields` are never overwritten.
+   * `sortNumber` is recomputed whenever `number` changes.
+   *
+   * Returns true on success, false if the book was not found, and also
+   * returns false (logging the error) on file extraction failure so the
+   * caller can continue with other books.
+   */
+  async reExtractComicBook(bookId: string): Promise<boolean> {
+    this.logger.debug(`[RESCAN] Starting comic book rescan: ${bookId}`);
+
+    // Load the comic_books row
+    const [book] = await this.db
+      .select()
+      .from(comicsSchema.comicBooks)
+      .where(eq(comicsSchema.comicBooks.id, bookId))
+      .limit(1);
+
+    if (!book) {
+      this.logger.warn(`[RESCAN] Comic book ${bookId} not found`);
+      return false;
+    }
+
+    // Resolve the absolute path (mirrors ComicsService.resolveFilePath)
+    const libraryPath = await this.appSettingsService.getComicLibraryPath();
+    if (!libraryPath) {
+      this.logger.error('[RESCAN] No comic library path configured');
+      return false;
+    }
+    const absolutePath = path.join(libraryPath, book.filePath);
+
+    let metadata: Awaited<
+      ReturnType<typeof this.comicMetadataProvider.extractMetadata>
+    >;
+    try {
+      metadata = await this.comicMetadataProvider.extractMetadata(absolutePath);
+    } catch (error) {
+      this.logger.error(
+        `[RESCAN] Failed to extract metadata for ${absolutePath}: ${error}`,
+      );
+      return false;
+    }
+
+    const parsed = parseComicFilename(book.fileName);
+    const info = metadata.comicInfo;
+    const manualFields = book.manualFields ?? [];
+
+    const updates: Record<string, unknown> = {};
+
+    // number
+    if (!manualFields.includes('number')) {
+      const derivedNumber = info?.number ?? parsed.number;
+      if (derivedNumber !== book.number) {
+        updates.number = derivedNumber;
+        // Recompute sortNumber whenever number is updated
+        const sortNum = computeSortNumber(derivedNumber);
+        updates.sortNumber = sortNum !== null ? String(sortNum) : null;
+      }
+    }
+
+    // title
+    if (!manualFields.includes('title')) {
+      const derivedTitle =
+        sanitizeText(info?.title) ?? sanitizeText(parsed.title) ?? null;
+      if (derivedTitle !== book.title) {
+        updates.title = derivedTitle;
+      }
+    }
+
+    // format — ComicInfo format wins only when present in file
+    if (!manualFields.includes('format')) {
+      const derivedFormat = info?.formatRaw ? info.format : parsed.format;
+      if (derivedFormat !== book.format) {
+        updates.format = derivedFormat;
+      }
+    }
+
+    // coverDate
+    if (!manualFields.includes('coverDate')) {
+      const derivedCoverDate = info?.coverDate ?? null;
+      if (derivedCoverDate !== book.coverDate) {
+        updates.coverDate = derivedCoverDate;
+      }
+    }
+
+    // summary
+    if (!manualFields.includes('summary')) {
+      const derivedSummary = sanitizeText(info?.summary) ?? null;
+      if (derivedSummary !== book.summary) {
+        updates.summary = derivedSummary;
+      }
+    }
+
+    // pageCount
+    if (!manualFields.includes('pageCount')) {
+      const derivedPageCount =
+        metadata.pageCount > 0 ? metadata.pageCount : null;
+      if (derivedPageCount !== book.pageCount) {
+        updates.pageCount = derivedPageCount;
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await this.db
+        .update(comicsSchema.comicBooks)
+        .set(updates)
+        .where(eq(comicsSchema.comicBooks.id, bookId));
+      this.logger.debug(
+        `[RESCAN] Updated comic book ${bookId}: ${JSON.stringify(Object.keys(updates))}`,
+      );
+    } else {
+      this.logger.debug(`[RESCAN] No changes for comic book ${bookId}`);
+    }
+
+    return true;
   }
 
   // ===== PRIVATE HELPERS =====

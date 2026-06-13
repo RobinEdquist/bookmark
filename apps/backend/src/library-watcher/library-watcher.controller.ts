@@ -123,6 +123,27 @@ export class LibraryWatcherController {
     };
   }
 
+  @Post('rescan-comics')
+  @ApiOperation({
+    summary: 'Rescan all comic book metadata (Admin)',
+    description:
+      'Re-scan metadata for all existing comic books in the library. Re-extracts from CBZ/CBR/PDF files. Manually edited fields are preserved.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Rescan completed with results',
+    type: LibraryScanResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  async triggerComicRescan() {
+    const result = await this.libraryWatcherService.rescanAllComics();
+    return {
+      success: true,
+      result,
+    };
+  }
+
   @Get('rescan-status')
   @ApiOperation({
     summary: 'Get rescan status (Admin)',

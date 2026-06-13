@@ -45,25 +45,29 @@ export function parseSeriesFolderName(folderName: string): ParsedSeriesFolder {
 export function parseComicFilename(fileName: string): ParsedComicFilename {
   let base = path.basename(fileName, path.extname(fileName)).trim();
 
-  // Year: last "(YYYY)" group
+  // 1. Strip bracketed scene/format groups: [group], {tag}
+  base = base.replace(/\[[^\]]*\]/g, ' ').replace(/\{[^}]*\}/g, ' ');
+
+  // 2. Year: a 4-digit year in parens, optionally preceded by a month name
+  //    Handles "(2012)", "(April 2018)", "(Apr 2018)".
   let year: number | null = null;
-  const yearMatch = base.match(/\((\d{4})\)/);
-  if (yearMatch) {
-    year = parseInt(yearMatch[1], 10);
-    base = base.replace(yearMatch[0], '').trim();
+  const dateMatch = base.match(/\((?:[A-Za-z]{3,9}\.?\s+)?((?:19|20)\d{2})\)/);
+  if (dateMatch) {
+    year = parseInt(dateMatch[1], 10);
+    base = base.replace(dateMatch[0], ' ');
   }
 
-  // "(of N)" total count
+  // 3. "(of N)" total count
   let countInSeries: number | null = null;
   const ofMatch = base.match(/\(of\s+(\d+)\)/i);
   if (ofMatch) {
     countInSeries = parseInt(ofMatch[1], 10);
-    base = base.replace(ofMatch[0], '').trim();
+    base = base.replace(ofMatch[0], ' ');
   }
 
-  // Remove any remaining empty parens and collapse whitespace
+  // 4. Remove any remaining parenthetical scene tags, e.g. "(Digital)", "(Empire)"
   base = base
-    .replace(/\(\s*\)/g, '')
+    .replace(/\([^)]*\)/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim();
 
@@ -71,41 +75,50 @@ export function parseComicFilename(fileName: string): ParsedComicFilename {
   let number: string | null = null;
   let title = base;
 
-  // Annual: "Title Annual #N" / "Title Annual N"
-  const annualMatch = base.match(/^(.*?)\s+Annual\s*#?(\d+(?:\.\d+)?)$/i);
-  // Omnibus: "Title Omnibus N" / "Title Omnibus"
-  const omnibusMatch = base.match(/^(.*?)\s+Omnibus(?:\s*#?(\d+))?$/i);
-  // Trade volume: "Title Vol. 04" / "Title Vol 4" / "Title v04"
-  const volMatch = base.match(/^(.*?)\s+(?:Vol\.?\s*|v)(\d+(?:\.\d+)?)$/i);
-  // Issue: "Title #043" / "Title 043" (number must be the last token)
-  const issueMatch = base.match(/^(.*?)\s+#?(\d+(?:\.\d+)?[A-Za-z]*)$/);
+  const annualMatch = base.match(/^(.*?)\s+Annual\s*#?(\d+(?:\.\d+)?)\b/i);
+  const omnibusMatch = base.match(/^(.*?)\s+Omnibus(?:\s*#?(\d+))?\b/i);
+  const hashMatch = base.match(/#\s*(\d+(?:\.\d+)?[A-Za-z]*)/);
+  const volMatch = base.match(/^(.*?)\s+(?:Vol\.?\s*|v)(\d+(?:\.\d+)?)\s*$/i);
+  const trailingMatch = base.match(/^(.*?)\s+(\d+(?:\.\d+)?[A-Za-z]*)\s*$/);
 
   if (annualMatch) {
-    title = annualMatch[1].trim();
+    title = cleanTitle(annualMatch[1]);
     number = `Annual ${stripLeadingZeros(annualMatch[2])}`;
     format = 'annual';
   } else if (omnibusMatch) {
-    title = omnibusMatch[1].trim();
+    title = cleanTitle(omnibusMatch[1]);
     number = omnibusMatch[2] ? stripLeadingZeros(omnibusMatch[2]) : null;
     format = 'omnibus';
+  } else if (hashMatch) {
+    number = stripLeadingZeros(hashMatch[1]);
+    title = cleanTitle(base.slice(0, base.indexOf('#')));
+    format = 'single_issue';
   } else if (volMatch) {
-    title = volMatch[1].trim();
+    title = cleanTitle(volMatch[1]);
     number = stripLeadingZeros(volMatch[2]);
     format = 'tpb';
-  } else if (issueMatch) {
-    title = issueMatch[1].trim();
-    number = stripLeadingZeros(issueMatch[2]);
+  } else if (trailingMatch) {
+    title = cleanTitle(trailingMatch[1]);
+    number = stripLeadingZeros(trailingMatch[2]);
     format = 'single_issue';
   }
 
   return {
-    title,
+    title: title || base,
     number,
     sortNumber: computeSortNumber(number),
     format,
     year,
     countInSeries,
   };
+}
+
+/** Trim a parsed title and drop a trailing "Vol.<digits>" qualifier (e.g. "Saga Vol.2012" -> "Saga"). */
+function cleanTitle(raw: string): string {
+  return raw
+    .replace(/\s+Vol\.?\s*\d+\s*$/i, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 function stripLeadingZeros(value: string): string {
