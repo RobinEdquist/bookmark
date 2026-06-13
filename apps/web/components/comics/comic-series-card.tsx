@@ -5,7 +5,15 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download } from "lucide-react";
+import {
+  MoreVertical,
+  Pencil,
+  AlertTriangle,
+  Trash2,
+  ImageIcon,
+  Download,
+  ListPlus,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -18,6 +26,7 @@ import type { ComicSeriesListItem } from "../../lib/use-comics";
 import { useMyPermissions } from "../../lib/use-users";
 import { DeleteComicSeriesDialog } from "./delete-comic-series-dialog";
 import { ChangeComicSeriesCoverDialog } from "./change-comic-series-cover-dialog";
+import { AddToListDialog } from "../lists/add-to-list-dialog";
 
 interface ComicSeriesCardProps {
   series: ComicSeriesListItem;
@@ -32,6 +41,7 @@ export function ComicSeriesCard({
   const t = useTranslations("comics");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
+  const [addToListOpen, setAddToListOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -157,7 +167,10 @@ export function ComicSeriesCard({
                     {t("card.changeCover")}
                   </DropdownMenuItem>
                 )}
-                {/* add-to-list: Task 12 */}
+                <DropdownMenuItem onClick={() => setAddToListOpen(true)}>
+                  <ListPlus className="h-4 w-4" />
+                  {t("card.addToList")}
+                </DropdownMenuItem>
                 {canDelete && <DropdownMenuSeparator />}
                 {canDelete && (
                   <DropdownMenuItem
@@ -192,6 +205,13 @@ export function ComicSeriesCard({
           onOpenChange={setChangeCoverOpen}
         />
       )}
+
+      <AddToListDialog
+        itemType="comic_series"
+        itemId={series.id}
+        open={addToListOpen}
+        onOpenChange={setAddToListOpen}
+      />
     </>
   );
 }

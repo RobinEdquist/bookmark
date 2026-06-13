@@ -66,7 +66,7 @@ export class ListsController {
     description:
       'Returns user lists with a flag indicating if each contains the specified item',
   })
-  @ApiQuery({ name: 'itemType', enum: ['audiobook', 'ebook'] })
+  @ApiQuery({ name: 'itemType', enum: ['audiobook', 'ebook', 'comic_series'] })
   @ApiQuery({ name: 'itemId', type: String })
   @ApiResponse({
     status: 200,
@@ -76,7 +76,7 @@ export class ListsController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getListsForItem(
-    @Query('itemType') itemType: 'audiobook' | 'ebook',
+    @Query('itemType') itemType: 'audiobook' | 'ebook' | 'comic_series',
     @Query('itemId') itemId: string,
     @CurrentUser() user: AuthenticatedUser,
   ) {
@@ -221,7 +221,7 @@ export class ListsController {
   @Post(':id/items')
   @ApiOperation({
     summary: 'Add item to list',
-    description: 'Adds an audiobook or ebook to a list',
+    description: 'Adds an audiobook, ebook, or comic series to a list',
   })
   @ApiParam({ name: 'id', description: 'List ID' })
   @ApiResponse({ status: 201, description: 'Item added', type: ListItemDto })

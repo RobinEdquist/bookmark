@@ -204,7 +204,7 @@ export const queryKeys = {
     all: ['lists'] as const,
     list: () => [...queryKeys.lists.all, 'list'] as const,
     detail: (id: string) => [...queryKeys.lists.all, 'detail', id] as const,
-    forItem: (itemType: 'audiobook' | 'ebook', itemId: string) =>
+    forItem: (itemType: 'audiobook' | 'ebook' | 'comic_series', itemId: string) =>
       [...queryKeys.lists.all, 'for-item', itemType, itemId] as const,
     recent: (limit?: number) => [...queryKeys.lists.all, 'recent', limit] as const,
     top: (limit?: number) => [...queryKeys.lists.all, 'top', limit] as const,

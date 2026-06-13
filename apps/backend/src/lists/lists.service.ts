@@ -11,10 +11,12 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as listsSchema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
+import * as comicsSchema from '../comics/schema';
 import * as authSchema from '../auth/schema';
 import * as usersSchema from '../users/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
+import { CoverService } from '../common/cover.service';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import type { MetadataFieldPriority } from '../app-settings/schema';
 import {
@@ -36,6 +38,7 @@ import {
 type CombinedSchema = typeof listsSchema &
   typeof audiobooksSchema &
   typeof ebooksSchema &
+  typeof comicsSchema &
   typeof authSchema &
   typeof usersSchema &
   typeof hardcoverSchema &
@@ -53,6 +56,7 @@ export class ListsService {
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<CombinedSchema>,
     private appSettingsService: AppSettingsService,
+    private coverService: CoverService,
   ) {}
 
   /**
@@ -623,6 +627,7 @@ export class ListsService {
         itemType: listsSchema.listItems.itemType,
         audiobookId: listsSchema.listItems.audiobookId,
         ebookId: listsSchema.listItems.ebookId,
+        comicSeriesId: listsSchema.listItems.comicSeriesId,
       })
       .from(listsSchema.listItems)
       .where(eq(listsSchema.listItems.listId, listId))
@@ -636,6 +641,8 @@ export class ListsService {
         covers.push(`/api/audiobooks/${item.audiobookId}/cover`);
       } else if (item.itemType === 'ebook' && item.ebookId) {
         covers.push(`/api/ebooks/${item.ebookId}/cover`);
+      } else if (item.itemType === 'comic_series' && item.comicSeriesId) {
+        covers.push(`/api/comics/series/${item.comicSeriesId}/cover`);
       }
     }
 
@@ -674,7 +681,7 @@ export class ListsService {
   }
 
   /**
-   * Get list items with audiobook/ebook details
+   * Get list items with audiobook/ebook/comic_series details
    */
   private async getListItemsWithDetails(listId: string) {
     const items = await this.db
@@ -684,6 +691,7 @@ export class ListsService {
         itemType: listsSchema.listItems.itemType,
         audiobookId: listsSchema.listItems.audiobookId,
         ebookId: listsSchema.listItems.ebookId,
+        comicSeriesId: listsSchema.listItems.comicSeriesId,
         order: listsSchema.listItems.order,
         createdAt: listsSchema.listItems.createdAt,
       })
@@ -691,23 +699,31 @@ export class ListsService {
       .where(eq(listsSchema.listItems.listId, listId))
       .orderBy(asc(listsSchema.listItems.order));
 
-    // Fetch audiobook and ebook details for each item
+    // Fetch audiobook, ebook, or comic_series details for each item
     const itemsWithDetails = await Promise.all(
       items.map(async (item) => {
         if (item.itemType === 'audiobook' && item.audiobookId) {
           const audiobook = await this.getAudiobookSummary(item.audiobookId);
-          return { ...item, audiobook, ebook: null };
+          return { ...item, audiobook, ebook: null, comicSeries: null };
         } else if (item.itemType === 'ebook' && item.ebookId) {
           const ebook = await this.getEbookSummary(item.ebookId);
-          return { ...item, audiobook: null, ebook };
+          return { ...item, audiobook: null, ebook, comicSeries: null };
+        } else if (item.itemType === 'comic_series' && item.comicSeriesId) {
+          const comicSeries = await this.getComicSeriesSummary(
+            item.comicSeriesId,
+          );
+          return { ...item, audiobook: null, ebook: null, comicSeries };
         }
-        return { ...item, audiobook: null, ebook: null };
+        return { ...item, audiobook: null, ebook: null, comicSeries: null };
       }),
     );
 
-    // Filter out items where the audiobook/ebook no longer exists
+    // Filter out items where the related entity no longer exists
     return itemsWithDetails.filter(
-      (item) => item.audiobook !== null || item.ebook !== null,
+      (item) =>
+        item.audiobook !== null ||
+        item.ebook !== null ||
+        item.comicSeries !== null,
     );
   }
 
@@ -784,6 +800,37 @@ export class ListsService {
     };
   }
 
+  private async getComicSeriesSummary(seriesId: string) {
+    const result = await this.db
+      .select({
+        id: comicsSchema.comicSeries.id,
+        title: comicsSchema.comicSeries.title,
+        publisher: comicsSchema.comicSeries.publisher,
+        status: comicsSchema.comicSeries.status,
+        coverUrl: comicsSchema.comicSeries.coverUrl,
+        coverSource: comicsSchema.comicSeries.coverSource,
+      })
+      .from(comicsSchema.comicSeries)
+      .where(eq(comicsSchema.comicSeries.id, seriesId))
+      .limit(1);
+
+    if (result.length === 0) return null;
+
+    const series = result[0];
+    return {
+      id: series.id,
+      title: series.title,
+      publisher: series.publisher,
+      status: series.status,
+      coverUrl: this.coverService.getCoverUrl(
+        series.id,
+        series.coverUrl,
+        series.coverSource,
+        'comics/series',
+      ),
+    };
+  }
+
   /**
    * Create a new list
    */
@@ -845,7 +892,7 @@ export class ListsService {
       if (audiobook.length === 0) {
         throw new NotFoundException('Audiobook not found');
       }
-    } else {
+    } else if (dto.itemType === 'ebook') {
       const ebook = await this.db
         .select({ id: ebooksSchema.ebooks.id })
         .from(ebooksSchema.ebooks)
@@ -854,18 +901,32 @@ export class ListsService {
       if (ebook.length === 0) {
         throw new NotFoundException('Ebook not found');
       }
+    } else {
+      const series = await this.db
+        .select({ id: comicsSchema.comicSeries.id })
+        .from(comicsSchema.comicSeries)
+        .where(eq(comicsSchema.comicSeries.id, dto.itemId))
+        .limit(1);
+      if (series.length === 0) {
+        throw new NotFoundException('Comic series not found');
+      }
     }
 
     // Check if item is already in list
+    const itemColumn =
+      dto.itemType === 'audiobook'
+        ? listsSchema.listItems.audiobookId
+        : dto.itemType === 'ebook'
+          ? listsSchema.listItems.ebookId
+          : listsSchema.listItems.comicSeriesId;
+
     const existingItem = await this.db
       .select({ id: listsSchema.listItems.id })
       .from(listsSchema.listItems)
       .where(
         and(
           eq(listsSchema.listItems.listId, listId),
-          dto.itemType === 'audiobook'
-            ? eq(listsSchema.listItems.audiobookId, dto.itemId)
-            : eq(listsSchema.listItems.ebookId, dto.itemId),
+          eq(itemColumn, dto.itemId),
         ),
       )
       .limit(1);
@@ -892,6 +953,7 @@ export class ListsService {
         itemType: dto.itemType,
         audiobookId: dto.itemType === 'audiobook' ? dto.itemId : null,
         ebookId: dto.itemType === 'ebook' ? dto.itemId : null,
+        comicSeriesId: dto.itemType === 'comic_series' ? dto.itemId : null,
         order: nextOrder,
       })
       .returning();
@@ -967,7 +1029,7 @@ export class ListsService {
    */
   async getListsForItem(
     userId: string,
-    itemType: 'audiobook' | 'ebook',
+    itemType: 'audiobook' | 'ebook' | 'comic_series',
     itemId: string,
   ) {
     // First get the user's lists
@@ -994,7 +1056,9 @@ export class ListsService {
         const itemColumn =
           itemType === 'audiobook'
             ? listsSchema.listItems.audiobookId
-            : listsSchema.listItems.ebookId;
+            : itemType === 'ebook'
+              ? listsSchema.listItems.ebookId
+              : listsSchema.listItems.comicSeriesId;
 
         const containsResult = await this.db
           .select({ id: listsSchema.listItems.id })

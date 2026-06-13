@@ -11,6 +11,7 @@ import { relations } from 'drizzle-orm';
 import { user } from '../auth/schema';
 import { audiobooks } from '../audiobooks/schema';
 import { ebooks } from '../ebooks/schema';
+import { comicSeries } from '../comics/schema';
 
 // Lists table
 export const lists = pgTable(
@@ -42,11 +43,16 @@ export const listItems = pgTable(
     listId: uuid('list_id')
       .notNull()
       .references(() => lists.id, { onDelete: 'cascade' }),
-    itemType: text('item_type').$type<'audiobook' | 'ebook'>().notNull(),
+    itemType: text('item_type')
+      .$type<'audiobook' | 'ebook' | 'comic_series'>()
+      .notNull(),
     audiobookId: uuid('audiobook_id').references(() => audiobooks.id, {
       onDelete: 'cascade',
     }),
     ebookId: uuid('ebook_id').references(() => ebooks.id, {
+      onDelete: 'cascade',
+    }),
+    comicSeriesId: uuid('comic_series_id').references(() => comicSeries.id, {
       onDelete: 'cascade',
     }),
     order: integer('order').notNull().default(0),
@@ -56,6 +62,7 @@ export const listItems = pgTable(
     index('list_items_list_id_idx').on(table.listId),
     index('list_items_audiobook_id_idx').on(table.audiobookId),
     index('list_items_ebook_id_idx').on(table.ebookId),
+    index('list_items_comic_series_id_idx').on(table.comicSeriesId),
     index('list_items_list_order_idx').on(table.listId, table.order),
   ],
 );
@@ -81,5 +88,9 @@ export const listItemsRelations = relations(listItems, ({ one }) => ({
   ebook: one(ebooks, {
     fields: [listItems.ebookId],
     references: [ebooks.id],
+  }),
+  comicSeries: one(comicSeries, {
+    fields: [listItems.comicSeriesId],
+    references: [comicSeries.id],
   }),
 }));

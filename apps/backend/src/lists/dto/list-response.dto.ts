@@ -155,7 +155,33 @@ export class ListItemEbookSummaryDto {
 }
 
 /**
- * Single item inside a list, with the related audiobook/ebook hydrated.
+ * Lightweight comic series summary embedded inside a list item.
+ */
+export class ListItemComicSeriesSummaryDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  id!: string;
+
+  @ApiProperty({ example: 'Saga' })
+  title!: string;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Image Comics',
+    nullable: true,
+  })
+  publisher?: string | null;
+
+  @ApiProperty({ example: 'available' })
+  status!: string;
+
+  @ApiProperty({
+    example: '/api/comics/series/550e8400-e29b-41d4-a716-446655440000/cover',
+  })
+  coverUrl!: string;
+}
+
+/**
+ * Single item inside a list, with the related audiobook/ebook/comic_series hydrated.
  */
 export class ListItemWithDetailsDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
@@ -164,8 +190,11 @@ export class ListItemWithDetailsDto {
   @ApiProperty({ example: '660e8400-e29b-41d4-a716-446655440000' })
   listId!: string;
 
-  @ApiProperty({ enum: ['audiobook', 'ebook'], example: 'audiobook' })
-  itemType!: 'audiobook' | 'ebook';
+  @ApiProperty({
+    enum: ['audiobook', 'ebook', 'comic_series'],
+    example: 'audiobook',
+  })
+  itemType!: 'audiobook' | 'ebook' | 'comic_series';
 
   @ApiPropertyOptional({
     type: String,
@@ -180,6 +209,13 @@ export class ListItemWithDetailsDto {
     nullable: true,
   })
   ebookId?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    nullable: true,
+  })
+  comicSeriesId?: string | null;
 
   @ApiProperty({ example: 1, description: 'Sort order within the list' })
   order!: number;
@@ -204,10 +240,17 @@ export class ListItemWithDetailsDto {
     description: 'Populated when itemType is "ebook".',
   })
   ebook?: ListItemEbookSummaryDto | null;
+
+  @ApiPropertyOptional({
+    type: () => ListItemComicSeriesSummaryDto,
+    nullable: true,
+    description: 'Populated when itemType is "comic_series".',
+  })
+  comicSeries?: ListItemComicSeriesSummaryDto | null;
 }
 
 /**
- * Bare list item shape (no hydrated audiobook/ebook) returned by addItem.
+ * Bare list item shape (no hydrated audiobook/ebook/comic_series) returned by addItem.
  */
 export class ListItemDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
@@ -216,14 +259,20 @@ export class ListItemDto {
   @ApiProperty({ example: '660e8400-e29b-41d4-a716-446655440000' })
   listId!: string;
 
-  @ApiProperty({ enum: ['audiobook', 'ebook'], example: 'audiobook' })
-  itemType!: 'audiobook' | 'ebook';
+  @ApiProperty({
+    enum: ['audiobook', 'ebook', 'comic_series'],
+    example: 'audiobook',
+  })
+  itemType!: 'audiobook' | 'ebook' | 'comic_series';
 
   @ApiPropertyOptional({ nullable: true })
   audiobookId?: string | null;
 
   @ApiPropertyOptional({ nullable: true })
   ebookId?: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  comicSeriesId?: string | null;
 
   @ApiProperty({ example: 1 })
   order!: number;

@@ -5,7 +5,14 @@ import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { GripVertical, Headphones, BookOpen, X, ExternalLink } from "lucide-react";
+import {
+  GripVertical,
+  Headphones,
+  BookOpen,
+  BookImage,
+  X,
+  ExternalLink,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import type { ListItem } from "../../lib/use-lists";
 import { cn } from "@repo/ui/lib/utils";
@@ -36,13 +43,16 @@ export function SortableListItem({
     transition,
   };
 
-  const content = item.audiobook || item.ebook;
+  const content = item.audiobook || item.ebook || item.comicSeries;
   if (!content) return null;
 
   const isAudiobook = item.itemType === "audiobook";
+  const isComicSeries = item.itemType === "comic_series";
   const href = isAudiobook
     ? `/audiobooks/${item.audiobookId}`
-    : `/ebooks/${item.ebookId}`;
+    : isComicSeries
+      ? `/comics/${item.comicSeriesId}`
+      : `/ebooks/${item.ebookId}`;
 
   return (
     <div
@@ -75,7 +85,7 @@ export function SortableListItem({
       >
         {content.coverUrl ? (
           <Image
-            src={`/api/${isAudiobook ? "audiobooks" : "ebooks"}/${isAudiobook ? item.audiobookId : item.ebookId}/cover`}
+            src={content.coverUrl}
             alt={content.title}
             fill
             className="object-cover"
@@ -85,6 +95,8 @@ export function SortableListItem({
           <div className="flex h-full w-full items-center justify-center bg-muted">
             {isAudiobook ? (
               <Headphones className="h-6 w-6 text-muted-foreground" />
+            ) : isComicSeries ? (
+              <BookImage className="h-6 w-6 text-muted-foreground" />
             ) : (
               <BookOpen className="h-6 w-6 text-muted-foreground" />
             )}
@@ -100,14 +112,21 @@ export function SortableListItem({
         >
           {content.title}
         </Link>
-        {content.subtitle && (
+        {"subtitle" in content && content.subtitle && (
           <p className="truncate text-sm text-muted-foreground">
             {content.subtitle}
           </p>
         )}
-        {content.authors && content.authors.length > 0 && (
+        {"authors" in content &&
+          content.authors &&
+          content.authors.length > 0 && (
+            <p className="truncate text-sm text-muted-foreground">
+              {content.authors.join(", ")}
+            </p>
+          )}
+        {isComicSeries && "publisher" in content && content.publisher && (
           <p className="truncate text-sm text-muted-foreground">
-            {content.authors.join(", ")}
+            {content.publisher}
           </p>
         )}
       </div>
@@ -118,10 +137,16 @@ export function SortableListItem({
           "hidden shrink-0 rounded-full px-2 py-1 text-xs font-medium sm:block",
           isAudiobook
             ? "bg-primary/10 text-primary"
-            : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+            : isComicSeries
+              ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
+              : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
         )}
       >
-        {isAudiobook ? t("audiobook") : t("ebook")}
+        {isAudiobook
+          ? t("audiobook")
+          : isComicSeries
+            ? t("comicSeries")
+            : t("ebook")}
       </div>
 
       {/* Actions */}
