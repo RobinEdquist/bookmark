@@ -374,33 +374,39 @@ const baseSeriesRow: {
  * getSeriesById call order:
  *   1. verifySeriesNotBlacklisted  → comicSeriesTags check (returns [])
  *   2. series fetch                → returns [seriesRow]
- *   3. Promise.all(5 queries):
+ *   3. Promise.all(6 queries):
  *        [0] comicBooks list       → returns []
  *        [1] genres join           → returns []
  *        [2] tags join             → returns []
- *        [3] creators join         → returns []
+ *        [3] creators join         → selectDistinct returns []
  *        [4] volumeLinks join      → returns volumeRows
+ *        [5] seriesTagRows         → selectDistinct returns seriesTagRows
  *
  * getBookById call order:
  *   1. verifyBookNotBlacklisted → book seriesId fetch (returns [{ seriesId }])
  *   2. verifySeriesNotBlacklisted → comicSeriesTags check (returns [])
  *   3. book fetch               → returns [bookRow]
- *   4. Promise.all(3 queries):
+ *   4. Promise.all(4 queries):
  *        [0] series fetch        → returns [{ id, title }]
  *        [1] creators join       → returns []
  *        [2] issueLinks join     → returns issueRows
+ *        [3] tagRows             → returns tagRows
  */
 function buildServiceForMergeTest({
   seriesRow = baseSeriesRow,
   volumeRows = [] as unknown[],
+  seriesTagRows = [] as unknown[],
   bookRow = null as unknown | null,
   issueRows = [] as unknown[],
+  bookTagRows = [] as unknown[],
   priority = DEFAULT_COMIC_METADATA_PRIORITY,
 }: {
   seriesRow?: typeof baseSeriesRow;
   volumeRows?: unknown[];
+  seriesTagRows?: unknown[];
   bookRow?: unknown | null;
   issueRows?: unknown[];
+  bookTagRows?: unknown[];
   priority?: typeof DEFAULT_COMIC_METADATA_PRIORITY;
 } = {}) {
   const select = jest.fn();
@@ -422,7 +428,7 @@ function buildServiceForMergeTest({
     select.mockReturnValueOnce(chain([]));
     // call 3 (select): book fetch
     select.mockReturnValueOnce(chain([bookRow]));
-    // Promise.all(3 queries):
+    // Promise.all(4 queries):
     // call 4 (select, Promise.all[0]): series fetch
     select.mockReturnValueOnce(
       chain([{ id: 'series-1', title: 'Series Title' }]),
@@ -431,13 +437,15 @@ function buildServiceForMergeTest({
     select.mockReturnValueOnce(chain([]));
     // call 6 (select, Promise.all[2]): issueLinks join
     select.mockReturnValueOnce(chain(issueRows));
+    // call 7 (select, Promise.all[3]): tagRows
+    select.mockReturnValueOnce(chain(bookTagRows));
   } else {
     // getSeriesById call sequence:
     // call 1 (select): verifySeriesNotBlacklisted — comicSeriesTags innerJoin (no blacklisted tags)
     select.mockReturnValueOnce(chain([]));
     // call 2 (select): series fetch
     select.mockReturnValueOnce(chain([seriesRow]));
-    // Promise.all(5 queries):
+    // Promise.all(6 queries):
     // call 3 (select, Promise.all[0]): comicBooks list
     select.mockReturnValueOnce(chain([]));
     // call 4 (select, Promise.all[1]): genres innerJoin
@@ -448,6 +456,8 @@ function buildServiceForMergeTest({
     selectDistinct.mockReturnValueOnce(chain([]));
     // call 7 (select, Promise.all[4]): volumeLinks innerJoin
     select.mockReturnValueOnce(chain(volumeRows));
+    // call 8 (selectDistinct, Promise.all[5]): seriesTagRows selectDistinct+innerJoin
+    selectDistinct.mockReturnValueOnce(chain(seriesTagRows));
   }
 
   // Fallback for any unexpected calls
@@ -640,7 +650,7 @@ function buildServiceForMissingIssueTest({
   select.mockReturnValueOnce(chain([]));
   // call 2 (select): series fetch
   select.mockReturnValueOnce(chain([baseSeriesRow]));
-  // Promise.all(5 queries):
+  // Promise.all(6 queries):
   // call 3 (select, Promise.all[0]): comicBooks list — the books under test
   select.mockReturnValueOnce(chain(books));
   // call 4 (select, Promise.all[1]): genres
@@ -651,6 +661,8 @@ function buildServiceForMissingIssueTest({
   selectDistinct.mockReturnValueOnce(chain([]));
   // call 7 (select, Promise.all[4]): volumeLinks
   select.mockReturnValueOnce(chain(volumeRows));
+  // call 8 (selectDistinct, Promise.all[5]): seriesTagRows
+  selectDistinct.mockReturnValueOnce(chain([]));
 
   // Fallback
   select.mockReturnValue(chain([]));
@@ -686,6 +698,7 @@ function buildServiceForMissingIssueTest({
 function makeBook(
   number: string | null,
   format: string = 'single_issue',
+  issueCountFromFile: number | null = null,
 ): unknown {
   return {
     id: `book-${number ?? 'null'}`,
@@ -702,6 +715,9 @@ function makeBook(
     status: 'available',
     coverUrl: null,
     coverSource: null,
+    web: null,
+    ageRating: null,
+    issueCountFromFile,
     manualFields: [],
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
@@ -798,6 +814,9 @@ describe('ComicsService.getBookById — metadata merge', () => {
     coverUrl: null,
     coverSource: null,
     pageCount: null,
+    web: null,
+    ageRating: null,
+    issueCountFromFile: null,
     manualFields: [] as string[],
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
@@ -1070,5 +1089,261 @@ describe('ComicsService.updateBook with creators', () => {
       .map((r) => r.value)
       .map((chain) => chain.set.mock.calls[0]?.[0]);
     expect(setCalls.some((data) => 'creators' in (data ?? {}))).toBe(false);
+  });
+});
+
+// ===== getBookById — metadataTags grouping =====
+
+describe('ComicsService.getBookById — metadataTags grouping', () => {
+  const baseBookRow = {
+    id: 'book-1',
+    seriesId: 'series-1',
+    title: 'Stored Book Title',
+    number: '1',
+    sortNumber: '1',
+    format: 'single_issue',
+    coverDate: '2023-01-01',
+    summary: null,
+    storeDate: null,
+    filePath: 'series-1/book1.cbz',
+    fileName: 'book1.cbz',
+    sizeBytes: 5000,
+    container: 'cbz',
+    status: 'available',
+    coverUrl: null,
+    coverSource: null,
+    pageCount: null,
+    web: 'https://example.com/issue',
+    ageRating: 'Teen',
+    issueCountFromFile: 12,
+    manualFields: [] as string[],
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  };
+
+  it('groups tag rows by type into metadataTags object', async () => {
+    const bookTagRows = [
+      { type: 'story_arc', value: 'Civil War' },
+      { type: 'story_arc', value: 'Secret Invasion' },
+      { type: 'character', value: 'Iron Man' },
+      { type: 'team', value: 'Avengers' },
+      { type: 'location', value: 'New York' },
+    ];
+
+    const { service } = buildServiceForMergeTest({
+      bookRow: baseBookRow,
+      bookTagRows,
+    });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.metadataTags).toEqual({
+      storyArcs: ['Civil War', 'Secret Invasion'],
+      characters: ['Iron Man'],
+      teams: ['Avengers'],
+      locations: ['New York'],
+    });
+  });
+
+  it('returns empty arrays for all groups when book has no tags', async () => {
+    const { service } = buildServiceForMergeTest({
+      bookRow: baseBookRow,
+      bookTagRows: [],
+    });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.metadataTags).toEqual({
+      storyArcs: [],
+      characters: [],
+      teams: [],
+      locations: [],
+    });
+  });
+
+  it('returns web, ageRating, and issueCountFromFile from book row', async () => {
+    const { service } = buildServiceForMergeTest({
+      bookRow: baseBookRow,
+      bookTagRows: [],
+    });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.web).toBe('https://example.com/issue');
+    expect(result.ageRating).toBe('Teen');
+    expect(result.issueCountFromFile).toBe(12);
+  });
+});
+
+// ===== getSeriesById — aggregatedTags =====
+
+describe('ComicsService.getSeriesById — aggregatedTags', () => {
+  it('aggregates story_arc and character tags across series books', async () => {
+    const seriesTagRows = [
+      { type: 'story_arc', value: 'Dark Phoenix' },
+      { type: 'story_arc', value: 'Age of Apocalypse' },
+      { type: 'character', value: 'Wolverine' },
+      { type: 'character', value: 'Cyclops' },
+    ];
+
+    const { service } = buildServiceForMergeTest({ seriesTagRows });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.aggregatedTags).toEqual({
+      storyArcs: ['Dark Phoenix', 'Age of Apocalypse'],
+      characters: ['Wolverine', 'Cyclops'],
+    });
+  });
+
+  it('returns empty arrays when series has no metadata tags', async () => {
+    const { service } = buildServiceForMergeTest({ seriesTagRows: [] });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.aggregatedTags).toEqual({
+      storyArcs: [],
+      characters: [],
+    });
+  });
+});
+
+// ===== getSeriesById — missing-issue ceiling uses issueCountFromFile =====
+
+describe('ComicsService.getSeriesById — missing-issue ceiling fallback via issueCountFromFile', () => {
+  it('uses max issueCountFromFile as ceiling when no volume is linked', async () => {
+    // Books #1..#50 are present; books carry issueCountFromFile: 54.
+    // No ComicVine volume linked → ceiling should be 54 via file count.
+    // Expected missing: 51, 52, 53, 54 (since #51..#54 not present).
+    // Wait — makeBook now accepts issueCountFromFile as third param.
+    const books: unknown[] = [];
+    for (let i = 1; i <= 50; i++) books.push(makeBook(String(i), 'single_issue', 54));
+
+    const { service } = buildServiceForMissingIssueTest({
+      books,
+      volumeRows: [],
+    });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    // Ceiling from issueCountFromFile = 54; present #1..#50; missing = 51, 52, 53, 54.
+    expect(result.missingIssues).toContain('51');
+    expect(result.missingIssues).toContain('52');
+    expect(result.missingIssues).toContain('53');
+    expect(result.missingIssues).toContain('54');
+    expect(result.missingIssues).toHaveLength(4);
+  });
+
+  it('ComicVine count takes priority over issueCountFromFile', async () => {
+    // Books #1..#50 with issueCountFromFile: 54; volume.countOfIssues: 52.
+    // CV count wins → ceiling = 52 → missing = 51, 52.
+    const books: unknown[] = [];
+    for (let i = 1; i <= 50; i++) books.push(makeBook(String(i), 'single_issue', 54));
+
+    const volumeRows = [
+      {
+        volume: {
+          comicvineVolumeId: 1,
+          name: 'Test',
+          description: null,
+          publisherName: null,
+          startYear: null,
+          siteDetailUrl: null,
+          imageUrl: null,
+          countOfIssues: 52,
+        },
+      },
+    ];
+
+    const { service } = buildServiceForMissingIssueTest({ books, volumeRows });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    // CV ceiling 52; present 1–50; missing = 51, 52.
+    expect(result.missingIssues).toContain('51');
+    expect(result.missingIssues).toContain('52');
+    expect(result.missingIssues).not.toContain('53');
+    expect(result.missingIssues).toHaveLength(2);
+  });
+});
+
+// ===== findAllSeries — metadataTag filter applies exists-subquery =====
+
+describe('ComicsService.findAllSeries — metadataTag filter', () => {
+  /**
+   * Build a minimal service mock for findAllSeries.
+   *
+   * findAllSeries calls this.db.select() for:
+   *   (a) bookCount inline subquery (built before Promise.all)
+   *   (b) exists() subquery for metadataTag — ONLY when tag type is valid
+   *   (c) outer items query (Promise.all[0]) — returns [] → no .series.id access
+   *   (d) count query (Promise.all[1]) — returns [{total}]
+   *
+   * `existsSubqueries` lets callers specify how many additional exists()
+   * calls to account for (e.g. 1 for metadataTag with valid type, 0 for unknown).
+   */
+  function buildServiceForFindAll(total: number, existsSubqueries = 0) {
+    // Build the queue: (a) bookCount, then N exists subqueries, then (c) items, then (d) count.
+    const queue: unknown[] = [
+      [], // (a) bookCount
+      ...Array.from({ length: existsSubqueries }, () => []), // (b) exists calls
+      [], // (c) items query — empty → seriesIds = [] → no i.series.id access
+      [{ total }], // (d) count query
+    ];
+    const select = jest.fn().mockImplementation(() => {
+      const val = queue.length > 1 ? queue.shift() : queue[0];
+      return chainMock(val);
+    });
+
+    const execute = jest.fn().mockResolvedValue({ rows: [] });
+
+    const db = { select, execute } as never;
+    const appSettings = {
+      getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+    } as never;
+    const coverService = {
+      getCoverUrl: jest.fn().mockReturnValue(null),
+    } as never;
+    const stub = {} as never;
+
+    const service = new ComicsService(
+      db,
+      appSettings,
+      coverService,
+      stub, // imageProcessing
+      stub, // appData
+      stub, // comicMetadataProvider
+      stub, // appEvents
+      stub, // wsEvents
+    );
+    return { service, select };
+  }
+
+  it('resolves without error when metadataTag filter is provided with valid type', async () => {
+    // valid type "character" → 1 exists subquery added
+    const { service } = buildServiceForFindAll(0, 1);
+
+    // Exercises the code path that parses the tag and adds the exists-subquery.
+    const result = await service.findAllSeries({
+      metadataTag: 'character:Iron Man',
+    });
+
+    expect(result).toHaveProperty('series');
+    expect(result).toHaveProperty('total');
+  });
+
+  it('resolves without error when metadataTag contains a colon in the value', async () => {
+    // valid type "story_arc" → 1 exists subquery added; value has extra colons (ignored)
+    const { service } = buildServiceForFindAll(0, 1);
+
+    const result = await service.findAllSeries({
+      metadataTag: 'story_arc:Civil War: The Road to Recovery',
+    });
+
+    expect(result).toHaveProperty('series');
+  });
+
+  it('resolves without error when metadataTag has an unknown type (filter skipped)', async () => {
+    // invalid type → exists block skipped → 0 extra subqueries
+    const { service } = buildServiceForFindAll(0, 0);
+
+    const result = await service.findAllSeries({
+      metadataTag: 'unknown_type:some value',
+    });
+
+    expect(result).toHaveProperty('series');
   });
 });

@@ -54,6 +54,14 @@ export class ListComicSeriesQueryDto {
   @IsInt()
   @Min(0)
   offset?: number;
+
+  @ApiPropertyOptional({
+    description:
+      'Filter by metadata tag in "type:value" format (e.g. "character:Iron Man", "story_arc:Civil War")',
+  })
+  @IsOptional()
+  @IsString()
+  metadataTag?: string;
 }
 
 export class UpdateComicSeriesDto {

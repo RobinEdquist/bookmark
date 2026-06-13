@@ -88,6 +88,10 @@ export interface ComicSeriesDetail {
   creators: ComicCreatorRef[];
   books: ComicBookListItem[];
   missingIssues: string[];
+  aggregatedTags: {
+    storyArcs: string[];
+    characters: string[];
+  };
   createdAt: string;
   updatedAt: string;
   comicvine: {
@@ -104,6 +108,15 @@ export interface ComicBookDetail extends ComicBookListItem {
   storeDate: string | null;
   filePath: string;
   manualFields: string[];
+  web: string | null;
+  ageRating: string | null;
+  issueCountFromFile: number | null;
+  metadataTags: {
+    storyArcs: string[];
+    characters: string[];
+    teams: string[];
+    locations: string[];
+  };
   series: { id: string; title: string };
   creators: (ComicCreatorRef & { order: number })[];
   createdAt: string;
@@ -123,6 +136,7 @@ export interface ComicSeriesFilters {
   search?: string;
   publisher?: string;
   genreId?: string;
+  metadataTag?: string;
   sortBy?: "title" | "recentlyAdded" | "startYear";
   sortOrder?: "asc" | "desc";
   limit?: number;
@@ -159,6 +173,7 @@ function buildSeriesParams(filters: ComicSeriesFilters): URLSearchParams {
   if (filters.search) params.set("search", filters.search);
   if (filters.publisher) params.set("publisher", filters.publisher);
   if (filters.genreId) params.set("genreId", filters.genreId);
+  if (filters.metadataTag) params.set("metadataTag", filters.metadataTag);
   if (filters.sortBy) params.set("sortBy", filters.sortBy);
   if (filters.sortOrder) params.set("sortOrder", filters.sortOrder);
   if (filters.limit != null) params.set("limit", filters.limit.toString());
