@@ -71,7 +71,9 @@ export class ComicMetadataProvider implements OnModuleInit {
       if (!result) return null;
       return { data: Buffer.from(result.data), mimeType: result.mimeType };
     } catch (error) {
-      this.logger.warn(`Cover extraction failed for ${filePath}: ${error}`);
+      this.logger.warn(
+        `Cover extraction failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
       return null;
     }
   }

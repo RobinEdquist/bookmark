@@ -66,6 +66,7 @@ export async function readComicPdf(
     } catch (error) {
       // Rendering failure is non-fatal — page count alone is still useful.
       // Log so production workers show why a PDF imported without a cover.
+      // console.warn is intentional — NestJS Logger is unavailable in worker threads.
       console.warn('[comic-pdf] first-page render failed:', error);
       coverImage = null;
     }
