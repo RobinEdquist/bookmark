@@ -15,6 +15,7 @@ export type MetadataSource =
   | 'embedded'
   | 'hardcover'
   | 'goodreads'
+  | 'comicvine'
   | 'filename'
   | 'folder_image';
 
@@ -48,6 +49,31 @@ export const DEFAULT_METADATA_PRIORITY: MetadataFieldPriority = {
   cover: ['manual', 'embedded', 'hardcover', 'goodreads', 'folder_image'],
 };
 
+// Comic-specific metadata field priority (separate from audiobook/ebook priority)
+export interface ComicMetadataFieldPriority {
+  title: MetadataSource[];
+  description: MetadataSource[];
+  publisher: MetadataSource[];
+  startYear: MetadataSource[];
+  genres: MetadataSource[];
+  bookTitle: MetadataSource[];
+  bookNumber: MetadataSource[];
+  bookSummary: MetadataSource[];
+  coverDate: MetadataSource[];
+}
+
+export const DEFAULT_COMIC_METADATA_PRIORITY: ComicMetadataFieldPriority = {
+  title: ['manual', 'embedded', 'comicvine', 'filename'],
+  description: ['manual', 'embedded', 'comicvine'],
+  publisher: ['manual', 'embedded', 'comicvine'],
+  startYear: ['manual', 'embedded', 'comicvine', 'filename'],
+  genres: ['manual', 'embedded', 'comicvine'],
+  bookTitle: ['manual', 'embedded', 'comicvine'],
+  bookNumber: ['manual', 'embedded', 'comicvine', 'filename'],
+  bookSummary: ['manual', 'embedded', 'comicvine'],
+  coverDate: ['manual', 'embedded', 'comicvine'],
+};
+
 export const appSettings = pgTable(
   'app_settings',
   {
@@ -62,6 +88,13 @@ export const appSettings = pgTable(
     hardcoverAutoSyncOnImport: boolean('hardcover_auto_sync_on_import')
       .notNull()
       .default(false),
+    comicvineApiKey: text('comicvine_api_key'),
+    comicvineAutoSyncOnImport: boolean('comicvine_auto_sync_on_import')
+      .notNull()
+      .default(false),
+    comicMetadataPriority: jsonb(
+      'comic_metadata_priority',
+    ).$type<ComicMetadataFieldPriority>(),
     opdsEnabled: boolean('opds_enabled').notNull().default(false),
     oidcButtonText: text('oidc_button_text')
       .notNull()

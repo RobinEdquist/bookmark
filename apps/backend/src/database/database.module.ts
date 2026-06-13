@@ -12,6 +12,7 @@ import * as ebookProgressSchema from '../ebook-progress/schema';
 import * as importErrorsSchema from '../import-errors/schema';
 import * as listsSchema from '../lists/schema';
 import * as announcementsSchema from '../announcements/schema';
+import * as comicvineSchema from '../comicvine/schema';
 
 @Global()
 @Module({
@@ -35,6 +36,7 @@ import * as announcementsSchema from '../announcements/schema';
             ...importErrorsSchema,
             ...listsSchema,
             ...announcementsSchema,
+            ...comicvineSchema,
           },
         });
       },
