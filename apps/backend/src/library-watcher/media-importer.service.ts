@@ -660,7 +660,13 @@ export class MediaImporterService {
           .set({ coverUrl: `${seriesId}.jpg`, coverSource: 'folder_image' })
           .where(eq(comicsSchema.comicSeries.id, seriesId));
         return;
-      } catch {
+      } catch (err: unknown) {
+        const isNotFound = (err as NodeJS.ErrnoException).code === 'ENOENT';
+        if (!isNotFound) {
+          this.logger.debug(
+            `[IMPORT] Cover candidate ${candidate} failed: ${err}`,
+          );
+        }
         // Try next candidate
       }
     }
@@ -803,6 +809,19 @@ export class MediaImporterService {
     if (!series) return;
 
     const manualFields = series.manualFields ?? [];
+
+    // All fillable scalar fields are already set, and genres are locked
+    const allScalarsSet =
+      !!series.publisher &&
+      !!series.imprint &&
+      !!series.language &&
+      !!series.ageRating &&
+      !!series.totalIssueCount &&
+      !!series.startYear;
+    const genresLocked =
+      manualFields.includes('genres') || info.genres.length === 0;
+    if (allScalarsSet && genresLocked) return;
+
     const updates: Record<string, unknown> = {};
 
     if (
