@@ -22,6 +22,8 @@ interface DeleteComicSeriesDialogProps {
   seriesTitle: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called after a successful delete (e.g. to navigate away from a detail page) */
+  onDeleted?: () => void;
 }
 
 export function DeleteComicSeriesDialog({
@@ -29,6 +31,7 @@ export function DeleteComicSeriesDialog({
   seriesTitle,
   open,
   onOpenChange,
+  onDeleted,
 }: DeleteComicSeriesDialogProps) {
   const t = useTranslations("comics.deleteDialog");
   const [deleteOption, setDeleteOption] = useState<"keep" | "delete">("keep");
@@ -42,6 +45,7 @@ export function DeleteComicSeriesDialog({
       });
       toast.success(t("success"));
       onOpenChange(false);
+      onDeleted?.();
     } catch {
       toast.error(t("error"));
     }

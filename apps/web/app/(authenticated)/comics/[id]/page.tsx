@@ -56,9 +56,6 @@ export default function ComicSeriesDetailPage({
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
-  // Track whether the delete dialog was ever opened; if the query then errors, navigate back
-  const deleteOpenedRef = useRef(false);
-
   const canEdit = permissions?.canEditMetadata ?? false;
   const canDelete = permissions?.canDelete ?? false;
 
@@ -88,22 +85,8 @@ export default function ComicSeriesDetailPage({
     return map;
   }, [series?.creators]);
 
-  // Navigate back to comics list if the series disappears after a delete attempt
-  useEffect(() => {
-    if (deleteOpenedRef.current && error) {
-      router.push("/comics");
-    }
-  }, [error, router]);
-
   const handleDownloadSeries = () => {
     window.open(`/api/comics/series/${id}/download`, "_blank");
-  };
-
-  const handleDeleteOpenChange = (open: boolean) => {
-    if (open) {
-      deleteOpenedRef.current = true;
-    }
-    setDeleteOpen(open);
   };
 
   if (isLoading) {
@@ -206,7 +189,7 @@ export default function ComicSeriesDetailPage({
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => handleDeleteOpenChange(true)}
+              onClick={() => setDeleteOpen(true)}
               title={t("detail.delete")}
             >
               <Trash2 className="h-5 w-5" />
@@ -237,7 +220,12 @@ export default function ComicSeriesDetailPage({
                 />
               ) : (
                 <div className="flex h-full items-center justify-center bg-muted">
-                  <span className="text-6xl">💥</span>
+                  <span
+                    className="text-6xl text-muted-foreground"
+                    aria-hidden="true"
+                  >
+                    💥
+                  </span>
                 </div>
               )}
             </div>
@@ -458,7 +446,8 @@ export default function ComicSeriesDetailPage({
           seriesId={id}
           seriesTitle={series.title}
           open={deleteOpen}
-          onOpenChange={handleDeleteOpenChange}
+          onOpenChange={setDeleteOpen}
+          onDeleted={() => router.push("/comics")}
         />
       )}
     </main>
