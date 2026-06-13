@@ -20,7 +20,6 @@ import {
   sql,
   SQL,
 } from 'drizzle-orm';
-import * as fs from 'fs';
 import * as fsPromises from 'fs/promises';
 import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -755,7 +754,12 @@ export class ComicsService {
   /** Absolute path to the series cover JPEG, or null if none exists. */
   async getSeriesCoverFilePath(seriesId: string): Promise<string | null> {
     const coverPath = this.appData.getComicSeriesCoverPath(seriesId);
-    if (fs.existsSync(coverPath)) return coverPath;
+    try {
+      await fsPromises.access(coverPath);
+      return coverPath;
+    } catch {
+      // not cached
+    }
     return null;
   }
 
@@ -766,7 +770,12 @@ export class ComicsService {
    */
   async getBookCoverFilePath(bookId: string): Promise<string | null> {
     const coverPath = this.appData.getComicBookCoverPath(bookId);
-    if (fs.existsSync(coverPath)) return coverPath;
+    try {
+      await fsPromises.access(coverPath);
+      return coverPath;
+    } catch {
+      // not cached
+    }
 
     const [book] = await this.db
       .select()
