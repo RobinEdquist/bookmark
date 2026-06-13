@@ -48,7 +48,8 @@
     "coverDate": "Cover date",
     "pages": "{count} pages",
     "download": "Download",
-    "summary": "Summary"
+    "summary": "Summary",
+    "view": "View"
   },
   "format": {
     "single_issue": "Issue",

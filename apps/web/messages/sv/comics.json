@@ -48,7 +48,8 @@
     "coverDate": "Omslagsdatum",
     "pages": "{count} sidor",
     "download": "Ladda ner",
-    "summary": "Sammanfattning"
+    "summary": "Sammanfattning",
+    "view": "Visa"
   },
   "format": {
     "single_issue": "Nummer",
