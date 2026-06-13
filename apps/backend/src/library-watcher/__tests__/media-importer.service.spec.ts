@@ -60,6 +60,7 @@ function createMockDb() {
     values: jest.fn().mockReturnThis(),
     returning: jest.fn().mockResolvedValue([{ id: 'new-id', title: 'Test' }]),
     onConflictDoUpdate: jest.fn().mockReturnThis(),
+    onConflictDoNothing: jest.fn().mockResolvedValue(undefined),
   };
   const mockUpdateChain = {
     set: jest.fn().mockReturnThis(),
@@ -1108,8 +1109,9 @@ describe('MediaImporterService', () => {
       expect(db.update).not.toHaveBeenCalled();
     });
 
-    it('does not call update when all fields are locked in manualFields', async () => {
-      // When every derivable field is in manualFields, nothing should be updated
+    it('does not overwrite locked scalar fields but still refreshes issueCountFromFile', async () => {
+      // When every derivable field is in manualFields, only issueCountFromFile
+      // (which is always refreshed) and tags are written
       setupBookRescanMocks({
         id: 'book-locked',
         fileName: 'Series #10.cbz',
@@ -1142,6 +1144,7 @@ describe('MediaImporterService', () => {
           format: 'annual',
           coverDate: '2024-05-01',
           summary: 'New summary',
+          count: 12,
         } as any,
         pageCount: 48,
         cover: null,
@@ -1150,10 +1153,206 @@ describe('MediaImporterService', () => {
       const result = await service.reExtractComicBook('book-locked');
 
       expect(result).toBe(true);
-      // All fields are locked — no update should happen
-      expect(db.update).not.toHaveBeenCalled();
+      // issueCountFromFile is always refreshed — update is called
+      const setCall = db._chains.update.set.mock.calls[0][0];
+      expect(setCall.issueCountFromFile).toBe(12);
+      // Locked fields must NOT be in the update
+      expect(setCall).not.toHaveProperty('number');
+      expect(setCall).not.toHaveProperty('title');
+      expect(setCall).not.toHaveProperty('format');
+      expect(setCall).not.toHaveProperty('coverDate');
+      expect(setCall).not.toHaveProperty('summary');
+      expect(setCall).not.toHaveProperty('pageCount');
+    });
+
+    it('deletes existing tags and inserts new ones on reExtractComicBook', async () => {
+      setupBookRescanMocks({
+        id: 'book-tags',
+        fileName: 'Civil War #1.cbz',
+        filePath: 'Civil War/Civil War #1.cbz',
+        number: '1',
+        title: null,
+        format: 'single_issue',
+        coverDate: null,
+        summary: null,
+        pageCount: null,
+        web: null,
+        language: null,
+        ageRating: null,
+        issueCountFromFile: null,
+        manualFields: [],
+      });
+
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValueOnce('/library/comics');
+
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        comicInfo: {
+          storyArcs: [{ name: 'Civil War', number: null }],
+          characters: ['Spider-Man'],
+          teams: ['Avengers'],
+          locations: [],
+          web: null,
+          languageIso: null,
+          ageRating: null,
+          count: null,
+        } as any,
+        pageCount: 22,
+        cover: null,
+      });
+
+      const result = await service.reExtractComicBook('book-tags');
+
+      expect(result).toBe(true);
+      // Tags were deleted before refresh
+      expect(db.delete).toHaveBeenCalled();
+      const deleteWhere = db._chains.delete.where.mock.calls[0];
+      expect(deleteWhere).toBeDefined();
+      // New tags were inserted
+      const tagsInsertCall = db._chains.insert.values.mock.calls.find(
+        (call: any[]) =>
+          Array.isArray(call[0]) &&
+          (call[0] as any[]).some((r: any) => r.bookId !== undefined && r.type !== undefined),
+      );
+      expect(tagsInsertCall).toBeDefined();
+      const tagRows = tagsInsertCall![0] as Array<{ bookId: string; type: string; value: string }>;
+      expect(tagRows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'story_arc', value: 'Civil War' }),
+          expect.objectContaining({ type: 'character', value: 'Spider-Man' }),
+          expect.objectContaining({ type: 'team', value: 'Avengers' }),
+        ]),
+      );
+    });
+
+    it('updates web when not in manualFields, leaves it when it is', async () => {
+      // --- web NOT in manualFields ---
+      setupBookRescanMocks({
+        id: 'book-web',
+        fileName: 'Test #1.cbz',
+        filePath: 'Test/Test #1.cbz',
+        number: '1',
+        title: null,
+        format: 'single_issue',
+        coverDate: null,
+        summary: null,
+        pageCount: null,
+        web: null,
+        language: null,
+        ageRating: null,
+        issueCountFromFile: null,
+        manualFields: [],
+      });
+
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValue('/library/comics');
+
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValue({
+        comicInfo: { web: 'http://example.com' } as any,
+        pageCount: 0,
+        cover: null,
+      });
+
+      await service.reExtractComicBook('book-web');
+
+      const setCall1 = db._chains.update.set.mock.calls[0][0];
+      expect(setCall1.web).toBe('http://example.com');
+
+      // Reset mocks for second scenario
+      db._chains.update.set.mockClear();
+      db._chains.select.limit.mockResolvedValueOnce([
+        {
+          id: 'book-web2',
+          fileName: 'Test #2.cbz',
+          filePath: 'Test/Test #2.cbz',
+          number: '2',
+          title: null,
+          format: 'single_issue',
+          coverDate: null,
+          summary: null,
+          pageCount: null,
+          web: 'http://existing.com',
+          language: null,
+          ageRating: null,
+          issueCountFromFile: null,
+          manualFields: ['web'],
+        },
+      ]);
+
+      await service.reExtractComicBook('book-web2');
+
+      const setCall2 = db._chains.update.set.mock.calls[0][0];
+      // web is in manualFields — must NOT be overwritten
+      expect(setCall2).not.toHaveProperty('web');
     });
   });
+
+    it('inserts metadata tags and scalar fields during comic-book import', async () => {
+      // No existing series or book
+      db._chains.select.limit.mockResolvedValue([]);
+
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        comicInfo: {
+          storyArcs: [{ name: 'Civil War', number: 1 }],
+          characters: ['Iron Man'],
+          teams: [],
+          locations: [],
+          web: 'http://x',
+          languageIso: 'en',
+          ageRating: 'Teen',
+          count: 50,
+        } as any,
+        pageCount: 22,
+        cover: null,
+      });
+
+      // importComicBook is private; call via importComicSeriesUnit
+      await service.importComicSeriesUnit(
+        {
+          path: '/library/comics/Civil War (2006)',
+          folderName: 'Civil War (2006)',
+          isRootOneShot: false,
+          books: [
+            {
+              path: '/library/comics/Civil War (2006)/Civil War #1.cbz',
+              fileName: 'Civil War #1.cbz',
+            },
+          ],
+        },
+        '/library/comics',
+      );
+
+      // (a) The comicBooks insert should include the scalar fields
+      const bookInsertCall = db._chains.insert.values.mock.calls.find(
+        (call: any[]) =>
+          call[0] && typeof call[0] === 'object' && 'seriesId' in call[0],
+      );
+      expect(bookInsertCall).toBeDefined();
+      const bookValues = bookInsertCall![0] as Record<string, unknown>;
+      expect(bookValues.web).toBe('http://x');
+      expect(bookValues.issueCountFromFile).toBe(50);
+      expect(bookValues.language).toBe('en');
+      expect(bookValues.ageRating).toBe('Teen');
+
+      // (b) The metadata-tags insert should contain the story-arc and character rows
+      const tagsInsertCall = db._chains.insert.values.mock.calls.find(
+        (call: any[]) =>
+          Array.isArray(call[0]) &&
+          (call[0] as any[]).some((r: any) => r.bookId !== undefined && r.type !== undefined),
+      );
+      expect(tagsInsertCall).toBeDefined();
+      const tagRows = tagsInsertCall![0] as Array<{ bookId: string; type: string; value: string }>;
+      expect(tagRows).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'story_arc', value: 'Civil War' }),
+          expect.objectContaining({ type: 'character', value: 'Iron Man' }),
+        ]),
+      );
+      // onConflictDoNothing should have been called for the tags insert
+      expect(db._chains.insert.onConflictDoNothing).toHaveBeenCalled();
+    });
 
   // ------------------------------------------------------------------
   // importComicSeriesUnit

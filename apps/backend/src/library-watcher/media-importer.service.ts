@@ -727,6 +727,10 @@ export class MediaImporterService {
           coverDate: info?.coverDate ?? null,
           summary: sanitizeText(info?.summary),
           pageCount: metadata.pageCount > 0 ? metadata.pageCount : null,
+          web: info?.web ?? null,
+          language: info?.languageIso ?? null,
+          ageRating: info?.ageRating ?? null,
+          issueCountFromFile: info?.count ?? null,
           filePath: relativeFilePath,
           fileName,
           sizeBytes: stats.size,
@@ -735,6 +739,36 @@ export class MediaImporterService {
           status: 'available',
         })
         .returning();
+
+      // Persist metadata tags (story arcs, characters, teams, locations)
+      const tagRows = [
+        ...(info?.storyArcs ?? []).map((a) => ({
+          bookId: book.id,
+          type: 'story_arc' as const,
+          value: a.name,
+        })),
+        ...(info?.characters ?? []).map((v) => ({
+          bookId: book.id,
+          type: 'character' as const,
+          value: v,
+        })),
+        ...(info?.teams ?? []).map((v) => ({
+          bookId: book.id,
+          type: 'team' as const,
+          value: v,
+        })),
+        ...(info?.locations ?? []).map((v) => ({
+          bookId: book.id,
+          type: 'location' as const,
+          value: v,
+        })),
+      ].filter((r) => r.value && r.value.trim());
+      if (tagRows.length) {
+        await this.db
+          .insert(comicsSchema.comicBookMetadataTags)
+          .values(tagRows)
+          .onConflictDoNothing();
+      }
 
       // Cover was already extracted by the worker — persist it now
       if (metadata.cover) {
@@ -1282,6 +1316,24 @@ export class MediaImporterService {
       }
     }
 
+    // web
+    if (!manualFields.includes('web')) {
+      updates.web = info?.web ?? null;
+    }
+
+    // language
+    if (!manualFields.includes('language')) {
+      updates.language = info?.languageIso ?? null;
+    }
+
+    // ageRating
+    if (!manualFields.includes('ageRating')) {
+      updates.ageRating = info?.ageRating ?? null;
+    }
+
+    // issueCountFromFile — not user-editable, always refresh
+    updates.issueCountFromFile = info?.count ?? null;
+
     if (Object.keys(updates).length > 0) {
       await this.db
         .update(comicsSchema.comicBooks)
@@ -1292,6 +1344,41 @@ export class MediaImporterService {
       );
     } else {
       this.logger.debug(`[RESCAN] No changes for comic book ${bookId}`);
+    }
+
+    // Refresh metadata tags from file (tags are never user-edited)
+    await this.db
+      .delete(comicsSchema.comicBookMetadataTags)
+      .where(eq(comicsSchema.comicBookMetadataTags.bookId, bookId));
+
+    const tagRows = [
+      ...(info?.storyArcs ?? []).map((a) => ({
+        bookId,
+        type: 'story_arc' as const,
+        value: a.name,
+      })),
+      ...(info?.characters ?? []).map((v) => ({
+        bookId,
+        type: 'character' as const,
+        value: v,
+      })),
+      ...(info?.teams ?? []).map((v) => ({
+        bookId,
+        type: 'team' as const,
+        value: v,
+      })),
+      ...(info?.locations ?? []).map((v) => ({
+        bookId,
+        type: 'location' as const,
+        value: v,
+      })),
+    ].filter((r) => r.value && r.value.trim());
+
+    if (tagRows.length) {
+      await this.db
+        .insert(comicsSchema.comicBookMetadataTags)
+        .values(tagRows)
+        .onConflictDoNothing();
     }
 
     return true;
