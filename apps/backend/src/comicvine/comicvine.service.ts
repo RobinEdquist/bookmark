@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, asc, and, isNull, or, inArray, sql } from 'drizzle-orm';
+import { eq, asc, and, isNull, ne, or, inArray, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as appSettingsSchema from '../app-settings/schema';
 import * as comicvineSchema from './schema';
@@ -14,6 +14,8 @@ import * as comicsSchema from '../comics/schema';
 import { ComicVineApiClient, ComicVineApiError } from './comicvine-api.client';
 import {
   pickAutoMatch,
+  isLikelyCollectedEdition,
+  rankVolumeCandidate,
   type LocalSeries,
   type CandidateVolume,
 } from './utils/match-confidence';
@@ -248,24 +250,81 @@ export class ComicvineService {
   /**
    * Search ComicVine volumes prefilled with the series title.
    * Used by the controller's /search/volume-for-series/:seriesId endpoint.
+   * Results are annotated with `isCollected` and sorted by ranking score so
+   * the single-issue series appears before collected/TPB editions.
    */
   async searchVolumesForSeries(
     seriesId: string,
     page: number = 1,
-  ): Promise<{ totalResults: number; results: CvVolumeRaw[]; query: string }> {
-    const series = await this.db
-      .select({ title: comicsSchema.comicSeries.title })
-      .from(comicsSchema.comicSeries)
-      .where(eq(comicsSchema.comicSeries.id, seriesId))
-      .limit(1);
+  ): Promise<{
+    totalResults: number;
+    results: (CvVolumeRaw & { isCollected: boolean })[];
+    query: string;
+  }> {
+    const [seriesRows, countRows] = await Promise.all([
+      this.db
+        .select({
+          title: comicsSchema.comicSeries.title,
+          startYear: comicsSchema.comicSeries.startYear,
+        })
+        .from(comicsSchema.comicSeries)
+        .where(eq(comicsSchema.comicSeries.id, seriesId))
+        .limit(1),
+      this.db
+        .select({ count: sql<number>`count(*)` })
+        .from(comicsSchema.comicBooks)
+        .where(
+          and(
+            eq(comicsSchema.comicBooks.seriesId, seriesId),
+            ne(comicsSchema.comicBooks.status, 'hidden'),
+          ),
+        ),
+    ]);
 
-    const query = series[0]?.title ?? '';
+    const query = seriesRows[0]?.title ?? '';
     if (!query) {
       return { totalResults: 0, results: [], query };
     }
 
-    const result = await this.searchVolumes(query, page);
-    return { ...result, query };
+    const bookCount = Number(countRows[0]?.count ?? 0);
+    const startYear = seriesRows[0]?.startYear ?? null;
+
+    const localSeries: LocalSeries = {
+      title: query,
+      startYear,
+      bookCount: bookCount > 0 ? bookCount : null,
+    };
+
+    const raw = await this.searchVolumes(query, page);
+
+    // Annotate each result with isCollected and sort by ranking score (desc)
+    const annotated = (raw.results as CvVolumeRaw[])
+      .map((v) => ({
+        ...v,
+        isCollected: isLikelyCollectedEdition(v.name),
+      }))
+      .sort((a, b) => {
+        const candidateA: CandidateVolume = {
+          id: a.id,
+          name: a.name,
+          startYear:
+            a.start_year != null ? parseInt(String(a.start_year), 10) : null,
+          countOfIssues: a.count_of_issues ?? null,
+        };
+        const candidateB: CandidateVolume = {
+          id: b.id,
+          name: b.name,
+          startYear:
+            b.start_year != null ? parseInt(String(b.start_year), 10) : null,
+          countOfIssues: b.count_of_issues ?? null,
+        };
+        return (
+          rankVolumeCandidate(localSeries, candidateB) -
+          rankVolumeCandidate(localSeries, candidateA)
+        );
+      });
+
+    return { totalResults: raw.totalResults, results: annotated, query };
   }
 
   /**
@@ -323,16 +382,55 @@ export class ComicvineService {
   async searchVolumes(
     query: string,
     page: number = 1,
-  ): Promise<{ totalResults: number; results: CvVolumeRaw[] }> {
+  ): Promise<{
+    totalResults: number;
+    results: (CvVolumeRaw & { isCollected: boolean })[];
+  }> {
     const client = await this.getClient();
     if (!client) {
       return { totalResults: 0, results: [] };
     }
 
     const result = await client.searchVolumes(query, { page, limit: 20 });
+    const rawResults = result.results as CvVolumeRaw[];
+
+    // Use the query string as the local title context (no startYear/bookCount
+    // available for free-text searches — collected editions are still de-ranked).
+    const localSeries: LocalSeries = {
+      title: query,
+      startYear: null,
+      bookCount: null,
+    };
+
+    const annotated = rawResults
+      .map((v) => ({
+        ...v,
+        isCollected: isLikelyCollectedEdition(v.name),
+      }))
+      .sort((a, b) => {
+        const candidateA: CandidateVolume = {
+          id: a.id,
+          name: a.name,
+          startYear:
+            a.start_year != null ? parseInt(String(a.start_year), 10) : null,
+          countOfIssues: a.count_of_issues ?? null,
+        };
+        const candidateB: CandidateVolume = {
+          id: b.id,
+          name: b.name,
+          startYear:
+            b.start_year != null ? parseInt(String(b.start_year), 10) : null,
+          countOfIssues: b.count_of_issues ?? null,
+        };
+        return (
+          rankVolumeCandidate(localSeries, candidateB) -
+          rankVolumeCandidate(localSeries, candidateA)
+        );
+      });
+
     return {
       totalResults: result.totalResults,
-      results: result.results as CvVolumeRaw[],
+      results: annotated,
     };
   }
 

@@ -158,6 +158,11 @@ export function ComicvineMatchDialog({
               ? t("descriptionSeries", { title: entityTitle })
               : t("descriptionBook", { title: entityTitle })}
           </DialogDescription>
+          {level === "book" && bookData?.linkedVolume && bookTotalResults > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {t("issuesCount", { count: bookTotalResults })}
+            </p>
+          )}
         </DialogHeader>
 
         {/* Search input — series level only */}
@@ -256,7 +261,12 @@ export function ComicvineMatchDialog({
                               )}
                             </div>
 
-                            <div className="flex flex-wrap gap-2 mt-1">
+                            <div className="flex flex-wrap items-center gap-2 mt-1">
+                              {volume.count_of_issues != null && (
+                                <span className="text-xs font-medium text-foreground">
+                                  {t("issuesCount", { count: volume.count_of_issues })}
+                                </span>
+                              )}
                               {volume.start_year != null && (
                                 <span className="text-xs text-muted-foreground">
                                   {t("startYear", { year: volume.start_year })}
@@ -267,9 +277,9 @@ export function ComicvineMatchDialog({
                                   {volume.publisher.name}
                                 </span>
                               )}
-                              {volume.count_of_issues != null && (
-                                <span className="text-xs text-muted-foreground">
-                                  {t("issueCount", { count: volume.count_of_issues })}
+                              {volume.isCollected && (
+                                <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground ring-1 ring-inset ring-border">
+                                  {t("collectedEdition")}
                                 </span>
                               )}
                             </div>

@@ -18,6 +18,8 @@ export interface ComicvineVolume {
   description?: string | null;
   image?: { medium_url?: string; original_url?: string } | null;
   site_detail_url?: string | null;
+  /** True when the volume name indicates a collected/trade edition (TPB, omnibus, etc.). */
+  isCollected?: boolean;
 }
 
 export interface ComicvineIssue {
