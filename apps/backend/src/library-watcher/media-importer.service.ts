@@ -709,6 +709,8 @@ export class MediaImporterService {
       const info = metadata.comicInfo;
 
       const number = info?.number ?? parsed.number;
+      const title =
+        sanitizeText(info?.title) ?? sanitizeText(parsed.title) ?? null;
       // ComicInfo Format wins only when actually present in the file
       const format = info?.formatRaw ? info.format : parsed.format;
       const container = this.resolveComicContainer(fileName);
@@ -718,7 +720,7 @@ export class MediaImporterService {
         .insert(comicsSchema.comicBooks)
         .values({
           seriesId,
-          title: sanitizeText(info?.title),
+          title,
           number,
           sortNumber: sortNumber !== null ? String(sortNumber) : null,
           format,
