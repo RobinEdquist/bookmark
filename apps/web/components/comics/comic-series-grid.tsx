@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import { Loader2 } from "lucide-react";
 import { ComicSeriesCard } from "./comic-series-card";
+import { EditComicSeriesDialog } from "./edit-comic-series-dialog";
+import { useMyPermissions } from "../../lib/use-users";
 import { useIntersectionObserver } from "../../lib/use-intersection-observer";
 import type { ComicSeriesListItem } from "../../lib/use-comics";
 
@@ -61,6 +63,8 @@ export function ComicSeriesGrid({
   onLoadMore,
 }: ComicSeriesGridProps) {
   const t = useTranslations("comics");
+  const { data: permissions } = useMyPermissions();
+  const canEdit = permissions?.canEditMetadata ?? false;
 
   // Intersection observer for infinite scroll
   const loadMoreRef = useIntersectionObserver(
@@ -72,8 +76,11 @@ export function ComicSeriesGrid({
     { enabled: hasNextPage && !isFetchingNextPage }
   );
 
-  // Shared edit dialog state for navigation between series (wired in Task 6)
+  // Shared edit dialog state for navigation between series
   const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
+  const editingSeries = editingSeriesId
+    ? series.find((s) => s.id === editingSeriesId) ?? null
+    : null;
   const seriesIds = series.map((s) => s.id);
 
   const handleOpenEdit = useCallback((seriesId: string) => {
@@ -83,11 +90,6 @@ export function ComicSeriesGrid({
   const handleNavigate = useCallback((seriesId: string) => {
     setEditingSeriesId(seriesId);
   }, []);
-
-  // Keep navigation scaffold in scope for Task 6 dialog wiring
-  void editingSeriesId;
-  void seriesIds;
-  void handleNavigate;
 
   if (error) {
     return (
@@ -148,7 +150,18 @@ export function ComicSeriesGrid({
         </div>
       )}
 
-      {/* edit/delete/cover dialogs wired in Task 6 */}
+      {/* Shared edit dialog with navigation */}
+      {canEdit && (
+        <EditComicSeriesDialog
+          series={editingSeries}
+          open={editingSeriesId !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingSeriesId(null);
+          }}
+          seriesIds={seriesIds}
+          onNavigate={handleNavigate}
+        />
+      )}
     </>
   );
 }

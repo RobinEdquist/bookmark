@@ -75,16 +75,37 @@
     "bookTitle": "Redigera bok",
     "fields": {
       "title": "Titel",
+      "titlePlaceholder": "Ange titel",
       "sortTitle": "Sorteringstitel",
+      "sortTitlePlaceholder": "Ange sorteringstitel",
       "description": "Beskrivning",
+      "descriptionPlaceholder": "Ange beskrivning",
       "publisher": "Förlag",
+      "publisherPlaceholder": "Välj förlag...",
+      "searchPublisher": "Sök förlag...",
+      "noPublishersFound": "Inga förlag hittades.",
+      "createPublisher": "Lägg till",
       "imprint": "Imprint",
+      "imprintPlaceholder": "Ange imprint",
       "startYear": "Startår",
+      "startYearPlaceholder": "t.ex. 1984",
       "totalIssueCount": "Totalt antal nummer",
+      "totalIssueCountPlaceholder": "t.ex. 12",
       "language": "Språk",
+      "languagePlaceholder": "Välj språk",
+      "noLanguage": "Inget",
       "ageRating": "Åldersgräns",
+      "ageRatingPlaceholder": "t.ex. T, M, Alla åldrar",
       "genres": "Genrer",
+      "genresPlaceholder": "Välj genrer...",
+      "searchGenres": "Sök genrer...",
+      "noGenresFound": "Inga genrer hittades.",
+      "createGenre": "Lägg till",
       "tags": "Taggar",
+      "tagsPlaceholder": "Välj taggar...",
+      "searchTags": "Sök taggar...",
+      "noTagsFound": "Inga taggar hittades.",
+      "createTag": "Lägg till",
       "number": "Nummer",
       "format": "Format",
       "coverDate": "Omslagsdatum",
@@ -94,11 +115,14 @@
       "creatorRole": "Roll",
       "addCreator": "Lägg till upphovsperson"
     },
-    "save": "Spara ändringar",
+    "save": "Spara",
+    "saveAndClose": "Spara och stäng",
     "saving": "Sparar...",
     "cancel": "Avbryt",
     "previous": "Föregående",
-    "next": "Nästa"
+    "next": "Nästa",
+    "success": "Serien har uppdaterats",
+    "error": "Det gick inte att uppdatera serien"
   },
   "deleteDialog": {
     "seriesTitle": "Ta bort serie?",
@@ -107,13 +131,37 @@
     "keepFiles": { "label": "Behåll filer", "description": "Ta bara bort från biblioteket" },
     "deleteFiles": { "label": "Ta bort filer", "description": "Ta även bort filer från disk" },
     "confirm": "Ta bort",
-    "cancel": "Avbryt"
+    "cancel": "Avbryt",
+    "deleting": "Tar bort...",
+    "success": "Serien har tagits bort",
+    "error": "Det gick inte att ta bort serien"
   },
   "changeCover": {
     "title": "Ändra omslag",
-    "uploadTab": "Ladda upp",
-    "urlTab": "Från URL",
+    "description": "Uppdatera omslagsbilden för \"{title}\"",
+    "tabs": {
+      "upload": "Ladda upp",
+      "url": "Från URL"
+    },
+    "upload": {
+      "dropzone": "Klicka eller dra och släpp för att ladda upp",
+      "formats": "JPG, PNG eller WebP (max 2 MB)"
+    },
+    "url": {
+      "label": "Bild-URL",
+      "placeholder": "https://example.com/cover.jpg",
+      "preview": "Förhandsvisa"
+    },
+    "cancel": "Avbryt",
     "save": "Spara",
-    "success": "Omslaget har uppdaterats"
+    "saving": "Sparar...",
+    "success": "Omslaget har uppdaterats",
+    "errors": {
+      "invalidType": "Ogiltigt filformat. Använd JPG, PNG eller WebP.",
+      "tooLarge": "Filen är för stor. Maximal storlek är 2 MB.",
+      "invalidUrl": "Ange en giltig URL",
+      "loadFailed": "Det gick inte att ladda bilden från URL:en",
+      "failed": "Det gick inte att uppdatera omslaget"
+    }
   }
 }

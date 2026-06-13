@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,27 +16,24 @@ import {
 } from "@repo/ui/components/ui/dropdown-menu";
 import type { ComicSeriesListItem } from "../../lib/use-comics";
 import { useMyPermissions } from "../../lib/use-users";
+import { DeleteComicSeriesDialog } from "./delete-comic-series-dialog";
+import { ChangeComicSeriesCoverDialog } from "./change-comic-series-cover-dialog";
 
 interface ComicSeriesCardProps {
   series: ComicSeriesListItem;
   /** Called when user wants to edit this series (for shared dialog) */
   onEdit?: () => void;
-  /** If true, the card won't render its own edit dialog (reserved for Task 6) */
+  /** If true, the card won't render its own edit dialog */
   externalEditDialog?: boolean;
-  /** Called when user wants to change the cover */
-  onChangeCover?: () => void;
-  /** Called when user wants to delete this series */
-  onDelete?: () => void;
 }
 
 export function ComicSeriesCard({
   series,
   onEdit,
-  // externalEditDialog wired in Task 6
-  onChangeCover,
-  onDelete,
 }: ComicSeriesCardProps) {
   const t = useTranslations("comics");
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -50,20 +48,6 @@ export function ComicSeriesCard({
   const handleEdit = () => {
     if (onEdit) {
       onEdit();
-    }
-    // internal dialog wired in Task 6
-  };
-
-  const handleChangeCover = () => {
-    if (onChangeCover) {
-      onChangeCover();
-    }
-    // internal dialog wired in Task 6
-  };
-
-  const handleDelete = () => {
-    if (onDelete) {
-      onDelete();
     }
   };
 
@@ -168,7 +152,7 @@ export function ComicSeriesCard({
                   </>
                 )}
                 {canEdit && (
-                  <DropdownMenuItem onClick={handleChangeCover}>
+                  <DropdownMenuItem onClick={() => setChangeCoverOpen(true)}>
                     <ImageIcon className="h-4 w-4" />
                     {t("card.changeCover")}
                   </DropdownMenuItem>
@@ -177,7 +161,7 @@ export function ComicSeriesCard({
                 {canDelete && <DropdownMenuSeparator />}
                 {canDelete && (
                   <DropdownMenuItem
-                    onClick={handleDelete}
+                    onClick={() => setDeleteOpen(true)}
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -190,7 +174,24 @@ export function ComicSeriesCard({
         </div>
       </motion.article>
 
-      {/* edit/delete/cover dialogs wired in Task 6 */}
+      {canDelete && (
+        <DeleteComicSeriesDialog
+          seriesId={series.id}
+          seriesTitle={series.title}
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+        />
+      )}
+
+      {canEdit && (
+        <ChangeComicSeriesCoverDialog
+          seriesId={series.id}
+          seriesTitle={series.title}
+          currentCoverUrl={series.coverUrl}
+          open={changeCoverOpen}
+          onOpenChange={setChangeCoverOpen}
+        />
+      )}
     </>
   );
 }

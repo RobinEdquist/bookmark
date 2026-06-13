@@ -75,16 +75,37 @@
     "bookTitle": "Edit book",
     "fields": {
       "title": "Title",
+      "titlePlaceholder": "Enter title",
       "sortTitle": "Sort title",
+      "sortTitlePlaceholder": "Enter sort title",
       "description": "Description",
+      "descriptionPlaceholder": "Enter description",
       "publisher": "Publisher",
+      "publisherPlaceholder": "Select publisher...",
+      "searchPublisher": "Search publishers...",
+      "noPublishersFound": "No publishers found.",
+      "createPublisher": "Add",
       "imprint": "Imprint",
+      "imprintPlaceholder": "Enter imprint",
       "startYear": "Start year",
+      "startYearPlaceholder": "e.g. 1984",
       "totalIssueCount": "Total issues",
+      "totalIssueCountPlaceholder": "e.g. 12",
       "language": "Language",
+      "languagePlaceholder": "Select language",
+      "noLanguage": "None",
       "ageRating": "Age rating",
+      "ageRatingPlaceholder": "e.g. T, M, All Ages",
       "genres": "Genres",
+      "genresPlaceholder": "Select genres...",
+      "searchGenres": "Search genres...",
+      "noGenresFound": "No genres found.",
+      "createGenre": "Add",
       "tags": "Tags",
+      "tagsPlaceholder": "Select tags...",
+      "searchTags": "Search tags...",
+      "noTagsFound": "No tags found.",
+      "createTag": "Add",
       "number": "Number",
       "format": "Format",
       "coverDate": "Cover date",
@@ -94,11 +115,14 @@
       "creatorRole": "Role",
       "addCreator": "Add creator"
     },
-    "save": "Save changes",
+    "save": "Save",
+    "saveAndClose": "Save & Close",
     "saving": "Saving...",
     "cancel": "Cancel",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "success": "Series updated successfully",
+    "error": "Failed to update series"
   },
   "deleteDialog": {
     "seriesTitle": "Delete series?",
@@ -107,13 +131,37 @@
     "keepFiles": { "label": "Keep files", "description": "Remove from library only" },
     "deleteFiles": { "label": "Delete files", "description": "Also delete files from disk" },
     "confirm": "Delete",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "deleting": "Deleting...",
+    "success": "Series deleted successfully",
+    "error": "Failed to delete series"
   },
   "changeCover": {
-    "title": "Change cover",
-    "uploadTab": "Upload",
-    "urlTab": "From URL",
+    "title": "Change Cover",
+    "description": "Update the cover image for \"{title}\"",
+    "tabs": {
+      "upload": "Upload",
+      "url": "From URL"
+    },
+    "upload": {
+      "dropzone": "Click or drag and drop to upload",
+      "formats": "JPG, PNG, or WebP (max 2 MB)"
+    },
+    "url": {
+      "label": "Image URL",
+      "placeholder": "https://example.com/cover.jpg",
+      "preview": "Preview"
+    },
+    "cancel": "Cancel",
     "save": "Save",
-    "success": "Cover updated"
+    "saving": "Saving...",
+    "success": "Cover updated successfully",
+    "errors": {
+      "invalidType": "Invalid file type. Please use JPG, PNG, or WebP.",
+      "tooLarge": "File is too large. Maximum size is 2 MB.",
+      "invalidUrl": "Please enter a valid URL",
+      "loadFailed": "Failed to load image from URL",
+      "failed": "Failed to update cover"
+    }
   }
 }
