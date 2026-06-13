@@ -20,7 +20,7 @@ export interface LibraryScanStatus {
   processed?: number;
   percentage?: number;
   currentFile?: string;
-  libraryType?: 'audiobook' | 'ebook';
+  libraryType?: 'audiobook' | 'ebook' | 'comic';
 }
 
 export interface HardcoverTaskStatus {
