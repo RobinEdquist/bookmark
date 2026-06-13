@@ -15,11 +15,31 @@ export interface EbookUnit {
   fileName: string;
 }
 
+export interface ComicBookUnit {
+  path: string;
+  fileName: string;
+}
+
+export interface ComicSeriesUnit {
+  /** Absolute path to the series folder; for root one-shots, the file itself */
+  path: string;
+  /** Display name: folder name, or filename without extension for root one-shots */
+  folderName: string;
+  isRootOneShot: boolean;
+  books: ComicBookUnit[];
+}
+
 const EBOOK_EXTENSIONS = ['.epub'];
+const COMIC_EXTENSIONS = ['.cbz', '.zip', '.cbr', '.rar', '.pdf'];
 
 function isEbookFile(fileName: string): boolean {
   const ext = path.extname(fileName).toLowerCase();
   return EBOOK_EXTENSIONS.includes(ext);
+}
+
+export function isComicFile(fileName: string): boolean {
+  const ext = path.extname(fileName).toLowerCase();
+  return COMIC_EXTENSIONS.includes(ext);
 }
 
 @Injectable()
@@ -228,5 +248,139 @@ export class MediaDetectorService {
       this.logger.warn(`Failed to detect ebook at ${filePath}: ${error}`);
       return null;
     }
+  }
+
+  // ===== COMIC DETECTION =====
+
+  async scanLibraryForComics(libraryPath: string): Promise<ComicSeriesUnit[]> {
+    this.logger.log(`[SCAN] Starting comic scan of library: ${libraryPath}`);
+    const units: ComicSeriesUnit[] = [];
+
+    const scan = async (currentPath: string): Promise<void> => {
+      let entries: Awaited<ReturnType<typeof fs.readdir>>;
+      try {
+        entries = await fs.readdir(currentPath, { withFileTypes: true });
+      } catch (error) {
+        this.logger.warn(
+          `[SCAN] Cannot read directory ${currentPath}: ${error}`,
+        );
+        return;
+      }
+
+      const comicFiles = entries
+        .filter((e) => e.isFile() && isComicFile(e.name))
+        .map((e) => e.name)
+        .sort();
+      const subdirs = entries.filter(
+        (e) => e.isDirectory() && !e.name.startsWith('.'),
+      );
+
+      if (comicFiles.length > 0) {
+        units.push({
+          path: currentPath,
+          folderName: path.basename(currentPath),
+          isRootOneShot: false,
+          books: comicFiles.map((name) => ({
+            path: path.join(currentPath, name),
+            fileName: name,
+          })),
+        });
+      }
+
+      // Always recurse: publisher folders can contain both files and series subfolders
+      for (const subdir of subdirs) {
+        await scan(path.join(currentPath, subdir.name));
+      }
+    };
+
+    try {
+      const rootEntries = await fs.readdir(libraryPath, {
+        withFileTypes: true,
+      });
+
+      for (const entry of rootEntries) {
+        const entryPath = path.join(libraryPath, entry.name);
+        if (entry.isFile() && isComicFile(entry.name)) {
+          // Root-level loose file = one-shot series
+          units.push({
+            path: entryPath,
+            folderName: path.basename(entry.name, path.extname(entry.name)),
+            isRootOneShot: true,
+            books: [{ path: entryPath, fileName: entry.name }],
+          });
+        } else if (entry.isDirectory() && !entry.name.startsWith('.')) {
+          await scan(entryPath);
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `[SCAN] Failed to scan library path ${libraryPath}: ${error}`,
+      );
+      throw error;
+    }
+
+    this.logger.log(
+      `[SCAN] Completed comic scan: found ${units.length} series units`,
+    );
+    return units;
+  }
+
+  /**
+   * Resolve the series unit a single file/folder belongs to.
+   * Used by the watcher when a new file appears.
+   */
+  async detectComicSeriesForPath(
+    targetPath: string,
+    libraryPath: string,
+  ): Promise<ComicSeriesUnit | null> {
+    try {
+      const stats = await fs.stat(targetPath);
+
+      if (stats.isFile() && isComicFile(targetPath)) {
+        const parentDir = path.dirname(targetPath);
+        if (parentDir === libraryPath) {
+          return {
+            path: targetPath,
+            folderName: path.basename(targetPath, path.extname(targetPath)),
+            isRootOneShot: true,
+            books: [{ path: targetPath, fileName: path.basename(targetPath) }],
+          };
+        }
+        return this.buildSeriesUnitFromFolder(parentDir);
+      }
+
+      if (stats.isDirectory()) {
+        return this.buildSeriesUnitFromFolder(targetPath);
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.warn(
+        `Failed to detect comic series at ${targetPath}: ${error}`,
+      );
+      return null;
+    }
+  }
+
+  private async buildSeriesUnitFromFolder(
+    folderPath: string,
+  ): Promise<ComicSeriesUnit | null> {
+    const entries = await fs.readdir(folderPath, { withFileTypes: true });
+    const comicFiles = entries
+      .filter((e) => e.isFile() && isComicFile(e.name))
+      .map((e) => e.name)
+      .sort();
+
+    if (comicFiles.length === 0) return null;
+
+    return {
+      path: folderPath,
+      folderName: path.basename(folderPath),
+      isRootOneShot: false,
+      books: comicFiles.map((name) => ({
+        path: path.join(folderPath, name),
+        fileName: name,
+      })),
+    };
   }
 }
