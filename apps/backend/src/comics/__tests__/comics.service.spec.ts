@@ -617,6 +617,168 @@ describe('ComicsService.getSeriesById — metadata merge', () => {
   });
 });
 
+// ===== ComicsService.getSeriesById — missing-issue detection =====
+
+/**
+ * Build a service mock for missing-issue tests.
+ * We need to pass books to getSeriesById, so we wire up call 3 (comicBooks list)
+ * in the getSeriesById sequence to return the provided books.
+ */
+function buildServiceForMissingIssueTest({
+  books = [] as unknown[],
+  volumeRows = [] as unknown[],
+}: {
+  books?: unknown[];
+  volumeRows?: unknown[];
+}) {
+  const select = jest.fn();
+  const selectDistinct = jest.fn();
+  const chain = (val: unknown) => chainMock(val);
+
+  // getSeriesById call sequence:
+  // call 1 (select): verifySeriesNotBlacklisted
+  select.mockReturnValueOnce(chain([]));
+  // call 2 (select): series fetch
+  select.mockReturnValueOnce(chain([baseSeriesRow]));
+  // Promise.all(5 queries):
+  // call 3 (select, Promise.all[0]): comicBooks list — the books under test
+  select.mockReturnValueOnce(chain(books));
+  // call 4 (select, Promise.all[1]): genres
+  select.mockReturnValueOnce(chain([]));
+  // call 5 (select, Promise.all[2]): tags
+  select.mockReturnValueOnce(chain([]));
+  // call 6 (selectDistinct, Promise.all[3]): creators
+  selectDistinct.mockReturnValueOnce(chain([]));
+  // call 7 (select, Promise.all[4]): volumeLinks
+  select.mockReturnValueOnce(chain(volumeRows));
+
+  // Fallback
+  select.mockReturnValue(chain([]));
+  selectDistinct.mockReturnValue(chain([]));
+
+  const db = { select, selectDistinct } as never;
+  const appSettings = {
+    getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+    getComicMetadataPriority: jest
+      .fn()
+      .mockResolvedValue(DEFAULT_COMIC_METADATA_PRIORITY),
+  } as never;
+  const coverService = {
+    getCoverUrl: jest.fn().mockReturnValue(null),
+  } as never;
+  const stub = {} as never;
+  const wsEvents = { comicSeriesUpdated: jest.fn() } as never;
+
+  const service = new ComicsService(
+    db,
+    appSettings,
+    coverService,
+    stub,
+    stub,
+    stub,
+    stub,
+    wsEvents,
+  );
+  return { service };
+}
+
+/** Minimal comic book row for missing-issue tests. */
+function makeBook(
+  number: string | null,
+  format: string = 'single_issue',
+): unknown {
+  return {
+    id: `book-${number ?? 'null'}`,
+    seriesId: 'series-1',
+    title: null,
+    number,
+    sortNumber: number,
+    format,
+    coverDate: null,
+    pageCount: null,
+    fileName: `issue-${number}.cbz`,
+    sizeBytes: 1000,
+    container: 'cbz',
+    status: 'available',
+    coverUrl: null,
+    coverSource: null,
+    manualFields: [],
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  };
+}
+
+describe('ComicsService.getSeriesById — missing-issue detection', () => {
+  it('reports gaps 51, 53, 54 for #1–#50 + #52 with countOfIssues=54', async () => {
+    // Build books #1..#50 plus #52 (single issues, numbers as strings)
+    const books: unknown[] = [];
+    for (let i = 1; i <= 50; i++) books.push(makeBook(String(i)));
+    books.push(makeBook('52'));
+
+    const volumeRows = [
+      {
+        volume: {
+          comicvineVolumeId: 1,
+          name: 'Test',
+          description: null,
+          publisherName: null,
+          startYear: null,
+          siteDetailUrl: null,
+          imageUrl: null,
+          countOfIssues: 54,
+        },
+      },
+    ];
+
+    const { service } = buildServiceForMissingIssueTest({ books, volumeRows });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.missingIssues).toContain('51');
+    expect(result.missingIssues).toContain('53');
+    expect(result.missingIssues).toContain('54');
+    expect(result.missingIssues).not.toContain('52');
+    expect(result.missingIssues).toHaveLength(3);
+  });
+
+  it('returns empty missingIssues for contiguous #1, #2, #3 with no linked volume', async () => {
+    const books = [makeBook('1'), makeBook('2'), makeBook('3')];
+
+    const { service } = buildServiceForMissingIssueTest({
+      books,
+      volumeRows: [],
+    });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.missingIssues).toEqual([]);
+  });
+
+  it('ignores tpb format and non-integer number when computing missing issues', async () => {
+    // #1 and #3 present as single issues; #1.5 as single_issue (non-integer, ignored);
+    // a TPB with number='2' (should be ignored).
+    // Ceiling = max present = 3, so we expect #2 missing.
+    const books = [
+      makeBook('1'),
+      makeBook('1.5'), // non-integer → ignored
+      makeBook('2', 'tpb'), // tpb → ignored
+      makeBook('3'),
+    ];
+
+    const { service } = buildServiceForMissingIssueTest({
+      books,
+      volumeRows: [],
+    });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    // Only #1 and #3 are counted as presentInts → ceiling = 3 → #2 is missing.
+    expect(result.missingIssues).toContain('2');
+    // #1, #3 are present → not missing.
+    expect(result.missingIssues).not.toContain('1');
+    expect(result.missingIssues).not.toContain('3');
+    // #1.5 (as '1.5') should not appear in missingIssues (it was never counted as integer).
+    expect(result.missingIssues).not.toContain('1.5');
+  });
+});
+
 describe('ComicsService.getBookById — metadata merge', () => {
   const baseBookRow = {
     id: 'book-1',

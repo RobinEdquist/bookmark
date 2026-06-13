@@ -45,7 +45,8 @@
     "showMore": "Show more",
     "showLess": "Show less",
     "downloadSeries": "Download all",
-    "noBooks": "No books in this series"
+    "noBooks": "No books in this series",
+    "missingIssues": "Missing: {issues}"
   },
   "book": {
     "issue": "Issue {number}",

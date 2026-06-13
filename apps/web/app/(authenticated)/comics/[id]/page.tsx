@@ -373,6 +373,15 @@ export default function ComicSeriesDetailPage({
               )}
             </div>
 
+            {/* Missing issue detection */}
+            {series.missingIssues.length > 0 && (
+              <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                {t("detail.missingIssues", {
+                  issues: series.missingIssues.map((n) => `#${n}`).join(", "),
+                })}
+              </p>
+            )}
+
             {/* Aggregated creators block — grouped by role */}
             {creatorsByRole.size > 0 && (
               <div className="rounded-lg border border-border/50 p-4">

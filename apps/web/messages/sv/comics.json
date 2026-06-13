@@ -45,7 +45,8 @@
     "showMore": "Visa mer",
     "showLess": "Visa mindre",
     "downloadSeries": "Ladda ner alla",
-    "noBooks": "Inga böcker i den här serien"
+    "noBooks": "Inga böcker i den här serien",
+    "missingIssues": "Saknas: {issues}"
   },
   "book": {
     "issue": "Nummer {number}",

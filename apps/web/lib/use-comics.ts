@@ -87,6 +87,7 @@ export interface ComicSeriesDetail {
   tags: ComicNamedRef[];
   creators: ComicCreatorRef[];
   books: ComicBookListItem[];
+  missingIssues: string[];
   createdAt: string;
   updatedAt: string;
   comicvine: {
