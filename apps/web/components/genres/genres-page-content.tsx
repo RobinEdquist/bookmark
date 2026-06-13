@@ -10,9 +10,11 @@ import { Tabs, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
 import { GenreGrid } from "./genre-grid";
 import { AudiobookGrid } from "../audiobooks/audiobook-grid";
 import { EbookGrid } from "../ebooks/ebook-grid";
+import { ComicSeriesGrid } from "../comics/comic-series-grid";
 import { useGenres, type ContentType } from "../../lib/use-genres";
 import { useInfiniteAudiobooks } from "../../lib/use-audiobooks";
 import { useInfiniteEbooks } from "../../lib/use-ebooks";
+import { useInfiniteComicSeries } from "../../lib/use-comics";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
 
 export function GenresPageContent() {
@@ -21,8 +23,23 @@ export function GenresPageContent() {
   const t = useTranslations("common.genres");
   const { data: availability } = useLibraryAvailability();
 
-  // Get current state from URL
-  const contentType = (searchParams.get("type") as ContentType) || "audiobooks";
+  // Determine which types are available
+  const showAudiobooks = availability?.audiobooks ?? false;
+  const showEbooks = availability?.ebooks ?? false;
+  const showComics = availability?.comics ?? false;
+
+  // Valid content types based on availability (for URL param validation)
+  const availableTypes: ContentType[] = [
+    ...(showAudiobooks ? (["audiobooks"] as ContentType[]) : []),
+    ...(showEbooks ? (["ebooks"] as ContentType[]) : []),
+    ...(showComics ? (["comics"] as ContentType[]) : []),
+  ];
+  const defaultType: ContentType = availableTypes[0] ?? "audiobooks";
+
+  // Get current state from URL, falling back to default if unavailable type requested
+  const rawType = searchParams.get("type") as ContentType | null;
+  const contentType: ContentType =
+    rawType && availableTypes.includes(rawType) ? rawType : defaultType;
   const selectedGenreId = searchParams.get("genre");
 
   // Fetch genres for current content type
@@ -41,6 +58,12 @@ export function GenresPageContent() {
 
   const ebooksQuery = useInfiniteEbooks(
     selectedGenreId && contentType === "ebooks"
+      ? { genreId: selectedGenreId }
+      : {}
+  );
+
+  const comicsQuery = useInfiniteComicSeries(
+    selectedGenreId && contentType === "comics"
       ? { genreId: selectedGenreId }
       : {}
   );
@@ -74,16 +97,14 @@ export function GenresPageContent() {
     updateUrl(contentType);
   }, [contentType, updateUrl]);
 
-  // Determine which tabs to show based on library availability
-  const showAudiobooks = availability?.audiobooks ?? false;
-  const showEbooks = availability?.ebooks ?? false;
+  // Show tabs only when at least 2 types are available
+  const availableCount = [showAudiobooks, showEbooks, showComics].filter(Boolean).length;
+  const showToggle = availableCount >= 2;
 
-  // If only one type available, don't show toggle
-  const showToggle = showAudiobooks && showEbooks;
-
-  // Extract audiobooks/ebooks from query data
+  // Extract items from query data
   const audiobooks = audiobooksQuery.data?.pages.flatMap((p) => p.audiobooks) ?? [];
   const ebooks = ebooksQuery.data?.pages.flatMap((p) => p.ebooks) ?? [];
+  const comicSeries = comicsQuery.data?.pages.flatMap((p) => p.series) ?? [];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -112,8 +133,15 @@ export function GenresPageContent() {
         {showToggle && (
           <Tabs value={contentType} onValueChange={handleTypeChange}>
             <TabsList>
-              <TabsTrigger value="audiobooks">{t("audiobooks")}</TabsTrigger>
-              <TabsTrigger value="ebooks">{t("ebooks")}</TabsTrigger>
+              {showAudiobooks && (
+                <TabsTrigger value="audiobooks">{t("audiobooks")}</TabsTrigger>
+              )}
+              {showEbooks && (
+                <TabsTrigger value="ebooks">{t("ebooks")}</TabsTrigger>
+              )}
+              {showComics && (
+                <TabsTrigger value="comics">{t("comics")}</TabsTrigger>
+              )}
             </TabsList>
           </Tabs>
         )}
@@ -138,7 +166,7 @@ export function GenresPageContent() {
                 onLoadMore={audiobooksQuery.fetchNextPage}
                 error={audiobooksQuery.error}
               />
-            ) : (
+            ) : contentType === "ebooks" ? (
               <EbookGrid
                 ebooks={ebooks}
                 isLoading={ebooksQuery.isLoading}
@@ -146,6 +174,15 @@ export function GenresPageContent() {
                 hasNextPage={ebooksQuery.hasNextPage}
                 onLoadMore={ebooksQuery.fetchNextPage}
                 error={ebooksQuery.error}
+              />
+            ) : (
+              <ComicSeriesGrid
+                series={comicSeries}
+                isLoading={comicsQuery.isLoading}
+                isFetchingNextPage={comicsQuery.isFetchingNextPage}
+                hasNextPage={comicsQuery.hasNextPage}
+                onLoadMore={comicsQuery.fetchNextPage}
+                error={comicsQuery.error}
               />
             )}
           </motion.div>

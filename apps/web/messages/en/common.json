@@ -140,6 +140,7 @@
     "title": "Genres",
     "audiobooks": "Audiobooks",
     "ebooks": "Ebooks",
+    "comics": "Comics",
     "back": "Genres",
     "empty": "No genres found",
     "itemCount": "{count, plural, =1 {1 {type}} other {# {type}}}"

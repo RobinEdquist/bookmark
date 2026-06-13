@@ -8,7 +8,7 @@ export interface GenreWithCount {
   count: number;
 }
 
-export type ContentType = "audiobooks" | "ebooks";
+export type ContentType = "audiobooks" | "ebooks" | "comics";
 
 const queryKeys = {
   genres: (type: ContentType, search?: string) => ["genres", type, search] as const,
@@ -18,7 +18,12 @@ async function fetchGenres(type: ContentType, search?: string): Promise<GenreWit
   const params = new URLSearchParams();
   if (search) params.set("search", search);
 
-  const endpoint = type === "audiobooks" ? "/api/audiobooks/genres" : "/api/ebooks/genres";
+  const endpoint =
+    type === "audiobooks"
+      ? "/api/audiobooks/genres"
+      : type === "ebooks"
+        ? "/api/ebooks/genres"
+        : "/api/comics/genres";
   const response = await fetch(`${endpoint}?${params}`, {
     credentials: "include",
   });
