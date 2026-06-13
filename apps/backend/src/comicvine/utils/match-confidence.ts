@@ -107,6 +107,22 @@ export interface VolumeMatchResult {
 //   If countOfIssues is null the sanity check is skipped (count unknown).
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// isLikelyCollectedEdition
+// ---------------------------------------------------------------------------
+
+const COLLECTED_EDITION_RE =
+  /\b(tpb|trade(?:\s+paperback)?|deluxe|compendium|collected|collection|omnibus|hardcover|hc|library\s+edition|complete\s+edition|absolute)\b/i;
+
+/** Heuristic: does this volume name denote a collected/trade edition rather than the single-issue series? */
+export function isLikelyCollectedEdition(name: string): boolean {
+  return COLLECTED_EDITION_RE.test(name);
+}
+
+// ---------------------------------------------------------------------------
+// Scoring constants
+// ---------------------------------------------------------------------------
+
 const SCORE_TITLE_ONLY = 10;
 const SCORE_YEAR_EXACT = 100;
 const SCORE_YEAR_OFF_BY_ONE = 80;
@@ -162,7 +178,43 @@ export function scoreVolumeMatch(
     autoLinkable = false;
   }
 
+  // ------- 4. Collected-edition guard -------
+  // A volume whose name signals it is a collected/trade edition (TPB, omnibus,
+  // compendium, deluxe, etc.) must never be auto-linked to a single-issue
+  // local series — even when title normalization and start year both agree.
+  if (autoLinkable && isLikelyCollectedEdition(candidate.name)) {
+    autoLinkable = false;
+  }
+
   return { score, autoLinkable };
+}
+
+// ---------------------------------------------------------------------------
+// rankVolumeCandidate
+// ---------------------------------------------------------------------------
+// Returns a ranking score for ordering/picking among multiple candidates.
+// Higher is better. Applies a -50 penalty for collected editions and adjusts
+// for issue-count proximity to the local book count.
+// This score is purely for sorting — it does not affect the autoLinkable bar.
+// ---------------------------------------------------------------------------
+
+export function rankVolumeCandidate(
+  local: LocalSeries,
+  candidate: CandidateVolume,
+): number {
+  let rank = scoreVolumeMatch(local, candidate).score;
+  if (isLikelyCollectedEdition(candidate.name)) rank -= 50;
+  if (
+    local.bookCount != null &&
+    candidate.countOfIssues != null &&
+    candidate.countOfIssues > 0
+  ) {
+    const diff = Math.abs(candidate.countOfIssues - local.bookCount);
+    if (diff === 0) rank += 20;
+    else if (diff <= 3) rank += 10;
+    else if (candidate.countOfIssues < local.bookCount / 2) rank -= 10;
+  }
+  return rank;
 }
 
 // ---------------------------------------------------------------------------
