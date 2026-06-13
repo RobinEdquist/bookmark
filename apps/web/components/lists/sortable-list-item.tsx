@@ -88,6 +88,7 @@ export function SortableListItem({
             src={content.coverUrl}
             alt={content.title}
             fill
+            sizes="64px"
             className="object-cover"
             unoptimized
           />

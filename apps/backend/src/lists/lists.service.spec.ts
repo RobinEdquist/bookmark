@@ -532,9 +532,49 @@ describe('ListsService', () => {
         expect.objectContaining({
           audiobookId: 'ab-1',
           ebookId: null,
+          comicSeriesId: null,
           itemType: 'audiobook',
         }),
       );
+    });
+
+    it('sets comicSeriesId for comic_series items and audiobookId/ebookId to null', async () => {
+      const { db, insertChain } = setupAddItemMocks({
+        ownerUserId: USER_ID,
+        itemExists: true,
+        alreadyInList: false,
+      });
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
+
+      await service.addItem(LIST_ID, USER_ID, {
+        itemType: 'comic_series',
+        itemId: 'cs-1',
+      });
+
+      expect(insertChain.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          audiobookId: null,
+          ebookId: null,
+          comicSeriesId: 'cs-1',
+          itemType: 'comic_series',
+        }),
+      );
+    });
+
+    it('throws NotFoundException when comic series does not exist', async () => {
+      const { db } = setupAddItemMocks({
+        ownerUserId: USER_ID,
+        itemExists: false,
+        alreadyInList: false,
+      });
+      const service = new ListsService(db, mockAppSettings, mockCoverService);
+
+      await expect(
+        service.addItem(LIST_ID, USER_ID, {
+          itemType: 'comic_series',
+          itemId: 'missing-cs',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('updates updatedAt on the list after adding an item', async () => {

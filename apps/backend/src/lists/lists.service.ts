@@ -46,6 +46,7 @@ type CombinedSchema = typeof listsSchema &
 
 type TopListVersion = {
   id: string;
+  // Top-list ranking intentionally excludes comic_series (no external ratings).
   itemType: 'audiobook' | 'ebook';
   title: string;
 };
