@@ -644,9 +644,8 @@ export class LibraryScannerService {
         await this.db
           .delete(comicsSchema.comicSeries)
           .where(eq(comicsSchema.comicSeries.id, s.id));
-        this.logger.log(
-          `Deleted hidden comic series (files removed): ${s.id}`,
-        );
+        this.logger.log(`Deleted hidden comic series (files removed): ${s.id}`);
+        this.appEvents.comicSeriesDeleted(s.id);
       } else {
         await this.db
           .update(comicsSchema.comicSeries)
