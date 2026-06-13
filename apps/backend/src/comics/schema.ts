@@ -117,6 +117,10 @@ export const comicBooks = pgTable(
     storeDate: date('store_date'),
     summary: text('summary'),
     pageCount: integer('page_count'),
+    web: text('web'),
+    language: text('language'),
+    ageRating: text('age_rating'),
+    issueCountFromFile: integer('issue_count_from_file'),
     // Relative to comic library root
     filePath: text('file_path').notNull().unique(),
     fileName: text('file_name').notNull(),
@@ -211,6 +215,7 @@ export const comicBooksRelations = relations(comicBooks, ({ one, many }) => ({
     references: [comicSeries.id],
   }),
   creators: many(comicBookCreators),
+  metadataTags: many(comicBookMetadataTags),
 }));
 
 export const comicBookCreatorsRelations = relations(
@@ -251,6 +256,39 @@ export const comicSeriesTagsRelations = relations(
     tag: one(tags, {
       fields: [comicSeriesTags.tagId],
       references: [tags.id],
+    }),
+  }),
+);
+
+export const comicMetadataTagType = pgEnum('comic_metadata_tag_type', [
+  'story_arc',
+  'character',
+  'team',
+  'location',
+]);
+
+export const comicBookMetadataTags = pgTable(
+  'comic_book_metadata_tags',
+  {
+    bookId: uuid('book_id')
+      .notNull()
+      .references(() => comicBooks.id, { onDelete: 'cascade' }),
+    type: comicMetadataTagType('type').notNull(),
+    value: text('value').notNull(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.bookId, t.type, t.value] }),
+    index('comic_book_metadata_tags_type_value_idx').on(t.type, t.value),
+    index('comic_book_metadata_tags_book_idx').on(t.bookId),
+  ],
+);
+
+export const comicBookMetadataTagsRelations = relations(
+  comicBookMetadataTags,
+  ({ one }) => ({
+    book: one(comicBooks, {
+      fields: [comicBookMetadataTags.bookId],
+      references: [comicBooks.id],
     }),
   }),
 );
