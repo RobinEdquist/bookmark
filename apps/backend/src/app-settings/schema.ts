@@ -55,6 +55,7 @@ export const appSettings = pgTable(
     signupsEnabled: boolean('signups_enabled').notNull().default(true),
     audiobookLibraryPath: text('audiobook_library_path'),
     ebookLibraryPath: text('ebook_library_path'),
+    comicLibraryPath: text('comic_library_path'),
     watcherEnabled: boolean('watcher_enabled').notNull().default(true),
     metadataPriority: jsonb('metadata_priority').$type<MetadataFieldPriority>(),
     hardcoverApiKey: text('hardcover_api_key'),

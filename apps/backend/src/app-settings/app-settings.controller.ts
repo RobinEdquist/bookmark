@@ -126,6 +126,7 @@ export class AppSettingsController {
       signupsEnabled: settings.signupsEnabled,
       audiobookLibraryPath: settings.audiobookLibraryPath,
       ebookLibraryPath: settings.ebookLibraryPath,
+      comicLibraryPath: settings.comicLibraryPath,
       opdsEnabled: settings.opdsEnabled,
       metadataPriority,
       oidcButtonText: settings.oidcButtonText,
@@ -173,6 +174,7 @@ export class AppSettingsController {
       dto.signupsEnabled === undefined &&
       dto.audiobookLibraryPath === undefined &&
       dto.ebookLibraryPath === undefined &&
+      dto.comicLibraryPath === undefined &&
       dto.metadataPriority === undefined &&
       dto.opdsEnabled === undefined &&
       dto.oidcButtonText === undefined &&
@@ -224,10 +226,16 @@ export class AppSettingsController {
       await this.validateLibraryPath(dto.ebookLibraryPath);
     }
 
+    // Validate comicLibraryPath if provided (null is allowed to clear the path)
+    if (dto.comicLibraryPath !== undefined && dto.comicLibraryPath !== null) {
+      await this.validateLibraryPath(dto.comicLibraryPath);
+    }
+
     const updates: {
       signupsEnabled?: boolean;
       audiobookLibraryPath?: string | null;
       ebookLibraryPath?: string | null;
+      comicLibraryPath?: string | null;
       metadataPriority?: MetadataFieldPriority;
       opdsEnabled?: boolean;
       oidcButtonText?: string;
@@ -251,6 +259,8 @@ export class AppSettingsController {
       updates.audiobookLibraryPath = dto.audiobookLibraryPath;
     if (dto.ebookLibraryPath !== undefined)
       updates.ebookLibraryPath = dto.ebookLibraryPath;
+    if (dto.comicLibraryPath !== undefined)
+      updates.comicLibraryPath = dto.comicLibraryPath;
     if (dto.metadataPriority !== undefined)
       updates.metadataPriority = dto.metadataPriority as MetadataFieldPriority;
     if (dto.opdsEnabled !== undefined) updates.opdsEnabled = dto.opdsEnabled;
@@ -301,6 +311,7 @@ export class AppSettingsController {
       signupsEnabled: settings.signupsEnabled,
       audiobookLibraryPath: settings.audiobookLibraryPath,
       ebookLibraryPath: settings.ebookLibraryPath,
+      comicLibraryPath: settings.comicLibraryPath,
       opdsEnabled: settings.opdsEnabled,
       metadataPriority,
       oidcButtonText: settings.oidcButtonText,

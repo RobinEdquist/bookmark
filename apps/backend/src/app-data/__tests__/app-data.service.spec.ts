@@ -87,13 +87,21 @@ describe('AppDataService', () => {
 
       await service.onModuleInit();
 
-      expect(fs.mkdir).toHaveBeenCalledTimes(4);
+      expect(fs.mkdir).toHaveBeenCalledTimes(6);
       expect(fs.mkdir).toHaveBeenCalledWith(
         path.join('/app/data', 'audiobook-covers'),
         { recursive: true },
       );
       expect(fs.mkdir).toHaveBeenCalledWith(
         path.join('/app/data', 'ebook-covers'),
+        { recursive: true },
+      );
+      expect(fs.mkdir).toHaveBeenCalledWith(
+        path.join('/app/data', 'comic-series-covers'),
+        { recursive: true },
+      );
+      expect(fs.mkdir).toHaveBeenCalledWith(
+        path.join('/app/data', 'comic-book-covers'),
         { recursive: true },
       );
       expect(fs.mkdir).toHaveBeenCalledWith(
@@ -150,6 +158,18 @@ describe('AppDataService', () => {
     it('getEbookCoverPath returns correct path for a given ID', () => {
       expect(service.getEbookCoverPath('ebook-456')).toBe(
         path.join('/app/data', 'ebook-covers', 'ebook-456.jpg'),
+      );
+    });
+
+    it('getComicSeriesCoverPath returns correct path for a given ID', () => {
+      expect(service.getComicSeriesCoverPath('series-123')).toBe(
+        path.join('/app/data', 'comic-series-covers', 'series-123.jpg'),
+      );
+    });
+
+    it('getComicBookCoverPath returns correct path for a given ID', () => {
+      expect(service.getComicBookCoverPath('book-321')).toBe(
+        path.join('/app/data', 'comic-book-covers', 'book-321.jpg'),
       );
     });
 

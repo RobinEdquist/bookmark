@@ -81,6 +81,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
 
       expect(mockedChokidar.watch).toHaveBeenCalledWith(
@@ -95,6 +96,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: null,
         ebookPath: '/ebooks',
+        comicPath: null,
       });
 
       expect(mockedChokidar.watch).toHaveBeenCalledWith(
@@ -109,12 +111,14 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks-v1',
         ebookPath: null,
+        comicPath: null,
       });
       const firstWatcher = getLastWatcherMock();
 
       await service.startWatching({
         audiobookPath: '/audiobooks-v2',
         ebookPath: null,
+        comicPath: null,
       });
 
       expect(firstWatcher.close).toHaveBeenCalled();
@@ -125,12 +129,14 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
       const watcher = getLastWatcherMock();
 
       await service.startWatching({
         audiobookPath: null,
         ebookPath: null,
+        comicPath: null,
       });
 
       expect(watcher.close).toHaveBeenCalled();
@@ -142,12 +148,14 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
       const callCount = mockedChokidar.watch.mock.calls.length;
 
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
 
       expect(mockedChokidar.watch.mock.calls.length).toBe(callCount);
@@ -162,6 +170,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: '/ebooks',
+        comicPath: null,
       });
       const watcherCalls = mockedChokidar.watch.mock.results;
       const audiobookWatcher = watcherCalls[0].value as { close: jest.Mock };
@@ -183,6 +192,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
       const watcher = getLastWatcherMock();
 
@@ -202,6 +212,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: null,
         ebookPath: '/ebooks',
+        comicPath: null,
       });
 
       expect(service.isWatching()).toBe(true);
@@ -240,6 +251,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: '/ebooks',
+        comicPath: null,
       });
 
       expect(service.getCurrentAudiobookPath()).toBe('/audiobooks');
@@ -255,6 +267,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
       const watcher = getLastWatcherMock();
       const addCallback = getEventCallback(watcher, 'add');
@@ -272,6 +285,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
       const watcher = getLastWatcherMock();
       const addDirCallback = getEventCallback(watcher, 'addDir');
@@ -289,6 +303,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
       const watcher = getLastWatcherMock();
       const unlinkCallback = getEventCallback(watcher, 'unlink');
@@ -306,6 +321,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: null,
+        comicPath: null,
       });
       const watcher = getLastWatcherMock();
       const unlinkDirCallback = getEventCallback(watcher, 'unlinkDir');
@@ -328,6 +344,7 @@ describe('FileWatcherService', () => {
       await service.startWatching({
         audiobookPath: '/audiobooks',
         ebookPath: '/ebooks',
+        comicPath: null,
       });
 
       await service.onModuleDestroy();

@@ -11,6 +11,7 @@ export interface WSEvent {
 export interface ImportTaskStatus {
   audiobooks: { pendingCount: number; pendingNames: string[] };
   ebooks: { pendingCount: number; pendingNames: string[] };
+  comics: { pendingCount: number; pendingNames: string[] };
 }
 
 export interface LibraryScanStatus {
@@ -20,7 +21,7 @@ export interface LibraryScanStatus {
   processed?: number;
   percentage?: number;
   currentFile?: string;
-  libraryType?: 'audiobook' | 'ebook';
+  libraryType?: 'audiobook' | 'ebook' | 'comic';
 }
 
 export interface HardcoverTaskStatus {
@@ -68,6 +69,7 @@ export class WsEventsService {
   private getRoom(eventType: string): string | null {
     if (eventType.startsWith('audiobook.')) return 'audiobooks';
     if (eventType.startsWith('ebook.')) return 'ebooks';
+    if (eventType.startsWith('comic.')) return 'comics';
     if (eventType.startsWith('series.')) return 'series';
     if (eventType.startsWith('library.')) return 'library';
     if (eventType.startsWith('hardcover.')) return 'hardcover';
@@ -100,6 +102,23 @@ export class WsEventsService {
 
   ebookDeleted(id: string): void {
     this.emit({ type: 'ebook.deleted', entityId: id });
+  }
+
+  // Comic series events
+  comicSeriesCreated(id: string): void {
+    this.emit({ type: 'comic.series.created', entityId: id });
+  }
+
+  comicSeriesUpdated(id: string): void {
+    this.emit({ type: 'comic.series.updated', entityId: id });
+  }
+
+  comicSeriesDeleted(id: string): void {
+    this.emit({ type: 'comic.series.deleted', entityId: id });
+  }
+
+  comicBookUpdated(bookId: string): void {
+    this.emit({ type: 'comic.book.updated', entityId: bookId });
   }
 
   // Series events

@@ -5,8 +5,9 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as ebookSchema from '../ebooks/schema';
+import * as comicsSchema from '../comics/schema';
 
-type Schema = typeof audiobookSchema & typeof ebookSchema;
+type Schema = typeof audiobookSchema & typeof ebookSchema & typeof comicsSchema;
 
 export interface LibraryStats {
   audiobookCount: number;
@@ -15,6 +16,8 @@ export interface LibraryStats {
   authorCount: number;
   ebookCount: number;
   totalPages: number;
+  comicSeriesCount: number;
+  comicBookCount: number;
 }
 
 @Injectable()
@@ -64,6 +67,18 @@ export class LibraryService {
       .from(ebookSchema.ebooks)
       .where(ne(ebookSchema.ebooks.status, 'hidden'));
 
+    // Get comic series count (excluding hidden)
+    const [comicSeriesResult] = await this.db
+      .select({ count: count() })
+      .from(comicsSchema.comicSeries)
+      .where(ne(comicsSchema.comicSeries.status, 'hidden'));
+
+    // Get comic book count (excluding hidden)
+    const [comicBookResult] = await this.db
+      .select({ count: count() })
+      .from(comicsSchema.comicBooks)
+      .where(ne(comicsSchema.comicBooks.status, 'hidden'));
+
     return {
       audiobookCount: audiobookResult?.count ?? 0,
       totalDuration: Number(durationResult?.total ?? 0),
@@ -73,6 +88,8 @@ export class LibraryService {
       ),
       ebookCount: ebookResult?.count ?? 0,
       totalPages: Number(pagesResult?.total ?? 0),
+      comicSeriesCount: comicSeriesResult?.count ?? 0,
+      comicBookCount: comicBookResult?.count ?? 0,
     };
   }
 

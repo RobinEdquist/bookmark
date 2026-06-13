@@ -31,6 +31,8 @@ export class AppDataService implements OnModuleInit {
     const directories = [
       this.getAudiobookCoversPath(),
       this.getEbookCoversPath(),
+      this.getComicSeriesCoversPath(),
+      this.getComicBookCoversPath(),
       this.getPeopleImagesPath(),
       this.getTempPath(),
     ];
@@ -58,6 +60,14 @@ export class AppDataService implements OnModuleInit {
     return path.join(this.basePath, 'ebook-covers');
   }
 
+  getComicSeriesCoversPath(): string {
+    return path.join(this.basePath, 'comic-series-covers');
+  }
+
+  getComicBookCoversPath(): string {
+    return path.join(this.basePath, 'comic-book-covers');
+  }
+
   getPeopleImagesPath(): string {
     return path.join(this.basePath, 'people-images');
   }
@@ -77,6 +87,20 @@ export class AppDataService implements OnModuleInit {
     return path.join(
       this.getEbookCoversPath(),
       `${this.sanitizeId(ebookId)}.jpg`,
+    );
+  }
+
+  getComicSeriesCoverPath(seriesId: string): string {
+    return path.join(
+      this.getComicSeriesCoversPath(),
+      `${this.sanitizeId(seriesId)}.jpg`,
+    );
+  }
+
+  getComicBookCoverPath(bookId: string): string {
+    return path.join(
+      this.getComicBookCoversPath(),
+      `${this.sanitizeId(bookId)}.jpg`,
     );
   }
 

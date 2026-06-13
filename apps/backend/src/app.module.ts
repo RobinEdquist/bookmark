@@ -13,6 +13,7 @@ import { AppSettingsModule } from './app-settings/app-settings.module';
 import { FilesystemModule } from './filesystem/filesystem.module';
 import { AudiobooksModule } from './audiobooks/audiobooks.module';
 import { EbooksModule } from './ebooks/ebooks.module';
+import { ComicsModule } from './comics/comics.module';
 import { ImportErrorsModule } from './import-errors/import-errors.module';
 import { LibraryWatcherModule } from './library-watcher/library-watcher.module';
 import { HardcoverModule } from './hardcover/hardcover.module';
@@ -128,6 +129,7 @@ import { CommonModule } from './common/common.module';
     FilesystemModule,
     AudiobooksModule,
     EbooksModule,
+    ComicsModule,
     ImportErrorsModule,
     LibraryWatcherModule,
     HardcoverModule,

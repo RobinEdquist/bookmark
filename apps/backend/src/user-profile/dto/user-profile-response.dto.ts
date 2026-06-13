@@ -85,7 +85,11 @@ export class LibraryProgressItemDto {
   @ApiProperty({ example: 'The Way of Kings' })
   title!: string;
 
-  @ApiPropertyOptional({ type: String, example: 'Brandon Sanderson', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Brandon Sanderson',
+    nullable: true,
+  })
   authorName?: string | null;
 
   @ApiPropertyOptional({
@@ -101,7 +105,11 @@ export class LibraryProgressItemDto {
   @ApiProperty({ example: false })
   completed!: boolean;
 
-  @ApiPropertyOptional({ type: String, example: '2024-01-15T12:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '2024-01-15T12:00:00.000Z',
+    nullable: true,
+  })
   completedAt?: string | null;
 
   @ApiProperty({ example: '2024-01-10T08:00:00.000Z' })

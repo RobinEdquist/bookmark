@@ -81,6 +81,27 @@ export class LibraryWatcherController {
     };
   }
 
+  @Post('scan-comics')
+  @ApiOperation({
+    summary: 'Trigger comic scan (Admin)',
+    description:
+      'Manually trigger a scan of the comic library directory to discover new series and books',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Scan completed successfully with results',
+    type: LibraryScanResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  async triggerComicScan() {
+    const result = await this.libraryWatcherService.manualComicScan();
+    return {
+      success: true,
+      result,
+    };
+  }
+
   @Post('rescan')
   @ApiOperation({
     summary: 'Rescan all audiobooks (Admin)',

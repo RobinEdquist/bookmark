@@ -5,6 +5,7 @@ import * as path from 'path';
 import { MediaDetectorService } from './media-detector.service';
 import { MediaImporterService } from './media-importer.service';
 import { isAudioFile } from './utils/audio-file.utils';
+import { isComicFile } from './media-detector.service';
 import { WsEventsService } from '../events/ws-events.service';
 import { LibraryType } from './file-watcher.service';
 
@@ -71,6 +72,9 @@ export class ImportQueueService implements OnModuleDestroy {
     if (libraryType === 'ebook' && !isEbookFile(filePath)) {
       return;
     }
+    if (libraryType === 'comic' && !isComicFile(filePath)) {
+      return;
+    }
 
     const rootPath = this.determineRootPath(filePath, libraryPath, libraryType);
     this.addToPending(rootPath, filePath, libraryPath, libraryType);
@@ -119,6 +123,14 @@ export class ImportQueueService implements OnModuleDestroy {
     libraryPath: string,
     libraryType: LibraryType,
   ): string {
+    if (libraryType === 'comic') {
+      const parentDir = path.dirname(filePath);
+      if (parentDir === libraryPath) {
+        return filePath; // Root one-shot
+      }
+      return parentDir; // Series folder
+    }
+
     if (libraryType === 'ebook') {
       // Ebooks are single files, so the file itself is the root
       return filePath;
@@ -171,8 +183,10 @@ export class ImportQueueService implements OnModuleDestroy {
 
       if (pending.libraryType === 'audiobook') {
         await this.processAudiobookImport(pending);
-      } else {
+      } else if (pending.libraryType === 'ebook') {
         await this.processEbookImport(pending);
+      } else {
+        await this.processComicImport(pending);
       }
     } catch (error) {
       this.logger.error(
@@ -213,13 +227,28 @@ export class ImportQueueService implements OnModuleDestroy {
     }
   }
 
+  private async processComicImport(pending: PendingImport): Promise<void> {
+    const unit = await this.mediaDetector.detectComicSeriesForPath(
+      pending.path,
+      pending.libraryPath,
+    );
+
+    if (unit) {
+      await this.mediaImporter.importComicSeriesUnit(unit, pending.libraryPath);
+    }
+  }
+
   private async verifyFilesStable(
     files: Set<string>,
     libraryType: LibraryType,
   ): Promise<boolean> {
     for (const file of files) {
       const isRelevantFile =
-        libraryType === 'audiobook' ? isAudioFile(file) : isEbookFile(file);
+        libraryType === 'audiobook'
+          ? isAudioFile(file)
+          : libraryType === 'ebook'
+            ? isEbookFile(file)
+            : isComicFile(file);
       if (isRelevantFile && !(await this.isFileStable(file))) {
         return false;
       }
@@ -274,6 +303,18 @@ export class ImportQueueService implements OnModuleDestroy {
       .map(([fullPath]) => path.basename(fullPath));
   }
 
+  getComicPendingCount(): number {
+    return Array.from(this.pendingImports.values()).filter(
+      (p) => p.libraryType === 'comic',
+    ).length;
+  }
+
+  getComicPendingNames(): string[] {
+    return Array.from(this.pendingImports.entries())
+      .filter(([, p]) => p.libraryType === 'comic')
+      .map(([fullPath]) => path.basename(fullPath));
+  }
+
   private emitImportStatus(): void {
     this.wsEvents.importStatusUpdated({
       audiobooks: {
@@ -283,6 +324,10 @@ export class ImportQueueService implements OnModuleDestroy {
       ebooks: {
         pendingCount: this.getEbookPendingCount(),
         pendingNames: this.getEbookPendingNames(),
+      },
+      comics: {
+        pendingCount: this.getComicPendingCount(),
+        pendingNames: this.getComicPendingNames(),
       },
     });
   }

@@ -8,10 +8,12 @@ import pLimit from 'p-limit';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
+import * as comicsSchema from '../comics/schema';
 import {
   MediaDetectorService,
   AudiobookUnit,
   EbookUnit,
+  ComicSeriesUnit,
 } from './media-detector.service';
 import { MediaImporterService } from './media-importer.service';
 import { AppEventsService } from '../events/app-events.service';
@@ -41,12 +43,14 @@ export interface ScanProgress {
 export class LibraryScannerService {
   private readonly logger = new Logger(LibraryScannerService.name);
   private currentProgress: ScanProgress | null = null;
-  private currentLibraryType: 'audiobook' | 'ebook' | null = null;
+  private currentLibraryType: 'audiobook' | 'ebook' | 'comic' | null = null;
   private progressCallbacks = new Set<(progress: ScanProgress) => void>();
 
   constructor(
     @Inject(DATABASE_CONNECTION)
-    private db: NodePgDatabase<typeof audiobooksSchema & typeof ebooksSchema>,
+    private db: NodePgDatabase<
+      typeof audiobooksSchema & typeof ebooksSchema & typeof comicsSchema
+    >,
     private mediaDetector: MediaDetectorService,
     private mediaImporter: MediaImporterService,
     private appEvents: AppEventsService,
@@ -341,6 +345,161 @@ export class LibraryScannerService {
     return result;
   }
 
+  // ===== COMIC SCANNING =====
+
+  async scanComicLibrary(libraryPath: string): Promise<ScanResult> {
+    const result: ScanResult = {
+      added: 0,
+      missing: 0,
+      restored: 0,
+      deleted: 0,
+      errors: [],
+    };
+
+    this.logger.log(`Starting comic reconciliation scan of ${libraryPath}`);
+    this.currentLibraryType = 'comic';
+
+    // Phase 1a: reconcile books against the filesystem
+    this.updateProgress({ phase: 'reconciling', total: 0, processed: 0 });
+
+    const existingBooks = await this.db
+      .select({
+        id: comicsSchema.comicBooks.id,
+        filePath: comicsSchema.comicBooks.filePath,
+        status: comicsSchema.comicBooks.status,
+      })
+      .from(comicsSchema.comicBooks);
+
+    this.updateProgress({
+      phase: 'reconciling',
+      total: existingBooks.length,
+      processed: 0,
+    });
+
+    for (let i = 0; i < existingBooks.length; i++) {
+      const book = existingBooks[i];
+      this.updateProgress({
+        phase: 'reconciling',
+        total: existingBooks.length,
+        processed: i + 1,
+        currentFile: book.filePath,
+      });
+
+      const exists = await this.pathExists(
+        path.join(libraryPath, book.filePath),
+      );
+
+      if (book.status === 'hidden') {
+        if (!exists) {
+          await this.db
+            .delete(comicsSchema.comicBooks)
+            .where(eq(comicsSchema.comicBooks.id, book.id));
+          result.deleted++;
+        }
+        continue;
+      }
+
+      if (!exists && book.status !== 'missing') {
+        await this.db
+          .update(comicsSchema.comicBooks)
+          .set({ status: 'missing', missingAt: new Date() })
+          .where(eq(comicsSchema.comicBooks.id, book.id));
+        result.missing++;
+      } else if (exists && book.status === 'missing') {
+        await this.db
+          .update(comicsSchema.comicBooks)
+          .set({ status: 'available', missingAt: null })
+          .where(eq(comicsSchema.comicBooks.id, book.id));
+        result.restored++;
+      }
+    }
+
+    // Phase 1b: reconcile series folders; drop hidden series whose folder vanished
+    const existingSeries = await this.db
+      .select({
+        id: comicsSchema.comicSeries.id,
+        folderPath: comicsSchema.comicSeries.folderPath,
+        status: comicsSchema.comicSeries.status,
+      })
+      .from(comicsSchema.comicSeries);
+
+    for (const series of existingSeries) {
+      const exists = await this.pathExists(
+        path.join(libraryPath, series.folderPath),
+      );
+
+      if (!exists) {
+        if (series.status === 'hidden') {
+          await this.db
+            .delete(comicsSchema.comicSeries)
+            .where(eq(comicsSchema.comicSeries.id, series.id));
+          result.deleted++;
+          continue;
+        }
+        if (series.status !== 'missing') {
+          await this.db
+            .update(comicsSchema.comicSeries)
+            .set({ status: 'missing', missingAt: new Date() })
+            .where(eq(comicsSchema.comicSeries.id, series.id));
+        }
+      } else if (series.status === 'missing') {
+        await this.db
+          .update(comicsSchema.comicSeries)
+          .set({ status: 'available', missingAt: null })
+          .where(eq(comicsSchema.comicSeries.id, series.id));
+      }
+    }
+
+    // Phase 2: detect units and keep those with anything new
+    this.updateProgress({ phase: 'scanning', total: 0, processed: 0 });
+
+    const existingBookPaths = new Set(existingBooks.map((b) => b.filePath));
+    const existingSeriesPaths = new Set(
+      existingSeries.map((s) => s.folderPath),
+    );
+
+    const detectedUnits =
+      await this.mediaDetector.scanLibraryForComics(libraryPath);
+
+    const newUnits = detectedUnits.filter((unit) => {
+      const relFolder = path.relative(libraryPath, unit.path);
+      if (!existingSeriesPaths.has(relFolder)) return true;
+      return unit.books.some(
+        (b) => !existingBookPaths.has(path.relative(libraryPath, b.path)),
+      );
+    });
+
+    this.updateProgress({
+      phase: 'importing',
+      total: newUnits.length,
+      processed: 0,
+    });
+
+    const importResults = await this.importInBatches(
+      newUnits,
+      libraryPath,
+      'comic',
+    );
+    result.added = importResults.added;
+    result.errors.push(...importResults.errors);
+
+    this.updateProgress({
+      phase: 'importing',
+      total: newUnits.length,
+      processed: newUnits.length,
+    });
+
+    this.currentProgress = null;
+    this.currentLibraryType = null;
+    this.emitScanStatus(false);
+
+    this.logger.log(
+      `Comic reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
+    );
+
+    return result;
+  }
+
   // ===== PATH REMOVAL HANDLING =====
 
   async handlePathRemoved(
@@ -350,8 +509,10 @@ export class LibraryScannerService {
   ): Promise<void> {
     if (libraryType === 'audiobook') {
       await this.handleAudiobookPathRemoved(removedPath, libraryPath);
-    } else {
+    } else if (libraryType === 'ebook') {
       await this.handleEbookPathRemoved(removedPath, libraryPath);
+    } else {
+      await this.handleComicPathRemoved(removedPath, libraryPath);
     }
   }
 
@@ -426,6 +587,76 @@ export class LibraryScannerService {
     }
   }
 
+  private async handleComicPathRemoved(
+    removedPath: string,
+    libraryPath: string,
+  ): Promise<void> {
+    const relativePath = path.relative(libraryPath, removedPath);
+
+    // Books matching the removed file, or inside the removed folder
+    const books = await this.db
+      .select({
+        id: comicsSchema.comicBooks.id,
+        filePath: comicsSchema.comicBooks.filePath,
+        status: comicsSchema.comicBooks.status,
+      })
+      .from(comicsSchema.comicBooks)
+      .where(
+        or(
+          eq(comicsSchema.comicBooks.filePath, relativePath),
+          sql`${comicsSchema.comicBooks.filePath} LIKE ${relativePath + '/%'}`,
+        ),
+      );
+
+    for (const book of books) {
+      if (book.status === 'hidden') {
+        await this.db
+          .delete(comicsSchema.comicBooks)
+          .where(eq(comicsSchema.comicBooks.id, book.id));
+        this.logger.log(
+          `Deleted hidden comic book (files removed): ${book.filePath}`,
+        );
+      } else {
+        await this.db
+          .update(comicsSchema.comicBooks)
+          .set({ status: 'missing', missingAt: new Date() })
+          .where(eq(comicsSchema.comicBooks.id, book.id));
+        this.logger.log(`Marked comic book as missing: ${book.filePath}`);
+      }
+    }
+
+    // Series matching the removed folder (or root one-shot file)
+    const series = await this.db
+      .select({
+        id: comicsSchema.comicSeries.id,
+        status: comicsSchema.comicSeries.status,
+      })
+      .from(comicsSchema.comicSeries)
+      .where(
+        or(
+          eq(comicsSchema.comicSeries.folderPath, relativePath),
+          sql`${comicsSchema.comicSeries.folderPath} LIKE ${relativePath + '/%'}`,
+        ),
+      );
+
+    for (const s of series) {
+      if (s.status === 'hidden') {
+        await this.db
+          .delete(comicsSchema.comicSeries)
+          .where(eq(comicsSchema.comicSeries.id, s.id));
+        this.logger.log(`Deleted hidden comic series (files removed): ${s.id}`);
+        this.appEvents.comicSeriesDeleted(s.id);
+      } else {
+        await this.db
+          .update(comicsSchema.comicSeries)
+          .set({ status: 'missing', missingAt: new Date() })
+          .where(eq(comicsSchema.comicSeries.id, s.id));
+        this.logger.log(`Marked comic series as missing: ${s.id}`);
+        this.appEvents.comicSeriesUpdated(s.id);
+      }
+    }
+  }
+
   // ===== HELPERS =====
 
   /**
@@ -433,9 +664,9 @@ export class LibraryScannerService {
    * This prevents event loop starvation and provides better performance than sequential imports.
    */
   private async importInBatches(
-    units: AudiobookUnit[] | EbookUnit[],
+    units: AudiobookUnit[] | EbookUnit[] | ComicSeriesUnit[],
     libraryPath: string,
-    type: 'audiobook' | 'ebook',
+    type: 'audiobook' | 'ebook' | 'comic',
   ): Promise<{
     added: number;
     errors: Array<{ path: string; error: string }>;
@@ -453,16 +684,23 @@ export class LibraryScannerService {
       const batchPromises = batch.map((unit) =>
         limit(async () => {
           try {
-            const id =
-              type === 'audiobook'
-                ? await this.mediaImporter.importAudiobook(
-                    unit as AudiobookUnit,
-                    libraryPath,
-                  )
-                : await this.mediaImporter.importEbook(
-                    unit as EbookUnit,
-                    libraryPath,
-                  );
+            let id: string | null;
+            if (type === 'audiobook') {
+              id = await this.mediaImporter.importAudiobook(
+                unit as AudiobookUnit,
+                libraryPath,
+              );
+            } else if (type === 'ebook') {
+              id = await this.mediaImporter.importEbook(
+                unit as EbookUnit,
+                libraryPath,
+              );
+            } else {
+              id = await this.mediaImporter.importComicSeriesUnit(
+                unit as ComicSeriesUnit,
+                libraryPath,
+              );
+            }
 
             if (id) {
               added++;

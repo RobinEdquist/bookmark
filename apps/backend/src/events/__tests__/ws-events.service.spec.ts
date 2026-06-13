@@ -233,6 +233,7 @@ describe('WsEventsService', () => {
       const status = {
         audiobooks: { pendingCount: 2, pendingNames: ['book1'] },
         ebooks: { pendingCount: 0, pendingNames: [] },
+        comics: { pendingCount: 0, pendingNames: [] },
       };
       service.importStatusUpdated(status);
 
@@ -250,6 +251,7 @@ describe('WsEventsService', () => {
       const status = {
         audiobooks: { pendingCount: 2, pendingNames: ['book1'] },
         ebooks: { pendingCount: 0, pendingNames: [] },
+        comics: { pendingCount: 0, pendingNames: [] },
       };
       service.importStatusUpdated(status);
       service.importStatusUpdated(status);
@@ -261,10 +263,12 @@ describe('WsEventsService', () => {
       service.importStatusUpdated({
         audiobooks: { pendingCount: 2, pendingNames: ['book1'] },
         ebooks: { pendingCount: 0, pendingNames: [] },
+        comics: { pendingCount: 0, pendingNames: [] },
       });
       service.importStatusUpdated({
         audiobooks: { pendingCount: 1, pendingNames: [] },
         ebooks: { pendingCount: 0, pendingNames: [] },
+        comics: { pendingCount: 0, pendingNames: [] },
       });
 
       expect(gateway.emitToRoom).toHaveBeenCalledTimes(2);

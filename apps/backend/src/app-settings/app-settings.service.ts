@@ -38,6 +38,7 @@ export class AppSettingsService {
     signupsEnabled?: boolean;
     audiobookLibraryPath?: string | null;
     ebookLibraryPath?: string | null;
+    comicLibraryPath?: string | null;
     watcherEnabled?: boolean;
     metadataPriority?: MetadataFieldPriority;
     opdsEnabled?: boolean;
@@ -88,6 +89,11 @@ export class AppSettingsService {
   async getEbookLibraryPath(): Promise<string | null> {
     const settings = await this.getSettings();
     return settings.ebookLibraryPath;
+  }
+
+  async getComicLibraryPath(): Promise<string | null> {
+    const settings = await this.getSettings();
+    return settings.comicLibraryPath;
   }
 
   async isWatcherEnabled(): Promise<boolean> {

@@ -9,6 +9,7 @@ import { MediaImporterService } from './media-importer.service';
 import { ImportQueueService } from './import-queue.service';
 import { EmbeddedMetadataProvider } from './metadata/embedded-metadata.provider';
 import { EbookMetadataProvider } from './metadata/ebook-metadata.provider';
+import { ComicMetadataProvider } from './metadata/comic-metadata.provider';
 import { MetadataWorkerPoolService } from './metadata/metadata-worker-pool.service';
 import { HardcoverModule } from '../hardcover/hardcover.module';
 import { RequestsModule } from '../requests';
@@ -26,11 +27,13 @@ import { RequestsModule } from '../requests';
     MetadataWorkerPoolService,
     EmbeddedMetadataProvider,
     EbookMetadataProvider,
+    ComicMetadataProvider,
   ],
   exports: [
     LibraryWatcherService,
     EmbeddedMetadataProvider,
     EbookMetadataProvider,
+    ComicMetadataProvider,
     ImportQueueService,
     LibraryScannerService,
   ],

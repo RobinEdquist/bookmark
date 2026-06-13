@@ -22,7 +22,7 @@ function createMockCoverService(overrides: Record<string, any> = {}) {
 }
 
 /**
- * Sets up the 5 sequential db.select chains and 1 db.execute call for getStats.
+ * Sets up the 7 sequential db.select chains and 1 db.execute call for getStats.
  * Returns a handle so individual tests can override resolved values.
  */
 function setupGetStatsChains(
@@ -33,6 +33,8 @@ function setupGetStatsChains(
     seriesCount: any[];
     ebookCount: any[];
     pages: any[];
+    comicSeriesCount: any[];
+    comicBookCount: any[];
     authorRows: any[];
   }>,
 ) {
@@ -55,18 +57,38 @@ function setupGetStatsChains(
   const pagesChain = createChainMock(['from', 'where']);
   pagesChain.where.mockResolvedValueOnce(values?.pages ?? [{ total: null }]);
 
+  const comicSeriesChain = createChainMock(['from', 'where']);
+  comicSeriesChain.where.mockResolvedValueOnce(
+    values?.comicSeriesCount ?? [{ count: 0 }],
+  );
+
+  const comicBookChain = createChainMock(['from', 'where']);
+  comicBookChain.where.mockResolvedValueOnce(
+    values?.comicBookCount ?? [{ count: 0 }],
+  );
+
   db.select
     .mockReturnValueOnce(audiobookChain)
     .mockReturnValueOnce(durationChain)
     .mockReturnValueOnce(seriesChain)
     .mockReturnValueOnce(ebookChain)
-    .mockReturnValueOnce(pagesChain);
+    .mockReturnValueOnce(pagesChain)
+    .mockReturnValueOnce(comicSeriesChain)
+    .mockReturnValueOnce(comicBookChain);
 
   db.execute.mockResolvedValueOnce({
     rows: values?.authorRows ?? [{ count: 0 }],
   });
 
-  return { audiobookChain, durationChain, seriesChain, ebookChain, pagesChain };
+  return {
+    audiobookChain,
+    durationChain,
+    seriesChain,
+    ebookChain,
+    pagesChain,
+    comicSeriesChain,
+    comicBookChain,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -96,6 +118,8 @@ describe('LibraryService', () => {
         seriesCount: [{ count: 5 }],
         ebookCount: [{ count: 18 }],
         pages: [{ total: '4500' }],
+        comicSeriesCount: [{ count: 7 }],
+        comicBookCount: [{ count: 33 }],
         authorRows: [{ count: 10 }],
       });
 
@@ -108,6 +132,8 @@ describe('LibraryService', () => {
         authorCount: 10,
         ebookCount: 18,
         totalPages: 4500,
+        comicSeriesCount: 7,
+        comicBookCount: 33,
       });
     });
 
@@ -118,6 +144,8 @@ describe('LibraryService', () => {
         seriesCount: [{ count: 0 }],
         ebookCount: [{ count: 0 }],
         pages: [{ total: '0' }],
+        comicSeriesCount: [{ count: 0 }],
+        comicBookCount: [{ count: 0 }],
         authorRows: [{ count: 0 }],
       });
 
@@ -130,6 +158,8 @@ describe('LibraryService', () => {
         authorCount: 0,
         ebookCount: 0,
         totalPages: 0,
+        comicSeriesCount: 0,
+        comicBookCount: 0,
       });
     });
 
@@ -182,12 +212,12 @@ describe('LibraryService', () => {
       expect(stats.totalPages).toBe(0);
     });
 
-    it('invokes db.select five times and db.execute once', async () => {
+    it('invokes db.select seven times and db.execute once', async () => {
       setupGetStatsChains(db);
 
       await service.getStats();
 
-      expect(db.select).toHaveBeenCalledTimes(5);
+      expect(db.select).toHaveBeenCalledTimes(7);
       expect(db.execute).toHaveBeenCalledTimes(1);
     });
   });

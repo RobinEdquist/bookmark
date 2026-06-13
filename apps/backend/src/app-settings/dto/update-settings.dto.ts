@@ -185,6 +185,16 @@ export class UpdateSettingsDto {
   ebookLibraryPath?: string | null;
 
   @ApiPropertyOptional({
+    description: 'Path to the comic library directory',
+    example: '/media/comics',
+    nullable: true,
+  })
+  @IsOptional()
+  @ValidateIf((_, value) => value !== null)
+  @IsString()
+  comicLibraryPath?: string | null;
+
+  @ApiPropertyOptional({
     description: 'Metadata source priority configuration',
     type: MetadataFieldPriorityInputDto,
   })

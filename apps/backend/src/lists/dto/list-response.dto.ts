@@ -17,10 +17,18 @@ export class ListDto {
   @ApiProperty({ example: false })
   isPublic!: boolean;
 
-  @ApiProperty({ example: '2025-01-15T10:30:00.000Z', type: String, format: 'date-time' })
+  @ApiProperty({
+    example: '2025-01-15T10:30:00.000Z',
+    type: String,
+    format: 'date-time',
+  })
   createdAt!: string;
 
-  @ApiProperty({ example: '2025-01-15T10:30:00.000Z', type: String, format: 'date-time' })
+  @ApiProperty({
+    example: '2025-01-15T10:30:00.000Z',
+    type: String,
+    format: 'date-time',
+  })
   updatedAt!: string;
 }
 
@@ -32,7 +40,10 @@ export class ListWithPreviewDto extends ListDto {
   @ApiProperty({ example: 12, description: 'Number of items in this list' })
   itemCount!: number;
 
-  @ApiProperty({ example: true, description: 'Whether the requesting user owns this list' })
+  @ApiProperty({
+    example: true,
+    description: 'Whether the requesting user owns this list',
+  })
   isOwner!: boolean;
 
   @ApiProperty({
@@ -50,7 +61,10 @@ export class ListWithPreviewDto extends ListDto {
  * Public-list variant exposed on /api/lists (publicLists) — adds the owner's display name.
  */
 export class PublicListWithPreviewDto extends ListWithPreviewDto {
-  @ApiProperty({ example: 'Jane Doe', description: 'Display name of the list owner' })
+  @ApiProperty({
+    example: 'Jane Doe',
+    description: 'Display name of the list owner',
+  })
   ownerName!: string;
 }
 
@@ -58,10 +72,16 @@ export class PublicListWithPreviewDto extends ListWithPreviewDto {
  * GET /api/lists response — grouped by ownership.
  */
 export class ListsGroupedDto {
-  @ApiProperty({ type: [ListWithPreviewDto], description: "Lists owned by the requesting user" })
+  @ApiProperty({
+    type: [ListWithPreviewDto],
+    description: 'Lists owned by the requesting user',
+  })
   myLists!: ListWithPreviewDto[];
 
-  @ApiProperty({ type: [PublicListWithPreviewDto], description: 'Public lists owned by other users' })
+  @ApiProperty({
+    type: [PublicListWithPreviewDto],
+    description: 'Public lists owned by other users',
+  })
   publicLists!: PublicListWithPreviewDto[];
 }
 
@@ -164,7 +184,11 @@ export class ListItemWithDetailsDto {
   @ApiProperty({ example: 1, description: 'Sort order within the list' })
   order!: number;
 
-  @ApiProperty({ example: '2025-01-15T10:30:00.000Z', type: String, format: 'date-time' })
+  @ApiProperty({
+    example: '2025-01-15T10:30:00.000Z',
+    type: String,
+    format: 'date-time',
+  })
   createdAt!: string;
 
   @ApiPropertyOptional({
@@ -204,7 +228,11 @@ export class ListItemDto {
   @ApiProperty({ example: 1 })
   order!: number;
 
-  @ApiProperty({ example: '2025-01-15T10:30:00.000Z', type: String, format: 'date-time' })
+  @ApiProperty({
+    example: '2025-01-15T10:30:00.000Z',
+    type: String,
+    format: 'date-time',
+  })
   createdAt!: string;
 }
 

@@ -63,6 +63,9 @@ export class AppSettingsResponseDto {
   @ApiPropertyOptional({ example: '/media/ebooks', nullable: true })
   ebookLibraryPath?: string | null;
 
+  @ApiPropertyOptional({ example: '/media/comics', nullable: true })
+  comicLibraryPath?: string | null;
+
   @ApiProperty({ example: true })
   opdsEnabled!: boolean;
 
