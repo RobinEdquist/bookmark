@@ -245,6 +245,81 @@ export class ComicvineService {
   // Search / browse
   // =========================================================================
 
+  /**
+   * Search ComicVine volumes prefilled with the series title.
+   * Used by the controller's /search/volume-for-series/:seriesId endpoint.
+   */
+  async searchVolumesForSeries(
+    seriesId: string,
+    page: number = 1,
+  ): Promise<{ totalResults: number; results: CvVolumeRaw[]; query: string }> {
+    const series = await this.db
+      .select({ title: comicsSchema.comicSeries.title })
+      .from(comicsSchema.comicSeries)
+      .where(eq(comicsSchema.comicSeries.id, seriesId))
+      .limit(1);
+
+    const query = series[0]?.title ?? '';
+    if (!query) {
+      return { totalResults: 0, results: [], query };
+    }
+
+    const result = await this.searchVolumes(query, page);
+    return { ...result, query };
+  }
+
+  /**
+   * Search for ComicVine issues for a given book.
+   * Uses the linked volume's issues — pages issue cache for the parent series' linked volume.
+   * Returns a 400-compatible empty result if the parent series is not linked.
+   */
+  async searchIssuesForBook(
+    bookId: string,
+    page: number = 1,
+  ): Promise<{
+    totalResults: number;
+    issues: CachedIssue[];
+    linkedVolume: boolean;
+  }> {
+    const book = await this.db
+      .select({ seriesId: comicsSchema.comicBooks.seriesId })
+      .from(comicsSchema.comicBooks)
+      .where(eq(comicsSchema.comicBooks.id, bookId))
+      .limit(1);
+
+    if (book.length === 0) {
+      return { totalResults: 0, issues: [], linkedVolume: false };
+    }
+
+    const volumeLink = await this.db
+      .select({
+        comicvineVolumeId: comicvineSchema.comicvineVolumes.comicvineVolumeId,
+      })
+      .from(comicvineSchema.comicvineVolumeLinks)
+      .innerJoin(
+        comicvineSchema.comicvineVolumes,
+        eq(
+          comicvineSchema.comicvineVolumeLinks.comicvineVolumeRowId,
+          comicvineSchema.comicvineVolumes.id,
+        ),
+      )
+      .where(
+        eq(comicvineSchema.comicvineVolumeLinks.seriesId, book[0].seriesId),
+      )
+      .limit(1);
+
+    if (volumeLink.length === 0) {
+      return { totalResults: 0, issues: [], linkedVolume: false };
+    }
+
+    const result = await this.getVolumeIssuesPaged(
+      volumeLink[0].comicvineVolumeId,
+      page,
+    );
+
+    return { ...result, linkedVolume: true };
+  }
+
   async searchVolumes(
     query: string,
     page: number = 1,

@@ -133,6 +133,10 @@ function createMockDeps() {
       getAutoSyncOnImport: jest.fn().mockResolvedValue(false),
       addToSyncQueue: jest.fn().mockResolvedValue(undefined),
     } as any,
+    comicvineService: {
+      getAutoSyncOnImport: jest.fn().mockResolvedValue(false),
+      addToSyncQueue: jest.fn().mockResolvedValue(undefined),
+    } as any,
     appEvents: {
       audiobookCreated: jest.fn(),
       audiobookUpdated: jest.fn(),
@@ -170,6 +174,7 @@ function buildService(db: any, deps: ReturnType<typeof createMockDeps>) {
     deps.ebookMetadataProvider,
     deps.importErrorsService,
     deps.hardcoverService,
+    deps.comicvineService,
     deps.appEvents,
     deps.wsEvents,
     deps.requestsService,

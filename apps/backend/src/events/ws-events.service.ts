@@ -49,6 +49,7 @@ export class WsEventsService {
   private readonly logger = new Logger(WsEventsService.name);
   private lastImportStatusJson: string | null = null;
   private lastHardcoverStatusJson: string | null = null;
+  private lastComicvineStatusJson: string | null = null;
   private lastScanStatusJson: string | null = null;
   private lastRescanStatusJson: string | null = null;
 
@@ -79,6 +80,8 @@ export class WsEventsService {
     if (eventType.startsWith('series.')) return 'series';
     if (eventType.startsWith('library.')) return 'library';
     if (eventType.startsWith('hardcover.')) return 'hardcover';
+    if (eventType.startsWith('comicvine.')) return 'comicvine';
+    if (eventType.startsWith('tasks.comicvine.')) return 'tasks';
     if (eventType.startsWith('settings.')) return 'settings';
     if (eventType.startsWith('tasks.')) return 'tasks';
     return null;
@@ -233,11 +236,15 @@ export class WsEventsService {
    * Debounced - only emits if status has changed.
    */
   comicvineSyncStatusUpdated(status: ComicvineTaskStatus): void {
-    // Reuse lastHardcoverStatusJson slot pattern but for comicvine
     const statusJson = JSON.stringify(status);
+
+    // Debounce: only emit if status actually changed
+    if (statusJson === this.lastComicvineStatusJson) {
+      return;
+    }
+
+    this.lastComicvineStatusJson = statusJson;
     this.emit({ type: 'tasks.comicvine.status', payload: status });
-    // Note: non-debounced here (debounce added in Task 6 with dedicated state field)
-    void statusJson;
   }
 
   /**

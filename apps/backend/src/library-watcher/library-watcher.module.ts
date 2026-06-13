@@ -1,5 +1,5 @@
 // apps/backend/src/library-watcher/library-watcher.module.ts
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { LibraryWatcherController } from './library-watcher.controller';
 import { LibraryWatcherService } from './library-watcher.service';
 import { FileWatcherService } from './file-watcher.service';
@@ -12,10 +12,11 @@ import { EbookMetadataProvider } from './metadata/ebook-metadata.provider';
 import { ComicMetadataProvider } from './metadata/comic-metadata.provider';
 import { MetadataWorkerPoolService } from './metadata/metadata-worker-pool.service';
 import { HardcoverModule } from '../hardcover/hardcover.module';
+import { ComicvineModule } from '../comicvine/comicvine.module';
 import { RequestsModule } from '../requests';
 
 @Module({
-  imports: [HardcoverModule, RequestsModule],
+  imports: [HardcoverModule, forwardRef(() => ComicvineModule), RequestsModule],
   controllers: [LibraryWatcherController],
   providers: [
     LibraryWatcherService,
