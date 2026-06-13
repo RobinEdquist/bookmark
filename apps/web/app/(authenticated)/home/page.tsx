@@ -6,6 +6,7 @@ import { ContinueReadingSection } from "../../../components/home/continue-readin
 import { RecentlyUpdatedListsSection } from "../../../components/home/recently-updated-lists-section";
 import { RecentlyAddedSection } from "../../../components/home/recently-added-section";
 import { RecentlyAddedEbooksSection } from "../../../components/home/recently-added-ebooks-section";
+import { RecentlyAddedComicsSection } from "../../../components/home/recently-added-comics-section";
 import { RecentlyUpdatedSeriesSection } from "../../../components/home/recently-updated-series-section";
 import { AnnouncementBanner } from "../../../components/home/announcement-banner";
 
@@ -19,6 +20,7 @@ export default function HomePage() {
         <ContinueReadingSection />
         <RecentlyAddedSection />
         <RecentlyAddedEbooksSection />
+        <RecentlyAddedComicsSection />
         <RecentlyUpdatedListsSection />
         <RecentlyUpdatedSeriesSection />
       </div>
