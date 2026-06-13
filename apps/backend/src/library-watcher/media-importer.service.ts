@@ -1,22 +1,28 @@
 // apps/backend/src/library-watcher/media-importer.service.ts
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
+import * as comicsSchema from '../comics/schema';
 import {
   EmbeddedMetadataProvider,
   AudioFileInfo,
 } from './metadata/embedded-metadata.provider';
 import { EbookMetadataProvider } from './metadata/ebook-metadata.provider';
+import { ComicMetadataProvider } from './metadata/comic-metadata.provider';
 import { ImportErrorsService } from '../import-errors/import-errors.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
-import { AudiobookUnit, EbookUnit } from './media-detector.service';
+import {
+  AudiobookUnit,
+  EbookUnit,
+  ComicSeriesUnit,
+} from './media-detector.service';
 import { RequestsService } from '../requests';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import {
@@ -31,6 +37,15 @@ import {
 } from './utils/text.utils';
 import { generateChaptersFromFiles } from './utils/chapter.utils';
 import { splitPersonNames } from '../common/utils/name.utils';
+import {
+  parseComicFilename,
+  parseSeriesFolderName,
+  computeSortNumber,
+} from './utils/comic-filename.utils';
+import { parseMylarSeriesJson } from './utils/mylar-series-json.parser';
+import { ParsedComicInfo, ComicCreatorRole } from './utils/comicinfo.parser';
+import { ImageProcessingService } from '../common/image-processing.service';
+import { AppDataService } from '../app-data/app-data.service';
 
 @Injectable()
 export class MediaImporterService {
@@ -38,7 +53,9 @@ export class MediaImporterService {
 
   constructor(
     @Inject(DATABASE_CONNECTION)
-    private db: NodePgDatabase<typeof audiobooksSchema & typeof ebooksSchema>,
+    private db: NodePgDatabase<
+      typeof audiobooksSchema & typeof ebooksSchema & typeof comicsSchema
+    >,
     private audioMetadataProvider: EmbeddedMetadataProvider,
     private ebookMetadataProvider: EbookMetadataProvider,
     private importErrorsService: ImportErrorsService,
@@ -47,6 +64,9 @@ export class MediaImporterService {
     private wsEvents: WsEventsService,
     private requestsService: RequestsService,
     private appSettingsService: AppSettingsService,
+    private comicMetadataProvider: ComicMetadataProvider,
+    private imageProcessing: ImageProcessingService,
+    private appData: AppDataService,
   ) {}
 
   // ===== AUDIOBOOK IMPORT =====
@@ -496,6 +516,384 @@ export class MediaImporterService {
         'IMPORT_FAILED',
       );
       return null;
+    }
+  }
+
+  // ===== COMIC IMPORT =====
+
+  /**
+   * Import a comic series unit (a folder of books, or a root-level one-shot).
+   * Creates the series row if needed, then imports each book that is not
+   * already in the database. Returns the series id, or null on failure.
+   */
+  async importComicSeriesUnit(
+    unit: ComicSeriesUnit,
+    libraryPath: string,
+  ): Promise<string | null> {
+    const relativeFolderPath = path.relative(libraryPath, unit.path);
+
+    try {
+      let [series] = await this.db
+        .select()
+        .from(comicsSchema.comicSeries)
+        .where(eq(comicsSchema.comicSeries.folderPath, relativeFolderPath))
+        .limit(1);
+
+      let isNewSeries = false;
+      if (!series) {
+        series = await this.createComicSeries(unit, relativeFolderPath);
+        isNewSeries = true;
+      }
+
+      for (const book of unit.books) {
+        const relativeFilePath = path.relative(libraryPath, book.path);
+        const existing = await this.db
+          .select({ id: comicsSchema.comicBooks.id })
+          .from(comicsSchema.comicBooks)
+          .where(eq(comicsSchema.comicBooks.filePath, relativeFilePath))
+          .limit(1);
+        if (existing.length > 0) continue;
+
+        if (await this.importErrorsService.isQuarantined(book.path)) {
+          this.logger.debug(`[IMPORT] Skipping quarantined path: ${book.path}`);
+          continue;
+        }
+
+        await this.importComicBook(series.id, book.path, relativeFilePath);
+      }
+
+      if (isNewSeries) {
+        this.logger.log(
+          `[IMPORT] Imported comic series "${series.title}" (id=${series.id}, books=${unit.books.length})`,
+        );
+        this.appEvents.comicSeriesCreated(series.id);
+        this.wsEvents.comicSeriesCreated(series.id);
+      } else {
+        this.appEvents.comicSeriesUpdated(series.id);
+        this.wsEvents.comicSeriesUpdated(series.id);
+      }
+
+      return series.id;
+    } catch (error) {
+      this.logger.error(
+        `[IMPORT] Failed to import comic series at ${unit.path}: ${error}`,
+      );
+      await this.importErrorsService.recordError(
+        unit.path,
+        error instanceof Error ? error : new Error(String(error)),
+        'IMPORT_FAILED',
+      );
+      return null;
+    }
+  }
+
+  private async createComicSeries(
+    unit: ComicSeriesUnit,
+    relativeFolderPath: string,
+  ): Promise<typeof comicsSchema.comicSeries.$inferSelect> {
+    const parsed = parseSeriesFolderName(unit.folderName);
+    let title = parsed.title;
+    let startYear = parsed.year;
+    let publisher: string | null = null;
+    let imprint: string | null = null;
+    let description: string | null = null;
+    let totalIssueCount: number | null = null;
+    let ageRating: string | null = null;
+
+    // Mylar series.json enrichment (folder-based series only)
+    if (!unit.isRootOneShot) {
+      try {
+        const seriesJsonPath = path.join(unit.path, 'series.json');
+        const content = await fs.readFile(seriesJsonPath, 'utf-8');
+        const mylar = parseMylarSeriesJson(content);
+        if (mylar) {
+          title = mylar.name ?? title;
+          startYear = mylar.year ?? startYear;
+          publisher = mylar.publisher;
+          imprint = mylar.imprint;
+          description = mylar.description;
+          totalIssueCount = mylar.totalIssues;
+          ageRating = mylar.ageRating;
+        }
+      } catch {
+        // No series.json — fine
+      }
+    }
+
+    const [series] = await this.db
+      .insert(comicsSchema.comicSeries)
+      .values({
+        title: sanitizeText(title) ?? title,
+        description: sanitizeText(description),
+        publisher: sanitizeText(publisher),
+        imprint: sanitizeText(imprint),
+        startYear,
+        totalIssueCount,
+        ageRating,
+        folderPath: relativeFolderPath,
+        status: 'available',
+      })
+      .returning();
+
+    if (!unit.isRootOneShot) {
+      await this.importSeriesFolderCover(series.id, unit.path);
+    }
+
+    return series;
+  }
+
+  private async importSeriesFolderCover(
+    seriesId: string,
+    folderPath: string,
+  ): Promise<void> {
+    const candidates = ['cover.jpg', 'cover.png', 'poster.jpg', 'folder.jpg'];
+    for (const candidate of candidates) {
+      try {
+        const buffer = await fs.readFile(path.join(folderPath, candidate));
+        const processed = await this.imageProcessing.processCover(buffer);
+        await fs.writeFile(
+          this.appData.getComicSeriesCoverPath(seriesId),
+          processed,
+        );
+        await this.db
+          .update(comicsSchema.comicSeries)
+          .set({ coverUrl: `${seriesId}.jpg`, coverSource: 'folder_image' })
+          .where(eq(comicsSchema.comicSeries.id, seriesId));
+        return;
+      } catch {
+        // Try next candidate
+      }
+    }
+  }
+
+  private async importComicBook(
+    seriesId: string,
+    absolutePath: string,
+    relativeFilePath: string,
+  ): Promise<string | null> {
+    const fileName = path.basename(absolutePath);
+    try {
+      const metadata =
+        await this.comicMetadataProvider.extractMetadata(absolutePath);
+      const stats = await fs.stat(absolutePath);
+      const parsed = parseComicFilename(fileName);
+      const info = metadata.comicInfo;
+
+      const number = info?.number ?? parsed.number;
+      // ComicInfo Format wins only when actually present in the file
+      const format = info?.formatRaw ? info.format : parsed.format;
+      const container = this.resolveComicContainer(fileName);
+      const sortNumber = computeSortNumber(number);
+
+      const [book] = await this.db
+        .insert(comicsSchema.comicBooks)
+        .values({
+          seriesId,
+          title: sanitizeText(info?.title),
+          number,
+          sortNumber: sortNumber !== null ? String(sortNumber) : null,
+          format,
+          coverDate: info?.coverDate ?? null,
+          summary: sanitizeText(info?.summary),
+          pageCount: metadata.pageCount > 0 ? metadata.pageCount : null,
+          filePath: relativeFilePath,
+          fileName,
+          sizeBytes: stats.size,
+          container,
+          coverSource: metadata.cover ? 'embedded' : undefined,
+          status: 'available',
+        })
+        .returning();
+
+      // Cover was already extracted by the worker — persist it now
+      if (metadata.cover) {
+        try {
+          const processed = await this.imageProcessing.processCover(
+            metadata.cover.data,
+          );
+          await fs.writeFile(
+            this.appData.getComicBookCoverPath(book.id),
+            processed,
+          );
+          await this.db
+            .update(comicsSchema.comicBooks)
+            .set({ coverUrl: `${book.id}.jpg` })
+            .where(eq(comicsSchema.comicBooks.id, book.id));
+        } catch (error) {
+          this.logger.warn(
+            `[IMPORT] Failed to persist cover for ${fileName}: ${error}`,
+          );
+        }
+      }
+
+      if (info) {
+        await this.linkComicCreators(book.id, info);
+        await this.enrichSeriesFromComicInfo(seriesId, info);
+      }
+
+      await this.importErrorsService.clearResolvedByPath(absolutePath);
+      this.logger.log(
+        `[IMPORT] Imported comic book "${fileName}" (id=${book.id})`,
+      );
+      return book.id;
+    } catch (error) {
+      this.logger.error(
+        `[IMPORT] Failed to import comic book at ${absolutePath}: ${error}`,
+      );
+      await this.importErrorsService.recordError(
+        absolutePath,
+        error instanceof Error ? error : new Error(String(error)),
+        'IMPORT_FAILED',
+      );
+      return null;
+    }
+  }
+
+  private resolveComicContainer(fileName: string): 'cbz' | 'cbr' | 'pdf' {
+    const ext = path.extname(fileName).toLowerCase();
+    if (ext === '.cbr' || ext === '.rar') return 'cbr';
+    if (ext === '.pdf') return 'pdf';
+    return 'cbz';
+  }
+
+  private async linkComicCreators(
+    bookId: string,
+    info: ParsedComicInfo,
+  ): Promise<void> {
+    const orderByRole = new Map<ComicCreatorRole, number>();
+    for (const creator of info.creators) {
+      const order = orderByRole.get(creator.role) ?? 0;
+      orderByRole.set(creator.role, order + 1);
+
+      // Find or create person using upsert to handle race conditions
+      const [person] = await this.db
+        .insert(audiobooksSchema.people)
+        .values({ name: creator.name })
+        .onConflictDoUpdate({
+          target: audiobooksSchema.people.name,
+          set: { name: creator.name },
+        })
+        .returning();
+
+      await this.db
+        .insert(comicsSchema.comicBookCreators)
+        .values({
+          bookId,
+          personId: person.id,
+          role: creator.role,
+          order,
+        })
+        .onConflictDoNothing();
+    }
+  }
+
+  /**
+   * Fill series-level fields from a book's ComicInfo when they are still
+   * empty and not manually edited.
+   */
+  private async enrichSeriesFromComicInfo(
+    seriesId: string,
+    info: ParsedComicInfo,
+  ): Promise<void> {
+    const [series] = await this.db
+      .select()
+      .from(comicsSchema.comicSeries)
+      .where(eq(comicsSchema.comicSeries.id, seriesId))
+      .limit(1);
+    if (!series) return;
+
+    const manualFields = series.manualFields ?? [];
+    const updates: Record<string, unknown> = {};
+
+    if (
+      !series.publisher &&
+      !manualFields.includes('publisher') &&
+      info.publisher
+    ) {
+      updates.publisher = sanitizeText(info.publisher);
+    }
+    if (!series.imprint && !manualFields.includes('imprint') && info.imprint) {
+      updates.imprint = sanitizeText(info.imprint);
+    }
+    if (
+      !series.language &&
+      !manualFields.includes('language') &&
+      info.languageIso
+    ) {
+      updates.language = info.languageIso;
+    }
+    if (
+      !series.ageRating &&
+      !manualFields.includes('ageRating') &&
+      info.ageRating
+    ) {
+      updates.ageRating = info.ageRating;
+    }
+    if (
+      !series.totalIssueCount &&
+      !manualFields.includes('totalIssueCount') &&
+      info.count
+    ) {
+      updates.totalIssueCount = info.count;
+    }
+    if (!series.startYear && !manualFields.includes('startYear')) {
+      if (info.volumeIsYear && info.volume) {
+        updates.startYear = info.volume;
+      } else if (info.coverDate) {
+        updates.startYear = parseInt(info.coverDate.slice(0, 4), 10);
+      }
+    }
+
+    // Genres: attach ComicInfo genres to the series using find-or-create
+    // (case-insensitive: genres table has a unique index on LOWER(name))
+    if (info.genres.length > 0 && !manualFields.includes('genres')) {
+      for (const genreName of info.genres) {
+        const trimmedName = genreName.trim();
+        if (!trimmedName) continue;
+
+        // Find or create genre (case-insensitive, matching audiobooks.service.ts pattern)
+        let [genre] = await this.db
+          .select()
+          .from(audiobooksSchema.genres)
+          .where(
+            sql`LOWER(${audiobooksSchema.genres.name}) = LOWER(${trimmedName})`,
+          )
+          .limit(1);
+
+        if (!genre) {
+          const result = await this.db
+            .insert(audiobooksSchema.genres)
+            .values({ name: trimmedName })
+            .onConflictDoNothing()
+            .returning();
+          if (result.length > 0) {
+            genre = result[0];
+          } else {
+            // Race condition: another insert won — select it
+            [genre] = await this.db
+              .select()
+              .from(audiobooksSchema.genres)
+              .where(
+                sql`LOWER(${audiobooksSchema.genres.name}) = LOWER(${trimmedName})`,
+              )
+              .limit(1);
+          }
+        }
+
+        if (genre) {
+          await this.db
+            .insert(comicsSchema.comicSeriesGenres)
+            .values({ seriesId, genreId: genre.id })
+            .onConflictDoNothing();
+        }
+      }
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await this.db
+        .update(comicsSchema.comicSeries)
+        .set(updates)
+        .where(eq(comicsSchema.comicSeries.id, seriesId));
     }
   }
 

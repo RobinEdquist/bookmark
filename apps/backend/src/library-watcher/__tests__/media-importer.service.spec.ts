@@ -24,6 +24,15 @@ jest.mock('../metadata/embedded-metadata.provider', () => ({
 jest.mock('../metadata/ebook-metadata.provider', () => ({
   EbookMetadataProvider: jest.fn(),
 }));
+jest.mock('../metadata/comic-metadata.provider', () => ({
+  ComicMetadataProvider: jest.fn(),
+}));
+jest.mock('../../common/image-processing.service', () => ({
+  ImageProcessingService: jest.fn(),
+}));
+jest.mock('../../app-data/app-data.service', () => ({
+  AppDataService: jest.fn(),
+}));
 
 // Mock fs/promises so the ebook import can call fs.stat
 jest.mock('fs/promises', () => ({
@@ -141,6 +150,16 @@ function createMockDeps() {
     appSettingsService: {
       getAudiobookLibraryPath: jest.fn().mockResolvedValue('/library'),
     } as any,
+    comicMetadataProvider: {
+      extractMetadata: jest.fn(),
+    } as any,
+    imageProcessing: {
+      processCover: jest.fn(),
+    } as any,
+    appData: {
+      getComicSeriesCoverPath: jest.fn(),
+      getComicBookCoverPath: jest.fn(),
+    } as any,
   };
 }
 
@@ -155,6 +174,9 @@ function buildService(db: any, deps: ReturnType<typeof createMockDeps>) {
     deps.wsEvents,
     deps.requestsService,
     deps.appSettingsService,
+    deps.comicMetadataProvider,
+    deps.imageProcessing,
+    deps.appData,
   );
 }
 
