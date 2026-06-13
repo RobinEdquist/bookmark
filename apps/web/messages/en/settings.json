@@ -41,7 +41,7 @@
         "updateError": "Failed to update ebook library path",
         "removeSuccess": "Ebook library path removed",
         "removeError": "Failed to remove ebook library path",
-        "scanSuccess": "Ebook scan completed: {succeeded} succeeded, {failed} failed",
+        "scanSuccess": "Scan complete: {added} added, {errors} errors",
         "scanError": "Failed to scan ebook library"
       }
     },
@@ -58,7 +58,7 @@
         "updateError": "Failed to update comic library path",
         "removeSuccess": "Comic library path removed",
         "removeError": "Failed to remove comic library path",
-        "scanSuccess": "Comic scan completed: {succeeded} succeeded, {failed} failed",
+        "scanSuccess": "Scan complete: {added} added, {errors} errors",
         "scanError": "Failed to scan comic library"
       }
     },

@@ -41,7 +41,7 @@
         "updateError": "Kunde inte uppdatera e-boksbibliotekssökväg",
         "removeSuccess": "E-boksbibliotekssökväg borttagen",
         "removeError": "Kunde inte ta bort e-boksbibliotekssökväg",
-        "scanSuccess": "E-boksskanning klar: {succeeded} lyckades, {failed} misslyckades",
+        "scanSuccess": "Skanning klar: {added} tillagda, {errors} fel",
         "scanError": "Kunde inte skanna e-boksbiblioteket"
       }
     },
@@ -58,7 +58,7 @@
         "updateError": "Kunde inte uppdatera seriebibliotekssökväg",
         "removeSuccess": "Seriebibliotekssökväg borttagen",
         "removeError": "Kunde inte ta bort seriebibliotekssökväg",
-        "scanSuccess": "Serieskanning klar: {succeeded} lyckades, {failed} misslyckades",
+        "scanSuccess": "Skanning klar: {added} tillagda, {errors} fel",
         "scanError": "Kunde inte skanna seriebiblioteket"
       }
     },

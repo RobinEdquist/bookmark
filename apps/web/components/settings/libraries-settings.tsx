@@ -169,8 +169,8 @@ export function LibrariesSettings() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || t("ebookLibrary.toast.scanError"));
       }
-      const data = (await response.json()) as { success: boolean; result: { succeeded: number; failed: number } };
-      toast.success(t("ebookLibrary.toast.scanSuccess", { succeeded: data.result.succeeded, failed: data.result.failed }));
+      const data = (await response.json()) as { success: boolean; result: { added: number; errors: Array<{ path: string; error: string }> } };
+      toast.success(t("ebookLibrary.toast.scanSuccess", { added: data.result.added, errors: data.result.errors.length }));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("ebookLibrary.toast.scanError"));
     } finally {
@@ -211,8 +211,8 @@ export function LibrariesSettings() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || t("comicLibrary.toast.scanError"));
       }
-      const data = (await response.json()) as { success: boolean; result: { succeeded: number; failed: number } };
-      toast.success(t("comicLibrary.toast.scanSuccess", { succeeded: data.result.succeeded, failed: data.result.failed }));
+      const data = (await response.json()) as { success: boolean; result: { added: number; errors: Array<{ path: string; error: string }> } };
+      toast.success(t("comicLibrary.toast.scanSuccess", { added: data.result.added, errors: data.result.errors.length }));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("comicLibrary.toast.scanError"));
     } finally {
