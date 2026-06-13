@@ -97,7 +97,7 @@ export function ComicSeriesCard({
                 fill
                 className={`object-cover ${isMissing ? "opacity-50 grayscale" : ""}`}
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-                unoptimized={(series.coverUrl ?? "").startsWith("/api/")}
+                unoptimized={series.coverUrl.startsWith("/api/")}
               />
             ) : (
               <div className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50" : ""}`}>
@@ -146,6 +146,7 @@ export function ComicSeriesCard({
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                  aria-label={t("card.menu")}
                 >
                   <MoreVertical className="h-4 w-4" />
                 </Button>

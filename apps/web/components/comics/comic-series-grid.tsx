@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import { Loader2 } from "lucide-react";
 import { ComicSeriesCard } from "./comic-series-card";
-import { useMyPermissions } from "../../lib/use-users";
 import { useIntersectionObserver } from "../../lib/use-intersection-observer";
 import type { ComicSeriesListItem } from "../../lib/use-comics";
 
@@ -62,8 +61,6 @@ export function ComicSeriesGrid({
   onLoadMore,
 }: ComicSeriesGridProps) {
   const t = useTranslations("comics");
-  // permissions used by edit dialog in Task 6
-  useMyPermissions();
 
   // Intersection observer for infinite scroll
   const loadMoreRef = useIntersectionObserver(
@@ -77,13 +74,20 @@ export function ComicSeriesGrid({
 
   // Shared edit dialog state for navigation between series (wired in Task 6)
   const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
+  const seriesIds = series.map((s) => s.id);
 
   const handleOpenEdit = useCallback((seriesId: string) => {
     setEditingSeriesId(seriesId);
   }, []);
 
-  // Keep editingSeriesId in scope for Task 6 dialog wiring
+  const handleNavigate = useCallback((seriesId: string) => {
+    setEditingSeriesId(seriesId);
+  }, []);
+
+  // Keep navigation scaffold in scope for Task 6 dialog wiring
   void editingSeriesId;
+  void seriesIds;
+  void handleNavigate;
 
   if (error) {
     return (

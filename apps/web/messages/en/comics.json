@@ -12,7 +12,8 @@
     "changeCover": "Change cover",
     "download": "Download",
     "addToList": "Add to list",
-    "missing": "Files missing"
+    "missing": "Files missing",
+    "menu": "Open menu"
   },
   "filters": {
     "search": "Search comics...",
