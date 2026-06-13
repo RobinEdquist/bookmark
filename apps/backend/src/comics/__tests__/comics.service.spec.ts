@@ -2,7 +2,65 @@
  * Focused unit tests for pure helpers in ComicsService.
  * Full DB-level coverage is handled in Task 16's smoke test.
  */
+import { NotFoundException } from '@nestjs/common';
 import { CoverService } from '../../common/cover.service';
+
+// ws-events.service transitively imports events.gateway, which pulls in the
+// ESM-only `@thallesp/nestjs-better-auth` package that Jest's CJS runtime
+// cannot `require`. Replace it with a factory stub (the factory form never
+// loads the real module, so the import chain is fully severed). ComicsService
+// only uses WsEventsService as an injected instance, so the real download
+// logic under test is unaffected.
+jest.mock('../../events/ws-events.service', () => ({
+  WsEventsService: class {},
+}));
+
+import { ComicsService } from '../comics.service';
+
+/**
+ * Build a chainable mock that records every drizzle-style method call and
+ * resolves the terminal call (await) with `resolvedValue`.
+ * `chain.from(...).where(...).limit(...)` -> Promise<resolvedValue>
+ */
+function chainMock(resolvedValue: unknown = []) {
+  const self: Record<string, jest.Mock> = {};
+  const methods = ['from', 'where', 'limit', 'offset', 'orderBy'];
+  for (const m of methods) {
+    self[m] = jest.fn().mockReturnValue(self);
+  }
+  // Make the chain itself thenable so `await chain` resolves.
+  self.then = jest
+    .fn()
+    .mockImplementation((resolve: (v: unknown) => unknown) =>
+      Promise.resolve(resolvedValue).then(resolve),
+    );
+  return self;
+}
+
+/**
+ * Construct a ComicsService with a mocked db + app settings. Only the
+ * dependencies exercised by getBookDownloadInfo are real mocks; the rest
+ * are inert stubs (positional constructor args).
+ */
+function buildServiceWithBook(bookRow: unknown[] | null) {
+  const select = jest.fn().mockReturnValue(chainMock(bookRow ?? []));
+  const db = { select } as never;
+  const appSettings = {
+    getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+  } as never;
+  const stub = {} as never;
+  const service = new ComicsService(
+    db,
+    appSettings,
+    stub, // coverService
+    stub, // imageProcessing
+    stub, // appData
+    stub, // comicMetadataProvider
+    stub, // appEvents
+    stub, // wsEvents
+  );
+  return { service, select };
+}
 
 // We test the cover-resolution logic by isolating it from the service.
 // The private method `resolveSeriesCoverUrl` calls CoverService.getCoverUrl,
@@ -106,33 +164,53 @@ describe('CoverService.getCoverUrl (used by comics service)', () => {
   });
 });
 
-// ===== CONTAINER_MIME mapping (pure logic, no DB needed) =====
+// ===== getBookDownloadInfo (exercises the REAL service method) =====
 
-describe('CONTAINER_MIME mapping (getBookDownloadInfo)', () => {
-  // Replicate the same mapping defined in comics.service.ts to pin it.
-  const CONTAINER_MIME: Record<string, string> = {
-    cbz: 'application/vnd.comicbook+zip',
-    cbr: 'application/vnd.comicbook-rar',
-    pdf: 'application/pdf',
+describe('ComicsService.getBookDownloadInfo', () => {
+  const baseBook = {
+    id: 'b1',
+    fileName: 'X #1.cbz',
+    sizeBytes: 1234,
+    container: 'cbz',
+    filePath: 'X/X #1.cbz',
   };
 
-  function resolveMime(container: string): string {
-    return CONTAINER_MIME[container] ?? 'application/octet-stream';
-  }
+  it.each([
+    ['cbz', 'application/vnd.comicbook+zip'],
+    ['cbr', 'application/vnd.comicbook-rar'],
+    ['pdf', 'application/pdf'],
+  ])('maps container %s to mimeType %s', async (container, expectedMime) => {
+    const fileName = `X #1.${container}`;
+    const filePath = `X/${fileName}`;
+    const { service } = buildServiceWithBook([
+      { ...baseBook, container, fileName, filePath },
+    ]);
 
-  it('maps cbz to application/vnd.comicbook+zip', () => {
-    expect(resolveMime('cbz')).toBe('application/vnd.comicbook+zip');
+    const info = await service.getBookDownloadInfo('b1');
+
+    expect(info.mimeType).toBe(expectedMime);
+    // filePath is the library root joined with the relative path.
+    expect(info.filePath).toBe(`/lib/${filePath}`);
+    // fileName and fileSize pass straight through from the row.
+    expect(info.fileName).toBe(fileName);
+    expect(info.fileSize).toBe(1234);
   });
 
-  it('maps cbr to application/vnd.comicbook-rar', () => {
-    expect(resolveMime('cbr')).toBe('application/vnd.comicbook-rar');
+  it('falls back to application/octet-stream for an unknown container', async () => {
+    const { service } = buildServiceWithBook([
+      { ...baseBook, container: 'something-else' },
+    ]);
+
+    const info = await service.getBookDownloadInfo('b1');
+
+    expect(info.mimeType).toBe('application/octet-stream');
   });
 
-  it('maps pdf to application/pdf', () => {
-    expect(resolveMime('pdf')).toBe('application/pdf');
-  });
+  it('throws NotFoundException when the book does not exist', async () => {
+    const { service } = buildServiceWithBook([]);
 
-  it('falls back to application/octet-stream for unknown containers', () => {
-    expect(resolveMime('unknown')).toBe('application/octet-stream');
+    await expect(service.getBookDownloadInfo('missing')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });
