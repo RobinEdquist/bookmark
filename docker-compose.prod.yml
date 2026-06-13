@@ -63,6 +63,8 @@ services:
       - ${AUDIOBOOK_LIBRARY_PATH:-./media/audiobooks}:/library/audiobooks:ro
       # Ebook library - mount your media folder here
       - ${EBOOK_LIBRARY_PATH:-./media/ebooks}:/library/ebooks:ro
+      # Comic library - mount your media folder here
+      - ${COMIC_LIBRARY_PATH:-./media/comics}:/library/comics:ro
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
