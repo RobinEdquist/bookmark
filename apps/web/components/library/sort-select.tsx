@@ -15,11 +15,13 @@ interface SortSelectProps {
   sortBy: SortField;
   sortOrder: SortOrder;
   onSortChange: (field: SortField) => void;
+  options?: SortField[];
 }
 
-const SORT_OPTIONS: SortField[] = ["title", "createdAt", "author", "rating", "series"];
+const DEFAULT_SORT_OPTIONS: SortField[] = ["title", "createdAt", "author", "rating", "series"];
+export const COMICS_SORT_OPTIONS: SortField[] = ["title", "recentlyAdded", "startYear"];
 
-export function SortSelect({ sortBy, sortOrder, onSortChange }: SortSelectProps) {
+export function SortSelect({ sortBy, sortOrder, onSortChange, options = DEFAULT_SORT_OPTIONS }: SortSelectProps) {
   const t = useTranslations("common.sort");
 
   const getLabel = (field: SortField): string => {
@@ -34,11 +36,15 @@ export function SortSelect({ sortBy, sortOrder, onSortChange }: SortSelectProps)
         return t("rating");
       case "series":
         return t("series");
+      case "recentlyAdded":
+        return t("recentlyAdded");
+      case "startYear":
+        return t("startYear");
     }
   };
 
   const getDirectionLabel = (field: SortField, order: SortOrder): string => {
-    if (field === "createdAt") {
+    if (field === "createdAt" || field === "recentlyAdded") {
       return order === "desc" ? t("newest") : t("oldest");
     }
     if (field === "rating") {
@@ -60,7 +66,7 @@ export function SortSelect({ sortBy, sortOrder, onSortChange }: SortSelectProps)
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {SORT_OPTIONS.map((field) => {
+        {options.map((field) => {
           const isActive = sortBy === field;
           return (
             <DropdownMenuItem

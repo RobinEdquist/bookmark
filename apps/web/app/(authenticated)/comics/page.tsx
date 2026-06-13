@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { AudiobookGrid } from "../../../components/audiobooks/audiobook-grid";
-import { useInfiniteAudiobooks } from "../../../lib/use-audiobooks";
+import { ComicSeriesGrid } from "../../../components/comics/comic-series-grid";
+import { useInfiniteComicSeries } from "../../../lib/use-comics";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
-import { SortSelect } from "../../../components/library/sort-select";
+import { SortSelect, COMICS_SORT_OPTIONS } from "../../../components/library/sort-select";
 import { useSortPreference } from "../../../lib/use-sort-preference";
 import { useSaveLibraryUrl } from "../../../lib/use-library-return-url";
 import { useSaveLibraryNavigation } from "../../../lib/use-library-navigation";
@@ -17,16 +17,27 @@ import {
 } from "../../../lib/use-scroll-position";
 import { LibraryPageHeader } from "../../../components/library/library-page-header";
 import { authClient } from "../../../lib/auth-client";
+import type { ComicSeriesFilters } from "../../../lib/use-comics";
 
-export default function AudiobooksPage() {
-  const t = useTranslations("audiobooks.filters");
+// Map SortField values to ComicSeriesFilters.sortBy
+function toComicSortBy(
+  sortBy: string,
+): ComicSeriesFilters["sortBy"] {
+  if (sortBy === "recentlyAdded" || sortBy === "startYear" || sortBy === "title") {
+    return sortBy;
+  }
+  return "title";
+}
+
+export default function ComicsPage() {
+  const t = useTranslations("comics.filters");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = authClient.useSession();
   const isAdmin = session?.user?.role === "admin";
 
   // Save current URL for back navigation from detail pages
-  useSaveLibraryUrl("/audiobooks");
+  useSaveLibraryUrl("/comics");
 
   // Read search from URL params, use local state for immediate input feedback
   const searchFromUrl = searchParams.get("search") ?? "";
@@ -56,10 +67,13 @@ export default function AudiobooksPage() {
     } else {
       params.delete("search");
     }
-    const newUrl = params.toString() ? `/audiobooks?${params.toString()}` : "/audiobooks";
+    const newUrl = params.toString() ? `/comics?${params.toString()}` : "/comics";
     router.replace(newUrl, { scroll: false });
   }, [debouncedSearch, router, searchParams]);
-  const { sortBy, sortOrder, setSortField } = useSortPreference("audiobooks");
+
+  const { sortBy, sortOrder, setSortField } = useSortPreference("comics");
+  const comicSortBy = toComicSortBy(sortBy);
+
   const {
     data,
     isLoading,
@@ -68,17 +82,17 @@ export default function AudiobooksPage() {
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useInfiniteAudiobooks({
+  } = useInfiniteComicSeries({
     search: debouncedSearch || undefined,
-    sortBy: sortBy as "title" | "createdAt" | "author" | "rating" | "series" | undefined,
+    sortBy: comicSortBy,
     sortOrder,
   });
 
   // Flatten pages into single array
-  const audiobooks = data?.pages.flatMap((page) => page.audiobooks) ?? [];
+  const series = data?.pages.flatMap((page) => page.series) ?? [];
 
   // Save ordered item IDs for next/prev navigation on detail pages
-  useSaveLibraryNavigation("/audiobooks", audiobooks.map((a) => a.id));
+  useSaveLibraryNavigation("/comics", series.map((s) => s.id));
 
   // Scroll position restoration
   const pagesLoaded = data?.pages.length ?? 0;
@@ -88,17 +102,17 @@ export default function AudiobooksPage() {
   const prevSearchParamsKey = useRef(searchParamsKey);
   useEffect(() => {
     if (prevSearchParamsKey.current !== searchParamsKey) {
-      clearScrollState("/audiobooks");
+      clearScrollState("/comics");
       prevSearchParamsKey.current = searchParamsKey;
     }
   }, [searchParamsKey]);
 
   // Save scroll position when navigating away
-  useSaveScrollPosition("/audiobooks", searchParamsKey, pagesLoaded);
+  useSaveScrollPosition("/comics", searchParamsKey, pagesLoaded);
 
   // Restore scroll position when returning from detail page
   const { isRestoring } = useRestoreScrollPosition(
-    "/audiobooks",
+    "/comics",
     searchParamsKey,
     pagesLoaded,
     isLoading,
@@ -125,6 +139,7 @@ export default function AudiobooksPage() {
             sortBy={sortBy}
             sortOrder={sortOrder}
             onSortChange={setSortField}
+            options={COMICS_SORT_OPTIONS}
           />
         }
         isAdmin={isAdmin}
@@ -136,8 +151,8 @@ export default function AudiobooksPage() {
         }`}
       >
         <div className="mx-auto max-w-7xl">
-          <AudiobookGrid
-            audiobooks={audiobooks}
+          <ComicSeriesGrid
+            series={series}
             isLoading={showSkeletons}
             error={error}
             hasNextPage={hasNextPage}

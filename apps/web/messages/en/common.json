@@ -123,6 +123,8 @@
     "author": "Author",
     "rating": "Rating",
     "series": "Series",
+    "recentlyAdded": "Recently Added",
+    "startYear": "Year",
     "asc": "A-Z",
     "desc": "Z-A",
     "newest": "Newest",

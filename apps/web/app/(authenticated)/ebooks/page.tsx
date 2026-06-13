@@ -70,7 +70,7 @@ export default function EbooksPage() {
     fetchNextPage,
   } = useInfiniteEbooks({
     search: debouncedSearch || undefined,
-    sortBy,
+    sortBy: sortBy as "title" | "createdAt" | "author" | "rating" | "series" | undefined,
     sortOrder,
   });
 

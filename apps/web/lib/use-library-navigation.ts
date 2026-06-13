@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-type LibraryPath = "/audiobooks" | "/ebooks";
+type LibraryPath = "/audiobooks" | "/ebooks" | "/comics";
 
 const STORAGE_KEY_SUFFIX = "-navigation-ids";
 
