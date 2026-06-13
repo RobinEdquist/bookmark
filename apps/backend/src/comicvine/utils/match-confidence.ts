@@ -43,6 +43,10 @@ export function normalizeComicTitle(s: string): string {
   result = result.replace(TRAILING_ARTICLES, '');
 
   // 4. Strip leading article ("the ", "a ", "an ")
+  // NOTE: this MUST run before step 5 (hyphen→space). "A-Force" still reads as
+  // "a-force" here, so the `^(the|a|an)\s+` article regex does not fire and the
+  // title survives as "a force". If hyphen conversion ran first, "a force" would
+  // lose its "a" and wrongly normalize to "force" — breaking that series' match.
   result = result.replace(LEADING_ARTICLES, '');
 
   // 5. Replace hyphens/dashes with a space, then remove all remaining
