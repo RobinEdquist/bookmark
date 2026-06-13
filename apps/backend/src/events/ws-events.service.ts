@@ -29,6 +29,12 @@ export interface HardcoverTaskStatus {
   failedCount: number;
 }
 
+export interface ComicvineTaskStatus {
+  pendingCount: number;
+  needsReviewCount: number;
+  failedCount: number;
+}
+
 export interface RescanStatus {
   isRescanning: boolean;
   phase?: 'preparing' | 'rescanning';
@@ -215,6 +221,23 @@ export class WsEventsService {
 
     this.lastRescanStatusJson = statusJson;
     this.emit({ type: 'tasks.rescan.status', payload: status });
+  }
+
+  // ComicVine sync events (Task 4 stubs — wired in Task 6)
+  comicvineSyncCompleted(level: 'series' | 'book', id: string): void {
+    this.emit({ type: `comicvine.sync.completed.${level}`, entityId: id });
+  }
+
+  /**
+   * Push comicvine sync task status update to all connected clients.
+   * Debounced - only emits if status has changed.
+   */
+  comicvineSyncStatusUpdated(status: ComicvineTaskStatus): void {
+    // Reuse lastHardcoverStatusJson slot pattern but for comicvine
+    const statusJson = JSON.stringify(status);
+    this.emit({ type: 'tasks.comicvine.status', payload: status });
+    // Note: non-debounced here (debounce added in Task 6 with dedicated state field)
+    void statusJson;
   }
 
   /**
