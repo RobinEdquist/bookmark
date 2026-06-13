@@ -236,6 +236,7 @@ export class ComicsService {
           sql`, `,
         )})
           AND cover_source IS NOT NULL
+          AND status <> 'hidden'
         ORDER BY series_id, sort_number ASC NULLS LAST, created_at ASC
       `);
       for (const row of rows.rows as Array<{
@@ -544,6 +545,18 @@ export class ComicsService {
       format?: (typeof schema.comicBooks.$inferSelect)['format'];
       coverDate?: string | null;
       summary?: string | null;
+      creators?: Array<{
+        name: string;
+        role:
+          | 'writer'
+          | 'penciller'
+          | 'inker'
+          | 'colorist'
+          | 'letterer'
+          | 'cover_artist'
+          | 'editor'
+          | 'other';
+      }>;
     },
   ) {
     const [book] = await this.db
@@ -553,14 +566,21 @@ export class ComicsService {
       .limit(1);
     if (!book) throw new NotFoundException('Comic book not found');
 
-    const updates: Record<string, unknown> = { ...dto };
-    if (dto.number !== undefined) {
-      const sortNumber = computeSortNumber(dto.number);
+    // Pull creators out so it isn't spread into the DB .set() column update
+    const { creators, ...scalarUpdates } = dto;
+
+    const updates: Record<string, unknown> = { ...scalarUpdates };
+    if (scalarUpdates.number !== undefined) {
+      const sortNumber = computeSortNumber(scalarUpdates.number);
       updates.sortNumber = sortNumber !== null ? String(sortNumber) : null;
     }
 
     const manualFields = Array.from(
-      new Set([...(book.manualFields ?? []), ...Object.keys(dto)]),
+      new Set([
+        ...(book.manualFields ?? []),
+        ...Object.keys(scalarUpdates),
+        ...(creators !== undefined ? ['creators'] : []),
+      ]),
     );
     updates.manualFields = manualFields;
 
@@ -568,6 +588,39 @@ export class ComicsService {
       .update(schema.comicBooks)
       .set(updates)
       .where(eq(schema.comicBooks.id, id));
+
+    // Replace creators when provided
+    if (creators !== undefined) {
+      await this.db
+        .delete(schema.comicBookCreators)
+        .where(eq(schema.comicBookCreators.bookId, id));
+
+      const orderByRole = new Map<string, number>();
+      for (const creator of creators) {
+        const order = orderByRole.get(creator.role) ?? 0;
+        orderByRole.set(creator.role, order + 1);
+
+        // Find or create person using upsert to handle race conditions
+        const [person] = await this.db
+          .insert(audiobooksSchema.people)
+          .values({ name: creator.name })
+          .onConflictDoUpdate({
+            target: audiobooksSchema.people.name,
+            set: { name: creator.name },
+          })
+          .returning();
+
+        await this.db
+          .insert(schema.comicBookCreators)
+          .values({
+            bookId: id,
+            personId: person.id,
+            role: creator.role,
+            order,
+          })
+          .onConflictDoNothing();
+      }
+    }
 
     this.wsEvents.comicBookUpdated(id);
     return { success: true };

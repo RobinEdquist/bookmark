@@ -7,8 +7,11 @@ import {
   IsOptional,
   IsString,
   IsArray,
+  Matches,
   Max,
   Min,
+  ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 
 export class ListComicSeriesQueryDto {
@@ -103,6 +106,31 @@ export class UpdateComicSeriesDto {
   tags?: string[];
 }
 
+export class ComicCreatorInputDto {
+  @IsString()
+  name!: string;
+
+  @IsIn([
+    'writer',
+    'penciller',
+    'inker',
+    'colorist',
+    'letterer',
+    'cover_artist',
+    'editor',
+    'other',
+  ])
+  role!:
+    | 'writer'
+    | 'penciller'
+    | 'inker'
+    | 'colorist'
+    | 'letterer'
+    | 'cover_artist'
+    | 'editor'
+    | 'other';
+}
+
 export class UpdateComicBookDto {
   @IsOptional()
   @IsString()
@@ -134,12 +162,19 @@ export class UpdateComicBookDto {
     | 'other';
 
   @IsOptional()
-  @IsString()
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'coverDate must be YYYY-MM-DD' })
   coverDate?: string | null;
 
   @IsOptional()
   @IsString()
   summary?: string | null;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ComicCreatorInputDto)
+  creators?: ComicCreatorInputDto[];
 }
 
 export class UpdateComicCoverDto {
