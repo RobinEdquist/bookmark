@@ -234,10 +234,7 @@ export class ImportQueueService implements OnModuleDestroy {
     );
 
     if (unit) {
-      await this.mediaImporter.importComicSeriesUnit(
-        unit,
-        pending.libraryPath,
-      );
+      await this.mediaImporter.importComicSeriesUnit(unit, pending.libraryPath);
     }
   }
 

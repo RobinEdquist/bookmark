@@ -263,8 +263,7 @@ export class LibraryWatcherService implements OnModuleInit {
 
   async runComicScan(comicLibraryPath?: string): Promise<ScanResult> {
     const scanPath =
-      comicLibraryPath ||
-      (await this.appSettingsService.getComicLibraryPath());
+      comicLibraryPath || (await this.appSettingsService.getComicLibraryPath());
 
     if (!scanPath) {
       throw new Error('No comic library path configured');
