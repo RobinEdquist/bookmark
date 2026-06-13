@@ -14,9 +14,11 @@ import {
   eq,
   exists,
   ilike,
+  isNotNull,
   ne,
   notExists,
   sql,
+  SQL,
 } from 'drizzle-orm';
 import * as fsPromises from 'fs/promises';
 import * as path from 'path';
@@ -395,32 +397,33 @@ export class ComicsService {
       .limit(1);
     if (!book) throw new NotFoundException('Comic book not found');
 
-    const [series] = await this.db
-      .select({
-        id: schema.comicSeries.id,
-        title: schema.comicSeries.title,
-      })
-      .from(schema.comicSeries)
-      .where(eq(schema.comicSeries.id, book.seriesId))
-      .limit(1);
-
-    const creators = await this.db
-      .select({
-        personId: audiobooksSchema.people.id,
-        name: audiobooksSchema.people.name,
-        role: schema.comicBookCreators.role,
-        order: schema.comicBookCreators.order,
-      })
-      .from(schema.comicBookCreators)
-      .innerJoin(
-        audiobooksSchema.people,
-        eq(schema.comicBookCreators.personId, audiobooksSchema.people.id),
-      )
-      .where(eq(schema.comicBookCreators.bookId, id))
-      .orderBy(
-        asc(schema.comicBookCreators.role),
-        asc(schema.comicBookCreators.order),
-      );
+    const [[series], creators] = await Promise.all([
+      this.db
+        .select({
+          id: schema.comicSeries.id,
+          title: schema.comicSeries.title,
+        })
+        .from(schema.comicSeries)
+        .where(eq(schema.comicSeries.id, book.seriesId))
+        .limit(1),
+      this.db
+        .select({
+          personId: audiobooksSchema.people.id,
+          name: audiobooksSchema.people.name,
+          role: schema.comicBookCreators.role,
+          order: schema.comicBookCreators.order,
+        })
+        .from(schema.comicBookCreators)
+        .innerJoin(
+          audiobooksSchema.people,
+          eq(schema.comicBookCreators.personId, audiobooksSchema.people.id),
+        )
+        .where(eq(schema.comicBookCreators.bookId, id))
+        .orderBy(
+          asc(schema.comicBookCreators.role),
+          asc(schema.comicBookCreators.order),
+        ),
+    ]);
 
     return {
       ...this.toBookListItem(book),
@@ -619,7 +622,7 @@ export class ComicsService {
   // ===== FILTER SOURCES =====
 
   async listPublishers(search?: string) {
-    const conditions = [sql`${schema.comicSeries.publisher} IS NOT NULL`];
+    const conditions: SQL[] = [isNotNull(schema.comicSeries.publisher)];
     if (search) {
       conditions.push(ilike(schema.comicSeries.publisher, `%${search}%`));
     }
@@ -632,7 +635,7 @@ export class ComicsService {
   }
 
   async listGenres(search?: string) {
-    const conditions: ReturnType<typeof ilike>[] = [];
+    const conditions: SQL[] = [];
     if (search) {
       conditions.push(ilike(audiobooksSchema.genres.name, `%${search}%`));
     }
