@@ -23,6 +23,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 
 import { useComicBook } from "../../../../../../lib/use-comics";
+import { safeHttpUrl } from "../../../../../../lib/safe-url";
 import { useMyPermissions } from "../../../../../../lib/use-users";
 import { useComicvineStatus } from "../../../../../../lib/use-comicvine";
 import { ComicvineMatchDialog } from "../../../../../../components/comicvine/comicvine-match-dialog";
@@ -109,6 +110,7 @@ export default function ComicBookDetailPage({
   }
 
   const designation = formatDesignation(data, t);
+  const safeWeb = safeHttpUrl(data.web);
 
   return (
     <main className="min-h-screen">
@@ -321,7 +323,7 @@ export default function ComicBookDetailPage({
             </div>
 
             {/* Age rating + web link */}
-            {(data.ageRating || data.web) && (
+            {(data.ageRating || safeWeb) && (
               <div className="flex flex-wrap items-center gap-4 text-sm">
                 {data.ageRating && (
                   <span className="text-muted-foreground">
@@ -331,9 +333,9 @@ export default function ComicBookDetailPage({
                     {data.ageRating}
                   </span>
                 )}
-                {data.web && (
+                {safeWeb && (
                   <a
-                    href={data.web}
+                    href={safeWeb}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-primary hover:underline"
