@@ -48,6 +48,12 @@ export class LibraryAvailabilityDto {
   })
   ebooks!: boolean;
 
+  @ApiProperty({
+    example: false,
+    description: 'Whether comic library is configured',
+  })
+  comics!: boolean;
+
   @ApiProperty({ example: false, description: 'Whether OPDS is enabled' })
   opds!: boolean;
 }

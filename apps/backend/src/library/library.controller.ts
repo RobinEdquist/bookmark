@@ -20,6 +20,7 @@ import {
 export interface LibraryAvailability {
   audiobooks: boolean;
   ebooks: boolean;
+  comics: boolean;
   opds: boolean;
 }
 
@@ -67,6 +68,7 @@ export class LibraryController {
     return {
       audiobooks: !!settings.audiobookLibraryPath,
       ebooks: !!settings.ebookLibraryPath,
+      comics: !!settings.comicLibraryPath,
       opds: !!settings.opdsEnabled,
     };
   }
