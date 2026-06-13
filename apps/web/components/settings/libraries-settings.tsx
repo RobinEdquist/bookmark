@@ -26,6 +26,7 @@ import {
 } from "../../lib/use-settings";
 import { useHardcoverStatus, useQueueAllUnlinked } from "../../lib/use-hardcover";
 import { useRescan, useRescanStatus } from "../../lib/use-rescan";
+import { useRescanComics } from "../../lib/use-comics";
 
 // Fields that make sense to show in the UI
 // Note: genres is excluded because it always combines all sources
@@ -113,6 +114,7 @@ export function LibrariesSettings() {
   const [isQueueingEbooks, setIsQueueingEbooks] = useState(false);
   const { rescan, isRescanPending } = useRescan();
   const rescanStatus = useRescanStatus();
+  const { rescanComics, isRescanComicsPending } = useRescanComics();
 
   const handleSelectAudiobookPath = async (path: string) => {
     try {
@@ -328,6 +330,22 @@ export function LibrariesSettings() {
     }
   };
 
+  const handleRescanComics = async () => {
+    try {
+      const result = await rescanComics();
+      toast.success(
+        t("comicLibrary.rescan.toast.completed", {
+          succeeded: result.result.succeeded,
+          failed: result.result.failed,
+        })
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("comicLibrary.rescan.toast.error")
+      );
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -523,6 +541,24 @@ export function LibrariesSettings() {
                     <>
                       <ScanLine className="mr-2 h-4 w-4" />
                       {t("comicLibrary.scan")}
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRescanComics}
+                  disabled={isRescanComicsPending || !settings?.comicLibraryPath}
+                >
+                  {isRescanComicsPending ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      {t("comicLibrary.rescan.inProgress")}
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      {t("comicLibrary.rescan.button")}
                     </>
                   )}
                 </Button>

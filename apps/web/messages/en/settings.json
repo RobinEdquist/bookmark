@@ -53,6 +53,14 @@
       "remove": "Remove library path",
       "scan": "Scan now",
       "scanning": "Scanning...",
+      "rescan": {
+        "button": "Rescan comics metadata",
+        "inProgress": "Rescanning...",
+        "toast": {
+          "completed": "Comic rescan complete: {succeeded} succeeded, {failed} failed",
+          "error": "Failed to rescan comic metadata"
+        }
+      },
       "toast": {
         "updateSuccess": "Comic library path updated",
         "updateError": "Failed to update comic library path",

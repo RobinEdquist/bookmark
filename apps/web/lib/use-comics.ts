@@ -364,6 +364,47 @@ export function useDeleteComicBook() {
   });
 }
 
+async function triggerComicRescanApi(): Promise<{
+  success: boolean;
+  result: { total: number; succeeded: number; failed: number };
+}> {
+  const response = await fetch(
+    "/api/admin/library-watcher/rescan-comics",
+    {
+      method: "POST",
+      credentials: "include",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      (errorData as { message?: string }).message ||
+        "Failed to trigger comic metadata rescan"
+    );
+  }
+
+  return response.json();
+}
+
+export function useRescanComics() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: triggerComicRescanApi,
+    onSuccess: () => {
+      // Refresh comic series and book lists
+      queryClient.invalidateQueries({ queryKey: queryKeys.comics.all });
+    },
+  });
+
+  return {
+    rescanComics: mutation.mutateAsync,
+    isRescanComicsPending: mutation.isPending,
+    rescanComicsError: mutation.error,
+  };
+}
+
 export function useComicPublishers(search?: string) {
   return useQuery({
     queryKey: queryKeys.comics.publishers(search),

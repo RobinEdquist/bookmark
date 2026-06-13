@@ -13,6 +13,7 @@ import {
 import { MediaImporterService } from './media-importer.service';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
+import * as comicsSchema from '../comics/schema';
 
 @Injectable()
 export class LibraryWatcherService implements OnModuleInit {
@@ -29,7 +30,7 @@ export class LibraryWatcherService implements OnModuleInit {
 
   constructor(
     @Inject(DATABASE_CONNECTION)
-    private db: NodePgDatabase<typeof audiobooksSchema>,
+    private db: NodePgDatabase<typeof audiobooksSchema & typeof comicsSchema>,
     private appSettingsService: AppSettingsService,
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
@@ -382,6 +383,85 @@ export class LibraryWatcherService implements OnModuleInit {
 
       this.logger.log(
         `Rescan completed: ${succeeded} succeeded, ${failed} failed`,
+      );
+
+      return {
+        total: this.rescanTotal,
+        succeeded,
+        failed,
+      };
+    } finally {
+      this.isRescanning = false;
+      this.rescanTotal = 0;
+      this.rescanProcessed = 0;
+      this.rescanCurrentAudiobook = undefined;
+
+      // Emit final status (not rescanning)
+      this.emitRescanStatus();
+    }
+  }
+
+  // ===== RESCAN ALL COMIC BOOKS =====
+
+  /**
+   * Rescan all comic books in the library.
+   * Re-extracts metadata from files and updates database records.
+   * Respects manually edited fields (tracked via manualFields column).
+   */
+  async rescanAllComics(): Promise<{
+    total: number;
+    succeeded: number;
+    failed: number;
+  }> {
+    if (this.isRescanning) {
+      throw new Error('Rescan is already in progress');
+    }
+
+    this.isRescanning = true;
+    this.rescanProcessed = 0;
+
+    try {
+      // Get all comic book ids (newest first)
+      const books = await this.db
+        .select({
+          id: comicsSchema.comicBooks.id,
+          title: comicsSchema.comicBooks.title,
+        })
+        .from(comicsSchema.comicBooks)
+        .orderBy(comicsSchema.comicBooks.createdAt);
+
+      this.rescanTotal = books.length;
+
+      // Emit initial status
+      this.emitRescanStatus('preparing');
+
+      this.logger.log(`Starting rescan of ${this.rescanTotal} comic books`);
+
+      let succeeded = 0;
+      let failed = 0;
+
+      for (const book of books) {
+        this.rescanCurrentAudiobook = book.title ?? undefined;
+        this.emitRescanStatus('rescanning');
+
+        try {
+          const success = await this.mediaImporter.reExtractComicBook(book.id);
+          if (success) {
+            succeeded++;
+          } else {
+            failed++;
+          }
+        } catch (error) {
+          this.logger.error(`Failed to rescan comic book ${book.id}: ${error}`);
+          failed++;
+        }
+
+        this.rescanProcessed++;
+        this.emitRescanStatus('rescanning');
+      }
+
+      this.logger.log(
+        `Comic rescan completed: ${succeeded} succeeded, ${failed} failed`,
       );
 
       return {

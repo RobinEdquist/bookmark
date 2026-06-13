@@ -53,6 +53,14 @@
       "remove": "Ta bort bibliotekssökväg",
       "scan": "Skanna nu",
       "scanning": "Skannar...",
+      "rescan": {
+        "button": "Skanna om seriens metadata",
+        "inProgress": "Skannar om...",
+        "toast": {
+          "completed": "Omskanning av serier klar: {succeeded} lyckades, {failed} misslyckades",
+          "error": "Kunde inte skanna om seriens metadata"
+        }
+      },
       "toast": {
         "updateSuccess": "Seriebibliotekssökväg uppdaterad",
         "updateError": "Kunde inte uppdatera seriebibliotekssökväg",

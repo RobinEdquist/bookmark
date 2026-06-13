@@ -123,18 +123,33 @@ describe('parseComicFilename', () => {
     ['Saga Vol.2012 #51 (April 2018).cbz', '51', 'Saga', 'single_issue', 2018],
     ['Saga Vol.2012 #01 (March 2012).cbz', '1', 'Saga', 'single_issue', 2012],
     ['Batman #700 (2010).cbz', '700', 'Batman', 'single_issue', 2010],
-    ['Invincible #001 (Digital) (Empire).cbz', '1', 'Invincible', 'single_issue', null],
+    [
+      'Invincible #001 (Digital) (Empire).cbz',
+      '1',
+      'Invincible',
+      'single_issue',
+      null,
+    ],
     ['Saga Vol. 4 (2015).cbz', '4', 'Saga', 'tpb', 2015],
     ['X-Men Annual #1 (1995).cbz', 'Annual 1', 'X-Men', 'annual', 1995],
-    ['Y The Last Man #03 (of 60) (2002).cbz', '3', 'Y The Last Man', 'single_issue', 2002],
+    [
+      'Y The Last Man #03 (of 60) (2002).cbz',
+      '3',
+      'Y The Last Man',
+      'single_issue',
+      2002,
+    ],
     ['Saga #25.5 (2015).cbz', '25.5', 'Saga', 'single_issue', 2015],
-  ] as const)('parses "%s" -> #%s / %s / %s / %s', (fileName, num, title, format, year) => {
-    const r = parseComicFilename(fileName);
-    expect(r.number).toBe(num);
-    expect(r.title).toBe(title);
-    expect(r.format).toBe(format);
-    expect(r.year).toBe(year);
-  });
+  ] as const)(
+    'parses "%s" -> #%s / %s / %s / %s',
+    (fileName, num, title, format, year) => {
+      const r = parseComicFilename(fileName);
+      expect(r.number).toBe(num);
+      expect(r.title).toBe(title);
+      expect(r.format).toBe(format);
+      expect(r.year).toBe(year);
+    },
+  );
 });
 
 describe('parseSeriesFolderName', () => {
