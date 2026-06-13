@@ -19,6 +19,7 @@ export class LibraryWatcherService implements OnModuleInit {
   private readonly logger = new Logger(LibraryWatcherService.name);
   private currentAudiobookPath: string | null = null;
   private currentEbookPath: string | null = null;
+  private currentComicPath: string | null = null;
 
   // Rescan state
   private isRescanning = false;
@@ -52,6 +53,7 @@ export class LibraryWatcherService implements OnModuleInit {
     const settings = await this.appSettingsService.getSettings();
     this.currentAudiobookPath = settings.audiobookLibraryPath;
     this.currentEbookPath = settings.ebookLibraryPath;
+    this.currentComicPath = settings.comicLibraryPath ?? null;
 
     // Initialize audiobook library
     if (settings.audiobookLibraryPath) {
@@ -82,6 +84,20 @@ export class LibraryWatcherService implements OnModuleInit {
     } else {
       this.logger.log('No ebook library path configured');
     }
+
+    // Initialize comic library
+    if (settings.comicLibraryPath) {
+      this.logger.log(
+        `Initializing comic library watcher for: ${settings.comicLibraryPath}`,
+      );
+      await this.runComicScan(settings.comicLibraryPath);
+
+      if (settings.watcherEnabled) {
+        await this.fileWatcher.startWatchingComics(settings.comicLibraryPath);
+      }
+    } else {
+      this.logger.log('No comic library path configured');
+    }
   }
 
   private async handleSettingsUpdate(): Promise<void> {
@@ -105,6 +121,16 @@ export class LibraryWatcherService implements OnModuleInit {
       await this.onEbookLibraryPathChange(settings.ebookLibraryPath);
     }
 
+    // Handle comic library path change
+    const newComicPath = settings.comicLibraryPath ?? null;
+    if (newComicPath !== this.currentComicPath) {
+      this.logger.log(
+        `Comic library path changed: ${this.currentComicPath} -> ${newComicPath}`,
+      );
+      this.currentComicPath = newComicPath;
+      await this.onComicLibraryPathChange(newComicPath);
+    }
+
     // Handle watcher enabled/disabled
     await this.syncWatcherState(settings.watcherEnabled);
   }
@@ -122,6 +148,9 @@ export class LibraryWatcherService implements OnModuleInit {
       }
       if (this.currentEbookPath && !this.fileWatcher.isWatchingEbooks()) {
         await this.fileWatcher.startWatchingEbooks(this.currentEbookPath);
+      }
+      if (this.currentComicPath && !this.fileWatcher.isWatchingComics()) {
+        await this.fileWatcher.startWatchingComics(this.currentComicPath);
       }
     } else {
       // Stop all watchers
@@ -179,6 +208,31 @@ export class LibraryWatcherService implements OnModuleInit {
     return result;
   }
 
+  async onComicLibraryPathChange(
+    newPath: string | null,
+  ): Promise<ScanResult | null> {
+    await this.fileWatcher.stopComicWatcher();
+
+    if (!newPath) {
+      this.logger.log('Comic library path cleared, watcher stopped');
+      return null;
+    }
+
+    const settings = await this.appSettingsService.getSettings();
+
+    this.logger.log(`Comic library path changed to: ${newPath}`);
+
+    // Run reconciliation scan on new path
+    const result = await this.runComicScan(newPath);
+
+    // Start watching new path if watcher is enabled
+    if (settings.watcherEnabled) {
+      await this.fileWatcher.startWatchingComics(newPath);
+    }
+
+    return result;
+  }
+
   async setWatcherEnabled(enabled: boolean): Promise<void> {
     await this.syncWatcherState(enabled);
     this.logger.log(`Watcher ${enabled ? 'enabled' : 'disabled'}`);
@@ -207,6 +261,18 @@ export class LibraryWatcherService implements OnModuleInit {
     return this.libraryScanner.scanEbookLibrary(scanPath);
   }
 
+  async runComicScan(comicLibraryPath?: string): Promise<ScanResult> {
+    const scanPath =
+      comicLibraryPath ||
+      (await this.appSettingsService.getComicLibraryPath());
+
+    if (!scanPath) {
+      throw new Error('No comic library path configured');
+    }
+
+    return this.libraryScanner.scanComicLibrary(scanPath);
+  }
+
   async manualScan(): Promise<ScanResult> {
     return this.runAudiobookScan();
   }
@@ -215,14 +281,20 @@ export class LibraryWatcherService implements OnModuleInit {
     return this.runEbookScan();
   }
 
+  async manualComicScan(): Promise<ScanResult> {
+    return this.runComicScan();
+  }
+
   getStatus(): {
     watching: {
       audiobooks: boolean;
       ebooks: boolean;
+      comics: boolean;
     };
     paths: {
       audiobooks: string | null;
       ebooks: string | null;
+      comics: string | null;
     };
     scanning: boolean;
     progress: ScanProgress | null;
@@ -231,10 +303,12 @@ export class LibraryWatcherService implements OnModuleInit {
       watching: {
         audiobooks: this.fileWatcher.isWatchingAudiobooks(),
         ebooks: this.fileWatcher.isWatchingEbooks(),
+        comics: this.fileWatcher.isWatchingComics(),
       },
       paths: {
         audiobooks: this.fileWatcher.getCurrentAudiobookPath(),
         ebooks: this.fileWatcher.getCurrentEbookPath(),
+        comics: this.fileWatcher.getCurrentComicPath(),
       },
       scanning: this.libraryScanner.isScanning(),
       progress: this.libraryScanner.getProgress(),

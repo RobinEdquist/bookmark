@@ -11,6 +11,7 @@ export interface WSEvent {
 export interface ImportTaskStatus {
   audiobooks: { pendingCount: number; pendingNames: string[] };
   ebooks: { pendingCount: number; pendingNames: string[] };
+  comics: { pendingCount: number; pendingNames: string[] };
 }
 
 export interface LibraryScanStatus {

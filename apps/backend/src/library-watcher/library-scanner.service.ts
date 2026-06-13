@@ -613,11 +613,15 @@ export class LibraryScannerService {
         await this.db
           .delete(comicsSchema.comicBooks)
           .where(eq(comicsSchema.comicBooks.id, book.id));
+        this.logger.log(
+          `Deleted hidden comic book (files removed): ${book.filePath}`,
+        );
       } else {
         await this.db
           .update(comicsSchema.comicBooks)
           .set({ status: 'missing', missingAt: new Date() })
           .where(eq(comicsSchema.comicBooks.id, book.id));
+        this.logger.log(`Marked comic book as missing: ${book.filePath}`);
       }
     }
 
@@ -640,11 +644,15 @@ export class LibraryScannerService {
         await this.db
           .delete(comicsSchema.comicSeries)
           .where(eq(comicsSchema.comicSeries.id, s.id));
+        this.logger.log(
+          `Deleted hidden comic series (files removed): ${s.id}`,
+        );
       } else {
         await this.db
           .update(comicsSchema.comicSeries)
           .set({ status: 'missing', missingAt: new Date() })
           .where(eq(comicsSchema.comicSeries.id, s.id));
+        this.logger.log(`Marked comic series as missing: ${s.id}`);
         this.appEvents.comicSeriesUpdated(s.id);
       }
     }

@@ -28,10 +28,12 @@ function createMockAppSettings(overrides: Record<string, any> = {}) {
     getSettings: jest.fn().mockResolvedValue({
       audiobookLibraryPath: '/audiobooks',
       ebookLibraryPath: '/ebooks',
+      comicLibraryPath: null,
       watcherEnabled: true,
     }),
     getAudiobookLibraryPath: jest.fn().mockResolvedValue('/audiobooks'),
     getEbookLibraryPath: jest.fn().mockResolvedValue('/ebooks'),
+    getComicLibraryPath: jest.fn().mockResolvedValue(null),
     ...overrides,
   };
 }
@@ -56,10 +58,14 @@ function createMockFileWatcher() {
     stopWatching: jest.fn().mockResolvedValue(undefined),
     stopAudiobookWatcher: jest.fn().mockResolvedValue(undefined),
     stopEbookWatcher: jest.fn().mockResolvedValue(undefined),
+    stopComicWatcher: jest.fn().mockResolvedValue(undefined),
+    startWatchingComics: jest.fn().mockResolvedValue(undefined),
     isWatchingAudiobooks: jest.fn().mockReturnValue(false),
     isWatchingEbooks: jest.fn().mockReturnValue(false),
+    isWatchingComics: jest.fn().mockReturnValue(false),
     getCurrentAudiobookPath: jest.fn().mockReturnValue(null),
     getCurrentEbookPath: jest.fn().mockReturnValue(null),
+    getCurrentComicPath: jest.fn().mockReturnValue(null),
   };
 }
 
@@ -69,6 +75,9 @@ function createMockLibraryScanner() {
       .fn()
       .mockResolvedValue({ added: 0, removed: 0, updated: 0 }),
     scanEbookLibrary: jest
+      .fn()
+      .mockResolvedValue({ added: 0, removed: 0, updated: 0 }),
+    scanComicLibrary: jest
       .fn()
       .mockResolvedValue({ added: 0, removed: 0, updated: 0 }),
     isScanning: jest.fn().mockReturnValue(false),
@@ -151,6 +160,7 @@ describe('LibraryWatcherService', () => {
       appSettings.getSettings.mockResolvedValue({
         audiobookLibraryPath: '/audiobooks',
         ebookLibraryPath: '/ebooks',
+        comicLibraryPath: null,
         watcherEnabled: false,
       });
 
@@ -185,6 +195,7 @@ describe('LibraryWatcherService', () => {
       appSettings.getSettings.mockResolvedValue({
         audiobookLibraryPath: '/new-audiobooks',
         ebookLibraryPath: '/ebooks',
+        comicLibraryPath: null,
         watcherEnabled: true,
       });
 
@@ -206,6 +217,7 @@ describe('LibraryWatcherService', () => {
       appSettings.getSettings.mockResolvedValue({
         audiobookLibraryPath: '/audiobooks',
         ebookLibraryPath: '/new-ebooks',
+        comicLibraryPath: null,
         watcherEnabled: true,
       });
 
@@ -430,8 +442,8 @@ describe('LibraryWatcherService', () => {
       const status = service.getStatus();
 
       expect(status).toEqual({
-        watching: { audiobooks: true, ebooks: false },
-        paths: { audiobooks: '/audiobooks', ebooks: null },
+        watching: { audiobooks: true, ebooks: false, comics: false },
+        paths: { audiobooks: '/audiobooks', ebooks: null, comics: null },
         scanning: true,
         progress: { processed: 5, total: 10 },
       });

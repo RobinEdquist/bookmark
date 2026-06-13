@@ -4,11 +4,12 @@ import * as chokidar from 'chokidar';
 import { ImportQueueService } from './import-queue.service';
 import { LibraryScannerService } from './library-scanner.service';
 
-export type LibraryType = 'audiobook' | 'ebook';
+export type LibraryType = 'audiobook' | 'ebook' | 'comic';
 
 export interface LibraryPaths {
   audiobookPath: string | null;
   ebookPath: string | null;
+  comicPath: string | null;
 }
 
 @Injectable()
@@ -16,8 +17,10 @@ export class FileWatcherService implements OnModuleDestroy {
   private readonly logger = new Logger(FileWatcherService.name);
   private audiobookWatcher: chokidar.FSWatcher | null = null;
   private ebookWatcher: chokidar.FSWatcher | null = null;
+  private comicWatcher: chokidar.FSWatcher | null = null;
   private currentAudiobookPath: string | null = null;
   private currentEbookPath: string | null = null;
+  private currentComicPath: string | null = null;
 
   constructor(
     private importQueue: ImportQueueService,
@@ -56,12 +59,23 @@ export class FileWatcherService implements OnModuleDestroy {
     } else if (!paths.ebookPath && this.ebookWatcher) {
       await this.stopEbookWatcher();
     }
+
+    // Handle comic library
+    if (paths.comicPath && paths.comicPath !== this.currentComicPath) {
+      await this.stopComicWatcher();
+      this.currentComicPath = paths.comicPath;
+      this.comicWatcher = this.createWatcher(paths.comicPath, 'comic');
+      this.logger.log(`Started watching comic library: ${paths.comicPath}`);
+    } else if (!paths.comicPath && this.comicWatcher) {
+      await this.stopComicWatcher();
+    }
   }
 
   async startWatchingAudiobooks(libraryPath: string): Promise<void> {
     await this.startWatching({
       audiobookPath: libraryPath,
       ebookPath: this.currentEbookPath,
+      comicPath: this.currentComicPath,
     });
   }
 
@@ -69,6 +83,15 @@ export class FileWatcherService implements OnModuleDestroy {
     await this.startWatching({
       audiobookPath: this.currentAudiobookPath,
       ebookPath: libraryPath,
+      comicPath: this.currentComicPath,
+    });
+  }
+
+  async startWatchingComics(libraryPath: string): Promise<void> {
+    await this.startWatching({
+      audiobookPath: this.currentAudiobookPath,
+      ebookPath: this.currentEbookPath,
+      comicPath: libraryPath,
     });
   }
 
@@ -112,7 +135,11 @@ export class FileWatcherService implements OnModuleDestroy {
   }
 
   async stopWatching(): Promise<void> {
-    await Promise.all([this.stopAudiobookWatcher(), this.stopEbookWatcher()]);
+    await Promise.all([
+      this.stopAudiobookWatcher(),
+      this.stopEbookWatcher(),
+      this.stopComicWatcher(),
+    ]);
   }
 
   async stopAudiobookWatcher(): Promise<void> {
@@ -133,8 +160,21 @@ export class FileWatcherService implements OnModuleDestroy {
     }
   }
 
+  async stopComicWatcher(): Promise<void> {
+    if (this.comicWatcher) {
+      this.logger.log('Stopping comic file watcher');
+      await this.comicWatcher.close();
+      this.comicWatcher = null;
+      this.currentComicPath = null;
+    }
+  }
+
   isWatching(): boolean {
-    return this.audiobookWatcher !== null || this.ebookWatcher !== null;
+    return (
+      this.audiobookWatcher !== null ||
+      this.ebookWatcher !== null ||
+      this.comicWatcher !== null
+    );
   }
 
   isWatchingAudiobooks(): boolean {
@@ -145,12 +185,20 @@ export class FileWatcherService implements OnModuleDestroy {
     return this.ebookWatcher !== null;
   }
 
+  isWatchingComics(): boolean {
+    return this.comicWatcher !== null;
+  }
+
   getCurrentAudiobookPath(): string | null {
     return this.currentAudiobookPath;
   }
 
   getCurrentEbookPath(): string | null {
     return this.currentEbookPath;
+  }
+
+  getCurrentComicPath(): string | null {
+    return this.currentComicPath;
   }
 
   private handleFileAdd(
