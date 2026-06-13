@@ -38,7 +38,17 @@ export async function readComicPdf(
     let coverImage: { data: Buffer; extension: string } | null = null;
     try {
       const page = await doc.getPage(1);
-      const viewport = page.getViewport({ scale: 2 });
+      // Cap canvas size to avoid allocating enormous buffers for large scanned pages.
+      // Normal cover pages (e.g. 612×792 pt) scale to 2× comfortably; a 4096-px
+      // ceiling kicks in only for giant scans (e.g. 3000-pt width → ~1.37× scale).
+      const MAX_RENDER_DIMENSION = 4096;
+      const baseViewport = page.getViewport({ scale: 1 });
+      const scale = Math.min(
+        2,
+        MAX_RENDER_DIMENSION /
+          Math.max(baseViewport.width, baseViewport.height),
+      );
+      const viewport = page.getViewport({ scale });
       const canvas = createCanvas(
         Math.ceil(viewport.width),
         Math.ceil(viewport.height),
@@ -53,8 +63,10 @@ export async function readComicPdf(
         viewport,
       }).promise;
       coverImage = { data: canvas.toBuffer('image/png'), extension: '.png' };
-    } catch {
-      // Rendering failure is non-fatal — page count alone is still useful
+    } catch (error) {
+      // Rendering failure is non-fatal — page count alone is still useful.
+      // Log so production workers show why a PDF imported without a cover.
+      console.warn('[comic-pdf] first-page render failed:', error);
       coverImage = null;
     }
 
