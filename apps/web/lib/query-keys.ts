@@ -148,6 +148,23 @@ export const queryKeys = {
       [...queryKeys.hardcover.all, "search", mediaType, mediaId, page, customQuery] as const,
     queueStatus: () => [...queryKeys.hardcover.all, "queue", "status"] as const,
   },
+  comicvine: {
+    all: ["comicvine"] as const,
+    status: () => [...queryKeys.comicvine.all, "status"] as const,
+    searchVolumes: (query: string, page?: number) =>
+      [...queryKeys.comicvine.all, "search-volumes", query, page] as const,
+    volumeForSeries: (seriesId: string, page?: number) =>
+      [...queryKeys.comicvine.all, "volume-for-series", seriesId, page] as const,
+    volumeIssues: (cvVolumeId: number, page?: number) =>
+      [...queryKeys.comicvine.all, "volume-issues", cvVolumeId, page] as const,
+    issuesForBook: (bookId: string, page?: number) =>
+      [...queryKeys.comicvine.all, "issues-for-book", bookId, page] as const,
+    seriesLink: (seriesId: string) =>
+      [...queryKeys.comicvine.all, "series-link", seriesId] as const,
+    bookLink: (bookId: string) =>
+      [...queryKeys.comicvine.all, "book-link", bookId] as const,
+    queueStatus: () => [...queryKeys.comicvine.all, "queue", "status"] as const,
+  },
   progress: {
     all: ["progress"] as const,
     list: () => [...queryKeys.progress.all, "list"] as const,
@@ -166,6 +183,7 @@ export const queryKeys = {
     status: () => [...queryKeys.tasks.all, "status"] as const,
     import: () => [...queryKeys.tasks.all, "import"] as const,
     hardcover: () => [...queryKeys.tasks.all, "hardcover"] as const,
+    comicvine: () => [...queryKeys.tasks.all, "comicvine"] as const,
     scan: () => [...queryKeys.tasks.all, "scan"] as const,
     rescan: () => [...queryKeys.tasks.all, "rescan"] as const,
   },

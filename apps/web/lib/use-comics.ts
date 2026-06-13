@@ -39,6 +39,7 @@ export interface ComicSeriesListItem {
   totalIssueCount: number | null;
   coverUrl: string | null;
   createdAt: string;
+  comicvineLinked: boolean;
 }
 
 export interface ComicNamedRef {
@@ -88,6 +89,13 @@ export interface ComicSeriesDetail {
   books: ComicBookListItem[];
   createdAt: string;
   updatedAt: string;
+  comicvine: {
+    linked: boolean;
+    volumeId: number | null;
+    name: string | null;
+    siteDetailUrl: string | null;
+    imageUrl: string | null;
+  };
 }
 
 export interface ComicBookDetail extends ComicBookListItem {
@@ -99,6 +107,15 @@ export interface ComicBookDetail extends ComicBookListItem {
   creators: (ComicCreatorRef & { order: number })[];
   createdAt: string;
   updatedAt: string;
+  comicvine: {
+    linked: boolean;
+    issueId: number | null;
+    name: string | null;
+    issueNumber: string | null;
+    siteDetailUrl: string | null;
+    imageUrl: string | null;
+    suggestedCreators: { name: string; role: string }[];
+  };
 }
 
 export interface ComicSeriesFilters {
