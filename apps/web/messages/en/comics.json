@@ -1,0 +1,118 @@
+{
+  "empty": {
+    "title": "No comics found",
+    "description": "Add comics by scanning your comic library folder"
+  },
+  "loading": "Loading comics...",
+  "error": "Failed to load comics",
+  "card": {
+    "books": "{count, plural, one {# book} other {# books}}",
+    "edit": "Edit",
+    "delete": "Delete",
+    "changeCover": "Change cover",
+    "download": "Download",
+    "addToList": "Add to list",
+    "missing": "Files missing"
+  },
+  "filters": {
+    "search": "Search comics...",
+    "allPublishers": "All publishers",
+    "allGenres": "All genres"
+  },
+  "sort": {
+    "title": "Title",
+    "recentlyAdded": "Recently added",
+    "startYear": "Year"
+  },
+  "detail": {
+    "back": "Back to comics",
+    "publisher": "Publisher",
+    "imprint": "Imprint",
+    "year": "Year",
+    "language": "Language",
+    "ageRating": "Age rating",
+    "issues": "Issues",
+    "books": "Books",
+    "creators": "Creators",
+    "downloadSeries": "Download all",
+    "noBooks": "No books in this series"
+  },
+  "book": {
+    "issue": "Issue {number}",
+    "volume": "Vol. {number}",
+    "annual": "Annual {number}",
+    "omnibus": "Omnibus {number}",
+    "oneShot": "One-shot",
+    "untitled": "Untitled",
+    "coverDate": "Cover date",
+    "pages": "{count} pages",
+    "download": "Download",
+    "summary": "Summary"
+  },
+  "format": {
+    "single_issue": "Issue",
+    "annual": "Annual",
+    "tpb": "Trade Paperback",
+    "omnibus": "Omnibus",
+    "one_shot": "One-shot",
+    "special": "Special",
+    "graphic_novel": "Graphic Novel",
+    "other": "Other"
+  },
+  "role": {
+    "writer": "Writer",
+    "penciller": "Penciller",
+    "inker": "Inker",
+    "colorist": "Colorist",
+    "letterer": "Letterer",
+    "cover_artist": "Cover Artist",
+    "editor": "Editor",
+    "other": "Other"
+  },
+  "edit": {
+    "seriesTitle": "Edit series",
+    "bookTitle": "Edit book",
+    "fields": {
+      "title": "Title",
+      "sortTitle": "Sort title",
+      "description": "Description",
+      "publisher": "Publisher",
+      "imprint": "Imprint",
+      "startYear": "Start year",
+      "totalIssueCount": "Total issues",
+      "language": "Language",
+      "ageRating": "Age rating",
+      "genres": "Genres",
+      "tags": "Tags",
+      "number": "Number",
+      "format": "Format",
+      "coverDate": "Cover date",
+      "summary": "Summary",
+      "creators": "Creators",
+      "creatorName": "Name",
+      "creatorRole": "Role",
+      "addCreator": "Add creator"
+    },
+    "save": "Save changes",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "deleteDialog": {
+    "seriesTitle": "Delete series?",
+    "bookTitle": "Delete book?",
+    "description": "This removes \"{title}\" from your library.",
+    "keepFiles": { "label": "Keep files", "description": "Remove from library only" },
+    "deleteFiles": { "label": "Delete files", "description": "Also delete files from disk" },
+    "confirm": "Delete",
+    "cancel": "Cancel"
+  },
+  "changeCover": {
+    "title": "Change cover",
+    "uploadTab": "Upload",
+    "urlTab": "From URL",
+    "save": "Save",
+    "success": "Cover updated"
+  }
+}

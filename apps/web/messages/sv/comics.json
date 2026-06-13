@@ -1,0 +1,118 @@
+{
+  "empty": {
+    "title": "Inga serier hittades",
+    "description": "Lägg till serier genom att skanna din seriemapp"
+  },
+  "loading": "Laddar serier...",
+  "error": "Kunde inte ladda serier",
+  "card": {
+    "books": "{count, plural, one {# bok} other {# böcker}}",
+    "edit": "Redigera",
+    "delete": "Ta bort",
+    "changeCover": "Ändra omslag",
+    "download": "Ladda ner",
+    "addToList": "Lägg till i lista",
+    "missing": "Filer saknas"
+  },
+  "filters": {
+    "search": "Sök serier...",
+    "allPublishers": "Alla förlag",
+    "allGenres": "Alla genrer"
+  },
+  "sort": {
+    "title": "Titel",
+    "recentlyAdded": "Nyligen tillagd",
+    "startYear": "År"
+  },
+  "detail": {
+    "back": "Tillbaka till serier",
+    "publisher": "Förlag",
+    "imprint": "Imprint",
+    "year": "År",
+    "language": "Språk",
+    "ageRating": "Åldersgräns",
+    "issues": "Nummer",
+    "books": "Böcker",
+    "creators": "Upphovspersoner",
+    "downloadSeries": "Ladda ner alla",
+    "noBooks": "Inga böcker i den här serien"
+  },
+  "book": {
+    "issue": "Nummer {number}",
+    "volume": "Vol. {number}",
+    "annual": "Årsbok {number}",
+    "omnibus": "Samlingsvolym {number}",
+    "oneShot": "Engångsnummer",
+    "untitled": "Namnlös",
+    "coverDate": "Omslagsdatum",
+    "pages": "{count} sidor",
+    "download": "Ladda ner",
+    "summary": "Sammanfattning"
+  },
+  "format": {
+    "single_issue": "Nummer",
+    "annual": "Årsbok",
+    "tpb": "Samlingsalbum",
+    "omnibus": "Samlingsvolym",
+    "one_shot": "Engångsnummer",
+    "special": "Special",
+    "graphic_novel": "Grafisk roman",
+    "other": "Övrigt"
+  },
+  "role": {
+    "writer": "Författare",
+    "penciller": "Tecknare",
+    "inker": "Tuschnare",
+    "colorist": "Kolorist",
+    "letterer": "Textsättare",
+    "cover_artist": "Omslagskonstnär",
+    "editor": "Redaktör",
+    "other": "Övrigt"
+  },
+  "edit": {
+    "seriesTitle": "Redigera serie",
+    "bookTitle": "Redigera bok",
+    "fields": {
+      "title": "Titel",
+      "sortTitle": "Sorteringstitel",
+      "description": "Beskrivning",
+      "publisher": "Förlag",
+      "imprint": "Imprint",
+      "startYear": "Startår",
+      "totalIssueCount": "Totalt antal nummer",
+      "language": "Språk",
+      "ageRating": "Åldersgräns",
+      "genres": "Genrer",
+      "tags": "Taggar",
+      "number": "Nummer",
+      "format": "Format",
+      "coverDate": "Omslagsdatum",
+      "summary": "Sammanfattning",
+      "creators": "Upphovspersoner",
+      "creatorName": "Namn",
+      "creatorRole": "Roll",
+      "addCreator": "Lägg till upphovsperson"
+    },
+    "save": "Spara ändringar",
+    "saving": "Sparar...",
+    "cancel": "Avbryt",
+    "previous": "Föregående",
+    "next": "Nästa"
+  },
+  "deleteDialog": {
+    "seriesTitle": "Ta bort serie?",
+    "bookTitle": "Ta bort bok?",
+    "description": "Detta tar bort \"{title}\" från ditt bibliotek.",
+    "keepFiles": { "label": "Behåll filer", "description": "Ta bara bort från biblioteket" },
+    "deleteFiles": { "label": "Ta bort filer", "description": "Ta även bort filer från disk" },
+    "confirm": "Ta bort",
+    "cancel": "Avbryt"
+  },
+  "changeCover": {
+    "title": "Ändra omslag",
+    "uploadTab": "Ladda upp",
+    "urlTab": "Från URL",
+    "save": "Spara",
+    "success": "Omslaget har uppdaterats"
+  }
+}
