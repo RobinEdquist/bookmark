@@ -72,7 +72,7 @@ export default function AuthenticatedLayout({
           {/* Main content */}
           <div className="flex flex-1 flex-col overflow-hidden">
             {/* Mobile header - hidden on library pages that have their own header */}
-            {!pathname.startsWith("/audiobooks") && !pathname.startsWith("/ebooks") && (
+            {!pathname.startsWith("/audiobooks") && !pathname.startsWith("/ebooks") && !pathname.startsWith("/comics") && (
               <header className="flex h-16 items-center border-b px-4 lg:hidden">
                 <MobileNav isAdmin={isAdmin} />
               </header>
