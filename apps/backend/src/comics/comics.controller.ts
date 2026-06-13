@@ -36,6 +36,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
+import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 import { ComicsService } from './comics.service';
 import {
   ListComicSeriesQueryDto,
@@ -144,6 +145,7 @@ export class ComicsController {
   }
 
   @Delete('series/:id')
+  @UseGuards(CanDeleteGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete comic series',
@@ -160,6 +162,10 @@ export class ComicsController {
     status: 204,
     description: 'Comic series deleted successfully',
   })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
   @ApiResponse({ status: 404, description: 'Comic series not found' })
   async deleteSeries(
     @Param('id') id: string,
@@ -171,6 +177,7 @@ export class ComicsController {
   // ===== SERIES COVER =====
 
   @Post('series/:id/cover')
+  @UseGuards(CanEditMetadataGuard)
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
     summary: 'Update comic series cover',
@@ -204,6 +211,10 @@ export class ComicsController {
     status: 400,
     description:
       'Invalid file type, file too large, or neither file nor URL provided',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
   })
   @ApiResponse({ status: 404, description: 'Comic series not found' })
   async updateSeriesCover(
@@ -358,6 +369,7 @@ export class ComicsController {
   }
 
   @Delete('books/:id')
+  @UseGuards(CanDeleteGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete comic book',
@@ -371,6 +383,10 @@ export class ComicsController {
     description: 'Set to "true" to also delete the file from disk',
   })
   @ApiResponse({ status: 204, description: 'Comic book deleted successfully' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
+  })
   @ApiResponse({ status: 404, description: 'Comic book not found' })
   async deleteBook(
     @Param('id') id: string,
@@ -382,6 +398,7 @@ export class ComicsController {
   // ===== BOOK COVER =====
 
   @Post('books/:id/cover')
+  @UseGuards(CanEditMetadataGuard)
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({
     summary: 'Update comic book cover',
@@ -415,6 +432,10 @@ export class ComicsController {
     status: 400,
     description:
       'Invalid file type, file too large, or neither file nor URL provided',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - insufficient permissions',
   })
   @ApiResponse({ status: 404, description: 'Comic book not found' })
   async updateBookCover(
