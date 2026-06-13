@@ -26,7 +26,9 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
+import * as comicvineSchema from '../comicvine/schema';
 import { AppSettingsService } from '../app-settings/app-settings.service';
+import type { MetadataSource } from '../app-settings/schema';
 import { CoverService } from '../common/cover.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { ComicMetadataProvider } from '../library-watcher/metadata/comic-metadata.provider';
@@ -52,7 +54,10 @@ const CONTAINER_MIME: Record<string, string> = {
 };
 
 type Db = NodePgDatabase<
-  typeof schema & typeof audiobooksSchema & typeof usersSchema
+  typeof schema &
+    typeof audiobooksSchema &
+    typeof usersSchema &
+    typeof comicvineSchema
 >;
 
 @Injectable()
@@ -77,6 +82,48 @@ export class ComicsService {
       throw new Error('Comic library path not configured');
     }
     return path.join(libraryPath, relativePath);
+  }
+
+  // ===== METADATA PRIORITY HELPERS =====
+
+  /**
+   * Check if a value is non-empty (not null, undefined, empty string, or empty array)
+   */
+  private hasValue<T>(value: T | null | undefined): value is T {
+    if (value === null || value === undefined) return false;
+    if (typeof value === 'string' && value.trim() === '') return false;
+    if (Array.isArray(value) && value.length === 0) return false;
+    return true;
+  }
+
+  /**
+   * Resolve a field value according to the configured priority order.
+   * `manualFieldName` is the COLUMN name (used to check manualFields[]).
+   * `priority` is the MetadataSource[] from ComicMetadataFieldPriority.
+   */
+  private resolveFieldByPriority<T>(
+    manualFieldName: string,
+    sources: {
+      manual: T | null | undefined;
+      embedded: T | null | undefined;
+      comicvine: T | null | undefined;
+    },
+    priority: MetadataSource[],
+    manualFields: string[],
+  ): T | null {
+    if (manualFields.includes(manualFieldName)) {
+      if (this.hasValue(sources.manual)) return sources.manual;
+    }
+    for (const source of priority) {
+      if (source === 'manual') continue;
+      else if (source === 'embedded') {
+        if (this.hasValue(sources.embedded)) return sources.embedded;
+      } else if (source === 'comicvine') {
+        if (this.hasValue(sources.comicvine)) return sources.comicvine;
+      }
+      // 'filename' / 'folder_image' / others are import-only
+    }
+    return sources.embedded ?? null; // fallback = original stored column
   }
 
   // ===== BLACKLIST =====
@@ -211,6 +258,7 @@ export class ComicsService {
         .select({
           series: schema.comicSeries,
           bookCount: sql<number>`(${bookCount})`,
+          comicvineLinked: sql<boolean>`exists(select 1 from ${comicvineSchema.comicvineVolumeLinks} where ${comicvineSchema.comicvineVolumeLinks.seriesId} = ${schema.comicSeries.id})`,
         })
         .from(schema.comicSeries)
         .where(and(...conditions))
@@ -248,7 +296,7 @@ export class ComicsService {
     }
 
     return {
-      series: items.map(({ series, bookCount: count }) => ({
+      series: items.map(({ series, bookCount: count, comicvineLinked }) => ({
         id: series.id,
         title: series.title,
         publisher: series.publisher,
@@ -258,6 +306,7 @@ export class ComicsService {
         totalIssueCount: series.totalIssueCount,
         coverUrl: this.resolveSeriesCoverUrl(series, fallbackCovers),
         createdAt: series.createdAt,
+        comicvineLinked: Boolean(comicvineLinked),
       })),
       total: Number(total),
     };
@@ -288,7 +337,7 @@ export class ComicsService {
       .limit(1);
     if (!series) throw new NotFoundException('Comic series not found');
 
-    const [books, genres, tags, creators] = await Promise.all([
+    const [books, genres, tags, creators, volumeRows] = await Promise.all([
       this.db
         .select()
         .from(schema.comicBooks)
@@ -341,31 +390,92 @@ export class ComicsService {
           eq(schema.comicBookCreators.personId, audiobooksSchema.people.id),
         )
         .where(eq(schema.comicBooks.seriesId, id)),
+      this.db
+        .select({ volume: comicvineSchema.comicvineVolumes })
+        .from(comicvineSchema.comicvineVolumeLinks)
+        .innerJoin(
+          comicvineSchema.comicvineVolumes,
+          eq(
+            comicvineSchema.comicvineVolumeLinks.comicvineVolumeRowId,
+            comicvineSchema.comicvineVolumes.id,
+          ),
+        )
+        .where(eq(comicvineSchema.comicvineVolumeLinks.seriesId, id))
+        .limit(1),
     ]);
 
     const fallbackCovers = new Map<string, string>();
     const firstWithCover = books.find((b) => b.coverSource);
     if (firstWithCover) fallbackCovers.set(series.id, firstWithCover.id);
 
+    const volume = volumeRows[0]?.volume ?? null;
+    const comicPriority =
+      await this.appSettingsService.getComicMetadataPriority();
+    const mf = series.manualFields ?? [];
+
     return {
       id: series.id,
-      title: series.title,
+      title:
+        this.resolveFieldByPriority(
+          'title',
+          {
+            manual: series.title,
+            embedded: series.title,
+            comicvine: volume?.name,
+          },
+          comicPriority.title,
+          mf,
+        ) ?? series.title,
       sortTitle: series.sortTitle,
-      description: series.description,
-      publisher: series.publisher,
+      description: this.resolveFieldByPriority(
+        'description',
+        {
+          manual: series.description,
+          embedded: series.description,
+          comicvine: volume?.description,
+        },
+        comicPriority.description,
+        mf,
+      ),
+      publisher: this.resolveFieldByPriority(
+        'publisher',
+        {
+          manual: series.publisher,
+          embedded: series.publisher,
+          comicvine: volume?.publisherName,
+        },
+        comicPriority.publisher,
+        mf,
+      ),
       imprint: series.imprint,
-      startYear: series.startYear,
+      startYear: this.resolveFieldByPriority(
+        'startYear',
+        {
+          manual: series.startYear,
+          embedded: series.startYear,
+          comicvine: volume?.startYear,
+        },
+        comicPriority.startYear,
+        mf,
+      ),
       totalIssueCount: series.totalIssueCount,
       language: series.language,
       ageRating: series.ageRating,
       status: series.status,
       folderPath: series.folderPath,
-      manualFields: series.manualFields ?? [],
+      manualFields: mf,
       coverUrl: this.resolveSeriesCoverUrl(series, fallbackCovers),
       genres,
       tags,
       creators,
       books: books.map((book) => this.toBookListItem(book)),
+      comicvine: {
+        linked: !!volume,
+        volumeId: volume?.comicvineVolumeId ?? null,
+        name: volume?.name ?? null,
+        siteDetailUrl: volume?.siteDetailUrl ?? null,
+        imageUrl: volume?.imageUrl ?? null,
+      },
       createdAt: series.createdAt,
       updatedAt: series.updatedAt,
     };
@@ -404,7 +514,7 @@ export class ComicsService {
       .limit(1);
     if (!book) throw new NotFoundException('Comic book not found');
 
-    const [[series], creators] = await Promise.all([
+    const [[series], creators, issueRows] = await Promise.all([
       this.db
         .select({
           id: schema.comicSeries.id,
@@ -430,16 +540,78 @@ export class ComicsService {
           asc(schema.comicBookCreators.role),
           asc(schema.comicBookCreators.order),
         ),
+      this.db
+        .select({ issue: comicvineSchema.comicvineIssues })
+        .from(comicvineSchema.comicvineIssueLinks)
+        .innerJoin(
+          comicvineSchema.comicvineIssues,
+          eq(
+            comicvineSchema.comicvineIssueLinks.comicvineIssueRowId,
+            comicvineSchema.comicvineIssues.id,
+          ),
+        )
+        .where(eq(comicvineSchema.comicvineIssueLinks.bookId, id))
+        .limit(1),
     ]);
+
+    const issue = issueRows[0]?.issue ?? null;
+    const comicPriority =
+      await this.appSettingsService.getComicMetadataPriority();
+    const mf = book.manualFields ?? [];
 
     return {
       ...this.toBookListItem(book),
-      summary: book.summary,
+      // Override merged fields after the spread (toBookListItem carries raw title/number/coverDate)
+      title: this.resolveFieldByPriority(
+        'title',
+        { manual: book.title, embedded: book.title, comicvine: issue?.name },
+        comicPriority.bookTitle,
+        mf,
+      ),
+      number: this.resolveFieldByPriority(
+        'number',
+        {
+          manual: book.number,
+          embedded: book.number,
+          comicvine: issue?.issueNumber,
+        },
+        comicPriority.bookNumber,
+        mf,
+      ),
+      coverDate: this.resolveFieldByPriority(
+        'coverDate',
+        {
+          manual: book.coverDate,
+          embedded: book.coverDate,
+          comicvine: issue?.coverDate,
+        },
+        comicPriority.coverDate,
+        mf,
+      ),
+      summary: this.resolveFieldByPriority(
+        'summary',
+        {
+          manual: book.summary,
+          embedded: book.summary,
+          comicvine: issue?.description,
+        },
+        comicPriority.bookSummary,
+        mf,
+      ),
       storeDate: book.storeDate,
       filePath: book.filePath,
-      manualFields: book.manualFields ?? [],
+      manualFields: mf,
       series,
       creators,
+      comicvine: {
+        linked: !!issue,
+        issueId: issue?.comicvineIssueId ?? null,
+        name: issue?.name ?? null,
+        issueNumber: issue?.issueNumber ?? null,
+        siteDetailUrl: issue?.siteDetailUrl ?? null,
+        imageUrl: issue?.imageUrl ?? null,
+        suggestedCreators: issue?.personCredits ?? [],
+      },
       createdAt: book.createdAt,
       updatedAt: book.updatedAt,
     };

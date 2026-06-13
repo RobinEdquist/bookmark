@@ -7,6 +7,8 @@ import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { CoverService } from '../../common/cover.service';
 import { UpdateComicBookDto, ComicCreatorInputDto } from '../dto/comics.dto';
+import { DEFAULT_COMIC_METADATA_PRIORITY } from '../../app-settings/schema';
+import type { MetadataSource } from '../../app-settings/schema';
 
 // ws-events.service transitively imports events.gateway, which pulls in the
 // ESM-only `@thallesp/nestjs-better-auth` package that Jest's CJS runtime
@@ -27,7 +29,15 @@ import { ComicsService } from '../comics.service';
  */
 function chainMock(resolvedValue: unknown = []) {
   const self: Record<string, jest.Mock> = {};
-  const methods = ['from', 'where', 'limit', 'offset', 'orderBy'];
+  const methods = [
+    'from',
+    'where',
+    'limit',
+    'offset',
+    'orderBy',
+    'innerJoin',
+    'selectDistinct',
+  ];
   for (const m of methods) {
     self[m] = jest.fn().mockReturnValue(self);
   }
@@ -311,6 +321,459 @@ describe('ComicCreatorInputDto validation', () => {
   it('rejects missing role', async () => {
     const errors = await validateCreator({ name: 'Test Creator' });
     expect(errors.some((e) => e.property === 'role')).toBe(true);
+  });
+});
+
+// ===== ComicsService read-time metadata merge (getSeriesById / getBookById) =====
+
+/**
+ * Minimal series row with the fields used in getSeriesById.
+ */
+const baseSeriesRow: {
+  id: string;
+  title: string;
+  sortTitle: string | null;
+  description: string | null;
+  publisher: string | null;
+  imprint: string | null;
+  startYear: number | null;
+  totalIssueCount: number | null;
+  language: string | null;
+  ageRating: string | null;
+  status: string;
+  folderPath: string;
+  manualFields: string[];
+  coverUrl: string | null;
+  coverSource: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+} = {
+  id: 'series-1',
+  title: 'Stored Title',
+  sortTitle: null,
+  description: 'Stored desc',
+  publisher: 'Stored Publisher',
+  imprint: null,
+  startYear: 1990,
+  totalIssueCount: null,
+  language: null,
+  ageRating: null,
+  status: 'available',
+  folderPath: '/comics/series-1',
+  manualFields: [],
+  coverUrl: null,
+  coverSource: null,
+  createdAt: new Date('2024-01-01'),
+  updatedAt: new Date('2024-01-01'),
+};
+
+/**
+ * Build a service mock sufficient to test getSeriesById and getBookById
+ * metadata-merge behaviour.
+ *
+ * getSeriesById call order:
+ *   1. verifySeriesNotBlacklisted  → comicSeriesTags check (returns [])
+ *   2. series fetch                → returns [seriesRow]
+ *   3. Promise.all(5 queries):
+ *        [0] comicBooks list       → returns []
+ *        [1] genres join           → returns []
+ *        [2] tags join             → returns []
+ *        [3] creators join         → returns []
+ *        [4] volumeLinks join      → returns volumeRows
+ *
+ * getBookById call order:
+ *   1. verifyBookNotBlacklisted → book seriesId fetch (returns [{ seriesId }])
+ *   2. verifySeriesNotBlacklisted → comicSeriesTags check (returns [])
+ *   3. book fetch               → returns [bookRow]
+ *   4. Promise.all(3 queries):
+ *        [0] series fetch        → returns [{ id, title }]
+ *        [1] creators join       → returns []
+ *        [2] issueLinks join     → returns issueRows
+ */
+function buildServiceForMergeTest({
+  seriesRow = baseSeriesRow,
+  volumeRows = [] as unknown[],
+  bookRow = null as unknown | null,
+  issueRows = [] as unknown[],
+  priority = DEFAULT_COMIC_METADATA_PRIORITY,
+}: {
+  seriesRow?: typeof baseSeriesRow;
+  volumeRows?: unknown[];
+  bookRow?: unknown | null;
+  issueRows?: unknown[];
+  priority?: typeof DEFAULT_COMIC_METADATA_PRIORITY;
+} = {}) {
+  const select = jest.fn();
+  const selectDistinct = jest.fn();
+
+  // We use mockReturnValueOnce so each select()/selectDistinct() call returns the right data.
+  // Helper that makes a chainable mock ending with the given value.
+  const chain = (val: unknown) => chainMock(val);
+
+  if (bookRow !== null) {
+    // getBookById call sequence:
+    // call 1 (select): verifyBookNotBlacklisted — book seriesId lookup
+    select.mockReturnValueOnce(
+      chain([
+        { seriesId: (bookRow as { seriesId?: string }).seriesId ?? 'series-1' },
+      ]),
+    );
+    // call 2 (select): verifySeriesNotBlacklisted — comicSeriesTags innerJoin (no blacklisted tags)
+    select.mockReturnValueOnce(chain([]));
+    // call 3 (select): book fetch
+    select.mockReturnValueOnce(chain([bookRow]));
+    // Promise.all(3 queries):
+    // call 4 (select, Promise.all[0]): series fetch
+    select.mockReturnValueOnce(
+      chain([{ id: 'series-1', title: 'Series Title' }]),
+    );
+    // call 5 (select, Promise.all[1]): creators join (uses select, not selectDistinct in getBookById)
+    select.mockReturnValueOnce(chain([]));
+    // call 6 (select, Promise.all[2]): issueLinks join
+    select.mockReturnValueOnce(chain(issueRows));
+  } else {
+    // getSeriesById call sequence:
+    // call 1 (select): verifySeriesNotBlacklisted — comicSeriesTags innerJoin (no blacklisted tags)
+    select.mockReturnValueOnce(chain([]));
+    // call 2 (select): series fetch
+    select.mockReturnValueOnce(chain([seriesRow]));
+    // Promise.all(5 queries):
+    // call 3 (select, Promise.all[0]): comicBooks list
+    select.mockReturnValueOnce(chain([]));
+    // call 4 (select, Promise.all[1]): genres innerJoin
+    select.mockReturnValueOnce(chain([]));
+    // call 5 (select, Promise.all[2]): tags innerJoin
+    select.mockReturnValueOnce(chain([]));
+    // call 6 (selectDistinct, Promise.all[3]): creators selectDistinct+innerJoin
+    selectDistinct.mockReturnValueOnce(chain([]));
+    // call 7 (select, Promise.all[4]): volumeLinks innerJoin
+    select.mockReturnValueOnce(chain(volumeRows));
+  }
+
+  // Fallback for any unexpected calls
+  select.mockReturnValue(chain([]));
+  selectDistinct.mockReturnValue(chain([]));
+
+  const db = { select, selectDistinct } as never;
+  const appSettings = {
+    getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+    getComicMetadataPriority: jest.fn().mockResolvedValue(priority),
+  } as never;
+  const coverService = {
+    getCoverUrl: jest.fn().mockReturnValue(null),
+  } as never;
+  const stub = {} as never;
+  const wsEvents = {
+    comicSeriesUpdated: jest.fn(),
+    comicBookUpdated: jest.fn(),
+  } as never;
+
+  const service = new ComicsService(
+    db,
+    appSettings,
+    coverService,
+    stub, // imageProcessing
+    stub, // appData
+    stub, // comicMetadataProvider
+    stub, // appEvents
+    wsEvents,
+  );
+
+  return { service, select, appSettings };
+}
+
+describe('ComicsService.getSeriesById — metadata merge', () => {
+  // A volume whose name differs from the stored title — used to prove the
+  // manualFields guard short-circuits even a comicvine-FIRST priority.
+  const cvNameVolume = (name: string) => [
+    {
+      volume: {
+        comicvineVolumeId: 1,
+        name,
+        description: null,
+        publisherName: null,
+        startYear: null,
+        siteDetailUrl: null,
+        imageUrl: null,
+      },
+    },
+  ];
+
+  it('manual wins over comicvine-FIRST priority when title is in manualFields', async () => {
+    // Priority puts comicvine BEFORE embedded/manual, so the ONLY way the
+    // stored title can win is the manualFields guard short-circuiting first.
+    // Deleting the guard from resolveFieldByPriority would return 'CV Value'.
+    const priority = {
+      ...DEFAULT_COMIC_METADATA_PRIORITY,
+      title: ['comicvine', 'manual', 'embedded'] as MetadataSource[],
+    };
+    const seriesRow = {
+      ...baseSeriesRow,
+      title: 'Manual Value',
+      manualFields: ['title'],
+    };
+
+    const { service } = buildServiceForMergeTest({
+      seriesRow,
+      volumeRows: cvNameVolume('CV Value'),
+      priority,
+    });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.title).toBe('Manual Value');
+  });
+
+  it('counterexample: with the SAME comicvine-FIRST priority but title NOT in manualFields, comicvine wins', async () => {
+    // Identical priority to the test above; only difference is manualFields.
+    // This proves the guard is real and CONDITIONAL on manualFields:
+    // flipping manualFields is what flips the outcome.
+    const priority = {
+      ...DEFAULT_COMIC_METADATA_PRIORITY,
+      title: ['comicvine', 'manual', 'embedded'] as MetadataSource[],
+    };
+    const seriesRow = {
+      ...baseSeriesRow,
+      title: 'Stored',
+      manualFields: ['description'], // a different key — title is NOT flagged
+    };
+
+    const { service } = buildServiceForMergeTest({
+      seriesRow,
+      volumeRows: cvNameVolume('CV Value'),
+      priority,
+    });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.title).toBe('CV Value');
+  });
+
+  it('ComicVine fills empty description when not in manualFields', async () => {
+    const seriesRow = {
+      ...baseSeriesRow,
+      description: null,
+      manualFields: [],
+    };
+    const volumeRows = [
+      {
+        volume: {
+          comicvineVolumeId: 1,
+          name: 'CV Series',
+          description: 'CV Desc',
+          publisherName: null,
+          startYear: null,
+          siteDetailUrl: null,
+          imageUrl: null,
+        },
+      },
+    ];
+
+    const { service } = buildServiceForMergeTest({ seriesRow, volumeRows });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.description).toBe('CV Desc');
+  });
+
+  it('unlinked series returns stored values unchanged and comicvine.linked === false', async () => {
+    const seriesRow = {
+      ...baseSeriesRow,
+      title: 'Stored',
+      description: 'Stored desc',
+      manualFields: [],
+    };
+
+    const { service } = buildServiceForMergeTest({ seriesRow, volumeRows: [] });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.title).toBe('Stored');
+    expect(result.description).toBe('Stored desc');
+    expect(result.comicvine.linked).toBe(false);
+  });
+
+  it('comicvine block exposes volume metadata when linked', async () => {
+    const volumeRows = [
+      {
+        volume: {
+          comicvineVolumeId: 42,
+          name: 'X-Men',
+          description: 'Mutants',
+          publisherName: 'Marvel',
+          startYear: 1963,
+          siteDetailUrl: 'https://comicvine.gamespot.com/x-men/4050-3989/',
+          imageUrl: 'https://example.com/xmen.jpg',
+        },
+      },
+    ];
+
+    const { service } = buildServiceForMergeTest({ volumeRows });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.comicvine).toEqual({
+      linked: true,
+      volumeId: 42,
+      name: 'X-Men',
+      siteDetailUrl: 'https://comicvine.gamespot.com/x-men/4050-3989/',
+      imageUrl: 'https://example.com/xmen.jpg',
+    });
+  });
+});
+
+describe('ComicsService.getBookById — metadata merge', () => {
+  const baseBookRow = {
+    id: 'book-1',
+    seriesId: 'series-1',
+    title: 'Stored Book Title',
+    number: '1',
+    sortNumber: '1',
+    format: 'single_issue',
+    coverDate: '2023-01-01',
+    summary: null,
+    storeDate: null,
+    filePath: 'series-1/book1.cbz',
+    fileName: 'book1.cbz',
+    sizeBytes: 5000,
+    container: 'cbz',
+    status: 'available',
+    coverUrl: null,
+    coverSource: null,
+    pageCount: null,
+    manualFields: [] as string[],
+    createdAt: new Date('2024-01-01'),
+    updatedAt: new Date('2024-01-01'),
+  };
+
+  // An issue whose name differs from the stored book title — used to prove
+  // the manualFields guard short-circuits even a comicvine-FIRST priority.
+  const cvNameIssue = (name: string) => [
+    {
+      issue: {
+        comicvineIssueId: 100,
+        issueNumber: '1',
+        name,
+        coverDate: '2023-01-01',
+        description: null,
+        siteDetailUrl: null,
+        imageUrl: null,
+        personCredits: [],
+      },
+    },
+  ];
+
+  it('manual book title wins over comicvine-FIRST priority when title is in manualFields', async () => {
+    // Priority puts comicvine BEFORE embedded/manual for bookTitle, so the
+    // ONLY way the stored title can win is the manualFields guard. NOTE the
+    // manualFields entry is the COLUMN name 'title' (not the priority key
+    // 'bookTitle'). Deleting the guard would return 'CV Issue Name'.
+    const priority = {
+      ...DEFAULT_COMIC_METADATA_PRIORITY,
+      bookTitle: ['comicvine', 'manual', 'embedded'] as MetadataSource[],
+    };
+    const bookRow = {
+      ...baseBookRow,
+      title: 'Manual Book Title',
+      manualFields: ['title'],
+    };
+
+    const { service } = buildServiceForMergeTest({
+      bookRow,
+      issueRows: cvNameIssue('CV Issue Name'),
+      priority,
+    });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.title).toBe('Manual Book Title');
+  });
+
+  it('counterexample: with the SAME comicvine-FIRST bookTitle priority but title NOT in manualFields, comicvine wins', async () => {
+    // Identical priority to the test above; only manualFields differs.
+    // Proves the guard is real and CONDITIONAL on manualFields.
+    const priority = {
+      ...DEFAULT_COMIC_METADATA_PRIORITY,
+      bookTitle: ['comicvine', 'manual', 'embedded'] as MetadataSource[],
+    };
+    const bookRow = {
+      ...baseBookRow,
+      title: 'Stored',
+      manualFields: [],
+    };
+
+    const { service } = buildServiceForMergeTest({
+      bookRow,
+      issueRows: cvNameIssue('CV Issue Name'),
+      priority,
+    });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.title).toBe('CV Issue Name');
+  });
+
+  it('ComicVine fills empty book summary when not in manualFields', async () => {
+    const bookRow = {
+      ...baseBookRow,
+      summary: null,
+      manualFields: [],
+    };
+    const issueRows = [
+      {
+        issue: {
+          comicvineIssueId: 101,
+          issueNumber: '1',
+          name: null,
+          coverDate: null,
+          description: 'CV Summary text',
+          siteDetailUrl: null,
+          imageUrl: null,
+          personCredits: [],
+        },
+      },
+    ];
+
+    const { service } = buildServiceForMergeTest({ bookRow, issueRows });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.summary).toBe('CV Summary text');
+  });
+
+  it('unlinked book returns stored values and comicvine.linked === false', async () => {
+    const bookRow = { ...baseBookRow, title: 'Stored', manualFields: [] };
+
+    const { service } = buildServiceForMergeTest({ bookRow, issueRows: [] });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.title).toBe('Stored');
+    expect(result.comicvine.linked).toBe(false);
+  });
+
+  it('comicvine block exposes issue metadata and suggestedCreators when linked', async () => {
+    const issueRows = [
+      {
+        issue: {
+          comicvineIssueId: 200,
+          issueNumber: '5',
+          name: 'Issue Five',
+          coverDate: '2023-05-01',
+          description: null,
+          siteDetailUrl: 'https://comicvine.gamespot.com/issue/200/',
+          imageUrl: 'https://example.com/issue5.jpg',
+          personCredits: [{ name: 'Jack Kirby', role: 'penciller' }],
+        },
+      },
+    ];
+
+    const { service } = buildServiceForMergeTest({
+      bookRow: baseBookRow,
+      issueRows,
+    });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.comicvine).toEqual({
+      linked: true,
+      issueId: 200,
+      name: 'Issue Five',
+      issueNumber: '5',
+      siteDetailUrl: 'https://comicvine.gamespot.com/issue/200/',
+      imageUrl: 'https://example.com/issue5.jpg',
+      suggestedCreators: [{ name: 'Jack Kirby', role: 'penciller' }],
+    });
   });
 });
 
