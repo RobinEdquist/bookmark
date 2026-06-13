@@ -211,29 +211,35 @@ export class ComicsController {
     @UploadedFile() file?: Express.Multer.File,
     @Body() body?: UpdateComicCoverDto,
   ) {
+    this.validateCoverInput(file, body);
+
+    if (file) {
+      return this.comicsService.updateSeriesCoverFromFile(id, file.buffer);
+    } else {
+      return this.comicsService.updateSeriesCoverFromUrl(id, body!.url!);
+    }
+  }
+
+  private validateCoverInput(
+    file: Express.Multer.File | undefined,
+    body: UpdateComicCoverDto | undefined,
+  ): void {
     if (!file && !body?.url) {
       throw new BadRequestException('Either file or url must be provided');
     }
-
     if (file && body?.url) {
       throw new BadRequestException('Provide either file or url, not both');
     }
-
     if (file) {
       if (file.size > 2 * 1024 * 1024) {
         throw new BadRequestException('File size must be less than 2 MB');
       }
-
       const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
       if (!allowedTypes.includes(file.mimetype)) {
         throw new BadRequestException(
           'Invalid file type. Allowed: JPG, PNG, WebP',
         );
       }
-
-      return this.comicsService.updateSeriesCoverFromFile(id, file.buffer);
-    } else {
-      return this.comicsService.updateSeriesCoverFromUrl(id, body!.url!);
     }
   }
 
@@ -416,26 +422,9 @@ export class ComicsController {
     @UploadedFile() file?: Express.Multer.File,
     @Body() body?: UpdateComicCoverDto,
   ) {
-    if (!file && !body?.url) {
-      throw new BadRequestException('Either file or url must be provided');
-    }
-
-    if (file && body?.url) {
-      throw new BadRequestException('Provide either file or url, not both');
-    }
+    this.validateCoverInput(file, body);
 
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        throw new BadRequestException('File size must be less than 2 MB');
-      }
-
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!allowedTypes.includes(file.mimetype)) {
-        throw new BadRequestException(
-          'Invalid file type. Allowed: JPG, PNG, WebP',
-        );
-      }
-
       return this.comicsService.updateBookCoverFromFile(id, file.buffer);
     } else {
       return this.comicsService.updateBookCoverFromUrl(id, body!.url!);
