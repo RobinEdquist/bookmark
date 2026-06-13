@@ -72,11 +72,12 @@ describe('scoreVolumeMatch', () => {
     bookCount?: number | null,
   ) => ({ title, startYear, bookCount });
 
+  let candidateIdSeq = 1;
   const candidate = (
     name: string,
     startYear: number | null,
     countOfIssues: number | null,
-  ) => ({ name, startYear, countOfIssues });
+  ) => ({ id: candidateIdSeq++, name, startYear, countOfIssues });
 
   // -------------------------------------------------------------------------
   // autoLinkable = true cases
@@ -242,11 +243,12 @@ describe('pickAutoMatch', () => {
     bookCount: null as number | null,
   });
 
+  let candidateIdSeq = 1000;
   const candidate = (
     name: string,
     startYear: number | null,
     countOfIssues: number | null = 20,
-  ) => ({ name, startYear, countOfIssues });
+  ) => ({ id: candidateIdSeq++, name, startYear, countOfIssues });
 
   it('returns the single autoLinkable candidate when exactly one qualifies', () => {
     const match = candidate('Saga', 2012);

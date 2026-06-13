@@ -57,7 +57,21 @@ function createMockAppEvents() {
 function createMockWsEvents() {
   return {
     comicvineSyncStatusUpdated: jest.fn(),
+    comicBookUpdated: jest.fn(),
   };
+}
+
+/**
+ * Build a mock insert chain for an upsertVolume/upsertIssue call that now uses
+ * `insert(...).values(...).onConflictDoUpdate(...).returning()` (single
+ * round-trip). `returning()` resolves to `[row]`.
+ */
+function createUpsertChain(row: unknown) {
+  const chain: Record<string, jest.Mock> = {};
+  chain.values = jest.fn().mockReturnValue(chain);
+  chain.onConflictDoUpdate = jest.fn().mockReturnValue(chain);
+  chain.returning = jest.fn().mockResolvedValueOnce([row]);
+  return chain;
 }
 
 function buildCvVolume(overrides: Partial<CvVolumeRaw> = {}): CvVolumeRaw {
@@ -232,47 +246,35 @@ describe('ComicvineService', () => {
   // =========================================================================
 
   describe('upsertVolume', () => {
-    it('updates an existing volume and returns it', async () => {
-      const existingRow = { id: 'uuid-vol-1' };
-      const selectChain = createChainMock(['from', 'where', 'limit']);
-      selectChain.limit.mockResolvedValueOnce([existingRow]);
-      db.select.mockReturnValueOnce(selectChain);
-
-      const updateChain = createChainMock(['set', 'where']);
-      updateChain.where.mockResolvedValueOnce(undefined);
-      db.update.mockReturnValueOnce(updateChain);
-
-      const selectChain2 = createChainMock(['from', 'where', 'limit']);
-      const updatedRow = {
+    it('upserts via a single insert...onConflictDoUpdate...returning and returns the row', async () => {
+      const row = {
         id: 'uuid-vol-1',
         comicvineVolumeId: 12345,
         name: 'X-Men',
       };
-      selectChain2.limit.mockResolvedValueOnce([updatedRow]);
-      db.select.mockReturnValueOnce(selectChain2);
+      const upsertChain = createUpsertChain(row);
+      db.insert.mockReturnValueOnce(upsertChain);
 
       const result = await service.upsertVolume(buildCvVolume());
-      expect(result).toEqual(updatedRow);
-      expect(db.insert).not.toHaveBeenCalled();
+
+      expect(result).toEqual(row);
+      // One round-trip: no pre-select, no separate update
+      expect(db.insert).toHaveBeenCalledTimes(1);
+      expect(db.select).not.toHaveBeenCalled();
+      expect(db.update).not.toHaveBeenCalled();
+      expect(upsertChain.onConflictDoUpdate).toHaveBeenCalledTimes(1);
     });
 
-    it('inserts a new volume when not found', async () => {
-      const selectChain = createChainMock(['from', 'where', 'limit']);
-      selectChain.limit.mockResolvedValueOnce([]);
-      db.select.mockReturnValueOnce(selectChain);
+    it('parses a string start_year into a number', async () => {
+      const row = { id: 'uuid-vol-2', comicvineVolumeId: 99, name: 'Saga' };
+      const upsertChain = createUpsertChain(row);
+      db.insert.mockReturnValueOnce(upsertChain);
 
-      const insertChain = createChainMock(['values', 'returning']);
-      const newRow = {
-        id: 'uuid-vol-new',
-        comicvineVolumeId: 12345,
-        name: 'X-Men',
-      };
-      insertChain.returning.mockResolvedValueOnce([newRow]);
-      db.insert.mockReturnValueOnce(insertChain);
+      await service.upsertVolume(buildCvVolume({ start_year: '2012' }));
 
-      const result = await service.upsertVolume(buildCvVolume());
-      expect(result).toEqual(newRow);
-      expect(db.insert).toHaveBeenCalledTimes(1);
+      expect(upsertChain.values).toHaveBeenCalledWith(
+        expect.objectContaining({ startYear: 2012 }),
+      );
     });
   });
 
@@ -309,16 +311,9 @@ describe('ComicvineService', () => {
       });
 
       // linkSeriesToVolume internal calls:
-      // upsertVolume: select (existing check)
-      const upsertSelect = createChainMock(['from', 'where', 'limit']);
-      upsertSelect.limit.mockResolvedValueOnce([]); // not found → insert
-      db.select.mockReturnValueOnce(upsertSelect);
-
-      // upsertVolume: insert
-      const upsertInsert = createChainMock(['values', 'returning']);
+      // upsertVolume: single insert...onConflictDoUpdate...returning
       const cachedVol = { id: 'cached-vol-uuid', comicvineVolumeId: 12345 };
-      upsertInsert.returning.mockResolvedValueOnce([cachedVol]);
-      db.insert.mockReturnValueOnce(upsertInsert);
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedVol));
 
       // delete existing link
       const deleteChain = createChainMock(['where']);
@@ -386,16 +381,9 @@ describe('ComicvineService', () => {
         results: [cvVolume],
       });
 
-      // linkSeriesToVolume: upsertVolume select (not found)
-      const upsertSelect = createChainMock(['from', 'where', 'limit']);
-      upsertSelect.limit.mockResolvedValueOnce([]);
-      db.select.mockReturnValueOnce(upsertSelect);
-
-      // upsertVolume: insert
-      const upsertInsert = createChainMock(['values', 'returning']);
+      // linkSeriesToVolume: upsertVolume single-round-trip upsert
       const cachedVol = { id: 'cached-asm-uuid', comicvineVolumeId: 99 };
-      upsertInsert.returning.mockResolvedValueOnce([cachedVol]);
-      db.insert.mockReturnValueOnce(upsertInsert);
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedVol));
 
       // delete old link
       const delChain = createChainMock(['where']);
@@ -422,6 +410,70 @@ describe('ComicvineService', () => {
       expect(mockAppEvents.comicvineSyncCompleted).toHaveBeenCalledWith(
         'series',
         'series-2',
+      );
+    });
+
+    it('recovers the matched candidate by ComicVine id, not by name string', async () => {
+      // getApiKey
+      const settingsChain = createChainMock(['from', 'where', 'limit']);
+      settingsChain.limit.mockResolvedValueOnce([
+        { comicvineApiKey: 'cv-key' },
+      ]);
+      db.select.mockReturnValueOnce(settingsChain);
+
+      // Series with a startYear that makes exactly ONE candidate auto-linkable.
+      const seriesChain = createChainMock(['from', 'where', 'limit']);
+      seriesChain.limit.mockResolvedValueOnce([
+        {
+          id: 'series-3',
+          title: 'Daredevil',
+          startYear: 1998,
+          comicvineVolumeId: null,
+        },
+      ]);
+      db.select.mockReturnValueOnce(seriesChain);
+
+      // Two same-NAME candidates with different ids and years. Only the 1998
+      // volume (id 222) is auto-linkable; the 1964 one (id 111) is not.
+      // Recovery must use id 222 — a name lookup could grab the wrong row.
+      mockSearchVolumes.mockResolvedValueOnce({
+        totalResults: 2,
+        results: [
+          buildCvVolume({
+            id: 111,
+            name: 'Daredevil',
+            start_year: 1964,
+            count_of_issues: 380,
+          }),
+          buildCvVolume({
+            id: 222,
+            name: 'Daredevil',
+            start_year: 1998,
+            count_of_issues: 119,
+          }),
+        ],
+      });
+
+      // linkSeriesToVolume upsert
+      const cachedVol = { id: 'cached-dd-uuid', comicvineVolumeId: 222 };
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedVol));
+      const delChain = createChainMock(['where']);
+      delChain.where.mockResolvedValueOnce(undefined);
+      db.delete.mockReturnValueOnce(delChain);
+      const linkInsert = createChainMock(['values']);
+      linkInsert.values.mockResolvedValueOnce(undefined);
+      db.insert.mockReturnValueOnce(linkInsert);
+      const updateChain = createChainMock(['set', 'where']);
+      updateChain.where.mockResolvedValueOnce(undefined);
+      db.update.mockReturnValueOnce(updateChain);
+
+      const result = await service.matchSeries('series-3');
+
+      expect(result.outcome).toBe('linked');
+      // The pin written must be the 1998 volume's id (222), proving id-based recovery
+      expect((result as { outcome: 'linked'; cvId: number }).cvId).toBe(222);
+      expect(updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({ comicvineVolumeId: 222 }),
       );
     });
   });
@@ -584,18 +636,6 @@ describe('ComicvineService', () => {
         results: [cvIssue],
       });
 
-      // upsertIssue: select existing (not found)
-      const issueSelectChain = createChainMock(['from', 'where', 'limit']);
-      issueSelectChain.limit.mockResolvedValueOnce([]);
-      db.select.mockReturnValueOnce(issueSelectChain);
-
-      // upsertIssue is called TWICE:
-      //   1. From getVolumeIssuesPaged (caches the issue into DB)
-      //   2. From linkBookToIssue (re-upserts the raw shape built from bestMatch)
-      //
-      // For call 1: select finds nothing → insert → returns cachedIssue row
-      // For call 2: select finds the existing row → update → re-select → return
-
       const cachedIssue = {
         id: 'cached-issue-uuid',
         comicvineIssueId: 99001,
@@ -615,35 +655,12 @@ describe('ComicvineService', () => {
         updatedAt: new Date(),
       };
 
-      // --- upsertIssue call 1 (from getVolumeIssuesPaged): not found → insert ---
-      const insert1Returning = jest.fn().mockResolvedValueOnce([cachedIssue]);
-      const insert1Chain = {
-        values: jest.fn().mockImplementation(function (this: unknown) {
-          return insert1Chain;
-        }),
-        returning: insert1Returning,
-        onConflictDoUpdate: jest.fn().mockReturnThis(),
-        onConflictDoNothing: jest.fn().mockReturnThis(),
-      };
-      db.insert.mockReturnValueOnce(insert1Chain);
-
-      // --- upsertIssue call 2 (from linkBookToIssue): found → update + re-select ---
-      // select existing (FOUND this time)
-      const issueSelectChain2 = createChainMock(['from', 'where', 'limit']);
-      issueSelectChain2.limit.mockResolvedValueOnce([
-        { id: 'cached-issue-uuid' },
-      ]);
-      db.select.mockReturnValueOnce(issueSelectChain2);
-
-      // update
-      const issueUpdateChain = createChainMock(['set', 'where']);
-      issueUpdateChain.where.mockResolvedValueOnce(undefined);
-      db.update.mockReturnValueOnce(issueUpdateChain);
-
-      // re-select after update
-      const issueReSelectChain = createChainMock(['from', 'where', 'limit']);
-      issueReSelectChain.limit.mockResolvedValueOnce([cachedIssue]);
-      db.select.mockReturnValueOnce(issueReSelectChain);
+      // upsertIssue is called TWICE — each is now a single
+      // insert...onConflictDoUpdate...returning round-trip:
+      //   1. From getVolumeIssuesPaged (caches the issue)
+      //   2. From linkBookToIssue (re-upserts the raw shape built from bestMatch)
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedIssue)); // call 1
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedIssue)); // call 2
 
       // linkBookToIssue: delete old link
       const delChain = createChainMock(['where']);
@@ -727,16 +744,9 @@ describe('ComicvineService', () => {
 
   describe('linkSeriesToVolume', () => {
     it('upserts volume, deletes old link, inserts new link, updates pin, emits event', async () => {
-      // upsertVolume: select not found
-      const upsertSelect = createChainMock(['from', 'where', 'limit']);
-      upsertSelect.limit.mockResolvedValueOnce([]);
-      db.select.mockReturnValueOnce(upsertSelect);
-
-      // upsertVolume: insert
-      const upsertInsert = createChainMock(['values', 'returning']);
+      // upsertVolume: single-round-trip upsert
       const cachedVol = { id: 'vol-uuid', comicvineVolumeId: 12345 };
-      upsertInsert.returning.mockResolvedValueOnce([cachedVol]);
-      db.insert.mockReturnValueOnce(upsertInsert);
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedVol));
 
       // delete existing link
       const delChain = createChainMock(['where']);
@@ -810,6 +820,8 @@ describe('ComicvineService', () => {
       expect(updateChain.set).toHaveBeenCalledWith(
         expect.objectContaining({ comicvineIssueId: null }),
       );
+      // Symmetric with unlinkSeries: a comic-book update event is emitted
+      expect(mockWsEvents.comicBookUpdated).toHaveBeenCalledWith('book-test');
     });
   });
 
@@ -842,16 +854,17 @@ describe('ComicvineService', () => {
       reviewFailedChain.where.mockResolvedValueOnce([]);
       db.select.mockReturnValueOnce(reviewFailedChain);
 
-      await service.addToSyncQueue('series', 'series-1');
+      const inserted = await service.addToSyncQueue('series', 'series-1');
       await new Promise(process.nextTick); // flush async emit
 
+      expect(inserted).toBe(true);
       expect(db.insert).toHaveBeenCalledTimes(1);
       expect(mockWsEvents.comicvineSyncStatusUpdated).toHaveBeenCalledWith(
         expect.objectContaining({ pendingCount: 1 }),
       );
     });
 
-    it('skips when series is already in queue', async () => {
+    it('skips and returns false when series is already in queue', async () => {
       const queueCheck = createChainMock(['from', 'where', 'limit']);
       queueCheck.limit.mockResolvedValueOnce([{ id: 'existing' }]);
       db.select.mockReturnValueOnce(queueCheck);
@@ -860,11 +873,12 @@ describe('ComicvineService', () => {
       linkCheck.limit.mockResolvedValueOnce([]);
       db.select.mockReturnValueOnce(linkCheck);
 
-      await service.addToSyncQueue('series', 'series-1');
+      const inserted = await service.addToSyncQueue('series', 'series-1');
+      expect(inserted).toBe(false);
       expect(db.insert).not.toHaveBeenCalled();
     });
 
-    it('skips when series is already linked', async () => {
+    it('skips and returns false when series is already linked', async () => {
       const queueCheck = createChainMock(['from', 'where', 'limit']);
       queueCheck.limit.mockResolvedValueOnce([]);
       db.select.mockReturnValueOnce(queueCheck);
@@ -873,7 +887,8 @@ describe('ComicvineService', () => {
       linkCheck.limit.mockResolvedValueOnce([{ seriesId: 'series-1' }]);
       db.select.mockReturnValueOnce(linkCheck);
 
-      await service.addToSyncQueue('series', 'series-1');
+      const inserted = await service.addToSyncQueue('series', 'series-1');
+      expect(inserted).toBe(false);
       expect(db.insert).not.toHaveBeenCalled();
     });
 
@@ -921,13 +936,23 @@ describe('ComicvineService', () => {
   });
 
   describe('getPendingCount', () => {
-    it('returns the count of pending queue items', async () => {
+    it('returns the pending count from a count(*) projection', async () => {
       const chain = createChainMock(['from', 'where']);
-      chain.where.mockResolvedValueOnce([{ id: '1' }, { id: '2' }]);
+      // count(*) projection resolves to a single row { count }
+      chain.where.mockResolvedValueOnce([{ count: 2 }]);
       db.select.mockReturnValueOnce(chain);
 
       const result = await service.getPendingCount();
       expect(result).toBe(2);
+    });
+
+    it('coerces a string count (pg bigint) to a number', async () => {
+      const chain = createChainMock(['from', 'where']);
+      chain.where.mockResolvedValueOnce([{ count: '5' }]);
+      db.select.mockReturnValueOnce(chain);
+
+      const result = await service.getPendingCount();
+      expect(result).toBe(5);
     });
   });
 
@@ -1010,6 +1035,54 @@ describe('ComicvineService', () => {
       const result = await service.queueAllUnlinkedSeries();
       expect(result).toBe(2);
       expect(db.insert).toHaveBeenCalledTimes(2);
+    });
+
+    it('counts only rows actually inserted (skips do not inflate the count)', async () => {
+      // getApiKey
+      const settingsChain = createChainMock(['from', 'where', 'limit']);
+      settingsChain.limit.mockResolvedValueOnce([
+        { comicvineApiKey: 'cv-key' },
+      ]);
+      db.select.mockReturnValueOnce(settingsChain);
+
+      // Find two candidate series
+      const unlinkedChain = createChainMock(['from', 'leftJoin', 'where']);
+      unlinkedChain.where.mockResolvedValueOnce([
+        { id: 'series-a' },
+        { id: 'series-b' },
+      ]);
+      db.select.mockReturnValueOnce(unlinkedChain);
+
+      // series-a → inserts (returns true)
+      const q1Check = createChainMock(['from', 'where', 'limit']);
+      q1Check.limit.mockResolvedValueOnce([]);
+      db.select.mockReturnValueOnce(q1Check);
+      const l1Check = createChainMock(['from', 'where', 'limit']);
+      l1Check.limit.mockResolvedValueOnce([]);
+      db.select.mockReturnValueOnce(l1Check);
+      const i1 = createChainMock(['values']);
+      i1.values.mockResolvedValueOnce(undefined);
+      db.insert.mockReturnValueOnce(i1);
+      const p1 = createChainMock(['from', 'where']);
+      p1.where.mockResolvedValueOnce([{ id: '1' }]);
+      db.select.mockReturnValueOnce(p1);
+      const rf1 = createChainMock(['from', 'where']);
+      rf1.where.mockResolvedValueOnce([]);
+      db.select.mockReturnValueOnce(rf1);
+
+      // series-b → already queued → skipped (returns false, no insert)
+      const q2Check = createChainMock(['from', 'where', 'limit']);
+      q2Check.limit.mockResolvedValueOnce([{ id: 'already-queued' }]);
+      db.select.mockReturnValueOnce(q2Check);
+      const l2Check = createChainMock(['from', 'where', 'limit']);
+      l2Check.limit.mockResolvedValueOnce([]);
+      db.select.mockReturnValueOnce(l2Check);
+
+      const result = await service.queueAllUnlinkedSeries();
+
+      // Only series-a was inserted → count is 1, not 2
+      expect(result).toBe(1);
+      expect(db.insert).toHaveBeenCalledTimes(1);
     });
   });
 

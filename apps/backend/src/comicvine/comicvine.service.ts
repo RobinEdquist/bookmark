@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, asc, and, isNull, or, inArray } from 'drizzle-orm';
+import { eq, asc, and, isNull, or, inArray, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as appSettingsSchema from '../app-settings/schema';
 import * as comicvineSchema from './schema';
@@ -173,55 +173,33 @@ export class ComicvineService {
    * Maps raw CV fields to our schema, sets syncedAt = now.
    */
   async upsertVolume(cv: CvVolumeRaw): Promise<CachedVolume> {
-    const startYear =
+    const parsedYear =
       cv.start_year != null ? parseInt(String(cv.start_year), 10) : null;
+    const startYear =
+      parsedYear != null && !isNaN(parsedYear) ? parsedYear : null;
 
-    const existing = await this.db
-      .select()
-      .from(comicvineSchema.comicvineVolumes)
-      .where(eq(comicvineSchema.comicvineVolumes.comicvineVolumeId, cv.id))
-      .limit(1);
+    // Single round-trip upsert keyed on the unique comicvine_volume_id index.
+    const values = {
+      name: cv.name,
+      startYear,
+      publisherName: cv.publisher?.name ?? null,
+      countOfIssues: cv.count_of_issues ?? null,
+      description: cv.description ?? null,
+      imageUrl: cv.image?.medium_url ?? null,
+      siteDetailUrl: cv.site_detail_url ?? null,
+      syncedAt: new Date(),
+    };
 
-    if (existing.length > 0) {
-      await this.db
-        .update(comicvineSchema.comicvineVolumes)
-        .set({
-          name: cv.name,
-          startYear: isNaN(startYear as number) ? null : startYear,
-          publisherName: cv.publisher?.name ?? null,
-          countOfIssues: cv.count_of_issues ?? null,
-          description: cv.description ?? null,
-          imageUrl: cv.image?.medium_url ?? null,
-          siteDetailUrl: cv.site_detail_url ?? null,
-          syncedAt: new Date(),
-        })
-        .where(eq(comicvineSchema.comicvineVolumes.id, existing[0].id));
-
-      const [updated] = await this.db
-        .select()
-        .from(comicvineSchema.comicvineVolumes)
-        .where(eq(comicvineSchema.comicvineVolumes.id, existing[0].id))
-        .limit(1);
-
-      return updated as CachedVolume;
-    }
-
-    const [inserted] = await this.db
+    const [row] = await this.db
       .insert(comicvineSchema.comicvineVolumes)
-      .values({
-        comicvineVolumeId: cv.id,
-        name: cv.name,
-        startYear: isNaN(startYear as number) ? null : startYear,
-        publisherName: cv.publisher?.name ?? null,
-        countOfIssues: cv.count_of_issues ?? null,
-        description: cv.description ?? null,
-        imageUrl: cv.image?.medium_url ?? null,
-        siteDetailUrl: cv.site_detail_url ?? null,
-        syncedAt: new Date(),
+      .values({ comicvineVolumeId: cv.id, ...values })
+      .onConflictDoUpdate({
+        target: comicvineSchema.comicvineVolumes.comicvineVolumeId,
+        set: values,
       })
       .returning();
 
-    return inserted as CachedVolume;
+    return row as CachedVolume;
   }
 
   /**
@@ -235,60 +213,32 @@ export class ComicvineService {
     const characterCredits = (cv.character_credits ?? []).map((c) => c.name);
     const storyArcCredits = (cv.story_arc_credits ?? []).map((s) => s.name);
 
-    const existing = await this.db
-      .select()
-      .from(comicvineSchema.comicvineIssues)
-      .where(eq(comicvineSchema.comicvineIssues.comicvineIssueId, cv.id))
-      .limit(1);
+    // Single round-trip upsert keyed on the unique comicvine_issue_id index.
+    const values = {
+      comicvineVolumeId: cv.volume?.id ?? null,
+      issueNumber: cv.issue_number ?? null,
+      name: cv.name ?? null,
+      coverDate: cv.cover_date ?? null,
+      storeDate: cv.store_date ?? null,
+      description: cv.description ?? null,
+      imageUrl: cv.image?.medium_url ?? null,
+      siteDetailUrl: cv.site_detail_url ?? null,
+      personCredits,
+      characterCredits,
+      storyArcCredits,
+      syncedAt: new Date(),
+    };
 
-    if (existing.length > 0) {
-      await this.db
-        .update(comicvineSchema.comicvineIssues)
-        .set({
-          comicvineVolumeId: cv.volume?.id ?? null,
-          issueNumber: cv.issue_number ?? null,
-          name: cv.name ?? null,
-          coverDate: cv.cover_date ?? null,
-          storeDate: cv.store_date ?? null,
-          description: cv.description ?? null,
-          imageUrl: cv.image?.medium_url ?? null,
-          siteDetailUrl: cv.site_detail_url ?? null,
-          personCredits,
-          characterCredits,
-          storyArcCredits,
-          syncedAt: new Date(),
-        })
-        .where(eq(comicvineSchema.comicvineIssues.id, existing[0].id));
-
-      const [updated] = await this.db
-        .select()
-        .from(comicvineSchema.comicvineIssues)
-        .where(eq(comicvineSchema.comicvineIssues.id, existing[0].id))
-        .limit(1);
-
-      return updated as CachedIssue;
-    }
-
-    const [inserted] = await this.db
+    const [row] = await this.db
       .insert(comicvineSchema.comicvineIssues)
-      .values({
-        comicvineIssueId: cv.id,
-        comicvineVolumeId: cv.volume?.id ?? null,
-        issueNumber: cv.issue_number ?? null,
-        name: cv.name ?? null,
-        coverDate: cv.cover_date ?? null,
-        storeDate: cv.store_date ?? null,
-        description: cv.description ?? null,
-        imageUrl: cv.image?.medium_url ?? null,
-        siteDetailUrl: cv.site_detail_url ?? null,
-        personCredits,
-        characterCredits,
-        storyArcCredits,
-        syncedAt: new Date(),
+      .values({ comicvineIssueId: cv.id, ...values })
+      .onConflictDoUpdate({
+        target: comicvineSchema.comicvineIssues.comicvineIssueId,
+        set: values,
       })
       .returning();
 
-    return inserted as CachedIssue;
+    return row as CachedIssue;
   }
 
   // =========================================================================
@@ -395,6 +345,7 @@ export class ComicvineService {
     };
 
     const candidateVolumes: CandidateVolume[] = candidates.map((c) => ({
+      id: c.id,
       name: c.name,
       startYear:
         c.start_year != null ? parseInt(String(c.start_year), 10) : null,
@@ -404,8 +355,8 @@ export class ComicvineService {
     const match = pickAutoMatch(localSeries, candidateVolumes);
 
     if (match !== null) {
-      // Find the corresponding raw candidate
-      const matchedRaw = candidates.find((c) => c.name === match.name);
+      // Recover the raw candidate by ComicVine id (not the fragile name string).
+      const matchedRaw = candidates.find((c) => c.id === match.id);
       if (matchedRaw) {
         await this.linkSeriesToVolume(seriesId, matchedRaw);
         return { outcome: 'linked', cvId: matchedRaw.id };
@@ -675,6 +626,9 @@ export class ComicvineService {
       .set({ comicvineIssueId: null })
       .where(eq(comicsSchema.comicBooks.id, bookId));
 
+    // Symmetric with unlinkSeries: signal the detail page to refetch.
+    this.wsEvents.comicBookUpdated(bookId);
+
     this.logger.log(`Unlinked book ${bookId} from ComicVine`);
   }
 
@@ -702,8 +656,12 @@ export class ComicvineService {
   /**
    * Add a series or book to the sync queue.
    * Skips if: already in queue (any status) OR already linked.
+   *
+   * @returns `true` only when a row was actually inserted; `false` when the
+   *   item was skipped (already queued/linked). Callers (e.g.
+   *   queueAllUnlinkedSeries) rely on this to count only real insertions.
    */
-  async addToSyncQueue(level: 'series' | 'book', id: string): Promise<void> {
+  async addToSyncQueue(level: 'series' | 'book', id: string): Promise<boolean> {
     if (level === 'series') {
       const [existingQueue, existingLink] = await Promise.all([
         this.db
@@ -722,7 +680,7 @@ export class ComicvineService {
 
       if (existingQueue.length > 0 || existingLink.length > 0) {
         this.logger.debug(`Series ${id} already in queue or linked, skipping`);
-        return;
+        return false;
       }
 
       await this.db.insert(comicvineSchema.comicvineSyncQueue).values({
@@ -746,7 +704,7 @@ export class ComicvineService {
 
       if (existingQueue.length > 0 || existingLink.length > 0) {
         this.logger.debug(`Book ${id} already in queue or linked, skipping`);
-        return;
+        return false;
       }
 
       await this.db.insert(comicvineSchema.comicvineSyncQueue).values({
@@ -758,6 +716,7 @@ export class ComicvineService {
 
     this.logger.log(`Added ${level} ${id} to ComicVine sync queue`);
     this.emitComicvineSyncStatus();
+    return true;
   }
 
   async getNextPending(): Promise<
@@ -864,12 +823,12 @@ export class ComicvineService {
   }
 
   async getPendingCount(): Promise<number> {
-    const result = await this.db
-      .select({ id: comicvineSchema.comicvineSyncQueue.id })
+    const [row] = await this.db
+      .select({ count: sql<number>`count(*)` })
       .from(comicvineSchema.comicvineSyncQueue)
       .where(eq(comicvineSchema.comicvineSyncQueue.status, 'pending'));
 
-    return result.length;
+    return Number(row?.count ?? 0);
   }
 
   async dismissItem(id: string): Promise<void> {
@@ -912,8 +871,10 @@ export class ComicvineService {
 
     let queuedCount = 0;
     for (const id of unlinkedIds) {
-      await this.addToSyncQueue('series', id);
-      queuedCount++;
+      // addToSyncQueue returns false when it skips (already queued/linked);
+      // only count the rows it actually inserted.
+      const inserted = await this.addToSyncQueue('series', id);
+      if (inserted) queuedCount++;
     }
 
     this.logger.log(`Queued ${queuedCount} unlinked series for ComicVine sync`);

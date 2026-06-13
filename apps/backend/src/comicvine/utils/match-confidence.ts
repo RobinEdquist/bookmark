@@ -74,6 +74,8 @@ export interface LocalSeries {
 }
 
 export interface CandidateVolume {
+  /** ComicVine numeric volume id — used by callers to recover the raw candidate. */
+  id: number;
   name: string;
   startYear: number | null;
   countOfIssues: number | null;
