@@ -38,6 +38,14 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 import { ComicsService } from './comics.service';
+import { ComicsCollectionsService } from './comics-collections.service';
+import {
+  ListComicCollectionsQueryDto,
+  CreateComicCollectionDto,
+  UpdateComicCollectionDto,
+  AddCollectionSeriesDto,
+  ReorderCollectionSeriesDto,
+} from './dto/comic-collection.dto';
 import {
   ListComicSeriesQueryDto,
   UpdateComicSeriesDto,
@@ -55,7 +63,10 @@ import {
 @UseGuards(AuthGuard)
 @Controller('comics')
 export class ComicsController {
-  constructor(private readonly comicsService: ComicsService) {}
+  constructor(
+    private readonly comicsService: ComicsService,
+    private readonly collectionsService: ComicsCollectionsService,
+  ) {}
 
   // ===== SERIES LIST/FILTER SOURCES =====
 
@@ -99,6 +110,78 @@ export class ComicsController {
       dto.sourceSeriesIds,
       dto.targetSeriesId,
     );
+  }
+
+  // ===== COLLECTIONS =====
+
+  @Get('collections')
+  @ApiOperation({ summary: 'List comic collections' })
+  async findAllCollections(@Query() query: ListComicCollectionsQueryDto) {
+    return this.collectionsService.findAll(query);
+  }
+
+  @Post('collections')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({ summary: 'Create a comic collection' })
+  async createCollection(@Body() dto: CreateComicCollectionDto) {
+    return this.collectionsService.create(dto);
+  }
+
+  @Get('collections/:id')
+  @ApiOperation({ summary: 'Get a comic collection with its series' })
+  async getCollection(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.collectionsService.findOne(id, user.id);
+  }
+
+  @Patch('collections/:id')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({ summary: 'Update a comic collection' })
+  async updateCollection(
+    @Param('id') id: string,
+    @Body() dto: UpdateComicCollectionDto,
+  ) {
+    return this.collectionsService.update(id, dto);
+  }
+
+  @Delete('collections/:id')
+  @UseGuards(CanDeleteGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a comic collection' })
+  async deleteCollection(@Param('id') id: string) {
+    await this.collectionsService.remove(id);
+  }
+
+  @Post('collections/:id/series')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({ summary: 'Add a series to a collection' })
+  async addCollectionSeries(
+    @Param('id') id: string,
+    @Body() dto: AddCollectionSeriesDto,
+  ) {
+    return this.collectionsService.addSeries(id, dto.seriesId);
+  }
+
+  @Delete('collections/:id/series/:seriesId')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({ summary: 'Remove a series from a collection' })
+  async removeCollectionSeries(
+    @Param('id') id: string,
+    @Param('seriesId') seriesId: string,
+  ) {
+    return this.collectionsService.removeSeries(id, seriesId);
+  }
+
+  @Patch('collections/:id/order')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({ summary: 'Reorder series within a collection' })
+  async reorderCollectionSeries(
+    @Param('id') id: string,
+    @Body() dto: ReorderCollectionSeriesDto,
+  ) {
+    return this.collectionsService.reorder(id, dto.seriesIds);
   }
 
   @Get('publishers')
