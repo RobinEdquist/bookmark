@@ -1019,6 +1019,7 @@ export class ComicsService {
     bookIds: string[],
     targetSeriesId: string,
   ): Promise<{ moved: number; deletedSeriesIds: string[] }> {
+    if (bookIds.length === 0) return { moved: 0, deletedSeriesIds: [] };
     const [target] = await this.db
       .select({ id: schema.comicSeries.id })
       .from(schema.comicSeries)
@@ -1070,6 +1071,7 @@ export class ComicsService {
     targetSeriesId: string,
   ): Promise<{ moved: number; deletedSeriesIds: string[] }> {
     const sources = sourceSeriesIds.filter((id) => id !== targetSeriesId);
+    if (sources.length === 0) return { moved: 0, deletedSeriesIds: [] };
     const bookRows = await this.db
       .select({ id: schema.comicBooks.id })
       .from(schema.comicBooks)
@@ -1081,7 +1083,10 @@ export class ComicsService {
     // Delete any source that is now empty even if it had zero books to move.
     const deleted = new Set(result.deletedSeriesIds);
     for (const sourceId of sources) {
-      if (!deleted.has(sourceId) && (await this.deleteSeriesIfEmpty(sourceId))) {
+      if (
+        !deleted.has(sourceId) &&
+        (await this.deleteSeriesIfEmpty(sourceId))
+      ) {
         deleted.add(sourceId);
       }
     }
