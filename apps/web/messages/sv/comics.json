@@ -254,6 +254,8 @@
     "belongsTo": "Samlingar",
     "addSuccess": "Tillagd i samling",
     "createSuccess": "Samling skapad",
+    "deleteSuccess": "Samling borttagen",
+    "save": "Spara",
     "error": "Något gick fel"
   }
 }

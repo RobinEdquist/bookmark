@@ -77,7 +77,7 @@ export default function ComicCollectionDetailPage({
   const handleDelete = async () => {
     try {
       await deleteCollection.mutateAsync(id);
-      toast.success(t("collections.delete"));
+      toast.success(t("collections.deleteSuccess"));
       setDeleteOpen(false);
       router.push("/comics?view=collections");
     } catch {
@@ -122,7 +122,7 @@ export default function ComicCollectionDetailPage({
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/comics?view=collections">
+            <Link href="/comics?view=collections" aria-label={t("detail.back")}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -135,6 +135,7 @@ export default function ComicCollectionDetailPage({
               size="icon"
               onClick={handleRenameOpen}
               title={t("collections.edit")}
+              aria-label={t("collections.edit")}
             >
               <Pencil className="h-5 w-5" />
             </Button>
@@ -145,6 +146,7 @@ export default function ComicCollectionDetailPage({
               size="icon"
               onClick={() => setDeleteOpen(true)}
               title={t("collections.delete")}
+              aria-label={t("collections.delete")}
             >
               <Trash2 className="h-5 w-5" />
             </Button>
@@ -177,7 +179,7 @@ export default function ComicCollectionDetailPage({
           ) : (
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
               {collection.series.map((series) => (
-                <div key={series.id} className="relative">
+                <div key={series.id} className="relative group">
                   <ComicSeriesCard series={series} />
                   {canEdit && (
                     <Button
@@ -232,7 +234,7 @@ export default function ComicCollectionDetailPage({
               onClick={() => void handleRenameSave()}
               disabled={updateCollection.isPending || !renameValue.trim()}
             >
-              {t("collections.create")}
+              {t("collections.save")}
             </Button>
           </DialogFooter>
         </DialogContent>

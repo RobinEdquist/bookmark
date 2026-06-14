@@ -254,6 +254,8 @@
     "belongsTo": "Collections",
     "addSuccess": "Added to collection",
     "createSuccess": "Collection created",
+    "deleteSuccess": "Collection deleted",
+    "save": "Save",
     "error": "Something went wrong"
   }
 }
