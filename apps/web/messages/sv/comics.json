@@ -50,7 +50,9 @@
     "noBooks": "Inga böcker i den här serien",
     "missingIssues": "Saknas: {issues}",
     "storyArcs": "Serieberättelser",
-    "characters": "Karaktärer"
+    "characters": "Karaktärer",
+    "collectedEditions": "Samlade utgåvor",
+    "collects": "Samlar {range}"
   },
   "book": {
     "issue": "Nummer {number}",
@@ -83,7 +85,8 @@
     "one_shot": "Engångsnummer",
     "special": "Special",
     "graphic_novel": "Grafisk roman",
-    "other": "Övrigt"
+    "other": "Övrigt",
+    "compendium": "Compendium"
   },
   "role": {
     "writer": "Författare",
@@ -208,5 +211,20 @@
     "error": "Det gick inte att uppdatera böckerna",
     "select": "Välj bok",
     "deselect": "Avmarkera bok"
+  },
+  "grouping": {
+    "moveSelected": "Flytta till serie",
+    "moveTitle": "Flytta {count} bok/böcker till serie",
+    "mergeTitle": "Slå samman \"{title}\" med en annan serie",
+    "mergeAction": "Slå samman med…",
+    "targetLabel": "Målserie",
+    "searchPlaceholder": "Sök serie…",
+    "createNew": "Skapa ny serie \"{title}\"",
+    "confirmMove": "Flytta",
+    "confirmMerge": "Slå samman",
+    "cancel": "Avbryt",
+    "moveSuccess": "Flyttade {count} bok/böcker",
+    "mergeSuccess": "Sammanslagen med serie",
+    "error": "Något gick fel"
   }
 }

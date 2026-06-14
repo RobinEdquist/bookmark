@@ -1,7 +1,7 @@
 /**
  * Database seed helpers for E2E tests.
  *
- * Inserts audiobooks/ebooks directly into the test database
+ * Inserts audiobooks/ebooks/comics directly into the test database
  * since there are no create API endpoints for these entities.
  */
 
@@ -28,6 +28,16 @@ export interface SeededAudiobook {
 export interface SeededEbook {
   id: string;
   title: string;
+}
+
+export interface SeededComicSeries {
+  id: string;
+  title: string;
+}
+
+export interface SeededComicBook {
+  id: string;
+  seriesId: string;
 }
 
 /**
@@ -175,6 +185,76 @@ export async function seedEbook(overrides?: {
     );
 
     return { id: ebookId, title };
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * Insert a test comic series into the database.
+ * Returns the series id and title for use in navigation.
+ */
+export async function seedComicSeries(overrides?: {
+  title?: string;
+  folderPath?: string | null;
+}): Promise<SeededComicSeries> {
+  const client = getClient();
+  await client.connect();
+
+  try {
+    const title = overrides?.title ?? 'E2E Test Comic Series';
+    // folderPath must be unique in the DB; use null for virtual/merged series
+    // When provided it must be unique across all series rows.
+    const folderPath =
+      overrides?.folderPath !== undefined
+        ? overrides.folderPath
+        : `e2e/comics/${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+
+    const result = await client.query(
+      `INSERT INTO comic_series (title, folder_path, status)
+       VALUES ($1, $2, 'available')
+       RETURNING id`,
+      [title, folderPath],
+    );
+    const seriesId = result.rows[0].id as string;
+
+    return { id: seriesId, title };
+  } finally {
+    await client.end();
+  }
+}
+
+/**
+ * Insert a test comic book (issue) into the database.
+ * The filePath must be unique; a random suffix is appended automatically.
+ */
+export async function seedComicBook(
+  seriesId: string,
+  overrides?: {
+    number?: string;
+    title?: string;
+  },
+): Promise<SeededComicBook> {
+  const client = getClient();
+  await client.connect();
+
+  try {
+    const number = overrides?.number ?? '1';
+    const title = overrides?.title ?? null;
+    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const filePath = `e2e/comics/issue-${number}-${suffix}.cbz`;
+    const fileName = `issue-${number}-${suffix}.cbz`;
+
+    const result = await client.query(
+      `INSERT INTO comic_books
+         (series_id, number, title, format, file_path, file_name, size_bytes, container, status)
+       VALUES ($1, $2, $3, 'single_issue', $4, $5, 1000000, 'cbz', 'available')
+       RETURNING id`,
+      [seriesId, number, title, filePath, fileName],
+    );
+    const bookId = result.rows[0].id as string;
+
+    return { id: bookId, seriesId };
   } finally {
     await client.end();
   }

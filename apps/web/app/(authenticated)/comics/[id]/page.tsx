@@ -24,6 +24,7 @@ import {
   Trash2,
   Sparkles,
   Edit3,
+  FolderInput,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -40,10 +41,14 @@ import { ChangeComicBookCoverDialog } from "../../../../components/comics/change
 import { DeleteComicBookDialog } from "../../../../components/comics/delete-comic-book-dialog";
 import { ComicBookList, formatDesignation } from "../../../../components/comics/comic-book-list";
 import { BatchEditComicBooksDialog } from "../../../../components/comics/batch-edit-comic-books-dialog";
+import { SeriesPickerDialog } from "../../../../components/comics/series-picker-dialog";
+import { useMoveComicBooks } from "../../../../lib/use-comics";
+import { isCollectedEdition } from "../../../../lib/comic-format";
+import { toast } from "sonner";
 import { useComicvineStatus } from "../../../../lib/use-comicvine";
 import { ComicvineMatchDialog } from "../../../../components/comicvine/comicvine-match-dialog";
 import { ComicvineLinkCard } from "../../../../components/comicvine/comicvine-link-card";
-import type { ComicCreatorRole } from "../../../../lib/use-comics";
+import type { ComicCreatorRole, ComicBookListItem } from "../../../../lib/use-comics";
 
 export default function ComicSeriesDetailPage({
   params,
@@ -74,6 +79,8 @@ export default function ComicSeriesDetailPage({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
   const [batchEditOpen, setBatchEditOpen] = useState(false);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const moveBooks = useMoveComicBooks();
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -107,6 +114,16 @@ export default function ComicSeriesDetailPage({
     }
     return map;
   }, [series?.creators]);
+
+  // Split books into regular issues and collected editions
+  const { issueBooks, collectedEditions } = useMemo(() => {
+    const issues: ComicBookListItem[] = [];
+    const editions: ComicBookListItem[] = [];
+    for (const b of series?.books ?? []) {
+      (isCollectedEdition(b.format) ? editions : issues).push(b);
+    }
+    return { issueBooks: issues, collectedEditions: editions };
+  }, [series?.books]);
 
   const toggleBookSelect = (bookId: string) => {
     setSelectedBookIds((prev) => {
@@ -538,6 +555,12 @@ export default function ComicSeriesDetailPage({
                   {t("batchEdit.editSelected", { count: selectedBookIds.size })}
                 </Button>
               )}
+              {selectionMode && selectedBookIds.size > 0 && (
+                <Button size="sm" variant="outline" onClick={() => setMoveOpen(true)}>
+                  <FolderInput className="mr-1 h-4 w-4" />
+                  {t("grouping.moveSelected")}
+                </Button>
+              )}
               {selectionMode && (
                 <span className="text-sm text-muted-foreground">
                   {t("batchEdit.selectedCount", { count: selectedBookIds.size })}
@@ -545,16 +568,45 @@ export default function ComicSeriesDetailPage({
               )}
             </div>
           )}
-          <ComicBookList
-            books={series.books}
-            seriesId={id}
-            onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
-            onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
-            onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
-            selectionMode={selectionMode}
-            selectedIds={selectedBookIds}
-            onToggleSelect={toggleBookSelect}
-          />
+          {issueBooks.length > 0 && (
+            <section className="mb-8">
+              <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                {t("detail.issues")}
+              </h3>
+              <ComicBookList
+                books={issueBooks}
+                seriesId={id}
+                onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
+                onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
+                onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
+                selectionMode={selectionMode}
+                selectedIds={selectedBookIds}
+                onToggleSelect={toggleBookSelect}
+              />
+            </section>
+          )}
+          {collectedEditions.length > 0 && (
+            <section>
+              <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                {t("detail.collectedEditions")}
+              </h3>
+              <ComicBookList
+                books={collectedEditions}
+                seriesId={id}
+                onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
+                onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
+                onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
+                selectionMode={selectionMode}
+                selectedIds={selectedBookIds}
+                onToggleSelect={toggleBookSelect}
+              />
+            </section>
+          )}
+          {issueBooks.length === 0 && collectedEditions.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              {t("detail.noBooks")}
+            </p>
+          )}
         </div>
       </div>
 
@@ -646,6 +698,31 @@ export default function ComicSeriesDetailPage({
           onSuccess={() => {
             setSelectionMode(false);
             setSelectedBookIds(new Set());
+          }}
+        />
+      )}
+
+      {canEdit && (
+        <SeriesPickerDialog
+          open={moveOpen}
+          onOpenChange={setMoveOpen}
+          title={t("grouping.moveTitle", { count: selectedBookIds.size })}
+          confirmLabel={t("grouping.confirmMove")}
+          excludeIds={[id]}
+          pending={moveBooks.isPending}
+          onPick={async (targetSeriesId) => {
+            try {
+              const res = await moveBooks.mutateAsync({
+                bookIds: Array.from(selectedBookIds),
+                targetSeriesId,
+              });
+              toast.success(t("grouping.moveSuccess", { count: res.moved }));
+              setMoveOpen(false);
+              setSelectionMode(false);
+              setSelectedBookIds(new Set());
+            } catch {
+              toast.error(t("grouping.error"));
+            }
           }}
         />
       )}

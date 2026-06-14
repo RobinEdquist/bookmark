@@ -13,6 +13,7 @@ import {
   ImageIcon,
   Download,
   ListPlus,
+  GitMerge,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -22,11 +23,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
-import type { ComicSeriesListItem } from "../../lib/use-comics";
+import { useMergeComicSeries, type ComicSeriesListItem } from "../../lib/use-comics";
 import { useMyPermissions } from "../../lib/use-users";
+import { toast } from "sonner";
 import { DeleteComicSeriesDialog } from "./delete-comic-series-dialog";
 import { ChangeComicSeriesCoverDialog } from "./change-comic-series-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
+import { SeriesPickerDialog } from "./series-picker-dialog";
 
 interface ComicSeriesCardProps {
   series: ComicSeriesListItem;
@@ -42,6 +45,8 @@ export function ComicSeriesCard({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [addToListOpen, setAddToListOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
+  const mergeSeries = useMergeComicSeries();
   const { data: permissions } = useMyPermissions();
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -162,6 +167,12 @@ export function ComicSeriesCard({
                   </>
                 )}
                 {canEdit && (
+                  <DropdownMenuItem onClick={() => setMergeOpen(true)}>
+                    <GitMerge className="h-4 w-4" />
+                    {t("grouping.mergeAction")}
+                  </DropdownMenuItem>
+                )}
+                {canEdit && (
                   <DropdownMenuItem onClick={() => setChangeCoverOpen(true)}>
                     <ImageIcon className="h-4 w-4" />
                     {t("card.changeCover")}
@@ -212,6 +223,29 @@ export function ComicSeriesCard({
         open={addToListOpen}
         onOpenChange={setAddToListOpen}
       />
+
+      {canEdit && (
+        <SeriesPickerDialog
+          open={mergeOpen}
+          onOpenChange={setMergeOpen}
+          title={t("grouping.mergeTitle", { title: series.title })}
+          confirmLabel={t("grouping.confirmMerge")}
+          excludeIds={[series.id]}
+          pending={mergeSeries.isPending}
+          onPick={async (targetSeriesId) => {
+            try {
+              await mergeSeries.mutateAsync({
+                sourceSeriesIds: [series.id],
+                targetSeriesId,
+              });
+              toast.success(t("grouping.mergeSuccess"));
+              setMergeOpen(false);
+            } catch {
+              toast.error(t("grouping.error"));
+            }
+          }}
+        />
+      )}
     </>
   );
 }

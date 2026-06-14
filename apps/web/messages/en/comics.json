@@ -50,7 +50,9 @@
     "noBooks": "No books in this series",
     "missingIssues": "Missing: {issues}",
     "storyArcs": "Story Arcs",
-    "characters": "Characters"
+    "characters": "Characters",
+    "collectedEditions": "Collected Editions",
+    "collects": "Collects {range}"
   },
   "book": {
     "issue": "Issue {number}",
@@ -83,7 +85,8 @@
     "one_shot": "One-shot",
     "special": "Special",
     "graphic_novel": "Graphic Novel",
-    "other": "Other"
+    "other": "Other",
+    "compendium": "Compendium"
   },
   "role": {
     "writer": "Writer",
@@ -208,5 +211,20 @@
     "error": "Failed to update books",
     "select": "Select book",
     "deselect": "Deselect book"
+  },
+  "grouping": {
+    "moveSelected": "Move to series",
+    "moveTitle": "Move {count} book(s) to series",
+    "mergeTitle": "Merge \"{title}\" into another series",
+    "mergeAction": "Merge into…",
+    "targetLabel": "Target series",
+    "searchPlaceholder": "Search series…",
+    "createNew": "Create new series \"{title}\"",
+    "confirmMove": "Move",
+    "confirmMerge": "Merge",
+    "cancel": "Cancel",
+    "moveSuccess": "Moved {count} book(s)",
+    "mergeSuccess": "Merged into series",
+    "error": "Something went wrong"
   }
 }

@@ -424,6 +424,9 @@ export class LibraryScannerService {
       .from(comicsSchema.comicSeries);
 
     for (const series of existingSeries) {
+      // Virtual/merged series have no backing folder; they can't be "missing
+      // on disk", so skip the filesystem existence sweep for them.
+      if (series.folderPath === null) continue;
       const exists = await this.pathExists(
         path.join(libraryPath, series.folderPath),
       );
@@ -455,7 +458,9 @@ export class LibraryScannerService {
 
     const existingBookPaths = new Set(existingBooks.map((b) => b.filePath));
     const existingSeriesPaths = new Set(
-      existingSeries.map((s) => s.folderPath),
+      existingSeries
+        .map((s) => s.folderPath)
+        .filter((p): p is string => p !== null),
     );
 
     const detectedUnits =

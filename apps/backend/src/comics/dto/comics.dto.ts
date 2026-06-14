@@ -155,6 +155,7 @@ export class UpdateComicBookDto {
     'annual',
     'tpb',
     'omnibus',
+    'compendium',
     'one_shot',
     'special',
     'graphic_novel',
@@ -165,6 +166,7 @@ export class UpdateComicBookDto {
     | 'annual'
     | 'tpb'
     | 'omnibus'
+    | 'compendium'
     | 'one_shot'
     | 'special'
     | 'graphic_novel'
@@ -203,6 +205,7 @@ export class BatchBookDataDto {
     'annual',
     'tpb',
     'omnibus',
+    'compendium',
     'one_shot',
     'special',
     'graphic_novel',
@@ -213,6 +216,7 @@ export class BatchBookDataDto {
     | 'annual'
     | 'tpb'
     | 'omnibus'
+    | 'compendium'
     | 'one_shot'
     | 'special'
     | 'graphic_novel'
@@ -232,4 +236,38 @@ export class BatchUpdateComicBooksDto {
   @ValidateNested()
   @Type(() => BatchBookDataDto)
   data!: BatchBookDataDto;
+}
+
+export class CreateComicSeriesDto {
+  @IsString()
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  publisher?: string | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  startYear?: number | null;
+}
+
+export class MoveComicBooksDto {
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  bookIds!: string[];
+
+  @IsString()
+  targetSeriesId!: string;
+}
+
+export class MergeComicSeriesDto {
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  sourceSeriesIds!: string[];
+
+  @IsString()
+  targetSeriesId!: string;
 }

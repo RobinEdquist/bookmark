@@ -169,6 +169,13 @@
       "when": 1781392675767,
       "tag": "0023_comic_metadata_tags_and_book_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1781439064700,
+      "tag": "0024_add_comic_grouping_and_editions",
+      "breakpoints": true
     }
   ]
 }

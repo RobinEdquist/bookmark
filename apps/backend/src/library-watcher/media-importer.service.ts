@@ -1,7 +1,7 @@
 // apps/backend/src/library-watcher/media-importer.service.ts
 import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -44,6 +44,7 @@ import {
   computeSortNumber,
 } from './utils/comic-filename.utils';
 import { parseMylarSeriesJson } from './utils/mylar-series-json.parser';
+import { selectBooksToImport } from '../comics/comic-grouping.utils';
 import { ParsedComicInfo, ComicCreatorRole } from './utils/comicinfo.parser';
 import { ImageProcessingService } from '../common/image-processing.service';
 import { AppDataService } from '../app-data/app-data.service';
@@ -536,6 +537,39 @@ export class MediaImporterService {
     const relativeFolderPath = path.relative(libraryPath, unit.path);
 
     try {
+      // Determine which of this unit's files still need importing. If a file
+      // already exists as a comic_book (e.g. it was manually moved into another
+      // series), we must NOT create/touch a series for it — that would
+      // resurrect an emptied one-shot as a phantom series.
+      const relPaths = unit.books.map((b) => ({
+        book: b,
+        rel: path.relative(libraryPath, b.path),
+      }));
+
+      if (relPaths.length === 0) return null; // inArray requires a non-empty list
+
+      const existingRows = await this.db
+        .select({ filePath: comicsSchema.comicBooks.filePath })
+        .from(comicsSchema.comicBooks)
+        .where(
+          inArray(
+            comicsSchema.comicBooks.filePath,
+            relPaths.map((r) => r.rel),
+          ),
+        );
+      const existsByPath = new Set(existingRows.map((r) => r.filePath));
+      const toImport = new Set(
+        selectBooksToImport(
+          relPaths.map((r) => r.rel),
+          existsByPath,
+        ),
+      );
+
+      if (toImport.size === 0) {
+        // Nothing new to place; do not create or resurrect a series.
+        return null;
+      }
+
       let [series] = await this.db
         .select()
         .from(comicsSchema.comicSeries)
@@ -548,26 +582,20 @@ export class MediaImporterService {
         isNewSeries = true;
       }
 
-      for (const book of unit.books) {
-        const relativeFilePath = path.relative(libraryPath, book.path);
-        const existing = await this.db
-          .select({ id: comicsSchema.comicBooks.id })
-          .from(comicsSchema.comicBooks)
-          .where(eq(comicsSchema.comicBooks.filePath, relativeFilePath))
-          .limit(1);
-        if (existing.length > 0) continue;
+      for (const { book, rel } of relPaths) {
+        if (!toImport.has(rel)) continue;
 
         if (await this.importErrorsService.isQuarantined(book.path)) {
           this.logger.debug(`[IMPORT] Skipping quarantined path: ${book.path}`);
           continue;
         }
 
-        await this.importComicBook(series.id, book.path, relativeFilePath);
+        await this.importComicBook(series.id, book.path, rel);
       }
 
       if (isNewSeries) {
         this.logger.log(
-          `[IMPORT] Imported comic series "${series.title}" (id=${series.id}, books=${unit.books.length})`,
+          `[IMPORT] Imported comic series "${series.title}" (id=${series.id}, books=${toImport.size})`,
         );
         this.appEvents.comicSeriesCreated(series.id);
         this.wsEvents.comicSeriesCreated(series.id);

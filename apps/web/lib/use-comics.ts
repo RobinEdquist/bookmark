@@ -14,6 +14,7 @@ export type ComicBookFormat =
   | "annual"
   | "tpb"
   | "omnibus"
+  | "compendium"
   | "one_shot"
   | "special"
   | "graphic_novel"
@@ -65,6 +66,7 @@ export interface ComicBookListItem {
   sizeBytes: number;
   container: ComicContainer;
   status: ComicStatus;
+  collects: string | null;
   coverUrl: string | null;
 }
 
@@ -457,6 +459,85 @@ export function useRescanComics() {
     isRescanComicsPending: mutation.isPending,
     rescanComicsError: mutation.error,
   };
+}
+
+async function moveComicBooks(input: {
+  bookIds: string[];
+  targetSeriesId: string;
+}): Promise<{ moved: number; deletedSeriesIds: string[] }> {
+  const response = await fetch("/api/comics/books/move", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to move comic books");
+  }
+  return response.json();
+}
+
+export function useMoveComicBooks() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: moveComicBooks,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comics.all });
+    },
+  });
+}
+
+async function mergeComicSeries(input: {
+  sourceSeriesIds: string[];
+  targetSeriesId: string;
+}): Promise<{ moved: number; deletedSeriesIds: string[] }> {
+  const response = await fetch("/api/comics/series/merge", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to merge comic series");
+  }
+  return response.json();
+}
+
+export function useMergeComicSeries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: mergeComicSeries,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comics.all });
+    },
+  });
+}
+
+async function createComicSeries(input: {
+  title: string;
+  publisher?: string | null;
+  startYear?: number | null;
+}): Promise<{ id: string }> {
+  const response = await fetch("/api/comics/series", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to create comic series");
+  }
+  return response.json();
+}
+
+export function useCreateComicSeries() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createComicSeries,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.comics.all });
+    },
+  });
 }
 
 export function useComicPublishers(search?: string) {
