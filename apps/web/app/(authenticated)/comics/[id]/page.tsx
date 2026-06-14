@@ -23,6 +23,7 @@ import {
   Download,
   Trash2,
   Sparkles,
+  Edit3,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -38,6 +39,7 @@ import { EditComicBookDialog } from "../../../../components/comics/edit-comic-bo
 import { ChangeComicBookCoverDialog } from "../../../../components/comics/change-comic-book-cover-dialog";
 import { DeleteComicBookDialog } from "../../../../components/comics/delete-comic-book-dialog";
 import { ComicBookList, formatDesignation } from "../../../../components/comics/comic-book-list";
+import { BatchEditComicBooksDialog } from "../../../../components/comics/batch-edit-comic-books-dialog";
 import { useComicvineStatus } from "../../../../lib/use-comicvine";
 import { ComicvineMatchDialog } from "../../../../components/comicvine/comicvine-match-dialog";
 import { ComicvineLinkCard } from "../../../../components/comicvine/comicvine-link-card";
@@ -67,6 +69,11 @@ export default function ComicSeriesDetailPage({
   const [coverBookId, setCoverBookId] = useState<string | null>(null);
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
   const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+
+  // Batch selection state
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
+  const [batchEditOpen, setBatchEditOpen] = useState(false);
   const descriptionRef = useRef<HTMLDivElement>(null);
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -100,6 +107,15 @@ export default function ComicSeriesDetailPage({
     }
     return map;
   }, [series?.creators]);
+
+  const toggleBookSelect = (bookId: string) => {
+    setSelectedBookIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(bookId)) next.delete(bookId);
+      else next.add(bookId);
+      return next;
+    });
+  };
 
   const handleDownloadSeries = () => {
     window.open(`/api/comics/series/${id}/download`, "_blank");
@@ -399,6 +415,48 @@ export default function ComicSeriesDetailPage({
               </div>
             )}
 
+            {/* Aggregated metadata tag chips: Story Arcs, Characters */}
+            {series.aggregatedTags && (
+              <>
+                {series.aggregatedTags.storyArcs.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t("detail.storyArcs")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {series.aggregatedTags.storyArcs.map((arc) => (
+                        <Link
+                          key={arc}
+                          href={`/comics?metadataTag=${encodeURIComponent(`story_arc:${arc}`)}`}
+                          className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                        >
+                          {arc}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {series.aggregatedTags.characters.length > 0 && (
+                  <div>
+                    <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                      {t("detail.characters")}
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {series.aggregatedTags.characters.map((char) => (
+                        <Link
+                          key={char}
+                          href={`/comics?metadataTag=${encodeURIComponent(`character:${char}`)}`}
+                          className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                        >
+                          {char}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Description — expandable, sanitized HTML (mirrors ebook detail) */}
             {series.description && (
               <div>
@@ -459,12 +517,43 @@ export default function ComicSeriesDetailPage({
 
         {/* Book list with book-level action callbacks */}
         <div className="mt-10">
+          {canEdit && series.books.length > 0 && (
+            <div className="mb-3 flex items-center gap-3">
+              <Button
+                variant={selectionMode ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setSelectionMode((v) => !v);
+                  setSelectedBookIds(new Set());
+                }}
+              >
+                {selectionMode ? t("batchEdit.cancelSelect") : t("batchEdit.selectMode")}
+              </Button>
+              {selectionMode && selectedBookIds.size > 0 && (
+                <Button
+                  size="sm"
+                  onClick={() => setBatchEditOpen(true)}
+                >
+                  <Edit3 className="mr-1 h-4 w-4" />
+                  {t("batchEdit.editSelected", { count: selectedBookIds.size })}
+                </Button>
+              )}
+              {selectionMode && (
+                <span className="text-sm text-muted-foreground">
+                  {t("batchEdit.selectedCount", { count: selectedBookIds.size })}
+                </span>
+              )}
+            </div>
+          )}
           <ComicBookList
             books={series.books}
             seriesId={id}
             onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
             onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
             onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
+            selectionMode={selectionMode}
+            selectedIds={selectedBookIds}
+            onToggleSelect={toggleBookSelect}
           />
         </div>
       </div>
@@ -539,6 +628,25 @@ export default function ComicSeriesDetailPage({
           })()}
           open={true}
           onOpenChange={(open) => { if (!open) setDeleteBookId(null); }}
+        />
+      )}
+
+      {canEdit && (
+        <BatchEditComicBooksDialog
+          open={batchEditOpen}
+          onOpenChange={(open) => {
+            setBatchEditOpen(open);
+            if (!open) {
+              setSelectionMode(false);
+              setSelectedBookIds(new Set());
+            }
+          }}
+          selectedIds={Array.from(selectedBookIds)}
+          seriesId={id}
+          onSuccess={() => {
+            setSelectionMode(false);
+            setSelectedBookIds(new Set());
+          }}
         />
       )}
     </main>

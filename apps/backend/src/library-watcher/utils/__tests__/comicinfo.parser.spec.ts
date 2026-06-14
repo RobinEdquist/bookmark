@@ -101,4 +101,66 @@ describe('parseComicInfoXml', () => {
     expect(info!.volume).toBe(2012);
     expect(info!.volumeIsYear).toBe(true);
   });
+
+  describe('story arcs, characters, teams, locations, web', () => {
+    const ARCS_XML = `<?xml version="1.0" encoding="utf-8"?>
+<ComicInfo>
+  <Series>Amazing Spider-Man</Series>
+  <StoryArc>Civil War, Aftermath</StoryArc>
+  <StoryArcNumber>1, 2</StoryArcNumber>
+  <Characters>Iron Man, Captain America</Characters>
+  <Teams>Avengers</Teams>
+  <Locations>New York</Locations>
+  <Web>https://comicvine.example/issue/1</Web>
+</ComicInfo>`;
+
+    it('parses story arcs with arc numbers', () => {
+      const info = parseComicInfoXml(ARCS_XML);
+      expect(info).not.toBeNull();
+      expect(info!.storyArcs).toEqual([
+        { name: 'Civil War', number: 1 },
+        { name: 'Aftermath', number: 2 },
+      ]);
+    });
+
+    it('parses characters', () => {
+      const info = parseComicInfoXml(ARCS_XML);
+      expect(info!.characters).toEqual(['Iron Man', 'Captain America']);
+    });
+
+    it('parses teams', () => {
+      const info = parseComicInfoXml(ARCS_XML);
+      expect(info!.teams).toEqual(['Avengers']);
+    });
+
+    it('parses locations', () => {
+      const info = parseComicInfoXml(ARCS_XML);
+      expect(info!.locations).toEqual(['New York']);
+    });
+
+    it('parses the web link', () => {
+      const info = parseComicInfoXml(ARCS_XML);
+      expect(info!.web).toBe('https://comicvine.example/issue/1');
+    });
+
+    it('returns empty arrays and null web when none of the fields are present', () => {
+      const info = parseComicInfoXml(
+        '<ComicInfo><Series>X</Series></ComicInfo>',
+      );
+      expect(info).not.toBeNull();
+      expect(info!.storyArcs).toEqual([]);
+      expect(info!.characters).toEqual([]);
+      expect(info!.teams).toEqual([]);
+      expect(info!.locations).toEqual([]);
+      expect(info!.web).toBeNull();
+    });
+
+    it('parses a single story arc without a StoryArcNumber as number: null', () => {
+      const info = parseComicInfoXml(
+        '<ComicInfo><Series>X</Series><StoryArc>Solo Arc</StoryArc></ComicInfo>',
+      );
+      expect(info).not.toBeNull();
+      expect(info!.storyArcs).toEqual([{ name: 'Solo Arc', number: null }]);
+    });
+  });
 });

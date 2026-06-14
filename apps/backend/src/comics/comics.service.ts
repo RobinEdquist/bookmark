@@ -41,6 +41,7 @@ export interface ComicSeriesFilters {
   search?: string;
   publisher?: string;
   genreId?: string;
+  metadataTag?: string;
   sortBy?: 'title' | 'recentlyAdded' | 'startYear';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
@@ -176,6 +177,7 @@ export class ComicsService {
       search,
       publisher,
       genreId,
+      metadataTag,
       sortBy = 'title',
       sortOrder = 'asc',
       limit = 50,
@@ -204,6 +206,41 @@ export class ComicsService {
             ),
         ),
       );
+    }
+    if (metadataTag) {
+      const idx = metadataTag.indexOf(':');
+      if (idx > 0) {
+        const tagType = metadataTag.slice(0, idx);
+        const tagValue = metadataTag.slice(idx + 1);
+        const validTagTypes = ['story_arc', 'character', 'team', 'location'];
+        if (validTagTypes.includes(tagType)) {
+          conditions.push(
+            exists(
+              this.db
+                .select({ one: sql`1` })
+                .from(schema.comicBookMetadataTags)
+                .innerJoin(
+                  schema.comicBooks,
+                  eq(schema.comicBookMetadataTags.bookId, schema.comicBooks.id),
+                )
+                .where(
+                  and(
+                    eq(schema.comicBooks.seriesId, schema.comicSeries.id),
+                    eq(
+                      schema.comicBookMetadataTags.type,
+                      tagType as
+                        | 'story_arc'
+                        | 'character'
+                        | 'team'
+                        | 'location',
+                    ),
+                    eq(schema.comicBookMetadataTags.value, tagValue),
+                  ),
+                ),
+            ),
+          );
+        }
+      }
     }
     if (userId) {
       conditions.push(
@@ -337,72 +374,89 @@ export class ComicsService {
       .limit(1);
     if (!series) throw new NotFoundException('Comic series not found');
 
-    const [books, genres, tags, creators, volumeRows] = await Promise.all([
-      this.db
-        .select()
-        .from(schema.comicBooks)
-        .where(
-          and(
-            eq(schema.comicBooks.seriesId, id),
-            ne(schema.comicBooks.status, 'hidden'),
+    const [books, genres, tags, creators, volumeRows, seriesTagRows] =
+      await Promise.all([
+        this.db
+          .select()
+          .from(schema.comicBooks)
+          .where(
+            and(
+              eq(schema.comicBooks.seriesId, id),
+              ne(schema.comicBooks.status, 'hidden'),
+            ),
+          )
+          .orderBy(
+            sql`${schema.comicBooks.sortNumber} ASC NULLS LAST`,
+            asc(schema.comicBooks.coverDate),
+            asc(schema.comicBooks.fileName),
           ),
-        )
-        .orderBy(
-          sql`${schema.comicBooks.sortNumber} ASC NULLS LAST`,
-          asc(schema.comicBooks.coverDate),
-          asc(schema.comicBooks.fileName),
-        ),
-      this.db
-        .select({
-          id: audiobooksSchema.genres.id,
-          name: audiobooksSchema.genres.name,
-        })
-        .from(schema.comicSeriesGenres)
-        .innerJoin(
-          audiobooksSchema.genres,
-          eq(schema.comicSeriesGenres.genreId, audiobooksSchema.genres.id),
-        )
-        .where(eq(schema.comicSeriesGenres.seriesId, id)),
-      this.db
-        .select({
-          id: audiobooksSchema.tags.id,
-          name: audiobooksSchema.tags.name,
-        })
-        .from(schema.comicSeriesTags)
-        .innerJoin(
-          audiobooksSchema.tags,
-          eq(schema.comicSeriesTags.tagId, audiobooksSchema.tags.id),
-        )
-        .where(eq(schema.comicSeriesTags.seriesId, id)),
-      this.db
-        .selectDistinct({
-          personId: audiobooksSchema.people.id,
-          name: audiobooksSchema.people.name,
-          role: schema.comicBookCreators.role,
-        })
-        .from(schema.comicBookCreators)
-        .innerJoin(
-          schema.comicBooks,
-          eq(schema.comicBookCreators.bookId, schema.comicBooks.id),
-        )
-        .innerJoin(
-          audiobooksSchema.people,
-          eq(schema.comicBookCreators.personId, audiobooksSchema.people.id),
-        )
-        .where(eq(schema.comicBooks.seriesId, id)),
-      this.db
-        .select({ volume: comicvineSchema.comicvineVolumes })
-        .from(comicvineSchema.comicvineVolumeLinks)
-        .innerJoin(
-          comicvineSchema.comicvineVolumes,
-          eq(
-            comicvineSchema.comicvineVolumeLinks.comicvineVolumeRowId,
-            comicvineSchema.comicvineVolumes.id,
+        this.db
+          .select({
+            id: audiobooksSchema.genres.id,
+            name: audiobooksSchema.genres.name,
+          })
+          .from(schema.comicSeriesGenres)
+          .innerJoin(
+            audiobooksSchema.genres,
+            eq(schema.comicSeriesGenres.genreId, audiobooksSchema.genres.id),
+          )
+          .where(eq(schema.comicSeriesGenres.seriesId, id)),
+        this.db
+          .select({
+            id: audiobooksSchema.tags.id,
+            name: audiobooksSchema.tags.name,
+          })
+          .from(schema.comicSeriesTags)
+          .innerJoin(
+            audiobooksSchema.tags,
+            eq(schema.comicSeriesTags.tagId, audiobooksSchema.tags.id),
+          )
+          .where(eq(schema.comicSeriesTags.seriesId, id)),
+        this.db
+          .selectDistinct({
+            personId: audiobooksSchema.people.id,
+            name: audiobooksSchema.people.name,
+            role: schema.comicBookCreators.role,
+          })
+          .from(schema.comicBookCreators)
+          .innerJoin(
+            schema.comicBooks,
+            eq(schema.comicBookCreators.bookId, schema.comicBooks.id),
+          )
+          .innerJoin(
+            audiobooksSchema.people,
+            eq(schema.comicBookCreators.personId, audiobooksSchema.people.id),
+          )
+          .where(eq(schema.comicBooks.seriesId, id)),
+        this.db
+          .select({ volume: comicvineSchema.comicvineVolumes })
+          .from(comicvineSchema.comicvineVolumeLinks)
+          .innerJoin(
+            comicvineSchema.comicvineVolumes,
+            eq(
+              comicvineSchema.comicvineVolumeLinks.comicvineVolumeRowId,
+              comicvineSchema.comicvineVolumes.id,
+            ),
+          )
+          .where(eq(comicvineSchema.comicvineVolumeLinks.seriesId, id))
+          .limit(1),
+        this.db
+          .selectDistinct({
+            type: schema.comicBookMetadataTags.type,
+            value: schema.comicBookMetadataTags.value,
+          })
+          .from(schema.comicBookMetadataTags)
+          .innerJoin(
+            schema.comicBooks,
+            eq(schema.comicBookMetadataTags.bookId, schema.comicBooks.id),
+          )
+          .where(
+            and(
+              eq(schema.comicBooks.seriesId, id),
+              sql`${schema.comicBookMetadataTags.type} IN ('story_arc', 'character')`,
+            ),
           ),
-        )
-        .where(eq(comicvineSchema.comicvineVolumeLinks.seriesId, id))
-        .limit(1),
-    ]);
+      ]);
 
     const fallbackCovers = new Map<string, string>();
     const firstWithCover = books.find((b) => b.coverSource);
@@ -422,8 +476,14 @@ export class ComicsService {
       if (Number.isInteger(n) && n > 0) presentInts.add(n);
     }
     const maxPresent = presentInts.size ? Math.max(...presentInts) : 0;
-    // Expected ceiling: the linked ComicVine volume's issue count, else the highest issue we have.
-    const ceiling = volume?.countOfIssues ?? maxPresent;
+    // Expected ceiling: ComicVine count, then max issueCountFromFile across books, then highest present.
+    const maxIssueCountFromFile = books.reduce<number | null>((acc, b) => {
+      const n = b.issueCountFromFile;
+      if (n == null) return acc;
+      return acc == null ? n : Math.max(acc, n);
+    }, null);
+    const ceiling =
+      volume?.countOfIssues ?? maxIssueCountFromFile ?? maxPresent;
     const missingIssues: string[] = [];
     for (let i = 1; i <= ceiling; i++) {
       if (!presentInts.has(i)) missingIssues.push(String(i));
@@ -493,6 +553,14 @@ export class ComicsService {
         imageUrl: volume?.imageUrl ?? null,
       },
       missingIssues,
+      aggregatedTags: {
+        storyArcs: seriesTagRows
+          .filter((t) => t.type === 'story_arc')
+          .map((t) => t.value),
+        characters: seriesTagRows
+          .filter((t) => t.type === 'character')
+          .map((t) => t.value),
+      },
       createdAt: series.createdAt,
       updatedAt: series.updatedAt,
     };
@@ -531,7 +599,7 @@ export class ComicsService {
       .limit(1);
     if (!book) throw new NotFoundException('Comic book not found');
 
-    const [[series], creators, issueRows] = await Promise.all([
+    const [[series], creators, issueRows, tagRows] = await Promise.all([
       this.db
         .select({
           id: schema.comicSeries.id,
@@ -569,12 +637,32 @@ export class ComicsService {
         )
         .where(eq(comicvineSchema.comicvineIssueLinks.bookId, id))
         .limit(1),
+      this.db
+        .select({
+          type: schema.comicBookMetadataTags.type,
+          value: schema.comicBookMetadataTags.value,
+        })
+        .from(schema.comicBookMetadataTags)
+        .where(eq(schema.comicBookMetadataTags.bookId, id)),
     ]);
 
     const issue = issueRows[0]?.issue ?? null;
     const comicPriority =
       await this.appSettingsService.getComicMetadataPriority();
     const mf = book.manualFields ?? [];
+
+    const metadataTags = {
+      storyArcs: tagRows
+        .filter((t) => t.type === 'story_arc')
+        .map((t) => t.value),
+      characters: tagRows
+        .filter((t) => t.type === 'character')
+        .map((t) => t.value),
+      teams: tagRows.filter((t) => t.type === 'team').map((t) => t.value),
+      locations: tagRows
+        .filter((t) => t.type === 'location')
+        .map((t) => t.value),
+    };
 
     return {
       ...this.toBookListItem(book),
@@ -618,6 +706,10 @@ export class ComicsService {
       storeDate: book.storeDate,
       filePath: book.filePath,
       manualFields: mf,
+      web: book.web,
+      ageRating: book.ageRating,
+      issueCountFromFile: book.issueCountFromFile,
+      metadataTags,
       series,
       creators,
       comicvine: {
@@ -734,6 +826,7 @@ export class ComicsService {
       format?: (typeof schema.comicBooks.$inferSelect)['format'];
       coverDate?: string | null;
       summary?: string | null;
+      ageRating?: string | null;
       creators?: Array<{
         name: string;
         role:
@@ -813,6 +906,33 @@ export class ComicsService {
 
     this.wsEvents.comicBookUpdated(id);
     return { success: true };
+  }
+
+  async updateBooksBatch(
+    ids: string[],
+    data: {
+      format?: (typeof schema.comicBooks.$inferSelect)['format'];
+      ageRating?: string | null;
+    },
+  ): Promise<{ updated: number }> {
+    if (Object.keys(data).length === 0) {
+      return { updated: 0 };
+    }
+    let updated = 0;
+    for (const id of ids) {
+      try {
+        await this.updateBook(id, data);
+        updated++;
+      } catch (err) {
+        if (err instanceof NotFoundException) {
+          // skip missing books
+          this.logger.warn(`Batch update: book ${id} not found, skipping`);
+        } else {
+          throw err;
+        }
+      }
+    }
+    return { updated };
   }
 
   // ===== DELETES =====

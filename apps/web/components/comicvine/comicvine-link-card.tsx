@@ -20,6 +20,7 @@ import {
   useUnlinkSeries,
   useUnlinkBook,
 } from "../../lib/use-comicvine";
+import { safeHttpUrl } from "../../lib/safe-url";
 import { useComicBook, useUpdateComicBook } from "../../lib/use-comics";
 import type { ComicCreatorRole } from "../../lib/use-comics";
 
@@ -160,9 +161,9 @@ function ComicvineSeriesLinkCard({ entityId }: { entityId: string }) {
         </div>
 
         {/* Attribution — required by ComicVine ToS */}
-        {link.siteDetailUrl && (
+        {safeHttpUrl(link.siteDetailUrl) && (
           <a
-            href={link.siteDetailUrl}
+            href={safeHttpUrl(link.siteDetailUrl) ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
@@ -171,7 +172,7 @@ function ComicvineSeriesLinkCard({ entityId }: { entityId: string }) {
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
-        {!link.siteDetailUrl && (
+        {!safeHttpUrl(link.siteDetailUrl) && (
           <p className="text-xs text-muted-foreground">{t("attribution")}</p>
         )}
       </CardContent>
@@ -354,9 +355,9 @@ function ComicvineBookLinkCard({ entityId }: { entityId: string }) {
         )}
 
         {/* Attribution — required by ComicVine ToS */}
-        {link.siteDetailUrl && (
+        {safeHttpUrl(link.siteDetailUrl) && (
           <a
-            href={link.siteDetailUrl}
+            href={safeHttpUrl(link.siteDetailUrl) ?? undefined}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
@@ -365,7 +366,7 @@ function ComicvineBookLinkCard({ entityId }: { entityId: string }) {
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         )}
-        {!link.siteDetailUrl && (
+        {!safeHttpUrl(link.siteDetailUrl) && (
           <p className="text-xs text-muted-foreground">{t("attribution")}</p>
         )}
       </CardContent>

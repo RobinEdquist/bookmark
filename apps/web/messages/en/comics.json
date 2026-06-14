@@ -18,7 +18,9 @@
   "filters": {
     "search": "Search comics...",
     "allPublishers": "All publishers",
-    "allGenres": "All genres"
+    "allGenres": "All genres",
+    "filteredBy": "Filtered by: {value}",
+    "clearFilter": "Clear filter"
   },
   "sort": {
     "title": "Title",
@@ -46,7 +48,9 @@
     "showLess": "Show less",
     "downloadSeries": "Download all",
     "noBooks": "No books in this series",
-    "missingIssues": "Missing: {issues}"
+    "missingIssues": "Missing: {issues}",
+    "storyArcs": "Story Arcs",
+    "characters": "Characters"
   },
   "book": {
     "issue": "Issue {number}",
@@ -63,7 +67,13 @@
     "fileSize": "File size",
     "download": "Download",
     "summary": "Summary",
-    "view": "View"
+    "view": "View",
+    "ageRating": "Age rating",
+    "web": "View on web",
+    "storyArcs": "Story Arcs",
+    "characters": "Characters",
+    "teams": "Teams",
+    "locations": "Locations"
   },
   "format": {
     "single_issue": "Issue",
@@ -184,5 +194,19 @@
       "loadFailed": "Failed to load image from URL",
       "failed": "Failed to update cover"
     }
+  },
+  "batchEdit": {
+    "title": "Edit {count, plural, one {# book} other {# books}}",
+    "selectMode": "Select books",
+    "cancelSelect": "Cancel selection",
+    "editSelected": "Edit {count, plural, one {# selected} other {# selected}}",
+    "selectedCount": "{count, plural, one {# selected} other {# selected}}",
+    "noChange": "No change",
+    "ageRatingPlaceholder": "e.g. T, M, All Ages",
+    "apply": "Apply to {count, plural, one {# book} other {# books}}",
+    "success": "Updated {count, plural, one {# book} other {# books}}",
+    "error": "Failed to update books",
+    "select": "Select book",
+    "deselect": "Deselect book"
   }
 }

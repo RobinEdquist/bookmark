@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { X } from "lucide-react";
 import { ComicSeriesGrid } from "../../../components/comics/comic-series-grid";
 import { useInfiniteComicSeries } from "../../../lib/use-comics";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
@@ -43,6 +45,14 @@ export default function ComicsPage() {
   const searchFromUrl = searchParams.get("search") ?? "";
   const [searchQuery, setSearchQuery] = useState(searchFromUrl);
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
+
+  // Read metadataTag directly from URL (no local state — navigation sets it)
+  const activeMetadataTag = searchParams.get("metadataTag") ?? undefined;
+
+  // Decode the display value: everything after the first colon
+  const activeMetadataTagLabel = activeMetadataTag
+    ? activeMetadataTag.substring(activeMetadataTag.indexOf(":") + 1)
+    : undefined;
 
   // Track if we're the ones updating the URL to avoid circular sync
   const isUpdatingUrl = useRef(false);
@@ -86,6 +96,7 @@ export default function ComicsPage() {
     search: debouncedSearch || undefined,
     sortBy: comicSortBy,
     sortOrder,
+    metadataTag: activeMetadataTag,
   });
 
   // Flatten pages into single array
@@ -96,9 +107,9 @@ export default function ComicsPage() {
 
   // Scroll position restoration
   const pagesLoaded = data?.pages.length ?? 0;
-  const searchParamsKey = `${debouncedSearch ?? ""}-${sortBy}-${sortOrder}`;
+  const searchParamsKey = `${debouncedSearch ?? ""}-${sortBy}-${sortOrder}-${activeMetadataTag ?? ""}`;
 
-  // Clear scroll position when search/sort changes
+  // Clear scroll position when search/sort/filter changes
   const prevSearchParamsKey = useRef(searchParamsKey);
   useEffect(() => {
     if (prevSearchParamsKey.current !== searchParamsKey) {
@@ -151,6 +162,22 @@ export default function ComicsPage() {
         }`}
       >
         <div className="mx-auto max-w-7xl">
+          {/* Active metadata tag filter chip */}
+          {activeMetadataTag && activeMetadataTagLabel && (
+            <div className="mb-4 flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+                {t("filteredBy", { value: activeMetadataTagLabel })}
+                <Link
+                  href="/comics"
+                  aria-label={t("clearFilter")}
+                  className="ml-1 rounded-full p-0.5 hover:bg-primary/20"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Link>
+              </span>
+            </div>
+          )}
+
           <ComicSeriesGrid
             series={series}
             isLoading={showSkeletons}

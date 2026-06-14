@@ -43,6 +43,7 @@ import {
   UpdateComicSeriesDto,
   UpdateComicBookDto,
   UpdateComicCoverDto,
+  BatchUpdateComicBooksDto,
 } from './dto/comics.dto';
 
 @ApiTags('Comics')
@@ -347,6 +348,23 @@ export class ComicsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.comicsService.getBookById(id, user.id);
+  }
+
+  @Patch('books/batch')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({
+    summary: 'Batch update comic book metadata',
+    description:
+      'Update format and/or ageRating for multiple comic books at once. Requires edit metadata permission.',
+  })
+  @ApiResponse({ status: 200, description: 'Batch update result' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires edit metadata permission',
+  })
+  async updateBooksBatch(@Body() dto: BatchUpdateComicBooksDto) {
+    return this.comicsService.updateBooksBatch(dto.ids, dto.data);
   }
 
   @Patch('books/:id')
