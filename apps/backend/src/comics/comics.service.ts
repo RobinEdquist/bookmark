@@ -14,6 +14,7 @@ import {
   eq,
   exists,
   ilike,
+  inArray,
   isNotNull,
   ne,
   notExists,
@@ -36,6 +37,10 @@ import { ImageProcessingService } from '../common/image-processing.service';
 import { computeSortNumber } from '../library-watcher/utils/comic-filename.utils';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
+import {
+  distinctSourceSeriesIds,
+  withSeriesIdManual,
+} from './comic-grouping.utils';
 
 export interface ComicSeriesFilters {
   search?: string;
@@ -580,6 +585,7 @@ export class ComicsService {
       sizeBytes: book.sizeBytes,
       container: book.container,
       status: book.status,
+      collects: book.collects,
       coverUrl: this.coverService.getCoverUrl(
         book.id,
         book.coverUrl,
@@ -985,6 +991,116 @@ export class ComicsService {
     await this.db.delete(schema.comicBooks).where(eq(schema.comicBooks.id, id));
     this.appEvents.comicSeriesUpdated(book.seriesId);
     this.wsEvents.comicSeriesUpdated(book.seriesId);
+  }
+
+  // ===== GROUPING: CREATE / MOVE / MERGE =====
+
+  async createSeries(input: {
+    title: string;
+    publisher?: string | null;
+    startYear?: number | null;
+  }): Promise<{ id: string }> {
+    const [series] = await this.db
+      .insert(schema.comicSeries)
+      .values({
+        title: input.title,
+        publisher: input.publisher ?? null,
+        startYear: input.startYear ?? null,
+        folderPath: null, // virtual series: DB-owned, no backing folder
+        status: 'available',
+      })
+      .returning({ id: schema.comicSeries.id });
+    this.appEvents.comicSeriesCreated(series.id);
+    this.wsEvents.comicSeriesCreated(series.id);
+    return { id: series.id };
+  }
+
+  async moveBooksToSeries(
+    bookIds: string[],
+    targetSeriesId: string,
+  ): Promise<{ moved: number; deletedSeriesIds: string[] }> {
+    const [target] = await this.db
+      .select({ id: schema.comicSeries.id })
+      .from(schema.comicSeries)
+      .where(eq(schema.comicSeries.id, targetSeriesId))
+      .limit(1);
+    if (!target) throw new NotFoundException('Target comic series not found');
+
+    const books = await this.db
+      .select({
+        id: schema.comicBooks.id,
+        seriesId: schema.comicBooks.seriesId,
+        manualFields: schema.comicBooks.manualFields,
+      })
+      .from(schema.comicBooks)
+      .where(inArray(schema.comicBooks.id, bookIds));
+
+    const sourceSeriesIds = distinctSourceSeriesIds(books, targetSeriesId);
+    let moved = 0;
+    for (const book of books) {
+      if (book.seriesId === targetSeriesId) continue;
+      await this.db
+        .update(schema.comicBooks)
+        .set({
+          seriesId: targetSeriesId,
+          manualFields: withSeriesIdManual(book.manualFields),
+        })
+        .where(eq(schema.comicBooks.id, book.id));
+      this.wsEvents.comicBookUpdated(book.id);
+      moved++;
+    }
+
+    const deletedSeriesIds: string[] = [];
+    for (const sourceId of sourceSeriesIds) {
+      if (await this.deleteSeriesIfEmpty(sourceId)) {
+        deletedSeriesIds.push(sourceId);
+      } else {
+        this.appEvents.comicSeriesUpdated(sourceId);
+        this.wsEvents.comicSeriesUpdated(sourceId);
+      }
+    }
+
+    this.appEvents.comicSeriesUpdated(targetSeriesId);
+    this.wsEvents.comicSeriesUpdated(targetSeriesId);
+    return { moved, deletedSeriesIds };
+  }
+
+  async mergeSeries(
+    sourceSeriesIds: string[],
+    targetSeriesId: string,
+  ): Promise<{ moved: number; deletedSeriesIds: string[] }> {
+    const sources = sourceSeriesIds.filter((id) => id !== targetSeriesId);
+    const bookRows = await this.db
+      .select({ id: schema.comicBooks.id })
+      .from(schema.comicBooks)
+      .where(inArray(schema.comicBooks.seriesId, sources));
+    const result = await this.moveBooksToSeries(
+      bookRows.map((b) => b.id),
+      targetSeriesId,
+    );
+    // Delete any source that is now empty even if it had zero books to move.
+    const deleted = new Set(result.deletedSeriesIds);
+    for (const sourceId of sources) {
+      if (!deleted.has(sourceId) && (await this.deleteSeriesIfEmpty(sourceId))) {
+        deleted.add(sourceId);
+      }
+    }
+    return { moved: result.moved, deletedSeriesIds: [...deleted] };
+  }
+
+  /** Delete a series row if it has no books left. Returns true if deleted. */
+  private async deleteSeriesIfEmpty(seriesId: string): Promise<boolean> {
+    const [{ count: bookCount }] = await this.db
+      .select({ count: sql<number>`count(*)` })
+      .from(schema.comicBooks)
+      .where(eq(schema.comicBooks.seriesId, seriesId));
+    if (Number(bookCount) > 0) return false;
+    await this.db
+      .delete(schema.comicSeries)
+      .where(eq(schema.comicSeries.id, seriesId));
+    this.appEvents.comicSeriesDeleted(seriesId);
+    this.wsEvents.comicSeriesDeleted(seriesId);
+    return true;
   }
 
   // ===== FILTER SOURCES =====
