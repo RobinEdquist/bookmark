@@ -225,6 +225,14 @@ function BookRow({
               .filter(Boolean)
               .join(" · ")}
           </p>
+
+          {/* File name — makes it clear which file backs this entry */}
+          <p
+            className="truncate font-mono text-xs text-muted-foreground/80"
+            title={book.fileName}
+          >
+            {t("detail.fileName", { name: book.fileName })}
+          </p>
         </div>
       </Link>
 

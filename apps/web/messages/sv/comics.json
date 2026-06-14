@@ -53,6 +53,7 @@
     "collectedEditions": "Samlade utgåvor",
     "collects": "Samlar {range}",
     "collectsLabel": "Samlar",
+    "fileName": "Fil: {name}",
     "gaps": "Luckor i din samling: {issues}",
     "publishedTail": "Utgivna hittills: {total}. Saknas i biblioteket: {issues}"
   },

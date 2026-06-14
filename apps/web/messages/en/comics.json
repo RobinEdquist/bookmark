@@ -53,6 +53,7 @@
     "collectedEditions": "Collected Editions",
     "collects": "Collects {range}",
     "collectsLabel": "Collects",
+    "fileName": "File: {name}",
     "gaps": "Gaps in your collection: {issues}",
     "publishedTail": "Published so far: {total}. Not in your library: {issues}"
   },
