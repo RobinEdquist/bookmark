@@ -85,5 +85,5 @@ export function computeIssueCoverage(
     }
   }
 
-  return { gaps, publishedTotal: publishedTotal ?? null, unownedPublished };
+  return { gaps, publishedTotal, unownedPublished };
 }

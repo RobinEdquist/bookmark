@@ -100,4 +100,11 @@ describe('computeIssueCoverage', () => {
     expect(r.gaps).toEqual(['2', '4']);
     expect(r.unownedPublished).toEqual(['6', '7']);
   });
+
+  it('owns nothing but ComicVine count present: whole run is the published tail', () => {
+    const r = computeIssueCoverage([], 5);
+    expect(r.gaps).toEqual([]);
+    expect(r.publishedTotal).toBe(5);
+    expect(r.unownedPublished).toEqual(['1', '2', '3', '4', '5']);
+  });
 });
