@@ -23,9 +23,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
-import type { ComicSeriesListItem } from "../../lib/use-comics";
+import { useMergeComicSeries, type ComicSeriesListItem } from "../../lib/use-comics";
 import { useMyPermissions } from "../../lib/use-users";
-import { useMergeComicSeries } from "../../lib/use-comics";
 import { toast } from "sonner";
 import { DeleteComicSeriesDialog } from "./delete-comic-series-dialog";
 import { ChangeComicSeriesCoverDialog } from "./change-comic-series-cover-dialog";
