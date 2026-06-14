@@ -297,3 +297,67 @@ export const comicBookMetadataTagsRelations = relations(
     }),
   }),
 );
+
+export const comicCollections = pgTable(
+  'comic_collections',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    sortName: text('sort_name'),
+    description: text('description'),
+    coverUrl: text('cover_url'),
+    coverSource: coverSourceEnum('cover_source'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('comic_collections_name_idx').on(table.name),
+    index('comic_collections_sort_name_idx').on(table.sortName),
+    index('comic_collections_created_at_idx').on(table.createdAt),
+  ],
+);
+
+export const comicCollectionSeries = pgTable(
+  'comic_collection_series',
+  {
+    collectionId: uuid('collection_id')
+      .notNull()
+      .references(() => comicCollections.id, { onDelete: 'cascade' }),
+    seriesId: uuid('series_id')
+      .notNull()
+      .references(() => comicSeries.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.collectionId, table.seriesId] }),
+    index('comic_collection_series_collection_position_idx').on(
+      table.collectionId,
+      table.position,
+    ),
+    index('comic_collection_series_series_id_idx').on(table.seriesId),
+  ],
+);
+
+export const comicCollectionsRelations = relations(
+  comicCollections,
+  ({ many }) => ({
+    series: many(comicCollectionSeries),
+  }),
+);
+
+export const comicCollectionSeriesRelations = relations(
+  comicCollectionSeries,
+  ({ one }) => ({
+    collection: one(comicCollections, {
+      fields: [comicCollectionSeries.collectionId],
+      references: [comicCollections.id],
+    }),
+    series: one(comicSeries, {
+      fields: [comicCollectionSeries.seriesId],
+      references: [comicSeries.id],
+    }),
+  }),
+);
