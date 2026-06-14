@@ -14,6 +14,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
+import { IsIssueList } from './is-issue-list.validator';
 
 export class ListComicSeriesQueryDto {
   @ApiPropertyOptional({ description: 'Search in title' })
@@ -182,7 +183,7 @@ export class UpdateComicBookDto {
   summary?: string | null;
 
   @IsOptional()
-  @IsString()
+  @IsIssueList()
   collects?: string | null;
 
   @IsOptional()

@@ -65,6 +65,24 @@ describe('UpdateComicBookDto collects', () => {
   });
 });
 
+describe('UpdateComicBookDto collects validation', () => {
+  it('accepts a valid issue-list', async () => {
+    const dto = plainToInstance(UpdateComicBookDto, { collects: '1-18, 26, 52, 132' });
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('accepts null and omitted', async () => {
+    expect(await validate(plainToInstance(UpdateComicBookDto, { collects: null }))).toHaveLength(0);
+    expect(await validate(plainToInstance(UpdateComicBookDto, {}))).toHaveLength(0);
+  });
+
+  it('rejects unrecognized tokens', async () => {
+    const dto = plainToInstance(UpdateComicBookDto, { collects: '1-10, E^12' });
+    const errors = await validate(dto);
+    expect(errors.length).toBeGreaterThan(0);
+  });
+});
+
 describe('CreateComicSeriesDto', () => {
   it('passes with a title', async () => {
     const dto = plainToInstance(CreateComicSeriesDto, { title: 'Saga' });
