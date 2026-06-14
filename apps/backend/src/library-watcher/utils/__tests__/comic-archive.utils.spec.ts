@@ -19,10 +19,11 @@ const PNG_1X1 = Buffer.from(
 async function buildCbz(
   filePath: string,
   entries: Array<{ name: string; data: Buffer | string }>,
+  options?: { comment?: string },
 ): Promise<void> {
   await new Promise<void>((resolve, reject) => {
     const output = fsSync.createWriteStream(filePath);
-    const archive = archiver('zip');
+    const archive = archiver('zip', { comment: options?.comment });
     output.on('close', () => resolve());
     archive.on('error', reject);
     archive.pipe(output);
@@ -111,6 +112,31 @@ describe('comic-archive.utils', () => {
       const result = await readComicArchive(cbzPath);
       expect(result.pageCount).toBe(1);
       expect(result.comicInfoXml).toBeNull();
+    });
+
+    it("reads a cbz whose end-of-central-directory is pushed past unzipper's default tail window by a long archive comment", async () => {
+      // Real-world repro: some comic releases embed a ZIP archive comment a few
+      // hundred bytes long. unzipper's Open.file only scans the last 80 bytes
+      // for the EOCD signature by default, so the comment pushes it out of view
+      // and it throws "FILE_ENDED". The comment here (~300 bytes) mirrors the
+      // ~274-byte comment observed on the failing "Saga 070 (2024).cbz".
+      const cbzPath = path.join(tmpDir, 'long-comment.cbz');
+      await buildCbz(
+        cbzPath,
+        [
+          { name: 'p1.jpg', data: PNG_1X1 },
+          {
+            name: 'ComicInfo.xml',
+            data: '<ComicInfo><Series>Saga</Series><Number>70</Number></ComicInfo>',
+          },
+        ],
+        { comment: 'x'.repeat(300) },
+      );
+
+      const result = await readComicArchive(cbzPath);
+      expect(result.pageCount).toBe(1);
+      expect(result.comicInfoXml).toContain('<Series>Saga</Series>');
+      expect(result.coverImage).not.toBeNull();
     });
 
     it('throws on a corrupt archive', async () => {

@@ -65,11 +65,21 @@ export async function readComicArchive(
   return readCbz(filePath, coverIndex);
 }
 
+// Max ZIP archive comment is 65535 bytes (2-byte length field) plus the 22-byte
+// End-Of-Central-Directory record. unzipper's Open.file defaults to scanning
+// only the last 80 bytes for the EOCD signature, so any archive with a comment
+// longer than ~58 bytes throws "FILE_ENDED". Some comic releases embed a few
+// hundred bytes of comment, so we widen the scan window to cover any spec-valid
+// comment.
+const ZIP_EOCD_TAIL_SIZE = 65535 + 22;
+
 async function readCbz(
   filePath: string,
   coverIndex: number,
 ): Promise<ComicArchiveContents> {
-  const directory = await unzipper.Open.file(filePath);
+  const directory = await unzipper.Open.file(filePath, {
+    tailSize: ZIP_EOCD_TAIL_SIZE,
+  });
   const fileEntries = directory.files.filter((f) => f.type === 'File');
 
   const imageNames = naturalSortImageEntries(
