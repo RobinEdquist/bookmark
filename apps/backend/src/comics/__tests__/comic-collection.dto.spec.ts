@@ -9,7 +9,9 @@ import {
 describe('CreateComicCollectionDto', () => {
   it('passes with a name', async () => {
     expect(
-      await validate(plainToInstance(CreateComicCollectionDto, { name: 'Saga' })),
+      await validate(
+        plainToInstance(CreateComicCollectionDto, { name: 'Saga' }),
+      ),
     ).toHaveLength(0);
   });
   it('fails without a name', async () => {
@@ -25,7 +27,9 @@ describe('AddCollectionSeriesDto', () => {
       (await validate(plainToInstance(AddCollectionSeriesDto, {}))).length,
     ).toBeGreaterThan(0);
     expect(
-      await validate(plainToInstance(AddCollectionSeriesDto, { seriesId: 's1' })),
+      await validate(
+        plainToInstance(AddCollectionSeriesDto, { seriesId: 's1' }),
+      ),
     ).toHaveLength(0);
   });
 });
@@ -33,10 +37,16 @@ describe('AddCollectionSeriesDto', () => {
 describe('ReorderCollectionSeriesDto', () => {
   it('requires a non-empty seriesIds array', async () => {
     expect(
-      (await validate(plainToInstance(ReorderCollectionSeriesDto, { seriesIds: [] }))).length,
+      (
+        await validate(
+          plainToInstance(ReorderCollectionSeriesDto, { seriesIds: [] }),
+        )
+      ).length,
     ).toBeGreaterThan(0);
     expect(
-      await validate(plainToInstance(ReorderCollectionSeriesDto, { seriesIds: ['a', 'b'] })),
+      await validate(
+        plainToInstance(ReorderCollectionSeriesDto, { seriesIds: ['a', 'b'] }),
+      ),
     ).toHaveLength(0);
   });
 });

@@ -1,4 +1,7 @@
-import { reorderPositions, resolveCollectionCover } from '../collections.helpers';
+import {
+  reorderPositions,
+  resolveCollectionCover,
+} from '../collections.helpers';
 
 describe('reorderPositions', () => {
   it('maps each id to its array index', () => {
@@ -13,7 +16,10 @@ describe('reorderPositions', () => {
 describe('resolveCollectionCover', () => {
   it('uses the collection own cover when present', () => {
     expect(
-      resolveCollectionCover('/api/comics/collections/c1/cover', '/api/comics/series/s1/cover'),
+      resolveCollectionCover(
+        '/api/comics/collections/c1/cover',
+        '/api/comics/series/s1/cover',
+      ),
     ).toBe('/api/comics/collections/c1/cover');
   });
   it('falls back to the first member cover when own is null', () => {
