@@ -1706,6 +1706,11 @@ describe('ComicsService.findAllSeries — metadata priority resolution', () => {
    *   [2] count query (Promise.all[1])
    *   [3] linked ComicVine volume batch query (post-items Promise.all)
    * db.execute() is called once for fallback covers (returns { rows: [] }).
+   *
+   * NOTE: this positional queue assumes the no-filter path — findAllSeries({})
+   * with no `userId` and no `metadataTag`. Passing either adds WHERE-clause
+   * exists()/blacklist subqueries that consume extra db.select() slots and would
+   * shift these indices. Extend the queue if you add such filters here.
    */
   function buildServiceForResolution({
     seriesRow,
