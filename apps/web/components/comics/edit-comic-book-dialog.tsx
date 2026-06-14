@@ -30,6 +30,7 @@ import {
   type ComicCreatorRole,
 } from "../../lib/use-comics";
 import { isCollectedEdition } from "../../lib/comic-format";
+import { parseCollects, formatIssueList } from "../../lib/comic-issue-list";
 
 const COVER_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -113,6 +114,10 @@ export function EditComicBookDialog({
   const [summary, setSummary] = useState("");
   const [collects, setCollects] = useState("");
   const [creators, setCreators] = useState<CreatorRow[]>([]);
+
+  const collectsParsed = parseCollects(collects);
+  const collectsInvalid =
+    isCollectedEdition(format) && collectsParsed.unrecognized.length > 0;
 
   const [initialState, setInitialState] = useState<InitialFormState | null>(
     null,
@@ -200,6 +205,7 @@ export function EditComicBookDialog({
 
   const handleSave = async (closeAfterSave: boolean) => {
     if (!book || !initialState) return;
+    if (collectsInvalid) return;
 
     // Validate cover date before saving
     if (!validateCoverDate(coverDate)) return;
@@ -371,6 +377,25 @@ export function EditComicBookDialog({
                   placeholder={t("fields.collectsPlaceholder")}
                   disabled={isLoading}
                 />
+                {collects.trim() !== "" &&
+                  collectsParsed.presentInts.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("fields.collectsPreview", {
+                        issues: formatIssueList(collectsParsed.presentInts),
+                        count: collectsParsed.presentInts.length,
+                      })}
+                    </p>
+                  )}
+                {collectsParsed.unrecognized.length > 0 && (
+                  <p className="text-xs text-destructive">
+                    {t("fields.collectsUnrecognized", {
+                      tokens: collectsParsed.unrecognized.join(", "),
+                    })}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {t("fields.collectsHelp")}
+                </p>
               </div>
             )}
 
@@ -452,11 +477,11 @@ export function EditComicBookDialog({
               type="button"
               variant="secondary"
               onClick={() => handleSave(false)}
-              disabled={isLoading}
+              disabled={isLoading || collectsInvalid}
             >
               {isLoading ? t("saving") : t("save")}
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || collectsInvalid}>
               {isLoading ? t("saving") : t("saveAndClose")}
             </Button>
           </DialogFooter>
