@@ -215,11 +215,12 @@ function BookRow({
             </p>
           )}
 
-          {/* Meta row: cover year · file size */}
+          {/* Meta row: cover year · file size · collects */}
           <p className="text-xs text-muted-foreground">
             {[
               coverYear != null ? String(coverYear) : null,
               formatFileSize(book.sizeBytes),
+              book.collects ? t("detail.collects", { range: book.collects }) : null,
             ]
               .filter(Boolean)
               .join(" · ")}
