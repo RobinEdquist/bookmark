@@ -28,6 +28,7 @@ const FORMAT_VALUES: ComicBookFormat[] = [
   "annual",
   "tpb",
   "omnibus",
+  "compendium",
   "one_shot",
   "special",
   "graphic_novel",
