@@ -546,7 +546,7 @@ export class MediaImporterService {
         rel: path.relative(libraryPath, b.path),
       }));
 
-      if (relPaths.length === 0) return null;
+      if (relPaths.length === 0) return null; // inArray requires a non-empty list
 
       const existingRows = await this.db
         .select({ filePath: comicsSchema.comicBooks.filePath })
@@ -595,7 +595,7 @@ export class MediaImporterService {
 
       if (isNewSeries) {
         this.logger.log(
-          `[IMPORT] Imported comic series "${series.title}" (id=${series.id}, books=${unit.books.length})`,
+          `[IMPORT] Imported comic series "${series.title}" (id=${series.id}, books=${toImport.size})`,
         );
         this.appEvents.comicSeriesCreated(series.id);
         this.wsEvents.comicSeriesCreated(series.id);

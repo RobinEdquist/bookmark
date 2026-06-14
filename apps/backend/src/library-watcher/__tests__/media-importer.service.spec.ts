@@ -52,8 +52,15 @@ function createMockDb() {
   // where() must be both chainable (for .where().limit() callers) and
   // directly awaitable (for `await select().from().where(inArray(...))` callers).
   // We accomplish this by making where() return a thenable that also carries
-  // all chain methods.  limit() stays as the primary mock-value control point.
+  // all chain methods.  limit() stays as the primary mock-value control point
+  // for .where().limit() chains; for direct-await where() callers, push values
+  // onto `whereResultQueue` (one-shot, FIFO) to control resolution, otherwise
+  // it resolves to [].
+  const whereResultQueue: unknown[][] = [];
+
   function makeThenableChain(chain: Record<string, jest.Mock>) {
+    // Snapshot the resolution for THIS where() call now (one-shot, FIFO).
+    const resolution = whereResultQueue.length ? whereResultQueue.shift()! : [];
     const thenable = Object.assign(
       jest.fn().mockImplementation(() => {
         // Return another thenable chain so nested .where() calls work too
@@ -61,17 +68,12 @@ function createMockDb() {
       }),
       chain,
       {
-        // Make the result directly awaitable (resolves to [] by default;
-        // tests that need a specific value should mock limit instead)
-        then: jest.fn().mockImplementation((resolve: (v: unknown[]) => void) =>
-          Promise.resolve([]).then(resolve),
-        ),
-        catch: jest.fn().mockImplementation((reject: (e: unknown) => unknown) =>
-          Promise.resolve([]).catch(reject),
-        ),
-        finally: jest.fn().mockImplementation((cb: () => void) =>
-          Promise.resolve([]).finally(cb),
-        ),
+        // Make the result directly awaitable.
+        then: jest
+          .fn()
+          .mockImplementation((resolve: (v: unknown[]) => void) =>
+            Promise.resolve(resolution).then(resolve),
+          ),
       },
     );
     return thenable;
@@ -85,9 +87,9 @@ function createMockDb() {
     where: jest.fn(), // placeholder; real impl set below
   };
   // Replace where with a thenable-chain factory
-  mockSelectChain.where = jest.fn().mockImplementation(() =>
-    makeThenableChain(mockSelectChain),
-  );
+  mockSelectChain.where = jest
+    .fn()
+    .mockImplementation(() => makeThenableChain(mockSelectChain));
   const mockInsertChain = {
     values: jest.fn().mockReturnThis(),
     returning: jest.fn().mockResolvedValue([{ id: 'new-id', title: 'Test' }]),
@@ -107,6 +109,11 @@ function createMockDb() {
     insert: jest.fn().mockReturnValue(mockInsertChain),
     update: jest.fn().mockReturnValue(mockUpdateChain),
     delete: jest.fn().mockReturnValue(mockDeleteChain),
+    // Queue a one-shot resolution for the next direct-await where() call
+    // (e.g. `await select().from().where(inArray(...))`). FIFO.
+    _queueWhereResult: (rows: unknown[]) => {
+      whereResultQueue.push(rows);
+    },
     _chains: {
       select: mockSelectChain,
       insert: mockInsertChain,
@@ -1449,6 +1456,72 @@ describe('MediaImporterService', () => {
       // title must NOT be null — it should fall back to the parsed series title
       expect(bookValues.title).not.toBeNull();
       expect(bookValues.title).toBe('Saga');
+    });
+
+    it('returns null and creates no series when all books already exist (phantom prevention)', async () => {
+      const unit = makeComicSeriesUnit();
+      // The upfront inArray query (direct-await where) must report that every
+      // file in the unit already exists as a comic_book. Rel paths are
+      // computed against libraryPath '/library/comics'.
+      const allRelPaths = unit.books.map((b) => ({
+        filePath: b.path.replace('/library/comics/', ''),
+      }));
+      db._queueWhereResult(allRelPaths);
+
+      const result = await service.importComicSeriesUnit(
+        unit,
+        '/library/comics',
+      );
+
+      expect(result).toBeNull();
+      // No series lookup/creation and no book import should have happened.
+      expect(db.insert).not.toHaveBeenCalled();
+      expect(deps.appEvents.comicSeriesCreated).not.toHaveBeenCalled();
+      expect(deps.appEvents.comicSeriesUpdated).not.toHaveBeenCalled();
+    });
+
+    it('imports only the new book when one of two books already exists', async () => {
+      const unit = makeComicSeriesUnit({
+        books: [
+          {
+            path: '/library/comics/Saga (2012)/Saga Vol.2012 #51 (April 2018).cbz',
+            fileName: 'Saga Vol.2012 #51 (April 2018).cbz',
+          },
+          {
+            path: '/library/comics/Saga (2012)/Saga Vol.2012 #52 (May 2018).cbz',
+            fileName: 'Saga Vol.2012 #52 (May 2018).cbz',
+          },
+        ],
+      });
+      // Only #51 already exists; #52 is new.
+      db._queueWhereResult([
+        {
+          filePath: unit.books[0]!.path.replace('/library/comics/', ''),
+        },
+      ]);
+      // No existing series; createComicSeries returns the default mock series.
+      db._chains.select.limit.mockResolvedValue([]);
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValue({
+        comicInfo: null,
+        pageCount: 0,
+        cover: null,
+      });
+
+      const result = await service.importComicSeriesUnit(
+        unit,
+        '/library/comics',
+      );
+
+      expect(result).not.toBeNull();
+      // Exactly one comic-book insert (the new #52); the series insert also
+      // carries no `seriesId`, so we filter to book inserts only.
+      const bookInsertCalls = db._chains.insert.values.mock.calls.filter(
+        (call: any[]) =>
+          call[0] && typeof call[0] === 'object' && 'seriesId' in call[0],
+      );
+      expect(bookInsertCalls).toHaveLength(1);
+      const bookValues = bookInsertCalls[0]![0] as Record<string, unknown>;
+      expect(bookValues.number).toBe('52');
     });
   });
 });
