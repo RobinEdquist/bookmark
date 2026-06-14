@@ -1213,10 +1213,16 @@ describe('MediaImporterService', () => {
       const tagsInsertCall = db._chains.insert.values.mock.calls.find(
         (call: any[]) =>
           Array.isArray(call[0]) &&
-          (call[0] as any[]).some((r: any) => r.bookId !== undefined && r.type !== undefined),
+          (call[0] as any[]).some(
+            (r: any) => r.bookId !== undefined && r.type !== undefined,
+          ),
       );
       expect(tagsInsertCall).toBeDefined();
-      const tagRows = tagsInsertCall![0] as Array<{ bookId: string; type: string; value: string }>;
+      const tagRows = tagsInsertCall![0] as Array<{
+        bookId: string;
+        type: string;
+        value: string;
+      }>;
       expect(tagRows).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ type: 'story_arc', value: 'Civil War' }),
@@ -1289,70 +1295,76 @@ describe('MediaImporterService', () => {
     });
   });
 
-    it('inserts metadata tags and scalar fields during comic-book import', async () => {
-      // No existing series or book
-      db._chains.select.limit.mockResolvedValue([]);
+  it('inserts metadata tags and scalar fields during comic-book import', async () => {
+    // No existing series or book
+    db._chains.select.limit.mockResolvedValue([]);
 
-      deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
-        comicInfo: {
-          storyArcs: [{ name: 'Civil War', number: 1 }],
-          characters: ['Iron Man'],
-          teams: [],
-          locations: [],
-          web: 'http://x',
-          languageIso: 'en',
-          ageRating: 'Teen',
-          count: 50,
-        } as any,
-        pageCount: 22,
-        cover: null,
-      });
-
-      // importComicBook is private; call via importComicSeriesUnit
-      await service.importComicSeriesUnit(
-        {
-          path: '/library/comics/Civil War (2006)',
-          folderName: 'Civil War (2006)',
-          isRootOneShot: false,
-          books: [
-            {
-              path: '/library/comics/Civil War (2006)/Civil War #1.cbz',
-              fileName: 'Civil War #1.cbz',
-            },
-          ],
-        },
-        '/library/comics',
-      );
-
-      // (a) The comicBooks insert should include the scalar fields
-      const bookInsertCall = db._chains.insert.values.mock.calls.find(
-        (call: any[]) =>
-          call[0] && typeof call[0] === 'object' && 'seriesId' in call[0],
-      );
-      expect(bookInsertCall).toBeDefined();
-      const bookValues = bookInsertCall![0] as Record<string, unknown>;
-      expect(bookValues.web).toBe('http://x');
-      expect(bookValues.issueCountFromFile).toBe(50);
-      expect(bookValues.language).toBe('en');
-      expect(bookValues.ageRating).toBe('Teen');
-
-      // (b) The metadata-tags insert should contain the story-arc and character rows
-      const tagsInsertCall = db._chains.insert.values.mock.calls.find(
-        (call: any[]) =>
-          Array.isArray(call[0]) &&
-          (call[0] as any[]).some((r: any) => r.bookId !== undefined && r.type !== undefined),
-      );
-      expect(tagsInsertCall).toBeDefined();
-      const tagRows = tagsInsertCall![0] as Array<{ bookId: string; type: string; value: string }>;
-      expect(tagRows).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ type: 'story_arc', value: 'Civil War' }),
-          expect.objectContaining({ type: 'character', value: 'Iron Man' }),
-        ]),
-      );
-      // onConflictDoNothing should have been called for the tags insert
-      expect(db._chains.insert.onConflictDoNothing).toHaveBeenCalled();
+    deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
+      comicInfo: {
+        storyArcs: [{ name: 'Civil War', number: 1 }],
+        characters: ['Iron Man'],
+        teams: [],
+        locations: [],
+        web: 'http://x',
+        languageIso: 'en',
+        ageRating: 'Teen',
+        count: 50,
+      } as any,
+      pageCount: 22,
+      cover: null,
     });
+
+    // importComicBook is private; call via importComicSeriesUnit
+    await service.importComicSeriesUnit(
+      {
+        path: '/library/comics/Civil War (2006)',
+        folderName: 'Civil War (2006)',
+        isRootOneShot: false,
+        books: [
+          {
+            path: '/library/comics/Civil War (2006)/Civil War #1.cbz',
+            fileName: 'Civil War #1.cbz',
+          },
+        ],
+      },
+      '/library/comics',
+    );
+
+    // (a) The comicBooks insert should include the scalar fields
+    const bookInsertCall = db._chains.insert.values.mock.calls.find(
+      (call: any[]) =>
+        call[0] && typeof call[0] === 'object' && 'seriesId' in call[0],
+    );
+    expect(bookInsertCall).toBeDefined();
+    const bookValues = bookInsertCall![0] as Record<string, unknown>;
+    expect(bookValues.web).toBe('http://x');
+    expect(bookValues.issueCountFromFile).toBe(50);
+    expect(bookValues.language).toBe('en');
+    expect(bookValues.ageRating).toBe('Teen');
+
+    // (b) The metadata-tags insert should contain the story-arc and character rows
+    const tagsInsertCall = db._chains.insert.values.mock.calls.find(
+      (call: any[]) =>
+        Array.isArray(call[0]) &&
+        (call[0] as any[]).some(
+          (r: any) => r.bookId !== undefined && r.type !== undefined,
+        ),
+    );
+    expect(tagsInsertCall).toBeDefined();
+    const tagRows = tagsInsertCall![0] as Array<{
+      bookId: string;
+      type: string;
+      value: string;
+    }>;
+    expect(tagRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'story_arc', value: 'Civil War' }),
+        expect.objectContaining({ type: 'character', value: 'Iron Man' }),
+      ]),
+    );
+    // onConflictDoNothing should have been called for the tags insert
+    expect(db._chains.insert.onConflictDoNothing).toHaveBeenCalled();
+  });
 
   // ------------------------------------------------------------------
   // importComicSeriesUnit
