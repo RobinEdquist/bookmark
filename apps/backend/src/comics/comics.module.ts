@@ -9,7 +9,12 @@ import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 @Module({
   imports: [forwardRef(() => LibraryWatcherModule)],
   controllers: [ComicsController],
-  providers: [ComicsService, ComicsCollectionsService, CanEditMetadataGuard, CanDeleteGuard],
+  providers: [
+    ComicsService,
+    ComicsCollectionsService,
+    CanEditMetadataGuard,
+    CanDeleteGuard,
+  ],
   exports: [ComicsService, ComicsCollectionsService],
 })
 export class ComicsModule {}

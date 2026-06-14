@@ -71,6 +71,7 @@ function buildServiceWithBook(bookRow: unknown[] | null) {
     stub, // comicMetadataProvider
     stub, // appEvents
     stub, // wsEvents
+    stub, // collectionsService
   );
   return { service, select };
 }
@@ -478,6 +479,10 @@ function buildServiceForMergeTest({
     comicBookUpdated: jest.fn(),
   } as never;
 
+  const collectionsService = {
+    findForSeries: jest.fn().mockResolvedValue([]),
+  } as never;
+
   const service = new ComicsService(
     db,
     appSettings,
@@ -487,6 +492,7 @@ function buildServiceForMergeTest({
     stub, // comicMetadataProvider
     stub, // appEvents
     wsEvents,
+    collectionsService,
   );
 
   return { service, select, appSettings };
@@ -681,6 +687,10 @@ function buildServiceForMissingIssueTest({
   const stub = {} as never;
   const wsEvents = { comicSeriesUpdated: jest.fn() } as never;
 
+  const collectionsService = {
+    findForSeries: jest.fn().mockResolvedValue([]),
+  } as never;
+
   const service = new ComicsService(
     db,
     appSettings,
@@ -690,6 +700,7 @@ function buildServiceForMissingIssueTest({
     stub,
     stub,
     wsEvents,
+    collectionsService,
   );
   return { service };
 }
@@ -1034,6 +1045,7 @@ describe('ComicsService.updateBook with creators', () => {
       stub, // comicMetadataProvider
       stub, // appEvents
       wsEvents,
+      stub, // collectionsService
     );
 
     return { service, db, deleteMock, insertMock, updateMock, wsEvents };
@@ -1334,6 +1346,7 @@ describe('ComicsService.updateBook — ageRating field', () => {
       stub, // comicMetadataProvider
       stub, // appEvents
       wsEvents,
+      stub, // collectionsService
     );
 
     return { service, updateMock };
@@ -1458,6 +1471,7 @@ describe('ComicsService.updateBooksBatch', () => {
       stub,
       stub,
       wsEvents,
+      stub, // collectionsService
     );
 
     return { service, updateMock, selectMock };
@@ -1580,6 +1594,7 @@ describe('ComicsService.updateBooksBatch', () => {
       stub,
       stub,
       wsEvents,
+      stub, // collectionsService
     );
 
     // 'a' is missing, 'b' is found — should update 1
@@ -1640,6 +1655,7 @@ describe('ComicsService.findAllSeries — metadataTag filter', () => {
       stub, // comicMetadataProvider
       stub, // appEvents
       stub, // wsEvents
+      stub, // collectionsService
     );
     return { service, select };
   }
