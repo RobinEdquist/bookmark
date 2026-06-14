@@ -49,13 +49,45 @@ import {
 // ---- Helper factories ----
 
 function createMockDb() {
-  const mockSelectChain = {
+  // where() must be both chainable (for .where().limit() callers) and
+  // directly awaitable (for `await select().from().where(inArray(...))` callers).
+  // We accomplish this by making where() return a thenable that also carries
+  // all chain methods.  limit() stays as the primary mock-value control point.
+  function makeThenableChain(chain: Record<string, jest.Mock>) {
+    const thenable = Object.assign(
+      jest.fn().mockImplementation(() => {
+        // Return another thenable chain so nested .where() calls work too
+        return makeThenableChain(chain);
+      }),
+      chain,
+      {
+        // Make the result directly awaitable (resolves to [] by default;
+        // tests that need a specific value should mock limit instead)
+        then: jest.fn().mockImplementation((resolve: (v: unknown[]) => void) =>
+          Promise.resolve([]).then(resolve),
+        ),
+        catch: jest.fn().mockImplementation((reject: (e: unknown) => unknown) =>
+          Promise.resolve([]).catch(reject),
+        ),
+        finally: jest.fn().mockImplementation((cb: () => void) =>
+          Promise.resolve([]).finally(cb),
+        ),
+      },
+    );
+    return thenable;
+  }
+
+  const mockSelectChain: Record<string, jest.Mock> = {
     from: jest.fn().mockReturnThis(),
-    where: jest.fn().mockReturnThis(),
     innerJoin: jest.fn().mockReturnThis(),
     limit: jest.fn().mockResolvedValue([]),
     orderBy: jest.fn().mockReturnThis(),
+    where: jest.fn(), // placeholder; real impl set below
   };
+  // Replace where with a thenable-chain factory
+  mockSelectChain.where = jest.fn().mockImplementation(() =>
+    makeThenableChain(mockSelectChain),
+  );
   const mockInsertChain = {
     values: jest.fn().mockReturnThis(),
     returning: jest.fn().mockResolvedValue([{ id: 'new-id', title: 'Test' }]),
