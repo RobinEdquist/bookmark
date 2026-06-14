@@ -9,6 +9,7 @@ export interface MediaImportStatus {
 export interface ImportStatus {
   audiobooks: MediaImportStatus;
   ebooks: MediaImportStatus;
+  comics: MediaImportStatus;
 }
 
 export interface HardcoverSyncStatus {
@@ -23,7 +24,7 @@ export interface ScanStatus {
   processed?: number;
   percentage?: number;
   currentFile?: string;
-  libraryType?: "audiobook" | "ebook";
+  libraryType?: "audiobook" | "ebook" | "comic";
 }
 
 export interface TasksStatus {
@@ -48,6 +49,7 @@ const defaultMediaImportStatus: MediaImportStatus = { pendingCount: 0, pendingNa
 const defaultImportStatus: ImportStatus = {
   audiobooks: defaultMediaImportStatus,
   ebooks: defaultMediaImportStatus,
+  comics: defaultMediaImportStatus,
 };
 const defaultHardcoverStatus: HardcoverSyncStatus = { pendingCount: 0, failedCount: 0 };
 const defaultScanStatus: ScanStatus = { isScanning: false };
@@ -88,7 +90,8 @@ export function useTasksStatus() {
   const hardcover = hardcoverStatus ?? initialData?.hardcoverSync ?? defaultHardcoverStatus;
   const scan = scanStatus ?? initialData?.scan ?? defaultScanStatus;
 
-  const importPendingCount = import_.audiobooks.pendingCount + import_.ebooks.pendingCount;
+  const importPendingCount =
+    import_.audiobooks.pendingCount + import_.ebooks.pendingCount + import_.comics.pendingCount;
   const totalPending = importPendingCount + hardcover.pendingCount + (scan.isScanning ? 1 : 0);
 
   return {

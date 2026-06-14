@@ -14,6 +14,9 @@ export class ImportStatusDto {
 
   @ApiProperty({ type: ImportQueueStatusDto })
   ebooks!: ImportQueueStatusDto;
+
+  @ApiProperty({ type: ImportQueueStatusDto })
+  comics!: ImportQueueStatusDto;
 }
 
 export class HardcoverSyncStatusDto {

@@ -27,6 +27,7 @@ export function TasksIndicator() {
 
   const audiobookImportCount = importStatus.audiobooks.pendingCount;
   const ebookImportCount = importStatus.ebooks.pendingCount;
+  const comicImportCount = importStatus.comics.pendingCount;
   const hardcoverPending = hardcoverSync.pendingCount;
   const hardcoverFailed = hardcoverSync.failedCount;
 
@@ -115,6 +116,30 @@ export function TasksIndicator() {
               </div>
             )}
 
+            {/* Comic Import Queue */}
+            {comicImportCount > 0 && (
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{t("importingComics")}</div>
+                <div className="text-sm text-muted-foreground">
+                  {t("comics", { count: comicImportCount })}
+                </div>
+                {importStatus.comics.pendingNames.length > 0 && (
+                  <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                    {importStatus.comics.pendingNames.slice(0, 3).map((name, index) => (
+                      <li key={index} className="truncate">
+                        • {name}
+                      </li>
+                    ))}
+                    {importStatus.comics.pendingNames.length > 3 && (
+                      <li className="text-muted-foreground/70">
+                        +{importStatus.comics.pendingNames.length - 3} {t("more")}
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            )}
+
             {/* Hardcover Sync */}
             {(hardcoverPending > 0 || hardcoverFailed > 0) && (
               <div className="space-y-1">
@@ -142,7 +167,7 @@ export function TasksIndicator() {
             )}
 
             {/* Empty state - only happens briefly during loading */}
-            {!scan.isScanning && audiobookImportCount === 0 && ebookImportCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && (
+            {!scan.isScanning && audiobookImportCount === 0 && ebookImportCount === 0 && comicImportCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && (
               <div className="text-sm text-muted-foreground">{t("noTasks")}</div>
             )}
           </div>

@@ -54,6 +54,10 @@ export class TasksController {
           pendingCount: this.importQueueService.getEbookPendingCount(),
           pendingNames: this.importQueueService.getEbookPendingNames(),
         },
+        comics: {
+          pendingCount: this.importQueueService.getComicPendingCount(),
+          pendingNames: this.importQueueService.getComicPendingNames(),
+        },
       },
       hardcoverSync: {
         pendingCount: pendingHardcoverCount,
