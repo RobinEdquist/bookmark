@@ -53,7 +53,9 @@
     "characters": "Characters",
     "collectedEditions": "Collected Editions",
     "collects": "Collects {range}",
-    "collectsLabel": "Collects"
+    "collectsLabel": "Collects",
+    "gaps": "Gaps in your collection: {issues}",
+    "publishedTail": "Published so far: {total}. Not in your library: {issues}"
   },
   "book": {
     "issue": "Issue {number}",
@@ -141,7 +143,10 @@
       "coverDateError": "Format must be YYYY-MM-DD",
       "summary": "Summary",
       "collects": "Collects (issues)",
-      "collectsPlaceholder": "e.g. #1–54",
+      "collectsPlaceholder": "e.g. 1-18, 26, 52",
+      "collectsHelp": "Issue numbers this edition collects. Annuals and cross-series tie-ins go in Summary.",
+      "collectsPreview": "Counts as present: {issues} ({count} issues)",
+      "collectsUnrecognized": "Not recognized: {tokens}",
       "creators": "Creators",
       "creatorName": "Name",
       "creatorRole": "Role",

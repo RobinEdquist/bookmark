@@ -53,7 +53,9 @@
     "characters": "Karaktärer",
     "collectedEditions": "Samlade utgåvor",
     "collects": "Samlar {range}",
-    "collectsLabel": "Samlar"
+    "collectsLabel": "Samlar",
+    "gaps": "Luckor i din samling: {issues}",
+    "publishedTail": "Utgivna hittills: {total}. Saknas i biblioteket: {issues}"
   },
   "book": {
     "issue": "Nummer {number}",
@@ -141,7 +143,10 @@
       "coverDateError": "Formatet måste vara ÅÅÅÅ-MM-DD",
       "summary": "Sammanfattning",
       "collects": "Samlar (nummer)",
-      "collectsPlaceholder": "t.ex. #1–54",
+      "collectsPlaceholder": "t.ex. 1-18, 26, 52",
+      "collectsHelp": "Vilka nummer den här utgåvan samlar. Årsalbum och crossover-nummer skrivs i sammanfattningen.",
+      "collectsPreview": "Räknas som närvarande: {issues} ({count} nummer)",
+      "collectsUnrecognized": "Känns inte igen: {tokens}",
       "creators": "Upphovspersoner",
       "creatorName": "Namn",
       "creatorRole": "Roll",
