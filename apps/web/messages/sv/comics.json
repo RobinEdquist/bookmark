@@ -51,6 +51,7 @@
     "storyArcs": "Serieberättelser",
     "characters": "Karaktärer",
     "collectedEditions": "Samlade utgåvor",
+    "specialsAnnuals": "Specialnummer & årsalbum",
     "collects": "Samlar {range}",
     "collectsLabel": "Samlar",
     "fileName": "Fil: {name}",

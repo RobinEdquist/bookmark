@@ -51,6 +51,7 @@
     "storyArcs": "Story Arcs",
     "characters": "Characters",
     "collectedEditions": "Collected Editions",
+    "specialsAnnuals": "Specials & Annuals",
     "collects": "Collects {range}",
     "collectsLabel": "Collects",
     "fileName": "File: {name}",

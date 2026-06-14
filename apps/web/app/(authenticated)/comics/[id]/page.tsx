@@ -43,7 +43,7 @@ import { ComicBookList, formatDesignation } from "../../../../components/comics/
 import { BatchEditComicBooksDialog } from "../../../../components/comics/batch-edit-comic-books-dialog";
 import { SeriesPickerDialog } from "../../../../components/comics/series-picker-dialog";
 import { useMoveComicBooks } from "../../../../lib/use-comics";
-import { isCollectedEdition } from "../../../../lib/comic-format";
+import { isCollectedEdition, isSpecialEdition } from "../../../../lib/comic-format";
 import { formatIssueList } from "../../../../lib/comic-issue-list";
 import { toast } from "sonner";
 import { useComicvineStatus } from "../../../../lib/use-comicvine";
@@ -116,14 +116,22 @@ export default function ComicSeriesDetailPage({
     return map;
   }, [series?.creators]);
 
-  // Split books into regular issues and collected editions
-  const { issueBooks, collectedEditions } = useMemo(() => {
+  // Split books into the numbered run, side material (specials/annuals), and
+  // collected editions so the series view mirrors how the backend treats them.
+  const { issueBooks, specialBooks, collectedEditions } = useMemo(() => {
     const issues: ComicBookListItem[] = [];
+    const specials: ComicBookListItem[] = [];
     const editions: ComicBookListItem[] = [];
     for (const b of series?.books ?? []) {
-      (isCollectedEdition(b.format) ? editions : issues).push(b);
+      if (isCollectedEdition(b.format)) editions.push(b);
+      else if (isSpecialEdition(b.format)) specials.push(b);
+      else issues.push(b);
     }
-    return { issueBooks: issues, collectedEditions: editions };
+    return {
+      issueBooks: issues,
+      specialBooks: specials,
+      collectedEditions: editions,
+    };
   }, [series?.books]);
 
   const toggleBookSelect = (bookId: string) => {
@@ -615,6 +623,23 @@ export default function ComicSeriesDetailPage({
               />
             </section>
           )}
+          {specialBooks.length > 0 && (
+            <section className="mb-8">
+              <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                {t("detail.specialsAnnuals")}
+              </h3>
+              <ComicBookList
+                books={specialBooks}
+                seriesId={id}
+                onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
+                onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
+                onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
+                selectionMode={selectionMode}
+                selectedIds={selectedBookIds}
+                onToggleSelect={toggleBookSelect}
+              />
+            </section>
+          )}
           {collectedEditions.length > 0 && (
             <section>
               <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
@@ -632,7 +657,9 @@ export default function ComicSeriesDetailPage({
               />
             </section>
           )}
-          {issueBooks.length === 0 && collectedEditions.length === 0 && (
+          {issueBooks.length === 0 &&
+            specialBooks.length === 0 &&
+            collectedEditions.length === 0 && (
             <p className="py-8 text-center text-sm text-muted-foreground">
               {t("detail.noBooks")}
             </p>
