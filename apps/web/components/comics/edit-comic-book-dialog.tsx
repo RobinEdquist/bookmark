@@ -29,6 +29,8 @@ import {
   type ComicBookFormat,
   type ComicCreatorRole,
 } from "../../lib/use-comics";
+import { isCollectedEdition } from "../../lib/comic-format";
+import { parseCollects, formatIssueList } from "../../lib/comic-issue-list";
 
 const COVER_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -37,6 +39,7 @@ const FORMATS: ComicBookFormat[] = [
   "annual",
   "tpb",
   "omnibus",
+  "compendium",
   "one_shot",
   "special",
   "graphic_novel",
@@ -67,6 +70,7 @@ interface InitialFormState {
   format: ComicBookFormat;
   coverDate: string;
   summary: string;
+  collects: string;
   creators: CreatorRow[];
 }
 
@@ -108,7 +112,12 @@ export function EditComicBookDialog({
   const [coverDate, setCoverDate] = useState("");
   const [coverDateError, setCoverDateError] = useState<string | null>(null);
   const [summary, setSummary] = useState("");
+  const [collects, setCollects] = useState("");
   const [creators, setCreators] = useState<CreatorRow[]>([]);
+
+  const collectsParsed = parseCollects(collects);
+  const collectsInvalid =
+    isCollectedEdition(format) && collectsParsed.unrecognized.length > 0;
 
   const [initialState, setInitialState] = useState<InitialFormState | null>(
     null,
@@ -122,6 +131,7 @@ export function EditComicBookDialog({
       const formatVal = book.format;
       const coverDateVal = book.coverDate ?? "";
       const summaryVal = book.summary ?? "";
+      const collectsVal = book.collects ?? "";
       const creatorsVal: CreatorRow[] = [...book.creators]
         .sort((a, b) => a.order - b.order)
         .map((c) => ({ id: nextCreatorId.current++, name: c.name, role: c.role }));
@@ -132,6 +142,7 @@ export function EditComicBookDialog({
       setCoverDate(coverDateVal);
       setCoverDateError(null);
       setSummary(summaryVal);
+      setCollects(collectsVal);
       setCreators(creatorsVal);
 
       setInitialState({
@@ -140,6 +151,7 @@ export function EditComicBookDialog({
         format: formatVal,
         coverDate: coverDateVal,
         summary: summaryVal,
+        collects: collectsVal,
         creators: creatorsVal,
       });
     }
@@ -193,6 +205,7 @@ export function EditComicBookDialog({
 
   const handleSave = async (closeAfterSave: boolean) => {
     if (!book || !initialState) return;
+    if (collectsInvalid) return;
 
     // Validate cover date before saving
     if (!validateCoverDate(coverDate)) return;
@@ -222,6 +235,13 @@ export function EditComicBookDialog({
     const trimmedSummary = summary.trim();
     if (trimmedSummary !== initialState.summary) {
       data.summary = trimmedSummary || null;
+    }
+
+    // collects is only meaningful for collected editions; for other formats
+    // treat it as empty so a stray/invalid value is cleared, never sent.
+    const trimmedCollects = isCollectedEdition(format) ? collects.trim() : "";
+    if (trimmedCollects !== initialState.collects) {
+      data.collects = trimmedCollects || null;
     }
 
     // Creators — send when modified (backend replaces the full set)
@@ -348,6 +368,39 @@ export function EditComicBookDialog({
               />
             </div>
 
+            {/* Collects — shown only for collected editions */}
+            {isCollectedEdition(format) && (
+              <div className="space-y-2">
+                <Label htmlFor="book-collects">{t("fields.collects")}</Label>
+                <Input
+                  id="book-collects"
+                  value={collects}
+                  onChange={(e) => setCollects(e.target.value)}
+                  placeholder={t("fields.collectsPlaceholder")}
+                  disabled={isLoading}
+                />
+                {collects.trim() !== "" &&
+                  collectsParsed.presentInts.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("fields.collectsPreview", {
+                        issues: formatIssueList(collectsParsed.presentInts),
+                        count: collectsParsed.presentInts.length,
+                      })}
+                    </p>
+                  )}
+                {collectsParsed.unrecognized.length > 0 && (
+                  <p className="text-xs text-destructive">
+                    {t("fields.collectsUnrecognized", {
+                      tokens: collectsParsed.unrecognized.join(", "),
+                    })}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {t("fields.collectsHelp")}
+                </p>
+              </div>
+            )}
+
             {/* Creators repeatable editor */}
             <div className="space-y-3">
               <Label>{t("fields.creators")}</Label>
@@ -426,11 +479,11 @@ export function EditComicBookDialog({
               type="button"
               variant="secondary"
               onClick={() => handleSave(false)}
-              disabled={isLoading}
+              disabled={isLoading || collectsInvalid}
             >
               {isLoading ? t("saving") : t("save")}
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || collectsInvalid}>
               {isLoading ? t("saving") : t("saveAndClose")}
             </Button>
           </DialogFooter>

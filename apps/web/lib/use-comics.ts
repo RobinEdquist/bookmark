@@ -89,7 +89,9 @@ export interface ComicSeriesDetail {
   tags: ComicNamedRef[];
   creators: ComicCreatorRef[];
   books: ComicBookListItem[];
-  missingIssues: string[];
+  gaps: string[];
+  publishedTotal: number | null;
+  unownedPublished: string[];
   aggregatedTags: {
     storyArcs: string[];
     characters: string[];
@@ -165,6 +167,7 @@ export interface UpdateComicBookInput {
   format?: ComicBookFormat;
   coverDate?: string | null;
   summary?: string | null;
+  collects?: string | null;
   creators?: { name: string; role: ComicCreatorRole }[];
 }
 

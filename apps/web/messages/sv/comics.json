@@ -48,11 +48,13 @@
     "showLess": "Visa mindre",
     "downloadSeries": "Ladda ner alla",
     "noBooks": "Inga böcker i den här serien",
-    "missingIssues": "Saknas: {issues}",
     "storyArcs": "Serieberättelser",
     "characters": "Karaktärer",
     "collectedEditions": "Samlade utgåvor",
-    "collects": "Samlar {range}"
+    "collects": "Samlar {range}",
+    "collectsLabel": "Samlar",
+    "gaps": "Luckor i din samling: {issues}",
+    "publishedTail": "Utgivna hittills: {total}. Saknas i biblioteket: {issues}"
   },
   "book": {
     "issue": "Nummer {number}",
@@ -139,6 +141,11 @@
       "coverDate": "Omslagsdatum",
       "coverDateError": "Formatet måste vara ÅÅÅÅ-MM-DD",
       "summary": "Sammanfattning",
+      "collects": "Samlar (nummer)",
+      "collectsPlaceholder": "t.ex. 1-18, 26, 52",
+      "collectsHelp": "Vilka nummer den här utgåvan samlar. Årsalbum och crossover-nummer skrivs i sammanfattningen.",
+      "collectsPreview": "Räknas som närvarande: {issues} ({count} nummer)",
+      "collectsUnrecognized": "Känns inte igen: {tokens}",
       "creators": "Upphovspersoner",
       "creatorName": "Namn",
       "creatorRole": "Roll",

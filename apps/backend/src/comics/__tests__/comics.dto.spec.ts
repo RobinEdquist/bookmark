@@ -4,6 +4,7 @@ import {
   CreateComicSeriesDto,
   MoveComicBooksDto,
   MergeComicSeriesDto,
+  UpdateComicBookDto,
 } from '../dto/comics.dto';
 
 describe('MoveComicBooksDto', () => {
@@ -44,6 +45,47 @@ describe('MergeComicSeriesDto', () => {
       targetSeriesId: 's2',
     });
     expect((await validate(dto)).length).toBeGreaterThan(0);
+  });
+});
+
+describe('UpdateComicBookDto collects', () => {
+  it('accepts a collects descriptor', async () => {
+    const dto = plainToInstance(UpdateComicBookDto, { collects: '#1-54' });
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('accepts omitted collects', async () => {
+    const dto = plainToInstance(UpdateComicBookDto, {});
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('accepts null collects', async () => {
+    const dto = plainToInstance(UpdateComicBookDto, { collects: null });
+    expect(await validate(dto)).toHaveLength(0);
+  });
+});
+
+describe('UpdateComicBookDto collects validation', () => {
+  it('accepts a valid issue-list', async () => {
+    const dto = plainToInstance(UpdateComicBookDto, {
+      collects: '1-18, 26, 52, 132',
+    });
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('accepts null and omitted', async () => {
+    expect(
+      await validate(plainToInstance(UpdateComicBookDto, { collects: null })),
+    ).toHaveLength(0);
+    expect(
+      await validate(plainToInstance(UpdateComicBookDto, {})),
+    ).toHaveLength(0);
+  });
+
+  it('rejects unrecognized tokens', async () => {
+    const dto = plainToInstance(UpdateComicBookDto, { collects: '1-10, E^12' });
+    const errors = await validate(dto);
+    expect(errors.length).toBeGreaterThan(0);
   });
 });
 

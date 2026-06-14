@@ -48,11 +48,13 @@
     "showLess": "Show less",
     "downloadSeries": "Download all",
     "noBooks": "No books in this series",
-    "missingIssues": "Missing: {issues}",
     "storyArcs": "Story Arcs",
     "characters": "Characters",
     "collectedEditions": "Collected Editions",
-    "collects": "Collects {range}"
+    "collects": "Collects {range}",
+    "collectsLabel": "Collects",
+    "gaps": "Gaps in your collection: {issues}",
+    "publishedTail": "Published so far: {total}. Not in your library: {issues}"
   },
   "book": {
     "issue": "Issue {number}",
@@ -139,6 +141,11 @@
       "coverDate": "Cover date",
       "coverDateError": "Format must be YYYY-MM-DD",
       "summary": "Summary",
+      "collects": "Collects (issues)",
+      "collectsPlaceholder": "e.g. 1-18, 26, 52",
+      "collectsHelp": "Issue numbers this edition collects. Annuals and cross-series tie-ins go in Summary.",
+      "collectsPreview": "Counts as present: {issues} ({count} issues)",
+      "collectsUnrecognized": "Not recognized: {tokens}",
       "creators": "Creators",
       "creatorName": "Name",
       "creatorRole": "Role",

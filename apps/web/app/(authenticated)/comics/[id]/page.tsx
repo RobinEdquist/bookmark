@@ -44,6 +44,7 @@ import { BatchEditComicBooksDialog } from "../../../../components/comics/batch-e
 import { SeriesPickerDialog } from "../../../../components/comics/series-picker-dialog";
 import { useMoveComicBooks } from "../../../../lib/use-comics";
 import { isCollectedEdition } from "../../../../lib/comic-format";
+import { formatIssueList } from "../../../../lib/comic-issue-list";
 import { toast } from "sonner";
 import { useComicvineStatus } from "../../../../lib/use-comicvine";
 import { ComicvineMatchDialog } from "../../../../components/comicvine/comicvine-match-dialog";
@@ -406,14 +407,23 @@ export default function ComicSeriesDetailPage({
               )}
             </div>
 
-            {/* Missing issue detection */}
-            {series.missingIssues.length > 0 && (
+            {/* Gap and published-tail detection */}
+            {series.gaps.length > 0 && (
               <p className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
-                {t("detail.missingIssues", {
-                  issues: series.missingIssues.map((n) => `#${n}`).join(", "),
+                {t("detail.gaps", {
+                  issues: formatIssueList(series.gaps.map(Number)),
                 })}
               </p>
             )}
+            {series.publishedTotal != null &&
+              series.unownedPublished.length > 0 && (
+                <p className="rounded-md border border-border/50 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                  {t("detail.publishedTail", {
+                    total: series.publishedTotal,
+                    issues: formatIssueList(series.unownedPublished.map(Number)),
+                  })}
+                </p>
+              )}
 
             {/* Aggregated creators block — grouped by role */}
             {creatorsByRole.size > 0 && (
