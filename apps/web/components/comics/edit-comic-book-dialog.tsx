@@ -237,7 +237,9 @@ export function EditComicBookDialog({
       data.summary = trimmedSummary || null;
     }
 
-    const trimmedCollects = collects.trim();
+    // collects is only meaningful for collected editions; for other formats
+    // treat it as empty so a stray/invalid value is cleared, never sent.
+    const trimmedCollects = isCollectedEdition(format) ? collects.trim() : "";
     if (trimmedCollects !== initialState.collects) {
       data.collects = trimmedCollects || null;
     }
