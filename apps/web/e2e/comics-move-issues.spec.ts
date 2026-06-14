@@ -105,19 +105,18 @@ test.describe('Comics — Move issues between series', () => {
       timeout: 10000,
     });
 
-    // ── Step 9: Verify source series still exists with one book ───────────────
-    // The dialog should be closed and we remain on the source series page.
-    await expect(
-      page.getByRole('heading', { name: 'E2E Source Series' }),
-    ).toBeVisible();
+    // ── Step 9: Verify the moved issue left the SOURCE series ─────────────────
+    // The detail query refetches after the move-mutation invalidates the cache,
+    // so these retrying assertions reflect the post-move state. "Issue 1" (the
+    // first row, moved) should be gone; "Issue 2" should remain.
+    await expect(page.getByText('Issue 1', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Issue 2', { exact: true })).toBeVisible();
 
-    // ── Step 10: Verify book appears in target series ─────────────────────────
+    // ── Step 10: Verify the moved issue appears in the TARGET series ──────────
     await page.goto(`/comics/${targetSeries.id}`);
     await expect(
       page.getByRole('heading', { name: 'E2E Target Series' }),
     ).toBeVisible();
-    // Target series should now have 1 book — the book count chip shows it.
-    // We assert the page renders without error (books are present).
-    await expect(page.getByRole('main')).toBeVisible();
+    await expect(page.getByText('Issue 1', { exact: true })).toBeVisible();
   });
 });
