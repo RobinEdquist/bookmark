@@ -96,6 +96,7 @@ export interface ComicSeriesDetail {
     storyArcs: string[];
     characters: string[];
   };
+  collections: { id: string; name: string }[];
   createdAt: string;
   updatedAt: string;
   comicvine: {

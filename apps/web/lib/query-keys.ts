@@ -134,6 +134,10 @@ export const queryKeys = {
       [...queryKeys.comics.all, "publishers", search] as const,
     genres: (search?: string) =>
       [...queryKeys.comics.all, "genres", search] as const,
+    collections: (filters?: { search?: string; sortBy?: string; sortOrder?: string }) =>
+      [...queryKeys.comics.all, "collections", filters] as const,
+    collectionDetail: (id: string) =>
+      [...queryKeys.comics.all, "collectionDetail", id] as const,
   },
   filesystem: {
     all: ["filesystem"] as const,
