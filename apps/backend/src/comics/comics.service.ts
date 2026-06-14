@@ -29,7 +29,10 @@ import * as audiobooksSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
 import * as comicvineSchema from '../comicvine/schema';
 import { AppSettingsService } from '../app-settings/app-settings.service';
-import type { MetadataSource } from '../app-settings/schema';
+import {
+  DEFAULT_COMIC_METADATA_PRIORITY,
+  type MetadataSource,
+} from '../app-settings/schema';
 import { CoverService } from '../common/cover.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { ComicMetadataProvider } from '../library-watcher/metadata/comic-metadata.provider';
@@ -316,43 +319,104 @@ export class ComicsService {
         .where(and(...conditions)),
     ]);
 
-    // Resolve fallback covers (first book with a cover) in one batch
+    // Resolve fallback covers, linked ComicVine volumes, and comic metadata
+    // priority in one batch (all depend on the page's series IDs).
     const seriesIds = items.map((i) => i.series.id);
     const fallbackCovers = new Map<string, string>();
+    const volumeBySeriesId = new Map<
+      string,
+      typeof comicvineSchema.comicvineVolumes.$inferSelect
+    >();
+    let comicPriority = DEFAULT_COMIC_METADATA_PRIORITY;
     if (seriesIds.length > 0) {
-      // Correction: use sql.join to properly expand array into IN (...)
-      const rows = await this.db.execute(sql`
-        SELECT DISTINCT ON (series_id) series_id, id
-        FROM comic_books
-        WHERE series_id IN (${sql.join(
-          seriesIds.map((id) => sql`${id}`),
-          sql`, `,
-        )})
-          AND cover_source IS NOT NULL
-          AND status <> 'hidden'
-        ORDER BY series_id, sort_number ASC NULLS LAST, created_at ASC
-      `);
-      for (const row of rows.rows as Array<{
+      const [coverRows, volumeRows, priority] = await Promise.all([
+        this.db.execute(sql`
+          SELECT DISTINCT ON (series_id) series_id, id
+          FROM comic_books
+          WHERE series_id IN (${sql.join(
+            seriesIds.map((id) => sql`${id}`),
+            sql`, `,
+          )})
+            AND cover_source IS NOT NULL
+            AND status <> 'hidden'
+          ORDER BY series_id, sort_number ASC NULLS LAST, created_at ASC
+        `),
+        this.db
+          .select({
+            seriesId: comicvineSchema.comicvineVolumeLinks.seriesId,
+            volume: comicvineSchema.comicvineVolumes,
+          })
+          .from(comicvineSchema.comicvineVolumeLinks)
+          .innerJoin(
+            comicvineSchema.comicvineVolumes,
+            eq(
+              comicvineSchema.comicvineVolumeLinks.comicvineVolumeRowId,
+              comicvineSchema.comicvineVolumes.id,
+            ),
+          )
+          .where(
+            inArray(comicvineSchema.comicvineVolumeLinks.seriesId, seriesIds),
+          ),
+        this.appSettingsService.getComicMetadataPriority(),
+      ]);
+
+      for (const row of coverRows.rows as Array<{
         series_id: string;
         id: string;
       }>) {
         fallbackCovers.set(row.series_id, row.id);
       }
+      for (const row of volumeRows) {
+        volumeBySeriesId.set(row.seriesId, row.volume);
+      }
+      comicPriority = priority;
     }
 
     return {
-      series: items.map(({ series, bookCount: count, comicvineLinked }) => ({
-        id: series.id,
-        title: series.title,
-        publisher: series.publisher,
-        startYear: series.startYear,
-        status: series.status,
-        bookCount: Number(count),
-        totalIssueCount: series.totalIssueCount,
-        coverUrl: this.resolveSeriesCoverUrl(series, fallbackCovers),
-        createdAt: series.createdAt,
-        comicvineLinked: Boolean(comicvineLinked),
-      })),
+      series: items.map(({ series, bookCount: count, comicvineLinked }) => {
+        const volume = volumeBySeriesId.get(series.id) ?? null;
+        const mf = series.manualFields ?? [];
+        return {
+          id: series.id,
+          title:
+            this.resolveFieldByPriority(
+              'title',
+              {
+                manual: series.title,
+                embedded: series.title,
+                comicvine: volume?.name,
+              },
+              comicPriority.title,
+              mf,
+            ) ?? series.title,
+          publisher: this.resolveFieldByPriority(
+            'publisher',
+            {
+              manual: series.publisher,
+              embedded: series.publisher,
+              comicvine: volume?.publisherName,
+            },
+            comicPriority.publisher,
+            mf,
+          ),
+          startYear: this.resolveFieldByPriority(
+            'startYear',
+            {
+              manual: series.startYear,
+              embedded: series.startYear,
+              comicvine: volume?.startYear,
+            },
+            comicPriority.startYear,
+            mf,
+          ),
+          status: series.status,
+          bookCount: Number(count),
+          totalIssueCount: series.totalIssueCount,
+          coverUrl: this.resolveSeriesCoverUrl(series, fallbackCovers),
+          createdAt: series.createdAt,
+          comicvineLinked: Boolean(comicvineLinked),
+        };
+      }),
       total: Number(total),
     };
   }
