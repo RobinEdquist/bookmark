@@ -165,6 +165,7 @@ export interface UpdateComicBookInput {
   format?: ComicBookFormat;
   coverDate?: string | null;
   summary?: string | null;
+  collects?: string | null;
   creators?: { name: string; role: ComicCreatorRole }[];
 }
 

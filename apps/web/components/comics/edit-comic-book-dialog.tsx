@@ -29,6 +29,7 @@ import {
   type ComicBookFormat,
   type ComicCreatorRole,
 } from "../../lib/use-comics";
+import { isCollectedEdition } from "../../lib/comic-format";
 
 const COVER_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -37,6 +38,7 @@ const FORMATS: ComicBookFormat[] = [
   "annual",
   "tpb",
   "omnibus",
+  "compendium",
   "one_shot",
   "special",
   "graphic_novel",
@@ -67,6 +69,7 @@ interface InitialFormState {
   format: ComicBookFormat;
   coverDate: string;
   summary: string;
+  collects: string;
   creators: CreatorRow[];
 }
 
@@ -108,6 +111,7 @@ export function EditComicBookDialog({
   const [coverDate, setCoverDate] = useState("");
   const [coverDateError, setCoverDateError] = useState<string | null>(null);
   const [summary, setSummary] = useState("");
+  const [collects, setCollects] = useState("");
   const [creators, setCreators] = useState<CreatorRow[]>([]);
 
   const [initialState, setInitialState] = useState<InitialFormState | null>(
@@ -122,6 +126,7 @@ export function EditComicBookDialog({
       const formatVal = book.format;
       const coverDateVal = book.coverDate ?? "";
       const summaryVal = book.summary ?? "";
+      const collectsVal = book.collects ?? "";
       const creatorsVal: CreatorRow[] = [...book.creators]
         .sort((a, b) => a.order - b.order)
         .map((c) => ({ id: nextCreatorId.current++, name: c.name, role: c.role }));
@@ -132,6 +137,7 @@ export function EditComicBookDialog({
       setCoverDate(coverDateVal);
       setCoverDateError(null);
       setSummary(summaryVal);
+      setCollects(collectsVal);
       setCreators(creatorsVal);
 
       setInitialState({
@@ -140,6 +146,7 @@ export function EditComicBookDialog({
         format: formatVal,
         coverDate: coverDateVal,
         summary: summaryVal,
+        collects: collectsVal,
         creators: creatorsVal,
       });
     }
@@ -222,6 +229,11 @@ export function EditComicBookDialog({
     const trimmedSummary = summary.trim();
     if (trimmedSummary !== initialState.summary) {
       data.summary = trimmedSummary || null;
+    }
+
+    const trimmedCollects = collects.trim();
+    if (trimmedCollects !== initialState.collects) {
+      data.collects = trimmedCollects || null;
     }
 
     // Creators — send when modified (backend replaces the full set)
@@ -347,6 +359,20 @@ export function EditComicBookDialog({
                 className="resize-none"
               />
             </div>
+
+            {/* Collects — shown only for collected editions */}
+            {isCollectedEdition(format) && (
+              <div className="space-y-2">
+                <Label htmlFor="book-collects">{t("fields.collects")}</Label>
+                <Input
+                  id="book-collects"
+                  value={collects}
+                  onChange={(e) => setCollects(e.target.value)}
+                  placeholder={t("fields.collectsPlaceholder")}
+                  disabled={isLoading}
+                />
+              </div>
+            )}
 
             {/* Creators repeatable editor */}
             <div className="space-y-3">

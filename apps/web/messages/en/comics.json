@@ -52,7 +52,8 @@
     "storyArcs": "Story Arcs",
     "characters": "Characters",
     "collectedEditions": "Collected Editions",
-    "collects": "Collects {range}"
+    "collects": "Collects {range}",
+    "collectsLabel": "Collects"
   },
   "book": {
     "issue": "Issue {number}",
@@ -139,6 +140,8 @@
       "coverDate": "Cover date",
       "coverDateError": "Format must be YYYY-MM-DD",
       "summary": "Summary",
+      "collects": "Collects (issues)",
+      "collectsPlaceholder": "e.g. #1–54",
       "creators": "Creators",
       "creatorName": "Name",
       "creatorRole": "Role",

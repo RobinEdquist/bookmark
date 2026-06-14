@@ -832,6 +832,7 @@ export class ComicsService {
       format?: (typeof schema.comicBooks.$inferSelect)['format'];
       coverDate?: string | null;
       summary?: string | null;
+      collects?: string | null;
       ageRating?: string | null;
       creators?: Array<{
         name: string;

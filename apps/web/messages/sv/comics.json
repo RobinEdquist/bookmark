@@ -52,7 +52,8 @@
     "storyArcs": "Serieberättelser",
     "characters": "Karaktärer",
     "collectedEditions": "Samlade utgåvor",
-    "collects": "Samlar {range}"
+    "collects": "Samlar {range}",
+    "collectsLabel": "Samlar"
   },
   "book": {
     "issue": "Nummer {number}",
@@ -139,6 +140,8 @@
       "coverDate": "Omslagsdatum",
       "coverDateError": "Formatet måste vara ÅÅÅÅ-MM-DD",
       "summary": "Sammanfattning",
+      "collects": "Samlar (nummer)",
+      "collectsPlaceholder": "t.ex. #1–54",
       "creators": "Upphovspersoner",
       "creatorName": "Namn",
       "creatorRole": "Roll",

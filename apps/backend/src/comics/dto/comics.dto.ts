@@ -183,6 +183,10 @@ export class UpdateComicBookDto {
 
   @IsOptional()
   @IsString()
+  collects?: string | null;
+
+  @IsOptional()
+  @IsString()
   ageRating?: string | null;
 
   @IsOptional()

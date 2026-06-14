@@ -17,6 +17,7 @@ import {
   CalendarDays,
   FileArchive,
   HardDrive,
+  Layers,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -317,6 +318,20 @@ export default function ComicBookDetailPage({
                       {t("book.storeDate")}
                     </p>
                     <p className="font-medium">{data.storeDate}</p>
+                  </div>
+                </div>
+              )}
+
+              {data.collects && (
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                    <Layers className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">
+                      {t("detail.collectsLabel")}
+                    </p>
+                    <p className="font-medium">{data.collects}</p>
                   </div>
                 </div>
               )}
