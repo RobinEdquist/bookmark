@@ -233,5 +233,29 @@
     "moveSuccess": "Moved {count} book(s)",
     "mergeSuccess": "Merged into series",
     "error": "Something went wrong"
+  },
+  "collections": {
+    "tabSeries": "Series",
+    "tabCollections": "Collections",
+    "seriesCount": "{count} series",
+    "empty": "No collections yet",
+    "addToCollection": "Add to collection",
+    "addTitle": "Add {count} series to collection",
+    "createNew": "Create new collection \"{name}\"",
+    "namePlaceholder": "Collection name",
+    "searchPlaceholder": "Search collections…",
+    "create": "Create",
+    "add": "Add",
+    "cancel": "Cancel",
+    "edit": "Edit collection",
+    "delete": "Delete collection",
+    "deleteConfirm": "Delete this collection? The series themselves are not deleted.",
+    "removeSeries": "Remove from collection",
+    "belongsTo": "Collections",
+    "addSuccess": "Added to collection",
+    "createSuccess": "Collection created",
+    "deleteSuccess": "Collection deleted",
+    "save": "Save",
+    "error": "Something went wrong"
   }
 }

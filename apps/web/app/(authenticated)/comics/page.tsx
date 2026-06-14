@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import { ComicSeriesGrid } from "../../../components/comics/comic-series-grid";
+import { ComicCollectionsView } from "../../../components/comics/comic-collections-view";
 import { useInfiniteComicSeries } from "../../../lib/use-comics";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
 import { SortSelect, COMICS_SORT_OPTIONS } from "../../../components/library/sort-select";
@@ -33,10 +34,14 @@ function toComicSortBy(
 
 export default function ComicsPage() {
   const t = useTranslations("comics.filters");
+  const tComics = useTranslations("comics");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = authClient.useSession();
   const isAdmin = session?.user?.role === "admin";
+
+  // Browse mode: "series" (default) or "collections"
+  const view = searchParams.get("view") === "collections" ? "collections" : "series";
 
   // Save current URL for back navigation from detail pages
   useSaveLibraryUrl("/comics");
@@ -138,6 +143,14 @@ export default function ComicsPage() {
   // Only show skeleton loading on initial load, not during search
   const showSkeletons = isLoading && !data;
 
+  // Toggle hrefs: preserve search param, set/clear view param
+  const seriesHref = debouncedSearch
+    ? `/comics?search=${encodeURIComponent(debouncedSearch)}`
+    : "/comics";
+  const collectionsHref = debouncedSearch
+    ? `/comics?view=collections&search=${encodeURIComponent(debouncedSearch)}`
+    : "/comics?view=collections";
+
   return (
     <div className="flex flex-col">
       <LibraryPageHeader
@@ -146,12 +159,14 @@ export default function ComicsPage() {
         onSearchChange={setSearchQuery}
         isSearching={isSearching}
         sortControl={
-          <SortSelect
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-            onSortChange={setSortField}
-            options={COMICS_SORT_OPTIONS}
-          />
+          view === "series" ? (
+            <SortSelect
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortChange={setSortField}
+              options={COMICS_SORT_OPTIONS}
+            />
+          ) : undefined
         }
         isAdmin={isAdmin}
       />
@@ -162,8 +177,32 @@ export default function ComicsPage() {
         }`}
       >
         <div className="mx-auto max-w-7xl">
-          {/* Active metadata tag filter chip */}
-          {activeMetadataTag && activeMetadataTagLabel && (
+          {/* Series | Collections toggle */}
+          <div className="mb-4 flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
+            <Link
+              href={seriesHref}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                view === "series"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tComics("collections.tabSeries")}
+            </Link>
+            <Link
+              href={collectionsHref}
+              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                view === "collections"
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {tComics("collections.tabCollections")}
+            </Link>
+          </div>
+
+          {/* Active metadata tag filter chip (series mode only) */}
+          {view === "series" && activeMetadataTag && activeMetadataTagLabel && (
             <div className="mb-4 flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
                 {t("filteredBy", { value: activeMetadataTagLabel })}
@@ -178,14 +217,18 @@ export default function ComicsPage() {
             </div>
           )}
 
-          <ComicSeriesGrid
-            series={series}
-            isLoading={showSkeletons}
-            error={error}
-            hasNextPage={hasNextPage}
-            isFetchingNextPage={isFetchingNextPage}
-            onLoadMore={() => fetchNextPage()}
-          />
+          {view === "collections" ? (
+            <ComicCollectionsView search={debouncedSearch} />
+          ) : (
+            <ComicSeriesGrid
+              series={series}
+              isLoading={showSkeletons}
+              error={error}
+              hasNextPage={hasNextPage}
+              isFetchingNextPage={isFetchingNextPage}
+              onLoadMore={() => fetchNextPage()}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -176,6 +176,13 @@
       "when": 1781439064700,
       "tag": "0024_add_comic_grouping_and_editions",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1781471262565,
+      "tag": "0025_add_comic_collections",
+      "breakpoints": true
     }
   ]
 }

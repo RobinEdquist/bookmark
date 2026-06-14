@@ -233,5 +233,29 @@
     "moveSuccess": "Flyttade {count} bok/böcker",
     "mergeSuccess": "Sammanslagen med serie",
     "error": "Något gick fel"
+  },
+  "collections": {
+    "tabSeries": "Serier",
+    "tabCollections": "Samlingar",
+    "seriesCount": "{count} serier",
+    "empty": "Inga samlingar än",
+    "addToCollection": "Lägg till i samling",
+    "addTitle": "Lägg till {count} serier i samling",
+    "createNew": "Skapa ny samling \"{name}\"",
+    "namePlaceholder": "Samlingens namn",
+    "searchPlaceholder": "Sök samlingar…",
+    "create": "Skapa",
+    "add": "Lägg till",
+    "cancel": "Avbryt",
+    "edit": "Redigera samling",
+    "delete": "Ta bort samling",
+    "deleteConfirm": "Ta bort den här samlingen? Serierna tas inte bort.",
+    "removeSeries": "Ta bort från samling",
+    "belongsTo": "Samlingar",
+    "addSuccess": "Tillagd i samling",
+    "createSuccess": "Samling skapad",
+    "deleteSuccess": "Samling borttagen",
+    "save": "Spara",
+    "error": "Något gick fel"
   }
 }

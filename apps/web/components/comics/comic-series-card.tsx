@@ -14,6 +14,7 @@ import {
   Download,
   ListPlus,
   GitMerge,
+  FolderPlus,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -30,6 +31,7 @@ import { DeleteComicSeriesDialog } from "./delete-comic-series-dialog";
 import { ChangeComicSeriesCoverDialog } from "./change-comic-series-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
 import { SeriesPickerDialog } from "./series-picker-dialog";
+import { AddToCollectionDialog } from "./add-to-collection-dialog";
 
 interface ComicSeriesCardProps {
   series: ComicSeriesListItem;
@@ -46,6 +48,7 @@ export function ComicSeriesCard({
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [addToListOpen, setAddToListOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [addToCollectionOpen, setAddToCollectionOpen] = useState(false);
   const mergeSeries = useMergeComicSeries();
   const { data: permissions } = useMyPermissions();
 
@@ -173,6 +176,12 @@ export function ComicSeriesCard({
                   </DropdownMenuItem>
                 )}
                 {canEdit && (
+                  <DropdownMenuItem onClick={() => setAddToCollectionOpen(true)}>
+                    <FolderPlus className="h-4 w-4" />
+                    {t("collections.addToCollection")}
+                  </DropdownMenuItem>
+                )}
+                {canEdit && (
                   <DropdownMenuItem onClick={() => setChangeCoverOpen(true)}>
                     <ImageIcon className="h-4 w-4" />
                     {t("card.changeCover")}
@@ -223,6 +232,14 @@ export function ComicSeriesCard({
         open={addToListOpen}
         onOpenChange={setAddToListOpen}
       />
+
+      {canEdit && (
+        <AddToCollectionDialog
+          open={addToCollectionOpen}
+          onOpenChange={setAddToCollectionOpen}
+          seriesIds={[series.id]}
+        />
+      )}
 
       {canEdit && (
         <SeriesPickerDialog

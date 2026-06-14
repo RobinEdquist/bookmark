@@ -130,6 +130,18 @@ export class WsEventsService {
     this.emit({ type: 'comic.book.updated', entityId: bookId });
   }
 
+  comicCollectionCreated(id: string): void {
+    this.emit({ type: 'comic.collection.created', entityId: id });
+  }
+
+  comicCollectionUpdated(id: string): void {
+    this.emit({ type: 'comic.collection.updated', entityId: id });
+  }
+
+  comicCollectionDeleted(id: string): void {
+    this.emit({ type: 'comic.collection.deleted', entityId: id });
+  }
+
   // Series events
   seriesCreated(id: string): void {
     this.emit({ type: 'series.created', entityId: id });

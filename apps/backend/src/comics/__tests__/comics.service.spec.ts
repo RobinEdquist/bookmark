@@ -71,6 +71,7 @@ function buildServiceWithBook(bookRow: unknown[] | null) {
     stub, // comicMetadataProvider
     stub, // appEvents
     stub, // wsEvents
+    stub, // collectionsService
   );
   return { service, select };
 }
@@ -478,6 +479,10 @@ function buildServiceForMergeTest({
     comicBookUpdated: jest.fn(),
   } as never;
 
+  const collectionsService = {
+    findForSeries: jest.fn().mockResolvedValue([]),
+  } as never;
+
   const service = new ComicsService(
     db,
     appSettings,
@@ -487,6 +492,7 @@ function buildServiceForMergeTest({
     stub, // comicMetadataProvider
     stub, // appEvents
     wsEvents,
+    collectionsService,
   );
 
   return { service, select, appSettings };
@@ -681,6 +687,10 @@ function buildServiceForMissingIssueTest({
   const stub = {} as never;
   const wsEvents = { comicSeriesUpdated: jest.fn() } as never;
 
+  const collectionsService = {
+    findForSeries: jest.fn().mockResolvedValue([]),
+  } as never;
+
   const service = new ComicsService(
     db,
     appSettings,
@@ -690,6 +700,7 @@ function buildServiceForMissingIssueTest({
     stub,
     stub,
     wsEvents,
+    collectionsService,
   );
   return { service };
 }
@@ -1034,6 +1045,7 @@ describe('ComicsService.updateBook with creators', () => {
       stub, // comicMetadataProvider
       stub, // appEvents
       wsEvents,
+      stub, // collectionsService
     );
 
     return { service, db, deleteMock, insertMock, updateMock, wsEvents };
@@ -1334,6 +1346,7 @@ describe('ComicsService.updateBook — ageRating field', () => {
       stub, // comicMetadataProvider
       stub, // appEvents
       wsEvents,
+      stub, // collectionsService
     );
 
     return { service, updateMock };
@@ -1458,6 +1471,7 @@ describe('ComicsService.updateBooksBatch', () => {
       stub,
       stub,
       wsEvents,
+      stub, // collectionsService
     );
 
     return { service, updateMock, selectMock };
@@ -1580,6 +1594,7 @@ describe('ComicsService.updateBooksBatch', () => {
       stub,
       stub,
       wsEvents,
+      stub, // collectionsService
     );
 
     // 'a' is missing, 'b' is found — should update 1
@@ -1640,6 +1655,7 @@ describe('ComicsService.findAllSeries — metadataTag filter', () => {
       stub, // comicMetadataProvider
       stub, // appEvents
       stub, // wsEvents
+      stub, // collectionsService
     );
     return { service, select };
   }
@@ -1677,5 +1693,143 @@ describe('ComicsService.findAllSeries — metadataTag filter', () => {
     });
 
     expect(result).toHaveProperty('series');
+  });
+});
+
+// ===== findAllSeries — metadata priority resolution =====
+
+describe('ComicsService.findAllSeries — metadata priority resolution', () => {
+  /**
+   * findAllSeries db.select() call sequence (with non-empty items):
+   *   [0] bookCount inline subquery
+   *   [1] items query (Promise.all[0])
+   *   [2] count query (Promise.all[1])
+   *   [3] linked ComicVine volume batch query (post-items Promise.all)
+   * db.execute() is called once for fallback covers (returns { rows: [] }).
+   *
+   * NOTE: this positional queue assumes the no-filter path — findAllSeries({})
+   * with no `userId` and no `metadataTag`. Passing either adds WHERE-clause
+   * exists()/blacklist subqueries that consume extra db.select() slots and would
+   * shift these indices. Extend the queue if you add such filters here.
+   */
+  function buildServiceForResolution({
+    seriesRow,
+    volumeRows = [] as unknown[],
+    priority = DEFAULT_COMIC_METADATA_PRIORITY,
+  }: {
+    seriesRow: Record<string, unknown>;
+    volumeRows?: unknown[];
+    priority?: typeof DEFAULT_COMIC_METADATA_PRIORITY;
+  }) {
+    const items = [
+      {
+        series: seriesRow,
+        bookCount: 1,
+        comicvineLinked: volumeRows.length > 0,
+      },
+    ];
+    const queue: unknown[] = [
+      [], // [0] bookCount
+      items, // [1] items
+      [{ total: 1 }], // [2] count
+      volumeRows, // [3] volume batch
+    ];
+    const select = jest.fn().mockImplementation(() => {
+      const val = queue.length > 1 ? queue.shift() : queue[0];
+      return chainMock(val);
+    });
+    const execute = jest.fn().mockResolvedValue({ rows: [] });
+
+    const db = { select, execute } as never;
+    const appSettings = {
+      getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+      getComicMetadataPriority: jest.fn().mockResolvedValue(priority),
+    } as never;
+    const coverService = {
+      getCoverUrl: jest.fn().mockReturnValue(null),
+    } as never;
+    const stub = {} as never;
+
+    const service = new ComicsService(
+      db,
+      appSettings,
+      coverService,
+      stub, // imageProcessing
+      stub, // appData
+      stub, // comicMetadataProvider
+      stub, // appEvents
+      stub, // wsEvents
+      stub, // collectionsService
+    );
+    return { service };
+  }
+
+  const baseListSeriesRow = {
+    id: 'series-1',
+    title: 'Maus',
+    publisher: null,
+    startYear: null,
+    status: 'available',
+    totalIssueCount: null,
+    manualFields: [] as string[],
+    coverUrl: null,
+    coverSource: null,
+    createdAt: new Date('2024-01-01'),
+  };
+
+  const cvVolume = (overrides: Record<string, unknown>) => [
+    {
+      seriesId: 'series-1',
+      volume: {
+        name: 'Maus',
+        description: null,
+        publisherName: null,
+        startYear: null,
+        ...overrides,
+      },
+    },
+  ];
+
+  it('fills empty publisher and startYear from the linked ComicVine volume', async () => {
+    const { service } = buildServiceForResolution({
+      seriesRow: { ...baseListSeriesRow, publisher: null, startYear: null },
+      volumeRows: cvVolume({ publisherName: 'Pantheon', startYear: 1986 }),
+    });
+
+    const result = await service.findAllSeries({});
+
+    expect(result.series[0].publisher).toBe('Pantheon');
+    expect(result.series[0].startYear).toBe(1986);
+  });
+
+  it('keeps the stored publisher when present (embedded precedes comicvine by default)', async () => {
+    const { service } = buildServiceForResolution({
+      seriesRow: { ...baseListSeriesRow, publisher: 'Stored Pub' },
+      volumeRows: cvVolume({ publisherName: 'CV Pub' }),
+    });
+
+    const result = await service.findAllSeries({});
+
+    expect(result.series[0].publisher).toBe('Stored Pub');
+  });
+
+  it('manual publisher wins over a comicvine-FIRST priority via the manualFields guard', async () => {
+    const priority = {
+      ...DEFAULT_COMIC_METADATA_PRIORITY,
+      publisher: ['comicvine', 'manual', 'embedded'] as MetadataSource[],
+    };
+    const { service } = buildServiceForResolution({
+      seriesRow: {
+        ...baseListSeriesRow,
+        publisher: 'Manual Pub',
+        manualFields: ['publisher'],
+      },
+      volumeRows: cvVolume({ publisherName: 'CV Pub' }),
+      priority,
+    });
+
+    const result = await service.findAllSeries({});
+
+    expect(result.series[0].publisher).toBe('Manual Pub');
   });
 });

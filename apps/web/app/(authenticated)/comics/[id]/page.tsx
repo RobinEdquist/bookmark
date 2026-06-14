@@ -484,6 +484,26 @@ export default function ComicSeriesDetailPage({
               </>
             )}
 
+            {/* Collection chips */}
+            {series.collections && series.collections.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                  {t("collections.belongsTo")}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {series.collections.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/comics/collections/${c.id}`}
+                      className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                    >
+                      {c.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Description — expandable, sanitized HTML (mirrors ebook detail) */}
             {series.description && (
               <div>
