@@ -699,6 +699,7 @@ function makeBook(
   number: string | null,
   format: string = 'single_issue',
   issueCountFromFile: number | null = null,
+  collects: string | null = null,
 ): unknown {
   return {
     id: `book-${number ?? 'null'}`,
@@ -718,6 +719,7 @@ function makeBook(
     web: null,
     ageRating: null,
     issueCountFromFile,
+    collects,
     manualFields: [],
     createdAt: new Date('2024-01-01'),
     updatedAt: new Date('2024-01-01'),
@@ -725,7 +727,7 @@ function makeBook(
 }
 
 describe('ComicsService.getSeriesById — missing-issue detection', () => {
-  it('reports gaps 51, 53, 54 for #1–#50 + #52 with countOfIssues=54', async () => {
+  it('reports gap 51 and tail [53, 54] for #1–#50 + #52 with countOfIssues=54', async () => {
     // Build books #1..#50 plus #52 (single issues, numbers as strings)
     const books: unknown[] = [];
     for (let i = 1; i <= 50; i++) books.push(makeBook(String(i)));
@@ -749,14 +751,18 @@ describe('ComicsService.getSeriesById — missing-issue detection', () => {
     const { service } = buildServiceForMissingIssueTest({ books, volumeRows });
     const result = await service.getSeriesById('series-1', 'user-1');
 
-    expect(result.missingIssues).toContain('51');
-    expect(result.missingIssues).toContain('53');
-    expect(result.missingIssues).toContain('54');
-    expect(result.missingIssues).not.toContain('52');
-    expect(result.missingIssues).toHaveLength(3);
+    // Gap: #51 is below maxOwned (52) and missing.
+    expect(result.gaps).toContain('51');
+    expect(result.gaps).not.toContain('52');
+    expect(result.gaps).toHaveLength(1);
+    // Published tail: #53 and #54 are above maxOwned (52) but within CV count (54).
+    expect(result.unownedPublished).toContain('53');
+    expect(result.unownedPublished).toContain('54');
+    expect(result.unownedPublished).toHaveLength(2);
+    expect(result.publishedTotal).toBe(54);
   });
 
-  it('returns empty missingIssues for contiguous #1, #2, #3 with no linked volume', async () => {
+  it('returns empty gaps for contiguous #1, #2, #3 with no linked volume', async () => {
     const books = [makeBook('1'), makeBook('2'), makeBook('3')];
 
     const { service } = buildServiceForMissingIssueTest({
@@ -765,13 +771,15 @@ describe('ComicsService.getSeriesById — missing-issue detection', () => {
     });
     const result = await service.getSeriesById('series-1', 'user-1');
 
-    expect(result.missingIssues).toEqual([]);
+    expect(result.gaps).toEqual([]);
+    expect(result.publishedTotal).toBeNull();
+    expect(result.unownedPublished).toEqual([]);
   });
 
-  it('ignores tpb format and non-integer number when computing missing issues', async () => {
+  it('ignores tpb format and non-integer number when computing gaps', async () => {
     // #1 and #3 present as single issues; #1.5 as single_issue (non-integer, ignored);
     // a TPB with number='2' (should be ignored).
-    // Ceiling = max present = 3, so we expect #2 missing.
+    // maxOwned = 3, so gap = [2].
     const books = [
       makeBook('1'),
       makeBook('1.5'), // non-integer → ignored
@@ -785,13 +793,31 @@ describe('ComicsService.getSeriesById — missing-issue detection', () => {
     });
     const result = await service.getSeriesById('series-1', 'user-1');
 
-    // Only #1 and #3 are counted as presentInts → ceiling = 3 → #2 is missing.
-    expect(result.missingIssues).toContain('2');
-    // #1, #3 are present → not missing.
-    expect(result.missingIssues).not.toContain('1');
-    expect(result.missingIssues).not.toContain('3');
-    // #1.5 (as '1.5') should not appear in missingIssues (it was never counted as integer).
-    expect(result.missingIssues).not.toContain('1.5');
+    // Only #1 and #3 are counted as presentInts → maxOwned=3 → gap at #2.
+    expect(result.gaps).toContain('2');
+    // #1, #3 are present → not in gaps.
+    expect(result.gaps).not.toContain('1');
+    expect(result.gaps).not.toContain('3');
+    // #1.5 should never appear in gaps.
+    expect(result.gaps).not.toContain('1.5');
+    // No CV volume → no tail.
+    expect(result.publishedTotal).toBeNull();
+    expect(result.unownedPublished).toEqual([]);
+  });
+
+  it('counts collected-edition contents as present (no false gaps)', async () => {
+    // A single compendium collecting #1-54; no single issues.
+    const books = [makeBook(null, 'tpb', null, '1-54')];
+
+    const { service } = buildServiceForMissingIssueTest({
+      books,
+      volumeRows: [],
+    });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.gaps).toEqual([]);
+    expect(result.publishedTotal).toBeNull();
+    expect(result.unownedPublished).toEqual([]);
   });
 });
 
@@ -1203,14 +1229,12 @@ describe('ComicsService.getSeriesById — aggregatedTags', () => {
   });
 });
 
-// ===== getSeriesById — missing-issue ceiling uses issueCountFromFile =====
+// ===== getSeriesById — published tail with ComicVine count =====
 
-describe('ComicsService.getSeriesById — missing-issue ceiling fallback via issueCountFromFile', () => {
-  it('uses max issueCountFromFile as ceiling when no volume is linked', async () => {
-    // Books #1..#50 are present; books carry issueCountFromFile: 54.
-    // No ComicVine volume linked → ceiling should be 54 via file count.
-    // Expected missing: 51, 52, 53, 54 (since #51..#54 not present).
-    // Wait — makeBook now accepts issueCountFromFile as third param.
+describe('ComicsService.getSeriesById — published tail via ComicVine count', () => {
+  it('no tail when no volume is linked (ongoing with unknown total)', async () => {
+    // Books #1..#50 are present; no CV volume linked.
+    // issueCountFromFile is no longer used as a ceiling — no tail fabricated.
     const books: unknown[] = [];
     for (let i = 1; i <= 50; i++)
       books.push(makeBook(String(i), 'single_issue', 54));
@@ -1221,17 +1245,16 @@ describe('ComicsService.getSeriesById — missing-issue ceiling fallback via iss
     });
     const result = await service.getSeriesById('series-1', 'user-1');
 
-    // Ceiling from issueCountFromFile = 54; present #1..#50; missing = 51, 52, 53, 54.
-    expect(result.missingIssues).toContain('51');
-    expect(result.missingIssues).toContain('52');
-    expect(result.missingIssues).toContain('53');
-    expect(result.missingIssues).toContain('54');
-    expect(result.missingIssues).toHaveLength(4);
+    // No CV count → publishedTotal null, no unownedPublished tail.
+    expect(result.publishedTotal).toBeNull();
+    expect(result.unownedPublished).toEqual([]);
+    // No gaps either (contiguous 1..50).
+    expect(result.gaps).toEqual([]);
   });
 
-  it('ComicVine count takes priority over issueCountFromFile', async () => {
-    // Books #1..#50 with issueCountFromFile: 54; volume.countOfIssues: 52.
-    // CV count wins → ceiling = 52 → missing = 51, 52.
+  it('reports tail via CV countOfIssues when linked', async () => {
+    // Books #1..#50 with volume.countOfIssues: 52.
+    // CV count → publishedTotal=52, unownedPublished=[51, 52].
     const books: unknown[] = [];
     for (let i = 1; i <= 50; i++)
       books.push(makeBook(String(i), 'single_issue', 54));
@@ -1254,11 +1277,14 @@ describe('ComicsService.getSeriesById — missing-issue ceiling fallback via iss
     const { service } = buildServiceForMissingIssueTest({ books, volumeRows });
     const result = await service.getSeriesById('series-1', 'user-1');
 
-    // CV ceiling 52; present 1–50; missing = 51, 52.
-    expect(result.missingIssues).toContain('51');
-    expect(result.missingIssues).toContain('52');
-    expect(result.missingIssues).not.toContain('53');
-    expect(result.missingIssues).toHaveLength(2);
+    // CV count 52; present 1–50; tail = 51, 52.
+    expect(result.publishedTotal).toBe(52);
+    expect(result.unownedPublished).toContain('51');
+    expect(result.unownedPublished).toContain('52');
+    expect(result.unownedPublished).not.toContain('53');
+    expect(result.unownedPublished).toHaveLength(2);
+    // No gaps (contiguous 1..50).
+    expect(result.gaps).toEqual([]);
   });
 });
 

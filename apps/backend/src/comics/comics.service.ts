@@ -41,6 +41,7 @@ import {
   distinctSourceSeriesIds,
   withSeriesIdManual,
 } from './comic-grouping.utils';
+import { parseCollects, computeIssueCoverage } from './comic-issue-list';
 
 export interface ComicSeriesFilters {
   search?: string;
@@ -472,27 +473,23 @@ export class ComicsService {
       await this.appSettingsService.getComicMetadataPriority();
     const mf = series.manualFields ?? [];
 
-    // Missing-issue detection: gaps in the integer issue numbering up to the expected count.
-    const presentInts = new Set<number>();
+    // Present set: single issues PLUS issues covered by collected editions.
+    const presentInts: number[] = [];
     for (const b of books) {
-      // Only count plain single issues (skip annuals/TPBs/one-shots and non-integer numbers like "1.5").
-      if (b.format !== 'single_issue' || b.number == null) continue;
-      const n = Number(b.number);
-      if (Number.isInteger(n) && n > 0) presentInts.add(n);
+      if (b.format === 'single_issue' && b.number != null) {
+        const n = Number(b.number);
+        if (Number.isInteger(n) && n > 0) presentInts.push(n);
+      }
+      if (b.collects) {
+        for (const n of parseCollects(b.collects).presentInts) {
+          if (n > 0) presentInts.push(n);
+        }
+      }
     }
-    const maxPresent = presentInts.size ? Math.max(...presentInts) : 0;
-    // Expected ceiling: ComicVine count, then max issueCountFromFile across books, then highest present.
-    const maxIssueCountFromFile = books.reduce<number | null>((acc, b) => {
-      const n = b.issueCountFromFile;
-      if (n == null) return acc;
-      return acc == null ? n : Math.max(acc, n);
-    }, null);
-    const ceiling =
-      volume?.countOfIssues ?? maxIssueCountFromFile ?? maxPresent;
-    const missingIssues: string[] = [];
-    for (let i = 1; i <= ceiling; i++) {
-      if (!presentInts.has(i)) missingIssues.push(String(i));
-    }
+    const coverage = computeIssueCoverage(
+      presentInts,
+      volume?.countOfIssues ?? null,
+    );
 
     return {
       id: series.id,
@@ -557,7 +554,9 @@ export class ComicsService {
         siteDetailUrl: volume?.siteDetailUrl ?? null,
         imageUrl: volume?.imageUrl ?? null,
       },
-      missingIssues,
+      gaps: coverage.gaps,
+      publishedTotal: coverage.publishedTotal,
+      unownedPublished: coverage.unownedPublished,
       aggregatedTags: {
         storyArcs: seriesTagRows
           .filter((t) => t.type === 'story_arc')
