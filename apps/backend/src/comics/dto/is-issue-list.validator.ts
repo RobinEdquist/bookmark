@@ -20,7 +20,8 @@ export function IsIssueList(validationOptions?: ValidationOptions) {
           return parseCollects(value).unrecognized.length === 0;
         },
         defaultMessage(args: ValidationArguments) {
-          if (typeof args.value !== 'string') return 'collects must be a string';
+          if (typeof args.value !== 'string')
+            return 'collects must be a string';
           const { unrecognized } = parseCollects(args.value);
           return `collects has unrecognized issue tokens: ${unrecognized.join(', ')}`;
         },

@@ -67,13 +67,19 @@ describe('UpdateComicBookDto collects', () => {
 
 describe('UpdateComicBookDto collects validation', () => {
   it('accepts a valid issue-list', async () => {
-    const dto = plainToInstance(UpdateComicBookDto, { collects: '1-18, 26, 52, 132' });
+    const dto = plainToInstance(UpdateComicBookDto, {
+      collects: '1-18, 26, 52, 132',
+    });
     expect(await validate(dto)).toHaveLength(0);
   });
 
   it('accepts null and omitted', async () => {
-    expect(await validate(plainToInstance(UpdateComicBookDto, { collects: null }))).toHaveLength(0);
-    expect(await validate(plainToInstance(UpdateComicBookDto, {}))).toHaveLength(0);
+    expect(
+      await validate(plainToInstance(UpdateComicBookDto, { collects: null })),
+    ).toHaveLength(0);
+    expect(
+      await validate(plainToInstance(UpdateComicBookDto, {})),
+    ).toHaveLength(0);
   });
 
   it('rejects unrecognized tokens', async () => {
