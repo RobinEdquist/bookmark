@@ -95,7 +95,10 @@ export class ComicsController {
   })
   @ApiResponse({ status: 200, description: 'Merge result' })
   async mergeSeries(@Body() dto: MergeComicSeriesDto) {
-    return this.comicsService.mergeSeries(dto.sourceSeriesIds, dto.targetSeriesId);
+    return this.comicsService.mergeSeries(
+      dto.sourceSeriesIds,
+      dto.targetSeriesId,
+    );
   }
 
   @Get('publishers')
@@ -403,7 +406,10 @@ export class ComicsController {
   })
   @ApiResponse({ status: 200, description: 'Move result' })
   async moveBooks(@Body() dto: MoveComicBooksDto) {
-    return this.comicsService.moveBooksToSeries(dto.bookIds, dto.targetSeriesId);
+    return this.comicsService.moveBooksToSeries(
+      dto.bookIds,
+      dto.targetSeriesId,
+    );
   }
 
   @Patch('books/:id')

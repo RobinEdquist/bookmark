@@ -16,9 +16,9 @@ describe('distinctSourceSeriesIds', () => {
   });
 
   it('returns empty when all books already belong to the target', () => {
-    expect(
-      distinctSourceSeriesIds([{ seriesId: 'target' }], 'target'),
-    ).toEqual([]);
+    expect(distinctSourceSeriesIds([{ seriesId: 'target' }], 'target')).toEqual(
+      [],
+    );
   });
 });
 
