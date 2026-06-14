@@ -44,6 +44,9 @@ import {
   UpdateComicBookDto,
   UpdateComicCoverDto,
   BatchUpdateComicBooksDto,
+  CreateComicSeriesDto,
+  MoveComicBooksDto,
+  MergeComicSeriesDto,
 } from './dto/comics.dto';
 
 @ApiTags('Comics')
@@ -69,6 +72,30 @@ export class ComicsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.comicsService.findAllSeries(query, user.id);
+  }
+
+  @Post('series')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({
+    summary: 'Create an empty comic series',
+    description:
+      'Creates a virtual (folder-less) comic series to move books into. Requires edit metadata permission.',
+  })
+  @ApiResponse({ status: 201, description: 'Created series id' })
+  async createSeries(@Body() dto: CreateComicSeriesDto) {
+    return this.comicsService.createSeries(dto);
+  }
+
+  @Post('series/merge')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({
+    summary: 'Merge comic series into a target',
+    description:
+      'Moves all books from the source series into the target, then deletes emptied sources. Requires edit metadata permission.',
+  })
+  @ApiResponse({ status: 200, description: 'Merge result' })
+  async mergeSeries(@Body() dto: MergeComicSeriesDto) {
+    return this.comicsService.mergeSeries(dto.sourceSeriesIds, dto.targetSeriesId);
   }
 
   @Get('publishers')
@@ -365,6 +392,18 @@ export class ComicsController {
   })
   async updateBooksBatch(@Body() dto: BatchUpdateComicBooksDto) {
     return this.comicsService.updateBooksBatch(dto.ids, dto.data);
+  }
+
+  @Post('books/move')
+  @UseGuards(CanEditMetadataGuard)
+  @ApiOperation({
+    summary: 'Move comic books to another series',
+    description:
+      'Reassigns the given books to the target series and pins the placement so re-scans do not undo it. Requires edit metadata permission.',
+  })
+  @ApiResponse({ status: 200, description: 'Move result' })
+  async moveBooks(@Body() dto: MoveComicBooksDto) {
+    return this.comicsService.moveBooksToSeries(dto.bookIds, dto.targetSeriesId);
   }
 
   @Patch('books/:id')
