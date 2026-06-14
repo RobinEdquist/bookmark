@@ -36,6 +36,7 @@ export const comicBookFormatEnum = pgEnum('comic_book_format', [
   'annual',
   'tpb',
   'omnibus',
+  'compendium',
   'one_shot',
   'special',
   'graphic_novel',
@@ -75,8 +76,9 @@ export const comicSeries = pgTable(
     coverUrl: text('cover_url'),
     coverSource: coverSourceEnum('cover_source'),
     // Relative path to the series folder inside the comic library.
-    // For root-level one-shot files this is the relative FILE path instead.
-    folderPath: text('folder_path').notNull().unique(),
+    // Nullable: merged/virtual series have no backing folder. For root-level
+    // one-shot files this is the relative FILE path instead.
+    folderPath: text('folder_path').unique(),
     status: comicSeriesStatusEnum('status').notNull().default('available'),
     missingAt: timestamp('missing_at'),
     manualFields: jsonb('manual_fields').$type<string[]>().default([]),
@@ -121,6 +123,9 @@ export const comicBooks = pgTable(
     language: text('language'),
     ageRating: text('age_rating'),
     issueCountFromFile: integer('issue_count_from_file'),
+    // Human-readable descriptor of what a collected edition collects, e.g.
+    // "#1-54". Display only; not parsed into linked progress.
+    collects: text('collects'),
     // Relative to comic library root
     filePath: text('file_path').notNull().unique(),
     fileName: text('file_name').notNull(),
