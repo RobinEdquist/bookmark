@@ -116,6 +116,7 @@ export function GenresSettings() {
                   <TableHead>{t("table.name")}</TableHead>
                   <TableHead className="text-right">{t("table.audiobooks")}</TableHead>
                   <TableHead className="text-right">{t("table.ebooks")}</TableHead>
+                  <TableHead className="text-right">{t("table.comics")}</TableHead>
                   <TableHead className="w-[70px]">{t("table.actions")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -125,6 +126,7 @@ export function GenresSettings() {
                     <TableCell className="font-medium">{genre.name}</TableCell>
                     <TableCell className="text-right">{genre.audiobookCount}</TableCell>
                     <TableCell className="text-right">{genre.ebookCount}</TableCell>
+                    <TableCell className="text-right">{genre.comicCount}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -319,6 +321,12 @@ function MergeGenreDialog({ conflict, open, onOpenChange }: MergeGenreDialogProp
                     source: conflict.sourceGenre.name,
                   })}
                 </li>
+                <li>
+                  {t("comicsFrom", {
+                    count: conflict.comicCount,
+                    source: conflict.sourceGenre.name,
+                  })}
+                </li>
               </ul>
               <p>
                 {t("into", {
@@ -383,6 +391,7 @@ function DeleteGenreDialog({ genre, open, onOpenChange }: DeleteGenreDialogProps
               <ul className="list-disc list-inside space-y-1">
                 <li>{t("audiobooks", { count: genre.audiobookCount })}</li>
                 <li>{t("ebooks", { count: genre.ebookCount })}</li>
+                <li>{t("comics", { count: genre.comicCount })}</li>
               </ul>
               <p className="text-muted-foreground">{t("note")}</p>
             </div>

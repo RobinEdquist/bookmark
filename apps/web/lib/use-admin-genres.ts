@@ -8,6 +8,7 @@ export interface AdminGenre {
   name: string;
   audiobookCount: number;
   ebookCount: number;
+  comicCount: number;
 }
 
 export interface RenameConflict {
@@ -16,6 +17,7 @@ export interface RenameConflict {
   sourceGenre: { id: string; name: string };
   audiobookCount: number;
   ebookCount: number;
+  comicCount: number;
 }
 
 export interface MergeResult {
@@ -23,6 +25,7 @@ export interface MergeResult {
   name: string;
   audiobooksMerged: number;
   ebooksMerged: number;
+  comicsMerged: number;
 }
 
 async function fetchAdminGenres(): Promise<{ genres: AdminGenre[] }> {
@@ -95,6 +98,7 @@ export function useRenameGenre() {
       // Also invalidate public genre lists
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.genres() });
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.genres() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.comics.genres() });
     },
   });
 }
@@ -109,6 +113,7 @@ export function useMergeGenres() {
       queryClient.invalidateQueries({ queryKey: queryKeys.adminGenres.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.genres() });
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.genres() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.comics.genres() });
     },
   });
 }
@@ -122,6 +127,7 @@ export function useDeleteGenre() {
       queryClient.invalidateQueries({ queryKey: queryKeys.adminGenres.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.genres() });
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.genres() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.comics.genres() });
     },
   });
 }

@@ -4,6 +4,7 @@ import { eq, sql, and, ne } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { genres, audiobookGenres } from '../audiobooks/schema';
 import { ebookGenres } from '../ebooks/schema';
+import { comicSeriesGenres } from '../comics/schema';
 import type {
   AdminGenreDto,
   RenameConflictDto,
@@ -27,6 +28,9 @@ export class GenresAdminService {
         )`,
         ebookCount: sql<number>`(
           SELECT COUNT(*)::int FROM ebook_genres eg WHERE eg.genre_id = ${genres.id}
+        )`,
+        comicCount: sql<number>`(
+          SELECT COUNT(*)::int FROM comic_series_genres csg WHERE csg.genre_id = ${genres.id}
         )`,
       })
       .from(genres)
@@ -72,6 +76,7 @@ export class GenresAdminService {
         sourceGenre: { id: genre.id, name: genre.name },
         audiobookCount: sourceCounts.audiobookCount,
         ebookCount: sourceCounts.ebookCount,
+        comicCount: sourceCounts.comicCount,
       };
     }
 
@@ -134,6 +139,21 @@ export class GenresAdminService {
     // Delete remaining source ebook links (duplicates)
     await this.db.delete(ebookGenres).where(eq(ebookGenres.genreId, sourceId));
 
+    // Merge comic_series_genres: update source to target, skip duplicates
+    await this.db.execute(sql`
+      UPDATE comic_series_genres
+      SET genre_id = ${targetId}
+      WHERE genre_id = ${sourceId}
+        AND series_id NOT IN (
+          SELECT series_id FROM comic_series_genres WHERE genre_id = ${targetId}
+        )
+    `);
+
+    // Delete remaining source comic links (duplicates)
+    await this.db
+      .delete(comicSeriesGenres)
+      .where(eq(comicSeriesGenres.genreId, sourceId));
+
     // Delete source genre
     await this.db.delete(genres).where(eq(genres.id, sourceId));
 
@@ -142,6 +162,7 @@ export class GenresAdminService {
       name: target.name,
       audiobooksMerged: sourceCounts.audiobookCount,
       ebooksMerged: sourceCounts.ebookCount,
+      comicsMerged: sourceCounts.comicCount,
     };
   }
 
@@ -159,9 +180,11 @@ export class GenresAdminService {
     await this.db.delete(genres).where(eq(genres.id, id));
   }
 
-  private async getGenreCounts(
-    id: string,
-  ): Promise<{ audiobookCount: number; ebookCount: number }> {
+  private async getGenreCounts(id: string): Promise<{
+    audiobookCount: number;
+    ebookCount: number;
+    comicCount: number;
+  }> {
     const [result] = await this.db
       .select({
         audiobookCount: sql<number>`(
@@ -169,6 +192,9 @@ export class GenresAdminService {
         )`,
         ebookCount: sql<number>`(
           SELECT COUNT(*)::int FROM ebook_genres WHERE genre_id = ${id}
+        )`,
+        comicCount: sql<number>`(
+          SELECT COUNT(*)::int FROM comic_series_genres WHERE genre_id = ${id}
         )`,
       })
       .from(sql`(SELECT 1) as dummy`);

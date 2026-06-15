@@ -574,14 +574,15 @@
   },
   "genres": {
     "title": "Genrer",
-    "description": "Hantera genrer som används för ljudböcker och e-böcker",
+    "description": "Hantera genrer som används för ljudböcker, e-böcker och serier",
     "table": {
       "name": "Namn",
       "audiobooks": "Ljudböcker",
       "ebooks": "E-böcker",
+      "comics": "Serier",
       "actions": "Åtgärder"
     },
-    "empty": "Inga genrer hittades. Genrer skapas automatiskt när ljudböcker och e-böcker importeras.",
+    "empty": "Inga genrer hittades. Genrer skapas automatiskt när ljudböcker, e-böcker och serier importeras.",
     "rename": {
       "title": "Byt namn på genre",
       "label": "Namn",
@@ -594,6 +595,7 @@
       "description": "\"{target}\" finns redan. Detta kommer slå ihop:",
       "audiobooksFrom": "{count, plural, =1 {1 ljudbok} other {# ljudböcker}} från \"{source}\"",
       "ebooksFrom": "{count, plural, =1 {1 e-bok} other {# e-böcker}} från \"{source}\"",
+      "comicsFrom": "{count, plural, =1 {1 serie} other {# serier}} från \"{source}\"",
       "into": "till \"{target}\" och ta bort \"{source}\".",
       "warning": "Denna åtgärd kan inte ångras.",
       "confirm": "Slå ihop",
@@ -605,7 +607,8 @@
       "description": "Detta kommer ta bort \"{name}\" från:",
       "audiobooks": "{count, plural, =1 {1 ljudbok} other {# ljudböcker}}",
       "ebooks": "{count, plural, =1 {1 e-bok} other {# e-böcker}}",
-      "note": "Ljudböckerna och e-böckerna finns kvar, endast genrekopplingen tas bort.",
+      "comics": "{count, plural, =1 {1 serie} other {# serier}}",
+      "note": "Ljudböckerna, e-böckerna och serierna finns kvar, endast genrekopplingen tas bort.",
       "confirm": "Ta bort",
       "deleting": "Tar bort...",
       "cancel": "Avbryt"

@@ -574,14 +574,15 @@
   },
   "genres": {
     "title": "Genres",
-    "description": "Manage genres used across audiobooks and ebooks",
+    "description": "Manage genres used across audiobooks, ebooks and comics",
     "table": {
       "name": "Name",
       "audiobooks": "Audiobooks",
       "ebooks": "Ebooks",
+      "comics": "Comics",
       "actions": "Actions"
     },
-    "empty": "No genres found. Genres are created automatically when importing audiobooks and ebooks.",
+    "empty": "No genres found. Genres are created automatically when importing audiobooks, ebooks and comics.",
     "rename": {
       "title": "Rename Genre",
       "label": "Name",
@@ -594,6 +595,7 @@
       "description": "\"{target}\" already exists. This will merge:",
       "audiobooksFrom": "{count, plural, =1 {1 audiobook} other {# audiobooks}} from \"{source}\"",
       "ebooksFrom": "{count, plural, =1 {1 ebook} other {# ebooks}} from \"{source}\"",
+      "comicsFrom": "{count, plural, =1 {1 comic series} other {# comic series}} from \"{source}\"",
       "into": "into \"{target}\" and delete \"{source}\".",
       "warning": "This action cannot be undone.",
       "confirm": "Merge",
@@ -605,7 +607,8 @@
       "description": "This will remove \"{name}\" from:",
       "audiobooks": "{count, plural, =1 {1 audiobook} other {# audiobooks}}",
       "ebooks": "{count, plural, =1 {1 ebook} other {# ebooks}}",
-      "note": "The audiobooks and ebooks will remain, only the genre association will be removed.",
+      "comics": "{count, plural, =1 {1 comic series} other {# comic series}}",
+      "note": "The audiobooks, ebooks and comics will remain, only the genre association will be removed.",
       "confirm": "Delete",
       "deleting": "Deleting...",
       "cancel": "Cancel"
