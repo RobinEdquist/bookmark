@@ -1,10 +1,15 @@
 {
   "title": "E-boksläsare (OPDS)",
-  "description": "Anslut din e-boksläsare eller läsapp för att ladda ner e-böcker direkt från ditt bibliotek via OPDS.",
+  "description": "Anslut din e-boksläsare eller läsapp för att ladda ner e-böcker — och läsa serier med OPDS-PSE-sidstreaming — direkt från ditt bibliotek via OPDS.",
   "urlCopied": "Feed-URL kopierad till urklipp",
   "feedUrl": {
-    "title": "OPDS Feed-URL",
+    "title": "E-boks-feed URL",
     "description": "Lägg till denna URL i din e-boksläsare eller läsapp för att komma åt ditt e-boksbibliotek.",
+    "copy": "Kopiera URL"
+  },
+  "comicsFeedUrl": {
+    "title": "Serietidnings-feed URL (OPDS-PSE)",
+    "description": "Lägg till denna URL i en serietidningsläsare som Panels för att strömma och läsa dina serier, med läsposition synkroniserad mellan enheter.",
     "copy": "Kopiera URL"
   },
   "auth": {
@@ -38,6 +43,13 @@
       "step2": "I appen, leta efter ett alternativ att lägga till en OPDS-katalog eller bibliotek.",
       "step3": "Ange OPDS-URL:en ovan.",
       "step4": "Ange valfritt användarnamn och din API-nyckel som lösenord när du ombeds."
+    },
+    "panels": {
+      "title": "Serier på iOS (Panels)",
+      "step1": "Installera Panels från App Store.",
+      "step2": "Öppna Panels och gå till Bibliotek → Anslut tjänst → OPDS.",
+      "step3": "Ange serietidnings-feed URL:en ovan.",
+      "step4": "Ange valfritt användarnamn och din API-nyckel som lösenord. Panels strömmar sidor och kommer ihåg var du slutade."
     },
     "android": {
       "title": "Android",

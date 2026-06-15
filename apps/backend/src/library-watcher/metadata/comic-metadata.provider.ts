@@ -77,4 +77,42 @@ export class ComicMetadataProvider implements OnModuleInit {
       return null;
     }
   }
+
+  /**
+   * Extract a single page image (zero-based index) from a comic file.
+   * Returns raw page bytes (JPEG/PNG/etc); callers normalize/resize.
+   * Returns null if the page is out of range or extraction fails.
+   */
+  async extractPage(
+    filePath: string,
+    pageIndex: number,
+  ): Promise<{ data: Buffer; mimeType: string } | null> {
+    this.logger.log(
+      `[comic-extract] extractPage filePath=${filePath} pageIndex=${pageIndex}`,
+    );
+    try {
+      const result = await this.workerPool.executeTask<{
+        data: number[];
+        mimeType: string;
+      } | null>(POOL_NAME, 'extractPage', { filePath, pageIndex });
+      if (!result) {
+        this.logger.warn(
+          `[comic-extract] extractPage null result (out-of-range or empty) filePath=${filePath} pageIndex=${pageIndex}`,
+        );
+        return null;
+      }
+      this.logger.log(
+        `[comic-extract] extractPage success filePath=${filePath} pageIndex=${pageIndex} mimeType=${result.mimeType} bytes=${result.data.length}`,
+      );
+      return { data: Buffer.from(result.data), mimeType: result.mimeType };
+    } catch (error) {
+      this.logger.warn(
+        `[comic-extract] extractPage failed filePath=${filePath} pageIndex=${pageIndex}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      return null;
+    }
+  }
 }

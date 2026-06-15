@@ -15,14 +15,15 @@ import { Button } from "@repo/ui/components/ui/button";
 
 export default function EReaderPage() {
   const t = useTranslations("eReader");
-  const [copied, setCopied] = useState(false);
+  const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
   const opdsUrl = typeof window !== "undefined" ? `${window.location.origin}/api/ebooks/opds` : "/api/ebooks/opds";
+  const comicsOpdsUrl = typeof window !== "undefined" ? `${window.location.origin}/api/comics/opds` : "/api/comics/opds";
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(opdsUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async (url: string) => {
+    await navigator.clipboard.writeText(url);
+    setCopiedUrl(url);
+    setTimeout(() => setCopiedUrl(null), 2000);
     toast.success(t("urlCopied"));
   };
 
@@ -74,11 +75,35 @@ export default function EReaderPage() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={handleCopy}
+                onClick={() => handleCopy(opdsUrl)}
                 title={t("feedUrl.copy")}
                 className="shrink-0"
               >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedUrl === opdsUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Comics OPDS URL Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("comicsFeedUrl.title")}</CardTitle>
+            <CardDescription>{t("comicsFeedUrl.description")}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-2">
+              <code className="flex-1 text-sm bg-muted px-4 py-3 rounded-lg break-all font-mono">
+                {comicsOpdsUrl}
+              </code>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handleCopy(comicsOpdsUrl)}
+                title={t("comicsFeedUrl.copy")}
+                className="shrink-0"
+              >
+                {copiedUrl === comicsOpdsUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           </CardContent>
@@ -168,6 +193,20 @@ export default function EReaderPage() {
                 <li>{t("setup.ios.step2")}</li>
                 <li>{t("setup.ios.step3")}</li>
                 <li>{t("setup.ios.step4")}</li>
+              </ol>
+            </div>
+
+            {/* Panels (iOS Comics) */}
+            <div className="space-y-3">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Smartphone className="h-4 w-4" />
+                {t("setup.panels.title")}
+              </h3>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground ml-6">
+                <li>{t("setup.panels.step1")}</li>
+                <li>{t("setup.panels.step2")}</li>
+                <li>{t("setup.panels.step3")}</li>
+                <li>{t("setup.panels.step4")}</li>
               </ol>
             </div>
 

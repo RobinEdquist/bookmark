@@ -2,26 +2,26 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import { PDFDocument } from 'pdf-lib';
-import { readComicPdf } from '../comic-pdf.utils';
+import { readComicPdf, readComicPdfPage } from '../comic-pdf.utils';
+
+let tmpDir: string;
+let pdfPath: string;
+
+beforeAll(async () => {
+  tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comic-pdf-test-'));
+  const doc = await PDFDocument.create();
+  doc.addPage([200, 300]);
+  doc.addPage([200, 300]);
+  doc.addPage([200, 300]);
+  pdfPath = path.join(tmpDir, 'test.pdf');
+  await fs.writeFile(pdfPath, await doc.save());
+});
+
+afterAll(async () => {
+  await fs.rm(tmpDir, { recursive: true, force: true });
+});
 
 describe('readComicPdf', () => {
-  let tmpDir: string;
-  let pdfPath: string;
-
-  beforeAll(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comic-pdf-test-'));
-    const doc = await PDFDocument.create();
-    doc.addPage([200, 300]);
-    doc.addPage([200, 300]);
-    doc.addPage([200, 300]);
-    pdfPath = path.join(tmpDir, 'test.pdf');
-    await fs.writeFile(pdfPath, await doc.save());
-  });
-
-  afterAll(async () => {
-    await fs.rm(tmpDir, { recursive: true, force: true });
-  });
-
   it('returns the page count', async () => {
     const result = await readComicPdf(pdfPath);
     expect(result.pageCount).toBe(3);
@@ -50,5 +50,20 @@ describe('readComicPdf', () => {
     const result = await readComicPdf(pdfPath);
     expect(result.pageCount).toBe(3);
     expect(result.coverImage).not.toBeNull();
+  });
+});
+
+describe('readComicPdfPage', () => {
+  it('renders a valid page index to a PNG buffer', async () => {
+    const page0 = await readComicPdfPage(pdfPath, 0);
+    expect(page0).not.toBeNull();
+    expect(page0!.extension).toBe('.png');
+    // PNG magic bytes
+    expect(page0!.data.subarray(0, 4).toString('hex')).toBe('89504e47');
+  });
+
+  it('returns null for an out-of-range page index', async () => {
+    expect(await readComicPdfPage(pdfPath, 9999)).toBeNull();
+    expect(await readComicPdfPage(pdfPath, -1)).toBeNull();
   });
 });

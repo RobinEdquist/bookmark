@@ -87,7 +87,7 @@ describe('AppDataService', () => {
 
       await service.onModuleInit();
 
-      expect(fs.mkdir).toHaveBeenCalledTimes(6);
+      expect(fs.mkdir).toHaveBeenCalledTimes(7);
       expect(fs.mkdir).toHaveBeenCalledWith(
         path.join('/app/data', 'audiobook-covers'),
         { recursive: true },
@@ -111,6 +111,10 @@ describe('AppDataService', () => {
       expect(fs.mkdir).toHaveBeenCalledWith(path.join('/app/data', 'temp'), {
         recursive: true,
       });
+      expect(fs.mkdir).toHaveBeenCalledWith(
+        path.join('/app/data', 'comic-page-cache'),
+        { recursive: true },
+      );
     });
   });
 
@@ -182,6 +186,37 @@ describe('AppDataService', () => {
     it('getTempSessionPath returns correct path for a given session ID', () => {
       expect(service.getTempSessionPath('session-001')).toBe(
         path.join('/app/data', 'temp', 'session-001'),
+      );
+    });
+
+    it('getComicPageCacheBasePath returns correct path', () => {
+      expect(service.getComicPageCacheBasePath()).toBe(
+        path.join('/app/data', 'comic-page-cache'),
+      );
+    });
+
+    it('getComicPageCacheDir returns correct directory for a given book ID', () => {
+      expect(service.getComicPageCacheDir('book-abc')).toBe(
+        path.join('/app/data', 'comic-page-cache', 'book-abc'),
+      );
+    });
+
+    it('getComicPageCachePath returns correct file path', () => {
+      expect(service.getComicPageCachePath('book-abc', 3, 'o')).toBe(
+        path.join('/app/data', 'comic-page-cache', 'book-abc', '3_o.jpg'),
+      );
+    });
+
+    it('getComicPageCachePath returns correct file path for a size variant', () => {
+      expect(service.getComicPageCachePath('book-abc', 0, '1200x0')).toBe(
+        path.join('/app/data', 'comic-page-cache', 'book-abc', '0_1200x0.jpg'),
+      );
+    });
+
+    it('getComicPageCachePath sanitizes the variant', () => {
+      // Dots, slashes, and other special chars should be stripped
+      expect(service.getComicPageCachePath('book-abc', 1, '../evil')).toBe(
+        path.join('/app/data', 'comic-page-cache', 'book-abc', '1_evil.jpg'),
       );
     });
   });
