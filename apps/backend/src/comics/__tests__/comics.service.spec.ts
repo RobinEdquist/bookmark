@@ -20,6 +20,15 @@ jest.mock('../../events/ws-events.service', () => ({
   WsEventsService: class {},
 }));
 
+// Replace only `unlink` so we can assert file deletion without touching disk;
+// every other fs/promises export stays real for the rest of the suite.
+jest.mock('fs/promises', () => ({
+  ...jest.requireActual('fs/promises'),
+  unlink: jest.fn(),
+}));
+
+import * as fsPromises from 'fs/promises';
+
 import { ComicsService } from '../comics.service';
 
 /**
@@ -1831,5 +1840,144 @@ describe('ComicsService.findAllSeries — metadata priority resolution', () => {
     const result = await service.findAllSeries({});
 
     expect(result.series[0].publisher).toBe('Manual Pub');
+  });
+});
+
+describe('ComicsService.deleteBook / deleteSeries — remove but keep files', () => {
+  function buildServiceForDelete(row: Record<string, unknown>) {
+    const updateSet = jest.fn().mockReturnValue({
+      where: jest.fn().mockResolvedValue(undefined),
+    });
+    const updateMock = jest.fn().mockReturnValue({ set: updateSet });
+    const deleteWhere = jest.fn().mockResolvedValue(undefined);
+    const deleteMock = jest.fn().mockReturnValue({ where: deleteWhere });
+    // Every select (book lookup, series lookup, series-books lookup) resolves
+    // to a single row; that's enough for the delete paths under test.
+    const selectMock = jest.fn().mockReturnValue(chainMock([row]));
+
+    const db = {
+      select: selectMock,
+      update: updateMock,
+      delete: deleteMock,
+    } as never;
+
+    const appSettings = {
+      getComicLibraryPath: jest.fn().mockResolvedValue('/lib'),
+    } as never;
+    const appEvents = {
+      comicSeriesUpdated: jest.fn(),
+      comicSeriesDeleted: jest.fn(),
+    } as never;
+    const wsEvents = {
+      comicSeriesUpdated: jest.fn(),
+      comicSeriesDeleted: jest.fn(),
+    } as never;
+    const stub = {} as never;
+
+    const service = new ComicsService(
+      db,
+      appSettings,
+      stub, // coverService
+      stub, // imageProcessing
+      stub, // appData
+      stub, // comicMetadataProvider
+      appEvents,
+      wsEvents,
+      stub, // collectionsService
+    );
+    return { service, updateMock, updateSet, deleteMock };
+  }
+
+  const unlinkMock = fsPromises.unlink as jest.Mock;
+
+  beforeEach(() => {
+    unlinkMock.mockReset();
+    unlinkMock.mockResolvedValue(undefined);
+  });
+
+  describe('deleteBook', () => {
+    it('hides the book (status: hidden) instead of deleting when keeping files', async () => {
+      const { service, updateMock, updateSet, deleteMock } =
+        buildServiceForDelete({
+          id: 'book-1',
+          seriesId: 'series-1',
+          filePath: 'Series/issue-1.cbz',
+          status: 'available',
+        });
+
+      await service.deleteBook('book-1', false);
+
+      // Must NOT hard-delete the row (that's what makes it reappear on rescan).
+      expect(deleteMock).not.toHaveBeenCalled();
+      // Must hide it so the scanner skips re-import.
+      expect(updateMock).toHaveBeenCalledTimes(1);
+      expect(updateSet).toHaveBeenCalledWith({ status: 'hidden' });
+      // Files on disk must be left untouched.
+      expect(unlinkMock).not.toHaveBeenCalled();
+    });
+
+    it('hard-deletes the row and unlinks the file when deleting files', async () => {
+      const { service, updateMock, deleteMock } = buildServiceForDelete({
+        id: 'book-1',
+        seriesId: 'series-1',
+        filePath: 'Series/issue-1.cbz',
+        status: 'available',
+      });
+
+      await service.deleteBook('book-1', true);
+
+      expect(deleteMock).toHaveBeenCalledTimes(1);
+      expect(updateMock).not.toHaveBeenCalled();
+      expect(unlinkMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('hard-deletes (no hidden record) when the book is already missing', async () => {
+      const { service, updateMock, deleteMock } = buildServiceForDelete({
+        id: 'book-1',
+        seriesId: 'series-1',
+        filePath: 'Series/issue-1.cbz',
+        status: 'missing',
+      });
+
+      await service.deleteBook('book-1', false);
+
+      expect(deleteMock).toHaveBeenCalledTimes(1);
+      expect(updateMock).not.toHaveBeenCalled();
+      expect(unlinkMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deleteSeries', () => {
+    it('hides the series and its books instead of deleting when keeping files', async () => {
+      const { service, updateMock, updateSet, deleteMock } =
+        buildServiceForDelete({
+          id: 'series-1',
+          folderPath: 'Series',
+          status: 'available',
+        });
+
+      await service.deleteSeries('series-1', false);
+
+      expect(deleteMock).not.toHaveBeenCalled();
+      // Series row + all its books are hidden -> two updates, both set hidden.
+      expect(updateMock).toHaveBeenCalledTimes(2);
+      const setArgs = updateSet.mock.calls.map((c) => c[0]);
+      expect(setArgs).toEqual([{ status: 'hidden' }, { status: 'hidden' }]);
+      expect(unlinkMock).not.toHaveBeenCalled();
+    });
+
+    it('hard-deletes the series when deleting files', async () => {
+      const { service, updateMock, deleteMock } = buildServiceForDelete({
+        id: 'series-1',
+        folderPath: 'Series',
+        filePath: 'Series/issue-1.cbz',
+        status: 'available',
+      });
+
+      await service.deleteSeries('series-1', true);
+
+      expect(deleteMock).toHaveBeenCalledTimes(1);
+      expect(updateMock).not.toHaveBeenCalled();
+    });
   });
 });
