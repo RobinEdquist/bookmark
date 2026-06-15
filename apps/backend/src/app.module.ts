@@ -24,6 +24,7 @@ import { SeriesModule } from './series/series.module';
 import { EventsModule } from './events/events.module';
 import { ProgressModule } from './progress/progress.module';
 import { EbookProgressModule } from './ebook-progress/ebook-progress.module';
+import { ComicProgressModule } from './comic-progress/comic-progress.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
 import { PeopleModule } from './people/people.module';
@@ -141,6 +142,7 @@ import { CommonModule } from './common/common.module';
     EventsModule,
     ProgressModule,
     EbookProgressModule,
+    ComicProgressModule,
     TasksModule,
     ApiKeysModule,
     PeopleModule,

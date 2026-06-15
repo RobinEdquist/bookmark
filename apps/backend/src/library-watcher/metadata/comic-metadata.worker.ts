@@ -1,8 +1,12 @@
 // Worker thread for comic metadata extraction - runs in separate thread to avoid blocking main event loop
 import { parentPort } from 'worker_threads';
 import * as path from 'path';
-import { readComicArchive, pickCoverIndex } from '../utils/comic-archive.utils';
-import { readComicPdf } from '../utils/comic-pdf.utils';
+import {
+  readComicArchive,
+  pickCoverIndex,
+  readComicArchivePage,
+} from '../utils/comic-archive.utils';
+import { readComicPdf, readComicPdfPage } from '../utils/comic-pdf.utils';
 import { parseComicInfoXml, ParsedComicInfo } from '../utils/comicinfo.parser';
 
 export interface WorkerComicFileMetadata {
@@ -12,9 +16,10 @@ export interface WorkerComicFileMetadata {
 }
 
 interface WorkerTask {
-  type: 'extractMetadata' | 'extractCover';
+  type: 'extractMetadata' | 'extractCover' | 'extractPage';
   filePath: string;
   taskId: string;
+  pageIndex?: number;
 }
 
 interface WorkerResponse {
@@ -95,6 +100,42 @@ async function extractCover(
   return metadata.cover;
 }
 
+async function extractPage(
+  filePath: string,
+  pageIndex: number,
+): Promise<{ data: number[]; mimeType: string } | null> {
+  console.log(
+    `[comic-worker] extractPage filePath=${filePath} pageIndex=${pageIndex}`,
+  );
+  if (isPdf(filePath)) {
+    const page = await readComicPdfPage(filePath, pageIndex);
+    if (!page) {
+      console.warn(
+        `[comic-worker] extractPage null (out-of-range or empty) filePath=${filePath} pageIndex=${pageIndex}`,
+      );
+      return null;
+    }
+    console.log(
+      `[comic-worker] extractPage done (pdf) filePath=${filePath} pageIndex=${pageIndex} bytes=${page.data.length}`,
+    );
+    return { data: Array.from(page.data), mimeType: 'image/png' };
+  }
+  const page = await readComicArchivePage(filePath, pageIndex);
+  if (!page) {
+    console.warn(
+      `[comic-worker] extractPage null (out-of-range or empty) filePath=${filePath} pageIndex=${pageIndex}`,
+    );
+    return null;
+  }
+  console.log(
+    `[comic-worker] extractPage done (archive) filePath=${filePath} pageIndex=${pageIndex} bytes=${page.data.length} mimeType=${MIME_BY_EXTENSION[page.extension] ?? 'image/jpeg'}`,
+  );
+  return {
+    data: Array.from(page.data),
+    mimeType: MIME_BY_EXTENSION[page.extension] ?? 'image/jpeg',
+  };
+}
+
 async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
   try {
     let result:
@@ -109,16 +150,25 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
       case 'extractCover':
         result = await extractCover(task.filePath);
         break;
+      case 'extractPage':
+        result = await extractPage(task.filePath, task.pageIndex ?? 0);
+        break;
       default:
         throw new Error(`Unknown task type: ${String(task.type)}`);
     }
 
     return { taskId: task.taskId, success: true, result };
   } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    const stack = error instanceof Error ? error.stack : undefined;
+    console.warn(
+      `[comic-worker] handleTask failed type=${task.type} filePath=${task.filePath} pageIndex=${task.pageIndex ?? 'n/a'}: ${msg}`,
+      stack ?? '',
+    );
     return {
       taskId: task.taskId,
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: msg,
     };
   }
 }

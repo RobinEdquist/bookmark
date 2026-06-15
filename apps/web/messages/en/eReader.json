@@ -1,10 +1,15 @@
 {
   "title": "E-Reader (OPDS)",
-  "description": "Connect your e-reader or reading app to download ebooks directly from your library using OPDS.",
+  "description": "Connect your e-reader or reading app to download ebooks — and read comics with OPDS-PSE page streaming — directly from your library using OPDS.",
   "urlCopied": "Feed URL copied to clipboard",
   "feedUrl": {
-    "title": "OPDS Feed URL",
+    "title": "Ebook Feed URL",
     "description": "Add this URL to your e-reader or reading app to access your ebook library.",
+    "copy": "Copy URL"
+  },
+  "comicsFeedUrl": {
+    "title": "Comics Feed URL (OPDS-PSE)",
+    "description": "Add this URL to a comic reader like Panels to stream and read your comics, with reading position synced across devices.",
     "copy": "Copy URL"
   },
   "auth": {
@@ -38,6 +43,13 @@
       "step2": "In the app, look for an option to add an OPDS catalog or library.",
       "step3": "Enter the OPDS URL above.",
       "step4": "Enter any username and your API key as the password when prompted."
+    },
+    "panels": {
+      "title": "Comics on iOS (Panels)",
+      "step1": "Install Panels from the App Store.",
+      "step2": "Open Panels and go to Library → Connect Service → OPDS.",
+      "step3": "Enter the Comics Feed URL above.",
+      "step4": "Enter any username and your API key as the password. Panels will stream pages and remember where you left off."
     },
     "android": {
       "title": "Android",

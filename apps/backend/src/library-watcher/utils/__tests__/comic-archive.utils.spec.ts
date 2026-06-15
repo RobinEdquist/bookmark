@@ -5,6 +5,7 @@ import * as fsSync from 'fs';
 import archiver from 'archiver';
 import {
   readComicArchive,
+  readComicArchivePage,
   naturalSortImageEntries,
   isImageEntry,
   pickCoverIndex,
@@ -143,6 +144,37 @@ describe('comic-archive.utils', () => {
       const badPath = path.join(tmpDir, 'corrupt.cbz');
       await fs.writeFile(badPath, Buffer.from('this is not a zip'));
       await expect(readComicArchive(badPath)).rejects.toThrow();
+    });
+  });
+
+  describe('readComicArchivePage', () => {
+    // No dedicated CBR fixture test: RAR archives can't be produced with
+    // `archiver`. The CBR path (readCbrPage) mirrors the extraction convention
+    // already exercised by the `readComicArchive (cbz)` cover tests via readCbr.
+    it('returns the image at the given zero-based index (natural order)', async () => {
+      const file = path.join(tmpDir, 'pages.cbz');
+      await buildCbz(file, [
+        { name: 'p1.jpg', data: Buffer.from('PAGE-ONE') },
+        { name: 'p2.jpg', data: Buffer.from('PAGE-TWO') },
+        { name: 'p10.jpg', data: Buffer.from('PAGE-TEN') },
+        { name: 'ComicInfo.xml', data: '<ComicInfo></ComicInfo>' },
+      ]);
+
+      const page0 = await readComicArchivePage(file, 0);
+      const page2 = await readComicArchivePage(file, 2);
+
+      expect(page0?.data.toString()).toBe('PAGE-ONE');
+      // natural sort puts p10 last, so index 2 is p10
+      expect(page2?.data.toString()).toBe('PAGE-TEN');
+      expect(page0?.extension).toBe('.jpg');
+    });
+
+    it('returns null for an out-of-range index', async () => {
+      const file = path.join(tmpDir, 'oob.cbz');
+      await buildCbz(file, [{ name: 'only.jpg', data: PNG_1X1 }]);
+
+      expect(await readComicArchivePage(file, 5)).toBeNull();
+      expect(await readComicArchivePage(file, -1)).toBeNull();
     });
   });
 });

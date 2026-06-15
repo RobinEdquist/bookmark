@@ -72,7 +72,7 @@
     },
     "opds": {
       "label": "OPDS-flöde",
-      "description": "OPDS (Open Publication Distribution System) gör att e-boksläsare som KOReader, Moon+ Reader och Calibre kan bläddra och ladda ner e-böcker direkt från ditt bibliotek. För att ansluta, ange valfritt användarnamn (t.ex. din e-post) och använd din API-nyckel som lösenord när du konfigurerar OPDS-flödet i din läsapp.",
+      "description": "OPDS (Open Publication Distribution System) gör att e-boksläsare som KOReader, Moon+ Reader och Calibre kan bläddra och ladda ner e-böcker direkt från ditt bibliotek. Serier exponeras även via ett eget OPDS-katalog (med OPDS-PSE för sidvis strömning) på /api/comics/opds, så appar som iOS-appen Panels kan bläddra och läsa nummer direkt. För att ansluta, ange valfritt användarnamn (t.ex. din e-post) och använd din API-nyckel som lösenord.",
       "feedUrl": "Flödes-URL",
       "copy": "Kopiera URL",
       "authHint": "Använd valfritt användarnamn och din API-nyckel som lösenord för att autentisera.",

@@ -72,7 +72,7 @@
     },
     "opds": {
       "label": "OPDS Feed",
-      "description": "OPDS (Open Publication Distribution System) allows e-reader apps like KOReader, Moon+ Reader, and Calibre to browse and download ebooks directly from your library. To connect, enter any username (e.g., your email) and use your API token as the password when configuring the OPDS feed in your reader app.",
+      "description": "OPDS (Open Publication Distribution System) allows e-reader apps like KOReader, Moon+ Reader, and Calibre to browse and download ebooks directly from your library. Comics are also exposed over a separate OPDS catalog (with OPDS-PSE page streaming) at /api/comics/opds, so apps like the iOS Panels app can browse and read issues directly. To connect, enter any username (e.g., your email) and use your API token as the password.",
       "feedUrl": "Feed URL",
       "copy": "Copy URL",
       "authHint": "Use any username and your API token as the password to authenticate.",

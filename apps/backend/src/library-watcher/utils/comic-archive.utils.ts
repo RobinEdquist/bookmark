@@ -168,3 +168,75 @@ async function readCbr(
 
   return { pageCount: imageNames.length, comicInfoXml, coverImage };
 }
+
+export interface ExtractedPage {
+  data: Buffer;
+  extension: string;
+}
+
+/**
+ * Extract a single image page (zero-based index into the natural-sorted image
+ * list) from a CBZ/CBR archive. Returns null if the index is out of range.
+ * PDF files are not handled here; PDF page rendering is a separate util.
+ */
+export async function readComicArchivePage(
+  filePath: string,
+  pageIndex: number,
+): Promise<ExtractedPage | null> {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === '.cbr' || ext === '.rar') {
+    return readCbrPage(filePath, pageIndex);
+  }
+  return readCbzPage(filePath, pageIndex);
+}
+
+async function readCbzPage(
+  filePath: string,
+  pageIndex: number,
+): Promise<ExtractedPage | null> {
+  const directory = await unzipper.Open.file(filePath, {
+    tailSize: ZIP_EOCD_TAIL_SIZE,
+  });
+  const fileEntries = directory.files.filter((f) => f.type === 'File');
+  const imageNames = naturalSortImageEntries(
+    fileEntries.map((f) => f.path).filter(isImageEntry),
+  );
+  if (pageIndex < 0 || pageIndex >= imageNames.length) return null;
+  const targetName = imageNames[pageIndex];
+  const entry = fileEntries.find((f) => f.path === targetName);
+  if (!entry) return null;
+  return {
+    data: await entry.buffer(),
+    extension: path.extname(targetName).toLowerCase(),
+  };
+}
+
+async function readCbrPage(
+  filePath: string,
+  pageIndex: number,
+): Promise<ExtractedPage | null> {
+  const buf = await fs.readFile(filePath);
+  const data = buf.buffer.slice(
+    buf.byteOffset,
+    buf.byteOffset + buf.byteLength,
+  ) as ArrayBuffer;
+  const extractor = await createExtractorFromData({ data });
+  const list = extractor.getFileList();
+  // Spread the Generator into an array and filter out directories
+  const headers = [...list.fileHeaders].filter((h) => !h.flags.directory);
+  const imageNames = naturalSortImageEntries(
+    headers.map((h) => h.name).filter(isImageEntry),
+  );
+  if (pageIndex < 0 || pageIndex >= imageNames.length) return null;
+  const targetName = imageNames[pageIndex];
+  const extracted = extractor.extract({ files: [targetName] });
+  for (const file of extracted.files) {
+    if (file.extraction && file.fileHeader.name === targetName) {
+      return {
+        data: Buffer.from(file.extraction),
+        extension: path.extname(targetName).toLowerCase(),
+      };
+    }
+  }
+  return null;
+}

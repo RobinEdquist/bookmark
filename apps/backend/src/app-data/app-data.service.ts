@@ -35,6 +35,7 @@ export class AppDataService implements OnModuleInit {
       this.getComicBookCoversPath(),
       this.getPeopleImagesPath(),
       this.getTempPath(),
+      this.getComicPageCacheBasePath(),
     ];
 
     for (const dir of directories) {
@@ -101,6 +102,32 @@ export class AppDataService implements OnModuleInit {
     return path.join(
       this.getComicBookCoversPath(),
       `${this.sanitizeId(bookId)}.jpg`,
+    );
+  }
+
+  getComicPageCacheBasePath(): string {
+    return path.join(this.basePath, 'comic-page-cache');
+  }
+
+  /** Directory holding cached page images for one comic book. */
+  getComicPageCacheDir(bookId: string): string {
+    return path.join(this.getComicPageCacheBasePath(), this.sanitizeId(bookId));
+  }
+
+  /**
+   * Cache file for a specific page + render variant.
+   * `variant` distinguishes sizes, e.g. "oxo" (no resize) or "1200x0"
+   * (width-capped).
+   */
+  getComicPageCachePath(
+    bookId: string,
+    pageIndex: number,
+    variant: string,
+  ): string {
+    const safeVariant = variant.replace(/[^a-zA-Z0-9_x-]/g, '');
+    return path.join(
+      this.getComicPageCacheDir(bookId),
+      `${pageIndex}_${safeVariant}.jpg`,
     );
   }
 

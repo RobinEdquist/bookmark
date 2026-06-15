@@ -183,6 +183,13 @@
       "when": 1781471262565,
       "tag": "0025_add_comic_collections",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1781526512831,
+      "tag": "0026_add_comic_book_progress",
+      "breakpoints": true
     }
   ]
 }
