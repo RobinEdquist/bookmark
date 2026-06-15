@@ -12,6 +12,9 @@ export class AdminGenreDto {
 
   @ApiProperty({ description: 'Number of ebooks with this genre' })
   ebookCount!: number;
+
+  @ApiProperty({ description: 'Number of comic series with this genre' })
+  comicCount!: number;
 }
 
 export class AdminGenresResponseDto {
@@ -34,6 +37,9 @@ export class RenameConflictDto {
 
   @ApiProperty({ description: 'Number of ebooks that would be merged' })
   ebookCount!: number;
+
+  @ApiProperty({ description: 'Number of comic series that would be merged' })
+  comicCount!: number;
 }
 
 export class MergeResultDto {
@@ -48,4 +54,7 @@ export class MergeResultDto {
 
   @ApiProperty({ description: 'Number of ebooks merged' })
   ebooksMerged!: number;
+
+  @ApiProperty({ description: 'Number of comic series merged' })
+  comicsMerged!: number;
 }

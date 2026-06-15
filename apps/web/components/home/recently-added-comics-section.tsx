@@ -1,21 +1,42 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useComicSeries } from "../../lib/use-comics";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
+import { useMyPermissions } from "../../lib/use-users";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
 import { ComicSeriesCard } from "../comics/comic-series-card";
+import { EditComicSeriesDialog } from "../comics/edit-comic-series-dialog";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
 export function RecentlyAddedComicsSection() {
   const t = useTranslations("home.recentlyAddedComics");
   const { data: availability } = useLibraryAvailability();
+  const { data: permissions } = useMyPermissions();
+  const canEdit = permissions?.canEditMetadata ?? false;
 
   const { data, isLoading } = useComicSeries({
     sortBy: "recentlyAdded",
     sortOrder: "desc",
     limit: 12,
   });
+
+  // Shared edit dialog state for navigation between series
+  const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
+  const series = data?.series ?? [];
+  const editingSeries = editingSeriesId
+    ? (series.find((s) => s.id === editingSeriesId) ?? null)
+    : null;
+  const seriesIds = series.map((s) => s.id);
+
+  const handleOpenEdit = useCallback((seriesId: string) => {
+    setEditingSeriesId(seriesId);
+  }, []);
+
+  const handleNavigate = useCallback((seriesId: string) => {
+    setEditingSeriesId(seriesId);
+  }, []);
 
   // Don't show section if comics library is not configured
   if (!availability?.comics) {
@@ -47,16 +68,34 @@ export function RecentlyAddedComicsSection() {
   }
 
   return (
-    <HorizontalScrollRow
-      title={t("title")}
-      seeAllHref="/comics?sortBy=recentlyAdded&sortOrder=desc"
-      seeAllLabel={t("seeAll")}
-    >
-      {data.series.map((series) => (
-        <div key={series.id} className="w-40 shrink-0">
-          <ComicSeriesCard series={series} />
-        </div>
-      ))}
-    </HorizontalScrollRow>
+    <>
+      <HorizontalScrollRow
+        title={t("title")}
+        seeAllHref="/comics?sortBy=recentlyAdded&sortOrder=desc"
+        seeAllLabel={t("seeAll")}
+      >
+        {data.series.map((series) => (
+          <div key={series.id} className="w-40 shrink-0">
+            <ComicSeriesCard
+              series={series}
+              onEdit={() => handleOpenEdit(series.id)}
+            />
+          </div>
+        ))}
+      </HorizontalScrollRow>
+
+      {/* Shared edit dialog with navigation */}
+      {canEdit && (
+        <EditComicSeriesDialog
+          series={editingSeries}
+          open={editingSeriesId !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditingSeriesId(null);
+          }}
+          seriesIds={seriesIds}
+          onNavigate={handleNavigate}
+        />
+      )}
+    </>
   );
 }
