@@ -1026,7 +1026,27 @@ export class ComicsService {
       .limit(1);
     if (!series) throw new NotFoundException('Comic series not found');
 
-    if (deleteFiles) {
+    // Fully remove the records when the user wants the files gone, or when the
+    // series is already missing (no point keeping a hidden record). Otherwise
+    // hide the series + its books so the library scanner doesn't re-import them
+    // on the next scan while the files remain on disk.
+    const shouldDeleteFromDb = deleteFiles || series.status === 'missing';
+
+    if (!shouldDeleteFromDb) {
+      await this.db
+        .update(schema.comicSeries)
+        .set({ status: 'hidden' })
+        .where(eq(schema.comicSeries.id, id));
+      await this.db
+        .update(schema.comicBooks)
+        .set({ status: 'hidden' })
+        .where(eq(schema.comicBooks.seriesId, id));
+      this.appEvents.comicSeriesUpdated(id);
+      this.wsEvents.comicSeriesUpdated(id);
+      return;
+    }
+
+    if (deleteFiles && series.status !== 'missing') {
       const books = await this.db
         .select({ filePath: schema.comicBooks.filePath })
         .from(schema.comicBooks)
@@ -1055,7 +1075,22 @@ export class ComicsService {
       .limit(1);
     if (!book) throw new NotFoundException('Comic book not found');
 
-    if (deleteFiles) {
+    // Keep the row (hidden) unless the user is deleting files or the book is
+    // already missing — a hard delete with the file still on disk would let the
+    // scanner re-import it on the next scan.
+    const shouldDeleteFromDb = deleteFiles || book.status === 'missing';
+
+    if (!shouldDeleteFromDb) {
+      await this.db
+        .update(schema.comicBooks)
+        .set({ status: 'hidden' })
+        .where(eq(schema.comicBooks.id, id));
+      this.appEvents.comicSeriesUpdated(book.seriesId);
+      this.wsEvents.comicSeriesUpdated(book.seriesId);
+      return;
+    }
+
+    if (deleteFiles && book.status !== 'missing') {
       try {
         await fsPromises.unlink(await this.resolveFilePath(book.filePath));
       } catch (error) {
