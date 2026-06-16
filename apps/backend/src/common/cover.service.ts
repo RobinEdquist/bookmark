@@ -52,22 +52,21 @@ export class CoverService {
   ): Promise<{ coverUrl: string }> {
     // Fetch the image from URL
     let response: Response;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
       response = await fetch(url, {
         signal: controller.signal,
         headers: {
           'User-Agent': 'Bookmark/1.0',
         },
       });
-
-      clearTimeout(timeout);
     } catch (error) {
       throw new UnprocessableEntityException(
         `Failed to fetch image from URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
+    } finally {
+      clearTimeout(timeout);
     }
 
     if (!response.ok) {

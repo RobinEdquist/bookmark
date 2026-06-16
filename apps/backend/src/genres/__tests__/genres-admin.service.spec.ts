@@ -40,11 +40,23 @@ describe('GenresAdminService', () => {
   // findAll
   // -----------------------------------------------------------------------
   describe('findAll', () => {
-    it('returns genres with audiobook and ebook counts', async () => {
+    it('returns genres with audiobook, ebook and comic counts', async () => {
       const db = createMockDb();
       const genres = [
-        { id: 'g1', name: 'Fantasy', audiobookCount: 5, ebookCount: 3 },
-        { id: 'g2', name: 'Sci-Fi', audiobookCount: 2, ebookCount: 1 },
+        {
+          id: 'g1',
+          name: 'Fantasy',
+          audiobookCount: 5,
+          ebookCount: 3,
+          comicCount: 4,
+        },
+        {
+          id: 'g2',
+          name: 'Sci-Fi',
+          audiobookCount: 2,
+          ebookCount: 1,
+          comicCount: 0,
+        },
       ];
       const chain = chainMock(genres);
       db.select.mockReturnValueOnce(chain);
@@ -94,7 +106,9 @@ describe('GenresAdminService', () => {
       db.select.mockReturnValueOnce(genreChain);
 
       // Second select: getGenreCounts
-      const countsChain = chainMock([{ audiobookCount: 5, ebookCount: 3 }]);
+      const countsChain = chainMock([
+        { audiobookCount: 5, ebookCount: 3, comicCount: 4 },
+      ]);
       db.select.mockReturnValueOnce(countsChain);
 
       const service = new GenresAdminService(db);
@@ -105,6 +119,7 @@ describe('GenresAdminService', () => {
         name: GENRE_NAME,
         audiobookCount: 5,
         ebookCount: 3,
+        comicCount: 4,
       });
       // update should NOT have been called
       expect(db.update).not.toHaveBeenCalled();
@@ -122,7 +137,9 @@ describe('GenresAdminService', () => {
       db.select.mockReturnValueOnce(existingChain);
 
       // Third select: getGenreCounts for source
-      const countsChain = chainMock([{ audiobookCount: 3, ebookCount: 1 }]);
+      const countsChain = chainMock([
+        { audiobookCount: 3, ebookCount: 1, comicCount: 2 },
+      ]);
       db.select.mockReturnValueOnce(countsChain);
 
       const service = new GenresAdminService(db);
@@ -134,6 +151,7 @@ describe('GenresAdminService', () => {
         sourceGenre: { id: GENRE_ID, name: GENRE_NAME },
         audiobookCount: 3,
         ebookCount: 1,
+        comicCount: 2,
       });
       expect(db.update).not.toHaveBeenCalled();
     });
@@ -155,7 +173,9 @@ describe('GenresAdminService', () => {
       db.update.mockReturnValueOnce(updateChain);
 
       // Third select: getGenreCounts
-      const countsChain = chainMock([{ audiobookCount: 5, ebookCount: 2 }]);
+      const countsChain = chainMock([
+        { audiobookCount: 5, ebookCount: 2, comicCount: 3 },
+      ]);
       db.select.mockReturnValueOnce(countsChain);
 
       const service = new GenresAdminService(db);
@@ -166,6 +186,7 @@ describe('GenresAdminService', () => {
         name: 'Science Fantasy',
         audiobookCount: 5,
         ebookCount: 2,
+        comicCount: 3,
       });
       expect(db.update).toHaveBeenCalled();
     });
@@ -256,13 +277,15 @@ describe('GenresAdminService', () => {
       db.select.mockReturnValueOnce(targetChain);
 
       // Third select: getGenreCounts for source
-      const countsChain = chainMock([{ audiobookCount: 3, ebookCount: 2 }]);
+      const countsChain = chainMock([
+        { audiobookCount: 3, ebookCount: 2, comicCount: 1 },
+      ]);
       db.select.mockReturnValueOnce(countsChain);
 
-      // execute calls (move audiobook links, move ebook links)
+      // execute calls (move audiobook, ebook, and comic series links)
       db.execute.mockResolvedValue(undefined);
 
-      // delete chains (delete leftover audiobook links, ebook links, source genre)
+      // delete chains (delete leftover audiobook, ebook, comic links, source genre)
       const deleteChain = chainMock(undefined);
       db.delete.mockReturnValue(deleteChain);
 
@@ -274,11 +297,12 @@ describe('GenresAdminService', () => {
         name: 'Sci-Fi',
         audiobooksMerged: 3,
         ebooksMerged: 2,
+        comicsMerged: 1,
       });
-      // Two execute calls for moving audiobook and ebook links
-      expect(db.execute).toHaveBeenCalledTimes(2);
-      // Three delete calls: audiobookGenres, ebookGenres, genres
-      expect(db.delete).toHaveBeenCalledTimes(3);
+      // Three execute calls for moving audiobook, ebook, and comic series links
+      expect(db.execute).toHaveBeenCalledTimes(3);
+      // Four delete calls: audiobookGenres, ebookGenres, comicSeriesGenres, genres
+      expect(db.delete).toHaveBeenCalledTimes(4);
     });
 
     it('deletes source genre after merging links', async () => {
@@ -291,7 +315,9 @@ describe('GenresAdminService', () => {
       const targetChain = chainMock([targetGenre]);
       db.select.mockReturnValueOnce(targetChain);
 
-      const countsChain = chainMock([{ audiobookCount: 0, ebookCount: 0 }]);
+      const countsChain = chainMock([
+        { audiobookCount: 0, ebookCount: 0, comicCount: 0 },
+      ]);
       db.select.mockReturnValueOnce(countsChain);
 
       db.execute.mockResolvedValue(undefined);
@@ -302,8 +328,9 @@ describe('GenresAdminService', () => {
       const service = new GenresAdminService(db);
       await service.merge(GENRE_ID, 'g2');
 
-      // Last delete call should be for the genres table (source genre)
-      expect(db.delete).toHaveBeenCalledTimes(3);
+      // Four delete calls: audiobookGenres, ebookGenres, comicSeriesGenres,
+      // and finally the genres table (source genre)
+      expect(db.delete).toHaveBeenCalledTimes(4);
     });
   });
 
