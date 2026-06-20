@@ -9,14 +9,14 @@ import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
-import type { MamSearchResult } from "../../lib/use-requests";
+import type { TrackerSearchResult } from "../../lib/use-requests";
 import { getCategoryColor, formatCategoryName } from "./category-colors";
 
 interface RequestDetailPanelProps {
-  item: MamSearchResult | null;
+  item: TrackerSearchResult | null;
   isOpen: boolean;
   onClose: () => void;
-  onRequest: (item: MamSearchResult) => void;
+  onRequest: (item: TrackerSearchResult) => void;
   onSupport: (requestId: string) => void;
   isRequesting: boolean;
   isSupporting: boolean;

@@ -285,7 +285,7 @@ export function IntegrationsSettings() {
     );
   }
 
-  const requestsDisabled = !settings.mamClientConfigured;
+  const requestsDisabled = !settings.trackerClientConfigured;
 
   return (
     <div className="space-y-6">

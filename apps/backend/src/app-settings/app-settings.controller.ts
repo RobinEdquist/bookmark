@@ -114,8 +114,8 @@ export class AppSettingsController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getSettings() {
     const settings = await this.appSettingsService.getSettings();
-    const mamClientConfigured = !!(
-      process.env.MAM_CLIENT_URL && process.env.MAM_CLIENT_API_KEY
+    const trackerClientConfigured = !!(
+      process.env.TRACKER_CLIENT_URL && process.env.TRACKER_CLIENT_API_KEY
     );
     const grFinderConfigured = !!process.env.GR_FINDER_URL;
     const hardcoverConfigured = !!settings.hardcoverApiKey;
@@ -155,7 +155,7 @@ export class AppSettingsController {
       defaultCanDelete: settings.defaultCanDelete,
       defaultCanGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       defaultCanRequestContent: settings.defaultCanRequestContent,
-      mamClientConfigured,
+      trackerClientConfigured,
       grFinderConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
@@ -311,8 +311,8 @@ export class AppSettingsController {
       updates.defaultCanRequestContent = dto.defaultCanRequestContent;
 
     const settings = await this.appSettingsService.updateSettings(updates);
-    const mamClientConfigured = !!(
-      process.env.MAM_CLIENT_URL && process.env.MAM_CLIENT_API_KEY
+    const trackerClientConfigured = !!(
+      process.env.TRACKER_CLIENT_URL && process.env.TRACKER_CLIENT_API_KEY
     );
     const grFinderConfigured = !!process.env.GR_FINDER_URL;
     const hardcoverConfigured = !!settings.hardcoverApiKey;
@@ -352,7 +352,7 @@ export class AppSettingsController {
       defaultCanDelete: settings.defaultCanDelete,
       defaultCanGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       defaultCanRequestContent: settings.defaultCanRequestContent,
-      mamClientConfigured,
+      trackerClientConfigured,
       grFinderConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,

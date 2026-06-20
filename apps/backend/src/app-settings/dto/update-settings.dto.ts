@@ -363,7 +363,7 @@ export class UpdateSettingsDto {
   requestsEnabled?: boolean;
 
   @ApiPropertyOptional({
-    description: 'MAM category for audiobook requests',
+    description: 'Download client category for audiobook requests',
     example: 'audiobooks',
   })
   @IsOptional()
@@ -371,7 +371,7 @@ export class UpdateSettingsDto {
   requestsAudiobookCategory?: string;
 
   @ApiPropertyOptional({
-    description: 'MAM category for ebook requests',
+    description: 'Download client category for ebook requests',
     example: 'books',
   })
   @IsOptional()
@@ -379,7 +379,7 @@ export class UpdateSettingsDto {
   requestsEbookCategory?: string;
 
   @ApiPropertyOptional({
-    description: 'MAM category for comics requests',
+    description: 'Download client category for comics requests',
     example: 'comics',
   })
   @IsOptional()

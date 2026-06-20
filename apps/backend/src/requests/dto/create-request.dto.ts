@@ -3,11 +3,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateRequestDto {
   @ApiProperty({
-    description: 'MyAnonamouse torrent ID',
+    description: 'Tracker torrent ID',
     example: 123456,
   })
   @IsInt()
-  mamTorrentId!: number;
+  torrentId!: number;
 
   @ApiProperty({
     description: 'Title of the requested content',
@@ -65,9 +65,9 @@ export class CreateRequestDto {
   contentType!: 'audiobook' | 'ebook';
 
   @ApiProperty({
-    description: 'MyAnonamouse category ID',
+    description: 'Tracker category ID',
     example: 13,
   })
   @IsInt()
-  mamCategory!: number;
+  categoryId!: number;
 }

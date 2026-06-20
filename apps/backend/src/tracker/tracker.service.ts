@@ -2,23 +2,23 @@ import { Injectable, Logger, HttpException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
 import {
-  MamSearchParams,
-  MamSearchResponse,
-  MamDownloadOptions,
-  MamDownloadResponse,
+  TrackerSearchParams,
+  TrackerSearchResponse,
+  TrackerDownloadOptions,
+  TrackerDownloadResponse,
   TorrentStatus,
   BulkTorrentStatus,
 } from './types';
 
 @Injectable()
-export class MamClientService {
-  private readonly logger = new Logger(MamClientService.name);
+export class TrackerService {
+  private readonly logger = new Logger(TrackerService.name);
   private readonly baseUrl: string | undefined;
   private readonly apiKey: string | undefined;
 
   constructor(private configService: ConfigService) {
-    this.baseUrl = this.configService.get<string>('MAM_CLIENT_URL');
-    this.apiKey = this.configService.get<string>('MAM_CLIENT_API_KEY');
+    this.baseUrl = this.configService.get<string>('TRACKER_CLIENT_URL');
+    this.apiKey = this.configService.get<string>('TRACKER_CLIENT_API_KEY');
   }
 
   isConfigured(): boolean {
@@ -31,7 +31,7 @@ export class MamClientService {
     body?: unknown,
   ): Promise<T> {
     if (!this.isConfigured()) {
-      throw new HttpException('MAM client not configured', 503);
+      throw new HttpException('Tracker client not configured', 503);
     }
 
     const url = `${this.baseUrl}${endpoint}`;
@@ -49,9 +49,11 @@ export class MamClientService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        this.logger.error(`MAM client error: ${response.status} ${errorText}`);
+        this.logger.error(
+          `Tracker client error: ${response.status} ${errorText}`,
+        );
         throw new HttpException(
-          `MAM client error: ${response.statusText}`,
+          `Tracker client error: ${response.statusText}`,
           response.status,
         );
       }
@@ -59,31 +61,30 @@ export class MamClientService {
       return response.json();
     } catch (error) {
       if (error instanceof HttpException) throw error;
-      this.logger.error(`MAM client request failed: ${error}`);
-      throw new HttpException('MAM client unavailable', 503);
+      this.logger.error(`Tracker client request failed: ${error}`);
+      throw new HttpException('Tracker client unavailable', 503);
     }
   }
 
-  async search(params: MamSearchParams): Promise<MamSearchResponse> {
+  async search(params: TrackerSearchParams): Promise<TrackerSearchResponse> {
     // Default to audiobooks and ebooks if not specified
-    const searchParams: MamSearchParams = {
-      ...params,
-      main_cat: params.main_cat ?? [13, 14],
-    };
-
-    return this.request<MamSearchResponse>('POST', '/search', {
-      tor: searchParams,
-      description: true,
+    return this.request<TrackerSearchResponse>('POST', '/search', {
+      query: params.query,
+      categories: params.categories ?? ['audiobook', 'ebook'],
+      searchIn: params.searchIn,
+      languages: params.languages,
+      perPage: params.perPage,
+      offset: params.offset,
     });
   }
 
   async download(
-    mamTorrentId: string,
-    options?: MamDownloadOptions,
-  ): Promise<MamDownloadResponse> {
-    return this.request<MamDownloadResponse>(
+    torrentId: string,
+    options?: TrackerDownloadOptions,
+  ): Promise<TrackerDownloadResponse> {
+    return this.request<TrackerDownloadResponse>(
       'POST',
-      `/download/${mamTorrentId}`,
+      `/download/${torrentId}`,
       options ?? {},
     );
   }
@@ -102,7 +103,7 @@ export class MamClientService {
 
   async proxyImage(torrentId: string, res: Response): Promise<void> {
     if (!this.isConfigured()) {
-      throw new HttpException('MAM client not configured', 503);
+      throw new HttpException('Tracker client not configured', 503);
     }
 
     const url = `${this.baseUrl}/image/${torrentId}`;

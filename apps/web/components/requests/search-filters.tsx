@@ -16,10 +16,10 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import type { SearchFilters } from "../../lib/use-requests";
 import {
-  MAM_LANGUAGES,
+  TRACKER_LANGUAGES,
   SEARCH_IN_FIELDS,
   PER_PAGE_OPTIONS,
-} from "../../lib/constants/mam-languages";
+} from "../../lib/constants/tracker-languages";
 
 interface SearchFiltersProps {
   filters: SearchFilters;
@@ -30,7 +30,7 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
   const t = useTranslations("requests.filters");
   const [isOpen, setIsOpen] = useState(false);
 
-  const languageOptions = MAM_LANGUAGES.map((lang) => ({
+  const languageOptions = TRACKER_LANGUAGES.map((lang) => ({
     value: String(lang.id),
     label: lang.name,
   }));

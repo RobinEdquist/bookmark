@@ -363,11 +363,11 @@
       "toggle": {
         "label": "Enable Content Requests",
         "description": "Allow users to search and request new content from external sources",
-        "disabledTooltip": "Requires MAM_CLIENT_URL and MAM_CLIENT_API_KEY environment variables to be configured"
+        "disabledTooltip": "Requires TRACKER_CLIENT_URL and TRACKER_CLIENT_API_KEY environment variables to be configured"
       },
       "warning": {
         "title": "Configuration Required",
-        "description": "Content requests require MAM_CLIENT_URL and MAM_CLIENT_API_KEY environment variables to be configured. Please set these in your environment to enable this feature."
+        "description": "Content requests require TRACKER_CLIENT_URL and TRACKER_CLIENT_API_KEY environment variables to be configured. Please set these in your environment to enable this feature."
       },
       "toast": {
         "enabled": "Content requests enabled",

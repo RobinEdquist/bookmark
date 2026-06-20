@@ -161,9 +161,10 @@ export class AppSettingsResponseDto {
 
   @ApiProperty({
     example: false,
-    description: 'Whether MAM client is configured via environment variables',
+    description:
+      'Whether the tracker client is configured via environment variables',
   })
-  mamClientConfigured!: boolean;
+  trackerClientConfigured!: boolean;
 
   @ApiProperty({
     example: false,

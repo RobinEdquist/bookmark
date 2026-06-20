@@ -18,11 +18,11 @@ import {
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { CanRequestGuard } from '../common/guards/can-request.guard';
-import { MamClientService } from '../mam-client';
+import { TrackerService } from '../tracker';
 import { RequestsService } from './requests.service';
-import { SearchMamDto, CreateRequestDto } from './dto';
+import { TrackerSearchDto, CreateRequestDto } from './dto';
 import {
-  MamSearchResponseDto,
+  TrackerSearchResponseDto,
   RequestListResponseDto,
   ContentRequestDto,
   AutoApproveBudgetDto,
@@ -36,31 +36,31 @@ import {
 export class RequestsController {
   constructor(
     private readonly requestsService: RequestsService,
-    private readonly mamClient: MamClientService,
+    private readonly tracker: TrackerService,
   ) {}
 
-  @Get('mam-image/:id')
+  @Get('cover/:id')
   @ApiOperation({
-    summary: 'Proxy MAM torrent thumbnail',
-    description: 'Proxies a torrent thumbnail image from the MAM CDN',
+    summary: 'Proxy torrent cover image',
+    description: 'Proxies a torrent cover/thumbnail image from the tracker',
   })
-  @ApiParam({ name: 'id', description: 'MAM torrent ID' })
+  @ApiParam({ name: 'id', description: 'Torrent ID' })
   @ApiResponse({ status: 200, description: 'Image data' })
   @ApiResponse({ status: 404, description: 'Image not found' })
   async proxyImage(@Param('id') id: string, @Res() res: Response) {
-    await this.mamClient.proxyImage(id, res);
+    await this.tracker.proxyImage(id, res);
   }
 
   @Post('search')
   @ApiOperation({
     summary: 'Search for content to request',
     description:
-      'Search the MAM catalog for audiobooks, ebooks, or all content types',
+      'Search the tracker catalog for audiobooks, ebooks, or all content types',
   })
   @ApiResponse({
     status: 200,
     description: 'Search results with request status',
-    type: MamSearchResponseDto,
+    type: TrackerSearchResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -68,7 +68,7 @@ export class RequestsController {
     description: 'Forbidden - user cannot make requests',
   })
   async search(
-    @Body() dto: SearchMamDto,
+    @Body() dto: TrackerSearchDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.requestsService.search(

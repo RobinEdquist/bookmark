@@ -1,9 +1,9 @@
-export interface MamLanguage {
+export interface TrackerLanguage {
   id: number;
   name: string;
 }
 
-export const MAM_LANGUAGES: MamLanguage[] = [
+export const TRACKER_LANGUAGES: TrackerLanguage[] = [
   { id: 1, name: "English" },
   { id: 17, name: "Afrikaans" },
   { id: 32, name: "Arabic" },
@@ -86,14 +86,14 @@ export const PRIMARY_LANGUAGE_IDS = [
   34, // Portuguese
 ];
 
-export const PRIMARY_LANGUAGES = MAM_LANGUAGES.filter((lang) =>
+export const PRIMARY_LANGUAGES = TRACKER_LANGUAGES.filter((lang) =>
   PRIMARY_LANGUAGE_IDS.includes(lang.id)
 ).sort((a, b) => {
   // Sort by the order in PRIMARY_LANGUAGE_IDS
   return PRIMARY_LANGUAGE_IDS.indexOf(a.id) - PRIMARY_LANGUAGE_IDS.indexOf(b.id);
 });
 
-export const OTHER_LANGUAGES = MAM_LANGUAGES.filter(
+export const OTHER_LANGUAGES = TRACKER_LANGUAGES.filter(
   (lang) => !PRIMARY_LANGUAGE_IDS.includes(lang.id)
 ).sort((a, b) => a.name.localeCompare(b.name));
 

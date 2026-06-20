@@ -41,7 +41,7 @@ export interface Settings {
   defaultCanDelete: boolean;
   defaultCanGenerateApiKeys: boolean;
   defaultCanRequestContent: boolean;
-  mamClientConfigured: boolean;
+  trackerClientConfigured: boolean;
   grFinderConfigured: boolean;
   createdAt: string;
   updatedAt: string;

@@ -1,5 +1,5 @@
 import { HttpException } from '@nestjs/common';
-import { MamClientService } from '../mam-client.service';
+import { TrackerService } from '../tracker.service';
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -8,8 +8,8 @@ function createMockConfigService(
   overrides: Record<string, string | undefined> = {},
 ) {
   const config: Record<string, string | undefined> = {
-    MAM_CLIENT_URL: 'http://mam:3000',
-    MAM_CLIENT_API_KEY: 'test-key',
+    TRACKER_CLIENT_URL: 'http://tracker:3000',
+    TRACKER_CLIENT_API_KEY: 'test-key',
     ...overrides,
   };
   return {
@@ -67,13 +67,13 @@ function createMockRes() {
   };
 }
 
-describe('MamClientService', () => {
-  let service: MamClientService;
+describe('TrackerService', () => {
+  let service: TrackerService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     const mockConfig = createMockConfigService();
-    service = new MamClientService(mockConfig as any);
+    service = new TrackerService(mockConfig as any);
   });
 
   // ===== isConfigured =====
@@ -84,16 +84,16 @@ describe('MamClientService', () => {
     });
 
     it('should return false when URL is missing', () => {
-      const config = createMockConfigService({ MAM_CLIENT_URL: undefined });
-      const svc = new MamClientService(config as any);
+      const config = createMockConfigService({ TRACKER_CLIENT_URL: undefined });
+      const svc = new TrackerService(config as any);
       expect(svc.isConfigured()).toBe(false);
     });
 
     it('should return false when API key is missing', () => {
       const config = createMockConfigService({
-        MAM_CLIENT_API_KEY: undefined,
+        TRACKER_CLIENT_API_KEY: undefined,
       });
-      const svc = new MamClientService(config as any);
+      const svc = new TrackerService(config as any);
       expect(svc.isConfigured()).toBe(false);
     });
   });
@@ -102,14 +102,14 @@ describe('MamClientService', () => {
 
   describe('request', () => {
     it('should throw 503 when not configured', async () => {
-      const config = createMockConfigService({ MAM_CLIENT_URL: undefined });
-      const svc = new MamClientService(config as any);
+      const config = createMockConfigService({ TRACKER_CLIENT_URL: undefined });
+      const svc = new TrackerService(config as any);
 
-      await expect(svc.search({ query: 'test' } as any)).rejects.toThrow(
+      await expect(svc.search({ query: 'test' })).rejects.toThrow(
         HttpException,
       );
-      await expect(svc.search({ query: 'test' } as any)).rejects.toThrow(
-        'MAM client not configured',
+      await expect(svc.search({ query: 'test' })).rejects.toThrow(
+        'Tracker client not configured',
       );
     });
 
@@ -137,23 +137,41 @@ describe('MamClientService', () => {
   // ===== search =====
 
   describe('search', () => {
-    it('should default main_cat to [13, 14]', async () => {
-      mockFetch.mockResolvedValueOnce(mockResponse({ results: [] }));
+    it('should default categories to [audiobook, ebook]', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ results: [], total: 0 }));
 
-      await service.search({ query: 'audiobooks' } as any);
+      await service.search({ query: 'audiobooks' });
 
       const calledBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
-      expect(calledBody.tor.main_cat).toEqual([13, 14]);
-      expect(calledBody.description).toBe(true);
+      expect(calledBody.query).toBe('audiobooks');
+      expect(calledBody.categories).toEqual(['audiobook', 'ebook']);
     });
 
-    it('should pass custom main_cat when provided', async () => {
-      mockFetch.mockResolvedValueOnce(mockResponse({ results: [] }));
+    it('should pass custom categories when provided', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ results: [], total: 0 }));
 
-      await service.search({ query: 'test', main_cat: [13] } as any);
+      await service.search({ query: 'test', categories: ['audiobook'] });
 
       const calledBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
-      expect(calledBody.tor.main_cat).toEqual([13]);
+      expect(calledBody.categories).toEqual(['audiobook']);
+    });
+
+    it('should forward pagination and filter params', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ results: [], total: 0 }));
+
+      await service.search({
+        query: 'test',
+        perPage: 50,
+        offset: 25,
+        searchIn: ['title'],
+        languages: [1, 40],
+      });
+
+      const calledBody = JSON.parse(mockFetch.mock.calls[0][1].body as string);
+      expect(calledBody.perPage).toBe(50);
+      expect(calledBody.offset).toBe(25);
+      expect(calledBody.searchIn).toEqual(['title']);
+      expect(calledBody.languages).toEqual([1, 40]);
     });
   });
 
@@ -166,7 +184,7 @@ describe('MamClientService', () => {
       await service.download('12345');
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://mam:3000/download/12345',
+        'http://tracker:3000/download/12345',
         expect.objectContaining({ method: 'POST' }),
       );
     });
@@ -183,7 +201,7 @@ describe('MamClientService', () => {
       await service.getTorrentStatus('abc123');
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://mam:3000/torrent/abc123',
+        'http://tracker:3000/torrent/abc123',
         expect.objectContaining({ method: 'GET' }),
       );
     });
@@ -198,7 +216,7 @@ describe('MamClientService', () => {
       await service.getBulkTorrentStatus(['hash1', 'hash2', 'hash3']);
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://mam:3000/torrents?hashes=hash1,hash2,hash3',
+        'http://tracker:3000/torrents?hashes=hash1,hash2,hash3',
         expect.objectContaining({ method: 'GET' }),
       );
     });
@@ -208,8 +226,8 @@ describe('MamClientService', () => {
 
   describe('proxyImage', () => {
     it('should throw 503 when not configured', async () => {
-      const config = createMockConfigService({ MAM_CLIENT_URL: undefined });
-      const svc = new MamClientService(config as any);
+      const config = createMockConfigService({ TRACKER_CLIENT_URL: undefined });
+      const svc = new TrackerService(config as any);
       const res = createMockRes();
 
       await expect(svc.proxyImage('123', res as any)).rejects.toThrow(
@@ -299,7 +317,7 @@ describe('MamClientService', () => {
       const result = await service.healthCheck();
 
       expect(result).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith('http://mam:3000/health');
+      expect(mockFetch).toHaveBeenCalledWith('http://tracker:3000/health');
     });
 
     it('should return false on error', async () => {
@@ -314,6 +332,6 @@ describe('MamClientService', () => {
 
 function svc_getTorrentStatus(hash: string) {
   const config = createMockConfigService();
-  const svc = new MamClientService(config as any);
+  const svc = new TrackerService(config as any);
   return svc.getTorrentStatus(hash);
 }

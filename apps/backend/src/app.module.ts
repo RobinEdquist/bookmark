@@ -30,7 +30,7 @@ import { ApiKeysModule } from './api-keys/api-keys.module';
 import { PeopleModule } from './people/people.module';
 import { RestoreModule } from './restore/restore.module';
 import { HealthModule } from './health/health.module';
-import { MamClientModule } from './mam-client';
+import { TrackerModule } from './tracker';
 import { RequestsModule } from './requests';
 import { ListsModule } from './lists/lists.module';
 import { GrFinderModule } from './gr-finder/gr-finder.module';
@@ -148,7 +148,7 @@ import { CommonModule } from './common/common.module';
     PeopleModule,
     RestoreModule,
     HealthModule,
-    MamClientModule,
+    TrackerModule,
     RequestsModule,
     ListsModule,
     GrFinderModule,

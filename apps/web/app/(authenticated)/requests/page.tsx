@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui
 import { Tabs as ContentTypeTabs, TabsList as ContentTypeTabsList, TabsTrigger as ContentTypeTabsTrigger } from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { cn } from "@repo/ui/lib/utils";
-import { useSearchMam, useMyRequests, useCreateRequest, useSupportRequest, useLibrarySearch, type SearchFilters, type MamSearchResult, type RequestResponse } from "../../../lib/use-requests";
+import { useTrackerSearch, useMyRequests, useCreateRequest, useSupportRequest, useLibrarySearch, type SearchFilters, type TrackerSearchResult, type RequestResponse } from "../../../lib/use-requests";
 import { LibraryMatchesSection } from "../../../components/requests/library-matches-section";
 import { useAutoApproveBudget } from "../../../lib/use-auto-approve-budget";
 import { RequestSearchResults } from "../../../components/requests/request-search-results";
@@ -49,10 +49,10 @@ export default function RequestsPage() {
   }, [contentType]);
 
   // Local state for search results (to update without re-fetching from external API)
-  const [localSearchResults, setLocalSearchResults] = useState<MamSearchResult[]>([]);
+  const [localSearchResults, setLocalSearchResults] = useState<TrackerSearchResult[]>([]);
   const [librarySearchQuery, setLibrarySearchQuery] = useState("");
 
-  const { search, isSearching, data: searchResults } = useSearchMam();
+  const { search, isSearching, data: searchResults } = useTrackerSearch();
   const { data: myRequests, isLoading: requestsLoading } = useMyRequests();
   const { createRequest, isCreating } = useCreateRequest();
   const { supportRequest, isSupporting } = useSupportRequest();
@@ -89,7 +89,7 @@ export default function RequestsPage() {
     // Update local search results to show "requested" status (no external API call)
     setLocalSearchResults((prev) =>
       prev.map((result) =>
-        result.id === item.mamTorrentId
+        result.id === item.torrentId
           ? { ...result, existingRequestId: newRequest.id, existingRequestStatus: "pending" as const }
           : result
       )

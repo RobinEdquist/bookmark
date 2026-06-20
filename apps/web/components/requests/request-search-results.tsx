@@ -9,15 +9,15 @@ import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
-import type { MamSearchResult, ContentType } from "../../lib/use-requests";
+import type { TrackerSearchResult, ContentType } from "../../lib/use-requests";
 import { RequestDetailPanel } from "./request-detail-panel";
 import { getCategoryColor, formatCategoryName } from "./category-colors";
 
 interface RequestSearchResultsProps {
-  results: MamSearchResult[];
+  results: TrackerSearchResult[];
   isLoading: boolean;
   onRequest: (item: {
-    mamTorrentId: number;
+    torrentId: number;
     title: string;
     author?: string;
     narrator?: string;
@@ -25,7 +25,7 @@ interface RequestSearchResultsProps {
     description?: string;
     coverUrl?: string;
     contentType: ContentType;
-    mamCategory: number;
+    categoryId: number;
   }) => void;
   onSupport: (requestId: string) => void;
   isRequesting: boolean;
@@ -78,14 +78,14 @@ export function RequestSearchResults({
     );
   }
 
-  const handleRequest = (item: MamSearchResult) => {
+  const handleRequest = (item: TrackerSearchResult) => {
     // Convert series to string for the request (join series names)
     const seriesString = item.series
       ?.map((s) => (s.number ? `${s.name} #${s.number}` : s.name))
       .join(", ");
 
     onRequest({
-      mamTorrentId: item.id,
+      torrentId: item.id,
       title: item.title,
       author: item.author ?? undefined,
       narrator: item.narrator ?? undefined,
@@ -93,7 +93,7 @@ export function RequestSearchResults({
       description: item.description ?? undefined,
       coverUrl: item.coverUrl ?? undefined,
       contentType: item.contentType,
-      mamCategory: item.mamCategory,
+      categoryId: item.categoryId,
     });
   };
 

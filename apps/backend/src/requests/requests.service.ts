@@ -13,14 +13,14 @@ import * as requestsSchema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as authSchema from '../auth/schema';
-import { MamClientService } from '../mam-client';
+import { TrackerService } from '../tracker';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import {
   CreateRequestDto,
   RejectRequestDto,
   RequestResponseDto,
-  MamSearchResultDto,
-  SearchMamResponseDto,
+  TrackerSearchResultDto,
+  TrackerSearchResultsDto,
 } from './dto';
 import { RequestStatus, ContentType } from './schema';
 
@@ -29,6 +29,10 @@ type CombinedSchema = typeof requestsSchema &
   typeof ebooksSchema &
   typeof authSchema;
 
+// Tracker category id for comics/graphic novels. Requests in this category are
+// routed to the dedicated comics download-client category on approval.
+const COMICS_CATEGORY_ID = 61;
+
 @Injectable()
 export class RequestsService {
   private readonly logger = new Logger(RequestsService.name);
@@ -36,109 +40,9 @@ export class RequestsService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<CombinedSchema>,
-    private mamClient: MamClientService,
+    private tracker: TrackerService,
     private appSettingsService: AppSettingsService,
   ) {}
-
-  /**
-   * Parse MAM info fields (author_info, narrator_info, series_info)
-   * These come as JSON objects like {"111371":"Author Name"} or "{}"
-   * Returns comma-separated names or null if empty
-   */
-  private parseMamInfoField(
-    infoField: string | null | undefined,
-  ): string | null {
-    if (!infoField || infoField === '{}') {
-      return null;
-    }
-
-    try {
-      const parsed = JSON.parse(infoField);
-      if (typeof parsed === 'object' && parsed !== null) {
-        const values = Object.values(parsed) as string[];
-        if (values.length === 0) {
-          return null;
-        }
-        // Decode HTML entities and join multiple values
-        return values.map((v) => this.decodeHtmlEntities(v)).join(', ');
-      }
-      return null;
-    } catch {
-      // If not valid JSON, return as-is after decoding
-      return this.decodeHtmlEntities(infoField);
-    }
-  }
-
-  /**
-   * Decode common HTML entities
-   */
-  private decodeHtmlEntities(text: string): string {
-    return text
-      .replace(/&#039;/g, "'")
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>')
-      .replace(/&#160;/g, ' ')
-      .replace(/&nbsp;/g, ' ');
-  }
-
-  /**
-   * Parse MAM series_info field
-   * Format: {"seriesId": ["Series Name", "bookNumber", orderIndex]}
-   * Example: {"1812":["Harry Potter","1",1]}
-   * Returns array of SeriesInfo objects
-   */
-  private parseMamSeriesField(
-    seriesInfo: string | null | undefined,
-  ): { name: string; number: string | null }[] | null {
-    if (!seriesInfo || seriesInfo === '{}') {
-      return null;
-    }
-
-    try {
-      const parsed = JSON.parse(seriesInfo);
-      if (typeof parsed === 'object' && parsed !== null) {
-        const series: { name: string; number: string | null }[] = [];
-        for (const value of Object.values(parsed)) {
-          if (Array.isArray(value) && value.length >= 1) {
-            const name = this.decodeHtmlEntities(String(value[0]));
-            const number =
-              value.length >= 2 && value[1] ? String(value[1]) : null;
-            series.push({ name, number });
-          }
-        }
-        return series.length > 0 ? series : null;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-
-  /**
-   * Clean description - decode HTML entities but preserve HTML tags for rendering
-   * Also rewrites MAM gateway image URLs to direct URLs
-   */
-  private cleanDescription(
-    description: string | null | undefined,
-  ): string | null {
-    if (!description) {
-      return null;
-    }
-
-    let cleaned = this.decodeHtmlEntities(description);
-
-    // Rewrite MAM gateway image URLs to direct URLs
-    // Pattern: https://www.myanonamouse.net/imageBucket.php/[hash]/[filename]
-    // These should be rewritten to remove the gateway
-    cleaned = cleaned.replace(
-      /https?:\/\/www\.myanonamouse\.net\/imageBucket\.php\/([a-f0-9]+)\/([^"'\s>]+)/gi,
-      'https://www.myanonamouse.net/imageBucket.php/$1/$2',
-    );
-
-    return cleaned;
-  }
 
   async search(
     query: string,
@@ -148,48 +52,47 @@ export class RequestsService {
     contentType: 'all' | 'audiobooks' | 'ebooks' = 'all',
     searchIn?: string[],
     languages?: number[],
-  ): Promise<SearchMamResponseDto> {
-    // Map contentType to main_cat
-    let mainCat: number[];
+  ): Promise<TrackerSearchResultsDto> {
+    // Map contentType to tracker content-type ids
+    let categories: string[];
     switch (contentType) {
       case 'audiobooks':
-        mainCat = [13];
+        categories = ['audiobook'];
         break;
       case 'ebooks':
-        mainCat = [14];
+        categories = ['ebook'];
         break;
       default:
-        mainCat = [13, 14];
+        categories = ['audiobook', 'ebook'];
     }
 
-    const mamResponse = await this.mamClient.search({
-      text: query,
-      perpage: perPage,
-      startNumber: offset,
-      main_cat: mainCat,
-      srchIn: searchIn?.length ? searchIn : undefined,
-      browse_lang: languages?.length ? languages : undefined,
+    const response = await this.tracker.search({
+      query,
+      perPage,
+      offset,
+      categories,
+      searchIn: searchIn?.length ? searchIn : undefined,
+      languages: languages?.length ? languages : undefined,
     });
 
-    // MAM returns `data: null` when there are no results — normalize to an empty array.
-    const torrents = mamResponse.data ?? [];
+    const torrents = response.results ?? [];
 
-    // Get MAM torrent IDs to check for existing requests (convert to strings for DB query)
-    const mamIdStrings = torrents.map((t) => String(t.id));
+    // Get torrent IDs to check for existing requests (convert to strings for DB query)
+    const torrentIdStrings = torrents.map((t) => String(t.id));
 
     // Fetch existing requests for these torrents
     const existingRequests =
-      mamIdStrings.length > 0
+      torrentIdStrings.length > 0
         ? await this.db
             .select({
-              mamTorrentId: requestsSchema.requests.mamTorrentId,
+              torrentId: requestsSchema.requests.torrentId,
               id: requestsSchema.requests.id,
               status: requestsSchema.requests.status,
             })
             .from(requestsSchema.requests)
             .where(
               and(
-                inArray(requestsSchema.requests.mamTorrentId, mamIdStrings),
+                inArray(requestsSchema.requests.torrentId, torrentIdStrings),
                 or(
                   eq(requestsSchema.requests.status, 'pending'),
                   eq(requestsSchema.requests.status, 'approved'),
@@ -199,32 +102,32 @@ export class RequestsService {
             )
         : [];
 
-    const requestMap = new Map(
-      existingRequests.map((r) => [r.mamTorrentId, r]),
-    );
+    const requestMap = new Map(existingRequests.map((r) => [r.torrentId, r]));
 
-    // Map results
-    const results: MamSearchResultDto[] = torrents.map((torrent) => {
+    // Map results (already parsed and cleaned by the tracker client)
+    const results: TrackerSearchResultDto[] = torrents.map((torrent) => {
       const existing = requestMap.get(String(torrent.id));
-      const contentType: ContentType =
-        torrent.main_cat === 13 ? 'audiobook' : 'ebook';
 
       return {
         id: torrent.id,
-        title: this.decodeHtmlEntities(torrent.title),
-        author: this.parseMamInfoField(torrent.author_info),
-        narrator: this.parseMamInfoField(torrent.narrator_info),
-        series: this.parseMamSeriesField(torrent.series_info),
-        description: this.cleanDescription(torrent.description),
-        coverUrl: `/api/requests/mam-image/${torrent.id}`,
-        contentType,
-        category: torrent.catname || '',
-        mamCategory: torrent.category,
-        size: torrent.size,
-        language: torrent.lang_code,
-        fileType: torrent.filetype,
-        tags: Array.isArray(torrent.tags) ? torrent.tags : [],
-        addedDate: torrent.added,
+        title: torrent.title,
+        author: torrent.author ?? null,
+        narrator: torrent.narrator ?? null,
+        series:
+          torrent.series?.map((s) => ({
+            name: s.name,
+            number: s.number ?? null,
+          })) ?? null,
+        description: torrent.description ?? null,
+        coverUrl: `/api/requests/cover/${torrent.id}`,
+        contentType: torrent.contentType,
+        category: torrent.categoryName || '',
+        categoryId: torrent.categoryId,
+        size: torrent.size ?? '',
+        language: torrent.language ?? '',
+        fileType: torrent.fileType ?? '',
+        tags: torrent.tags ?? [],
+        addedDate: torrent.addedDate ?? '',
         existingRequestId: existing?.id ?? null,
         existingRequestStatus: existing?.status ?? null,
         inLibrary: false, // TODO: Check if in library by title/author matching
@@ -234,7 +137,7 @@ export class RequestsService {
 
     return {
       results,
-      total: mamResponse.total_found ?? 0,
+      total: response.total ?? 0,
     };
   }
 
@@ -243,7 +146,7 @@ export class RequestsService {
     userId: string,
   ): Promise<RequestResponseDto> {
     // Convert number to string for DB storage
-    const mamTorrentIdStr = String(dto.mamTorrentId);
+    const torrentIdStr = String(dto.torrentId);
 
     // Check for existing active request
     const existing = await this.db
@@ -251,7 +154,7 @@ export class RequestsService {
       .from(requestsSchema.requests)
       .where(
         and(
-          eq(requestsSchema.requests.mamTorrentId, mamTorrentIdStr),
+          eq(requestsSchema.requests.torrentId, torrentIdStr),
           or(
             eq(requestsSchema.requests.status, 'pending'),
             eq(requestsSchema.requests.status, 'approved'),
@@ -279,7 +182,7 @@ export class RequestsService {
       .insert(requestsSchema.requests)
       .values({
         userId,
-        mamTorrentId: mamTorrentIdStr,
+        torrentId: torrentIdStr,
         title: dto.title,
         author: dto.author,
         narrator: dto.narrator,
@@ -287,7 +190,7 @@ export class RequestsService {
         description: dto.description,
         coverUrl: dto.coverUrl,
         contentType: dto.contentType,
-        mamCategory: dto.mamCategory,
+        categoryId: dto.categoryId,
       })
       .returning();
 
@@ -439,10 +342,9 @@ export class RequestsService {
     // Get configurable category names from settings
     const categories = await this.appSettingsService.getRequestsCategories();
 
-    // Determine qBittorrent category based on content type and MAM category
-    // MAM category 61 = "Ebooks - Comics/Graphic novels"
+    // Determine download-client category based on content type and tracker category
     let category: string;
-    if (request.mamCategory === 61) {
+    if (request.categoryId === COMICS_CATEGORY_ID) {
       category = categories.comics;
     } else if (request.contentType === 'audiobook') {
       category = categories.audiobook;
@@ -454,14 +356,14 @@ export class RequestsService {
     const settings = await this.appSettingsService.getSettings();
     const usePersonalFL = settings.requestsUseFreeleech;
 
-    // Start download via MAM client
-    const downloadResult = await this.mamClient.download(request.mamTorrentId, {
+    // Start download via tracker client
+    const downloadResult = await this.tracker.download(request.torrentId, {
       category,
       usePersonalFL: usePersonalFL || undefined,
     });
 
     // Get torrent info to cache folder name
-    const torrentStatus = await this.mamClient.getTorrentStatus(
+    const torrentStatus = await this.tracker.getTorrentStatus(
       downloadResult.hash,
     );
 
@@ -522,7 +424,7 @@ export class RequestsService {
     if (hashes.length === 0) return;
 
     try {
-      const statuses = await this.mamClient.getBulkTorrentStatus(hashes);
+      const statuses = await this.tracker.getBulkTorrentStatus(hashes);
 
       for (const torrentStatus of statuses.torrents) {
         const request = activeRequests.find(
@@ -532,7 +434,7 @@ export class RequestsService {
 
         let newStatus: RequestStatus | null = null;
 
-        // qBittorrent has many states (downloading, stalledDL, uploading, stalledUP, etc.)
+        // The download client has many states (downloading, stalledDL, uploading, stalledUP, etc.)
         // We only care about 'not_found' - all other states mean the torrent exists
         // Transition to 'complete' happens via import matcher when file is imported
         const state = torrentStatus.state;
@@ -652,7 +554,7 @@ export class RequestsService {
       userId: request.userId,
       userEmail: user?.email ?? 'Unknown',
       status: request.status,
-      mamTorrentId: request.mamTorrentId,
+      torrentId: request.torrentId,
       title: request.title,
       author: request.author,
       narrator: request.narrator,

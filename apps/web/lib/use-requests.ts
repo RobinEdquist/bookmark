@@ -17,7 +17,7 @@ export interface RequestResponse {
   userId: string;
   userEmail: string;
   status: RequestStatus;
-  mamTorrentId: string;
+  torrentId: string;
   title: string;
   author: string | null;
   narrator: string | null;
@@ -36,7 +36,7 @@ export interface RequestResponse {
   updatedAt: string;
 }
 
-export interface MamSearchResult {
+export interface TrackerSearchResult {
   id: number;
   title: string;
   author: string | null;
@@ -46,7 +46,7 @@ export interface MamSearchResult {
   coverUrl: string | null;
   contentType: ContentType;
   category: string;
-  mamCategory: number;
+  categoryId: number;
   size: string;
   language: string;
   fileType: string;
@@ -58,8 +58,8 @@ export interface MamSearchResult {
   libraryItemId: string | null;
 }
 
-export interface SearchMamResponse {
-  results: MamSearchResult[];
+export interface TrackerSearchResponse {
+  results: TrackerSearchResult[];
   total: number;
 }
 
@@ -90,7 +90,7 @@ export interface LibrarySearchResponse {
 }
 
 // API functions
-async function searchMam(query: string, filters?: SearchFilters): Promise<SearchMamResponse> {
+async function searchTracker(query: string, filters?: SearchFilters): Promise<TrackerSearchResponse> {
   const response = await fetch("/api/requests/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -126,7 +126,7 @@ async function fetchMyRequests(): Promise<RequestResponse[]> {
 }
 
 interface CreateRequestParams {
-  mamTorrentId: number;
+  torrentId: number;
   title: string;
   author?: string;
   narrator?: string;
@@ -134,7 +134,7 @@ interface CreateRequestParams {
   description?: string;
   coverUrl?: string;
   contentType: ContentType;
-  mamCategory: number;
+  categoryId: number;
 }
 
 async function createRequest(params: CreateRequestParams): Promise<RequestResponse> {
@@ -238,10 +238,10 @@ async function rejectRequest(requestId: string, reason?: string): Promise<Reques
 }
 
 // Hooks
-export function useSearchMam() {
+export function useTrackerSearch() {
   const mutation = useMutation({
     mutationFn: ({ query, filters }: { query: string; filters?: SearchFilters }) =>
-      searchMam(query, filters),
+      searchTracker(query, filters),
   });
 
   return {

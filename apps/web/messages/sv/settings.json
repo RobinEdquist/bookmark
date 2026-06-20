@@ -363,11 +363,11 @@
       "toggle": {
         "label": "Aktivera innehållsförfrågningar",
         "description": "Tillåt användare att söka och begära nytt innehåll från externa källor",
-        "disabledTooltip": "Kräver att miljövariablerna MAM_CLIENT_URL och MAM_CLIENT_API_KEY är konfigurerade"
+        "disabledTooltip": "Kräver att miljövariablerna TRACKER_CLIENT_URL och TRACKER_CLIENT_API_KEY är konfigurerade"
       },
       "warning": {
         "title": "Konfiguration krävs",
-        "description": "Innehållsförfrågningar kräver att miljövariablerna MAM_CLIENT_URL och MAM_CLIENT_API_KEY är konfigurerade. Sätt dessa i din miljö för att aktivera funktionen."
+        "description": "Innehållsförfrågningar kräver att miljövariablerna TRACKER_CLIENT_URL och TRACKER_CLIENT_API_KEY är konfigurerade. Sätt dessa i din miljö för att aktivera funktionen."
       },
       "toast": {
         "enabled": "Innehållsförfrågningar aktiverade",

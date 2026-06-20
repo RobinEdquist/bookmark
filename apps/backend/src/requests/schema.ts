@@ -32,7 +32,7 @@ export const requests = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     status: text('status').$type<RequestStatus>().notNull().default('pending'),
-    mamTorrentId: text('mam_torrent_id').notNull(),
+    torrentId: text('torrent_id').notNull(),
     torrentHash: text('torrent_hash'),
     folderName: text('folder_name'),
     title: text('title').notNull(),
@@ -42,7 +42,7 @@ export const requests = pgTable(
     description: text('description'),
     coverUrl: text('cover_url'),
     contentType: text('content_type').$type<ContentType>().notNull(),
-    mamCategory: integer('mam_category').notNull(),
+    categoryId: integer('category_id').notNull(),
     rejectionReason: text('rejection_reason'),
     libraryItemId: uuid('library_item_id'),
     libraryItemType: text('library_item_type').$type<ContentType>(),
@@ -60,7 +60,7 @@ export const requests = pgTable(
     index('requests_status_idx').on(table.status),
     index('requests_user_id_idx').on(table.userId),
     index('requests_folder_name_idx').on(table.folderName),
-    index('requests_mam_torrent_id_idx').on(table.mamTorrentId),
+    index('requests_torrent_id_idx').on(table.torrentId),
   ],
 );
 

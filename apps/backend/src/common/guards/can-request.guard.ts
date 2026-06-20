@@ -10,7 +10,7 @@ import { eq } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../../database/database-connection.constants';
 import * as appSettingsSchema from '../../app-settings/schema';
 import * as usersSchema from '../../users/schema';
-import { MamClientService } from '../../mam-client';
+import { TrackerService } from '../../tracker';
 import { getAuthenticatedUser } from './auth.guard';
 
 type CombinedSchema = typeof appSettingsSchema & typeof usersSchema;
@@ -20,7 +20,7 @@ export class CanRequestGuard implements CanActivate {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<CombinedSchema>,
-    private mamClient: MamClientService,
+    private tracker: TrackerService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -31,8 +31,8 @@ export class CanRequestGuard implements CanActivate {
       throw new ForbiddenException('Not authenticated');
     }
 
-    // Check if MAM client is configured
-    if (!this.mamClient.isConfigured()) {
+    // Check if tracker client is configured
+    if (!this.tracker.isConfigured()) {
       throw new ForbiddenException('Content requests are not configured');
     }
 

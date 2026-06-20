@@ -26,7 +26,7 @@ export class ContentRequestDto {
   status!: 'pending' | 'approved' | 'rejected' | 'fulfilled';
 
   @ApiProperty({ example: '12345' })
-  mamTorrentId!: string;
+  torrentId!: string;
 
   @ApiProperty({ example: 'The Way of Kings' })
   title!: string;
@@ -89,7 +89,7 @@ export class ContentRequestDto {
   updatedAt!: string;
 }
 
-export class MamSearchResultItemDto {
+export class TrackerSearchResultItemDto {
   @ApiProperty({ example: 12345 })
   id!: number;
 
@@ -121,7 +121,7 @@ export class MamSearchResultItemDto {
   category!: string;
 
   @ApiProperty({ example: 13 })
-  mamCategory!: number;
+  categoryId!: number;
 
   @ApiProperty({ example: '2.5 GB' })
   size!: string;
@@ -165,9 +165,9 @@ export class MamSearchResultItemDto {
   libraryItemId?: string | null;
 }
 
-export class MamSearchResponseDto {
-  @ApiProperty({ type: [MamSearchResultItemDto] })
-  results!: MamSearchResultItemDto[];
+export class TrackerSearchResponseDto {
+  @ApiProperty({ type: [TrackerSearchResultItemDto] })
+  results!: TrackerSearchResultItemDto[];
 
   @ApiProperty({ example: 25 })
   total!: number;
@@ -212,7 +212,7 @@ export interface RequestResponseDto {
   userId: string;
   userEmail: string;
   status: RequestStatus;
-  mamTorrentId: string;
+  torrentId: string;
   title: string;
   author: string | null;
   narrator: string | null;
@@ -231,7 +231,7 @@ export interface RequestResponseDto {
   updatedAt: string;
 }
 
-export interface MamSearchResultDto {
+export interface TrackerSearchResultDto {
   id: number;
   title: string;
   author: string | null;
@@ -241,7 +241,7 @@ export interface MamSearchResultDto {
   coverUrl: string | null;
   contentType: 'audiobook' | 'ebook';
   category: string;
-  mamCategory: number;
+  categoryId: number;
   size: string;
   language: string;
   fileType: string;
@@ -253,7 +253,7 @@ export interface MamSearchResultDto {
   libraryItemId: string | null;
 }
 
-export interface SearchMamResponseDto {
-  results: MamSearchResultDto[];
+export interface TrackerSearchResultsDto {
+  results: TrackerSearchResultDto[];
   total: number;
 }

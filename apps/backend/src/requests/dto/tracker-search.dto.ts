@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
-export class SearchMamDto {
+export class TrackerSearchDto {
   @ApiProperty({
     description: 'Search query string',
     example: 'Brandon Sanderson',

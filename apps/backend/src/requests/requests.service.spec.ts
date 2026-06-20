@@ -45,7 +45,7 @@ function buildRequest(overrides: Partial<Record<string, any>> = {}) {
     id: 'req-1',
     userId: 'user-1',
     status: 'pending' as const,
-    mamTorrentId: '12345',
+    torrentId: '12345',
     torrentHash: null,
     folderName: null,
     title: 'Test Audiobook',
@@ -55,7 +55,7 @@ function buildRequest(overrides: Partial<Record<string, any>> = {}) {
     description: 'A test description',
     coverUrl: null,
     contentType: 'audiobook' as const,
-    mamCategory: 13,
+    categoryId: 13,
     rejectionReason: null,
     libraryItemId: null,
     libraryItemType: null,
@@ -66,13 +66,34 @@ function buildRequest(overrides: Partial<Record<string, any>> = {}) {
   };
 }
 
-function createMockMamClient() {
+// Build a single tracker search result (already parsed/cleaned by the client).
+function buildTrackerResult(overrides: Record<string, any> = {}) {
+  return {
+    id: 1,
+    title: 'Book',
+    author: null,
+    narrator: null,
+    series: null,
+    description: null,
+    contentType: 'audiobook' as const,
+    categoryId: 13,
+    categoryName: 'Audiobooks',
+    size: '1 GB',
+    language: 'English',
+    fileType: 'M4B',
+    tags: [],
+    addedDate: '2024-01-01',
+    ...overrides,
+  };
+}
+
+function createMockTracker() {
   return {
     search: jest.fn(),
     download: jest.fn(),
     getTorrentStatus: jest.fn(),
     getBulkTorrentStatus: jest.fn(),
-    getImage: jest.fn(),
+    proxyImage: jest.fn(),
   } as any;
 }
 
@@ -127,7 +148,7 @@ describe('RequestsService', () => {
       ]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -144,7 +165,7 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([[]]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -162,7 +183,7 @@ describe('RequestsService', () => {
       ]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -201,20 +222,20 @@ describe('RequestsService', () => {
 
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
       const result = await service.createRequest(
         {
-          mamTorrentId: 12345,
+          torrentId: 12345,
           title: 'Test Audiobook',
           author: 'Test Author',
           narrator: 'Test Narrator',
           description: 'A test description',
           coverUrl: null,
           contentType: 'audiobook',
-          mamCategory: 13,
+          categoryId: 13,
         } as any,
         'user-1',
       );
@@ -228,17 +249,17 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([[existing]]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
       await expect(
         service.createRequest(
           {
-            mamTorrentId: 12345,
+            torrentId: 12345,
             title: 'Test',
             contentType: 'audiobook',
-            mamCategory: 13,
+            categoryId: 13,
           } as any,
           'user-1',
         ),
@@ -274,16 +295,16 @@ describe('RequestsService', () => {
 
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
       const result = await service.createRequest(
         {
-          mamTorrentId: 12345,
+          torrentId: 12345,
           title: 'Test',
           contentType: 'audiobook',
-          mamCategory: 13,
+          categoryId: 13,
         } as any,
         'user-1',
       );
@@ -302,9 +323,9 @@ describe('RequestsService', () => {
       const request = buildRequest({ status: 'pending' });
       const updateChain = chainMock([]);
 
-      const mamClient = createMockMamClient();
-      mamClient.download.mockResolvedValue({ hash: 'abc123' });
-      mamClient.getTorrentStatus.mockResolvedValue({
+      const tracker = createMockTracker();
+      tracker.download.mockResolvedValue({ hash: 'abc123' });
+      tracker.getTorrentStatus.mockResolvedValue({
         hash: 'abc123',
         name: 'Test Folder',
         state: 'downloading',
@@ -331,15 +352,11 @@ describe('RequestsService', () => {
         },
       );
 
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
+      const service = new RequestsService(db, tracker, createMockAppSettings());
 
       const result = await service.approveRequest('req-1');
 
-      expect(mamClient.download).toHaveBeenCalledWith('12345', {
+      expect(tracker.download).toHaveBeenCalledWith('12345', {
         category: 'audiobooks',
         usePersonalFL: undefined,
       });
@@ -352,7 +369,7 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([[request]]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -365,7 +382,7 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([[]]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -374,17 +391,17 @@ describe('RequestsService', () => {
       );
     });
 
-    it('uses comics category for mamCategory 61', async () => {
+    it('uses comics category for categoryId 61', async () => {
       const request = buildRequest({
         status: 'pending',
-        mamCategory: 61,
+        categoryId: 61,
         contentType: 'ebook',
       });
       const updateChain = chainMock([]);
 
-      const mamClient = createMockMamClient();
-      mamClient.download.mockResolvedValue({ hash: 'abc123' });
-      mamClient.getTorrentStatus.mockResolvedValue({
+      const tracker = createMockTracker();
+      tracker.download.mockResolvedValue({ hash: 'abc123' });
+      tracker.getTorrentStatus.mockResolvedValue({
         hash: 'abc123',
         name: 'Comic Folder',
         state: 'downloading',
@@ -400,15 +417,11 @@ describe('RequestsService', () => {
         { update: jest.fn().mockReturnValue(updateChain) },
       );
 
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
+      const service = new RequestsService(db, tracker, createMockAppSettings());
 
       await service.approveRequest('req-1');
 
-      expect(mamClient.download).toHaveBeenCalledWith(
+      expect(tracker.download).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ category: 'comics' }),
       );
@@ -418,13 +431,13 @@ describe('RequestsService', () => {
       const request = buildRequest({
         status: 'pending',
         contentType: 'ebook',
-        mamCategory: 14,
+        categoryId: 14,
       });
       const updateChain = chainMock([]);
 
-      const mamClient = createMockMamClient();
-      mamClient.download.mockResolvedValue({ hash: 'abc123' });
-      mamClient.getTorrentStatus.mockResolvedValue({
+      const tracker = createMockTracker();
+      tracker.download.mockResolvedValue({ hash: 'abc123' });
+      tracker.getTorrentStatus.mockResolvedValue({
         hash: 'abc123',
         name: 'Ebook Folder',
         state: 'downloading',
@@ -440,15 +453,11 @@ describe('RequestsService', () => {
         { update: jest.fn().mockReturnValue(updateChain) },
       );
 
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
+      const service = new RequestsService(db, tracker, createMockAppSettings());
 
       await service.approveRequest('req-1');
 
-      expect(mamClient.download).toHaveBeenCalledWith(
+      expect(tracker.download).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ category: 'books' }),
       );
@@ -458,9 +467,9 @@ describe('RequestsService', () => {
       const request = buildRequest({ status: 'pending' });
       const updateChain = chainMock([]);
 
-      const mamClient = createMockMamClient();
-      mamClient.download.mockResolvedValue({ hash: 'abc123' });
-      mamClient.getTorrentStatus.mockResolvedValue({
+      const tracker = createMockTracker();
+      tracker.download.mockResolvedValue({ hash: 'abc123' });
+      tracker.getTorrentStatus.mockResolvedValue({
         hash: 'abc123',
         name: 'Folder',
         state: 'downloading',
@@ -478,13 +487,13 @@ describe('RequestsService', () => {
 
       const service = new RequestsService(
         db,
-        mamClient,
+        tracker,
         createMockAppSettings({ requestsUseFreeleech: true }),
       );
 
       await service.approveRequest('req-1');
 
-      expect(mamClient.download).toHaveBeenCalledWith(
+      expect(tracker.download).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({ usePersonalFL: true }),
       );
@@ -515,7 +524,7 @@ describe('RequestsService', () => {
 
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -542,7 +551,7 @@ describe('RequestsService', () => {
 
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -559,7 +568,7 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([[request]]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -572,7 +581,7 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([[]]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -590,7 +599,7 @@ describe('RequestsService', () => {
       const db = createMockDb();
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings({ autoApproveRequestsPerWeek: 0 }),
       );
 
@@ -607,7 +616,7 @@ describe('RequestsService', () => {
 
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings({ autoApproveRequestsPerWeek: 5 }),
       );
 
@@ -632,7 +641,7 @@ describe('RequestsService', () => {
 
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -647,7 +656,7 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([[]]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -674,7 +683,7 @@ describe('RequestsService', () => {
 
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -696,7 +705,7 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([[]]);
       const service = new RequestsService(
         db,
-        createMockMamClient(),
+        createMockTracker(),
         createMockAppSettings(),
       );
 
@@ -711,249 +720,111 @@ describe('RequestsService', () => {
   });
 
   // -----------------------------------------------------------------------
-  // parseMamInfoField (private, tested via search result mapping)
+  // search - maps the tracker client's pre-parsed results through
   // -----------------------------------------------------------------------
-  describe('parseMamInfoField (via search)', () => {
-    it('search maps author_info JSON to author string', async () => {
-      const mamClient = createMockMamClient();
-      mamClient.search.mockResolvedValue({
-        data: [
-          {
-            id: 1,
-            title: 'Book',
-            main_cat: 13,
-            author_info: '{"111":"Brandon Sanderson"}',
-            narrator_info: null,
-            series_info: null,
-            description: null,
-            catname: 'Audiobooks',
-            category: 13,
-            size: '1 GB',
-            lang_code: 'English',
-            filetype: 'M4B',
-            tags: [],
-            added: '2024-01-01',
-          },
+  describe('search', () => {
+    it('passes through pre-parsed author, narrator and series', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [
+          buildTrackerResult({
+            author: 'Brandon Sanderson',
+            narrator: 'Michael Kramer',
+            series: [{ name: 'Harry Potter', number: '1' }],
+          }),
         ],
-        total_found: 1,
+        total: 1,
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
+      const service = new RequestsService(db, tracker, createMockAppSettings());
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
       expect(result.results[0].author).toBe('Brandon Sanderson');
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // decodeHtmlEntities (private, tested via search)
-  // -----------------------------------------------------------------------
-  describe('decodeHtmlEntities (via search)', () => {
-    it('decodes HTML entities in titles', async () => {
-      const mamClient = createMockMamClient();
-      mamClient.search.mockResolvedValue({
-        data: [
-          {
-            id: 1,
-            title: 'The Author&#039;s Book &amp; More',
-            main_cat: 13,
-            author_info: null,
-            narrator_info: null,
-            series_info: null,
-            description: null,
-            catname: 'Audiobooks',
-            category: 13,
-            size: '1 GB',
-            lang_code: 'English',
-            filetype: 'M4B',
-            tags: [],
-            added: '2024-01-01',
-          },
-        ],
-        total_found: 1,
-      });
-
-      const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
-
-      const result = await service.search('Book', 25, 0, 'user-1');
-
-      expect(result.results[0].title).toBe("The Author's Book & More");
-    });
-  });
-
-  // -----------------------------------------------------------------------
-  // parseMamSeriesField (private, tested via search)
-  // -----------------------------------------------------------------------
-  describe('parseMamSeriesField (via search)', () => {
-    it('parses series info from MAM format', async () => {
-      const mamClient = createMockMamClient();
-      mamClient.search.mockResolvedValue({
-        data: [
-          {
-            id: 1,
-            title: 'Book',
-            main_cat: 13,
-            author_info: null,
-            narrator_info: null,
-            series_info: '{"1812":["Harry Potter","1",1]}',
-            description: null,
-            catname: 'Audiobooks',
-            category: 13,
-            size: '1 GB',
-            lang_code: 'English',
-            filetype: 'M4B',
-            tags: [],
-            added: '2024-01-01',
-          },
-        ],
-        total_found: 1,
-      });
-
-      const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
-
-      const result = await service.search('Book', 25, 0, 'user-1');
-
+      expect(result.results[0].narrator).toBe('Michael Kramer');
       expect(result.results[0].series).toEqual([
         { name: 'Harry Potter', number: '1' },
       ]);
     });
 
-    it('returns null for empty series info', async () => {
-      const mamClient = createMockMamClient();
-      mamClient.search.mockResolvedValue({
-        data: [
-          {
-            id: 1,
-            title: 'Book',
-            main_cat: 14,
-            author_info: null,
-            narrator_info: null,
-            series_info: '{}',
-            description: null,
-            catname: 'Ebooks',
-            category: 14,
-            size: '500 MB',
-            lang_code: 'English',
-            filetype: 'EPUB',
-            tags: [],
-            added: '2024-01-01',
-          },
-        ],
-        total_found: 1,
+    it('builds the cover URL from the result id', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [buildTrackerResult({ id: 999 })],
+        total: 1,
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
+      const service = new RequestsService(db, tracker, createMockAppSettings());
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
-      expect(result.results[0].series).toBeNull();
-      expect(result.results[0].contentType).toBe('ebook');
+      expect(result.results[0].coverUrl).toBe('/api/requests/cover/999');
     });
-  });
 
-  // -----------------------------------------------------------------------
-  // search - content type mapping
-  // -----------------------------------------------------------------------
-  describe('search', () => {
-    it('maps main_cat 13 to audiobook content type', async () => {
-      const mamClient = createMockMamClient();
-      mamClient.search.mockResolvedValue({
-        data: [
-          {
-            id: 1,
-            title: 'Book',
-            main_cat: 13,
-            author_info: null,
-            narrator_info: null,
-            series_info: null,
-            description: null,
-            catname: 'Audiobooks',
-            category: 13,
-            size: '1 GB',
-            lang_code: 'English',
-            filetype: 'M4B',
-            tags: [],
-            added: '2024-01-01',
-          },
+    it('passes the result content type and category id through', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [
+          buildTrackerResult({
+            contentType: 'ebook',
+            categoryId: 14,
+            categoryName: 'Ebooks',
+          }),
         ],
-        total_found: 1,
+        total: 1,
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
+      const service = new RequestsService(db, tracker, createMockAppSettings());
 
-      const result = await service.search(
-        'Book',
-        25,
-        0,
-        'user-1',
-        'audiobooks',
-      );
+      const result = await service.search('Book', 25, 0, 'user-1');
 
-      expect(mamClient.search).toHaveBeenCalledWith(
-        expect.objectContaining({ main_cat: [13] }),
-      );
-      expect(result.results[0].contentType).toBe('audiobook');
+      expect(result.results[0].contentType).toBe('ebook');
+      expect(result.results[0].categoryId).toBe(14);
+      expect(result.results[0].category).toBe('Ebooks');
     });
 
-    it('uses main_cat [14] for ebooks content type', async () => {
-      const mamClient = createMockMamClient();
-      mamClient.search.mockResolvedValue({ data: [], total_found: 0 });
+    it('sends categories [audiobook] for audiobooks content type', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
+      const service = new RequestsService(db, tracker, createMockAppSettings());
+
+      await service.search('Book', 25, 0, 'user-1', 'audiobooks');
+
+      expect(tracker.search).toHaveBeenCalledWith(
+        expect.objectContaining({ categories: ['audiobook'] }),
       );
+    });
+
+    it('sends categories [ebook] for ebooks content type', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({ results: [], total: 0 });
+
+      const db = createSequentialSelectDb([]);
+      const service = new RequestsService(db, tracker, createMockAppSettings());
 
       await service.search('Book', 25, 0, 'user-1', 'ebooks');
 
-      expect(mamClient.search).toHaveBeenCalledWith(
-        expect.objectContaining({ main_cat: [14] }),
+      expect(tracker.search).toHaveBeenCalledWith(
+        expect.objectContaining({ categories: ['ebook'] }),
       );
     });
 
-    it('uses main_cat [13, 14] for all content type', async () => {
-      const mamClient = createMockMamClient();
-      mamClient.search.mockResolvedValue({ data: [], total_found: 0 });
+    it('sends categories [audiobook, ebook] for all content type', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(
-        db,
-        mamClient,
-        createMockAppSettings(),
-      );
+      const service = new RequestsService(db, tracker, createMockAppSettings());
 
       await service.search('Book', 25, 0, 'user-1', 'all');
 
-      expect(mamClient.search).toHaveBeenCalledWith(
-        expect.objectContaining({ main_cat: [13, 14] }),
+      expect(tracker.search).toHaveBeenCalledWith(
+        expect.objectContaining({ categories: ['audiobook', 'ebook'] }),
       );
     });
   });
