@@ -44,6 +44,7 @@ import {
   computeSortNumber,
 } from './utils/comic-filename.utils';
 import { parseMylarSeriesJson } from './utils/mylar-series-json.parser';
+import { detectComicContainer } from './utils/comic-archive.utils';
 import { selectBooksToImport } from '../comics/comic-grouping.utils';
 import { ParsedComicInfo, ComicCreatorRole } from './utils/comicinfo.parser';
 import { ImageProcessingService } from '../common/image-processing.service';
@@ -741,7 +742,7 @@ export class MediaImporterService {
         sanitizeText(info?.title) ?? sanitizeText(parsed.title) ?? null;
       // ComicInfo Format wins only when actually present in the file
       const format = info?.formatRaw ? info.format : parsed.format;
-      const container = this.resolveComicContainer(fileName);
+      const container = await this.resolveComicContainer(absolutePath);
       const sortNumber = computeSortNumber(number);
 
       const [book] = await this.db
@@ -842,8 +843,15 @@ export class MediaImporterService {
     }
   }
 
-  private resolveComicContainer(fileName: string): 'cbz' | 'cbr' | 'pdf' {
-    const ext = path.extname(fileName).toLowerCase();
+  // Resolve the container from the file's magic bytes (so a mislabeled file —
+  // e.g. a ZIP or PDF named ".cbr" — gets the correct type for downloads and
+  // reader routing), falling back to the extension when unrecognized.
+  private async resolveComicContainer(
+    absolutePath: string,
+  ): Promise<'cbz' | 'cbr' | 'pdf'> {
+    const detected = await detectComicContainer(absolutePath);
+    if (detected) return detected;
+    const ext = path.extname(absolutePath).toLowerCase();
     if (ext === '.cbr' || ext === '.rar') return 'cbr';
     if (ext === '.pdf') return 'pdf';
     return 'cbz';

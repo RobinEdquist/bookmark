@@ -5,6 +5,7 @@ import {
   readComicArchive,
   pickCoverIndex,
   readComicArchivePage,
+  detectComicContainer,
 } from '../utils/comic-archive.utils';
 import { readComicPdf, readComicPdfPage } from '../utils/comic-pdf.utils';
 import { parseComicInfoXml, ParsedComicInfo } from '../utils/comicinfo.parser';
@@ -41,14 +42,19 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   '.avif': 'image/avif',
 };
 
-function isPdf(filePath: string): boolean {
+// Route by content, not extension: a PDF named ".cbr" must still be read as a
+// PDF (and a real archive named ".pdf" as an archive). Fall back to the
+// extension only when the bytes are unrecognized.
+async function isPdf(filePath: string): Promise<boolean> {
+  const detected = await detectComicContainer(filePath);
+  if (detected) return detected === 'pdf';
   return path.extname(filePath).toLowerCase() === '.pdf';
 }
 
 async function extractMetadata(
   filePath: string,
 ): Promise<WorkerComicFileMetadata> {
-  if (isPdf(filePath)) {
+  if (await isPdf(filePath)) {
     const pdf = await readComicPdf(filePath);
     return {
       comicInfo: null,
@@ -107,7 +113,7 @@ async function extractPage(
   console.log(
     `[comic-worker] extractPage filePath=${filePath} pageIndex=${pageIndex}`,
   );
-  if (isPdf(filePath)) {
+  if (await isPdf(filePath)) {
     const page = await readComicPdfPage(filePath, pageIndex);
     if (!page) {
       console.warn(

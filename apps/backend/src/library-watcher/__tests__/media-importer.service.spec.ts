@@ -34,9 +34,15 @@ jest.mock('../../app-data/app-data.service', () => ({
   AppDataService: jest.fn(),
 }));
 
-// Mock fs/promises so the ebook import can call fs.stat
+// Mock fs/promises so the ebook import can call fs.stat, and so the comic
+// container sniff (detectComicContainer) can open/read a header without a real
+// file. An empty read makes detection fall back to the file extension.
 jest.mock('fs/promises', () => ({
   stat: jest.fn().mockResolvedValue({ size: 123456 }),
+  open: jest.fn().mockResolvedValue({
+    read: jest.fn().mockResolvedValue({ bytesRead: 0 }),
+    close: jest.fn().mockResolvedValue(undefined),
+  }),
 }));
 
 import { MediaImporterService } from '../media-importer.service';

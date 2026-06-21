@@ -9,6 +9,7 @@ import {
   naturalSortImageEntries,
   isImageEntry,
   pickCoverIndex,
+  detectComicContainer,
 } from '../comic-archive.utils';
 
 // 1x1 transparent PNG
@@ -209,6 +210,37 @@ describe('comic-archive.utils', () => {
       const page0 = await readComicArchivePage(cbrPath, 0);
       expect(page0?.data.toString()).toBe('PAGE-ONE');
       expect(page0?.extension).toBe('.jpg');
+    });
+  });
+
+  describe('detectComicContainer', () => {
+    it('detects a ZIP as cbz regardless of extension', async () => {
+      const p = path.join(tmpDir, 'zip-as.cbr');
+      await buildCbz(p, [{ name: 'p1.jpg', data: PNG_1X1 }]);
+      expect(await detectComicContainer(p)).toBe('cbz');
+    });
+
+    it('detects a RAR by its signature', async () => {
+      // node-unrar-js can't be exercised with a synthetic archive, but the
+      // detector only reads the leading magic bytes — "Rar!\x1a\x07\x00".
+      const p = path.join(tmpDir, 'rar-sig.cbz');
+      await fs.writeFile(
+        p,
+        Buffer.from([0x52, 0x61, 0x72, 0x21, 0x1a, 0x07, 0x00, 0x00]),
+      );
+      expect(await detectComicContainer(p)).toBe('cbr');
+    });
+
+    it('detects a PDF that has a .cbr extension', async () => {
+      const p = path.join(tmpDir, 'pdf-as.cbr');
+      await fs.writeFile(p, Buffer.from('%PDF-1.6\n%âãÏÓ\n...'));
+      expect(await detectComicContainer(p)).toBe('pdf');
+    });
+
+    it('returns null for an unrecognized header', async () => {
+      const p = path.join(tmpDir, 'mystery.cbr');
+      await fs.writeFile(p, Buffer.from('not a known archive header'));
+      expect(await detectComicContainer(p)).toBeNull();
     });
   });
 });

@@ -49,44 +49,59 @@ function isComicInfoEntry(entryName: string): boolean {
   return path.basename(normalized).toLowerCase() === 'comicinfo.xml';
 }
 
-// Comic archives are routed to the RAR or ZIP reader by their byte signature,
-// not their file extension. In the wild a large share of ".cbr" files are
-// actually ZIP archives (and some ".cbz" files are RAR), so trusting the
-// extension makes node-unrar-js throw "File is not RAR archive" on a perfectly
-// readable ZIP — the file then never imports. We sniff the magic bytes and only
-// fall back to the extension when the signature is unrecognized (e.g. a
-// genuinely corrupt file), so the matching reader still surfaces a real error.
+// Comic files are routed to the right reader by their byte signature, not their
+// file extension. Wrong extensions are rampant: ".cbr" files are frequently ZIP
+// archives, and sometimes PDFs. Trusting the extension makes node-unrar-js throw
+// "File is not RAR archive" on a perfectly readable ZIP/PDF and the file never
+// imports. We sniff the magic bytes (as every mature comic reader does) and only
+// fall back to the extension when nothing is recognized (e.g. a corrupt file),
+// so the matching reader still surfaces a real error.
 const RAR_SIGNATURE = Buffer.from([0x52, 0x61, 0x72, 0x21, 0x1a, 0x07]); // "Rar!\x1a\x07" — RAR4 and RAR5
 const ZIP_SIGNATURE = Buffer.from([0x50, 0x4b]); // "PK"
+const PDF_SIGNATURE = Buffer.from('%PDF-'); // PDFs may carry a little leading junk before this
 
-type ArchiveKind = 'rar' | 'zip';
+// Bytes scanned from the front of the file for a format signature. RAR/ZIP sit
+// at offset 0; the PDF marker is allowed a little leading slack, so scan a small
+// window rather than only the first few bytes.
+const SIGNATURE_SCAN_BYTES = 1024;
 
-async function detectArchiveSignature(
-  filePath: string,
-): Promise<ArchiveKind | null> {
-  let handle: fs.FileHandle | null = null;
+export type ComicContainer = 'cbr' | 'cbz' | 'pdf';
+
+async function readHeader(filePath: string, length: number): Promise<Buffer> {
+  const handle = await fs.open(filePath, 'r');
   try {
-    handle = await fs.open(filePath, 'r');
-    const buffer = Buffer.alloc(8);
-    const { bytesRead } = await handle.read(buffer, 0, 8, 0);
-    const head = buffer.subarray(0, bytesRead);
-    if (head.subarray(0, RAR_SIGNATURE.length).equals(RAR_SIGNATURE)) {
-      return 'rar';
-    }
-    if (head.subarray(0, ZIP_SIGNATURE.length).equals(ZIP_SIGNATURE)) {
-      return 'zip';
-    }
-    return null;
+    const buffer = Buffer.alloc(length);
+    const { bytesRead } = await handle.read(buffer, 0, length, 0);
+    return buffer.subarray(0, bytesRead);
   } finally {
-    await handle?.close();
+    await handle.close();
   }
 }
 
-async function resolveArchiveKind(filePath: string): Promise<ArchiveKind> {
-  const detected = await detectArchiveSignature(filePath);
-  if (detected) return detected;
-  // Unknown signature: trust the extension so corrupt files still throw a real
-  // extraction error from the reader that matches their declared type.
+/**
+ * Detect a comic file's real container from its magic bytes, independent of the
+ * file extension. Returns null when no known signature is found.
+ */
+export async function detectComicContainer(
+  filePath: string,
+): Promise<ComicContainer | null> {
+  const head = await readHeader(filePath, SIGNATURE_SCAN_BYTES);
+  // RAR/ZIP signatures live at offset 0; check them before scanning for the PDF
+  // marker so an archive that merely contains a PDF isn't misread as a PDF.
+  if (head.subarray(0, RAR_SIGNATURE.length).equals(RAR_SIGNATURE))
+    return 'cbr';
+  if (head.subarray(0, ZIP_SIGNATURE.length).equals(ZIP_SIGNATURE))
+    return 'cbz';
+  if (head.includes(PDF_SIGNATURE)) return 'pdf';
+  return null;
+}
+
+async function resolveArchiveKind(filePath: string): Promise<'rar' | 'zip'> {
+  const detected = await detectComicContainer(filePath);
+  if (detected === 'cbr') return 'rar';
+  if (detected === 'cbz') return 'zip';
+  // Unknown signature (or a PDF that slipped through): trust the extension so
+  // corrupt files still throw a real error from the matching reader.
   const ext = path.extname(filePath).toLowerCase();
   return ext === '.cbr' || ext === '.rar' ? 'rar' : 'zip';
 }
