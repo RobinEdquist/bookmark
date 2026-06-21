@@ -14,6 +14,12 @@
     "back": "Back"
   },
   "nav": {
+    "sections": {
+      "library": "Library",
+      "discover": "Discover",
+      "devices": "Devices & Apps",
+      "account": "Account"
+    },
     "home": "Home",
     "audiobooks": "Audiobooks",
     "ebooks": "Ebooks",

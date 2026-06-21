@@ -64,13 +64,13 @@ export default function AuthenticatedLayout({
     <WebSocketProvider enabled={isAuthenticated}>
       <div className="flex h-screen flex-col">
         <div className="flex flex-1 overflow-hidden">
-          {/* Desktop sidebar */}
-          <div className="hidden lg:block">
-            <Sidebar isAdmin={isAdmin} />
+          {/* Desktop sidebar - floating, inset panel */}
+          <div className="hidden p-3 lg:block">
+            <Sidebar isAdmin={isAdmin} floating />
           </div>
 
-          {/* Main content */}
-          <div className="flex flex-1 flex-col overflow-hidden">
+          {/* Main content - floating, inset panel on desktop to match the sidebar */}
+          <div className="flex flex-1 flex-col overflow-hidden lg:my-3 lg:mr-3 lg:rounded-2xl lg:border lg:border-border/50 lg:bg-card/50 lg:shadow-xl">
             {/* Mobile header - hidden on library pages that have their own header */}
             {!pathname.startsWith("/audiobooks") && !pathname.startsWith("/ebooks") && !pathname.startsWith("/comics") && (
               <header className="flex h-16 items-center border-b px-4 lg:hidden">

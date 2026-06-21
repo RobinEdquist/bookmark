@@ -263,8 +263,8 @@ export type SurfaceColor = keyof typeof surfaceColors;
 export const primaryColorKeys = Object.keys(primaryColors) as PrimaryColor[];
 export const surfaceColorKeys = Object.keys(surfaceColors) as SurfaceColor[];
 
-export const DEFAULT_PRIMARY_COLOR: PrimaryColor = 'orange';
-export const DEFAULT_SURFACE_COLOR: SurfaceColor = 'espresso';
+export const DEFAULT_PRIMARY_COLOR: PrimaryColor = 'white';
+export const DEFAULT_SURFACE_COLOR: SurfaceColor = 'pitch';
 
 export function isValidPrimaryColor(color: string): color is PrimaryColor {
   return color in primaryColors;

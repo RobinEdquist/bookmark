@@ -17,14 +17,6 @@ import {
   DEFAULT_SURFACE_COLOR,
 } from "../lib/theme-config";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-});
 const neonderthaw = localFont({
   src: "./fonts/Neonderthaw-Regular.ttf",
   variable: "--font-neonderthaw",
@@ -84,7 +76,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${neonderthaw.variable} font-sans antialiased`}
+        className={`${neonderthaw.variable} font-sans antialiased`}
       >
         <QueryProvider>
           <ThemeProvider>

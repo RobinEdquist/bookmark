@@ -65,7 +65,7 @@ export function MobileNav({ isAdmin }: MobileNavProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2, delay: 0.1 }}
-            className="fixed left-[15.5rem] top-4 z-50 lg:hidden"
+            className="fixed right-4 top-4 z-50 lg:hidden"
           >
             <Button
               variant="secondary"

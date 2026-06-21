@@ -62,6 +62,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 :root {
@@ -81,6 +83,24 @@ body {
     transparent 70%
   );
   background-attachment: fixed;
+}
+
+/* Apple-style typographic refinement: optical tracking + balanced wrapping on
+   headings. Tighter as type scales up; leaves body and small UI text untouched. */
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4 {
+    text-wrap: balance;
+  }
+  h1,
+  h2 {
+    letter-spacing: -0.021em;
+  }
+  h3 {
+    letter-spacing: -0.014em;
+  }
 }
 
 /* Tiptap editor styles */

@@ -14,6 +14,12 @@
     "back": "Tillbaka"
   },
   "nav": {
+    "sections": {
+      "library": "Bibliotek",
+      "discover": "Upptäck",
+      "devices": "Enheter & appar",
+      "account": "Konto"
+    },
     "home": "Hem",
     "audiobooks": "Ljudböcker",
     "ebooks": "E-böcker",
