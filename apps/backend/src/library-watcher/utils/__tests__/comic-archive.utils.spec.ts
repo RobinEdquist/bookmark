@@ -177,4 +177,38 @@ describe('comic-archive.utils', () => {
       expect(await readComicArchivePage(file, -1)).toBeNull();
     });
   });
+
+  describe('routes by byte signature, not extension', () => {
+    // Real-world repro: many ".cbr" files are actually ZIP archives. Routing by
+    // extension hands them to node-unrar-js, which throws "File is not RAR
+    // archive" and the book never imports. Detection must follow the magic bytes
+    // so a ZIP-with-.cbr-extension reads through the ZIP path instead.
+    it('reads a ZIP archive that has a .cbr extension', async () => {
+      const cbrPath = path.join(tmpDir, 'zip-disguised-as.cbr');
+      await buildCbz(cbrPath, [
+        { name: 'p1.jpg', data: PNG_1X1 },
+        {
+          name: 'ComicInfo.xml',
+          data: '<ComicInfo><Series>Swing</Series><Number>1</Number></ComicInfo>',
+        },
+      ]);
+
+      const result = await readComicArchive(cbrPath);
+      expect(result.pageCount).toBe(1);
+      expect(result.comicInfoXml).toContain('<Series>Swing</Series>');
+      expect(result.coverImage).not.toBeNull();
+    });
+
+    it('reads a page from a ZIP archive that has a .cbr extension', async () => {
+      const cbrPath = path.join(tmpDir, 'pages-as.cbr');
+      await buildCbz(cbrPath, [
+        { name: 'p1.jpg', data: Buffer.from('PAGE-ONE') },
+        { name: 'p2.jpg', data: Buffer.from('PAGE-TWO') },
+      ]);
+
+      const page0 = await readComicArchivePage(cbrPath, 0);
+      expect(page0?.data.toString()).toBe('PAGE-ONE');
+      expect(page0?.extension).toBe('.jpg');
+    });
+  });
 });

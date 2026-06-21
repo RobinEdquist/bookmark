@@ -49,6 +49,48 @@ function isComicInfoEntry(entryName: string): boolean {
   return path.basename(normalized).toLowerCase() === 'comicinfo.xml';
 }
 
+// Comic archives are routed to the RAR or ZIP reader by their byte signature,
+// not their file extension. In the wild a large share of ".cbr" files are
+// actually ZIP archives (and some ".cbz" files are RAR), so trusting the
+// extension makes node-unrar-js throw "File is not RAR archive" on a perfectly
+// readable ZIP — the file then never imports. We sniff the magic bytes and only
+// fall back to the extension when the signature is unrecognized (e.g. a
+// genuinely corrupt file), so the matching reader still surfaces a real error.
+const RAR_SIGNATURE = Buffer.from([0x52, 0x61, 0x72, 0x21, 0x1a, 0x07]); // "Rar!\x1a\x07" — RAR4 and RAR5
+const ZIP_SIGNATURE = Buffer.from([0x50, 0x4b]); // "PK"
+
+type ArchiveKind = 'rar' | 'zip';
+
+async function detectArchiveSignature(
+  filePath: string,
+): Promise<ArchiveKind | null> {
+  let handle: fs.FileHandle | null = null;
+  try {
+    handle = await fs.open(filePath, 'r');
+    const buffer = Buffer.alloc(8);
+    const { bytesRead } = await handle.read(buffer, 0, 8, 0);
+    const head = buffer.subarray(0, bytesRead);
+    if (head.subarray(0, RAR_SIGNATURE.length).equals(RAR_SIGNATURE)) {
+      return 'rar';
+    }
+    if (head.subarray(0, ZIP_SIGNATURE.length).equals(ZIP_SIGNATURE)) {
+      return 'zip';
+    }
+    return null;
+  } finally {
+    await handle?.close();
+  }
+}
+
+async function resolveArchiveKind(filePath: string): Promise<ArchiveKind> {
+  const detected = await detectArchiveSignature(filePath);
+  if (detected) return detected;
+  // Unknown signature: trust the extension so corrupt files still throw a real
+  // extraction error from the reader that matches their declared type.
+  const ext = path.extname(filePath).toLowerCase();
+  return ext === '.cbr' || ext === '.rar' ? 'rar' : 'zip';
+}
+
 /**
  * Read a CBZ/CBR archive: page count, ComicInfo.xml, and cover image.
  * Throws on unreadable/corrupt archives (callers quarantine).
@@ -58,11 +100,10 @@ export async function readComicArchive(
   filePath: string,
   coverIndex = 0,
 ): Promise<ComicArchiveContents> {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === '.cbr' || ext === '.rar') {
-    return readCbr(filePath, coverIndex);
-  }
-  return readCbz(filePath, coverIndex);
+  const kind = await resolveArchiveKind(filePath);
+  return kind === 'rar'
+    ? readCbr(filePath, coverIndex)
+    : readCbz(filePath, coverIndex);
 }
 
 // Max ZIP archive comment is 65535 bytes (2-byte length field) plus the 22-byte
@@ -183,11 +224,10 @@ export async function readComicArchivePage(
   filePath: string,
   pageIndex: number,
 ): Promise<ExtractedPage | null> {
-  const ext = path.extname(filePath).toLowerCase();
-  if (ext === '.cbr' || ext === '.rar') {
-    return readCbrPage(filePath, pageIndex);
-  }
-  return readCbzPage(filePath, pageIndex);
+  const kind = await resolveArchiveKind(filePath);
+  return kind === 'rar'
+    ? readCbrPage(filePath, pageIndex)
+    : readCbzPage(filePath, pageIndex);
 }
 
 async function readCbzPage(
