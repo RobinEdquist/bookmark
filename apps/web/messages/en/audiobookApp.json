@@ -1,20 +1,9 @@
 {
-  "description": "Connect your mobile device to listen to audiobooks on the go.",
-  "happyAudio": {
-    "title": "Happy Audio",
-    "description": "A premium audiobook player app for iOS and Android",
-    "about": "Happy Audio is a beautifully designed audiobook player created by the same developer as Bookmark. It supports multiple audiobook servers and local files, giving you flexibility in how you manage your library.",
-    "features": {
-      "audiobookshelf": "Audiobookshelf",
-      "bookmark": "Bookmark",
-      "localData": "Local files"
-    }
-  },
+  "description": "Connect the Bookmark app on your phone to listen to audiobooks on the go.",
   "connect": {
     "title": "Connect Your Device",
-    "description": "Select your platform to see instructions for connecting your audiobook app to your Bookmark server.",
-    "comingSoon": "Coming soon",
-    "android": {
+    "description": "Follow these steps to connect the Bookmark app on iOS or Android to your Bookmark server.",
+    "app": {
       "methods": {
         "qr": "QR Code",
         "manual": "Manual"
@@ -22,7 +11,7 @@
       "qr": {
         "step1": {
           "title": "Install Bookmark",
-          "description": "Install the Bookmark app on your Android device."
+          "description": "Install the Bookmark app on your iPhone or Android device."
         },
         "step2": {
           "title": "Generate QR Code",
@@ -36,7 +25,7 @@
       "manual": {
         "step1": {
           "title": "Open Bookmark",
-          "description": "Launch the Bookmark app on your Android device."
+          "description": "Launch the Bookmark app on your phone."
         },
         "step2": {
           "title": "Generate API Key",
@@ -66,71 +55,10 @@
       "keyGenerated": "Connection QR code generated successfully",
       "keyError": "Failed to generate connection code",
       "keyLimitError": "API key limit reached. Remove an unused key in Preferences first.",
-      "scanInstructions": "Scan this QR code with your Android phone's camera",
+      "scanInstructions": "Scan this QR code with your phone's camera",
       "scanNote": "Make sure Bookmark is installed. When you scan the code, the app will open with your server and key pre-filled — tap Connect inside the app to finish.",
       "openInApp": "Open in Bookmark",
       "openInAppNote": "Already on your phone? Tap the button above to open Bookmark with your details pre-filled.",
-      "done": "Done"
-    },
-    "ios": {
-      "methods": {
-        "qr": "QR Code",
-        "manual": "Manual"
-      },
-      "qr": {
-        "step1": {
-          "title": "Download Happy Audio",
-          "description": "Get Happy Audio from the App Store on your iPhone or iPad."
-        },
-        "step2": {
-          "title": "Generate QR Code",
-          "description": "Click the button below to generate a secure connection QR code."
-        },
-        "step3": {
-          "title": "Scan with Camera",
-          "description": "Open the Camera app on your iOS device and point it at the QR code to connect."
-        }
-      },
-      "manual": {
-        "step1": {
-          "title": "Open Happy Audio",
-          "description": "Launch the Happy Audio app on your iPhone or iPad."
-        },
-        "step2": {
-          "title": "Go to Settings",
-          "description": "Tap on Settings in the app."
-        },
-        "step3": {
-          "title": "Connect to Bookmark",
-          "description": "Under Server Connections, tap Connect for Bookmark. Enter the server details shown below."
-        },
-        "step4": {
-          "title": "Generate API Key",
-          "description": "Go to Preferences in Bookmark and generate an API key. Copy the key and paste it into the Happy Audio form."
-        },
-        "step5": {
-          "title": "Test and Save",
-          "description": "Tap Test to verify the connection works, then tap Save to complete the setup."
-        },
-        "serverDetails": "Your Server Details",
-        "protocol": "Protocol",
-        "host": "Host",
-        "port": "Port",
-        "goToPreferences": "Go to Preferences"
-      },
-      "limitReached": {
-        "title": "API key limit reached",
-        "description": "You've reached the maximum of {max} API keys. Remove an unused key in Preferences before generating a new connection."
-      },
-      "generateQr": "Generate QR Code",
-      "generating": "Generating...",
-      "keyGenerated": "Connection QR code generated successfully",
-      "keyError": "Failed to generate connection code",
-      "keyLimitError": "API key limit reached. Remove an unused key in Preferences first.",
-      "scanInstructions": "Scan this QR code with your iPhone camera",
-      "scanNote": "Make sure Happy Audio is installed. When you scan the code, it will open the app and automatically connect to your Bookmark server.",
-      "openInApp": "Open in Happy Audio",
-      "openInAppNote": "Already on your phone? Tap the button above to connect directly.",
       "done": "Done"
     }
   }
