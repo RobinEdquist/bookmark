@@ -394,6 +394,23 @@ describe('ImportErrorsService', () => {
       expect(result).toBe('/media/ebooks');
     });
 
+    it('returns the comic library path for comic type', async () => {
+      const selectChain = chainMock([
+        {
+          audiobookLibraryPath: '/media/audiobooks',
+          ebookLibraryPath: '/media/ebooks',
+          comicLibraryPath: '/media/comics',
+        },
+      ]);
+      const select = jest.fn().mockReturnValue(selectChain);
+      const db = createMockDb({ select });
+      const service = new ImportErrorsService(db);
+
+      const result = await service.getLibraryPath('comic');
+
+      expect(result).toBe('/media/comics');
+    });
+
     it('returns null when no settings exist', async () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
@@ -446,11 +463,31 @@ describe('ImportErrorsService', () => {
       expect(result).toBe('ebook');
     });
 
+    it('returns comic when file path starts with comic library path', async () => {
+      const selectChain = chainMock([
+        {
+          audiobookLibraryPath: '/media/audiobooks',
+          ebookLibraryPath: '/media/ebooks',
+          comicLibraryPath: '/media/comics',
+        },
+      ]);
+      const select = jest.fn().mockReturnValue(selectChain);
+      const db = createMockDb({ select });
+      const service = new ImportErrorsService(db);
+
+      const result = await service.getLibraryTypeForPath(
+        '/media/comics/Swing/Swing Vol. 1.cbr',
+      );
+
+      expect(result).toBe('comic');
+    });
+
     it('returns null when file path does not match any library', async () => {
       const selectChain = chainMock([
         {
           audiobookLibraryPath: '/media/audiobooks',
           ebookLibraryPath: '/media/ebooks',
+          comicLibraryPath: '/media/comics',
         },
       ]);
       const select = jest.fn().mockReturnValue(selectChain);

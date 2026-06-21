@@ -91,13 +91,14 @@ export class ImportErrorsService {
   }
 
   async getLibraryPath(
-    libraryType: 'audiobook' | 'ebook',
+    libraryType: 'audiobook' | 'ebook' | 'comic',
   ): Promise<string | null> {
     const [settings] = await this.db
       .select({
         audiobookLibraryPath:
           appSettingsSchema.appSettings.audiobookLibraryPath,
         ebookLibraryPath: appSettingsSchema.appSettings.ebookLibraryPath,
+        comicLibraryPath: appSettingsSchema.appSettings.comicLibraryPath,
       })
       .from(appSettingsSchema.appSettings)
       .where(eq(appSettingsSchema.appSettings.id, 'app_settings'))
@@ -105,19 +106,20 @@ export class ImportErrorsService {
 
     if (!settings) return null;
 
-    return libraryType === 'audiobook'
-      ? settings.audiobookLibraryPath
-      : settings.ebookLibraryPath;
+    if (libraryType === 'audiobook') return settings.audiobookLibraryPath;
+    if (libraryType === 'ebook') return settings.ebookLibraryPath;
+    return settings.comicLibraryPath;
   }
 
   async getLibraryTypeForPath(
     filePath: string,
-  ): Promise<'audiobook' | 'ebook' | null> {
+  ): Promise<'audiobook' | 'ebook' | 'comic' | null> {
     const [settings] = await this.db
       .select({
         audiobookLibraryPath:
           appSettingsSchema.appSettings.audiobookLibraryPath,
         ebookLibraryPath: appSettingsSchema.appSettings.ebookLibraryPath,
+        comicLibraryPath: appSettingsSchema.appSettings.comicLibraryPath,
       })
       .from(appSettingsSchema.appSettings)
       .where(eq(appSettingsSchema.appSettings.id, 'app_settings'))
@@ -137,6 +139,13 @@ export class ImportErrorsService {
       filePath.startsWith(settings.ebookLibraryPath)
     ) {
       return 'ebook';
+    }
+
+    if (
+      settings.comicLibraryPath &&
+      filePath.startsWith(settings.comicLibraryPath)
+    ) {
+      return 'comic';
     }
 
     return null;
