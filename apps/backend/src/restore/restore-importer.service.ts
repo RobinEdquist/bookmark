@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { EventEmitter } from 'events';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -1136,18 +1136,6 @@ export class RestoreImporterService {
     savAudiobookId: string,
     tx: any,
   ): Promise<void> {
-    // Check if progress already exists
-    const existing = await tx
-      .select()
-      .from(progressSchema.userAudiobookProgress)
-      .where(
-        and(
-          eq(progressSchema.userAudiobookProgress.userId, savUserId),
-          eq(progressSchema.userAudiobookProgress.audiobookId, savAudiobookId),
-        ),
-      )
-      .limit(1);
-
     const progressData = {
       userId: savUserId,
       audiobookId: savAudiobookId,
@@ -1159,17 +1147,24 @@ export class RestoreImporterService {
       isHidden: absProgress.hideFromContinueListening,
     };
 
-    if (existing.length > 0) {
-      // Update existing progress
-      await tx
-        .update(progressSchema.userAudiobookProgress)
-        .set(progressData)
-        .where(eq(progressSchema.userAudiobookProgress.id, existing[0].id));
-    } else {
-      // Create new progress
-      await tx
-        .insert(progressSchema.userAudiobookProgress)
-        .values(progressData);
-    }
+    // Atomic upsert keyed on (user_id, audiobook_id). A read-then-insert can
+    // create duplicate rows on re-import or under concurrency; relying on the
+    // unique constraint as the conflict target keeps this race-safe and
+    // idempotent. Mirrors ProgressService.updateProgress.
+    await tx
+      .insert(progressSchema.userAudiobookProgress)
+      .values(progressData)
+      .onConflictDoUpdate({
+        target: [
+          progressSchema.userAudiobookProgress.userId,
+          progressSchema.userAudiobookProgress.audiobookId,
+        ],
+        set: {
+          currentPosition: progressData.currentPosition,
+          completed: progressData.completed,
+          completedAt: progressData.completedAt,
+          isHidden: progressData.isHidden,
+        },
+      });
   }
 }

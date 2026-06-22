@@ -18,9 +18,15 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Environment files (don't include secrets in image)
+# NOTE: bare `.env` only matches the context root; `**/.env` is required to
+# exclude nested files like apps/web/.env (which bakes NEXT_PUBLIC_* into the
+# client bundle at build time). Keep both for safety.
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
 
 # IDE and editor files
 .idea

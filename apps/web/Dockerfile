@@ -44,9 +44,15 @@ COPY turbo.json turbo.json
 
 # Set build-time environment variable for SSR API calls
 # Note: API_URL is used by next.config.js rewrites for server-side requests
-# No NEXT_PUBLIC_* vars needed - WebSocket uses same-origin connection
+# (internal docker-network host, never seen by the browser).
 ARG API_URL=http://backend:3000
 ENV API_URL=${API_URL}
+
+# Force same-origin WebSocket/socket.io connections in the published image.
+# NEXT_PUBLIC_* is inlined into the client bundle at build time, so a stray
+# apps/web/.env (localhost dev value) must never leak in — empty = same origin,
+# which makes the image work on any domain behind a reverse proxy.
+ENV NEXT_PUBLIC_API_URL=""
 
 # Build the frontend
 RUN turbo run build --filter=web

@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DATABASE_CONNECTION } from './database-connection.constants';
+import { DatabaseIntegrityService } from './database-integrity.service';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as authSchema from '../auth/schema';
@@ -44,6 +45,7 @@ import * as comicvineSchema from '../comicvine/schema';
       },
       inject: [ConfigService],
     },
+    DatabaseIntegrityService,
   ],
   exports: [DATABASE_CONNECTION],
 })

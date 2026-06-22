@@ -197,6 +197,13 @@
       "when": 1781961886655,
       "tag": "0027_rename_request_mam_columns",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1782129150047,
+      "tag": "0028_fix_duplicate_progress_rows_and_reindex",
+      "breakpoints": true
     }
   ]
 }
