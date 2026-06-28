@@ -24,3 +24,15 @@ export function getLastMondayUTC(now: Date = new Date()): Date {
 
   return date;
 }
+
+/**
+ * Get the start of the current day (00:00:00.000) in UTC.
+ *
+ * @param now - The reference date (defaults to current time)
+ * @returns Date object representing today at 00:00:00 UTC
+ */
+export function getStartOfTodayUTC(now: Date = new Date()): Date {
+  const date = new Date(now);
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+}

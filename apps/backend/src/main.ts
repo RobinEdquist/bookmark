@@ -155,6 +155,7 @@ There are no rate limits for self-hosted instances. Be mindful of your server re
     .addTag('Hardcover', 'Hardcover.app integration')
     .addTag('Users', 'User management (admin only)')
     .addTag('Settings', 'Application settings')
+    .addTag('Stats', 'Aggregate server statistics for dashboards')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
