@@ -8,6 +8,7 @@ import {
   Query,
   Body,
   Header,
+  Req,
   Res,
   NotFoundException,
   StreamableFile,
@@ -44,6 +45,15 @@ import {
   EbookSeriesDto,
 } from './dto/ebook-response.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
+import { parseRangeHeader } from './http-range';
+
+/** Formats the in-browser reader can open (foliate-js: epub/mobi/azw3, react-pdf: pdf). */
+const STREAMABLE_MIME_TYPES = new Set([
+  'application/epub+zip',
+  'application/pdf',
+  'application/x-mobipocket-ebook',
+  'application/vnd.amazon.mobi8-ebook',
+]);
 
 @ApiTags('Ebooks')
 @ApiSecurity('better-auth.session_token')
@@ -440,15 +450,16 @@ export class EbooksController {
   @Get(':id/stream')
   @UseGuards(AuthGuard)
   @ApiOperation({
-    summary: 'Stream EPUB file for in-browser reading',
+    summary: 'Stream ebook file for in-browser reading',
     description:
-      'Streams the EPUB file for use with react-reader. Only supports EPUB format. Access denied if ebook has tags blacklisted by the user.',
+      'Streams the ebook file for the in-browser reader. Supports EPUB, PDF, MOBI and AZW3 formats, with HTTP range requests for partial content. Access denied if ebook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'EPUB file stream' })
+  @ApiResponse({ status: 200, description: 'Ebook file stream' })
+  @ApiResponse({ status: 206, description: 'Partial ebook file stream' })
   @ApiResponse({
     status: 400,
-    description: 'Only EPUB format supports in-browser reading',
+    description: 'Format does not support in-browser reading',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -456,24 +467,46 @@ export class EbooksController {
     description: 'Access denied - ebook has blacklisted tags',
   })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
+  @ApiResponse({ status: 416, description: 'Range not satisfiable' })
   async stream(
     @Param('id') id: string,
+    @Req() req: express.Request,
     @Res() res: express.Response,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.ebooksService.verifyNotBlacklisted(id, user.id);
     const downloadInfo = await this.ebooksService.getDownloadInfo(id);
 
-    // Only allow EPUB format for in-browser reading
-    if (downloadInfo.mimeType !== 'application/epub+zip') {
+    if (!STREAMABLE_MIME_TYPES.has(downloadInfo.mimeType)) {
       throw new BadRequestException(
-        'Only EPUB format supports in-browser reading',
+        'Format does not support in-browser reading',
       );
     }
 
-    res.setHeader('Content-Type', 'application/epub+zip');
-    res.setHeader('Content-Length', downloadInfo.fileSize.toString());
+    res.setHeader('Content-Type', downloadInfo.mimeType);
     res.setHeader('Accept-Ranges', 'bytes');
+
+    const range = req.headers.range;
+    if (range) {
+      const fileSize = downloadInfo.fileSize;
+      const parsed = parseRangeHeader(range, fileSize);
+
+      if (!parsed) {
+        res.setHeader('Content-Range', `bytes */${fileSize}`);
+        res.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE).end();
+        return;
+      }
+
+      const { start, end } = parsed;
+      res.status(HttpStatus.PARTIAL_CONTENT);
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      res.setHeader('Content-Length', (end - start + 1).toString());
+
+      fs.createReadStream(downloadInfo.filePath, { start, end }).pipe(res);
+      return;
+    }
+
+    res.setHeader('Content-Length', downloadInfo.fileSize.toString());
 
     const stream = fs.createReadStream(downloadInfo.filePath);
     stream.pipe(res);

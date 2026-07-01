@@ -1577,6 +1577,7 @@ export class EbooksService {
       epub: 'application/epub+zip',
       pdf: 'application/pdf',
       mobi: 'application/x-mobipocket-ebook',
+      azw3: 'application/vnd.amazon.mobi8-ebook',
     };
 
     return {
