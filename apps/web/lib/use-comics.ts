@@ -221,6 +221,9 @@ export function useInfiniteComicSeries(
     },
     initialPageParam: 0,
     placeholderData: (previousData) => previousData,
+    // Keep loaded pages cached while browsing detail pages so returning to
+    // the list renders instantly at full height (scroll restoration)
+    gcTime: 30 * 60 * 1000,
   });
 }
 

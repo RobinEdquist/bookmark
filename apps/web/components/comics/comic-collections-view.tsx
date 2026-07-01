@@ -5,9 +5,14 @@ import { ComicCollectionGrid } from "./comic-collection-grid";
 
 interface ComicCollectionsViewProps {
   search: string;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
-export function ComicCollectionsView({ search }: ComicCollectionsViewProps) {
+export function ComicCollectionsView({
+  search,
+  animateEntrance = true,
+}: ComicCollectionsViewProps) {
   const {
     data,
     isLoading,
@@ -30,6 +35,7 @@ export function ComicCollectionsView({ search }: ComicCollectionsViewProps) {
       hasNextPage={hasNextPage}
       isFetchingNextPage={isFetchingNextPage}
       onLoadMore={() => fetchNextPage()}
+      animateEntrance={animateEntrance}
     />
   );
 }

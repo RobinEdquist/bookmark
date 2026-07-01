@@ -276,5 +276,8 @@ export function useInfiniteSeries(filters: SeriesFilters = {}) {
     initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.nextOffset,
     staleTime: 60 * 1000, // 1 minute
+    // Keep loaded pages cached while browsing detail pages so returning to
+    // the list renders instantly at full height (scroll restoration)
+    gcTime: 30 * 60 * 1000,
   });
 }

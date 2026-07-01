@@ -9,9 +9,14 @@ import type { SeriesWithBooks } from "../../lib/use-series";
 
 interface SeriesGridCardProps {
   series: SeriesWithBooks;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
-export function SeriesGridCard({ series }: SeriesGridCardProps) {
+export function SeriesGridCard({
+  series,
+  animateEntrance = true,
+}: SeriesGridCardProps) {
   const t = useTranslations("series");
 
   // Get up to 3 covers for stacking (prioritize audiobooks, fall back to ebooks)
@@ -21,7 +26,7 @@ export function SeriesGridCard({ series }: SeriesGridCardProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={animateEntrance ? { opacity: 0, y: 10 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >

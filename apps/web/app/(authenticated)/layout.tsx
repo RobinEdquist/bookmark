@@ -79,7 +79,9 @@ export default function AuthenticatedLayout({
             )}
 
             {/* Page content */}
-            <main className="flex-1 overflow-auto">{children}</main>
+            <main className="flex-1 overflow-auto" data-scroll-container>
+              {children}
+            </main>
           </div>
         </div>
 

@@ -77,7 +77,7 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
       <div className="flex flex-col items-center justify-center p-8">
         <p className="text-muted-foreground">{t("detail.notFound")}</p>
         <Button asChild variant="link" className="mt-4">
-          <Link href="/series">{t("detail.backToSeries")}</Link>
+          <Link href="/series" scroll={false}>{t("detail.backToSeries")}</Link>
         </Button>
       </div>
     );
@@ -90,7 +90,7 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
         <div className="mb-8">
           <div className="mb-4 flex items-center justify-between">
             <Button asChild variant="ghost" size="sm">
-              <Link href="/series">
+              <Link href="/series" scroll={false}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 {t("detail.backToSeries")}
               </Link>

@@ -13,11 +13,7 @@ import { SortSelect, COMICS_SORT_OPTIONS } from "../../../components/library/sor
 import { useSortPreference } from "../../../lib/use-sort-preference";
 import { useSaveLibraryUrl } from "../../../lib/use-library-return-url";
 import { useSaveLibraryNavigation } from "../../../lib/use-library-navigation";
-import {
-  useSaveScrollPosition,
-  useRestoreScrollPosition,
-  clearScrollState,
-} from "../../../lib/use-scroll-position";
+import { useScrollRestoration } from "../../../lib/use-scroll-restoration";
 import { LibraryPageHeader } from "../../../components/library/library-page-header";
 import { authClient } from "../../../lib/auth-client";
 import type { ComicSeriesFilters } from "../../../lib/use-comics";
@@ -110,32 +106,12 @@ export default function ComicsPage() {
   // Save ordered item IDs for next/prev navigation on detail pages
   useSaveLibraryNavigation("/comics", series.map((s) => s.id));
 
-  // Scroll position restoration
-  const pagesLoaded = data?.pages.length ?? 0;
-  const searchParamsKey = `${debouncedSearch ?? ""}-${sortBy}-${sortOrder}-${activeMetadataTag ?? ""}`;
-
-  // Clear scroll position when search/sort/filter changes
-  const prevSearchParamsKey = useRef(searchParamsKey);
-  useEffect(() => {
-    if (prevSearchParamsKey.current !== searchParamsKey) {
-      clearScrollState("/comics");
-      prevSearchParamsKey.current = searchParamsKey;
-    }
-  }, [searchParamsKey]);
-
-  // Save scroll position when navigating away
-  useSaveScrollPosition("/comics", searchParamsKey, pagesLoaded);
-
-  // Restore scroll position when returning from detail page
-  const { isRestoring } = useRestoreScrollPosition(
-    "/comics",
-    searchParamsKey,
-    pagesLoaded,
-    isLoading,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage ?? false
-  );
+  // Scroll position restoration (search/view/metadataTag are in the URL;
+  // sort is stored locally, so it goes into the extra key)
+  const { hasSavedPosition } = useScrollRestoration({
+    ready: !!data,
+    extraKey: `${sortBy}:${sortOrder}`,
+  });
 
   // Show spinner when search is pending (query differs from debounced) or fetching first page
   const isSearching = searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
@@ -171,11 +147,7 @@ export default function ComicsPage() {
         isAdmin={isAdmin}
       />
 
-      <div
-        className={`p-4 pt-4 transition-opacity duration-300 lg:p-8 lg:pt-6 ${
-          isRestoring ? "opacity-0" : "opacity-100"
-        }`}
-      >
+      <div className="p-4 pt-4 lg:p-8 lg:pt-6">
         <div className="mx-auto max-w-7xl">
           {/* Series | Collections toggle */}
           <div className="mb-4 flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
@@ -218,7 +190,10 @@ export default function ComicsPage() {
           )}
 
           {view === "collections" ? (
-            <ComicCollectionsView search={debouncedSearch} />
+            <ComicCollectionsView
+              search={debouncedSearch}
+              animateEntrance={!hasSavedPosition}
+            />
           ) : (
             <ComicSeriesGrid
               series={series}
@@ -227,6 +202,7 @@ export default function ComicsPage() {
               hasNextPage={hasNextPage}
               isFetchingNextPage={isFetchingNextPage}
               onLoadMore={() => fetchNextPage()}
+              animateEntrance={!hasSavedPosition}
             />
           )}
         </div>

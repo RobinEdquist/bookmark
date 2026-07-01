@@ -80,7 +80,7 @@ export default function ComicCollectionDetailPage({
       await deleteCollection.mutateAsync(id);
       toast.success(t("collections.deleteSuccess"));
       setDeleteOpen(false);
-      router.push("/comics?view=collections");
+      router.push("/comics?view=collections", { scroll: false });
     } catch {
       toast.error(t("collections.error"));
     }
@@ -108,7 +108,7 @@ export default function ComicCollectionDetailPage({
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-destructive">{t("collections.error")}</p>
         <Button variant="outline" asChild>
-          <Link href="/comics?view=collections">
+          <Link href="/comics?view=collections" scroll={false}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t("collections.tabCollections")}
           </Link>
@@ -123,7 +123,7 @@ export default function ComicCollectionDetailPage({
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/comics?view=collections" aria-label={t("detail.back")}>
+            <Link href="/comics?view=collections" scroll={false} aria-label={t("detail.back")}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

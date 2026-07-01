@@ -14,13 +14,11 @@ export function useSaveLibraryNavigation(
   libraryPath: LibraryPath,
   ids: string[],
 ) {
+  const idsJson = JSON.stringify(ids);
   useEffect(() => {
-    if (ids.length === 0) return;
-    sessionStorage.setItem(
-      `${libraryPath}${STORAGE_KEY_SUFFIX}`,
-      JSON.stringify(ids),
-    );
-  });
+    if (idsJson === "[]") return;
+    sessionStorage.setItem(`${libraryPath}${STORAGE_KEY_SUFFIX}`, idsJson);
+  }, [libraryPath, idsJson]);
 }
 
 /**

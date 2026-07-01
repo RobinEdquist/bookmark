@@ -6,10 +6,21 @@ import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import type { ComicCollectionListItem } from "../../lib/use-comic-collections";
 
-export function ComicCollectionCard({ collection }: { collection: ComicCollectionListItem }) {
+export function ComicCollectionCard({
+  collection,
+  animateEntrance = true,
+}: {
+  collection: ComicCollectionListItem;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
+}) {
   const t = useTranslations("comics");
   return (
-    <motion.article className="group relative flex flex-col" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.article
+      className="group relative flex flex-col"
+      initial={animateEntrance ? { opacity: 0, y: 20 } : false}
+      animate={{ opacity: 1, y: 0 }}
+    >
       <Link href={`/comics/collections/${collection.id}`} prefetch={false}>
         <motion.div
           className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-sm"

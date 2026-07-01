@@ -17,6 +17,8 @@ interface EbookGridProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
 function EbookSkeleton() {
@@ -61,6 +63,7 @@ export function EbookGrid({
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
+  animateEntrance = true,
 }: EbookGridProps) {
   const t = useTranslations("ebooks");
   const { data: permissions } = useMyPermissions();
@@ -117,7 +120,7 @@ export function EbookGrid({
     <>
       <motion.div
         className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-6"
-        initial="hidden"
+        initial={animateEntrance ? "hidden" : false}
         animate="visible"
         variants={{
           hidden: {},
@@ -134,6 +137,7 @@ export function EbookGrid({
             ebook={ebook}
             onEdit={() => handleOpenEdit(ebook.id)}
             externalEditDialog
+            animateEntrance={animateEntrance}
           />
         ))}
       </motion.div>

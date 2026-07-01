@@ -32,6 +32,7 @@ import { Badge } from "@repo/ui/components/ui/badge";
 import { useComicSeriesDetail } from "../../../../lib/use-comics";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
+import { useScrollRestoration } from "../../../../lib/use-scroll-restoration";
 import { useLibraryNavigation } from "../../../../lib/use-library-navigation";
 import { EditComicSeriesDialog } from "../../../../components/comics/edit-comic-series-dialog";
 import { ChangeComicSeriesCoverDialog } from "../../../../components/comics/change-comic-series-cover-dialog";
@@ -64,6 +65,8 @@ export default function ComicSeriesDetailPage({
   const returnUrl = useLibraryReturnUrl("/comics");
   const { previousId, nextId } = useLibraryNavigation("/comics", id);
   const { data: series, isLoading, error } = useComicSeriesDetail(id);
+  // Restore scroll when revisiting via browser back/forward (pushes land at top)
+  useScrollRestoration({ ready: !!series });
   const { data: permissions } = useMyPermissions();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -161,7 +164,7 @@ export default function ComicSeriesDetailPage({
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-destructive">{t("detail.error")}</p>
         <Button variant="outline" asChild>
-          <Link href="/comics">
+          <Link href="/comics" scroll={false}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t("detail.back")}
           </Link>
@@ -176,7 +179,7 @@ export default function ComicSeriesDetailPage({
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href={returnUrl}>
+            <Link href={returnUrl} scroll={false}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -462,6 +465,7 @@ export default function ComicSeriesDetailPage({
                         <Link
                           key={arc}
                           href={`/comics?metadataTag=${encodeURIComponent(`story_arc:${arc}`)}`}
+                          scroll={false}
                           className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
                         >
                           {arc}
@@ -480,6 +484,7 @@ export default function ComicSeriesDetailPage({
                         <Link
                           key={char}
                           href={`/comics?metadataTag=${encodeURIComponent(`character:${char}`)}`}
+                          scroll={false}
                           className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
                         >
                           {char}
@@ -691,7 +696,7 @@ export default function ComicSeriesDetailPage({
           seriesTitle={series.title}
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
-          onDeleted={() => router.push("/comics")}
+          onDeleted={() => router.push("/comics", { scroll: false })}
         />
       )}
 

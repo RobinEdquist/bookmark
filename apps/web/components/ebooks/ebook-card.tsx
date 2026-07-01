@@ -35,9 +35,16 @@ interface EbookCardProps {
   onEdit?: () => void;
   /** If true, the card won't render its own edit dialog */
   externalEditDialog?: boolean;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
-export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps) {
+export function EbookCard({
+  ebook,
+  onEdit,
+  externalEditDialog,
+  animateEntrance = true,
+}: EbookCardProps) {
   const t = useTranslations("ebooks.card");
   const tDelete = useTranslations("ebooks.deleteDialog");
   const tGoodreads = useTranslations("ebooks.goodreadsLink");
@@ -102,7 +109,7 @@ export function EbookCard({ ebook, onEdit, externalEditDialog }: EbookCardProps)
     <>
       <motion.article
         className="group relative flex flex-col"
-        initial={{ opacity: 0, y: 20 }}
+        initial={animateEntrance ? { opacity: 0, y: 20 } : false}
         animate={{ opacity: 1, y: 0 }}
       >
         {/* Cover Image */}

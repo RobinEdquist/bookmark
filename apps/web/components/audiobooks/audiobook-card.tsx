@@ -37,9 +37,16 @@ interface AudiobookCardProps {
   onEdit?: () => void;
   /** If true, the card won't render its own edit dialog */
   externalEditDialog?: boolean;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
-export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: AudiobookCardProps) {
+export function AudiobookCard({
+  audiobook,
+  onEdit,
+  externalEditDialog,
+  animateEntrance = true,
+}: AudiobookCardProps) {
   const t = useTranslations("audiobooks.card");
   const tLink = useTranslations("audiobooks.hardcoverLink");
   const tGoodreads = useTranslations("audiobooks.goodreadsLink");
@@ -113,7 +120,7 @@ export function AudiobookCard({ audiobook, onEdit, externalEditDialog }: Audiobo
     <>
       <motion.article
         className="group relative flex flex-col"
-        initial={{ opacity: 0, y: 20 }}
+        initial={animateEntrance ? { opacity: 0, y: 20 } : false}
         animate={{ opacity: 1, y: 0 }}
       >
         {/* Cover Image */}

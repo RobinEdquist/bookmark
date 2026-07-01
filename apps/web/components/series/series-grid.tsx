@@ -14,6 +14,8 @@ interface SeriesGridProps {
   hasNextPage?: boolean;
   fetchNextPage?: () => void;
   emptyMessage?: string;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
 export function SeriesGrid({
@@ -23,6 +25,7 @@ export function SeriesGrid({
   hasNextPage,
   fetchNextPage,
   emptyMessage,
+  animateEntrance = true,
 }: SeriesGridProps) {
   const t = useTranslations("series");
   const loadMoreRef = useRef<HTMLDivElement>(null);
@@ -86,7 +89,7 @@ export function SeriesGrid({
     <>
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {series.map((s) => (
-          <SeriesGridCard key={s.id} series={s} />
+          <SeriesGridCard key={s.id} series={s} animateEntrance={animateEntrance} />
         ))}
       </div>
 
