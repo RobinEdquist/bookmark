@@ -34,6 +34,7 @@ import { formatDesignation } from "../../../../../../components/comics/comic-boo
 import { EditComicBookDialog } from "../../../../../../components/comics/edit-comic-book-dialog";
 import { ChangeComicBookCoverDialog } from "../../../../../../components/comics/change-comic-book-cover-dialog";
 import { DeleteComicBookDialog } from "../../../../../../components/comics/delete-comic-book-dialog";
+import { DetailHeaderActions } from "../../../../../../components/layout/detail-header-actions";
 import type { ComicCreatorRole } from "../../../../../../lib/use-comics";
 
 export default function ComicBookDetailPage({
@@ -126,57 +127,53 @@ export default function ComicBookDetailPage({
 
           <div className="flex-1" />
 
-          {isAdmin && isComicvineConfigured && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setComicvineMatchOpen(true)}
-              title={tcv("openAction")}
-            >
-              <Sparkles className="h-5 w-5" />
-            </Button>
-          )}
-
-          {/* Download */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleDownload}
-            title={t("book.download")}
-          >
-            <Download className="h-5 w-5" />
-          </Button>
-
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setChangeCoverOpen(true)}
-              title={t("detail.changeCover")}
-            >
-              <ImageIcon className="h-5 w-5" />
-            </Button>
-          )}
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setEditOpen(true)}
-              title={t("detail.edit")}
-            >
-              <Pencil className="h-5 w-5" />
-            </Button>
-          )}
-          {canDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setDeleteOpen(true)}
-              title={t("detail.delete")}
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
-          )}
+          <DetailHeaderActions
+            actions={[
+              ...(isAdmin && isComicvineConfigured
+                ? [
+                    {
+                      key: "comicvine",
+                      label: tcv("openAction"),
+                      icon: <Sparkles className="h-5 w-5" />,
+                      onClick: () => setComicvineMatchOpen(true),
+                    },
+                  ]
+                : []),
+              {
+                key: "download",
+                label: t("book.download"),
+                icon: <Download className="h-5 w-5" />,
+                onClick: handleDownload,
+              },
+              ...(canEdit
+                ? [
+                    {
+                      key: "changeCover",
+                      label: t("detail.changeCover"),
+                      icon: <ImageIcon className="h-5 w-5" />,
+                      onClick: () => setChangeCoverOpen(true),
+                    },
+                    {
+                      key: "edit",
+                      label: t("detail.edit"),
+                      icon: <Pencil className="h-5 w-5" />,
+                      onClick: () => setEditOpen(true),
+                    },
+                  ]
+                : []),
+              ...(canDelete
+                ? [
+                    {
+                      key: "delete",
+                      label: t("detail.delete"),
+                      icon: <Trash2 className="h-5 w-5" />,
+                      onClick: () => setDeleteOpen(true),
+                      destructive: true,
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       </header>
 

@@ -23,6 +23,7 @@ import {
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { ComicSeriesCard } from "../../../../../components/comics/comic-series-card";
+import { DetailHeaderActions } from "../../../../../components/layout/detail-header-actions";
 import { useMyPermissions } from "../../../../../lib/use-users";
 import {
   useComicCollection,
@@ -129,28 +130,31 @@ export default function ComicCollectionDetailPage({
 
           <div className="flex-1" />
 
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleRenameOpen}
-              title={t("collections.edit")}
-              aria-label={t("collections.edit")}
-            >
-              <Pencil className="h-5 w-5" />
-            </Button>
-          )}
-          {canDelete && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setDeleteOpen(true)}
-              title={t("collections.delete")}
-              aria-label={t("collections.delete")}
-            >
-              <Trash2 className="h-5 w-5" />
-            </Button>
-          )}
+          <DetailHeaderActions
+            actions={[
+              ...(canEdit
+                ? [
+                    {
+                      key: "edit",
+                      label: t("collections.edit"),
+                      icon: <Pencil className="h-5 w-5" />,
+                      onClick: handleRenameOpen,
+                    },
+                  ]
+                : []),
+              ...(canDelete
+                ? [
+                    {
+                      key: "delete",
+                      label: t("collections.delete"),
+                      icon: <Trash2 className="h-5 w-5" />,
+                      onClick: () => setDeleteOpen(true),
+                      destructive: true,
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       </header>
 

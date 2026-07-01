@@ -2,14 +2,6 @@
   "announcement": {
     "dismiss": "Got it"
   },
-  "stats": {
-    "audiobooks": "Audiobooks",
-    "totalDuration": "Total Duration",
-    "ebooks": "Ebooks",
-    "totalPages": "Total Pages",
-    "series": "Series",
-    "authors": "Authors"
-  },
   "continueListening": {
     "title": "Continue Listening",
     "emptyTitle": "Ready to start?",

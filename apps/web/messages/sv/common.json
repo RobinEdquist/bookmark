@@ -144,6 +144,7 @@
     "placeholder": "Sök i biblioteket...",
     "noResults": "Inga resultat hittades"
   },
+  "moreActions": "Fler åtgärder",
   "genres": {
     "title": "Genrer",
     "audiobooks": "Ljudböcker",

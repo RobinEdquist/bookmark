@@ -36,6 +36,7 @@ import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-li
 import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodreads-search-dialog";
 import { GoodreadsLinkCard } from "../../../../components/goodreads/goodreads-link-card";
 import { HeaderSearch } from "../../../../components/layout/header-search";
+import { DetailHeaderActions } from "../../../../components/layout/detail-header-actions";
 import { RemovableChip } from "../../../../components/common/removable-chip";
 import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
@@ -163,57 +164,61 @@ export default function EbookDetailPage({
           )}
           <HeaderSearch mediaType="ebook" />
           <div className="flex-1" />
-          {isHardcoverConfigured && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setHardcoverSyncOpen(true)}
-              title={t("syncWithHardcover")}
-            >
-              <Image
-                src="/hardcover.svg"
-                alt="Hardcover"
-                width={20}
-                height={20}
-              />
-            </Button>
-          )}
-          {isGrFinderConfigured && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setGoodreadsSearchOpen(true)}
-              title={t("searchOnGoodreads")}
-            >
-              <Image
-                src="/goodreads.svg"
-                alt="Goodreads"
-                width={20}
-                height={20}
-                className={isDark ? "invert" : ""}
-              />
-            </Button>
-          )}
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setChangeCoverOpen(true)}
-              title={t("changeCover")}
-            >
-              <ImageIcon className="h-5 w-5" />
-            </Button>
-          )}
-          {canEdit && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setEditOpen(true)}
-              title={t("edit")}
-            >
-              <Pencil className="h-5 w-5" />
-            </Button>
-          )}
+          <DetailHeaderActions
+            actions={[
+              ...(isHardcoverConfigured
+                ? [
+                    {
+                      key: "hardcover",
+                      label: t("syncWithHardcover"),
+                      icon: (
+                        <Image
+                          src="/hardcover.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                        />
+                      ),
+                      onClick: () => setHardcoverSyncOpen(true),
+                    },
+                  ]
+                : []),
+              ...(isGrFinderConfigured
+                ? [
+                    {
+                      key: "goodreads",
+                      label: t("searchOnGoodreads"),
+                      icon: (
+                        <Image
+                          src="/goodreads.svg"
+                          alt=""
+                          width={20}
+                          height={20}
+                          className={isDark ? "invert" : ""}
+                        />
+                      ),
+                      onClick: () => setGoodreadsSearchOpen(true),
+                    },
+                  ]
+                : []),
+              ...(canEdit
+                ? [
+                    {
+                      key: "changeCover",
+                      label: t("changeCover"),
+                      icon: <ImageIcon className="h-5 w-5" />,
+                      onClick: () => setChangeCoverOpen(true),
+                    },
+                    {
+                      key: "edit",
+                      label: t("edit"),
+                      icon: <Pencil className="h-5 w-5" />,
+                      onClick: () => setEditOpen(true),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </div>
       </header>
 

@@ -72,7 +72,7 @@ export default function AuthenticatedLayout({
           {/* Main content - floating, inset panel on desktop to match the sidebar */}
           <div className="flex flex-1 flex-col overflow-hidden lg:my-3 lg:mr-3 lg:rounded-2xl lg:border lg:border-border/50 lg:bg-card/50 lg:shadow-xl">
             {/* Mobile header - hidden on library pages that have their own header */}
-            {!pathname.startsWith("/audiobooks") && !pathname.startsWith("/ebooks") && !pathname.startsWith("/comics") && (
+            {!pathname.startsWith("/audiobooks") && !pathname.startsWith("/ebooks") && !pathname.startsWith("/comics") && !pathname.startsWith("/series") && (
               <header className="flex h-16 items-center border-b px-4 lg:hidden">
                 <MobileNav isAdmin={isAdmin} />
               </header>

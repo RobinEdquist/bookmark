@@ -2,14 +2,6 @@
   "announcement": {
     "dismiss": "Uppfattat"
   },
-  "stats": {
-    "audiobooks": "Ljudböcker",
-    "totalDuration": "Total speltid",
-    "ebooks": "E-böcker",
-    "totalPages": "Totalt antal sidor",
-    "series": "Serier",
-    "authors": "Författare"
-  },
   "continueListening": {
     "title": "Fortsätt lyssna",
     "emptyTitle": "Redo att börja?",

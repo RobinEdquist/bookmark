@@ -144,6 +144,7 @@
     "placeholder": "Search library...",
     "noResults": "No results found"
   },
+  "moreActions": "More actions",
   "genres": {
     "title": "Genres",
     "audiobooks": "Audiobooks",
