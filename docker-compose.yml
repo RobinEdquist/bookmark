@@ -2,7 +2,7 @@
 # Build from source and run locally
 #
 # Usage:
-#   1. Copy example.env to .env and configure
+#   1. Copy example.env to .env and configure (optional for a local try-out)
 #   2. Run: docker compose up -d
 #
 # Access the application at http://localhost:3001
@@ -28,14 +28,15 @@ services:
       retries: 5
 
   # ==========================================================================
-  # Backend API (NestJS)
+  # Bookmark (web app + API in a single container)
   # ==========================================================================
-  backend:
+  bookmark:
     build:
       context: .
-      dockerfile: apps/backend/Dockerfile
-    container_name: bookmark-backend
+      dockerfile: Dockerfile
+    container_name: bookmark
     restart: unless-stopped
+    init: true
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,9 +45,12 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-bookmark}
 
       # Public URL - used for auth callbacks, CORS, etc.
-      BETTER_AUTH_URL: ${PUBLIC_URL:?PUBLIC_URL is required}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?BETTER_AUTH_SECRET is required}
-      UI_URL: ${PUBLIC_URL}
+      # Defaults to localhost for local try-outs; set PUBLIC_URL for any real deployment
+      BETTER_AUTH_URL: ${PUBLIC_URL:-http://localhost:3001}
+      UI_URL: ${PUBLIC_URL:-http://localhost:3001}
+
+      # Auth secret - auto-generated and persisted under /data on first start if unset
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
 
       # Application
       NODE_ENV: production
@@ -57,8 +61,13 @@ services:
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+
+      # Integrations (optional)
+      TRACKER_CLIENT_URL: ${TRACKER_CLIENT_URL:-}
+      TRACKER_CLIENT_API_KEY: ${TRACKER_CLIENT_API_KEY:-}
+      GR_FINDER_URL: ${GR_FINDER_URL:-}
     volumes:
-      # Application data (covers, cache, etc.)
+      # Application data (covers, cache, auto-generated auth secret, etc.)
       - ${DATA_PATH:-./data}/app:/data
       # Audiobook library - mount your media folder here
       - ${AUDIOBOOK_LIBRARY_PATH:-./media/audiobooks}:/library/audiobooks:ro
@@ -66,37 +75,11 @@ services:
       - ${EBOOK_LIBRARY_PATH:-./media/ebooks}:/library/ebooks:ro
       # Comic library - mount your media folder here
       - ${COMIC_LIBRARY_PATH:-./media/comics}:/library/comics:ro
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      start_period: 30s
-      retries: 3
-
-  # ==========================================================================
-  # Frontend Web App (Next.js)
-  # ==========================================================================
-  frontend:
-    build:
-      context: .
-      dockerfile: apps/web/Dockerfile
-      args:
-        # Build-time: internal URL for SSR API calls (used by next.config.js rewrites)
-        API_URL: http://backend:3000
-    container_name: bookmark-frontend
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
-    environment:
-      # Runtime: internal URL for SSR API calls (Next.js rewrites)
-      API_URL: http://backend:3000
-      NODE_ENV: production
     ports:
       - "${PORT:-3001}:3001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001"]
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/api/health && curl -f http://localhost:3001"]
       interval: 30s
       timeout: 10s
-      start_period: 10s
+      start_period: 60s
       retries: 3

@@ -38,6 +38,7 @@ pnpm-debug.log*
 # Git
 .git
 .gitignore
+.worktrees
 
 # Documentation
 docs
@@ -49,6 +50,7 @@ docs
 **/*.spec.ts
 **/*.test.ts
 coverage
+**/coverage
 **/.coverage
 
 # OS files
@@ -63,6 +65,9 @@ docker-compose*.yml
 # Development data
 data
 media
+apps/backend/data
+apps/backend/covers
+apps/backend/apps
 
 # Temporary files
 tmp

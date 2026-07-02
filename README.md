@@ -44,36 +44,33 @@ The frontend talks to the API over a Next.js proxy, which keeps the same setup w
 
 ## Running it
 
-The quickest path is Docker. You'll need Docker and Docker Compose; for local development you'll also want Node.js 20+, PostgreSQL 16+, pnpm 9+, and FFmpeg.
+The quickest path is Docker. Bookmark ships as a single image (web app + API together) plus a Postgres database — two containers, one command. You'll need Docker and Docker Compose; for local development you'll also want Node.js 20+, PostgreSQL 16+, pnpm 9+, and FFmpeg.
 
 ```bash
 git clone https://github.com/RobinEdquist/bookmark.git
 cd bookmark
+
+# Pre-built image, exposes port 3001
+docker compose -f docker-compose.prod.yml up -d
+
+# Or build from source
+docker compose up -d
+```
+
+That's it for a local try-out — an auth secret is generated on first start, and everything defaults to `http://localhost:3001`. For a real deployment (your own domain, media folders), copy the config template and fill in the essentials:
+
+```bash
 cp example.env .env
 ```
 
-Open `.env` and set the essentials:
-
 ```env
-# Required
 PUBLIC_URL=https://bookmark.yourdomain.com
-BETTER_AUTH_SECRET=run `openssl rand -base64 32` and paste the result
 POSTGRES_PASSWORD=pick-something-strong
 
 # Your media (read-only mounts — Bookmark never writes to them)
 AUDIOBOOK_LIBRARY_PATH=/path/to/your/audiobooks
 EBOOK_LIBRARY_PATH=/path/to/your/ebooks
 COMIC_LIBRARY_PATH=/path/to/your/comics
-```
-
-Then start it:
-
-```bash
-# Standalone, exposes port 3001
-docker compose -f docker-compose.prod.yml up -d
-
-# Or, if you front it with Traefik
-docker compose up -d
 ```
 
 Visit `http://localhost:3001` (or your domain). The first account you create becomes the admin. From there, head to **Settings → Libraries**, point Bookmark at your folders, hit **Scan**, and you're set.
@@ -86,8 +83,8 @@ Everything is set through environment variables in your `.env` file. With Docker
 
 | Variable             | Required | Default    | Description                                                   |
 | -------------------- | -------- | ---------- | ------------------------------------------------------------- |
-| `PUBLIC_URL`         | Yes      | —          | Full URL where Bookmark is reachable; used for auth and CORS  |
-| `BETTER_AUTH_SECRET` | Yes      | —          | Secret for signing sessions (`openssl rand -base64 32`)       |
+| `PUBLIC_URL`         | For remote access | `http://localhost:3001` | Full URL where Bookmark is reachable; used for auth and CORS |
+| `BETTER_AUTH_SECRET` | No       | auto-generated | Secret for signing sessions; generated and persisted in the data volume on first start if unset |
 | `POSTGRES_PASSWORD`  | No       | `postgres` | Database password — change it before exposing anything        |
 | `POSTGRES_USER`      | No       | `postgres` | Database user                                                 |
 | `POSTGRES_DB`        | No       | `bookmark` | Database name                                                 |
@@ -118,13 +115,13 @@ Everything is set through environment variables in your `.env` file. With Docker
 | --------------- | -------- | ------- | ------------------------------------------------------------------------------ |
 | `GR_FINDER_URL` | No       | —       | URL of a Goodreads finder service; enables Goodreads metadata lookups when set |
 
-**Pre-built images** — only used when you run `docker-compose.prod.yml` instead of building from source.
+**Pre-built image** — only used when you run `docker-compose.prod.yml` instead of building from source.
 
-| Variable       | Required | Default             | Description                            |
-| -------------- | -------- | ------------------- | -------------------------------------- |
-| `REGISTRY`     | No       | `ghcr.io`           | Container registry to pull images from |
-| `IMAGE_PREFIX` | No       | `your-org/bookmark` | Image namespace                        |
-| `IMAGE_TAG`    | No       | `latest`            | Image tag to deploy                    |
+| Variable     | Required | Default             | Description                           |
+| ------------ | -------- | ------------------- | ------------------------------------- |
+| `REGISTRY`   | No       | `ghcr.io`           | Container registry to pull image from |
+| `IMAGE_NAME` | No       | `your-org/bookmark` | Image name                            |
+| `IMAGE_TAG`  | No       | `latest`            | Image tag to deploy                   |
 
 #### Running without Docker
 
