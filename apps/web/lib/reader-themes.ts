@@ -12,6 +12,9 @@ export const readerThemes = {
   light: { bg: "#ffffff", fg: "#1a1a1a", link: "#2563eb", isDark: false },
   sepia: { bg: "#f4ecd8", fg: "#5b4636", link: "#8a5a2b", isDark: false },
   dark: { bg: "#1a1a1a", fg: "#d4d4d4", link: "#60a5fa", isDark: true },
+  // True black for OLED panels - pure #000 background with a slightly
+  // dimmed foreground to avoid halation against the black.
+  black: { bg: "#000000", fg: "#c9c9c9", link: "#60a5fa", isDark: true },
 } as const satisfies Record<string, ReaderTheme>;
 
 export type ReaderThemeName = keyof typeof readerThemes;

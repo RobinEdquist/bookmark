@@ -22,7 +22,7 @@ interface ReaderSettingsPopoverProps {
   showTypography: boolean;
 }
 
-const THEME_NAMES: ReaderThemeName[] = ["light", "sepia", "dark"];
+const THEME_NAMES: ReaderThemeName[] = ["light", "sepia", "dark", "black"];
 
 export function ReaderSettingsPopover({
   settings,

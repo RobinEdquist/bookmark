@@ -26,7 +26,7 @@ export const DEFAULT_READER_SETTINGS: ReaderSettings = {
   flow: "paginated",
 };
 
-const THEMES = ["light", "sepia", "dark"] as const;
+const THEMES = ["light", "sepia", "dark", "black"] as const;
 const FLOWS = ["paginated", "scrolled"] as const;
 const FONT_FAMILIES = ["serif", "sans"] as const;
 

@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 
-import type { ReaderThemeName } from "../../../lib/reader-themes";
+import { readerThemes, type ReaderThemeName } from "../../../lib/reader-themes";
 import type { ReaderController, ReaderRelocateInfo } from "./types";
 import type { ReaderTocItem } from "./types";
 
@@ -159,7 +159,7 @@ export function PdfReader({
         {numPages > 0 && containerSize && (
           <div
             className={
-              theme === "dark"
+              readerThemes[theme].isDark
                 ? "[filter:invert(0.92)_hue-rotate(180deg)]"
                 : undefined
             }
