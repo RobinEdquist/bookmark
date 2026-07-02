@@ -31,14 +31,14 @@ It's honest about where it is, too. A few things — Hardcover progress sync, th
 
 It's a TypeScript monorepo (Turborepo + pnpm) with two apps.
 
-| Area            | Built with                                                              |
-| --------------- | ----------------------------------------------------------------------- |
-| Web app         | Next.js 16 (App Router), React 19, Tailwind CSS 4, TanStack Query       |
-| API             | NestJS 11, PostgreSQL, Drizzle ORM                                      |
-| Auth            | Better Auth — sessions, API keys, and optional OIDC                     |
-| Real-time       | Socket.IO                                                               |
-| Media handling  | FFmpeg (audio + chapters), Sharp (covers), pdf.js, node-unrar, EPUB     |
-| i18n            | next-intl (English + Swedish)                                           |
+| Area           | Built with                                                          |
+| -------------- | ------------------------------------------------------------------- |
+| Web app        | Next.js 16 (App Router), React 19, Tailwind CSS 4, TanStack Query   |
+| API            | NestJS 11, PostgreSQL, Drizzle ORM                                  |
+| Auth           | Better Auth — sessions, API keys, and optional OIDC                 |
+| Real-time      | Socket.IO                                                           |
+| Media handling | FFmpeg (audio + chapters), Sharp (covers), pdf.js, node-unrar, EPUB |
+| i18n           | next-intl (English + Swedish)                                       |
 
 The frontend talks to the API over a Next.js proxy, which keeps the same setup working for a future mobile client. Covers and metadata are processed in background workers so a big first scan doesn't block the app.
 
@@ -81,33 +81,33 @@ Everything is set through environment variables in your `.env` file. With Docker
 
 **Core**
 
-| Variable             | Required | Default    | Description                                                   |
-| -------------------- | -------- | ---------- | ------------------------------------------------------------- |
-| `PUBLIC_URL`         | For remote access | `http://localhost:3001` | Full URL where Bookmark is reachable; used for auth and CORS |
-| `BETTER_AUTH_SECRET` | No       | auto-generated | Secret for signing sessions; generated and persisted in the data volume on first start if unset |
-| `POSTGRES_PASSWORD`  | No       | `postgres` | Database password — change it before exposing anything        |
-| `POSTGRES_USER`      | No       | `postgres` | Database user                                                 |
-| `POSTGRES_DB`        | No       | `bookmark` | Database name                                                 |
-| `PORT`               | No       | `3001`     | Host port the web app is published on                         |
-| `LOG_LEVEL`          | No       | `info`     | Backend log verbosity (`debug`, `info`, `warn`, `error`)      |
+| Variable             | Required          | Default                 | Description                                                                                     |
+| -------------------- | ----------------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `PUBLIC_URL`         | For remote access | `http://localhost:3001` | Full URL where Bookmark is reachable; used for auth and CORS                                    |
+| `BETTER_AUTH_SECRET` | No                | auto-generated          | Secret for signing sessions; generated and persisted in the data volume on first start if unset |
+| `POSTGRES_PASSWORD`  | No                | `postgres`              | Database password — change it before exposing anything                                          |
+| `POSTGRES_USER`      | No                | `postgres`              | Database user                                                                                   |
+| `POSTGRES_DB`        | No                | `bookmark`              | Database name                                                                                   |
+| `PORT`               | No                | `3001`                  | Host port the web app is published on                                                           |
+| `LOG_LEVEL`          | No                | `info`                  | Backend log verbosity (`debug`, `info`, `warn`, `error`)                                        |
 
 **Media and storage**
 
-| Variable                 | Required | Default              | Description                                |
-| ------------------------ | -------- | -------------------- | ------------------------------------------ |
-| `DATA_PATH`              | No       | `./data`             | Host path for app data (database, covers)  |
-| `AUDIOBOOK_LIBRARY_PATH` | No       | `./media/audiobooks` | Your audiobook folder (mounted read-only)  |
-| `EBOOK_LIBRARY_PATH`     | No       | `./media/ebooks`     | Your ebook folder (mounted read-only)      |
-| `COMIC_LIBRARY_PATH`     | No       | `./media/comics`     | Your comic folder (mounted read-only)      |
+| Variable                 | Required | Default              | Description                               |
+| ------------------------ | -------- | -------------------- | ----------------------------------------- |
+| `DATA_PATH`              | No       | `./data`             | Host path for app data (database, covers) |
+| `AUDIOBOOK_LIBRARY_PATH` | No       | `./media/audiobooks` | Your audiobook folder (mounted read-only) |
+| `EBOOK_LIBRARY_PATH`     | No       | `./media/ebooks`     | Your ebook folder (mounted read-only)     |
+| `COMIC_LIBRARY_PATH`     | No       | `./media/comics`     | Your comic folder (mounted read-only)     |
 
 **Single sign-on (optional)** — leave `OIDC_ENABLED=false` to use the built-in email/password login.
 
-| Variable             | Required        | Default | Description                            |
-| -------------------- | --------------- | ------- | -------------------------------------- |
-| `OIDC_ENABLED`       | No              | `false` | Turn OpenID Connect SSO on or off      |
-| `OIDC_ISSUER_URL`    | If SSO enabled  | —       | Issuer URL from your identity provider |
-| `OIDC_CLIENT_ID`     | If SSO enabled  | —       | Client ID                              |
-| `OIDC_CLIENT_SECRET` | If SSO enabled  | —       | Client secret                          |
+| Variable             | Required       | Default | Description                            |
+| -------------------- | -------------- | ------- | -------------------------------------- |
+| `OIDC_ENABLED`       | No             | `false` | Turn OpenID Connect SSO on or off      |
+| `OIDC_ISSUER_URL`    | If SSO enabled | —       | Issuer URL from your identity provider |
+| `OIDC_CLIENT_ID`     | If SSO enabled | —       | Client ID                              |
+| `OIDC_CLIENT_SECRET` | If SSO enabled | —       | Client secret                          |
 
 **Integrations (optional)**
 
@@ -172,8 +172,6 @@ API docs (Swagger) live at `http://localhost:3000/api/docs` once the backend is 
 
 - [x] Comics — browse, organize, and download (CBZ/CBR/PDF) with Comic Vine metadata
 - [ ] In-browser reader for ebooks and comics
-- [ ] Hardcover reading-progress sync
-- [ ] User statistics and listening insights
 
 ## Thanks to
 
