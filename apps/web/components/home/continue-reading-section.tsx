@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { BookOpen, MoreVertical, EyeOff, Settings, Clock } from "lucide-react";
 import { motion } from "motion/react";
@@ -24,7 +25,7 @@ import { useEbook } from "../../lib/use-ebooks";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
 import { useMyPermissions } from "../../lib/use-users";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
-import { EpubReader } from "../ebooks/epub-reader";
+import { READABLE_FORMATS } from "../ebooks/read-button";
 
 function ContinueReadingCard({
   progress,
@@ -32,18 +33,16 @@ function ContinueReadingCard({
   progress: EbookProgressWithEbook;
 }) {
   const t = useTranslations("home.continueReading");
+  const router = useRouter();
   const { data: ebookDetail } = useEbook(progress.ebook.id);
   const { mutate: hideProgress, isPending: isHiding } = useHideEbookProgress();
-  const [isReaderOpen, setIsReaderOpen] = useState(false);
 
-  const isEpub = progress.ebook.format.toLowerCase() === "epub";
+  const isReadable = READABLE_FORMATS.has(progress.ebook.format.toLowerCase());
 
   const handleReadClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isEpub) {
-      setIsReaderOpen(true);
-    }
+    router.push(`/ebooks/${progress.ebook.id}/read`);
   };
 
   const handleHide = () => {
@@ -56,17 +55,6 @@ function ContinueReadingCard({
       },
     });
   };
-
-  if (isReaderOpen && ebookDetail) {
-    return (
-      <EpubReader
-        ebookId={progress.ebook.id}
-        ebookTitle={progress.ebook.title}
-        initialCfi={progress.cfi}
-        onClose={() => setIsReaderOpen(false)}
-      />
-    );
-  }
 
   return (
     <div className="w-40 shrink-0 group/card">
@@ -99,7 +87,7 @@ function ContinueReadingCard({
             </div>
 
             {/* Read button overlay */}
-            {isEpub && (
+            {isReadable && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover/card:bg-black/30">
                 <Button
                   size="icon"

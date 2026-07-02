@@ -1,6 +1,33 @@
 import "@testing-library/jest-dom/vitest";
 import { vi } from "vitest";
 
+// Node >=22 defines `localStorage`/`sessionStorage` on globalThis (undefined
+// unless started with --localstorage-file), shadowing jsdom's implementation
+// since vitest merges jsdom's window into the same global. Provide a real one.
+function createMemoryStorage(): Storage {
+  let store = new Map<string, string>();
+  return {
+    get length() {
+      return store.size;
+    },
+    key: (index: number) => [...store.keys()][index] ?? null,
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, String(value));
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store = new Map();
+    },
+  };
+}
+if (typeof localStorage === "undefined") {
+  vi.stubGlobal("localStorage", createMemoryStorage());
+  vi.stubGlobal("sessionStorage", createMemoryStorage());
+}
+
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
   useRouter: () => ({

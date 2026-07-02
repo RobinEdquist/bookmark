@@ -388,6 +388,7 @@ export default function ComicBookDetailPage({
                         <Link
                           key={arc}
                           href={`/comics?metadataTag=${encodeURIComponent(`story_arc:${arc}`)}`}
+                          scroll={false}
                           className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
                         >
                           {arc}
@@ -406,6 +407,7 @@ export default function ComicBookDetailPage({
                         <Link
                           key={char}
                           href={`/comics?metadataTag=${encodeURIComponent(`character:${char}`)}`}
+                          scroll={false}
                           className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
                         >
                           {char}
@@ -424,6 +426,7 @@ export default function ComicBookDetailPage({
                         <Link
                           key={team}
                           href={`/comics?metadataTag=${encodeURIComponent(`team:${team}`)}`}
+                          scroll={false}
                           className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
                         >
                           {team}
@@ -442,6 +445,7 @@ export default function ComicBookDetailPage({
                         <Link
                           key={loc}
                           href={`/comics?metadataTag=${encodeURIComponent(`location:${loc}`)}`}
+                          scroll={false}
                           className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
                         >
                           {loc}

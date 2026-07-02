@@ -10,11 +10,7 @@ import { SortSelect } from "../../../components/library/sort-select";
 import { useSortPreference } from "../../../lib/use-sort-preference";
 import { useSaveLibraryUrl } from "../../../lib/use-library-return-url";
 import { useSaveLibraryNavigation } from "../../../lib/use-library-navigation";
-import {
-  useSaveScrollPosition,
-  useRestoreScrollPosition,
-  clearScrollState,
-} from "../../../lib/use-scroll-position";
+import { useScrollRestoration } from "../../../lib/use-scroll-restoration";
 import { LibraryPageHeader } from "../../../components/library/library-page-header";
 import { authClient } from "../../../lib/auth-client";
 
@@ -80,32 +76,11 @@ export default function AudiobooksPage() {
   // Save ordered item IDs for next/prev navigation on detail pages
   useSaveLibraryNavigation("/audiobooks", audiobooks.map((a) => a.id));
 
-  // Scroll position restoration
-  const pagesLoaded = data?.pages.length ?? 0;
-  const searchParamsKey = `${debouncedSearch ?? ""}-${sortBy}-${sortOrder}`;
-
-  // Clear scroll position when search/sort changes
-  const prevSearchParamsKey = useRef(searchParamsKey);
-  useEffect(() => {
-    if (prevSearchParamsKey.current !== searchParamsKey) {
-      clearScrollState("/audiobooks");
-      prevSearchParamsKey.current = searchParamsKey;
-    }
-  }, [searchParamsKey]);
-
-  // Save scroll position when navigating away
-  useSaveScrollPosition("/audiobooks", searchParamsKey, pagesLoaded);
-
-  // Restore scroll position when returning from detail page
-  const { isRestoring } = useRestoreScrollPosition(
-    "/audiobooks",
-    searchParamsKey,
-    pagesLoaded,
-    isLoading,
-    isFetchingNextPage,
-    fetchNextPage,
-    hasNextPage ?? false
-  );
+  // Scroll position restoration (search is in the URL; sort is stored locally)
+  const { hasSavedPosition } = useScrollRestoration({
+    ready: !!data,
+    extraKey: `${sortBy}:${sortOrder}`,
+  });
 
   // Show spinner when search is pending (query differs from debounced) or fetching first page
   const isSearching = searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
@@ -130,11 +105,7 @@ export default function AudiobooksPage() {
         isAdmin={isAdmin}
       />
 
-      <div
-        className={`p-4 pt-4 transition-opacity duration-300 lg:p-8 lg:pt-6 ${
-          isRestoring ? "opacity-0" : "opacity-100"
-        }`}
-      >
+      <div className="p-4 pt-4 lg:p-8 lg:pt-6">
         <div className="mx-auto max-w-7xl">
           <AudiobookGrid
             audiobooks={audiobooks}
@@ -143,6 +114,7 @@ export default function AudiobooksPage() {
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
             onLoadMore={() => fetchNextPage()}
+            animateEntrance={!hasSavedPosition}
           />
         </div>
       </div>

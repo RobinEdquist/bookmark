@@ -1,4 +1,60 @@
 {
+  "onboarding": {
+    "steps": {
+      "welcome": "Welcome",
+      "libraries": "Add libraries",
+      "done": "All set"
+    },
+    "welcome": {
+      "title": "Welcome to Bookmark",
+      "subtitle": "Your personal library for audiobooks, ebooks, and comics — beautifully organized and always in sync.",
+      "audiobooks": "Audiobooks",
+      "ebooks": "Ebooks",
+      "comics": "Comics",
+      "intro": "Let's point Bookmark at the media on your server. It only takes a minute.",
+      "getStarted": "Get started",
+      "skip": "Skip for now"
+    },
+    "libraries": {
+      "title": "Add your libraries",
+      "subtitle": "Choose the folders on your server where your media lives. You can add or change these anytime.",
+      "audiobooksLabel": "Audiobooks",
+      "audiobooksDescription": "Point to a folder of audiobooks (M4B, MP3, and more).",
+      "ebooksLabel": "Ebooks",
+      "ebooksDescription": "Point to a folder of ebooks (EPUB, PDF, and more).",
+      "comicsLabel": "Comics",
+      "comicsDescription": "Point to a folder of comics (CBZ, CBR, PDF).",
+      "chooseFolder": "Choose folder",
+      "change": "Change",
+      "remove": "Remove",
+      "configured": "Ready",
+      "scanHint": "Bookmark scans these folders automatically and keeps watching for new files.",
+      "back": "Back",
+      "continue": "Continue",
+      "toast": {
+        "saved": "Library folder saved",
+        "removed": "Library folder removed",
+        "error": "Couldn't update the library folder"
+      }
+    },
+    "done": {
+      "title": "You're all set!",
+      "subtitleScanning": "Bookmark is scanning your folders now — your books will start appearing on the home screen shortly.",
+      "subtitleEmpty": "You haven't added any libraries yet. You can add them anytime from Settings.",
+      "configuredTitle": "Configured libraries",
+      "goToLibrary": "Go to my library",
+      "openSettings": "Open advanced settings"
+    },
+    "waiting": {
+      "title": "Your library is being set up",
+      "description": "An administrator is getting things ready. Check back soon — your audiobooks, ebooks, and comics will appear here."
+    },
+    "resume": {
+      "title": "Finish setting up your library",
+      "description": "Add your audiobooks, ebooks, or comics to get started.",
+      "action": "Resume setup"
+    }
+  },
   "announcement": {
     "dismiss": "Got it"
   },

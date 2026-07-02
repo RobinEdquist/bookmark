@@ -13,6 +13,7 @@ import {
   type SeriesSortOrder,
 } from "../../../lib/use-series";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
+import { useScrollRestoration } from "../../../lib/use-scroll-restoration";
 
 export default function SeriesPage() {
   const t = useTranslations("series");
@@ -88,6 +89,9 @@ export default function SeriesPage() {
     [data]
   );
 
+  // Scroll position restoration (search and sort are both in the URL)
+  const { hasSavedPosition } = useScrollRestoration({ ready: !!data });
+
   return (
     <div className="flex flex-1 flex-col">
       <LibraryPageHeader
@@ -113,6 +117,7 @@ export default function SeriesPage() {
             isFetchingNextPage={isFetchingNextPage}
             hasNextPage={hasNextPage}
             fetchNextPage={fetchNextPage}
+            animateEntrance={!hasSavedPosition}
           />
         </div>
       </div>

@@ -37,11 +37,14 @@ interface ComicSeriesCardProps {
   series: ComicSeriesListItem;
   /** Called when user wants to edit this series (for shared dialog) */
   onEdit?: () => void;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
 export function ComicSeriesCard({
   series,
   onEdit,
+  animateEntrance = true,
 }: ComicSeriesCardProps) {
   const t = useTranslations("comics");
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -76,7 +79,7 @@ export function ComicSeriesCard({
     <>
       <motion.article
         className="group relative flex flex-col"
-        initial={{ opacity: 0, y: 20 }}
+        initial={animateEntrance ? { opacity: 0, y: 20 } : false}
         animate={{ opacity: 1, y: 0 }}
       >
         {/* Cover Image */}

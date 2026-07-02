@@ -65,27 +65,18 @@ function saveToStorage(key: string, preference: SortPreference): void {
 }
 
 export function useSortPreference(libraryType: "audiobooks" | "ebooks" | "comics") {
+  // Synchronous init keeps the first render's sort stable — scroll restoration
+  // keys on it, and it avoids a default-sort fetch immediately superseded by
+  // the stored sort. Safe: these pages never SSR (auth-gated client layout).
   const [preference, setPreference] = useState<SortPreference>(
-    libraryType === "comics" ? DEFAULT_SORT_COMICS : DEFAULT_SORT
+    () =>
+      loadFromStorage(getStorageKey(libraryType)) ??
+      (libraryType === "comics" ? DEFAULT_SORT_COMICS : DEFAULT_SORT)
   );
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage on mount
   useEffect(() => {
-    const key = getStorageKey(libraryType);
-    const stored = loadFromStorage(key);
-    if (stored) {
-      setPreference(stored);
-    }
-    setIsLoaded(true);
-  }, [libraryType]);
-
-  // Save to localStorage when preference changes (after initial load)
-  useEffect(() => {
-    if (!isLoaded) return;
-    const key = getStorageKey(libraryType);
-    saveToStorage(key, preference);
-  }, [preference, libraryType, isLoaded]);
+    saveToStorage(getStorageKey(libraryType), preference);
+  }, [preference, libraryType]);
 
   const setSortField = useCallback((field: SortField) => {
     setPreference((prev) => {
@@ -108,6 +99,6 @@ export function useSortPreference(libraryType: "audiobooks" | "ebooks" | "comics
     sortBy: preference.sortBy,
     sortOrder: preference.sortOrder,
     setSortField,
-    isLoaded,
+    isLoaded: true,
   };
 }

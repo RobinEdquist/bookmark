@@ -33,17 +33,21 @@ function NavLink({
   label,
   active,
   onClick,
+  scroll,
 }: {
   href: string;
   icon: LucideIcon;
   label: string;
   active: boolean;
   onClick?: () => void;
+  /** Pass false for pages that manage their own scroll via useScrollRestoration. */
+  scroll?: boolean;
 }) {
   return (
     <Link
       href={href}
       onClick={onClick}
+      scroll={scroll}
       aria-current={active ? "page" : undefined}
       className={cn(
         "group flex items-center gap-3 rounded-md px-3 py-1.5 text-[13px] transition-colors",
@@ -88,7 +92,7 @@ export function Sidebar({ isAdmin, onNavigate, floating = false }: SidebarProps)
   // Grouped navigation, Apple Music style: quiet section headers + dense rows
   const groups: {
     title?: string;
-    items: { href: string; icon: LucideIcon; labelKey: string; show: boolean; active?: boolean }[];
+    items: { href: string; icon: LucideIcon; labelKey: string; show: boolean; active?: boolean; scroll?: boolean }[];
   }[] = [
     {
       items: [{ href: "/home", icon: Home, labelKey: "home", show: true }],
@@ -96,10 +100,11 @@ export function Sidebar({ isAdmin, onNavigate, floating = false }: SidebarProps)
     {
       title: t("nav.sections.library"),
       items: [
-        { href: "/audiobooks", icon: Headphones, labelKey: "audiobooks", show: availability?.audiobooks ?? false },
-        { href: "/ebooks", icon: BookOpen, labelKey: "ebooks", show: availability?.ebooks ?? false },
-        { href: "/comics", icon: BookImage, labelKey: "comics", show: availability?.comics ?? false },
-        { href: "/series", icon: Library, labelKey: "series", show: true },
+        // scroll: false on library pages — they restore their own scroll position
+        { href: "/audiobooks", icon: Headphones, labelKey: "audiobooks", show: availability?.audiobooks ?? false, scroll: false },
+        { href: "/ebooks", icon: BookOpen, labelKey: "ebooks", show: availability?.ebooks ?? false, scroll: false },
+        { href: "/comics", icon: BookImage, labelKey: "comics", show: availability?.comics ?? false, scroll: false },
+        { href: "/series", icon: Library, labelKey: "series", show: true, scroll: false },
         { href: "/genres", icon: LayoutGrid, labelKey: "genres", show: hasAnyLibrary },
       ],
     },
@@ -150,6 +155,7 @@ export function Sidebar({ isAdmin, onNavigate, floating = false }: SidebarProps)
                   label={t(`nav.${item.labelKey}`)}
                   active={isActive(item.href)}
                   onClick={handleNavClick}
+                  scroll={item.scroll}
                 />
               ))}
             </div>

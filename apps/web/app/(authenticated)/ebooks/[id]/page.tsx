@@ -27,6 +27,7 @@ import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { useGrFinderStatus } from "../../../../lib/use-goodreads";
 import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
+import { useScrollRestoration } from "../../../../lib/use-scroll-restoration";
 import { useLibraryNavigation } from "../../../../lib/use-library-navigation";
 import { EditEbookDialog } from "../../../../components/ebooks/edit-ebook-dialog";
 import { ChangeEbookCoverDialog } from "../../../../components/ebooks/change-ebook-cover-dialog";
@@ -53,6 +54,8 @@ export default function EbookDetailPage({
   const returnUrl = useLibraryReturnUrl("/ebooks");
   const { previousId, nextId } = useLibraryNavigation("/ebooks", id);
   const { data: ebook, isLoading, error } = useEbook(id);
+  // Restore scroll when revisiting via browser back/forward (pushes land at top)
+  useScrollRestoration({ ready: !!ebook });
   const { data: ebookProgress } = useEbookProgress(id);
   const { data: permissions } = useMyPermissions();
   const resetProgressMutation = useResetEbookProgress();
@@ -107,7 +110,7 @@ export default function EbookDetailPage({
       <main className="flex min-h-screen flex-col items-center justify-center gap-4">
         <p className="text-destructive">{t("error")}</p>
         <Button variant="outline" asChild>
-          <Link href="/ebooks">
+          <Link href="/ebooks" scroll={false}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t("backToLibrary")}
           </Link>
@@ -124,7 +127,7 @@ export default function EbookDetailPage({
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href={returnUrl}>
+            <Link href={returnUrl} scroll={false}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>

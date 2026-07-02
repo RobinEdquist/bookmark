@@ -57,6 +57,9 @@ export function useInfiniteComicCollections(f: Omit<ComicCollectionFilters, "lim
     },
     initialPageParam: 0,
     placeholderData: (prev) => prev,
+    // Keep loaded pages cached while browsing detail pages so returning to
+    // the list renders instantly at full height (scroll restoration)
+    gcTime: 30 * 60 * 1000,
   });
 }
 

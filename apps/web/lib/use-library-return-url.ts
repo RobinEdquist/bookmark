@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 
 type LibraryPath = "/audiobooks" | "/ebooks" | "/comics";
 
@@ -9,11 +10,16 @@ type LibraryPath = "/audiobooks" | "/ebooks" | "/comics";
  * so detail pages can link back to the same state.
  */
 export function useSaveLibraryUrl(libraryPath: LibraryPath) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   useEffect(() => {
-    // Save full URL including search params
-    const currentUrl = window.location.pathname + window.location.search;
-    sessionStorage.setItem(`${libraryPath}-return-url`, currentUrl);
-  });
+    const query = searchParams.toString();
+    sessionStorage.setItem(
+      `${libraryPath}-return-url`,
+      pathname + (query ? `?${query}` : "")
+    );
+  }, [libraryPath, pathname, searchParams]);
 }
 
 /**

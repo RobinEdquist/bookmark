@@ -14,6 +14,8 @@ interface ComicCollectionGridProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
 function ComicCollectionSkeleton() {
@@ -57,6 +59,7 @@ export function ComicCollectionGrid({
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
+  animateEntrance = true,
 }: ComicCollectionGridProps) {
   const t = useTranslations("comics");
 
@@ -96,7 +99,7 @@ export function ComicCollectionGrid({
     <>
       <motion.div
         className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-6"
-        initial="hidden"
+        initial={animateEntrance ? "hidden" : false}
         animate="visible"
         variants={{
           hidden: {},
@@ -108,7 +111,11 @@ export function ComicCollectionGrid({
         }}
       >
         {collections.map((c) => (
-          <ComicCollectionCard key={c.id} collection={c} />
+          <ComicCollectionCard
+            key={c.id}
+            collection={c}
+            animateEntrance={animateEntrance}
+          />
         ))}
       </motion.div>
 

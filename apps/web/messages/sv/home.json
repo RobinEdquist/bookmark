@@ -1,4 +1,60 @@
 {
+  "onboarding": {
+    "steps": {
+      "welcome": "Välkommen",
+      "libraries": "Lägg till bibliotek",
+      "done": "Klart"
+    },
+    "welcome": {
+      "title": "Välkommen till Bookmark",
+      "subtitle": "Ditt personliga bibliotek för ljudböcker, e-böcker och serier — vackert organiserat och alltid synkroniserat.",
+      "audiobooks": "Ljudböcker",
+      "ebooks": "E-böcker",
+      "comics": "Serier",
+      "intro": "Låt oss peka ut var din media finns på servern. Det tar bara en minut.",
+      "getStarted": "Kom igång",
+      "skip": "Hoppa över tills vidare"
+    },
+    "libraries": {
+      "title": "Lägg till dina bibliotek",
+      "subtitle": "Välj mapparna på din server där din media finns. Du kan lägga till eller ändra dessa när som helst.",
+      "audiobooksLabel": "Ljudböcker",
+      "audiobooksDescription": "Peka ut en mapp med ljudböcker (M4B, MP3 med flera).",
+      "ebooksLabel": "E-böcker",
+      "ebooksDescription": "Peka ut en mapp med e-böcker (EPUB, PDF med flera).",
+      "comicsLabel": "Serier",
+      "comicsDescription": "Peka ut en mapp med serier (CBZ, CBR, PDF).",
+      "chooseFolder": "Välj mapp",
+      "change": "Ändra",
+      "remove": "Ta bort",
+      "configured": "Klar",
+      "scanHint": "Bookmark skannar dessa mappar automatiskt och håller utkik efter nya filer.",
+      "back": "Tillbaka",
+      "continue": "Fortsätt",
+      "toast": {
+        "saved": "Biblioteksmapp sparad",
+        "removed": "Biblioteksmapp borttagen",
+        "error": "Kunde inte uppdatera biblioteksmappen"
+      }
+    },
+    "done": {
+      "title": "Allt är klart!",
+      "subtitleScanning": "Bookmark skannar nu dina mappar — dina böcker börjar snart dyka upp på startsidan.",
+      "subtitleEmpty": "Du har inte lagt till några bibliotek ännu. Du kan lägga till dem när som helst under Inställningar.",
+      "configuredTitle": "Konfigurerade bibliotek",
+      "goToLibrary": "Gå till mitt bibliotek",
+      "openSettings": "Öppna avancerade inställningar"
+    },
+    "waiting": {
+      "title": "Ditt bibliotek förbereds",
+      "description": "En administratör förbereder allt. Kom tillbaka snart — dina ljudböcker, e-böcker och serier kommer att visas här."
+    },
+    "resume": {
+      "title": "Slutför konfigurationen av ditt bibliotek",
+      "description": "Lägg till dina ljudböcker, e-böcker eller serier för att komma igång.",
+      "action": "Återuppta konfiguration"
+    }
+  },
   "announcement": {
     "dismiss": "Uppfattat"
   },

@@ -17,6 +17,8 @@ interface AudiobookGridProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   onLoadMore?: () => void;
+  /** Disable the entrance animation, e.g. when restoring a scroll position. */
+  animateEntrance?: boolean;
 }
 
 function AudiobookSkeleton() {
@@ -61,6 +63,7 @@ export function AudiobookGrid({
   hasNextPage,
   isFetchingNextPage,
   onLoadMore,
+  animateEntrance = true,
 }: AudiobookGridProps) {
   const t = useTranslations("audiobooks");
   const { data: permissions } = useMyPermissions();
@@ -117,7 +120,7 @@ export function AudiobookGrid({
     <>
       <motion.div
         className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 sm:gap-6"
-        initial="hidden"
+        initial={animateEntrance ? "hidden" : false}
         animate="visible"
         variants={{
           hidden: {},
@@ -134,6 +137,7 @@ export function AudiobookGrid({
             audiobook={audiobook}
             onEdit={() => handleOpenEdit(audiobook.id)}
             externalEditDialog
+            animateEntrance={animateEntrance}
           />
         ))}
       </motion.div>
