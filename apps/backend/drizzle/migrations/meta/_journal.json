@@ -204,6 +204,13 @@
       "when": 1782129150047,
       "tag": "0028_fix_duplicate_progress_rows_and_reindex",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1783022849246,
+      "tag": "0029_tts_audiobook_generation",
+      "breakpoints": true
     }
   ]
 }

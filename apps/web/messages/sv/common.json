@@ -29,10 +29,10 @@
     "eReader": "E-boksläsare",
     "audiobookApp": "Ljudboksapp",
     "requests": "Förfrågningar",
-  "manageRequests": "Hantera förfrågningar",
-  "lists": "Listor",
-  "topList": "Topplista",
-  "settings": "Inställningar",
+    "manageRequests": "Hantera förfrågningar",
+    "lists": "Listor",
+    "topList": "Topplista",
+    "settings": "Inställningar",
     "myStats": "Min statistik",
     "preferences": "Preferenser",
     "signOut": "Logga ut"
@@ -57,7 +57,20 @@
     "failed": "{count, plural, =1 {1 misslyckad} other {# misslyckade}}",
     "viewFailed": "Visa misslyckade",
     "noTasks": "Inga uppgifter körs",
-    "more": "till"
+    "more": "till",
+    "tts": {
+      "title": "Skapar ljudbok",
+      "generatingFor": "Läser in ”{title}”",
+      "chapterProgress": "Kapitel {completed} av {total}",
+      "phase": {
+        "extracting": "Extraherar text",
+        "generating": "Genererar tal",
+        "assembling": "Sätter ihop ljudfilen",
+        "importing": "Importerar till biblioteket"
+      },
+      "pending": "{count, plural, =1 {1 bok i kö} other {# böcker i kö}}",
+      "failed": "{count, plural, =1 {1 generering misslyckades} other {# genereringar misslyckades}}"
+    }
   },
   "hardcoverSync": {
     "title": "Länka till Hardcover",

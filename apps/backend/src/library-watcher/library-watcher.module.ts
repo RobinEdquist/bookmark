@@ -37,6 +37,8 @@ import { RequestsModule } from '../requests';
     ComicMetadataProvider,
     ImportQueueService,
     LibraryScannerService,
+    MediaDetectorService,
+    MediaImporterService,
   ],
 })
 export class LibraryWatcherModule {}

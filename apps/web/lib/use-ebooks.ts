@@ -65,6 +65,8 @@ export interface EbookDetail {
   series: EbookSeries[];
   genres: EbookGenre[];
   tags: EbookTag[];
+  /** Set when a TTS-generated audiobook exists for this ebook. */
+  generatedAudiobook: { id: string; title: string } | null;
 }
 
 export interface EbookFilters {

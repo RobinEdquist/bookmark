@@ -29,10 +29,10 @@
     "eReader": "E-Reader",
     "audiobookApp": "Audiobook App",
     "requests": "Requests",
-  "manageRequests": "Manage Requests",
-  "lists": "Lists",
-  "topList": "Top List",
-  "settings": "Settings",
+    "manageRequests": "Manage Requests",
+    "lists": "Lists",
+    "topList": "Top List",
+    "settings": "Settings",
     "myStats": "My Stats",
     "preferences": "Preferences",
     "signOut": "Sign Out"
@@ -57,7 +57,20 @@
     "failed": "{count, plural, =1 {1 failed} other {# failed}}",
     "viewFailed": "View failed items",
     "noTasks": "No tasks running",
-    "more": "more"
+    "more": "more",
+    "tts": {
+      "title": "Generating audiobook",
+      "generatingFor": "Narrating “{title}”",
+      "chapterProgress": "Chapter {completed} of {total}",
+      "phase": {
+        "extracting": "Extracting text",
+        "generating": "Generating speech",
+        "assembling": "Assembling audio file",
+        "importing": "Importing into library"
+      },
+      "pending": "{count, plural, =1 {1 book queued} other {# books queued}}",
+      "failed": "{count, plural, =1 {1 generation failed} other {# generations failed}}"
+    }
   },
   "hardcoverSync": {
     "title": "Link to Hardcover",

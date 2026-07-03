@@ -769,6 +769,7 @@ export class AudiobooksService {
       hardcoverData,
       goodreadsData,
       metadataPriority,
+      generatedFromEbookData,
     ] = await Promise.all([
       this.db
         .select()
@@ -860,6 +861,16 @@ export class AudiobooksService {
         .where(eq(goodreadsSchema.goodreadsAudiobookLinks.audiobookId, id))
         .limit(1),
       this.appSettingsService.getMetadataPriority(),
+      ab.generatedFromEbookId
+        ? this.db
+            .select({
+              id: ebookSchema.ebooks.id,
+              title: ebookSchema.ebooks.title,
+            })
+            .from(ebookSchema.ebooks)
+            .where(eq(ebookSchema.ebooks.id, ab.generatedFromEbookId))
+            .limit(1)
+        : Promise.resolve([]),
     ]);
 
     const hc = hardcoverData[0]?.hardcoverBook || null;
@@ -1070,6 +1081,8 @@ export class AudiobooksService {
             description: gr.description,
           }
         : null,
+      // Source ebook when this audiobook was AI-narrated from one
+      generatedFromEbook: generatedFromEbookData[0] ?? null,
     };
   }
 

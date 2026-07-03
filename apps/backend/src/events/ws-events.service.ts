@@ -44,6 +44,21 @@ export interface RescanStatus {
   currentAudiobook?: string;
 }
 
+export interface TtsTaskStatus {
+  active: {
+    jobId: string;
+    ebookId: string;
+    ebookTitle: string;
+    phase: 'extracting' | 'generating' | 'assembling' | 'importing';
+    totalChapters: number | null;
+    completedChapters: number;
+    percentage: number | null;
+    currentChapterTitle: string | null;
+  } | null;
+  pendingCount: number;
+  failedCount: number;
+}
+
 @Injectable()
 export class WsEventsService {
   private readonly logger = new Logger(WsEventsService.name);
@@ -52,6 +67,7 @@ export class WsEventsService {
   private lastComicvineStatusJson: string | null = null;
   private lastScanStatusJson: string | null = null;
   private lastRescanStatusJson: string | null = null;
+  private lastTtsStatusJson: string | null = null;
 
   constructor(private readonly gateway: EventsGateway) {}
 
@@ -257,6 +273,22 @@ export class WsEventsService {
 
     this.lastComicvineStatusJson = statusJson;
     this.emit({ type: 'tasks.comicvine.status', payload: status });
+  }
+
+  /**
+   * Push TTS audiobook-generation status update to all connected clients.
+   * Debounced - only emits if status has changed.
+   */
+  ttsGenerationStatusUpdated(status: TtsTaskStatus): void {
+    const statusJson = JSON.stringify(status);
+
+    // Debounce: only emit if status actually changed
+    if (statusJson === this.lastTtsStatusJson) {
+      return;
+    }
+
+    this.lastTtsStatusJson = statusJson;
+    this.emit({ type: 'tasks.tts.status', payload: status });
   }
 
   /**

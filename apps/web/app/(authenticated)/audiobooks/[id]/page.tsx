@@ -7,8 +7,9 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download, RotateCcw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download, RotateCcw, Sparkles } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
+import { Badge } from "@repo/ui/components/ui/badge";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
   Accordion,
@@ -432,6 +433,20 @@ export default function AudiobookDetailPage({
                 <p className="mt-1 text-lg text-muted-foreground">
                   {audiobook.subtitle}
                 </p>
+              )}
+              {audiobook.generatedFromEbook && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary" className="gap-1">
+                    <Sparkles className="h-3 w-3" />
+                    {t("aiNarrated.badge")}
+                  </Badge>
+                  <Link
+                    href={`/ebooks/${audiobook.generatedFromEbook.id}`}
+                    className="text-sm text-primary hover:underline"
+                  >
+                    {t("aiNarrated.generatedFromEbook")}
+                  </Link>
+                </div>
               )}
             </div>
 

@@ -182,6 +182,12 @@ export const queryKeys = {
     detail: (ebookId: string) =>
       [...queryKeys.ebookProgress.all, "detail", ebookId] as const,
   },
+  tts: {
+    all: ["tts"] as const,
+    status: () => [...queryKeys.tts.all, "status"] as const,
+    voices: () => [...queryKeys.tts.all, "voices"] as const,
+    jobs: () => [...queryKeys.tts.all, "jobs"] as const,
+  },
   tasks: {
     all: ["tasks"] as const,
     status: () => [...queryKeys.tasks.all, "status"] as const,
@@ -190,6 +196,7 @@ export const queryKeys = {
     comicvine: () => [...queryKeys.tasks.all, "comicvine"] as const,
     scan: () => [...queryKeys.tasks.all, "scan"] as const,
     rescan: () => [...queryKeys.tasks.all, "rescan"] as const,
+    tts: () => [...queryKeys.tasks.all, "tts"] as const,
   },
   importErrors: {
     all: ["importErrors"] as const,

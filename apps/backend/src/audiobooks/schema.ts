@@ -12,6 +12,7 @@ import {
   numeric,
   primaryKey,
   jsonb,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 import { coverSourceEnum } from '../database/shared-enums';
@@ -53,6 +54,12 @@ export const audiobooks = pgTable(
     status: audiobookStatusEnum('status').notNull().default('available'),
     missingAt: timestamp('missing_at'),
     manualFields: jsonb('manual_fields').$type<string[]>().default([]),
+    // Set when this audiobook was AI-narrated from an ebook (lazy reference
+    // to break the circular import with ebooks/schema)
+    generatedFromEbookId: uuid('generated_from_ebook_id').references(
+      (): AnyPgColumn => ebooks.id,
+      { onDelete: 'set null' },
+    ),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
@@ -65,6 +72,9 @@ export const audiobooks = pgTable(
     index('audiobooks_created_at_idx').on(table.createdAt),
     index('audiobooks_language_idx').on(table.language),
     index('audiobooks_status_idx').on(table.status),
+    index('audiobooks_generated_from_ebook_id_idx').on(
+      table.generatedFromEbookId,
+    ),
   ],
 );
 
@@ -254,7 +264,7 @@ export const audiobookTags = pgTable(
 // Forward imports for relations (avoids circular dependency)
 // The actual tables are defined in their respective schema files
 import { hardcoverAudiobookLinks } from '../hardcover/schema';
-import { ebookAuthors, ebookSeries } from '../ebooks/schema';
+import { ebooks, ebookAuthors, ebookSeries } from '../ebooks/schema';
 
 // Relations
 export const audiobooksRelations = relations(audiobooks, ({ many, one }) => ({

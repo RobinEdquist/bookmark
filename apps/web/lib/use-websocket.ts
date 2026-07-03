@@ -4,7 +4,12 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
-import type { ImportStatus, HardcoverSyncStatus, ScanStatus } from "./use-tasks";
+import type {
+  ImportStatus,
+  HardcoverSyncStatus,
+  ScanStatus,
+  TtsTaskStatus,
+} from "./use-tasks";
 import type { RescanStatus } from "./use-rescan";
 
 interface WSEvent {
@@ -47,11 +52,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           // Lists depend on audiobook metadata and availability
           queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
           // Invalidate library stats since counts may have changed (but not availability - that only changes when library paths change)
-          queryClient.invalidateQueries({ queryKey: queryKeys.library.stats() });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.library.stats(),
+          });
           // If specific audiobook, also invalidate its hardcover link
           if (entityId) {
             queryClient.invalidateQueries({
-              queryKey: queryKeys.hardcover.link('audiobook', entityId),
+              queryKey: queryKeys.hardcover.link("audiobook", entityId),
             });
           }
           break;
@@ -62,7 +69,9 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           // Lists depend on ebook metadata and availability
           queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
           // Invalidate library stats since counts may have changed (but not availability - that only changes when library paths change)
-          queryClient.invalidateQueries({ queryKey: queryKeys.library.stats() });
+          queryClient.invalidateQueries({
+            queryKey: queryKeys.library.stats(),
+          });
           break;
 
         // Series events invalidate series queries
@@ -111,7 +120,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           if (payload) {
             queryClient.setQueryData(
               queryKeys.tasks.import(),
-              payload as ImportStatus
+              payload as ImportStatus,
             );
           }
           break;
@@ -121,7 +130,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           if (payload) {
             queryClient.setQueryData(
               queryKeys.tasks.hardcover(),
-              payload as HardcoverSyncStatus
+              payload as HardcoverSyncStatus,
             );
           }
           break;
@@ -131,8 +140,28 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           if (payload) {
             queryClient.setQueryData(
               queryKeys.tasks.scan(),
-              payload as ScanStatus
+              payload as ScanStatus,
             );
+          }
+          break;
+
+        // TTS generation task status events - directly update cache
+        case type === "tasks.tts.status":
+          if (payload) {
+            queryClient.setQueryData(
+              queryKeys.tasks.tts(),
+              payload as TtsTaskStatus,
+            );
+            queryClient.invalidateQueries({ queryKey: queryKeys.tts.jobs() });
+            // Status events fire per chapter; only refetch ebook/audiobook
+            // data when no job is active (one just finished or was
+            // cancelled) - that's when Listen buttons and badges change.
+            if ((payload as TtsTaskStatus).active === null) {
+              queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+              queryClient.invalidateQueries({
+                queryKey: queryKeys.audiobooks.all,
+              });
+            }
           }
           break;
 
@@ -141,7 +170,7 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           if (payload) {
             queryClient.setQueryData(
               queryKeys.tasks.rescan(),
-              payload as RescanStatus
+              payload as RescanStatus,
             );
           }
           break;
@@ -150,12 +179,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           console.log("[WS] Unhandled event type:", type);
       }
     },
-    [queryClient]
+    [queryClient],
   );
 
   const connect = useCallback(() => {
     // Don't connect if already connected, not enabled, or not in browser
-    if (socketRef.current?.connected || !enabled || typeof window === "undefined") {
+    if (
+      socketRef.current?.connected ||
+      !enabled ||
+      typeof window === "undefined"
+    ) {
       return;
     }
 

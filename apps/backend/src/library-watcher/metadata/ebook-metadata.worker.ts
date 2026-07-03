@@ -2,6 +2,11 @@
 import { parentPort } from 'worker_threads';
 import * as path from 'path';
 import EPub from 'epub2';
+import {
+  htmlToPlainText,
+  firstHeadingText,
+} from '../../tts/utils/html-to-text';
+import { planChapters } from '../../tts/utils/chapter-filter';
 
 interface EbookMetadata {
   title: string;
@@ -19,8 +24,19 @@ interface EbookMetadata {
   };
 }
 
+interface ExtractedChapter {
+  title: string;
+  text: string;
+  characters: number;
+}
+
+interface ExtractedChapters {
+  language?: string;
+  chapters: ExtractedChapter[];
+}
+
 interface WorkerTask {
-  type: 'extractMetadata' | 'extractCover';
+  type: 'extractMetadata' | 'extractCover' | 'extractChapters';
   filePath: string;
   taskId: string;
 }
@@ -28,7 +44,11 @@ interface WorkerTask {
 interface WorkerResponse {
   taskId: string;
   success: boolean;
-  result?: EbookMetadata | { data: number[]; mimeType: string } | null;
+  result?:
+    | EbookMetadata
+    | ExtractedChapters
+    | { data: number[]; mimeType: string }
+    | null;
   error?: string;
 }
 
@@ -206,9 +226,44 @@ async function extractCover(
   }
 }
 
+// Pages with less text than this are dropped (image pages, blanks, part
+// separators) - they aren't worth narrating as standalone chapters.
+const MIN_CHAPTER_CHARS = 250;
+
+/** Plain-text chapters for TTS narration, in reading order. */
+async function extractChapters(filePath: string): Promise<ExtractedChapters> {
+  const epub = await EPub.createAsync(filePath);
+  const planned = planChapters(epub.flow ?? [], epub.toc ?? []);
+
+  const chapters: ExtractedChapter[] = [];
+  for (const plan of planned) {
+    let html = '';
+    for (const flowId of plan.flowIds) {
+      try {
+        html += await epub.getChapterAsync(flowId);
+      } catch {
+        // Unreadable spine item - narrate what we have
+      }
+    }
+
+    const text = htmlToPlainText(html);
+    if (text.length < MIN_CHAPTER_CHARS) continue;
+
+    const title =
+      plan.title ?? firstHeadingText(html) ?? `Chapter ${chapters.length + 1}`;
+    chapters.push({ title, text, characters: text.length });
+  }
+
+  return { language: epub.metadata.language, chapters };
+}
+
 async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
   try {
-    let result: EbookMetadata | { data: number[]; mimeType: string } | null;
+    let result:
+      | EbookMetadata
+      | ExtractedChapters
+      | { data: number[]; mimeType: string }
+      | null;
 
     switch (task.type) {
       case 'extractMetadata':
@@ -216,6 +271,9 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
         break;
       case 'extractCover':
         result = await extractCover(task.filePath);
+        break;
+      case 'extractChapters':
+        result = await extractChapters(task.filePath);
         break;
       default:
         throw new Error(`Unknown task type: ${task.type}`);

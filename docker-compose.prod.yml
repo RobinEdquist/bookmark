@@ -69,6 +69,10 @@ services:
       - ${DATA_PATH:-./data}/app:/data
       # Audiobook library - mount your media folder here
       - ${AUDIOBOOK_LIBRARY_PATH:-./media/audiobooks}:/library/audiobooks:ro
+      # Writable location for AI-generated audiobooks, nested inside the
+      # (read-only) audiobook library so the scanner picks them up.
+      # Note: this shadows any pre-existing "generated" folder in your library.
+      - ${DATA_PATH:-./data}/generated-audiobooks:/library/audiobooks/generated
       # Ebook library - mount your media folder here
       - ${EBOOK_LIBRARY_PATH:-./media/ebooks}:/library/ebooks:ro
       # Comic library - mount your media folder here
@@ -81,3 +85,24 @@ services:
       timeout: 10s
       start_period: 60s
       retries: 3
+
+  # ==========================================================================
+  # TTS engine for AI-narrated audiobooks (optional)
+  #
+  # Start with: docker compose -f docker-compose.prod.yml --profile tts up -d
+  # Then enter http://tts:8880 as the server URL in Settings -> Integrations.
+  # Any OpenAI-compatible /v1/audio/speech server works here; Kokoro is the
+  # CPU-friendly default.
+  # AMD GPU (ROCm) users can try ghcr.io/remsky/kokoro-fastapi-rocm instead.
+  # ==========================================================================
+  tts:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    container_name: bookmark-tts
+    restart: unless-stopped
+    profiles: ["tts"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8880/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 120s
+      retries: 5

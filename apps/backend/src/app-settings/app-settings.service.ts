@@ -47,6 +47,12 @@ export class AppSettingsService {
     watcherEnabled?: boolean;
     metadataPriority?: MetadataFieldPriority;
     comicMetadataPriority?: ComicMetadataFieldPriority;
+    ttsEnabled?: boolean;
+    ttsBaseUrl?: string | null;
+    ttsApiKey?: string | null;
+    ttsVoice?: string;
+    ttsSpeed?: number;
+    ttsModel?: string;
     opdsEnabled?: boolean;
     oidcButtonText?: string;
     emailPasswordEnabled?: boolean;
@@ -178,5 +184,24 @@ export class AppSettingsService {
   async getComicMetadataPriority(): Promise<ComicMetadataFieldPriority> {
     const settings = await this.getSettings();
     return settings.comicMetadataPriority || DEFAULT_COMIC_METADATA_PRIORITY;
+  }
+
+  async getTtsConfig(): Promise<{
+    enabled: boolean;
+    baseUrl: string | null;
+    apiKey: string | null;
+    voice: string;
+    speed: number;
+    model: string;
+  }> {
+    const settings = await this.getSettings();
+    return {
+      enabled: settings.ttsEnabled,
+      baseUrl: settings.ttsBaseUrl,
+      apiKey: settings.ttsApiKey,
+      voice: settings.ttsVoice,
+      speed: settings.ttsSpeed,
+      model: settings.ttsModel,
+    };
   }
 }

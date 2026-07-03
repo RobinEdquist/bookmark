@@ -22,7 +22,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "openapi:export": "nest build && node dist/src/scripts/export-openapi.js"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.0.0",
@@ -63,6 +64,7 @@
     "rxjs": "^7.8.1",
     "sharp": "^0.34.5",
     "socket.io": "^4.8.1",
+    "undici": "^8.6.0",
     "unzipper": "^0.12.3"
   },
   "devDependencies": {

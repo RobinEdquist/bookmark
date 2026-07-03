@@ -32,6 +32,7 @@ import { useLibraryNavigation } from "../../../../lib/use-library-navigation";
 import { EditEbookDialog } from "../../../../components/ebooks/edit-ebook-dialog";
 import { ChangeEbookCoverDialog } from "../../../../components/ebooks/change-ebook-cover-dialog";
 import { ReadButton } from "../../../../components/ebooks/read-button";
+import { GenerateAudiobookButton } from "../../../../components/ebooks/generate-audiobook-button";
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
 import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
 import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodreads-search-dialog";
@@ -255,6 +256,12 @@ export default function EbookDetailPage({
               ebookId={id}
               ebookTitle={ebook.title}
               format={ebook.format}
+            />
+
+            <GenerateAudiobookButton
+              ebookId={id}
+              format={ebook.format}
+              generatedAudiobook={ebook.generatedAudiobook}
             />
 
             <Button size="lg" className="w-full" variant="outline" onClick={handleDownload}>

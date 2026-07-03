@@ -510,6 +510,37 @@
         "autoSyncDisabled": "Auto-synk inaktiverad",
         "autoSyncFailed": "Kunde inte uppdatera auto-synk"
       }
+    },
+    "tts": {
+      "title": "Text till tal (AI-uppläsning)",
+      "connected": "Konfigurerad",
+      "notConnected": "Inte konfigurerad",
+      "description": "Skapa ljudböcker av dina e-böcker med en självhostad AI-röst. Fungerar med alla OpenAI-kompatibla TTS-servrar; den medföljande Kokoro-motorn startas med ”docker compose --profile tts up -d”.",
+      "enabled": {
+        "label": "Aktivera AI-uppläsning",
+        "description": "Tillåt att ljudböcker skapas från e-böcker"
+      },
+      "baseUrlLabel": "Serveradress",
+      "baseUrlHelp": "Adress till en OpenAI-kompatibel /v1/audio/speech-server. Den medföljande tjänsten nås på http://tts:8880.",
+      "apiKeyLabel": "API-nyckel (valfritt)",
+      "apiKeyPlaceholder": "Lämna tomt om servern saknar autentisering",
+      "apiKeySetPlaceholder": "En API-nyckel är sparad — ange en ny för att ersätta den",
+      "voiceLabel": "Röst",
+      "speedLabel": "Hastighet",
+      "modelLabel": "Modell",
+      "test": "Testa anslutningen",
+      "testing": "Testar…",
+      "save": "Spara",
+      "saving": "Sparar…",
+      "toast": {
+        "enabled": "AI-uppläsning aktiverad",
+        "disabled": "AI-uppläsning inaktiverad",
+        "saved": "TTS-inställningarna sparades",
+        "saveFailed": "Kunde inte spara TTS-inställningarna",
+        "testSuccess": "{count, plural, =1 {Ansluten — 1 röst tillgänglig} other {Ansluten — # röster tillgängliga}}",
+        "testSuccessNoVoices": "Ansluten — servern kan generera tal",
+        "testFailed": "Anslutningstestet misslyckades"
+      }
     }
   },
   "announcements": {

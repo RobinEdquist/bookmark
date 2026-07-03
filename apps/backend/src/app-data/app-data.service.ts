@@ -142,6 +142,16 @@ export class AppDataService implements OnModuleInit {
     return path.join(this.getTempPath(), this.sanitizeId(sessionId));
   }
 
+  /** Base directory for in-progress TTS generation artifacts. */
+  getTtsJobsTempPath(): string {
+    return path.join(this.getTempPath(), 'tts-jobs');
+  }
+
+  /** Working directory for one TTS generation job (chapter wavs, m4b). */
+  getTtsJobTempPath(jobId: string): string {
+    return path.join(this.getTtsJobsTempPath(), this.sanitizeId(jobId));
+  }
+
   /**
    * Sanitizes an ID to prevent path traversal attacks.
    * Removes any characters that could be used to navigate directories.

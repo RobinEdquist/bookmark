@@ -206,5 +206,34 @@
       "createSeries": "Lägg till",
       "removeSeries": "Ta bort serie"
     }
+  },
+  "tts": {
+    "generate": "Skapa ljudbok",
+    "listen": "Lyssna",
+    "cancel": "Avbryt genereringen",
+    "progress": {
+      "queued": "Generering köad",
+      "generating": "Skapar ljudbok…",
+      "chapter": "Kapitel {completed} av {total}",
+      "phase": {
+        "extracting": "Extraherar text…",
+        "generating": "Genererar tal…",
+        "assembling": "Sätter ihop ljudfilen…",
+        "importing": "Importerar till biblioteket…"
+      }
+    },
+    "confirm": {
+      "title": "Skapa ljudbok?",
+      "description": "E-boken läses in med en AI-röst och läggs till som en ljudbok i ditt bibliotek. Genereringen körs i bakgrunden och kan ta ett tag — ungefär lika länge som den färdiga ljudboken när den körs på CPU.",
+      "cancel": "Avbryt",
+      "confirm": "Skapa",
+      "starting": "Startar…"
+    },
+    "toast": {
+      "started": "Ljudboksgenerering köad",
+      "startFailed": "Kunde inte starta genereringen",
+      "cancelled": "Genereringen avbröts",
+      "cancelFailed": "Kunde inte avbryta genereringen"
+    }
   }
 }

@@ -13,7 +13,7 @@ import { useTasksStatus } from "../../lib/use-tasks";
 
 export function TasksIndicator() {
   const t = useTranslations("common.tasks");
-  const { import: importStatus, hardcoverSync, scan, totalPending, hasTasks, isLoading } = useTasksStatus();
+  const { import: importStatus, hardcoverSync, scan, tts, totalPending, hasTasks, isLoading } = useTasksStatus();
 
   // Don't render if no tasks and not loading
   if (!hasTasks && !isLoading) {
@@ -30,6 +30,10 @@ export function TasksIndicator() {
   const comicImportCount = importStatus.comics.pendingCount;
   const hardcoverPending = hardcoverSync.pendingCount;
   const hardcoverFailed = hardcoverSync.failedCount;
+  const ttsActive = tts.active;
+  const ttsPending = tts.pendingCount;
+  const ttsFailed = tts.failedCount;
+  const anyFailed = hardcoverFailed > 0 || ttsFailed > 0;
 
   return (
     <div className="px-4 pb-2">
@@ -43,7 +47,7 @@ export function TasksIndicator() {
             <span className="flex-1 text-left text-sm">
               {t("running", { count: totalPending })}
             </span>
-            {hardcoverFailed > 0 && (
+            {anyFailed && (
               <AlertTriangle className="h-4 w-4 text-destructive" />
             )}
           </Button>
@@ -166,8 +170,54 @@ export function TasksIndicator() {
               </div>
             )}
 
+            {/* TTS Audiobook Generation */}
+            {(ttsActive || ttsPending > 0 || ttsFailed > 0) && (
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{t("tts.title")}</div>
+                {ttsActive ? (
+                  <>
+                    <div className="text-sm text-muted-foreground truncate">
+                      {t("tts.generatingFor", { title: ttsActive.ebookTitle })}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {ttsActive.phase === "generating" &&
+                      ttsActive.totalChapters !== null ? (
+                        <>
+                          {t("tts.chapterProgress", {
+                            completed: ttsActive.completedChapters,
+                            total: ttsActive.totalChapters,
+                          })}
+                          {ttsActive.percentage !== null &&
+                            ` (${ttsActive.percentage}%)`}
+                        </>
+                      ) : (
+                        t(`tts.phase.${ttsActive.phase}`)
+                      )}
+                    </div>
+                    {ttsActive.phase === "generating" &&
+                      ttsActive.currentChapterTitle && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          {ttsActive.currentChapterTitle}
+                        </div>
+                      )}
+                  </>
+                ) : null}
+                {ttsPending > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    {t("tts.pending", { count: ttsPending })}
+                  </div>
+                )}
+                {ttsFailed > 0 && (
+                  <div className="flex items-center gap-1.5 text-sm text-destructive">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    {t("tts.failed", { count: ttsFailed })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Empty state - only happens briefly during loading */}
-            {!scan.isScanning && audiobookImportCount === 0 && ebookImportCount === 0 && comicImportCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && (
+            {!scan.isScanning && audiobookImportCount === 0 && ebookImportCount === 0 && comicImportCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && !ttsActive && ttsPending === 0 && ttsFailed === 0 && (
               <div className="text-sm text-muted-foreground">{t("noTasks")}</div>
             )}
           </div>

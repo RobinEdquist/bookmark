@@ -107,6 +107,10 @@
       "resetCancel": "Cancel",
       "resetSuccess": "Progress has been reset",
       "resetError": "Failed to reset progress"
+    },
+    "aiNarrated": {
+      "badge": "AI narrated",
+      "generatedFromEbook": "Generated from this ebook"
     }
   },
   "changeCover": {

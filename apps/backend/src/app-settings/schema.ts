@@ -7,6 +7,7 @@ import {
   check,
   jsonb,
   integer,
+  real,
 } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 
@@ -92,6 +93,13 @@ export const appSettings = pgTable(
     comicvineAutoSyncOnImport: boolean('comicvine_auto_sync_on_import')
       .notNull()
       .default(false),
+    // Text-to-speech / AI-narrated audiobooks
+    ttsEnabled: boolean('tts_enabled').notNull().default(false),
+    ttsBaseUrl: text('tts_base_url'),
+    ttsApiKey: text('tts_api_key'),
+    ttsVoice: text('tts_voice').notNull().default('af_heart'),
+    ttsSpeed: real('tts_speed').notNull().default(1.0),
+    ttsModel: text('tts_model').notNull().default('kokoro'),
     comicMetadataPriority: jsonb(
       'comic_metadata_priority',
     ).$type<ComicMetadataFieldPriority>(),

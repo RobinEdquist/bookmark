@@ -116,6 +116,8 @@ export interface AudiobookDetail {
   chapters: AudiobookChapter[];
   hardcover: AudiobookHardcover | null;
   goodreads: AudiobookGoodreads | null;
+  /** Set when this audiobook was generated from an ebook via TTS. */
+  generatedFromEbook: { id: string; title: string } | null;
 }
 
 export interface AudiobookFilters {

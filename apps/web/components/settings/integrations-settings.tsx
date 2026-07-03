@@ -3,7 +3,16 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ExternalLink, Check, X, AlertCircle, Clock, Trash2, Link as LinkIcon, AlertTriangle } from "lucide-react";
+import {
+  ExternalLink,
+  Check,
+  X,
+  AlertCircle,
+  Clock,
+  Trash2,
+  Link as LinkIcon,
+  AlertTriangle,
+} from "lucide-react";
 import Image from "next/image";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -18,6 +27,13 @@ import { Label } from "@repo/ui/components/ui/label";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { Switch } from "@repo/ui/components/ui/switch";
 import { Badge } from "@repo/ui/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/ui/select";
 import {
   useHardcoverStatus,
   useHardcoverConnect,
@@ -36,6 +52,13 @@ import {
   useComicvineAutoSync,
 } from "../../lib/use-comicvine";
 import { ComicvineQueuePanel } from "../comicvine/comicvine-queue-panel";
+import {
+  useTtsStatus,
+  useUpdateTtsConfig,
+  useTtsValidate,
+  useTtsVoices,
+  type TtsValidateResult,
+} from "../../lib/use-tts";
 import { useSettings } from "../../lib/use-settings";
 import {
   Tooltip,
@@ -49,11 +72,17 @@ export function IntegrationsSettings() {
   const { isConfigured, autoSyncOnImport, isLoading } = useHardcoverStatus();
   const { connect, isConnecting } = useHardcoverConnect();
   const { disconnect, isDisconnecting } = useHardcoverDisconnect();
-  const { search, isSearching, searchResult, clearResult } = useHardcoverSearch();
-  const { setAutoSync, isUpdating: isUpdatingAutoSync } = useHardcoverAutoSync();
+  const { search, isSearching, searchResult, clearResult } =
+    useHardcoverSearch();
+  const { setAutoSync, isUpdating: isUpdatingAutoSync } =
+    useHardcoverAutoSync();
   const { pendingCount, failedCount, failedItems } = useHardcoverQueueStatus();
   const { dismissItem, isDismissing } = useHardcoverDismissFailedItem();
-  const { settings, updateSettings, isUpdating: isUpdatingSettings } = useSettings();
+  const {
+    settings,
+    updateSettings,
+    isUpdating: isUpdatingSettings,
+  } = useSettings();
 
   // ComicVine integration state (distinct names to avoid hardcover collisions)
   const { isConfigured: isCvConfigured, autoSyncOnImport: cvAutoSync } =
@@ -66,9 +95,29 @@ export function IntegrationsSettings() {
     useComicvineAutoSync();
   const [cvApiKey, setCvApiKey] = useState("");
 
+  // TTS / AI narration integration state
+  const { status: ttsStatus } = useTtsStatus();
+  const { updateConfig: updateTtsConfig, isUpdating: isTtsSaving } =
+    useUpdateTtsConfig();
+  const { validate: validateTts, isValidating: isTtsValidating } =
+    useTtsValidate();
+  const { voices: savedTtsVoices } = useTtsVoices(
+    !!ttsStatus?.configured && !!ttsStatus?.enabled,
+  );
+  const [ttsBaseUrl, setTtsBaseUrl] = useState("");
+  const [ttsApiKey, setTtsApiKey] = useState("");
+  const [ttsVoice, setTtsVoice] = useState("af_heart");
+  const [ttsSpeed, setTtsSpeed] = useState("1");
+  const [ttsModel, setTtsModel] = useState("kokoro");
+  const [ttsTestResult, setTtsTestResult] = useState<TtsValidateResult | null>(
+    null,
+  );
+
   const [apiKey, setApiKey] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
-  const [syncDialogItem, setSyncDialogItem] = useState<FailedSyncItem | null>(null);
+  const [syncDialogItem, setSyncDialogItem] = useState<FailedSyncItem | null>(
+    null,
+  );
 
   // Category configuration state
   const [audiobookCategory, setAudiobookCategory] = useState("");
@@ -89,6 +138,72 @@ export function IntegrationsSettings() {
     }
   }, [settings]);
 
+  // Sync TTS form state when the saved config loads
+  useEffect(() => {
+    if (ttsStatus) {
+      setTtsBaseUrl(ttsStatus.baseUrl ?? "");
+      setTtsVoice(ttsStatus.voice);
+      setTtsSpeed(String(ttsStatus.speed));
+      setTtsModel(ttsStatus.model);
+    }
+  }, [ttsStatus]);
+
+  const handleTtsEnabledToggle = async (enabled: boolean) => {
+    try {
+      await updateTtsConfig({ enabled });
+      toast.success(enabled ? t("tts.toast.enabled") : t("tts.toast.disabled"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("tts.toast.saveFailed"),
+      );
+    }
+  };
+
+  const handleTtsTest = async () => {
+    if (!ttsBaseUrl.trim()) return;
+    setTtsTestResult(null);
+    try {
+      const result = await validateTts({
+        baseUrl: ttsBaseUrl.trim(),
+        apiKey: ttsApiKey || undefined,
+        voice: ttsVoice || undefined,
+        model: ttsModel || undefined,
+      });
+      setTtsTestResult(result);
+      if (result.ok) {
+        toast.success(
+          result.voices
+            ? t("tts.toast.testSuccess", { count: result.voices.length })
+            : t("tts.toast.testSuccessNoVoices"),
+        );
+      } else {
+        toast.error(result.error || t("tts.toast.testFailed"));
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("tts.toast.testFailed"),
+      );
+    }
+  };
+
+  const handleTtsSave = async () => {
+    try {
+      await updateTtsConfig({
+        baseUrl: ttsBaseUrl.trim() || null,
+        ...(ttsApiKey ? { apiKey: ttsApiKey } : {}),
+        voice: ttsVoice,
+        speed: Number.parseFloat(ttsSpeed) || 1.0,
+        model: ttsModel || "kokoro",
+      });
+      setTtsApiKey("");
+      toast.success(t("tts.toast.saved"));
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("tts.toast.saveFailed"),
+      );
+    }
+  };
+
   const handleConnect = async () => {
     try {
       const result = await connect(apiKey);
@@ -100,7 +215,9 @@ export function IntegrationsSettings() {
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("hardcover.toast.connectionFailed")
+        err instanceof Error
+          ? err.message
+          : t("hardcover.toast.connectionFailed"),
       );
     }
   };
@@ -112,7 +229,9 @@ export function IntegrationsSettings() {
       clearResult();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("hardcover.toast.disconnectFailed")
+        err instanceof Error
+          ? err.message
+          : t("hardcover.toast.disconnectFailed"),
       );
     }
   };
@@ -124,7 +243,7 @@ export function IntegrationsSettings() {
       await search({ query: searchQuery });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("hardcover.toast.searchFailed")
+        err instanceof Error ? err.message : t("hardcover.toast.searchFailed"),
       );
     }
   };
@@ -135,11 +254,13 @@ export function IntegrationsSettings() {
       toast.success(
         enabled
           ? t("hardcover.toast.autoSyncEnabled")
-          : t("hardcover.toast.autoSyncDisabled")
+          : t("hardcover.toast.autoSyncDisabled"),
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("hardcover.toast.autoSyncFailed")
+        err instanceof Error
+          ? err.message
+          : t("hardcover.toast.autoSyncFailed"),
       );
     }
   };
@@ -155,7 +276,9 @@ export function IntegrationsSettings() {
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("comicvine.toast.connectionFailed")
+        err instanceof Error
+          ? err.message
+          : t("comicvine.toast.connectionFailed"),
       );
     }
   };
@@ -166,7 +289,9 @@ export function IntegrationsSettings() {
       toast.success(t("comicvine.toast.disconnected"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("comicvine.toast.disconnectFailed")
+        err instanceof Error
+          ? err.message
+          : t("comicvine.toast.disconnectFailed"),
       );
     }
   };
@@ -177,11 +302,13 @@ export function IntegrationsSettings() {
       toast.success(
         enabled
           ? t("comicvine.toast.autoSyncEnabled")
-          : t("comicvine.toast.autoSyncDisabled")
+          : t("comicvine.toast.autoSyncDisabled"),
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("comicvine.toast.autoSyncFailed")
+        err instanceof Error
+          ? err.message
+          : t("comicvine.toast.autoSyncFailed"),
       );
     }
   };
@@ -192,7 +319,9 @@ export function IntegrationsSettings() {
       toast.success(t("hardcover.syncQueue.toast.dismissed"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("hardcover.syncQueue.toast.dismissFailed")
+        err instanceof Error
+          ? err.message
+          : t("hardcover.syncQueue.toast.dismissFailed"),
       );
     }
   };
@@ -217,13 +346,11 @@ export function IntegrationsSettings() {
     try {
       await updateSettings({ requestsEnabled: enabled });
       toast.success(
-        enabled
-          ? t("requests.toast.enabled")
-          : t("requests.toast.disabled")
+        enabled ? t("requests.toast.enabled") : t("requests.toast.disabled"),
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("requests.toast.error")
+        err instanceof Error ? err.message : t("requests.toast.error"),
       );
     }
   };
@@ -239,7 +366,9 @@ export function IntegrationsSettings() {
       toast.success(t("requests.categories.toast.success"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("requests.categories.toast.error")
+        err instanceof Error
+          ? err.message
+          : t("requests.categories.toast.error"),
       );
     } finally {
       setIsSavingCategories(false);
@@ -252,11 +381,11 @@ export function IntegrationsSettings() {
       toast.success(
         enabled
           ? t("requests.freeleech.toast.enabled")
-          : t("requests.freeleech.toast.disabled")
+          : t("requests.freeleech.toast.disabled"),
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("requests.toast.error")
+        err instanceof Error ? err.message : t("requests.toast.error"),
       );
     }
   };
@@ -270,7 +399,7 @@ export function IntegrationsSettings() {
       });
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("requests.toast.error")
+        err instanceof Error ? err.message : t("requests.toast.error"),
       );
     }
   };
@@ -305,7 +434,10 @@ export function IntegrationsSettings() {
         <CardContent className="space-y-4">
           <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <Label htmlFor="requests-enabled" className="text-base font-medium">
+              <Label
+                htmlFor="requests-enabled"
+                className="text-base font-medium"
+              >
                 {t("requests.toggle.label")}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -326,7 +458,9 @@ export function IntegrationsSettings() {
                 </TooltipTrigger>
                 {requestsDisabled && (
                   <TooltipContent>
-                    <p className="max-w-xs">{t("requests.toggle.disabledTooltip")}</p>
+                    <p className="max-w-xs">
+                      {t("requests.toggle.disabledTooltip")}
+                    </p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -402,7 +536,9 @@ export function IntegrationsSettings() {
                 onClick={handleSaveCategories}
                 disabled={isSavingCategories}
               >
-                {isSavingCategories ? t("requests.categories.saving") : t("requests.categories.save")}
+                {isSavingCategories
+                  ? t("requests.categories.saving")
+                  : t("requests.categories.save")}
               </Button>
 
               <div className="space-y-2 pt-4 border-t">
@@ -414,7 +550,9 @@ export function IntegrationsSettings() {
                   type="number"
                   min={0}
                   value={autoApproveLimit}
-                  onChange={(e) => handleAutoApproveLimitChange(parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    handleAutoApproveLimitChange(parseInt(e.target.value) || 0)
+                  }
                 />
                 <p className="text-sm text-muted-foreground">
                   {t("requests.autoApproveLimitDescription")}
@@ -423,7 +561,10 @@ export function IntegrationsSettings() {
 
               <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between mt-4">
                 <div className="min-w-0 flex-1 space-y-0.5">
-                  <Label htmlFor="use-freeleech" className="text-base font-medium">
+                  <Label
+                    htmlFor="use-freeleech"
+                    className="text-base font-medium"
+                  >
                     {t("requests.freeleech.label")}
                   </Label>
                   <p className="text-sm text-muted-foreground">
@@ -492,7 +633,9 @@ export function IntegrationsSettings() {
                 onClick={handleConnect}
                 disabled={!apiKey || isConnecting}
               >
-                {isConnecting ? t("hardcover.validating") : t("hardcover.saveAndValidate")}
+                {isConnecting
+                  ? t("hardcover.validating")
+                  : t("hardcover.saveAndValidate")}
               </Button>
             </div>
           ) : (
@@ -510,14 +653,19 @@ export function IntegrationsSettings() {
                   disabled={isDisconnecting}
                   className="shrink-0"
                 >
-                  {isDisconnecting ? t("hardcover.disconnecting") : t("hardcover.disconnect")}
+                  {isDisconnecting
+                    ? t("hardcover.disconnecting")
+                    : t("hardcover.disconnect")}
                 </Button>
               </div>
 
               <fieldset className="rounded-lg border p-4 space-y-3">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0 flex-1 space-y-0.5">
-                    <Label htmlFor="auto-sync-enabled" className="text-base font-medium">
+                    <Label
+                      htmlFor="auto-sync-enabled"
+                      className="text-base font-medium"
+                    >
                       {t("hardcover.autoSync.label")}
                     </Label>
                     <p className="text-sm text-muted-foreground">
@@ -544,22 +692,34 @@ export function IntegrationsSettings() {
                 <div className="rounded-lg border p-4 space-y-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0">
-                      <p className="font-medium">{t("hardcover.syncQueue.title")}</p>
+                      <p className="font-medium">
+                        {t("hardcover.syncQueue.title")}
+                      </p>
                       <p className="text-sm text-muted-foreground">
                         {t("hardcover.syncQueue.description")}
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2 shrink-0">
                       {pendingCount > 0 && (
-                        <Badge variant="secondary" className="flex items-center gap-1">
+                        <Badge
+                          variant="secondary"
+                          className="flex items-center gap-1"
+                        >
                           <Clock className="h-3 w-3" />
-                          {t("hardcover.syncQueue.pending", { count: pendingCount })}
+                          {t("hardcover.syncQueue.pending", {
+                            count: pendingCount,
+                          })}
                         </Badge>
                       )}
                       {failedCount > 0 && (
-                        <Badge variant="destructive" className="flex items-center gap-1">
+                        <Badge
+                          variant="destructive"
+                          className="flex items-center gap-1"
+                        >
                           <AlertCircle className="h-3 w-3" />
-                          {t("hardcover.syncQueue.failed", { count: failedCount })}
+                          {t("hardcover.syncQueue.failed", {
+                            count: failedCount,
+                          })}
                         </Badge>
                       )}
                     </div>
@@ -590,10 +750,12 @@ export function IntegrationsSettings() {
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">
-                                {item.audiobook?.title || t("hardcover.syncQueue.unknownAudiobook")}
+                                {item.audiobook?.title ||
+                                  t("hardcover.syncQueue.unknownAudiobook")}
                               </p>
                               <p className="text-sm text-destructive truncate">
-                                {item.errorMessage || t("hardcover.syncQueue.unknownError")}
+                                {item.errorMessage ||
+                                  t("hardcover.syncQueue.unknownError")}
                               </p>
                             </div>
                             <div className="flex gap-2 shrink-0">
@@ -636,7 +798,9 @@ export function IntegrationsSettings() {
                     onClick={handleSearch}
                     disabled={!searchQuery.trim() || isSearching}
                   >
-                    {isSearching ? t("hardcover.searching") : t("hardcover.search")}
+                    {isSearching
+                      ? t("hardcover.searching")
+                      : t("hardcover.search")}
                   </Button>
                 </div>
 
@@ -823,6 +987,162 @@ export function IntegrationsSettings() {
               <ComicvineQueuePanel />
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Text-to-speech / AI narration */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2">
+            <CardTitle className="flex flex-wrap items-center gap-2">
+              {t("tts.title")}
+              {ttsStatus?.configured ? (
+                <span className="flex items-center gap-1 text-sm font-normal text-green-600">
+                  <Check className="h-4 w-4" />
+                  {t("tts.connected")}
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-sm font-normal text-muted-foreground">
+                  <X className="h-4 w-4" />
+                  {t("tts.notConnected")}
+                </span>
+              )}
+            </CardTitle>
+            <CardDescription>{t("tts.description")}</CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <Label htmlFor="tts-enabled" className="text-base font-medium">
+                {t("tts.enabled.label")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("tts.enabled.description")}
+              </p>
+            </div>
+            <Switch
+              id="tts-enabled"
+              checked={ttsStatus?.enabled ?? false}
+              onCheckedChange={handleTtsEnabledToggle}
+              disabled={isTtsSaving || !ttsStatus}
+              className="shrink-0"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="tts-base-url">{t("tts.baseUrlLabel")}</Label>
+              <Input
+                id="tts-base-url"
+                placeholder="http://tts:8880"
+                value={ttsBaseUrl}
+                onChange={(e) => setTtsBaseUrl(e.target.value)}
+                disabled={isTtsSaving}
+              />
+              <p className="text-sm text-muted-foreground">
+                {t("tts.baseUrlHelp")}
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="tts-api-key">{t("tts.apiKeyLabel")}</Label>
+              <Input
+                id="tts-api-key"
+                type="password"
+                placeholder={
+                  ttsStatus?.apiKeySet
+                    ? t("tts.apiKeySetPlaceholder")
+                    : t("tts.apiKeyPlaceholder")
+                }
+                value={ttsApiKey}
+                onChange={(e) => setTtsApiKey(e.target.value)}
+                disabled={isTtsSaving}
+              />
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="tts-voice">{t("tts.voiceLabel")}</Label>
+                {(ttsTestResult?.voices ?? savedTtsVoices) ? (
+                  <Select value={ttsVoice} onValueChange={setTtsVoice}>
+                    <SelectTrigger id="tts-voice">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(ttsTestResult?.voices ?? savedTtsVoices ?? []).map(
+                        (voice) => (
+                          <SelectItem key={voice} value={voice}>
+                            {voice}
+                          </SelectItem>
+                        ),
+                      )}
+                      {!(
+                        ttsTestResult?.voices ??
+                        savedTtsVoices ??
+                        []
+                      ).includes(ttsVoice) && (
+                        <SelectItem value={ttsVoice}>{ttsVoice}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id="tts-voice"
+                    value={ttsVoice}
+                    onChange={(e) => setTtsVoice(e.target.value)}
+                    disabled={isTtsSaving}
+                  />
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tts-speed">{t("tts.speedLabel")}</Label>
+                <Select value={ttsSpeed} onValueChange={setTtsSpeed}>
+                  <SelectTrigger id="tts-speed">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {["0.75", "0.9", "1", "1.1", "1.25", "1.5"].map((speed) => (
+                      <SelectItem key={speed} value={speed}>
+                        {speed}×
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tts-model">{t("tts.modelLabel")}</Label>
+                <Input
+                  id="tts-model"
+                  value={ttsModel}
+                  onChange={(e) => setTtsModel(e.target.value)}
+                  disabled={isTtsSaving}
+                />
+              </div>
+            </div>
+
+            {ttsTestResult && !ttsTestResult.ok && (
+              <p className="text-sm text-destructive flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                {ttsTestResult.error || t("tts.toast.testFailed")}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={handleTtsTest}
+                disabled={!ttsBaseUrl.trim() || isTtsValidating}
+              >
+                {isTtsValidating ? t("tts.testing") : t("tts.test")}
+              </Button>
+              <Button onClick={handleTtsSave} disabled={isTtsSaving}>
+                {isTtsSaving ? t("tts.saving") : t("tts.save")}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
