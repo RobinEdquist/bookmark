@@ -521,7 +521,7 @@
         "description": "Allow generating audiobooks from ebooks"
       },
       "baseUrlLabel": "Server URL",
-      "baseUrlHelp": "URL of an OpenAI-compatible /v1/audio/speech server. The bundled sidecar is reachable at http://tts:8880.",
+      "baseUrlHelp": "URL of an OpenAI-compatible /v1/audio/speech server. When Bookmark runs in Docker, the bundled engine is reachable at http://tts:8880; from outside Docker use the host and published port instead (e.g. http://localhost:8880).",
       "apiKeyLabel": "API key (optional)",
       "apiKeyPlaceholder": "Leave empty if the server has no authentication",
       "apiKeySetPlaceholder": "An API key is saved — enter a new one to replace it",
