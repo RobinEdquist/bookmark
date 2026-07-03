@@ -126,6 +126,23 @@ describe('TtsApiClient', () => {
     ).toEqual(['c']);
   });
 
+  it('accepts voice entries shaped as { id, name } objects', async () => {
+    const fetchImpl = (async () =>
+      makeResponse({
+        json: async () => ({
+          voices: [
+            { id: 'af_heart', name: 'af_heart' },
+            { name: 'am_michael' },
+            42,
+          ],
+        }),
+      })) as typeof fetch;
+
+    expect(
+      await new TtsApiClient('http://x', null, fetchImpl).listVoices(),
+    ).toEqual(['af_heart', 'am_michael']);
+  });
+
   it('testConnection falls back to a synthesis probe when voices are unavailable', async () => {
     const urls: string[] = [];
     const fetchImpl = (async (url: RequestInfo | URL) => {

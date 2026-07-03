@@ -104,15 +104,30 @@ export class TtsApiClient {
 
     const body = (await res.json()) as unknown;
     if (Array.isArray(body)) {
-      return body.filter((v): v is string => typeof v === 'string');
+      return this.toVoiceNames(body);
     }
     if (body && typeof body === 'object' && 'voices' in body) {
       const voices = (body as { voices: unknown }).voices;
       if (Array.isArray(voices)) {
-        return voices.filter((v): v is string => typeof v === 'string');
+        return this.toVoiceNames(voices);
       }
     }
     return null;
+  }
+
+  /** Servers return either plain strings or { id, name } objects. */
+  private toVoiceNames(entries: unknown[]): string[] {
+    return entries
+      .map((entry) => {
+        if (typeof entry === 'string') return entry;
+        if (entry && typeof entry === 'object') {
+          const voice = entry as { id?: unknown; name?: unknown };
+          if (typeof voice.id === 'string') return voice.id;
+          if (typeof voice.name === 'string') return voice.name;
+        }
+        return null;
+      })
+      .filter((name): name is string => !!name);
   }
 
   /**
