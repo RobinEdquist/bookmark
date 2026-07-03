@@ -515,7 +515,7 @@
       "title": "Text-to-speech (AI narration)",
       "connected": "Configured",
       "notConnected": "Not configured",
-      "description": "Generate audiobooks from your ebooks with a self-hosted AI voice. Works with any OpenAI-compatible TTS server; the bundled Kokoro engine starts with “docker compose --profile tts up -d”.",
+      "description": "Generate audiobooks from your ebooks with a self-hosted AI voice. Works with any OpenAI-compatible TTS server; the bundled engine starts with “docker compose --profile tts up -d”.",
       "enabled": {
         "label": "Enable AI narration",
         "description": "Allow generating audiobooks from ebooks"

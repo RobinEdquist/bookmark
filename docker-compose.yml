@@ -93,9 +93,9 @@ services:
   #
   # Start with: docker compose --profile tts up -d
   # Then enter http://tts:8880 as the server URL in Settings -> Integrations.
-  # Any OpenAI-compatible /v1/audio/speech server works here; Kokoro is the
-  # CPU-friendly default.
-  # AMD GPU (ROCm) users can try ghcr.io/remsky/kokoro-fastapi-rocm instead.
+  # Any OpenAI-compatible /v1/audio/speech server works here; the image below
+  # is a CPU-friendly default and can be swapped freely (AMD GPU users can
+  # try the ghcr.io/remsky/kokoro-fastapi-rocm variant of it).
   # ==========================================================================
   tts:
     image: ghcr.io/remsky/kokoro-fastapi-cpu:latest

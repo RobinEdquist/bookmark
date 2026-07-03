@@ -515,7 +515,7 @@
       "title": "Text till tal (AI-uppläsning)",
       "connected": "Konfigurerad",
       "notConnected": "Inte konfigurerad",
-      "description": "Skapa ljudböcker av dina e-böcker med en självhostad AI-röst. Fungerar med alla OpenAI-kompatibla TTS-servrar; den medföljande Kokoro-motorn startas med ”docker compose --profile tts up -d”.",
+      "description": "Skapa ljudböcker av dina e-böcker med en självhostad AI-röst. Fungerar med alla OpenAI-kompatibla TTS-servrar; den medföljande motorn startas med ”docker compose --profile tts up -d”.",
       "enabled": {
         "label": "Aktivera AI-uppläsning",
         "description": "Tillåt att ljudböcker skapas från e-böcker"

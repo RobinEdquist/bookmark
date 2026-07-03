@@ -2,7 +2,7 @@
 // OpenAI-compatible text-to-speech API client
 // ---------------------------------------------------------------------------
 // Thin, dependency-light client for any server exposing the OpenAI
-// /v1/audio/speech contract (Kokoro-FastAPI, Speaches, OpenAI, ...).
+// /v1/audio/speech contract (self-hosted engines and cloud APIs alike).
 // Takes a baseUrl + optional apiKey + an injectable fetchImpl so tests can
 // pass a mock without module patching. Does NOT touch the DB or settings.
 // ---------------------------------------------------------------------------

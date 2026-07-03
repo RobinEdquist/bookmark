@@ -115,13 +115,13 @@ Everything is set through environment variables in your `.env` file. With Docker
 | --------------- | -------- | ------- | ------------------------------------------------------------------------------ |
 | `GR_FINDER_URL` | No       | —       | URL of a Goodreads finder service; enables Goodreads metadata lookups when set |
 
-**AI-narrated audiobooks (optional)** — Bookmark can narrate an ebook into a real audiobook using a self-hosted TTS engine. A ready-to-use [Kokoro](https://github.com/remsky/Kokoro-FastAPI) sidecar ships behind a compose profile:
+**AI-narrated audiobooks (optional)** — Bookmark can narrate an ebook into a real audiobook using any OpenAI-compatible text-to-speech server (`/v1/audio/speech`). A ready-to-use, CPU-friendly engine ships behind a compose profile:
 
 ```bash
 docker compose --profile tts up -d        # add -f docker-compose.prod.yml for the pre-built image
 ```
 
-Then enter `http://tts:8880` as the server URL under **Settings → Integrations → Text-to-speech** — no env vars needed. Kokoro runs comfortably on CPU; AMD GPU owners can try the `ghcr.io/remsky/kokoro-fastapi-rocm` image, and any other OpenAI-compatible `/v1/audio/speech` server (e.g. [Speaches](https://speaches.ai) with Piper voices for more languages) works as a drop-in replacement. Generated audiobooks are written to `DATA_PATH/generated-audiobooks`, which appears inside the audiobook library as a `generated` folder — your own media stays on a read-only mount.
+Then enter `http://tts:8880` as the server URL under **Settings → Integrations → Text-to-speech** — no env vars needed. Prefer a different engine, voice, or language? Point the server URL at any other OpenAI-compatible TTS server, self-hosted or cloud, and it works as a drop-in replacement. Generated audiobooks are written to `DATA_PATH/generated-audiobooks`, which appears inside the audiobook library as a `generated` folder — your own media stays on a read-only mount.
 
 **Pre-built image** — only used when you run `docker-compose.prod.yml` instead of building from source.
 
