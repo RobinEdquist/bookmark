@@ -80,6 +80,7 @@ export interface LibrarySearchItem {
   title: string;
   subtitle?: string;
   coverUrl?: string;
+  coverUpdatedAt?: string | null;
   authors: LibrarySearchAuthor[];
   similarity: number;
 }

@@ -44,6 +44,7 @@ export interface AudiobookListItem {
   subtitle: string | null;
   duration: number | null;
   coverUrl: string | null;
+  coverUpdatedAt: Date | null;
   createdAt: Date;
   status: 'available' | 'missing' | 'importing';
   authors: { id: string; name: string }[];
@@ -696,6 +697,11 @@ export class AudiobooksService {
         subtitle: resolvedSubtitle,
         duration: ab.duration,
         coverUrl: this.getCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
+        coverUpdatedAt: this.getCoverUpdatedAt(
+          ab.coverUrl,
+          ab.coverSource,
+          ab.updatedAt,
+        ),
         createdAt: ab.createdAt,
         // Hidden audiobooks are filtered out in the query, so status is never 'hidden' here
         status: ab.status as 'available' | 'missing' | 'importing',
@@ -1038,6 +1044,11 @@ export class AudiobooksService {
       publishedDate: resolvedPublishedDate,
       language: resolvedLanguage,
       coverUrl: this.getCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
+      coverUpdatedAt: this.getCoverUpdatedAt(
+        ab.coverUrl,
+        ab.coverSource,
+        ab.updatedAt,
+      ),
       files,
       chapters,
       authors: resolvedAuthors,
@@ -1086,14 +1097,27 @@ export class AudiobooksService {
     );
   }
 
+  private getCoverUpdatedAt(
+    coverUrl: string | null,
+    coverSource: 'embedded' | 'uploaded' | 'folder_image' | null,
+    updatedAt: Date,
+  ): Date | null {
+    return coverSource || coverUrl ? updatedAt : null;
+  }
+
   async getCover(
     id: string,
-  ): Promise<{ data: Buffer; mimeType: string } | null> {
+  ): Promise<{
+    data: Buffer;
+    mimeType: string;
+    lastModified: Date | null;
+  } | null> {
     const audiobook = await this.db
       .select({
         filePath: schema.audiobooks.filePath,
         coverSource: schema.audiobooks.coverSource,
         coverUrl: schema.audiobooks.coverUrl,
+        updatedAt: schema.audiobooks.updatedAt,
       })
       .from(schema.audiobooks)
       .where(eq(schema.audiobooks.id, id))
@@ -1103,7 +1127,7 @@ export class AudiobooksService {
       throw new NotFoundException('Audiobook not found');
     }
 
-    const { filePath, coverSource, coverUrl } = audiobook[0];
+    const { filePath, coverSource, coverUrl, updatedAt } = audiobook[0];
 
     // If cover was uploaded, read from app data directory
     if (coverSource === 'uploaded' && coverUrl) {
@@ -1111,7 +1135,7 @@ export class AudiobooksService {
         const coverPath = this.appDataService.getAudiobookCoverPath(id);
         const data = await fs.readFile(coverPath);
         // Uploaded covers are always saved as JPEG
-        return { data, mimeType: 'image/jpeg' };
+        return { data, mimeType: 'image/jpeg', lastModified: updatedAt };
       } catch {
         // Fall through to try embedded
       }
@@ -1124,7 +1148,7 @@ export class AudiobooksService {
       // Check if a cached version exists on disk
       try {
         const data = await fs.readFile(coverPath);
-        return { data, mimeType: 'image/jpeg' };
+        return { data, mimeType: 'image/jpeg', lastModified: updatedAt };
       } catch {
         // Not cached yet, extract from file
       }
@@ -1149,6 +1173,7 @@ export class AudiobooksService {
         // Cache to disk for future requests
         if (result) {
           fs.writeFile(coverPath, result.data).catch(() => {});
+          return { ...result, lastModified: updatedAt };
         }
 
         return result;
@@ -1767,7 +1792,7 @@ export class AudiobooksService {
       updateCoverMetadata: async (entityId: string, coverUrl: string) => {
         await this.db
           .update(schema.audiobooks)
-          .set({ coverUrl, coverSource: 'uploaded' })
+          .set({ coverUrl, coverSource: 'uploaded', updatedAt: new Date() })
           .where(eq(schema.audiobooks.id, entityId));
       },
       emitUpdateEvent: (entityId: string) => {

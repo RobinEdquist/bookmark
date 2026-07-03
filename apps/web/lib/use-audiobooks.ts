@@ -57,6 +57,7 @@ export interface AudiobookListItem {
   subtitle: string | null;
   duration: number | null;
   coverUrl: string | null;
+  coverUpdatedAt?: string | null;
   createdAt: string;
   status: "available" | "missing" | "importing";
   authors: AudiobookAuthor[];
@@ -103,6 +104,7 @@ export interface AudiobookDetail {
   asin: string | null;
   duration: number | null;
   coverUrl: string | null;
+  coverUpdatedAt?: string | null;
   isExplicit: boolean;
   status: "available" | "missing" | "importing";
   createdAt: string;

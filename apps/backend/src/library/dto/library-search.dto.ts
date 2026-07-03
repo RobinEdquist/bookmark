@@ -51,6 +51,13 @@ export class LibrarySearchItemDto {
   @ApiPropertyOptional({ nullable: true })
   coverUrl!: string | null;
 
+  @ApiPropertyOptional({
+    type: String,
+    nullable: true,
+    description: 'Timestamp that changes when cover metadata changes',
+  })
+  coverUpdatedAt?: Date | null;
+
   @ApiProperty({ type: [LibrarySearchAuthorDto] })
   authors!: LibrarySearchAuthorDto[];
 

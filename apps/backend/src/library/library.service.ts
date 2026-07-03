@@ -103,6 +103,7 @@ export class LibraryService {
       title: string;
       subtitle: string | null;
       coverUrl: string | null;
+      coverUpdatedAt: Date | null;
       authors: Array<{ id: string; name: string }>;
       similarity: number;
     }>;
@@ -111,6 +112,7 @@ export class LibraryService {
       title: string;
       subtitle: string | null;
       coverUrl: string | null;
+      coverUpdatedAt: Date | null;
       authors: Array<{ id: string; name: string }>;
       similarity: number;
     }>;
@@ -121,6 +123,7 @@ export class LibraryService {
       title: string;
       subtitle: string | null;
       coverUrl: string | null;
+      coverUpdatedAt: Date | null;
       authors: Array<{ id: string; name: string }>;
       similarity: number;
     }> = [];
@@ -129,6 +132,7 @@ export class LibraryService {
       title: string;
       subtitle: string | null;
       coverUrl: string | null;
+      coverUpdatedAt: Date | null;
       authors: Array<{ id: string; name: string }>;
       similarity: number;
     }> = [];
@@ -141,6 +145,7 @@ export class LibraryService {
           a.subtitle,
           a.cover_url,
           a.cover_source,
+          a.updated_at,
           GREATEST(
             COALESCE(similarity(a.title, ${query}), 0),
             COALESCE(similarity(a.subtitle, ${query}), 0),
@@ -166,8 +171,16 @@ export class LibraryService {
         subtitle: string | null;
         cover_url: string | null;
         cover_source: string | null;
+        updated_at: Date;
         similarity: number;
       }>) {
+        const coverUrl = this.coverService.getCoverUrl(
+          row.id,
+          row.cover_url,
+          row.cover_source,
+          'audiobooks',
+        );
+
         const authorsResult = await this.db
           .select({
             id: audiobookSchema.people.id,
@@ -187,12 +200,8 @@ export class LibraryService {
           id: row.id,
           title: row.title,
           subtitle: row.subtitle,
-          coverUrl: this.coverService.getCoverUrl(
-            row.id,
-            row.cover_url,
-            row.cover_source,
-            'audiobooks',
-          ),
+          coverUrl,
+          coverUpdatedAt: coverUrl ? row.updated_at : null,
           authors: authorsResult,
           similarity: Number(row.similarity),
         });
@@ -210,6 +219,7 @@ export class LibraryService {
           e.subtitle,
           e.cover_url,
           e.cover_source,
+          e.updated_at,
           GREATEST(
             COALESCE(similarity(e.title, ${query}), 0),
             COALESCE(similarity(e.subtitle, ${query}), 0),
@@ -235,8 +245,16 @@ export class LibraryService {
         subtitle: string | null;
         cover_url: string | null;
         cover_source: string | null;
+        updated_at: Date;
         similarity: number;
       }>) {
+        const coverUrl = this.coverService.getCoverUrl(
+          row.id,
+          row.cover_url,
+          row.cover_source,
+          'ebooks',
+        );
+
         const authorsResult = await this.db
           .select({
             id: audiobookSchema.people.id,
@@ -253,12 +271,8 @@ export class LibraryService {
           id: row.id,
           title: row.title,
           subtitle: row.subtitle,
-          coverUrl: this.coverService.getCoverUrl(
-            row.id,
-            row.cover_url,
-            row.cover_source,
-            'ebooks',
-          ),
+          coverUrl,
+          coverUpdatedAt: coverUrl ? row.updated_at : null,
           authors: authorsResult,
           similarity: Number(row.similarity),
         });

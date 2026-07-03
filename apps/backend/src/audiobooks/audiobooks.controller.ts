@@ -7,13 +7,11 @@ import {
   Param,
   Query,
   Body,
-  Header,
   Headers,
   Req,
   Res,
   NotFoundException,
   InternalServerErrorException,
-  StreamableFile,
   HttpCode,
   HttpStatus,
   UseInterceptors,
@@ -31,12 +29,18 @@ import {
   ApiBody,
   ApiConsumes,
   ApiSecurity,
+  ApiHeader,
+  ApiProduces,
 } from '@nestjs/swagger';
 import * as express from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import archiver from 'archiver';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  createContentETag,
+  matchesIfNoneMatch,
+} from '../common/http-cache.utils';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { AudiobooksService, AudiobookFilters } from './audiobooks.service';
 import { UpdateAudiobookDto } from './dto/update-audiobook.dto';
@@ -496,33 +500,115 @@ export class AudiobooksController {
   }
 
   @Get(':id/cover')
-  @Header('Cache-Control', 'public, max-age=86400')
   @ApiOperation({
     summary: 'Get audiobook cover image',
     description:
-      'Returns the cover image for an audiobook. Cached for 24 hours. Access denied if audiobook has tags blacklisted by the user.',
+      'Returns the cover image for an audiobook. Clients may cache it but must revalidate before reuse. Access denied if audiobook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiHeader({
+    name: 'If-None-Match',
+    required: false,
+    description:
+      'Previously returned ETag. When it matches the current cover, the endpoint returns 304 Not Modified.',
+  })
+  @ApiProduces('image/jpeg')
+  @ApiResponse({
+    status: 200,
+    description: 'Cover image binary data',
+    headers: {
+      'Cache-Control': {
+        description: 'Successful covers are stored but revalidated before use.',
+        schema: { type: 'string', example: 'private, no-cache' },
+      },
+      ETag: {
+        description: 'Strong validator derived from the cover bytes.',
+        schema: {
+          type: 'string',
+          example:
+            '"7bb74a8efc4c73575435f00a51ec38fd7c792f15878f0bc1b9995a5036d7d8d8"',
+        },
+      },
+      'Last-Modified': {
+        description: 'Cover metadata update timestamp when available.',
+        schema: {
+          type: 'string',
+          example: 'Wed, 01 Jan 2026 00:00:00 GMT',
+        },
+      },
+    },
+    content: {
+      'image/jpeg': {
+        schema: { type: 'string', format: 'binary' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 304,
+    description: 'Cover image not modified',
+    headers: {
+      'Cache-Control': {
+        description: 'Cached covers must be revalidated before reuse.',
+        schema: { type: 'string', example: 'private, no-cache' },
+      },
+      ETag: {
+        description: 'Current strong cover validator.',
+        schema: {
+          type: 'string',
+          example:
+            '"7bb74a8efc4c73575435f00a51ec38fd7c792f15878f0bc1b9995a5036d7d8d8"',
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 403,
     description: 'Access denied - audiobook has blacklisted tags',
   })
-  @ApiResponse({ status: 404, description: 'Cover not found' })
+  @ApiResponse({
+    status: 404,
+    description: 'Cover not found',
+    headers: {
+      'Cache-Control': {
+        description: 'Missing-cover responses are not cacheable.',
+        schema: { type: 'string', example: 'no-store' },
+      },
+    },
+  })
   async getCover(
     @Param('id') id: string,
+    @Headers('if-none-match') ifNoneMatch: string | undefined,
+    @Res() res: express.Response,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.audiobooksService.verifyNotBlacklisted(id, user.id);
+
+    // Any missing-cover response from this endpoint must not be cached.
+    res.setHeader('Cache-Control', 'no-store');
+
     const cover = await this.audiobooksService.getCover(id);
 
     if (!cover) {
       throw new NotFoundException('Cover not found');
     }
 
-    return new StreamableFile(cover.data, {
-      type: cover.mimeType,
-    });
+    const etag = createContentETag(cover.data);
+
+    res.setHeader('Cache-Control', 'private, no-cache');
+    res.setHeader('ETag', etag);
+    if (cover.lastModified) {
+      res.setHeader('Last-Modified', cover.lastModified.toUTCString());
+    }
+
+    if (matchesIfNoneMatch(ifNoneMatch, etag)) {
+      res.status(HttpStatus.NOT_MODIFIED).end();
+      return;
+    }
+
+    res.status(HttpStatus.OK);
+    res.setHeader('Content-Type', cover.mimeType);
+    res.setHeader('Content-Length', cover.data.length.toString());
+    res.end(cover.data);
   }
 
   /**
