@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -64,6 +64,37 @@ type Step = "welcome" | "libraries" | "done";
 const STEP_ORDER: Step[] = ["welcome", "libraries", "done"];
 
 /**
+ * Smoothly animates its own height to follow the measured height of its
+ * content, so step changes glide instead of snapping when the swapped-in
+ * content is taller or shorter.
+ */
+function AnimatedHeight({ children }: { children: React.ReactNode }) {
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number | "auto">("auto");
+
+  useEffect(() => {
+    const element = contentRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      setHeight(element.offsetHeight);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <motion.div
+      className="overflow-hidden"
+      initial={false}
+      animate={{ height }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+    >
+      <div ref={contentRef}>{children}</div>
+    </motion.div>
+  );
+}
+
+/**
  * Ambient glow + grid backdrop, echoing the login screen so first-run feels
  * like a cohesive part of the product rather than a bare form.
  */
@@ -95,9 +126,12 @@ function StepIndicator({ current }: { current: Step }) {
               <span
                 className={cn(
                   "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs font-semibold transition-colors",
-                  isComplete && "border-primary bg-primary text-primary-foreground",
+                  isComplete &&
+                    "border-primary bg-primary text-primary-foreground",
                   isActive && "border-primary bg-primary/10 text-primary",
-                  !isComplete && !isActive && "border-border text-muted-foreground"
+                  !isComplete &&
+                    !isActive &&
+                    "border-border text-muted-foreground",
                 )}
               >
                 {isComplete ? <Check className="h-3.5 w-3.5" /> : index + 1}
@@ -105,7 +139,7 @@ function StepIndicator({ current }: { current: Step }) {
               <span
                 className={cn(
                   "hidden text-sm font-medium sm:inline",
-                  isActive ? "text-foreground" : "text-muted-foreground"
+                  isActive ? "text-foreground" : "text-muted-foreground",
                 )}
               >
                 {t(`steps.${step}`)}
@@ -115,7 +149,7 @@ function StepIndicator({ current }: { current: Step }) {
               <span
                 className={cn(
                   "h-px w-6 sm:w-10 transition-colors",
-                  isComplete ? "bg-primary" : "bg-border"
+                  isComplete ? "bg-primary" : "bg-border",
                 )}
               />
             )}
@@ -147,7 +181,7 @@ function MediaTypeCard({
     <div
       className={cn(
         "rounded-xl border p-4 transition-colors",
-        configured ? "border-primary/40 bg-primary/[0.06]" : "bg-card"
+        configured ? "border-primary/40 bg-primary/[0.06]" : "bg-card",
       )}
     >
       <div className="flex items-start gap-4">
@@ -156,7 +190,7 @@ function MediaTypeCard({
             "flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-colors",
             configured
               ? "bg-primary/15 text-primary"
-              : "bg-muted text-muted-foreground"
+              : "bg-muted text-muted-foreground",
           )}
         >
           <Icon className="h-5 w-5" />
@@ -258,7 +292,7 @@ export function LibrarySetupOnboarding({
       toast.success(t("libraries.toast.saved"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("libraries.toast.error")
+        err instanceof Error ? err.message : t("libraries.toast.error"),
       );
     }
   };
@@ -270,7 +304,7 @@ export function LibrarySetupOnboarding({
       toast.success(t("libraries.toast.removed"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("libraries.toast.error")
+        err instanceof Error ? err.message : t("libraries.toast.error"),
       );
     }
   };
@@ -285,156 +319,161 @@ export function LibrarySetupOnboarding({
         </div>
 
         <div className="rounded-2xl border bg-card/80 p-6 shadow-xl backdrop-blur-sm sm:p-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={step}
-              initial={{ opacity: 0, x: 12 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -12 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-            >
-              {step === "welcome" && (
-                <div className="flex flex-col items-center text-center">
-                  <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <Sparkles className="h-8 w-8" />
-                  </div>
-                  <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                    {t("welcome.title")}
-                  </h1>
-                  <p className="mt-3 max-w-md text-muted-foreground">
-                    {t("welcome.subtitle")}
-                  </p>
-
-                  <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
-                    {MEDIA_TYPES.map((media) => {
-                      const Icon = media.icon;
-                      return (
-                        <span
-                          key={media.id}
-                          className="inline-flex items-center gap-1.5 rounded-full border bg-background/60 px-3 py-1.5 text-sm text-muted-foreground"
-                        >
-                          <Icon className="h-4 w-4" />
-                          {t(`welcome.${media.id}`)}
-                        </span>
-                      );
-                    })}
-                  </div>
-
-                  <p className="mt-6 max-w-md text-sm text-muted-foreground">
-                    {t("welcome.intro")}
-                  </p>
-
-                  <div className="mt-8 flex w-full flex-col-reverse items-center gap-3 sm:flex-row sm:justify-center">
-                    <Button variant="ghost" onClick={onSkip}>
-                      {t("welcome.skip")}
-                    </Button>
-                    <Button size="lg" onClick={() => setStep("libraries")}>
-                      {t("welcome.getStarted")}
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {step === "libraries" && (
-                <div>
-                  <div className="mb-6">
-                    <h2 className="text-xl font-semibold tracking-tight">
-                      {t("libraries.title")}
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {t("libraries.subtitle")}
+          <AnimatedHeight>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                {step === "welcome" && (
+                  <div className="flex flex-col items-center text-center">
+                    <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <Sparkles className="h-8 w-8" />
+                    </div>
+                    <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                      {t("welcome.title")}
+                    </h1>
+                    <p className="mt-3 max-w-md text-muted-foreground">
+                      {t("welcome.subtitle")}
                     </p>
-                  </div>
 
-                  <div className="space-y-3">
-                    {MEDIA_TYPES.map((media) => (
-                      <MediaTypeCard
-                        key={media.id}
-                        media={media}
-                        path={pathFor(media)}
-                        isBusy={isUpdating}
-                        onChoose={() => setPickerFor(media)}
-                        onRemove={() => handleRemovePath(media)}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
-                    <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                    <span>{t("libraries.scanHint")}</span>
-                  </div>
-
-                  <div className="mt-8 flex items-center justify-between">
-                    <Button variant="ghost" onClick={() => setStep("welcome")}>
-                      <ArrowLeft className="mr-1 h-4 w-4" />
-                      {t("libraries.back")}
-                    </Button>
-                    <Button size="lg" onClick={() => setStep("done")}>
-                      {t("libraries.continue")}
-                      <ArrowRight className="ml-1 h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {step === "done" && (
-                <div className="flex flex-col items-center text-center">
-                  <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <CheckCircle2 className="h-9 w-9" />
-                  </div>
-                  <h2 className="text-2xl font-bold tracking-tight">
-                    {t("done.title")}
-                  </h2>
-                  <p className="mt-3 max-w-md text-muted-foreground">
-                    {configuredMedia.length > 0
-                      ? t("done.subtitleScanning")
-                      : t("done.subtitleEmpty")}
-                  </p>
-
-                  {configuredMedia.length > 0 && (
-                    <div className="mt-6 w-full space-y-2 text-left">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                        {t("done.configuredTitle")}
-                      </p>
-                      {configuredMedia.map((media) => {
+                    <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                      {MEDIA_TYPES.map((media) => {
                         const Icon = media.icon;
                         return (
-                          <div
+                          <span
                             key={media.id}
-                            className="flex items-center gap-3 rounded-lg border bg-background/60 p-3"
+                            className="inline-flex items-center gap-1.5 rounded-full border bg-background/60 px-3 py-1.5 text-sm text-muted-foreground"
                           >
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <span className="shrink-0 text-sm font-medium">
-                              {t(`libraries.${media.id}Label`)}
-                            </span>
-                            <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-0.5 text-right text-xs text-muted-foreground">
-                              {pathFor(media)}
-                            </code>
-                          </div>
+                            <Icon className="h-4 w-4" />
+                            {t(`welcome.${media.id}`)}
+                          </span>
                         );
                       })}
                     </div>
-                  )}
 
-                  <div className="mt-8 flex w-full flex-col-reverse items-center gap-3 sm:flex-row sm:justify-center">
-                    <Button
-                      variant="outline"
-                      onClick={() => router.push("/settings")}
-                    >
-                      <Settings className="mr-1.5 h-4 w-4" />
-                      {t("done.openSettings")}
-                    </Button>
-                    <Button size="lg" onClick={onFinish}>
-                      {t("done.goToLibrary")}
-                    </Button>
+                    <p className="mt-6 max-w-md text-sm text-muted-foreground">
+                      {t("welcome.intro")}
+                    </p>
+
+                    <div className="mt-8 flex w-full flex-col-reverse items-center gap-3 sm:flex-row sm:justify-center">
+                      <Button variant="ghost" onClick={onSkip}>
+                        {t("welcome.skip")}
+                      </Button>
+                      <Button size="lg" onClick={() => setStep("libraries")}>
+                        {t("welcome.getStarted")}
+                        <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+                )}
+
+                {step === "libraries" && (
+                  <div>
+                    <div className="mb-6">
+                      <h2 className="text-xl font-semibold tracking-tight">
+                        {t("libraries.title")}
+                      </h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {t("libraries.subtitle")}
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      {MEDIA_TYPES.map((media) => (
+                        <MediaTypeCard
+                          key={media.id}
+                          media={media}
+                          path={pathFor(media)}
+                          isBusy={isUpdating}
+                          onChoose={() => setPickerFor(media)}
+                          onRemove={() => handleRemovePath(media)}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="mt-4 flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
+                      <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                      <span>{t("libraries.scanHint")}</span>
+                    </div>
+
+                    <div className="mt-8 flex items-center justify-between">
+                      <Button
+                        variant="ghost"
+                        onClick={() => setStep("welcome")}
+                      >
+                        <ArrowLeft className="mr-1 h-4 w-4" />
+                        {t("libraries.back")}
+                      </Button>
+                      <Button size="lg" onClick={() => setStep("done")}>
+                        {t("libraries.continue")}
+                        <ArrowRight className="ml-1 h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {step === "done" && (
+                  <div className="flex flex-col items-center text-center">
+                    <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <CheckCircle2 className="h-9 w-9" />
+                    </div>
+                    <h2 className="text-2xl font-bold tracking-tight">
+                      {t("done.title")}
+                    </h2>
+                    <p className="mt-3 max-w-md text-muted-foreground">
+                      {configuredMedia.length > 0
+                        ? t("done.subtitleScanning")
+                        : t("done.subtitleEmpty")}
+                    </p>
+
+                    {configuredMedia.length > 0 && (
+                      <div className="mt-6 w-full space-y-2 text-left">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                          {t("done.configuredTitle")}
+                        </p>
+                        {configuredMedia.map((media) => {
+                          const Icon = media.icon;
+                          return (
+                            <div
+                              key={media.id}
+                              className="flex items-center gap-3 rounded-lg border bg-background/60 p-3"
+                            >
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
+                                <Icon className="h-4 w-4" />
+                              </div>
+                              <span className="shrink-0 text-sm font-medium">
+                                {t(`libraries.${media.id}Label`)}
+                              </span>
+                              <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-0.5 text-right text-xs text-muted-foreground">
+                                {pathFor(media)}
+                              </code>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    <div className="mt-8 flex w-full flex-col-reverse items-center gap-3 sm:flex-row sm:justify-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => router.push("/settings")}
+                      >
+                        <Settings className="mr-1.5 h-4 w-4" />
+                        {t("done.openSettings")}
+                      </Button>
+                      <Button size="lg" onClick={onFinish}>
+                        {t("done.goToLibrary")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </AnimatedHeight>
         </div>
       </div>
 

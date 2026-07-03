@@ -14,7 +14,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/ui/dialog";
-import { useFilesystemBrowse, useCreateDirectory } from "../../lib/use-filesystem";
+import {
+  useFilesystemBrowse,
+  useCreateDirectory,
+} from "../../lib/use-filesystem";
 
 interface FolderPickerDialogProps {
   open: boolean;
@@ -34,7 +37,9 @@ export function FolderPickerDialog({
   description,
 }: FolderPickerDialogProps) {
   const t = useTranslations("settings.libraries.folderPicker");
-  const [currentPath, setCurrentPath] = useState<string | undefined>(initialPath);
+  const [currentPath, setCurrentPath] = useState<string | undefined>(
+    initialPath,
+  );
   const [showCreateInput, setShowCreateInput] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
 
@@ -57,6 +62,17 @@ export function FolderPickerDialog({
     }
   }, [data?.currentPath, currentPath]);
 
+  // If the requested path can't be browsed (e.g. a suggested default like
+  // /library/audiobooks that doesn't exist on this install), fall back to
+  // the server's default start location instead of dead-ending on an error.
+  // Only when a concrete path failed - an undefined path already means
+  // "server default", so a failure there is terminal and stays visible.
+  useEffect(() => {
+    if (error && currentPath !== undefined) {
+      setCurrentPath(undefined);
+    }
+  }, [error, currentPath]);
+
   const handleNavigate = (path: string) => {
     setCurrentPath(path);
     setShowCreateInput(false);
@@ -74,9 +90,7 @@ export function FolderPickerDialog({
       setNewFolderName("");
       refetch();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("error.create")
-      );
+      toast.error(error instanceof Error ? error.message : t("error.create"));
     }
   };
 
@@ -97,7 +111,9 @@ export function FolderPickerDialog({
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{title ?? t("title")}</DialogTitle>
-          <DialogDescription>{description ?? t("description")}</DialogDescription>
+          <DialogDescription>
+            {description ?? t("description")}
+          </DialogDescription>
         </DialogHeader>
 
         {/* Breadcrumb navigation */}
