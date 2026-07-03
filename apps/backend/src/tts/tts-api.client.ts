@@ -7,7 +7,7 @@
 // pass a mock without module patching. Does NOT touch the DB or settings.
 // ---------------------------------------------------------------------------
 
-import { Agent, type Dispatcher } from 'undici';
+import { Agent, fetch as undiciFetch, type Dispatcher } from 'undici';
 
 // CPU synthesis of a chunk can take minutes before the first response byte
 // arrives; undici's default 5-minute headersTimeout would kill the request.
@@ -56,7 +56,11 @@ export class TtsApiClient {
   constructor(
     baseUrl: string,
     private readonly apiKey?: string | null,
-    private readonly fetchImpl: typeof fetch = fetch,
+    // undici's own fetch, NOT the Node global: the long-timeout Agent below
+    // comes from the undici npm package, and Node's built-in fetch bundles a
+    // different undici whose dispatcher interface is incompatible
+    // ("invalid onRequestStart method").
+    private readonly fetchImpl: typeof fetch = undiciFetch as unknown as typeof fetch,
   ) {
     // Accept both "http://tts:8880" and "http://tts:8880/v1" (with or
     // without a trailing slash).
