@@ -298,8 +298,33 @@ export class ListDetailDto extends ListDto {
 
 /**
  * GET /api/lists/for-item response — list with a containsItem flag.
+ *
+ * Deliberately does NOT extend ListDto: the service returns a slim projection
+ * without userId/createdAt/updatedAt, and strict clients (the iOS generated
+ * client) reject responses missing required properties.
  */
-export class ListWithContainsFlagDto extends ListDto {
+export class ListWithContainsFlagDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  id!: string;
+
+  @ApiProperty({ example: 'My Favorites' })
+  name!: string;
+
+  @ApiProperty({ example: false })
+  isPublic!: boolean;
+
+  @ApiProperty({ example: 12, description: 'Number of items in this list' })
+  itemCount!: number;
+
   @ApiProperty({ example: false })
   containsItem!: boolean;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    nullable: true,
+    description:
+      'Id of the list item holding this item; null when containsItem is false',
+  })
+  listItemId?: string | null;
 }
