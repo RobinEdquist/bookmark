@@ -8,12 +8,23 @@
 # =============================================================================
 # Stage 1: Base image with pnpm and turbo
 # =============================================================================
-FROM node:22-slim AS base
+FROM node:26-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PNPM_HOME/bin:$PATH"
 
-RUN corepack enable && \
+# python3/make/g++: fallback toolchain for native deps without a prebuilt
+# binary for Node 26's ABI, so pnpm install can compile them via node-gyp
+# instead of failing outright (e.g. ssh2's optional cpu-features binding).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node 25+ no longer bundles corepack, so install it explicitly via npm first.
+RUN npm install --global corepack@latest && \
+    corepack enable && \
     corepack prepare pnpm@9.0.0 --activate && \
     pnpm install turbo --global
 
@@ -114,7 +125,7 @@ RUN turbo run build --filter=web
 # =============================================================================
 # Production image: backend + web standalone
 # =============================================================================
-FROM node:22-slim AS runner
+FROM node:26-slim AS runner
 
 # Install runtime dependencies (curl for health checks, openssl for secret
 # generation). ffmpeg comes as static binaries below — Debian's ffmpeg package
