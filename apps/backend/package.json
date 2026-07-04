@@ -46,7 +46,7 @@
     "class-validator": "^0.14.3",
     "cookie": "^1.1.1",
     "drizzle-kit": "^0.31.7",
-    "drizzle-orm": "^0.44.7",
+    "drizzle-orm": "^0.45.2",
     "epub2": "^3.0.2",
     "express": "^5.1.0",
     "fast-xml-parser": "^5.8.0",
