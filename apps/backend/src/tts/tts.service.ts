@@ -146,7 +146,11 @@ export class TtsService {
   // Jobs
   // -------------------------------------------------------------------------
 
-  async createJob(ebookId: string, requestedBy: string): Promise<TtsJob> {
+  async createJob(
+    ebookId: string,
+    requestedBy: string,
+    voice?: string,
+  ): Promise<TtsJob> {
     const config = await this.appSettings.getTtsConfig();
     if (!config.enabled || !config.baseUrl) {
       throw new PreconditionFailedException(
@@ -206,7 +210,7 @@ export class TtsService {
         .insert(ttsGenerationJobs)
         .values({
           ebookId,
-          voice: config.voice,
+          voice: voice?.trim() || config.voice,
           speed: config.speed,
           model: config.model,
           requestedBy,

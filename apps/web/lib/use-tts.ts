@@ -95,7 +95,9 @@ async function saveTtsConfig(input: TtsConfigInput): Promise<TtsStatus> {
   return response.json();
 }
 
-async function validateTts(input: TtsValidateInput): Promise<TtsValidateResult> {
+async function validateTts(
+  input: TtsValidateInput,
+): Promise<TtsValidateResult> {
   const response = await fetch("/api/tts/validate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -127,12 +129,12 @@ async function fetchTtsJobs(): Promise<TtsJob[]> {
   return response.json();
 }
 
-async function createTtsJob(ebookId: string): Promise<TtsJob> {
+async function createTtsJob(ebookId: string, voice?: string): Promise<TtsJob> {
   const response = await fetch("/api/tts/jobs", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ ebookId }),
+    body: JSON.stringify(voice ? { ebookId, voice } : { ebookId }),
   });
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -259,7 +261,8 @@ export function useGenerateAudiobook() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: ({ ebookId }: { ebookId: string }) => createTtsJob(ebookId),
+    mutationFn: ({ ebookId, voice }: { ebookId: string; voice?: string }) =>
+      createTtsJob(ebookId, voice),
     onSuccess: (_job, { ebookId }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.ebooks.detail(ebookId),

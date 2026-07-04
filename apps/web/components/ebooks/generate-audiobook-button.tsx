@@ -1,11 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Headphones, Sparkles, Loader2, X } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
+import { Input } from "@repo/ui/components/ui/input";
+import { Label } from "@repo/ui/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@repo/ui/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +32,7 @@ import { useTasksStatus } from "../../lib/use-tasks";
 import {
   useTtsStatus,
   useTtsJobs,
+  useTtsVoices,
   useGenerateAudiobook,
   useCancelTtsJob,
 } from "../../lib/use-tts";
@@ -44,7 +54,7 @@ export function GenerateAudiobookButton({
   const isAdmin = permissions?.isAdmin ?? false;
 
   // TTS status is admin-only — never query it for non-admins.
-  const { isEnabled, isConfigured } = useTtsStatus(isAdmin);
+  const { status, isEnabled, isConfigured } = useTtsStatus(isAdmin);
   const { tts } = useTasksStatus();
   // Jobs list is admin-only; only fetch it for admins so we can spot a pending
   // (not-yet-active) job for this ebook.
@@ -53,6 +63,16 @@ export function GenerateAudiobookButton({
   const { cancelJob, isCancelling } = useCancelTtsJob();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [voice, setVoice] = useState("");
+  // Only fetch the (admin-only) voice list while the dialog is open
+  const { voices } = useTtsVoices(isAdmin && isConfigured && confirmOpen);
+
+  // Default the picker to the globally configured voice
+  useEffect(() => {
+    if (confirmOpen && !voice && status?.voice) {
+      setVoice(status.voice);
+    }
+  }, [confirmOpen, voice, status?.voice]);
 
   // Live "active" job wins; otherwise look for a queued/in-flight job for this
   // ebook in the jobs list (a pending job isn't in the tasks `active` slot).
@@ -145,7 +165,7 @@ export function GenerateAudiobookButton({
   // 3. Offer generation.
   const handleGenerate = async () => {
     try {
-      await generate({ ebookId });
+      await generate({ ebookId, voice: voice || undefined });
       toast.success(t("toast.started"));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t("toast.startFailed"));
@@ -169,6 +189,32 @@ export function GenerateAudiobookButton({
             {t("confirm.description")}
           </AlertDialogDescription>
         </AlertDialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="generate-voice">{t("confirm.voiceLabel")}</Label>
+          {voices ? (
+            <Select value={voice} onValueChange={setVoice}>
+              <SelectTrigger id="generate-voice">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {voices.map((v) => (
+                  <SelectItem key={v} value={v}>
+                    {v}
+                  </SelectItem>
+                ))}
+                {voice && !voices.includes(voice) && (
+                  <SelectItem value={voice}>{voice}</SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              id="generate-voice"
+              value={voice}
+              onChange={(e) => setVoice(e.target.value)}
+            />
+          )}
+        </div>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isGenerating}>
             {t("confirm.cancel")}

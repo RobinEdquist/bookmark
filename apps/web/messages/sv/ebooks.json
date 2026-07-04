@@ -227,7 +227,8 @@
       "description": "E-boken läses in med en AI-röst och läggs till som en ljudbok i ditt bibliotek. Genereringen körs i bakgrunden och kan ta ett tag — ungefär lika länge som den färdiga ljudboken när den körs på CPU.",
       "cancel": "Avbryt",
       "confirm": "Skapa",
-      "starting": "Startar…"
+      "starting": "Startar…",
+      "voiceLabel": "Röst"
     },
     "toast": {
       "started": "Ljudboksgenerering köad",

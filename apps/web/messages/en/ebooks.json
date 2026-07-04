@@ -227,7 +227,8 @@
       "description": "The ebook will be narrated with an AI voice and added as an audiobook in your library. Generation runs in the background and can take a while — roughly as long as the finished audiobook when running on CPU.",
       "cancel": "Cancel",
       "confirm": "Generate",
-      "starting": "Starting…"
+      "starting": "Starting…",
+      "voiceLabel": "Voice"
     },
     "toast": {
       "started": "Audiobook generation queued",

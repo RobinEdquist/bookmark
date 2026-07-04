@@ -104,7 +104,7 @@ export class TtsController {
     @Body() dto: CreateTtsJobDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.ttsService.createJob(dto.ebookId, user.id);
+    return this.ttsService.createJob(dto.ebookId, user.id, dto.voice);
   }
 
   @Get('jobs')

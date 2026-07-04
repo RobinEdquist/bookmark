@@ -99,4 +99,12 @@ export class CreateTtsJobDto {
   })
   @IsUUID()
   ebookId!: string;
+
+  @ApiPropertyOptional({
+    description: 'Voice to narrate with (defaults to the configured voice)',
+    example: 'af_heart',
+  })
+  @IsOptional()
+  @IsString()
+  voice?: string;
 }
