@@ -191,6 +191,7 @@ describe('Users (e2e)', () => {
       expect(data).toHaveProperty('canDelete');
       expect(data).toHaveProperty('canGenerateApiKeys');
       expect(data).toHaveProperty('canRequestContent');
+      expect(data).toHaveProperty('canGenerateAudiobooks');
     });
 
     it('should return regular user permissions', async () => {

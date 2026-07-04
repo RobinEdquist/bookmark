@@ -141,6 +141,9 @@ export const appSettings = pgTable(
     defaultCanRequestContent: boolean('default_can_request_content')
       .notNull()
       .default(false),
+    defaultCanGenerateAudiobooks: boolean('default_can_generate_audiobooks')
+      .notNull()
+      .default(false),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

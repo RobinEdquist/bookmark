@@ -247,6 +247,7 @@
       "canDelete": "Can delete",
       "canGenerateApiKeys": "Can generate API keys",
       "canRequestContent": "Can request content",
+      "canGenerateAudiobooks": "Can generate audiobooks from ebooks",
       "blacklistedTags": "Blacklisted Tags",
       "blacklistedTagsPlaceholder": "Select tags to hide...",
       "searchTags": "Search tags...",
@@ -339,7 +340,9 @@
       "canGenerateApiKeys": "Can generate API keys",
       "canGenerateApiKeysDescription": "Allow new users to generate API keys for programmatic access",
       "canRequestContent": "Can request content",
-      "canRequestContentDescription": "Allow new users to request new content from external sources"
+      "canRequestContentDescription": "Allow new users to request new content from external sources",
+      "canGenerateAudiobooks": "Can generate audiobooks from ebooks",
+      "canGenerateAudiobooksDescription": "Allow new users to generate AI-narrated audiobooks from ebooks"
     },
     "error": {
       "loadFailed": "Failed to load settings. Please try again.",

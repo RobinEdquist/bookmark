@@ -3,7 +3,13 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
-export type MetadataSource = "manual" | "embedded" | "hardcover" | "goodreads" | "filename" | "folder_image";
+export type MetadataSource =
+  | "manual"
+  | "embedded"
+  | "hardcover"
+  | "goodreads"
+  | "filename"
+  | "folder_image";
 
 export interface MetadataFieldPriority {
   title: MetadataSource[];
@@ -41,6 +47,7 @@ export interface Settings {
   defaultCanDelete: boolean;
   defaultCanGenerateApiKeys: boolean;
   defaultCanRequestContent: boolean;
+  defaultCanGenerateAudiobooks: boolean;
   trackerClientConfigured: boolean;
   grFinderConfigured: boolean;
   createdAt: string;
@@ -68,6 +75,7 @@ export interface UpdateSettingsDto {
   defaultCanDelete?: boolean;
   defaultCanGenerateApiKeys?: boolean;
   defaultCanRequestContent?: boolean;
+  defaultCanGenerateAudiobooks?: boolean;
 }
 
 async function fetchSettings(): Promise<Settings> {
@@ -80,7 +88,9 @@ async function fetchSettings(): Promise<Settings> {
   return response.json();
 }
 
-async function updateSettingsApi(updates: UpdateSettingsDto): Promise<Settings> {
+async function updateSettingsApi(
+  updates: UpdateSettingsDto,
+): Promise<Settings> {
   const response = await fetch("/api/settings", {
     method: "PATCH",
     headers: {
@@ -114,7 +124,9 @@ export function useSettings() {
       // Invalidate all settings queries (includes public)
       queryClient.invalidateQueries({ queryKey: queryKeys.settings.all });
       // Invalidate library availability (sidebar nav depends on library paths)
-      queryClient.invalidateQueries({ queryKey: queryKeys.library.availability() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.library.availability(),
+      });
     },
   });
 

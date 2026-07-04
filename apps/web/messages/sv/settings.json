@@ -247,6 +247,7 @@
       "canDelete": "Kan ta bort",
       "canGenerateApiKeys": "Kan generera API-nycklar",
       "canRequestContent": "Kan begära innehåll",
+      "canGenerateAudiobooks": "Kan skapa ljudböcker från e-böcker",
       "blacklistedTags": "Blockerade taggar",
       "blacklistedTagsPlaceholder": "Välj taggar att dölja...",
       "searchTags": "Sök taggar...",
@@ -339,7 +340,9 @@
       "canGenerateApiKeys": "Kan generera API-nycklar",
       "canGenerateApiKeysDescription": "Tillåt nya användare att generera API-nycklar för programmatisk åtkomst",
       "canRequestContent": "Kan begära innehåll",
-      "canRequestContentDescription": "Tillåt nya användare att begära nytt innehåll från externa källor"
+      "canRequestContentDescription": "Tillåt nya användare att begära nytt innehåll från externa källor",
+      "canGenerateAudiobooks": "Kan skapa ljudböcker från e-böcker",
+      "canGenerateAudiobooksDescription": "Tillåt nya användare att skapa AI-berättade ljudböcker från e-böcker"
     },
     "error": {
       "loadFailed": "Kunde inte ladda inställningar. Försök igen.",

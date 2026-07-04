@@ -68,6 +68,7 @@ export class AppSettingsService {
     defaultCanDelete?: boolean;
     defaultCanGenerateApiKeys?: boolean;
     defaultCanRequestContent?: boolean;
+    defaultCanGenerateAudiobooks?: boolean;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)
@@ -162,6 +163,7 @@ export class AppSettingsService {
     canDelete: boolean;
     canGenerateApiKeys: boolean;
     canRequestContent: boolean;
+    canGenerateAudiobooks: boolean;
   }> {
     const settings = await this.getSettings();
     return {
@@ -170,6 +172,7 @@ export class AppSettingsService {
       canDelete: settings.defaultCanDelete,
       canGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       canRequestContent: settings.defaultCanRequestContent,
+      canGenerateAudiobooks: settings.defaultCanGenerateAudiobooks,
     };
   }
 

@@ -159,6 +159,9 @@ export class AppSettingsResponseDto {
   @ApiProperty({ example: true })
   defaultCanRequestContent!: boolean;
 
+  @ApiProperty({ example: false })
+  defaultCanGenerateAudiobooks!: boolean;
+
   @ApiProperty({
     example: false,
     description:

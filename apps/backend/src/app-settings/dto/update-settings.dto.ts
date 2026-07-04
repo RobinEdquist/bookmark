@@ -444,4 +444,13 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsBoolean()
   defaultCanRequestContent?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Default permission for new users to generate audiobooks from ebooks',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  defaultCanGenerateAudiobooks?: boolean;
 }

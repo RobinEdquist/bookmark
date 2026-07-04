@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Header,
   HttpCode,
@@ -20,7 +21,8 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { TtsService } from './tts.service';
-import { Roles, RolesGuard } from '../auth/roles.guard';
+import { AdminGuard } from '../common/guards/admin.guard';
+import { CanGenerateAudiobooksGuard } from '../common/guards/can-generate-audiobooks.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import {
@@ -34,24 +36,37 @@ import {
 @ApiSecurity('better-auth.session_token')
 @ApiSecurity('api-key')
 @Controller('tts')
-@UseGuards(RolesGuard)
-@Roles('admin')
 export class TtsController {
   constructor(private readonly ttsService: TtsService) {}
 
   @Get('status')
+  @UseGuards(CanGenerateAudiobooksGuard)
   @ApiOperation({
     summary: 'Get TTS integration status',
     description:
-      'Returns whether AI audiobook generation is enabled and configured, plus the active voice settings. The API key is never returned.',
+      'Returns whether AI audiobook generation is enabled and configured, plus the active voice settings. The API key is never returned. Non-admins receive a reduced shape without the server URL.',
   })
   @ApiResponse({ status: 200, description: 'Integration status' })
-  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getStatus() {
-    return this.ttsService.getStatus();
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires admin role or the generate permission',
+  })
+  async getStatus(@CurrentUser() user: AuthenticatedUser) {
+    const status = await this.ttsService.getStatus();
+    if (user.role === 'admin') {
+      return status;
+    }
+    // Non-admins don't need (or get) the server URL / api-key details.
+    return {
+      enabled: status.enabled,
+      configured: status.configured,
+      voice: status.voice,
+      model: status.model,
+    };
   }
 
   @Post('config')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Update TTS configuration',
@@ -65,6 +80,7 @@ export class TtsController {
   }
 
   @Post('validate')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Test a TTS server connection',
@@ -78,6 +94,7 @@ export class TtsController {
   }
 
   @Get('voices')
+  @UseGuards(CanGenerateAudiobooksGuard)
   @ApiOperation({
     summary: 'List voices from the configured TTS server',
     description:
@@ -91,6 +108,7 @@ export class TtsController {
   }
 
   @Post('preview')
+  @UseGuards(CanGenerateAudiobooksGuard)
   @HttpCode(HttpStatus.OK)
   @Header('Content-Type', 'audio/wav')
   @ApiOperation({
@@ -106,6 +124,7 @@ export class TtsController {
   }
 
   @Post('jobs')
+  @UseGuards(CanGenerateAudiobooksGuard)
   @ApiOperation({
     summary: 'Queue audiobook generation for an ebook',
     description:
@@ -126,6 +145,7 @@ export class TtsController {
   }
 
   @Get('jobs')
+  @UseGuards(AdminGuard)
   @ApiOperation({
     summary: 'List recent generation jobs',
     description: 'Returns the 50 most recent TTS generation jobs.',
@@ -136,20 +156,32 @@ export class TtsController {
   }
 
   @Post('jobs/:id/cancel')
+  @UseGuards(CanGenerateAudiobooksGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Cancel a generation job',
     description:
-      'Pending jobs are cancelled immediately; running jobs stop at the next chunk boundary.',
+      'Pending jobs are cancelled immediately; running jobs stop at the next chunk boundary. Non-admins may only cancel jobs they requested.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Job cancelled or cancelling' })
   @ApiResponse({ status: 404, description: 'Job not found' })
-  async cancelJob(@Param('id', ParseUUIDPipe) id: string) {
+  async cancelJob(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    // Non-admins may only cancel jobs they requested.
+    if (user.role !== 'admin') {
+      const job = await this.ttsService.getJob(id);
+      if (job.requestedBy !== user.id) {
+        throw new ForbiddenException('You can only cancel your own jobs');
+      }
+    }
     return this.ttsService.cancelJob(id);
   }
 
   @Post('jobs/:id/retry')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Retry a failed generation job',
@@ -165,6 +197,7 @@ export class TtsController {
   }
 
   @Delete('jobs/:id')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Dismiss a finished generation job',

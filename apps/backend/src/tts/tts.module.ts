@@ -7,6 +7,7 @@ import { AppSettingsModule } from '../app-settings/app-settings.module';
 import { AppDataModule } from '../app-data/app-data.module';
 import { EventsModule } from '../events/events.module';
 import { LibraryWatcherModule } from '../library-watcher/library-watcher.module';
+import { CanGenerateAudiobooksGuard } from '../common/guards/can-generate-audiobooks.guard';
 
 @Module({
   imports: [
@@ -16,7 +17,12 @@ import { LibraryWatcherModule } from '../library-watcher/library-watcher.module'
     forwardRef(() => LibraryWatcherModule),
   ],
   controllers: [TtsController],
-  providers: [TtsService, TtsGenerationProcessor, M4bAssemblerService],
+  providers: [
+    TtsService,
+    TtsGenerationProcessor,
+    M4bAssemblerService,
+    CanGenerateAudiobooksGuard,
+  ],
   exports: [TtsService],
 })
 export class TtsModule {}

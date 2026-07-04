@@ -68,6 +68,7 @@ function buildDefaultSettings(overrides: Partial<Record<string, any>> = {}) {
     defaultCanDelete: false,
     defaultCanGenerateApiKeys: false,
     defaultCanRequestContent: false,
+    defaultCanGenerateAudiobooks: false,
     ...overrides,
   };
 }
@@ -358,6 +359,7 @@ describe('AppSettingsService', () => {
         defaultCanDelete: false,
         defaultCanGenerateApiKeys: false,
         defaultCanRequestContent: true,
+        defaultCanGenerateAudiobooks: true,
       });
       const selectChain = chainMock([settings]);
       const db = createMockDb({
@@ -373,6 +375,7 @@ describe('AppSettingsService', () => {
         canDelete: false,
         canGenerateApiKeys: false,
         canRequestContent: true,
+        canGenerateAudiobooks: true,
       });
     });
   });

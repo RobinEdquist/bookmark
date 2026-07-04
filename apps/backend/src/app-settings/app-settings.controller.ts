@@ -155,6 +155,7 @@ export class AppSettingsController {
       defaultCanDelete: settings.defaultCanDelete,
       defaultCanGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       defaultCanRequestContent: settings.defaultCanRequestContent,
+      defaultCanGenerateAudiobooks: settings.defaultCanGenerateAudiobooks,
       trackerClientConfigured,
       grFinderConfigured,
       createdAt: settings.createdAt,
@@ -203,7 +204,8 @@ export class AppSettingsController {
       dto.defaultCanUpload === undefined &&
       dto.defaultCanDelete === undefined &&
       dto.defaultCanGenerateApiKeys === undefined &&
-      dto.defaultCanRequestContent === undefined
+      dto.defaultCanRequestContent === undefined &&
+      dto.defaultCanGenerateAudiobooks === undefined
     ) {
       throw new BadRequestException('No settings provided to update');
     }
@@ -266,6 +268,7 @@ export class AppSettingsController {
       defaultCanDelete?: boolean;
       defaultCanGenerateApiKeys?: boolean;
       defaultCanRequestContent?: boolean;
+      defaultCanGenerateAudiobooks?: boolean;
     } = {};
     if (dto.signupsEnabled !== undefined)
       updates.signupsEnabled = dto.signupsEnabled;
@@ -309,6 +312,8 @@ export class AppSettingsController {
       updates.defaultCanGenerateApiKeys = dto.defaultCanGenerateApiKeys;
     if (dto.defaultCanRequestContent !== undefined)
       updates.defaultCanRequestContent = dto.defaultCanRequestContent;
+    if (dto.defaultCanGenerateAudiobooks !== undefined)
+      updates.defaultCanGenerateAudiobooks = dto.defaultCanGenerateAudiobooks;
 
     const settings = await this.appSettingsService.updateSettings(updates);
     const trackerClientConfigured = !!(
@@ -352,6 +357,7 @@ export class AppSettingsController {
       defaultCanDelete: settings.defaultCanDelete,
       defaultCanGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       defaultCanRequestContent: settings.defaultCanRequestContent,
+      defaultCanGenerateAudiobooks: settings.defaultCanGenerateAudiobooks,
       trackerClientConfigured,
       grFinderConfigured,
       createdAt: settings.createdAt,

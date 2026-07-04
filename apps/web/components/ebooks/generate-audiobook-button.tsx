@@ -53,20 +53,22 @@ export function GenerateAudiobookButton({
   const t = useTranslations("ebooks.tts");
   const { data: permissions } = useMyPermissions();
   const isAdmin = permissions?.isAdmin ?? false;
+  const canGenerate = isAdmin || (permissions?.canGenerateAudiobooks ?? false);
 
-  // TTS status is admin-only — never query it for non-admins.
-  const { status, isEnabled, isConfigured } = useTtsStatus(isAdmin);
+  // Status/voices are open to admins and generate-permission holders alike.
+  const { status, isEnabled, isConfigured } = useTtsStatus(canGenerate);
   const { tts } = useTasksStatus();
-  // Jobs list is admin-only; only fetch it for admins so we can spot a pending
-  // (not-yet-active) job for this ebook.
+  // The jobs list endpoint is admin-only; only fetch it for admins so we can
+  // spot a pending (not-yet-active) job for this ebook. Non-admins rely on the
+  // tasks websocket payload plus the optimistic in-progress state.
   const { data: jobs } = useTtsJobs(isAdmin);
   const { generate, isGenerating } = useGenerateAudiobook();
   const { cancelJob, isCancelling } = useCancelTtsJob();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [voice, setVoice] = useState("");
-  // Only fetch the (admin-only) voice list while the dialog is open
-  const { voices } = useTtsVoices(isAdmin && isConfigured && confirmOpen);
+  // Only fetch the voice list while the dialog is open
+  const { voices } = useTtsVoices(canGenerate && isConfigured && confirmOpen);
 
   // Default the picker to the globally configured voice
   useEffect(() => {
@@ -132,8 +134,8 @@ export function GenerateAudiobookButton({
     );
   }
 
-  // Everything below is admin-only and requires TTS to be usable.
-  if (!isAdmin || !isEnabled || !isConfigured) {
+  // Everything below requires the generate permission and a usable TTS setup.
+  if (!canGenerate || !isEnabled || !isConfigured) {
     return null;
   }
 

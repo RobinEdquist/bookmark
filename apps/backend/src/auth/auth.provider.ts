@@ -172,6 +172,7 @@ export function createAuthInstance(
                   canDelete: true,
                   canGenerateApiKeys: true,
                   canRequestContent: true,
+                  canGenerateAudiobooks: true,
                 })
                 .onConflictDoNothing();
             } else {
@@ -193,6 +194,8 @@ export function createAuthInstance(
                       appSettings.defaultCanGenerateApiKeys,
                     defaultCanRequestContent:
                       appSettings.defaultCanRequestContent,
+                    defaultCanGenerateAudiobooks:
+                      appSettings.defaultCanGenerateAudiobooks,
                   })
                   .from(appSettings)
                   .where(eq(appSettings.id, 'app_settings'))
@@ -204,6 +207,7 @@ export function createAuthInstance(
                   defaultCanDelete: false,
                   defaultCanGenerateApiKeys: false,
                   defaultCanRequestContent: false,
+                  defaultCanGenerateAudiobooks: false,
                 };
 
                 // Create permissions with defaults
@@ -214,6 +218,7 @@ export function createAuthInstance(
                   canDelete: defaults.defaultCanDelete,
                   canGenerateApiKeys: defaults.defaultCanGenerateApiKeys,
                   canRequestContent: defaults.defaultCanRequestContent,
+                  canGenerateAudiobooks: defaults.defaultCanGenerateAudiobooks,
                 });
               }
             }

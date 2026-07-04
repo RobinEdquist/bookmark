@@ -1,6 +1,11 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 
 export interface UserPermissions {
   isAdmin: boolean;
@@ -9,6 +14,7 @@ export interface UserPermissions {
   canDelete: boolean;
   canGenerateApiKeys: boolean;
   canRequestContent: boolean;
+  canGenerateAudiobooks: boolean;
 }
 
 export interface ApiKeySummary {
@@ -42,6 +48,7 @@ export interface CreateUserInput {
   canDelete?: boolean;
   canGenerateApiKeys?: boolean;
   canRequestContent?: boolean;
+  canGenerateAudiobooks?: boolean;
   blacklistedTags?: string[];
 }
 
@@ -55,6 +62,7 @@ export interface UpdateUserInput {
   canDelete?: boolean;
   canGenerateApiKeys?: boolean;
   canRequestContent?: boolean;
+  canGenerateAudiobooks?: boolean;
   blacklistedTags?: string[];
 }
 
@@ -63,7 +71,9 @@ export interface BanUserInput {
   expiresAt?: string;
 }
 
-async function fetchUsers(search?: string): Promise<{ users: User[]; total: number }> {
+async function fetchUsers(
+  search?: string,
+): Promise<{ users: User[]; total: number }> {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
 
@@ -138,7 +148,9 @@ async function deleteUser(id: string): Promise<void> {
 }
 
 async function fetchMyPermissions(): Promise<UserPermissions> {
-  const res = await fetch("/api/users/me/permissions", { credentials: "include" });
+  const res = await fetch("/api/users/me/permissions", {
+    credentials: "include",
+  });
   if (!res.ok) throw new Error("Failed to fetch permissions");
   return res.json();
 }

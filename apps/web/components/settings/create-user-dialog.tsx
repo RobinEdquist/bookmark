@@ -24,7 +24,10 @@ interface CreateUserDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) {
+export function CreateUserDialog({
+  open,
+  onOpenChange,
+}: CreateUserDialogProps) {
   const t = useTranslations("settings.users");
   const createUser = useCreateUser();
   const { data: availableTags = [] } = useTags();
@@ -37,6 +40,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
   const [canUpload, setCanUploadAudiobooks] = useState(false);
   const [canDelete, setCanDeleteAudiobooks] = useState(false);
   const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
+  const [canGenerateAudiobooks, setCanGenerateAudiobooks] = useState(false);
   const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
 
   // Admins have all permissions and no blacklisted tags
@@ -46,6 +50,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       setCanUploadAudiobooks(true);
       setCanDeleteAudiobooks(true);
       setCanGenerateApiKeys(true);
+      setCanGenerateAudiobooks(true);
       setBlacklistedTags([]);
     }
   }, [isAdmin]);
@@ -59,6 +64,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
     setCanUploadAudiobooks(false);
     setCanDeleteAudiobooks(false);
     setCanGenerateApiKeys(false);
+    setCanGenerateAudiobooks(false);
     setBlacklistedTags([]);
   };
 
@@ -75,6 +81,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
         canUpload,
         canDelete,
         canGenerateApiKeys,
+        canGenerateAudiobooks,
         blacklistedTags,
       });
       toast.success(t("toast.createSuccess"));
@@ -82,7 +89,7 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
       onOpenChange(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("toast.createError")
+        error instanceof Error ? error.message : t("toast.createError"),
       );
     }
   };
@@ -137,7 +144,9 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <Label htmlFor="isAdmin">{t("createDialog.role")}</Label>
             <div className="flex items-center gap-2">
-              <span className={`text-sm ${!isAdmin ? "font-medium" : "text-muted-foreground"}`}>
+              <span
+                className={`text-sm ${!isAdmin ? "font-medium" : "text-muted-foreground"}`}
+              >
                 {t("createDialog.roleUser")}
               </span>
               <Switch
@@ -145,7 +154,9 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                 checked={isAdmin}
                 onCheckedChange={setIsAdmin}
               />
-              <span className={`text-sm ${isAdmin ? "font-medium" : "text-muted-foreground"}`}>
+              <span
+                className={`text-sm ${isAdmin ? "font-medium" : "text-muted-foreground"}`}
+              >
                 {t("createDialog.roleAdmin")}
               </span>
             </div>
@@ -195,6 +206,17 @@ export function CreateUserDialog({ open, onOpenChange }: CreateUserDialogProps) 
                   id="canGenerateApiKeys"
                   checked={canGenerateApiKeys}
                   onCheckedChange={setCanGenerateApiKeys}
+                  disabled={isAdmin}
+                />
+              </div>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <Label htmlFor="canGenerateAudiobooks" className="font-normal">
+                  {t("createDialog.canGenerateAudiobooks")}
+                </Label>
+                <Switch
+                  id="canGenerateAudiobooks"
+                  checked={canGenerateAudiobooks}
+                  onCheckedChange={setCanGenerateAudiobooks}
                   disabled={isAdmin}
                 />
               </div>
