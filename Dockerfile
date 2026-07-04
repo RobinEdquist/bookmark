@@ -8,7 +8,7 @@
 # =============================================================================
 # Stage 1: Base image with pnpm and turbo
 # =============================================================================
-FROM node:22-slim AS base
+FROM node:26-slim AS base
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PNPM_HOME/bin:$PATH"
@@ -114,7 +114,7 @@ RUN turbo run build --filter=web
 # =============================================================================
 # Production image: backend + web standalone
 # =============================================================================
-FROM node:22-slim AS runner
+FROM node:26-slim AS runner
 
 # Install runtime dependencies (curl for health checks, openssl for secret
 # generation). ffmpeg comes as static binaries below — Debian's ffmpeg package
