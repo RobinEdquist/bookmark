@@ -52,7 +52,7 @@ export class AppSettingsController {
     description: 'Public settings',
     type: PublicSettingsResponseDto,
   })
-  async getPublicSettings() {
+  async getPublicSettings(): Promise<PublicSettingsResponseDto> {
     const settings = await this.appSettingsService.getSettings();
     return {
       signupsEnabled: settings.signupsEnabled,
@@ -71,7 +71,7 @@ export class AppSettingsController {
     description: 'Authentication configuration',
     type: AuthConfigResponseDto,
   })
-  async getAuthConfig() {
+  async getAuthConfig(): Promise<AuthConfigResponseDto> {
     const settings = await this.appSettingsService.getSettings();
     const oidcEnabled = this.oidcConfigService.isOidcEnabled();
 
@@ -94,7 +94,7 @@ export class AppSettingsController {
     description: 'Setup status',
     type: SetupStatusResponseDto,
   })
-  async getSetupStatus() {
+  async getSetupStatus(): Promise<SetupStatusResponseDto> {
     const setupCompleted = await this.appSettingsService.isSetupCompleted();
     return { setupCompleted };
   }
@@ -112,7 +112,7 @@ export class AppSettingsController {
     type: AppSettingsResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getSettings() {
+  async getSettings(): Promise<AppSettingsResponseDto> {
     const settings = await this.appSettingsService.getSettings();
     const trackerClientConfigured = !!(
       process.env.TRACKER_CLIENT_URL && process.env.TRACKER_CLIENT_API_KEY
@@ -182,7 +182,9 @@ export class AppSettingsController {
   @ApiResponse({ status: 400, description: 'Validation error or invalid path' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async updateSettings(@Body() dto: UpdateSettingsDto) {
+  async updateSettings(
+    @Body() dto: UpdateSettingsDto,
+  ): Promise<AppSettingsResponseDto> {
     if (
       dto.signupsEnabled === undefined &&
       dto.audiobookLibraryPath === undefined &&

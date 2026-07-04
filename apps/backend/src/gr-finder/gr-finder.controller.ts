@@ -25,6 +25,7 @@ import { Roles, RolesGuard } from '../auth/roles.guard';
 import { GrFinderService } from './gr-finder.service';
 import {
   GrFinderSearchResponseDto,
+  GrFinderBookDetailsDto,
   GrFinderStatusResponseDto,
   GrFinderLinkResponseDto,
   GrFinderLinkCreatedResponseDto,
@@ -55,7 +56,7 @@ export class GrFinderController {
     type: GrFinderStatusResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  getStatus() {
+  getStatus(): GrFinderStatusResponseDto {
     return {
       configured: this.grFinderService.isConfigured(),
     };
@@ -77,7 +78,7 @@ export class GrFinderController {
     description: 'Search query required or service not configured',
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async search(@Query('q') query: string) {
+  async search(@Query('q') query: string): Promise<GrFinderSearchResponseDto> {
     if (!query || typeof query !== 'string') {
       throw new BadRequestException('Search query is required');
     }
@@ -113,6 +114,7 @@ export class GrFinderController {
   @ApiResponse({
     status: 200,
     description: 'Search results with computed query',
+    type: GrFinderSearchResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Service not configured' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -120,7 +122,7 @@ export class GrFinderController {
   async searchByAudiobook(
     @Param('audiobookId') audiobookId: string,
     @Query('q') customQuery?: string,
-  ) {
+  ): Promise<GrFinderSearchResponseDto> {
     if (!this.grFinderService.isConfigured()) {
       throw new BadRequestException('Goodreads Finder is not configured');
     }
@@ -159,6 +161,7 @@ export class GrFinderController {
   @ApiResponse({
     status: 200,
     description: 'Search results with computed query',
+    type: GrFinderSearchResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Service not configured' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -166,7 +169,7 @@ export class GrFinderController {
   async searchByEbook(
     @Param('ebookId') ebookId: string,
     @Query('q') customQuery?: string,
-  ) {
+  ): Promise<GrFinderSearchResponseDto> {
     if (!this.grFinderService.isConfigured()) {
       throw new BadRequestException('Goodreads Finder is not configured');
     }
@@ -203,13 +206,16 @@ export class GrFinderController {
   @ApiResponse({
     status: 200,
     description: 'Book details',
+    type: GrFinderBookDetailsDto,
   })
   @ApiResponse({
     status: 400,
     description: 'Service not configured',
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getBookDetails(@Param('goodreadsId') goodreadsId: string) {
+  async getBookDetails(
+    @Param('goodreadsId') goodreadsId: string,
+  ): Promise<GrFinderBookDetailsDto> {
     if (!this.grFinderService.isConfigured()) {
       throw new BadRequestException('Goodreads Finder is not configured');
     }
@@ -244,7 +250,9 @@ export class GrFinderController {
     type: GrFinderLinkResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getAudiobookLink(@Param('audiobookId') audiobookId: string) {
+  async getAudiobookLink(
+    @Param('audiobookId') audiobookId: string,
+  ): Promise<GrFinderLinkResponseDto> {
     const link = await this.grFinderService.getGoodreadsLink(
       'audiobook',
       audiobookId,
@@ -274,7 +282,7 @@ export class GrFinderController {
   async linkAudiobook(
     @Param('audiobookId') audiobookId: string,
     @Body() dto: LinkGoodreadsDto,
-  ) {
+  ): Promise<GrFinderLinkCreatedResponseDto> {
     if (!dto.goodreadsId) {
       throw new BadRequestException('Goodreads ID is required');
     }
@@ -301,7 +309,9 @@ export class GrFinderController {
   })
   @ApiResponse({ status: 204, description: 'Unlinked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async unlinkAudiobook(@Param('audiobookId') audiobookId: string) {
+  async unlinkAudiobook(
+    @Param('audiobookId') audiobookId: string,
+  ): Promise<void> {
     await this.grFinderService.unlinkMedia('audiobook', audiobookId);
   }
 
@@ -319,7 +329,9 @@ export class GrFinderController {
     type: GrFinderLinkResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getEbookLink(@Param('ebookId') ebookId: string) {
+  async getEbookLink(
+    @Param('ebookId') ebookId: string,
+  ): Promise<GrFinderLinkResponseDto> {
     const link = await this.grFinderService.getGoodreadsLink('ebook', ebookId);
     return { link };
   }
@@ -342,7 +354,7 @@ export class GrFinderController {
   async linkEbook(
     @Param('ebookId') ebookId: string,
     @Body() dto: LinkGoodreadsDto,
-  ) {
+  ): Promise<GrFinderLinkCreatedResponseDto> {
     if (!dto.goodreadsId) {
       throw new BadRequestException('Goodreads ID is required');
     }
@@ -365,7 +377,7 @@ export class GrFinderController {
   @ApiParam({ name: 'ebookId', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Unlinked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async unlinkEbook(@Param('ebookId') ebookId: string) {
+  async unlinkEbook(@Param('ebookId') ebookId: string): Promise<void> {
     await this.grFinderService.unlinkMedia('ebook', ebookId);
   }
 }

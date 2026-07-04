@@ -9,7 +9,6 @@ import {
 import { ItunesService } from './itunes.service';
 import { SearchItunesDto } from './dto/search-itunes.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
-import { ItunesSearchResult } from './types/itunes-search.types';
 import { ItunesSearchResponseDto } from './dto/itunes-response.dto';
 
 @ApiTags('iTunes')
@@ -50,7 +49,7 @@ export class ItunesController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async search(
     @Query() dto: SearchItunesDto,
-  ): Promise<{ results: ItunesSearchResult[]; total: number }> {
+  ): Promise<ItunesSearchResponseDto> {
     const results = await this.itunesService.search(
       dto.term,
       dto.media,

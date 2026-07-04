@@ -38,8 +38,14 @@ import {
   UserPermissionsResponseDto,
   LanguageResponseDto,
   ThemeResponseDto,
+  SuccessResponseDto,
 } from './dto/user-response.dto';
-import type { UserResponse, UserListResponse } from './dto/user-response.dto';
+import type {
+  UserResponse,
+  UserListResponse,
+  UserPermissionsResponse,
+} from './dto/user-response.dto';
+import { AuthenticatedUserDto } from './dto/authenticated-user.dto';
 
 @ApiTags('Users')
 @ApiSecurity('better-auth.session_token')
@@ -77,9 +83,13 @@ export class UsersController {
     description:
       'Returns the current authenticated user information. Supports both session cookies and API tokens.',
   })
-  @ApiResponse({ status: 200, description: 'Current user session data' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user session data',
+    type: AuthenticatedUserDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getSession(@CurrentUser() user: AuthenticatedUser) {
+  getSession(@CurrentUser() user: AuthenticatedUser): AuthenticatedUserDto {
     return user;
   }
 
@@ -96,7 +106,7 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getLanguage(
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<{ language: string }> {
+  ): Promise<LanguageResponseDto> {
     const language = await this.usersService.getLanguage(user.id);
     return { language };
   }
@@ -106,13 +116,17 @@ export class UsersController {
     summary: 'Update my language preference',
     description: 'Update the UI language preference for the current user',
   })
-  @ApiResponse({ status: 200, description: 'Language updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Language updated successfully',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid language code' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateLanguage(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateLanguageDto,
-  ): Promise<{ success: boolean }> {
+  ): Promise<SuccessResponseDto> {
     await this.usersService.updateLanguage(user.id, dto.language);
     return { success: true };
   }
@@ -128,7 +142,9 @@ export class UsersController {
     type: UserPermissionsResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getMyPermissions(@CurrentUser() user: AuthenticatedUser) {
+  async getMyPermissions(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<UserPermissionsResponse> {
     return this.usersService.getPermissions(user.id);
   }
 
@@ -145,7 +161,7 @@ export class UsersController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getTheme(
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<{ primaryColor: string; surfaceColor: string }> {
+  ): Promise<ThemeResponseDto> {
     return this.usersService.getTheme(user.id);
   }
 
@@ -154,13 +170,17 @@ export class UsersController {
     summary: 'Update my theme preferences',
     description: 'Update primary and surface color theme preferences',
   })
-  @ApiResponse({ status: 200, description: 'Theme updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Theme updated successfully',
+    type: SuccessResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Invalid color format' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateTheme(
     @CurrentUser() user: AuthenticatedUser,
     @Body() dto: UpdateThemeDto,
-  ): Promise<{ success: boolean }> {
+  ): Promise<SuccessResponseDto> {
     await this.usersService.updateTheme(
       user.id,
       dto.primaryColor,

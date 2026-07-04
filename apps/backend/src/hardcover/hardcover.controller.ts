@@ -25,6 +25,7 @@ import {
   HardcoverAutoSyncResponseDto,
   HardcoverValidateResponseDto,
   HardcoverSearchResponseDto,
+  HardcoverMediaSearchResponseDto,
   HardcoverLinkResponseDto,
   HardcoverLinkCreatedResponseDto,
   HardcoverQueueStatusResponseDto,
@@ -85,7 +86,7 @@ export class HardcoverController {
     type: HardcoverStatusResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getStatus() {
+  async getStatus(): Promise<HardcoverStatusResponseDto> {
     const [apiKey, autoSyncOnImport] = await Promise.all([
       this.hardcoverService.getApiKey(),
       this.hardcoverService.getAutoSyncOnImport(),
@@ -110,7 +111,9 @@ export class HardcoverController {
   })
   @ApiResponse({ status: 400, description: 'Invalid enabled value' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async setAutoSync(@Body() dto: SetAutoSyncDto) {
+  async setAutoSync(
+    @Body() dto: SetAutoSyncDto,
+  ): Promise<HardcoverAutoSyncResponseDto> {
     if (typeof dto.enabled !== 'boolean') {
       throw new BadRequestException('enabled must be a boolean');
     }
@@ -132,7 +135,9 @@ export class HardcoverController {
   })
   @ApiResponse({ status: 400, description: 'API key is required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async validateKey(@Body() dto: ValidateKeyDto) {
+  async validateKey(
+    @Body() dto: ValidateKeyDto,
+  ): Promise<HardcoverValidateResponseDto> {
     if (!dto.apiKey || typeof dto.apiKey !== 'string') {
       throw new BadRequestException('API key is required');
     }
@@ -159,7 +164,7 @@ export class HardcoverController {
     type: SuccessResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async disconnect() {
+  async disconnect(): Promise<SuccessResponseDto> {
     await this.hardcoverService.setApiKey(null);
     return { success: true };
   }
@@ -180,14 +185,14 @@ export class HardcoverController {
     description: 'Search query required or API error',
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async search(@Query('q') query: string) {
+  async search(@Query('q') query: string): Promise<HardcoverSearchResponseDto> {
     if (!query || typeof query !== 'string') {
       throw new BadRequestException('Search query is required');
     }
 
     const result = await this.hardcoverService.searchBooks(query);
 
-    if (!result.success) {
+    if (!result.success || !result.data) {
       throw new BadRequestException(result.error);
     }
 
@@ -219,7 +224,7 @@ export class HardcoverController {
   @ApiResponse({
     status: 200,
     description: 'Paginated search results',
-    type: HardcoverSearchResponseDto,
+    type: HardcoverMediaSearchResponseDto,
   })
   @ApiResponse({ status: 400, description: 'API error' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -228,7 +233,7 @@ export class HardcoverController {
     @Query('page') page?: string,
     @Query('perPage') perPage?: string,
     @Query('q') customQuery?: string,
-  ) {
+  ): Promise<HardcoverMediaSearchResponseDto> {
     const pageNum = page ? parseInt(page, 10) : 1;
     const perPageNum = perPage ? parseInt(perPage, 10) : 10;
 
@@ -239,12 +244,12 @@ export class HardcoverController {
       customQuery,
     );
 
-    if (!result.success) {
+    if (!result.success || !result.data) {
       throw new BadRequestException(result.error);
     }
 
     return {
-      query: result.query,
+      query: result.query ?? '',
       ...result.data,
     };
   }
@@ -265,7 +270,9 @@ export class HardcoverController {
     type: HardcoverLinkResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getLink(@Param('audiobookId') audiobookId: string) {
+  async getLink(
+    @Param('audiobookId') audiobookId: string,
+  ): Promise<HardcoverLinkResponseDto> {
     const link = await this.hardcoverService.getHardcoverLink(
       'audiobook',
       audiobookId,
@@ -294,7 +301,7 @@ export class HardcoverController {
   async linkAudiobook(
     @Param('audiobookId') audiobookId: string,
     @Body() dto: LinkAudiobookDto,
-  ) {
+  ): Promise<HardcoverLinkCreatedResponseDto> {
     if (
       !dto.hardcoverBook ||
       !dto.hardcoverBook.id ||
@@ -349,7 +356,9 @@ export class HardcoverController {
   })
   @ApiResponse({ status: 204, description: 'Unlinked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async unlinkAudiobook(@Param('audiobookId') audiobookId: string) {
+  async unlinkAudiobook(
+    @Param('audiobookId') audiobookId: string,
+  ): Promise<void> {
     await this.hardcoverService.unlinkAudiobookFromHardcover(audiobookId);
   }
 
@@ -379,7 +388,7 @@ export class HardcoverController {
   @ApiResponse({
     status: 200,
     description: 'Paginated search results',
-    type: HardcoverSearchResponseDto,
+    type: HardcoverMediaSearchResponseDto,
   })
   @ApiResponse({ status: 400, description: 'API error' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -388,7 +397,7 @@ export class HardcoverController {
     @Query('page') page?: string,
     @Query('perPage') perPage?: string,
     @Query('q') customQuery?: string,
-  ) {
+  ): Promise<HardcoverMediaSearchResponseDto> {
     const pageNum = page ? parseInt(page, 10) : 1;
     const perPageNum = perPage ? parseInt(perPage, 10) : 10;
 
@@ -400,12 +409,12 @@ export class HardcoverController {
       customQuery,
     );
 
-    if (!result.success) {
+    if (!result.success || !result.data) {
       throw new BadRequestException(result.error);
     }
 
     return {
-      query: result.query,
+      query: result.query ?? '',
       ...result.data,
     };
   }
@@ -422,7 +431,9 @@ export class HardcoverController {
     type: HardcoverLinkResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getEbookLink(@Param('ebookId') ebookId: string) {
+  async getEbookLink(
+    @Param('ebookId') ebookId: string,
+  ): Promise<HardcoverLinkResponseDto> {
     const link = await this.hardcoverService.getHardcoverLink('ebook', ebookId);
     return { link };
   }
@@ -444,7 +455,7 @@ export class HardcoverController {
   async linkEbook(
     @Param('ebookId') ebookId: string,
     @Body() dto: LinkAudiobookDto, // Same DTO structure works for ebooks
-  ) {
+  ): Promise<HardcoverLinkCreatedResponseDto> {
     if (
       !dto.hardcoverBook ||
       !dto.hardcoverBook.id ||
@@ -493,7 +504,7 @@ export class HardcoverController {
   @ApiParam({ name: 'ebookId', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Unlinked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async unlinkEbook(@Param('ebookId') ebookId: string) {
+  async unlinkEbook(@Param('ebookId') ebookId: string): Promise<void> {
     await this.hardcoverService.unlinkMedia('ebook', ebookId);
   }
 
@@ -511,7 +522,7 @@ export class HardcoverController {
     type: HardcoverQueueStatusResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getQueueStatus() {
+  async getQueueStatus(): Promise<HardcoverQueueStatusResponseDto> {
     const [pendingCount, failedItems] = await Promise.all([
       this.hardcoverService.getPendingQueueCount(),
       this.hardcoverService.getFailedQueueItems(),
@@ -533,7 +544,7 @@ export class HardcoverController {
   @ApiParam({ name: 'id', description: 'Queue item ID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Item dismissed' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async dismissFailedItem(@Param('id') id: string) {
+  async dismissFailedItem(@Param('id') id: string): Promise<void> {
     await this.hardcoverService.dismissFailedItem(id);
   }
 
@@ -551,7 +562,7 @@ export class HardcoverController {
     type: HardcoverQueueCountResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async queueAllUnlinkedAudiobooks() {
+  async queueAllUnlinkedAudiobooks(): Promise<HardcoverQueueCountResponseDto> {
     const queuedCount =
       await this.hardcoverService.queueAllUnlinked('audiobook');
     return { queuedCount };
@@ -569,7 +580,7 @@ export class HardcoverController {
     type: HardcoverQueueCountResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async queueAllUnlinkedEbooks() {
+  async queueAllUnlinkedEbooks(): Promise<HardcoverQueueCountResponseDto> {
     const queuedCount = await this.hardcoverService.queueAllUnlinked('ebook');
     return { queuedCount };
   }

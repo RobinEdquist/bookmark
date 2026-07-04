@@ -56,6 +56,19 @@ import {
   MoveComicBooksDto,
   MergeComicSeriesDto,
 } from './dto/comics.dto';
+import {
+  ComicSeriesListResponseDto,
+  ComicSeriesDetailDto,
+  ComicBookDetailDto,
+  ComicNamedRefDto,
+  ComicCollectionListResponseDto,
+  ComicCollectionDetailDto,
+  ComicIdResponseDto,
+  ComicSuccessResponseDto,
+  ComicMoveResultDto,
+  ComicBatchUpdateResultDto,
+  ComicCoverUpdateResponseDto,
+} from './dto/comics-response.dto';
 
 @ApiTags('Comics')
 @ApiSecurity('better-auth.session_token')
@@ -76,12 +89,16 @@ export class ComicsController {
     description:
       'Returns a paginated list of comic series with optional filtering and sorting. Series with tags that the user has blacklisted are automatically excluded.',
   })
-  @ApiResponse({ status: 200, description: 'List of comic series' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of comic series',
+    type: ComicSeriesListResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAllSeries(
     @Query() query: ListComicSeriesQueryDto,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<ComicSeriesListResponseDto> {
     return this.comicsService.findAllSeries(query, user.id);
   }
 
@@ -92,8 +109,14 @@ export class ComicsController {
     description:
       'Creates a virtual (folder-less) comic series to move books into. Requires edit metadata permission.',
   })
-  @ApiResponse({ status: 201, description: 'Created series id' })
-  async createSeries(@Body() dto: CreateComicSeriesDto) {
+  @ApiResponse({
+    status: 201,
+    description: 'Created series id',
+    type: ComicIdResponseDto,
+  })
+  async createSeries(
+    @Body() dto: CreateComicSeriesDto,
+  ): Promise<ComicIdResponseDto> {
     return this.comicsService.createSeries(dto);
   }
 
@@ -104,8 +127,14 @@ export class ComicsController {
     description:
       'Moves all books from the source series into the target, then deletes emptied sources. Requires edit metadata permission.',
   })
-  @ApiResponse({ status: 200, description: 'Merge result' })
-  async mergeSeries(@Body() dto: MergeComicSeriesDto) {
+  @ApiResponse({
+    status: 200,
+    description: 'Merge result',
+    type: ComicMoveResultDto,
+  })
+  async mergeSeries(
+    @Body() dto: MergeComicSeriesDto,
+  ): Promise<ComicMoveResultDto> {
     return this.comicsService.mergeSeries(
       dto.sourceSeriesIds,
       dto.targetSeriesId,
@@ -116,33 +145,41 @@ export class ComicsController {
 
   @Get('collections')
   @ApiOperation({ summary: 'List comic collections' })
-  async findAllCollections(@Query() query: ListComicCollectionsQueryDto) {
+  @ApiResponse({ status: 200, type: ComicCollectionListResponseDto })
+  async findAllCollections(
+    @Query() query: ListComicCollectionsQueryDto,
+  ): Promise<ComicCollectionListResponseDto> {
     return this.collectionsService.findAll(query);
   }
 
   @Post('collections')
   @UseGuards(CanEditMetadataGuard)
   @ApiOperation({ summary: 'Create a comic collection' })
-  async createCollection(@Body() dto: CreateComicCollectionDto) {
+  @ApiResponse({ status: 201, type: ComicIdResponseDto })
+  async createCollection(
+    @Body() dto: CreateComicCollectionDto,
+  ): Promise<ComicIdResponseDto> {
     return this.collectionsService.create(dto);
   }
 
   @Get('collections/:id')
   @ApiOperation({ summary: 'Get a comic collection with its series' })
+  @ApiResponse({ status: 200, type: ComicCollectionDetailDto })
   async getCollection(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<ComicCollectionDetailDto> {
     return this.collectionsService.findOne(id, user.id);
   }
 
   @Patch('collections/:id')
   @UseGuards(CanEditMetadataGuard)
   @ApiOperation({ summary: 'Update a comic collection' })
+  @ApiResponse({ status: 200, type: ComicSuccessResponseDto })
   async updateCollection(
     @Param('id') id: string,
     @Body() dto: UpdateComicCollectionDto,
-  ) {
+  ): Promise<ComicSuccessResponseDto> {
     return this.collectionsService.update(id, dto);
   }
 
@@ -157,30 +194,33 @@ export class ComicsController {
   @Post('collections/:id/series')
   @UseGuards(CanEditMetadataGuard)
   @ApiOperation({ summary: 'Add a series to a collection' })
+  @ApiResponse({ status: 200, type: ComicSuccessResponseDto })
   async addCollectionSeries(
     @Param('id') id: string,
     @Body() dto: AddCollectionSeriesDto,
-  ) {
+  ): Promise<ComicSuccessResponseDto> {
     return this.collectionsService.addSeries(id, dto.seriesId);
   }
 
   @Delete('collections/:id/series/:seriesId')
   @UseGuards(CanEditMetadataGuard)
   @ApiOperation({ summary: 'Remove a series from a collection' })
+  @ApiResponse({ status: 200, type: ComicSuccessResponseDto })
   async removeCollectionSeries(
     @Param('id') id: string,
     @Param('seriesId') seriesId: string,
-  ) {
+  ): Promise<ComicSuccessResponseDto> {
     return this.collectionsService.removeSeries(id, seriesId);
   }
 
   @Patch('collections/:id/order')
   @UseGuards(CanEditMetadataGuard)
   @ApiOperation({ summary: 'Reorder series within a collection' })
+  @ApiResponse({ status: 200, type: ComicSuccessResponseDto })
   async reorderCollectionSeries(
     @Param('id') id: string,
     @Body() dto: ReorderCollectionSeriesDto,
-  ) {
+  ): Promise<ComicSuccessResponseDto> {
     return this.collectionsService.reorder(id, dto.seriesIds);
   }
 
@@ -194,8 +234,12 @@ export class ComicsController {
     required: false,
     description: 'Filter publishers by name',
   })
-  @ApiResponse({ status: 200, description: 'List of publisher names' })
-  async getPublishers(@Query('search') search?: string) {
+  @ApiResponse({
+    status: 200,
+    description: 'List of publisher names',
+    schema: { type: 'array', items: { type: 'string' } },
+  })
+  async getPublishers(@Query('search') search?: string): Promise<string[]> {
     return this.comicsService.listPublishers(search);
   }
 
@@ -209,8 +253,14 @@ export class ComicsController {
     required: false,
     description: 'Filter genres by name',
   })
-  @ApiResponse({ status: 200, description: 'List of genres' })
-  async getGenres(@Query('search') search?: string) {
+  @ApiResponse({
+    status: 200,
+    description: 'List of genres',
+    type: [ComicNamedRefDto],
+  })
+  async getGenres(
+    @Query('search') search?: string,
+  ): Promise<ComicNamedRefDto[]> {
     return this.comicsService.listGenres(search);
   }
 
@@ -223,7 +273,11 @@ export class ComicsController {
       'Returns complete details of a comic series including its books. Access denied if series has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Comic series UUID', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Comic series details' })
+  @ApiResponse({
+    status: 200,
+    description: 'Comic series details',
+    type: ComicSeriesDetailDto,
+  })
   @ApiResponse({
     status: 403,
     description: 'Access denied - series has blacklisted tags',
@@ -232,7 +286,7 @@ export class ComicsController {
   async getSeriesById(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<ComicSeriesDetailDto> {
     return this.comicsService.getSeriesById(id, user.id);
   }
 
@@ -244,7 +298,11 @@ export class ComicsController {
       'Update comic series metadata. Requires edit metadata permission.',
   })
   @ApiParam({ name: 'id', description: 'Comic series UUID', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Update result' })
+  @ApiResponse({
+    status: 200,
+    description: 'Update result',
+    type: ComicSuccessResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({
     status: 403,
@@ -254,7 +312,7 @@ export class ComicsController {
   async updateSeries(
     @Param('id') id: string,
     @Body() dto: UpdateComicSeriesDto,
-  ) {
+  ): Promise<ComicSuccessResponseDto> {
     return this.comicsService.updateSeries(id, dto);
   }
 
@@ -320,6 +378,7 @@ export class ComicsController {
   @ApiResponse({
     status: 200,
     description: 'Cover updated successfully',
+    type: ComicCoverUpdateResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -335,7 +394,7 @@ export class ComicsController {
     @Param('id') id: string,
     @UploadedFile() file?: Express.Multer.File,
     @Body() body?: UpdateComicCoverDto,
-  ) {
+  ): Promise<ComicCoverUpdateResponseDto> {
     this.validateCoverInput(file, body);
 
     if (file) {
@@ -450,7 +509,11 @@ export class ComicsController {
       'Returns details for a single comic book. Access denied if the parent series has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Comic book UUID', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Comic book details' })
+  @ApiResponse({
+    status: 200,
+    description: 'Comic book details',
+    type: ComicBookDetailDto,
+  })
   @ApiResponse({
     status: 403,
     description: 'Access denied - series has blacklisted tags',
@@ -459,7 +522,7 @@ export class ComicsController {
   async getBookById(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<ComicBookDetailDto> {
     return this.comicsService.getBookById(id, user.id);
   }
 
@@ -470,13 +533,19 @@ export class ComicsController {
     description:
       'Update format and/or ageRating for multiple comic books at once. Requires edit metadata permission.',
   })
-  @ApiResponse({ status: 200, description: 'Batch update result' })
+  @ApiResponse({
+    status: 200,
+    description: 'Batch update result',
+    type: ComicBatchUpdateResultDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({
     status: 403,
     description: 'Forbidden - requires edit metadata permission',
   })
-  async updateBooksBatch(@Body() dto: BatchUpdateComicBooksDto) {
+  async updateBooksBatch(
+    @Body() dto: BatchUpdateComicBooksDto,
+  ): Promise<ComicBatchUpdateResultDto> {
     return this.comicsService.updateBooksBatch(dto.ids, dto.data);
   }
 
@@ -487,8 +556,12 @@ export class ComicsController {
     description:
       'Reassigns the given books to the target series and pins the placement so re-scans do not undo it. Requires edit metadata permission.',
   })
-  @ApiResponse({ status: 200, description: 'Move result' })
-  async moveBooks(@Body() dto: MoveComicBooksDto) {
+  @ApiResponse({
+    status: 200,
+    description: 'Move result',
+    type: ComicMoveResultDto,
+  })
+  async moveBooks(@Body() dto: MoveComicBooksDto): Promise<ComicMoveResultDto> {
     return this.comicsService.moveBooksToSeries(
       dto.bookIds,
       dto.targetSeriesId,
@@ -503,14 +576,21 @@ export class ComicsController {
       'Update comic book metadata. Requires edit metadata permission.',
   })
   @ApiParam({ name: 'id', description: 'Comic book UUID', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Update result' })
+  @ApiResponse({
+    status: 200,
+    description: 'Update result',
+    type: ComicSuccessResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({
     status: 403,
     description: 'Forbidden - requires edit metadata permission',
   })
   @ApiResponse({ status: 404, description: 'Comic book not found' })
-  async updateBook(@Param('id') id: string, @Body() dto: UpdateComicBookDto) {
+  async updateBook(
+    @Param('id') id: string,
+    @Body() dto: UpdateComicBookDto,
+  ): Promise<ComicSuccessResponseDto> {
     return this.comicsService.updateBook(id, dto);
   }
 
@@ -573,6 +653,7 @@ export class ComicsController {
   @ApiResponse({
     status: 200,
     description: 'Cover updated successfully',
+    type: ComicCoverUpdateResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -588,7 +669,7 @@ export class ComicsController {
     @Param('id') id: string,
     @UploadedFile() file?: Express.Multer.File,
     @Body() body?: UpdateComicCoverDto,
-  ) {
+  ): Promise<ComicCoverUpdateResponseDto> {
     this.validateCoverInput(file, body);
 
     if (file) {

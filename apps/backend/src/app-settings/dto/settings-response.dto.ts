@@ -10,6 +10,9 @@ export class MetadataFieldPriorityDto {
   @ApiProperty({ type: [String], example: ['embedded', 'hardcover', 'manual'] })
   author!: string[];
 
+  @ApiProperty({ type: [String], example: ['embedded', 'manual'] })
+  narrator!: string[];
+
   @ApiProperty({ type: [String], example: ['embedded', 'hardcover', 'manual'] })
   description!: string[];
 
@@ -23,7 +26,13 @@ export class MetadataFieldPriorityDto {
   language!: string[];
 
   @ApiProperty({ type: [String], example: ['embedded', 'hardcover', 'manual'] })
+  genres!: string[];
+
+  @ApiProperty({ type: [String], example: ['embedded', 'hardcover', 'manual'] })
   series!: string[];
+
+  @ApiProperty({ type: [String], example: ['embedded', 'hardcover', 'manual'] })
+  seriesOrder!: string[];
 
   @ApiProperty({
     type: [String],

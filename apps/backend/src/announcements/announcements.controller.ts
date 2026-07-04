@@ -18,6 +18,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { AnnouncementsService } from './announcements.service';
+import {
+  ActiveAnnouncementDto,
+  DismissAnnouncementResponseDto,
+} from './dto/announcement-response.dto';
 
 @ApiTags('Announcements')
 @ApiSecurity('better-auth.session_token')
@@ -33,9 +37,15 @@ export class AnnouncementsController {
     description:
       'Returns all active announcements that the current user has not dismissed',
   })
-  @ApiResponse({ status: 200, description: 'List of active announcements' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of active announcements',
+    type: [ActiveAnnouncementDto],
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getActive(@CurrentUser() user: AuthenticatedUser) {
+  async getActive(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ActiveAnnouncementDto[]> {
     return this.announcementsService.getActiveForUser(user.id);
   }
 
@@ -46,13 +56,17 @@ export class AnnouncementsController {
     description: 'Mark an announcement as dismissed for the current user',
   })
   @ApiParam({ name: 'id', description: 'Announcement ID' })
-  @ApiResponse({ status: 200, description: 'Announcement dismissed' })
+  @ApiResponse({
+    status: 200,
+    description: 'Announcement dismissed',
+    type: DismissAnnouncementResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Announcement not found' })
   async dismiss(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<DismissAnnouncementResponseDto> {
     return this.announcementsService.dismiss(id, user.id);
   }
 }

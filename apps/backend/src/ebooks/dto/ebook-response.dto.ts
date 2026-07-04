@@ -33,6 +33,60 @@ export class EbookGenreDto {
   name!: string;
 }
 
+export class EbookTagDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  id!: string;
+
+  @ApiProperty({ example: 'Epic' })
+  name!: string;
+}
+
+export class EbookGoodreadsDataDto {
+  @ApiProperty({ example: '12345678', description: 'Goodreads book ID' })
+  id!: string;
+
+  @ApiProperty({
+    example: 'https://www.goodreads.com/book/show/12345678',
+    description: 'Goodreads book URL',
+  })
+  url!: string;
+
+  @ApiPropertyOptional({ type: Number, example: 4.32, nullable: true })
+  rating?: number | null;
+
+  @ApiPropertyOptional({ type: Number, example: 250000, nullable: true })
+  ratingsCount?: number | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'https://images.gr-assets.com/books/1234567890.jpg',
+    nullable: true,
+  })
+  coverUrl?: string | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    example: ['Fantasy', 'Fiction'],
+    nullable: true,
+  })
+  genres?: string[] | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'A sweeping epic fantasy novel...',
+    nullable: true,
+  })
+  description?: string | null;
+}
+
+export class EbookGeneratedAudiobookDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  id!: string;
+
+  @ApiProperty({ example: 'The Way of Kings' })
+  title!: string;
+}
+
 export class EbookHardcoverDataDto {
   // Same as HardcoverDataDto: the DB column is text and the runtime emits a
   // string. Keep the DTO honest.
@@ -139,6 +193,12 @@ export class EbookDetailDto {
   title!: string;
 
   @ApiPropertyOptional({
+    example: 'Book One of The Stormlight Archive',
+    nullable: true,
+  })
+  subtitle?: string | null;
+
+  @ApiPropertyOptional({
     example: 'A sweeping epic fantasy...',
     nullable: true,
   })
@@ -156,11 +216,26 @@ export class EbookDetailDto {
   @ApiPropertyOptional({ example: '978-0765326355', nullable: true })
   isbn?: string | null;
 
+  @ApiPropertyOptional({ example: 'B003P2WO5E', nullable: true })
+  asin?: string | null;
+
+  @ApiPropertyOptional({ type: Number, example: 384, nullable: true })
+  pageCount?: number | null;
+
+  @ApiProperty({
+    example: 'the-way-of-kings.epub',
+    description: 'File name, needed by the web reader to open the file',
+  })
+  fileName!: string;
+
   @ApiProperty({ example: 'epub' })
   format!: string;
 
   @ApiProperty({ example: 5242880, description: 'File size in bytes' })
   sizeBytes!: number;
+
+  @ApiProperty({ example: false })
+  isExplicit!: boolean;
 
   @ApiPropertyOptional({
     example: '/api/ebooks/550e8400-e29b-41d4-a716-446655440000/cover',
@@ -177,6 +252,9 @@ export class EbookDetailDto {
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
   createdAt!: Date;
 
+  @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
+  updatedAt!: Date;
+
   @ApiProperty({ type: [EbookPersonDto] })
   authors!: EbookPersonDto[];
 
@@ -186,8 +264,21 @@ export class EbookDetailDto {
   @ApiProperty({ type: [EbookGenreDto] })
   genres!: EbookGenreDto[];
 
+  @ApiProperty({ type: [EbookTagDto] })
+  tags!: EbookTagDto[];
+
   @ApiPropertyOptional({ type: EbookHardcoverDataDto, nullable: true })
   hardcover?: EbookHardcoverDataDto | null;
+
+  @ApiPropertyOptional({ type: EbookGoodreadsDataDto, nullable: true })
+  goodreads?: EbookGoodreadsDataDto | null;
+
+  @ApiPropertyOptional({
+    type: EbookGeneratedAudiobookDto,
+    nullable: true,
+    description: 'Set when a TTS-generated audiobook exists for this ebook',
+  })
+  generatedAudiobook?: EbookGeneratedAudiobookDto | null;
 }
 
 export class UpdateEbookCoverResponseDto {

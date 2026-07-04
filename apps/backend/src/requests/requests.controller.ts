@@ -170,7 +170,9 @@ export class RequestsController {
     status: 403,
     description: 'Forbidden - user cannot make requests',
   })
-  async getAutoApproveBudget(@CurrentUser() user: AuthenticatedUser) {
+  async getAutoApproveBudget(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<AutoApproveBudgetDto> {
     const { used, limit } = await this.requestsService.getUserAutoApproveUsage(
       user.id,
     );

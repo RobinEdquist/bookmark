@@ -5,6 +5,10 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
+import {
+  ActiveAnnouncementDto,
+  DismissAnnouncementResponseDto,
+} from './dto/announcement-response.dto';
 
 @Injectable()
 export class AnnouncementsService {
@@ -16,7 +20,7 @@ export class AnnouncementsService {
   /**
    * Get all active announcements that the user hasn't dismissed
    */
-  async getActiveForUser(userId: string) {
+  async getActiveForUser(userId: string): Promise<ActiveAnnouncementDto[]> {
     // Get IDs of announcements the user has dismissed
     const dismissedIds = await this.db
       .select({ announcementId: schema.announcementDismissals.announcementId })
@@ -50,7 +54,10 @@ export class AnnouncementsService {
   /**
    * Dismiss an announcement for a user
    */
-  async dismiss(announcementId: string, userId: string) {
+  async dismiss(
+    announcementId: string,
+    userId: string,
+  ): Promise<DismissAnnouncementResponseDto> {
     // Check if announcement exists
     const [announcement] = await this.db
       .select({ id: schema.announcements.id })

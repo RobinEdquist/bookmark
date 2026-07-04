@@ -96,6 +96,11 @@ export class UserListResponseDto {
   total!: number;
 }
 
+export class SuccessResponseDto {
+  @ApiProperty({ example: true })
+  success!: boolean;
+}
+
 export class LanguageResponseDto {
   @ApiProperty({ example: 'en' })
   language!: string;

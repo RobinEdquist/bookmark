@@ -537,11 +537,13 @@ export function useHardcoverUnlinkAudiobook() {
 
 export interface FailedSyncItem {
   id: string;
-  audiobookId: string;
+  audiobookId: string | null;
+  ebookId: string | null;
   errorMessage: string | null;
   createdAt: string;
-  audiobook: {
+  media: {
     id: string;
+    type: MediaType;
     title: string;
     subtitle: string | null;
     coverUrl: string | null;

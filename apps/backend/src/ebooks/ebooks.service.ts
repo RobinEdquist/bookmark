@@ -30,6 +30,7 @@ import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
 import * as usersSchema from '../users/schema';
 import { UpdateEbookDto, EbookSeriesEntryDto } from './dto/update-ebook.dto';
+import { EbookDetailDto } from './dto/ebook-response.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
 import { AppEventsService } from '../events/app-events.service';
@@ -675,7 +676,7 @@ export class EbooksService {
     return { ebooks: result, total };
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<EbookDetailDto> {
     const ebook = await this.db
       .select()
       .from(schema.ebooks)
@@ -942,14 +943,27 @@ export class EbooksService {
           ]
         : seriesData;
 
+    // Explicit field list — never spread the raw DB row into an API
+    // response (it leaks internal fields like filePath and manualFields)
     return {
-      ...eb,
+      id: eb.id,
       title: resolvedTitle,
       subtitle: resolvedSubtitle,
       description: resolvedDescription,
       publisher: resolvedPublisher,
       publishedDate: resolvedPublishedDate,
       language: resolvedLanguage,
+      isbn: eb.isbn,
+      asin: eb.asin,
+      pageCount: eb.pageCount,
+      // fileName is needed by the web reader to open the file blob
+      fileName: eb.fileName,
+      sizeBytes: eb.sizeBytes,
+      format: eb.format,
+      isExplicit: eb.isExplicit,
+      status: eb.status,
+      createdAt: eb.createdAt,
+      updatedAt: eb.updatedAt,
       coverUrl: this.getCoverUrl(eb.id, eb.coverUrl, eb.coverSource),
       authors: resolvedAuthors,
       series: resolvedSeries,

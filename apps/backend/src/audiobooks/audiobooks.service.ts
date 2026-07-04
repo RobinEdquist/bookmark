@@ -31,6 +31,7 @@ import * as goodreadsSchema from '../gr-finder/schema';
 import * as usersSchema from '../users/schema';
 import { EmbeddedMetadataProvider } from '../library-watcher/metadata/embedded-metadata.provider';
 import { UpdateAudiobookDto, SeriesEntryDto } from './dto/update-audiobook.dto';
+import { AudiobookDetailDto } from './dto/audiobook-response.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
@@ -749,7 +750,7 @@ export class AudiobooksService {
     return { audiobooks: result, total };
   }
 
-  async findById(id: string) {
+  async findById(id: string): Promise<AudiobookDetailDto> {
     const audiobook = await this.db
       .select()
       .from(schema.audiobooks)
@@ -1046,22 +1047,48 @@ export class AudiobooksService {
           ]
         : seriesData;
 
+    // Explicit field list — never spread the raw DB row into an API
+    // response (it leaks internal fields like filePath and manualFields)
     return {
-      ...ab,
+      id: ab.id,
       title: resolvedTitle,
       subtitle: resolvedSubtitle,
       description: resolvedDescription,
       publisher: resolvedPublisher,
       publishedDate: resolvedPublishedDate,
       language: resolvedLanguage,
+      isbn: ab.isbn,
+      asin: ab.asin,
+      duration: ab.duration,
+      isExplicit: ab.isExplicit,
+      status: ab.status,
+      createdAt: ab.createdAt,
+      updatedAt: ab.updatedAt,
       coverUrl: this.getCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
       coverUpdatedAt: this.getCoverUpdatedAt(
         ab.coverUrl,
         ab.coverSource,
         ab.updatedAt,
       ),
-      files,
-      chapters,
+      files: files.map((f) => ({
+        id: f.id,
+        filePath: f.filePath,
+        fileName: f.fileName,
+        format: f.format,
+        duration: f.duration,
+        bitrate: f.bitrate,
+        sampleRate: f.sampleRate,
+        sizeBytes: f.sizeBytes,
+        order: f.order,
+      })),
+      chapters: chapters.map((c) => ({
+        id: c.id,
+        title: c.title,
+        startTime: c.startTime,
+        endTime: c.endTime,
+        order: c.order,
+        source: c.source,
+      })),
       authors: resolvedAuthors,
       narrators, // Hardcover doesn't have narrators
       series: resolvedSeries,

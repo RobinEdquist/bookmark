@@ -23,6 +23,21 @@ import { ComicvineService } from './comicvine.service';
 import { SuccessResponseDto } from '../common/dto';
 import { Roles, RolesGuard } from '../auth/roles.guard';
 import type { CvVolumeRaw, CvIssueRaw } from './dto/comicvine.dto';
+import {
+  ComicvineStatusResponseDto,
+  ComicvineValidateResponseDto,
+  ComicvineAutoSyncResponseDto,
+  ComicvineVolumeSearchResponseDto,
+  ComicvineVolumeForSeriesResponseDto,
+  ComicvineVolumeIssuesResponseDto,
+  ComicvineIssuesForBookResponseDto,
+  ComicvineSeriesLinkResponseDto,
+  ComicvineLinkSeriesResponseDto,
+  ComicvineBookLinkResponseDto,
+  ComicvineLinkBookResponseDto,
+  ComicvineQueueStatusResponseDto,
+  ComicvineQueueCountResponseDto,
+} from './dto/comicvine-response.dto';
 
 interface ValidateKeyDto {
   apiKey: string;
@@ -60,9 +75,10 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Integration status',
+    type: ComicvineStatusResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getStatus() {
+  async getStatus(): Promise<ComicvineStatusResponseDto> {
     const [apiKey, autoSyncOnImport] = await Promise.all([
       this.comicvineService.getApiKey(),
       this.comicvineService.getAutoSyncOnImport(),
@@ -82,10 +98,13 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Validation result',
+    type: ComicvineValidateResponseDto,
   })
   @ApiResponse({ status: 400, description: 'API key is required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async validateKey(@Body() dto: ValidateKeyDto) {
+  async validateKey(
+    @Body() dto: ValidateKeyDto,
+  ): Promise<ComicvineValidateResponseDto> {
     if (!dto.apiKey || typeof dto.apiKey !== 'string') {
       throw new BadRequestException('API key is required');
     }
@@ -112,7 +131,7 @@ export class ComicvineController {
     type: SuccessResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async disconnect() {
+  async disconnect(): Promise<SuccessResponseDto> {
     await this.comicvineService.setApiKey(null);
     return { success: true };
   }
@@ -127,10 +146,13 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Setting updated',
+    type: ComicvineAutoSyncResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Invalid enabled value' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async setAutoSync(@Body() dto: SetAutoSyncDto) {
+  async setAutoSync(
+    @Body() dto: SetAutoSyncDto,
+  ): Promise<ComicvineAutoSyncResponseDto> {
     if (typeof dto.enabled !== 'boolean') {
       throw new BadRequestException('enabled must be a boolean');
     }
@@ -155,13 +177,17 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Search results',
+    type: ComicvineVolumeSearchResponseDto,
   })
   @ApiResponse({
     status: 400,
     description: 'Search query required or API error',
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async searchVolumes(@Query('q') query: string, @Query('page') page?: string) {
+  async searchVolumes(
+    @Query('q') query: string,
+    @Query('page') page?: string,
+  ): Promise<ComicvineVolumeSearchResponseDto> {
     if (!query || typeof query !== 'string') {
       throw new BadRequestException('Search query is required');
     }
@@ -188,12 +214,13 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Search results prefilled from series title',
+    type: ComicvineVolumeForSeriesResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async searchVolumeForSeries(
     @Param('seriesId') seriesId: string,
     @Query('page') page?: string,
-  ) {
+  ): Promise<ComicvineVolumeForSeriesResponseDto> {
     const pageNum = page ? parseInt(page, 10) : 1;
 
     // Current link (so the UI can show what's already linked) + a title-prefilled volume search.
@@ -227,12 +254,13 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Issues for the volume',
+    type: ComicvineVolumeIssuesResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getVolumeIssues(
     @Param('cvVolumeId') cvVolumeId: string,
     @Query('page') page?: string,
-  ) {
+  ): Promise<ComicvineVolumeIssuesResponseDto> {
     const volumeId = parseInt(cvVolumeId, 10);
     if (isNaN(volumeId)) {
       throw new BadRequestException('cvVolumeId must be a number');
@@ -256,9 +284,12 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'ComicVine series link data',
+    type: ComicvineSeriesLinkResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getSeriesLink(@Param('seriesId') seriesId: string) {
+  async getSeriesLink(
+    @Param('seriesId') seriesId: string,
+  ): Promise<ComicvineSeriesLinkResponseDto> {
     const link = await this.comicvineService.getSeriesLink(seriesId);
     return { link };
   }
@@ -277,13 +308,14 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Link created successfully',
+    type: ComicvineLinkSeriesResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Volume data required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async linkSeries(
     @Param('seriesId') seriesId: string,
     @Body() dto: LinkSeriesDto,
-  ) {
+  ): Promise<ComicvineLinkSeriesResponseDto> {
     if (!dto.volume || typeof dto.volume.id !== 'number') {
       throw new BadRequestException('Volume data with id is required');
     }
@@ -309,7 +341,7 @@ export class ComicvineController {
   })
   @ApiResponse({ status: 204, description: 'Unlinked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async unlinkSeries(@Param('seriesId') seriesId: string) {
+  async unlinkSeries(@Param('seriesId') seriesId: string): Promise<void> {
     await this.comicvineService.unlinkSeries(seriesId);
   }
 
@@ -324,9 +356,12 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'ComicVine book link data',
+    type: ComicvineBookLinkResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getBookLink(@Param('bookId') bookId: string) {
+  async getBookLink(
+    @Param('bookId') bookId: string,
+  ): Promise<ComicvineBookLinkResponseDto> {
     const link = await this.comicvineService.getBookLink(bookId);
     return { link };
   }
@@ -341,10 +376,14 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Link created successfully',
+    type: ComicvineLinkBookResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Issue data required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async linkBook(@Param('bookId') bookId: string, @Body() dto: LinkBookDto) {
+  async linkBook(
+    @Param('bookId') bookId: string,
+    @Body() dto: LinkBookDto,
+  ): Promise<ComicvineLinkBookResponseDto> {
     if (!dto.issue || typeof dto.issue.id !== 'number') {
       throw new BadRequestException('Issue data with id is required');
     }
@@ -363,7 +402,7 @@ export class ComicvineController {
   @ApiParam({ name: 'bookId', description: 'Comic book UUID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Unlinked successfully' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async unlinkBook(@Param('bookId') bookId: string) {
+  async unlinkBook(@Param('bookId') bookId: string): Promise<void> {
     await this.comicvineService.unlinkBook(bookId);
   }
 
@@ -384,12 +423,13 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Issues for the book (from linked volume)',
+    type: ComicvineIssuesForBookResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async searchIssueForBook(
     @Param('bookId') bookId: string,
     @Query('page') page?: string,
-  ) {
+  ): Promise<ComicvineIssuesForBookResponseDto> {
     const pageNum = page ? parseInt(page, 10) : 1;
     return this.comicvineService.searchIssuesForBook(bookId, pageNum);
   }
@@ -405,9 +445,10 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Queue status',
+    type: ComicvineQueueStatusResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async getQueueStatus() {
+  async getQueueStatus(): Promise<ComicvineQueueStatusResponseDto> {
     const [pendingCount, items] = await Promise.all([
       this.comicvineService.getPendingCount(),
       this.comicvineService.getQueueItems(),
@@ -433,7 +474,7 @@ export class ComicvineController {
   @ApiParam({ name: 'id', description: 'Queue item ID', format: 'uuid' })
   @ApiResponse({ status: 204, description: 'Item dismissed' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async dismissItem(@Param('id') id: string) {
+  async dismissItem(@Param('id') id: string): Promise<void> {
     await this.comicvineService.dismissItem(id);
   }
 
@@ -447,10 +488,11 @@ export class ComicvineController {
   @ApiResponse({
     status: 200,
     description: 'Number of items queued',
+    type: ComicvineQueueCountResponseDto,
   })
   @ApiResponse({ status: 400, description: 'ComicVine API key not configured' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async queueAllUnlinkedSeries() {
+  async queueAllUnlinkedSeries(): Promise<ComicvineQueueCountResponseDto> {
     const queuedCount = await this.comicvineService.queueAllUnlinkedSeries();
     return { queuedCount };
   }

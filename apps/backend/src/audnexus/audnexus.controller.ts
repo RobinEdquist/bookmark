@@ -17,9 +17,6 @@ import {
 import { AudnexusService } from './audnexus.service';
 import { SearchAudibleDto, GetChaptersDto } from './dto/search-audible.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
-import { AudibleSearchResult } from './types/audible-search.types';
-import { ChaptersResponse } from './types/audnexus-chapters.types';
-import { AudnexusBookDetail } from './types/audnexus-book.types';
 import {
   AudibleSearchResponseDto,
   AudnexusBookDetailDto,
@@ -63,7 +60,7 @@ export class AudnexusController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async searchAudible(
     @Query() dto: SearchAudibleDto,
-  ): Promise<{ results: AudibleSearchResult[]; total: number }> {
+  ): Promise<AudibleSearchResponseDto> {
     const results = await this.audnexusService.searchAudible(
       dto.title,
       dto.author,
@@ -103,7 +100,7 @@ export class AudnexusController {
   async getBookByAsin(
     @Param('asin') asin: string,
     @Query() dto: GetChaptersDto,
-  ): Promise<AudnexusBookDetail> {
+  ): Promise<AudnexusBookDetailDto> {
     // Validate ASIN format (10 alphanumeric characters)
     if (!/^[A-Za-z0-9]{10}$/.test(asin)) {
       throw new BadRequestException(
@@ -141,7 +138,7 @@ export class AudnexusController {
   async getChaptersByAsin(
     @Param('asin') asin: string,
     @Query() dto: GetChaptersDto,
-  ): Promise<ChaptersResponse> {
+  ): Promise<ChaptersResponseDto> {
     // Validate ASIN format (10 alphanumeric characters)
     if (!/^[A-Za-z0-9]{10}$/.test(asin)) {
       throw new BadRequestException(

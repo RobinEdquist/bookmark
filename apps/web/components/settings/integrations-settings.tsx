@@ -735,10 +735,10 @@ export function IntegrationsSettings() {
                             key={item.id}
                             className="flex items-center gap-3 rounded-lg border bg-card p-3"
                           >
-                            {item.audiobook?.coverUrl ? (
+                            {item.media?.coverUrl ? (
                               <Image
-                                src={item.audiobook.coverUrl}
-                                alt={item.audiobook.title}
+                                src={item.media.coverUrl}
+                                alt={item.media.title}
                                 width={48}
                                 height={48}
                                 className="rounded object-cover"
@@ -750,7 +750,7 @@ export function IntegrationsSettings() {
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate">
-                                {item.audiobook?.title ||
+                                {item.media?.title ||
                                   t("hardcover.syncQueue.unknownAudiobook")}
                               </p>
                               <p className="text-sm text-destructive truncate">
@@ -1147,11 +1147,11 @@ export function IntegrationsSettings() {
       </Card>
 
       {/* Manual Link Dialog */}
-      {syncDialogItem?.audiobook && (
+      {syncDialogItem?.media && (
         <HardcoverSyncDialog
-          mediaType="audiobook"
-          mediaId={syncDialogItem.audiobook.id}
-          mediaTitle={syncDialogItem.audiobook.title}
+          mediaType={syncDialogItem.media.type}
+          mediaId={syncDialogItem.media.id}
+          mediaTitle={syncDialogItem.media.title}
           open={!!syncDialogItem}
           onOpenChange={(open) => !open && handleSyncDialogClose()}
           onSuccess={handleSyncDialogSuccess}

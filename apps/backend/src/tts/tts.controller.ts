@@ -31,6 +31,14 @@ import {
   UpdateTtsConfigDto,
   ValidateTtsConnectionDto,
 } from './dto/tts.dto';
+import {
+  TtsJobDto,
+  TtsJobListItemDto,
+  TtsStatusDto,
+  TtsStatusPublicDto,
+  TtsValidateResponseDto,
+  TtsVoicesResponseDto,
+} from './dto/tts-response.dto';
 
 @ApiTags('TTS')
 @ApiSecurity('better-auth.session_token')
@@ -46,12 +54,18 @@ export class TtsController {
     description:
       'Returns whether AI audiobook generation is enabled and configured, plus the active voice settings. The API key is never returned. Non-admins receive a reduced shape without the server URL.',
   })
-  @ApiResponse({ status: 200, description: 'Integration status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Integration status',
+    type: TtsStatusDto,
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden - requires admin role or the generate permission',
   })
-  async getStatus(@CurrentUser() user: AuthenticatedUser) {
+  async getStatus(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<TtsStatusDto | TtsStatusPublicDto> {
     const status = await this.ttsService.getStatus();
     if (user.role === 'admin') {
       return status;
@@ -73,9 +87,13 @@ export class TtsController {
     description:
       'Update the TTS server URL, API key, voice, speed, model, or enabled flag.',
   })
-  @ApiResponse({ status: 200, description: 'Updated status' })
+  @ApiResponse({
+    status: 200,
+    description: 'Updated status',
+    type: TtsStatusDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async updateConfig(@Body() dto: UpdateTtsConfigDto) {
+  async updateConfig(@Body() dto: UpdateTtsConfigDto): Promise<TtsStatusDto> {
     return this.ttsService.updateConfig(dto);
   }
 
@@ -87,9 +105,15 @@ export class TtsController {
     description:
       'Checks that the given server is reachable and can synthesize speech. Does not persist anything.',
   })
-  @ApiResponse({ status: 200, description: 'Connection test result' })
+  @ApiResponse({
+    status: 200,
+    description: 'Connection test result',
+    type: TtsValidateResponseDto,
+  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  async validate(@Body() dto: ValidateTtsConnectionDto) {
+  async validate(
+    @Body() dto: ValidateTtsConnectionDto,
+  ): Promise<TtsValidateResponseDto> {
     return this.ttsService.validateConnection(dto);
   }
 
@@ -100,9 +124,13 @@ export class TtsController {
     description:
       'Returns { voices: null } when the server has no voice-listing endpoint.',
   })
-  @ApiResponse({ status: 200, description: 'Available voices' })
+  @ApiResponse({
+    status: 200,
+    description: 'Available voices',
+    type: TtsVoicesResponseDto,
+  })
   @ApiResponse({ status: 412, description: 'TTS server not configured' })
-  async getVoices() {
+  async getVoices(): Promise<TtsVoicesResponseDto> {
     const voices = await this.ttsService.getVoices();
     return { voices };
   }
@@ -130,7 +158,7 @@ export class TtsController {
     description:
       'Creates a background job that narrates the ebook into an audiobook in the library.',
   })
-  @ApiResponse({ status: 201, description: 'Job created' })
+  @ApiResponse({ status: 201, description: 'Job created', type: TtsJobDto })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
   @ApiResponse({
     status: 409,
@@ -140,7 +168,7 @@ export class TtsController {
   async createJob(
     @Body() dto: CreateTtsJobDto,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<TtsJobDto> {
     return this.ttsService.createJob(dto.ebookId, user.id, dto.voice);
   }
 
@@ -150,8 +178,12 @@ export class TtsController {
     summary: 'List recent generation jobs',
     description: 'Returns the 50 most recent TTS generation jobs.',
   })
-  @ApiResponse({ status: 200, description: 'Recent jobs' })
-  async listJobs() {
+  @ApiResponse({
+    status: 200,
+    description: 'Recent jobs',
+    type: [TtsJobListItemDto],
+  })
+  async listJobs(): Promise<TtsJobListItemDto[]> {
     return this.ttsService.listJobs();
   }
 
@@ -164,12 +196,16 @@ export class TtsController {
       'Pending jobs are cancelled immediately; running jobs stop at the next chunk boundary. Non-admins may only cancel jobs they requested.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Job cancelled or cancelling' })
+  @ApiResponse({
+    status: 200,
+    description: 'Job cancelled or cancelling',
+    type: TtsJobDto,
+  })
   @ApiResponse({ status: 404, description: 'Job not found' })
   async cancelJob(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<TtsJobDto> {
     // Non-admins may only cancel jobs they requested.
     if (user.role !== 'admin') {
       const job = await this.ttsService.getJob(id);
@@ -189,10 +225,10 @@ export class TtsController {
       'Re-queues a failed job. Already-generated chapters are reused.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
-  @ApiResponse({ status: 200, description: 'Job re-queued' })
+  @ApiResponse({ status: 200, description: 'Job re-queued', type: TtsJobDto })
   @ApiResponse({ status: 400, description: 'Job is not in a failed state' })
   @ApiResponse({ status: 404, description: 'Job not found' })
-  async retryJob(@Param('id', ParseUUIDPipe) id: string) {
+  async retryJob(@Param('id', ParseUUIDPipe) id: string): Promise<TtsJobDto> {
     return this.ttsService.retryJob(id);
   }
 

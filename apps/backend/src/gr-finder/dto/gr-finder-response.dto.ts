@@ -43,6 +43,47 @@ export class GrFinderSearchResponseDto {
   results!: GrFinderSearchResultDto[];
 }
 
+/**
+ * Full book details from `GET /gr-finder/book/:goodreadsId`. Mirrors the
+ * gr-finder service's `GrFinderBookDetails` — the sidecar's raw book payload.
+ */
+export class GrFinderBookDetailsDto {
+  @ApiProperty({ example: "The Hitchhiker's Guide to the Galaxy" })
+  title!: string;
+
+  @ApiProperty({ example: 'Douglas Adams' })
+  author!: string;
+
+  @ApiPropertyOptional({ example: '386162' })
+  goodreads_id?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://images.gr-assets.com/books/1531891848l/386162.jpg',
+    nullable: true,
+  })
+  cover_url!: string | null;
+
+  @ApiPropertyOptional({ example: 4.22, nullable: true })
+  rating?: number | null;
+
+  @ApiPropertyOptional({
+    example: 'https://www.goodreads.com/book/show/386162',
+  })
+  url?: string;
+
+  @ApiPropertyOptional({
+    example: 'A classic science fiction comedy...',
+    nullable: true,
+  })
+  description!: string | null;
+
+  @ApiProperty({ type: [String], example: ['Science Fiction', 'Comedy'] })
+  genres!: string[];
+
+  @ApiPropertyOptional({ example: 1500000, nullable: true })
+  rating_count?: number | null;
+}
+
 // Link-related DTOs
 
 export class GoodreadsBookDto {
@@ -54,6 +95,15 @@ export class GoodreadsBookDto {
 
   @ApiProperty({ example: "The Hitchhiker's Guide to the Galaxy" })
   title!: string;
+
+  @ApiPropertyOptional({
+    example: 'Book One',
+    nullable: true,
+    description:
+      'Present on the link-create response (full row); omitted from the ' +
+      'link-get projection',
+  })
+  subtitle?: string | null;
 
   @ApiProperty({ example: 'Douglas Adams' })
   author!: string;

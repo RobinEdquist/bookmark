@@ -13,6 +13,12 @@ import {
   reorderPositions,
   resolveCollectionCover,
 } from './collections.helpers';
+import {
+  ComicCollectionListResponseDto,
+  ComicCollectionDetailDto,
+  ComicIdResponseDto,
+  ComicSuccessResponseDto,
+} from './dto/comics-response.dto';
 
 type Db = NodePgDatabase<
   typeof schema &
@@ -38,7 +44,9 @@ export class ComicsCollectionsService {
     private wsEvents: WsEventsService,
   ) {}
 
-  async findAll(filters: ListCollectionsFilters = {}) {
+  async findAll(
+    filters: ListCollectionsFilters = {},
+  ): Promise<ComicCollectionListResponseDto> {
     const {
       search,
       sortBy = 'name',
@@ -140,7 +148,10 @@ export class ComicsCollectionsService {
     };
   }
 
-  async findOne(id: string, userId?: string) {
+  async findOne(
+    id: string,
+    userId?: string,
+  ): Promise<ComicCollectionDetailDto> {
     const [collection] = await this.db
       .select()
       .from(schema.comicCollections)
@@ -232,7 +243,10 @@ export class ComicsCollectionsService {
     };
   }
 
-  async create(input: { name: string; description?: string | null }) {
+  async create(input: {
+    name: string;
+    description?: string | null;
+  }): Promise<ComicIdResponseDto> {
     const [row] = await this.db
       .insert(schema.comicCollections)
       .values({ name: input.name, description: input.description ?? null })
@@ -249,7 +263,7 @@ export class ComicsCollectionsService {
       sortName?: string | null;
       description?: string | null;
     },
-  ) {
+  ): Promise<ComicSuccessResponseDto> {
     const [existing] = await this.db
       .select({ id: schema.comicCollections.id })
       .from(schema.comicCollections)
@@ -283,7 +297,10 @@ export class ComicsCollectionsService {
     this.wsEvents.comicCollectionDeleted(id);
   }
 
-  async addSeries(collectionId: string, seriesId: string) {
+  async addSeries(
+    collectionId: string,
+    seriesId: string,
+  ): Promise<ComicSuccessResponseDto> {
     const [existing] = await this.db
       .select({ id: schema.comicCollections.id })
       .from(schema.comicCollections)
@@ -307,7 +324,10 @@ export class ComicsCollectionsService {
     return { success: true };
   }
 
-  async removeSeries(collectionId: string, seriesId: string) {
+  async removeSeries(
+    collectionId: string,
+    seriesId: string,
+  ): Promise<ComicSuccessResponseDto> {
     await this.db
       .delete(schema.comicCollectionSeries)
       .where(
@@ -323,7 +343,10 @@ export class ComicsCollectionsService {
     return { success: true };
   }
 
-  async reorder(collectionId: string, seriesIds: string[]) {
+  async reorder(
+    collectionId: string,
+    seriesIds: string[],
+  ): Promise<ComicSuccessResponseDto> {
     for (const { seriesId, position } of reorderPositions(seriesIds)) {
       await this.db
         .update(schema.comicCollectionSeries)

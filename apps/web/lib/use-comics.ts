@@ -82,7 +82,6 @@ export interface ComicSeriesDetail {
   language: string | null;
   ageRating: string | null;
   status: ComicStatus;
-  folderPath: string;
   manualFields: string[];
   coverUrl: string | null;
   genres: ComicNamedRef[];
@@ -111,7 +110,6 @@ export interface ComicSeriesDetail {
 export interface ComicBookDetail extends ComicBookListItem {
   summary: string | null;
   storeDate: string | null;
-  filePath: string;
   manualFields: string[];
   web: string | null;
   ageRating: string | null;

@@ -55,7 +55,6 @@ export interface EbookDetail {
   asin: string | null;
   pageCount: number | null;
   coverUrl: string | null;
-  filePath: string;
   fileName: string;
   sizeBytes: number;
   format: string;

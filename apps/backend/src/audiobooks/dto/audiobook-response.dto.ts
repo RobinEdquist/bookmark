@@ -63,13 +63,22 @@ export class ChapterDto {
   @ApiProperty({ example: 1, description: 'Chapter order' })
   order!: number;
 
-  @ApiProperty({ enum: ['embedded', 'external'], example: 'embedded' })
-  source!: 'embedded' | 'external';
+  @ApiProperty({
+    enum: ['embedded', 'external', 'manual'],
+    example: 'embedded',
+  })
+  source!: 'embedded' | 'external' | 'manual';
 }
 
 export class AudiobookFileDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
+
+  @ApiProperty({
+    example: 'Author/Book/chapter01.mp3',
+    description: 'Path relative to the library root (shown in the files list)',
+  })
+  filePath!: string;
 
   @ApiProperty({ example: 'chapter01.mp3' })
   fileName!: string;
@@ -79,6 +88,22 @@ export class AudiobookFileDto {
 
   @ApiProperty({ example: 3600, description: 'Duration in seconds' })
   duration!: number;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 128000,
+    description: 'Bitrate in bits per second',
+    nullable: true,
+  })
+  bitrate?: number | null;
+
+  @ApiPropertyOptional({
+    type: Number,
+    example: 44100,
+    description: 'Sample rate in Hz',
+    nullable: true,
+  })
+  sampleRate?: number | null;
 
   @ApiProperty({ example: 52428800, description: 'File size in bytes' })
   sizeBytes!: number;
@@ -259,6 +284,14 @@ export class AudiobookListResponseDto {
   total!: number;
 }
 
+export class GeneratedFromEbookDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  id!: string;
+
+  @ApiProperty({ example: 'The Way of Kings' })
+  title!: string;
+}
+
 export class AudiobookDetailDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   id!: string;
@@ -334,6 +367,9 @@ export class AudiobookDetailDto {
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
   createdAt!: Date;
 
+  @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
+  updatedAt!: Date;
+
   @ApiProperty({ type: [PersonDto] })
   authors!: PersonDto[];
 
@@ -360,6 +396,13 @@ export class AudiobookDetailDto {
 
   @ApiPropertyOptional({ type: GoodreadsDataDto, nullable: true })
   goodreads?: GoodreadsDataDto | null;
+
+  @ApiPropertyOptional({
+    type: GeneratedFromEbookDto,
+    nullable: true,
+    description: 'Source ebook when this audiobook was AI-narrated from one',
+  })
+  generatedFromEbook?: GeneratedFromEbookDto | null;
 }
 
 export class UpdateCoverResponseDto {

@@ -46,6 +46,18 @@ import {
 } from './comic-grouping.utils';
 import { parseCollects, computeIssueCoverage } from './comic-issue-list';
 import { ComicsCollectionsService } from './comics-collections.service';
+import {
+  ComicSeriesListResponseDto,
+  ComicSeriesDetailDto,
+  ComicBookListItemDto,
+  ComicBookDetailDto,
+  ComicNamedRefDto,
+  ComicSuccessResponseDto,
+  ComicIdResponseDto,
+  ComicMoveResultDto,
+  ComicBatchUpdateResultDto,
+  ComicCoverUpdateResponseDto,
+} from './dto/comics-response.dto';
 
 export interface ComicSeriesFilters {
   search?: string;
@@ -183,7 +195,10 @@ export class ComicsService {
 
   // ===== SERIES QUERIES =====
 
-  async findAllSeries(filters: ComicSeriesFilters = {}, userId?: string) {
+  async findAllSeries(
+    filters: ComicSeriesFilters = {},
+    userId?: string,
+  ): Promise<ComicSeriesListResponseDto> {
     const {
       search,
       publisher,
@@ -436,7 +451,10 @@ export class ComicsService {
     return fallbackBookId ? `/api/comics/books/${fallbackBookId}/cover` : null;
   }
 
-  async getSeriesById(id: string, userId: string) {
+  async getSeriesById(
+    id: string,
+    userId: string,
+  ): Promise<ComicSeriesDetailDto> {
     await this.verifySeriesNotBlacklisted(id, userId);
 
     const [series] = await this.db
@@ -614,7 +632,6 @@ export class ComicsService {
       language: series.language,
       ageRating: series.ageRating,
       status: series.status,
-      folderPath: series.folderPath,
       manualFields: mf,
       coverUrl: this.resolveSeriesCoverUrl(series, fallbackCovers),
       genres,
@@ -645,7 +662,9 @@ export class ComicsService {
     };
   }
 
-  private toBookListItem(book: typeof schema.comicBooks.$inferSelect) {
+  private toBookListItem(
+    book: typeof schema.comicBooks.$inferSelect,
+  ): ComicBookListItemDto {
     return {
       id: book.id,
       seriesId: book.seriesId,
@@ -669,7 +688,7 @@ export class ComicsService {
     };
   }
 
-  async getBookById(id: string, userId: string) {
+  async getBookById(id: string, userId: string): Promise<ComicBookDetailDto> {
     await this.verifyBookNotBlacklisted(id, userId);
 
     const [book] = await this.db
@@ -784,7 +803,6 @@ export class ComicsService {
         mf,
       ),
       storeDate: book.storeDate,
-      filePath: book.filePath,
       manualFields: mf,
       web: book.web,
       ageRating: book.ageRating,
@@ -823,7 +841,7 @@ export class ComicsService {
       genres?: string[];
       tags?: string[];
     },
-  ) {
+  ): Promise<ComicSuccessResponseDto> {
     const [series] = await this.db
       .select()
       .from(schema.comicSeries)
@@ -921,7 +939,7 @@ export class ComicsService {
           | 'other';
       }>;
     },
-  ) {
+  ): Promise<ComicSuccessResponseDto> {
     const [book] = await this.db
       .select()
       .from(schema.comicBooks)
@@ -995,7 +1013,7 @@ export class ComicsService {
       format?: (typeof schema.comicBooks.$inferSelect)['format'];
       ageRating?: string | null;
     },
-  ): Promise<{ updated: number }> {
+  ): Promise<ComicBatchUpdateResultDto> {
     if (Object.keys(data).length === 0) {
       return { updated: 0 };
     }
@@ -1109,7 +1127,7 @@ export class ComicsService {
     title: string;
     publisher?: string | null;
     startYear?: number | null;
-  }): Promise<{ id: string }> {
+  }): Promise<ComicIdResponseDto> {
     const [series] = await this.db
       .insert(schema.comicSeries)
       .values({
@@ -1128,7 +1146,7 @@ export class ComicsService {
   async moveBooksToSeries(
     bookIds: string[],
     targetSeriesId: string,
-  ): Promise<{ moved: number; deletedSeriesIds: string[] }> {
+  ): Promise<ComicMoveResultDto> {
     if (bookIds.length === 0) return { moved: 0, deletedSeriesIds: [] };
     const [target] = await this.db
       .select({ id: schema.comicSeries.id })
@@ -1179,7 +1197,7 @@ export class ComicsService {
   async mergeSeries(
     sourceSeriesIds: string[],
     targetSeriesId: string,
-  ): Promise<{ moved: number; deletedSeriesIds: string[] }> {
+  ): Promise<ComicMoveResultDto> {
     const sources = sourceSeriesIds.filter((id) => id !== targetSeriesId);
     if (sources.length === 0) return { moved: 0, deletedSeriesIds: [] };
     const bookRows = await this.db
@@ -1220,7 +1238,7 @@ export class ComicsService {
 
   // ===== FILTER SOURCES =====
 
-  async listPublishers(search?: string) {
+  async listPublishers(search?: string): Promise<string[]> {
     const conditions: SQL[] = [isNotNull(schema.comicSeries.publisher)];
     if (search) {
       conditions.push(ilike(schema.comicSeries.publisher, `%${search}%`));
@@ -1230,10 +1248,10 @@ export class ComicsService {
       .from(schema.comicSeries)
       .where(and(...conditions))
       .orderBy(asc(schema.comicSeries.publisher));
-    return rows.map((r) => r.publisher).filter(Boolean);
+    return rows.map((r) => r.publisher).filter((p): p is string => p !== null);
   }
 
-  async listGenres(search?: string) {
+  async listGenres(search?: string): Promise<ComicNamedRefDto[]> {
     const conditions: SQL[] = [];
     if (search) {
       conditions.push(ilike(audiobooksSchema.genres.name, `%${search}%`));
@@ -1307,7 +1325,7 @@ export class ComicsService {
   async updateSeriesCoverFromFile(
     seriesId: string,
     buffer: Buffer,
-  ): Promise<{ coverUrl: string }> {
+  ): Promise<ComicCoverUpdateResponseDto> {
     return this.coverService.updateCoverFromFile(
       buffer,
       this.seriesCoverConfig(seriesId),
@@ -1317,7 +1335,7 @@ export class ComicsService {
   async updateSeriesCoverFromUrl(
     seriesId: string,
     url: string,
-  ): Promise<{ coverUrl: string }> {
+  ): Promise<ComicCoverUpdateResponseDto> {
     return this.coverService.updateCoverFromUrl(
       url,
       this.seriesCoverConfig(seriesId),
@@ -1327,7 +1345,7 @@ export class ComicsService {
   async updateBookCoverFromFile(
     bookId: string,
     buffer: Buffer,
-  ): Promise<{ coverUrl: string }> {
+  ): Promise<ComicCoverUpdateResponseDto> {
     return this.coverService.updateCoverFromFile(
       buffer,
       this.bookCoverConfig(bookId),
@@ -1337,7 +1355,7 @@ export class ComicsService {
   async updateBookCoverFromUrl(
     bookId: string,
     url: string,
-  ): Promise<{ coverUrl: string }> {
+  ): Promise<ComicCoverUpdateResponseDto> {
     return this.coverService.updateCoverFromUrl(
       url,
       this.bookCoverConfig(bookId),

@@ -489,6 +489,50 @@ export const chapters = pgTable("chapters", {
 });
 ```
 
+### API Response DTOs
+
+**Every JSON-returning endpoint MUST declare a response DTO class as its return type.** Never return anonymous/inferred object types from controllers, and NEVER spread a raw DB row into a response (`return { ...row }` leaks internal columns like `filePath` and `manualFields`).
+
+```typescript
+// ✅ Good: response DTO enforced by TypeScript AND documented in Swagger
+// dto/audiobook-response.dto.ts
+export class AudiobookDetailDto {
+  @ApiProperty({ example: '550e8400-...' })
+  id!: string;
+  // ... every field the endpoint returns, decorated with @ApiProperty /
+  //     @ApiPropertyOptional
+}
+
+// service — the DTO is the declared return type, so leaks and doc drift
+// become compile errors
+async findById(id: string): Promise<AudiobookDetailDto> {
+  // ...
+  return {
+    id: row.id,          // explicit field list, never `...row`
+    title: resolvedTitle,
+    // ...
+  };
+}
+
+// controller — same DTO wired into Swagger
+@Get(':id')
+@ApiResponse({ status: 200, type: AudiobookDetailDto })
+async findOne(@Param('id') id: string): Promise<AudiobookDetailDto> {
+  return this.audiobooksService.findById(id);
+}
+
+// ❌ Bad: anonymous return type, Swagger DTO (if any) drifts silently
+async findById(id: string) {
+  return { ...row, authors };
+}
+```
+
+Rules:
+
+- Response DTO classes live in the module's `dto/` folder with `@ApiProperty` decorators on every field, and are referenced from both the service/controller **return type** and the controller's `@ApiResponse({ type })` — one class, one source of truth.
+- Nested objects and arrays get their own DTO classes (`type: [ChildDto]`).
+- When TypeScript can't verify the shape (e.g. mapping DB rows), build the object with an explicit field list so extra columns can't slip through.
+
 ### Error Handling
 
 Use NestJS built-in exceptions with consistent error responses:

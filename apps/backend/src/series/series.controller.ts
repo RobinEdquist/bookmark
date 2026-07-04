@@ -17,7 +17,12 @@ import {
   ApiParam,
 } from '@nestjs/swagger';
 import { SeriesService } from './series.service';
-import { SeriesListResponseDto } from './dto/series-response.dto';
+import {
+  RecentlyUpdatedSeriesResponseDto,
+  SeriesDetailResponseDto,
+  SeriesListResponseDto,
+  UpdatedSeriesResponseDto,
+} from './dto/series-response.dto';
 import { UpdateSeriesDto } from './dto/update-series.dto';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 
@@ -73,7 +78,7 @@ export class SeriesController {
     @Query('search') search?: string,
     @Query('sortBy') sortBy?: 'name' | 'lastUpdated' | 'bookCount',
     @Query('sortOrder') sortOrder?: 'asc' | 'desc',
-  ) {
+  ): Promise<SeriesListResponseDto> {
     return this.seriesService.getAll(
       limit ? parseInt(limit, 10) : undefined,
       offset ? parseInt(offset, 10) : undefined,
@@ -96,10 +101,12 @@ export class SeriesController {
   @ApiResponse({
     status: 200,
     description: 'List of recently updated series',
-    type: SeriesListResponseDto,
+    type: RecentlyUpdatedSeriesResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getRecentlyUpdated(@Query('limit') limit?: string) {
+  async getRecentlyUpdated(
+    @Query('limit') limit?: string,
+  ): Promise<RecentlyUpdatedSeriesResponseDto> {
     return this.seriesService.getRecentlyUpdated(
       limit ? parseInt(limit, 10) : undefined,
     );
@@ -118,10 +125,11 @@ export class SeriesController {
   @ApiResponse({
     status: 200,
     description: 'Series detail with audiobooks and ebooks',
+    type: SeriesDetailResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Series not found' })
-  async getById(@Param('id') id: string) {
+  async getById(@Param('id') id: string): Promise<SeriesDetailResponseDto> {
     return this.seriesService.getById(id);
   }
 
@@ -138,11 +146,15 @@ export class SeriesController {
   @ApiResponse({
     status: 200,
     description: 'Series metadata updated successfully',
+    type: UpdatedSeriesResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Series not found' })
-  async update(@Param('id') id: string, @Body() body: UpdateSeriesDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() body: UpdateSeriesDto,
+  ): Promise<UpdatedSeriesResponseDto> {
     return this.seriesService.update(id, body);
   }
 }

@@ -21,7 +21,7 @@ import {
 import { AdminGuard } from '../common/guards/admin.guard';
 import { GenresAdminService } from './genres-admin.service';
 import { RenameGenreDto } from './dto/rename-genre.dto';
-import type { AdminGenresResponseDto } from './dto/admin-genre.dto';
+import { AdminGenresResponseDto } from './dto/admin-genre.dto';
 
 @ApiTags('Genres Admin')
 @ApiSecurity('better-auth.session_token')
@@ -36,7 +36,11 @@ export class GenresAdminController {
     summary: 'List all genres',
     description: 'Returns all genres with audiobook and ebook counts',
   })
-  @ApiResponse({ status: 200, description: 'List of all genres with counts' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of all genres with counts',
+    type: AdminGenresResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin access required' })
   async findAll(): Promise<AdminGenresResponseDto> {

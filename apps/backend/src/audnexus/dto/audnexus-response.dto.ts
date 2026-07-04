@@ -34,28 +34,25 @@ export class AudibleSearchResultDto {
     example: 'https://m.media-amazon.com/images/...',
     description: 'Cover image URL',
   })
-  image?: string | null;
+  coverUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 3171,
+    description: 'Duration in minutes',
+  })
+  durationMinutes?: number;
 
   @ApiPropertyOptional({ example: '2010-08-31', description: 'Release date' })
-  releaseDate?: string | null;
+  releaseDate?: string;
+
+  @ApiPropertyOptional({ example: 'english', description: 'Language' })
+  language?: string;
 
   @ApiPropertyOptional({
-    example: 190260000,
-    description: 'Duration in milliseconds',
+    example: 'Macmillan Audio',
+    description: 'Publisher name',
   })
-  lengthMs?: number | null;
-
-  @ApiPropertyOptional({
-    example: 'Stormlight Archive',
-    description: 'Series name',
-  })
-  seriesName?: string | null;
-
-  @ApiPropertyOptional({ example: '1', description: 'Position in series' })
-  seriesPosition?: string | null;
-
-  @ApiPropertyOptional({ example: 'us', description: 'Audible region' })
-  region?: string | null;
+  publisher?: string;
 }
 
 export class AudibleSearchResponseDto {
@@ -155,23 +152,20 @@ export class AudnexusBookDetailDto {
 }
 
 export class ChapterDto {
-  @ApiProperty({ example: 0, description: 'Chapter index' })
-  chapterIndex!: number;
-
   @ApiProperty({ example: 'Opening Credits', description: 'Chapter title' })
   title!: string;
 
-  @ApiProperty({ example: 0, description: 'Start time in milliseconds' })
-  startOffsetMs!: number;
+  @ApiProperty({ example: 0, description: 'Start time in seconds' })
+  startTime!: number;
 
-  @ApiProperty({ example: 30000, description: 'Start time in seconds' })
-  startOffsetSec!: number;
+  @ApiPropertyOptional({ example: 30, description: 'End time in seconds' })
+  endTime?: number;
 
   @ApiProperty({
-    example: 30000,
-    description: 'Chapter length in milliseconds',
+    example: 30,
+    description: 'Chapter length in seconds',
   })
-  lengthMs!: number;
+  lengthSeconds!: number;
 }
 
 export class ChaptersResponseDto {
@@ -181,18 +175,15 @@ export class ChaptersResponseDto {
   })
   asin!: string;
 
-  @ApiProperty({ example: 'us', description: 'Audible region' })
-  region!: string;
-
   @ApiProperty({ type: [ChapterDto], description: 'List of chapters' })
   chapters!: ChapterDto[];
 
-  @ApiProperty({
-    example: 190260000,
-    description: 'Total runtime in milliseconds',
-  })
-  runtimeLengthMs!: number;
+  @ApiProperty({ example: 58234, description: 'Total runtime in seconds' })
+  totalDuration!: number;
 
-  @ApiProperty({ example: 190260, description: 'Total runtime in seconds' })
-  runtimeLengthSec!: number;
+  @ApiProperty({
+    example: true,
+    description: 'Whether Audnexus marks the chapter timings as accurate',
+  })
+  isAccurate!: boolean;
 }
