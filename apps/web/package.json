@@ -15,13 +15,14 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@better-auth/api-key": "1.6.11",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@repo/ui": "workspace:*",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.80.6",
-    "better-auth": "^1.4.1",
+    "better-auth": "^1.6.11",
     "dompurify": "^3.4.11",
     "lucide-react": "^0.555.0",
     "motion": "^12.23.24",
