@@ -92,6 +92,11 @@ export const apikey = pgTable(
   'api_key',
   {
     id: text('id').primaryKey(),
+    // better-auth 1.6+ scopes keys to a plugin configuration; single-config
+    // setups (ours) always use 'default'. NOTE: this table is also defined in
+    // api-key.schema.ts (used by app services) — keep the two in sync. The
+    // drizzle adapter in auth.provider.ts reads THIS definition.
+    configId: text('config_id').notNull().default('default'),
     name: text('name'),
     start: text('start'),
     prefix: text('prefix'),
