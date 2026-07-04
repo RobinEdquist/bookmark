@@ -9,7 +9,6 @@ jest.mock('@thallesp/nestjs-better-auth', () => ({
   AuthService: class AuthService {},
 }));
 
-// eslint-disable-next-line import/first
 import { MobileAuthController } from '../mobile-auth.controller';
 
 // ---------------------------------------------------------------------------
@@ -159,9 +158,7 @@ describe('MobileAuthController', () => {
 
       await controller.start({ state: STATE }, res);
 
-      expect(redirectedURL(res).searchParams.get('error')).toBe(
-        'server_error',
-      );
+      expect(redirectedURL(res).searchParams.get('error')).toBe('server_error');
     });
   });
 
@@ -259,9 +256,7 @@ describe('MobileAuthController', () => {
       const url = redirectedURL(res);
       expect(url.searchParams.get('key')).toBe('bkmrk_new_key');
       expect(url.searchParams.get('state')).toBe(STATE);
-      expect(url.searchParams.get('server')).toBe(
-        'https://books.example.com',
-      );
+      expect(url.searchParams.get('server')).toBe('https://books.example.com');
       expect(url.searchParams.get('error')).toBeNull();
     });
 
