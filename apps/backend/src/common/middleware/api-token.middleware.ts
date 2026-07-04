@@ -74,13 +74,25 @@ export class ApiTokenMiddleware implements NestMiddleware {
         return next(); // Let guards handle unauthorized
       }
 
-      this.logger.debug(`[9] Looking up user: ${result.key.userId}`);
+      // better-auth 1.6 renamed the key's owner field userId -> referenceId
+      // (the schema mapping in auth.provider.ts only renames the DB column,
+      // not the model field verifyApiKey returns).
+      const ownerId: string | undefined =
+        result.key.referenceId ?? result.key.userId;
+      if (!ownerId) {
+        this.logger.error(
+          'verifyApiKey returned a key without referenceId/userId',
+        );
+        return next();
+      }
+
+      this.logger.debug(`[9] Looking up user: ${ownerId}`);
 
       // Look up user from database
       const users = await this.db
         .select()
         .from(authSchema.user)
-        .where(eq(authSchema.user.id, result.key.userId))
+        .where(eq(authSchema.user.id, ownerId))
         .limit(1);
 
       if (users.length === 0) {
