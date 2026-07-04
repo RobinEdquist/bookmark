@@ -71,6 +71,16 @@ export function createAuthInstance(
         // Match CreateApiKeyDto's 100-char cap; the plugin default of 32
         // rejects names like "Bookmark iOS – iPhone (2026-07-04)".
         maximumNameLength: 100,
+        // better-auth 1.6 renamed the owner field userId -> referenceId; map
+        // it back onto our drizzle property so the user_id column (and every
+        // query in ApiKeysService/ApiTokenMiddleware) keeps working unchanged.
+        schema: {
+          apikey: {
+            fields: {
+              referenceId: 'userId',
+            },
+          },
+        },
         // Rate limiting not needed for this application
         rateLimit: { enabled: false },
         // Support x-api-key header, Authorization: Bearer/Basic, and query param token

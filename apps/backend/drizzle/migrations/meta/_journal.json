@@ -218,6 +218,13 @@
       "when": 1783170342352,
       "tag": "0030_add_can_generate_audiobooks",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1783194317578,
+      "tag": "0031_add_api_key_config_id",
+      "breakpoints": true
     }
   ]
 }
