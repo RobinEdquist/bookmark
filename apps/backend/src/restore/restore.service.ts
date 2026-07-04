@@ -410,7 +410,7 @@ export class RestoreService {
       const savPath = this.convertPath(item.path, mapping);
 
       // Check if path exists (can be directory or single audio file)
-      let found = false;
+      let found: boolean;
       let reason: string | undefined;
       const audioExtensions = [
         '.m4b',

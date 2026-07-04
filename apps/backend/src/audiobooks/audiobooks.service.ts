@@ -1352,8 +1352,7 @@ export class AudiobooksService {
     names: string[],
     _role: 'author' | 'narrator',
     relationTable:
-      | typeof schema.audiobookAuthors
-      | typeof schema.audiobookNarrators,
+      typeof schema.audiobookAuthors | typeof schema.audiobookNarrators,
   ) {
     // Delete existing relations
     await this.db

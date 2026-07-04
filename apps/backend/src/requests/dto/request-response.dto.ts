@@ -149,11 +149,7 @@ export class TrackerSearchResultItemDto {
     nullable: true,
   })
   existingRequestStatus?:
-    | 'pending'
-    | 'approved'
-    | 'rejected'
-    | 'fulfilled'
-    | null;
+    'pending' | 'approved' | 'rejected' | 'fulfilled' | null;
 
   @ApiProperty({ example: false })
   inLibrary!: boolean;

@@ -27,9 +27,7 @@ interface WorkerResponse {
   taskId: string;
   success: boolean;
   result?:
-    | WorkerComicFileMetadata
-    | { data: number[]; mimeType: string }
-    | null;
+    WorkerComicFileMetadata | { data: number[]; mimeType: string } | null;
   error?: string;
 }
 
@@ -145,9 +143,7 @@ async function extractPage(
 async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
   try {
     let result:
-      | WorkerComicFileMetadata
-      | { data: number[]; mimeType: string }
-      | null;
+      WorkerComicFileMetadata | { data: number[]; mimeType: string } | null;
 
     switch (task.type) {
       case 'extractMetadata':

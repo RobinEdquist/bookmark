@@ -35,8 +35,7 @@ export function stripDuplicateSubtitle(
 export function splitTitleSubtitle(
   combined: string | null | undefined,
 ):
-  | { title: string; subtitle: string | null }
-  | { title: null; subtitle: null } {
+  { title: string; subtitle: string | null } | { title: null; subtitle: null } {
   if (!combined) return { title: null, subtitle: null };
 
   const idx = combined.indexOf(': ');

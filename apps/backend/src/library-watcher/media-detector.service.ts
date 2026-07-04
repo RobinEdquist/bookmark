@@ -1,6 +1,7 @@
 // apps/backend/src/library-watcher/media-detector.service.ts
 import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs/promises';
+import { Dirent } from 'fs';
 import * as path from 'path';
 import { isAudioFile } from './utils/audio-file.utils';
 
@@ -57,7 +58,7 @@ export class MediaDetectorService {
     const units: AudiobookUnit[] = [];
 
     const scan = async (currentPath: string): Promise<void> => {
-      let entries: Awaited<ReturnType<typeof fs.readdir>>;
+      let entries: Dirent[];
       try {
         entries = await fs.readdir(currentPath, { withFileTypes: true });
       } catch (error) {
@@ -185,7 +186,7 @@ export class MediaDetectorService {
     const units: EbookUnit[] = [];
 
     const scan = async (currentPath: string): Promise<void> => {
-      let entries: Awaited<ReturnType<typeof fs.readdir>>;
+      let entries: Dirent[];
       try {
         entries = await fs.readdir(currentPath, { withFileTypes: true });
       } catch (error) {
@@ -257,7 +258,7 @@ export class MediaDetectorService {
     const units: ComicSeriesUnit[] = [];
 
     const scan = async (currentPath: string): Promise<void> => {
-      let entries: Awaited<ReturnType<typeof fs.readdir>>;
+      let entries: Dirent[];
       try {
         entries = await fs.readdir(currentPath, { withFileTypes: true });
       } catch (error) {

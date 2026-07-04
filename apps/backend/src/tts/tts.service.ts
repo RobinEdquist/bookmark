@@ -406,10 +406,7 @@ export class TtsService {
             ebookId: inFlight.ebookId,
             ebookTitle: inFlight.ebookTitle ?? 'Unknown ebook',
             phase: inFlight.status as
-              | 'extracting'
-              | 'generating'
-              | 'assembling'
-              | 'importing',
+              'extracting' | 'generating' | 'assembling' | 'importing',
             totalChapters: inFlight.totalChapters,
             completedChapters: inFlight.completedChapters,
             percentage: inFlight.totalChapters

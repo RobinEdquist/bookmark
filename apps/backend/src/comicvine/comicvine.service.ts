@@ -601,7 +601,7 @@ export class ComicvineService {
     // Page all issues for this volume into cache
     let page = 1;
     let allIssues: CachedIssue[] = [];
-    let totalResults = 0;
+    let totalResults: number;
 
     do {
       const { issues, totalResults: total } = await this.getVolumeIssuesPaged(

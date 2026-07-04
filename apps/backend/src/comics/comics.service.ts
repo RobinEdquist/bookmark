@@ -255,10 +255,7 @@ export class ComicsService {
                     eq(
                       schema.comicBookMetadataTags.type,
                       tagType as
-                        | 'story_arc'
-                        | 'character'
-                        | 'team'
-                        | 'location',
+                        'story_arc' | 'character' | 'team' | 'location',
                     ),
                     eq(schema.comicBookMetadataTags.value, tagValue),
                   ),
