@@ -234,7 +234,7 @@
     "toast": {
       "started": "Audiobook generation queued",
       "startFailed": "Failed to start generation",
-      "cancelled": "Generation cancelled",
+      "cancelled": "Cancelling — stopping after the current segment",
       "cancelFailed": "Failed to cancel generation",
       "previewFailed": "Could not play the voice preview"
     }

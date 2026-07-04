@@ -384,13 +384,26 @@ export class TtsGenerationProcessor implements OnModuleInit {
   ): Promise<Buffer> {
     let lastError: unknown;
     for (let attempt = 0; attempt <= CHUNK_RETRY_DELAYS_MS.length; attempt++) {
+      // Abort the in-flight request as soon as a cancel comes in, instead of
+      // letting a minutes-long CPU synthesis finish first.
+      const abort = new AbortController();
+      const cancelPoll = setInterval(() => {
+        void this.checkCancelled(job.id).catch(() => abort.abort());
+      }, 2000);
       try {
-        return await client.createSpeech(chunk, {
-          model: job.model,
-          voice: job.voice,
-          speed: job.speed,
-        });
+        return await client.createSpeech(
+          chunk,
+          {
+            model: job.model,
+            voice: job.voice,
+            speed: job.speed,
+          },
+          abort.signal,
+        );
       } catch (error) {
+        if (abort.signal.aborted) {
+          throw new JobCancelledError();
+        }
         lastError = error;
         if (attempt < CHUNK_RETRY_DELAYS_MS.length) {
           this.logger.warn(
@@ -401,6 +414,8 @@ export class TtsGenerationProcessor implements OnModuleInit {
           );
           await this.checkCancelled(job.id);
         }
+      } finally {
+        clearInterval(cancelPoll);
       }
     }
     throw lastError instanceof Error ? lastError : new Error(String(lastError));

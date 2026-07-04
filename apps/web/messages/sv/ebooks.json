@@ -234,7 +234,7 @@
     "toast": {
       "started": "Ljudboksgenerering köad",
       "startFailed": "Kunde inte starta genereringen",
-      "cancelled": "Genereringen avbröts",
+      "cancelled": "Avbryter — stoppar efter det pågående segmentet",
       "cancelFailed": "Kunde inte avbryta genereringen",
       "previewFailed": "Kunde inte spela upp röstprovet"
     }

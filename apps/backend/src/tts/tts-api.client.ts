@@ -68,7 +68,12 @@ export class TtsApiClient {
   }
 
   /** Synthesize a chunk of text into a WAV buffer. */
-  async createSpeech(input: string, opts: SpeechOptions): Promise<Buffer> {
+  async createSpeech(
+    input: string,
+    opts: SpeechOptions,
+    signal?: AbortSignal,
+  ): Promise<Buffer> {
+    const timeout = AbortSignal.timeout(SPEECH_TIMEOUT_MS);
     const res = await this.request('/v1/audio/speech', {
       method: 'POST',
       headers: this.headers({ 'Content-Type': 'application/json' }),
@@ -79,7 +84,7 @@ export class TtsApiClient {
         speed: opts.speed,
         response_format: 'wav',
       }),
-      signal: AbortSignal.timeout(SPEECH_TIMEOUT_MS),
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
     });
 
     if (!res.ok) {
