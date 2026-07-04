@@ -736,6 +736,9 @@ export class ListsService {
         subtitle: audiobooksSchema.audiobooks.subtitle,
         duration: audiobooksSchema.audiobooks.duration,
         status: audiobooksSchema.audiobooks.status,
+        coverUrl: audiobooksSchema.audiobooks.coverUrl,
+        coverSource: audiobooksSchema.audiobooks.coverSource,
+        updatedAt: audiobooksSchema.audiobooks.updatedAt,
       })
       .from(audiobooksSchema.audiobooks)
       .where(eq(audiobooksSchema.audiobooks.id, audiobookId))
@@ -759,9 +762,17 @@ export class ListsService {
       .where(eq(audiobooksSchema.audiobookAuthors.audiobookId, audiobookId))
       .orderBy(asc(audiobooksSchema.audiobookAuthors.order));
 
+    const row = result[0];
     return {
-      ...result[0],
+      id: row.id,
+      title: row.title,
+      subtitle: row.subtitle,
+      duration: row.duration,
+      status: row.status,
       coverUrl: `/api/audiobooks/${audiobookId}/cover`,
+      // Same rule as AudiobooksService.getCoverUpdatedAt: only meaningful
+      // when a cover actually exists.
+      coverUpdatedAt: row.coverSource || row.coverUrl ? row.updatedAt : null,
       authors: authors.map((a) => a.name),
     };
   }

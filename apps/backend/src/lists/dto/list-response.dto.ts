@@ -117,6 +117,14 @@ export class ListItemAudiobookSummaryDto {
   })
   coverUrl!: string;
 
+  @ApiPropertyOptional({
+    type: String,
+    example: '2024-01-15T12:00:00.000Z',
+    nullable: true,
+    description: 'Timestamp that changes when audiobook cover metadata changes',
+  })
+  coverUpdatedAt?: Date | null;
+
   @ApiProperty({ type: [String], example: ['Frank Herbert'] })
   authors!: string[];
 }
