@@ -28,6 +28,7 @@ import { EbookProgressModule } from './ebook-progress/ebook-progress.module';
 import { ComicProgressModule } from './comic-progress/comic-progress.module';
 import { TasksModule } from './tasks/tasks.module';
 import { ApiKeysModule } from './api-keys/api-keys.module';
+import { MobileAuthModule } from './mobile-auth/mobile-auth.module';
 import { PeopleModule } from './people/people.module';
 import { RestoreModule } from './restore/restore.module';
 import { HealthModule } from './health/health.module';
@@ -148,6 +149,7 @@ import { CommonModule } from './common/common.module';
     ComicProgressModule,
     TasksModule,
     ApiKeysModule,
+    MobileAuthModule,
     PeopleModule,
     RestoreModule,
     HealthModule,

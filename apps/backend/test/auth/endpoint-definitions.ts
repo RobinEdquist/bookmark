@@ -387,6 +387,10 @@ export const publicEndpoints: EndpointDefinition[] = [
   { method: 'GET', path: '/settings/public', expectedStatus: 401 },
   { method: 'GET', path: '/settings/auth-config', expectedStatus: 401 },
   { method: 'GET', path: '/settings/setup-status', expectedStatus: 401 },
+  // Mobile OIDC handoff: browser redirect targets, never JSON 401s.
+  // Without the required `state` param these answer 400; with it they 302.
+  { method: 'GET', path: '/mobile-auth/start', expectedStatus: 401 },
+  { method: 'GET', path: '/mobile-auth/complete', expectedStatus: 401 },
 ];
 
 /**
