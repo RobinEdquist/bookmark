@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { Headphones, Sparkles, Loader2, X } from "lucide-react";
+import { Headphones, Sparkles, Loader2, Volume2, X } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
@@ -35,6 +35,7 @@ import {
   useTtsVoices,
   useGenerateAudiobook,
   useCancelTtsJob,
+  previewTtsVoice,
 } from "../../lib/use-tts";
 
 interface GenerateAudiobookButtonProps {
@@ -73,6 +74,36 @@ export function GenerateAudiobookButton({
       setVoice(status.voice);
     }
   }, [confirmOpen, voice, status?.voice]);
+
+  const [isPreviewing, setIsPreviewing] = useState(false);
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  const handlePreview = async () => {
+    setIsPreviewing(true);
+    try {
+      const blob = await previewTtsVoice(voice || undefined);
+      const url = URL.createObjectURL(blob);
+      previewAudioRef.current?.pause();
+      const audio = new Audio(url);
+      previewAudioRef.current = audio;
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("toast.previewFailed"),
+      );
+    } finally {
+      setIsPreviewing(false);
+    }
+  };
+
+  // Stop a playing preview when the dialog closes
+  useEffect(() => {
+    if (!confirmOpen) {
+      previewAudioRef.current?.pause();
+      previewAudioRef.current = null;
+    }
+  }, [confirmOpen]);
 
   // Live "active" job wins; otherwise look for a queued/in-flight job for this
   // ebook in the jobs list (a pending job isn't in the tasks `active` slot).
@@ -191,29 +222,49 @@ export function GenerateAudiobookButton({
         </AlertDialogHeader>
         <div className="space-y-2">
           <Label htmlFor="generate-voice">{t("confirm.voiceLabel")}</Label>
-          {voices ? (
-            <Select value={voice} onValueChange={setVoice}>
-              <SelectTrigger id="generate-voice">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {voices.map((v) => (
-                  <SelectItem key={v} value={v}>
-                    {v}
-                  </SelectItem>
-                ))}
-                {voice && !voices.includes(voice) && (
-                  <SelectItem value={voice}>{voice}</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              id="generate-voice"
-              value={voice}
-              onChange={(e) => setVoice(e.target.value)}
-            />
-          )}
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              {voices ? (
+                <Select value={voice} onValueChange={setVoice}>
+                  <SelectTrigger id="generate-voice">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {voices.map((v) => (
+                      <SelectItem key={v} value={v}>
+                        {v}
+                      </SelectItem>
+                    ))}
+                    {voice && !voices.includes(voice) && (
+                      <SelectItem value={voice}>{voice}</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="generate-voice"
+                  value={voice}
+                  onChange={(e) => setVoice(e.target.value)}
+                />
+              )}
+            </div>
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="shrink-0"
+              title={t("confirm.preview")}
+              disabled={isPreviewing}
+              onClick={handlePreview}
+            >
+              {isPreviewing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
+              <span className="sr-only">{t("confirm.preview")}</span>
+            </Button>
+          </div>
         </div>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isGenerating}>

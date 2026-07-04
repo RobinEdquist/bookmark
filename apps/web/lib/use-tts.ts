@@ -129,6 +129,20 @@ async function fetchTtsJobs(): Promise<TtsJob[]> {
   return response.json();
 }
 
+export async function previewTtsVoice(voice?: string): Promise<Blob> {
+  const response = await fetch("/api/tts/preview", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(voice ? { voice } : {}),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || "Failed to preview voice");
+  }
+  return response.blob();
+}
+
 async function createTtsJob(ebookId: string, voice?: string): Promise<TtsJob> {
   const response = await fetch("/api/tts/jobs", {
     method: "POST",

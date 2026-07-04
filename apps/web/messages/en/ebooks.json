@@ -228,13 +228,15 @@
       "cancel": "Cancel",
       "confirm": "Generate",
       "starting": "Starting…",
-      "voiceLabel": "Voice"
+      "voiceLabel": "Voice",
+      "preview": "Preview voice"
     },
     "toast": {
       "started": "Audiobook generation queued",
       "startFailed": "Failed to start generation",
       "cancelled": "Generation cancelled",
-      "cancelFailed": "Failed to cancel generation"
+      "cancelFailed": "Failed to cancel generation",
+      "previewFailed": "Could not play the voice preview"
     }
   }
 }

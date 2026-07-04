@@ -92,6 +92,16 @@ export class ValidateTtsConnectionDto {
   model?: string;
 }
 
+export class PreviewVoiceDto {
+  @ApiPropertyOptional({
+    description: 'Voice to preview (defaults to the configured voice)',
+    example: 'af_heart',
+  })
+  @IsOptional()
+  @IsString()
+  voice?: string;
+}
+
 export class CreateTtsJobDto {
   @ApiProperty({
     description: 'Id of the ebook to narrate into an audiobook',

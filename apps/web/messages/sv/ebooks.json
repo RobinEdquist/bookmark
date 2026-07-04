@@ -228,13 +228,15 @@
       "cancel": "Avbryt",
       "confirm": "Skapa",
       "starting": "Startar…",
-      "voiceLabel": "Röst"
+      "voiceLabel": "Röst",
+      "preview": "Förhandslyssna på rösten"
     },
     "toast": {
       "started": "Ljudboksgenerering köad",
       "startFailed": "Kunde inte starta genereringen",
       "cancelled": "Genereringen avbröts",
-      "cancelFailed": "Kunde inte avbryta genereringen"
+      "cancelFailed": "Kunde inte avbryta genereringen",
+      "previewFailed": "Kunde inte spela upp röstprovet"
     }
   }
 }

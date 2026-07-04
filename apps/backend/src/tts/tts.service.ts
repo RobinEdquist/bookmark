@@ -133,6 +133,17 @@ export class TtsService {
     return client.listVoices();
   }
 
+  /** A few spoken words so admins can audition a voice before generating. */
+  async previewVoice(voice?: string): Promise<Buffer> {
+    const config = await this.appSettings.getTtsConfig();
+    const client = await this.createClientFromConfig();
+    return client.createSpeech("Hi there! This is how I'll sound.", {
+      model: config.model,
+      voice: voice?.trim() || config.voice,
+      speed: config.speed,
+    });
+  }
+
   /** Build a client from the saved config; throws 412 when unconfigured. */
   async createClientFromConfig(): Promise<TtsApiClient> {
     const config = await this.appSettings.getTtsConfig();

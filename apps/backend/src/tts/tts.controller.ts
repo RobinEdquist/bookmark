@@ -3,11 +3,13 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -23,6 +25,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import {
   CreateTtsJobDto,
+  PreviewVoiceDto,
   UpdateTtsConfigDto,
   ValidateTtsConnectionDto,
 } from './dto/tts.dto';
@@ -85,6 +88,21 @@ export class TtsController {
   async getVoices() {
     const voices = await this.ttsService.getVoices();
     return { voices };
+  }
+
+  @Post('preview')
+  @HttpCode(HttpStatus.OK)
+  @Header('Content-Type', 'audio/wav')
+  @ApiOperation({
+    summary: 'Preview a narration voice',
+    description:
+      'Synthesizes a few words with the given voice and returns the audio.',
+  })
+  @ApiResponse({ status: 200, description: 'WAV audio sample' })
+  @ApiResponse({ status: 412, description: 'TTS server not configured' })
+  async previewVoice(@Body() dto: PreviewVoiceDto): Promise<StreamableFile> {
+    const audio = await this.ttsService.previewVoice(dto.voice);
+    return new StreamableFile(audio);
   }
 
   @Post('jobs')
