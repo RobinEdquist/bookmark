@@ -26,6 +26,7 @@
     "openapi:export": "nest build && node dist/src/scripts/export-openapi.js"
   },
   "dependencies": {
+    "@better-auth/api-key": "1.6.11",
     "@napi-rs/canvas": "^1.0.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
@@ -100,7 +101,8 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "typescript-eslint": "^8.20.0",
+    "zod": "^4.3.6"
   },
   "jest": {
     "moduleFileExtensions": [
