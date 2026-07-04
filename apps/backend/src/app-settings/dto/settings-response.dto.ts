@@ -91,7 +91,7 @@ export class AuthConfigResponseDto {
   @ApiProperty({ example: false })
   oidcEnabled!: boolean;
 
-  @ApiPropertyOptional({ example: 'Sign in with SSO', nullable: true })
+  @ApiPropertyOptional({ example: 'Sign in with SSO', nullable: true, type: String })
   oidcButtonText?: string | null;
 }
 
@@ -122,7 +122,7 @@ export class AppSettingsResponseDto {
   @ApiProperty({ type: ComicMetadataFieldPriorityDto })
   comicMetadataPriority!: ComicMetadataFieldPriorityDto;
 
-  @ApiPropertyOptional({ example: 'Sign in with SSO', nullable: true })
+  @ApiPropertyOptional({ example: 'Sign in with SSO', nullable: true, type: String })
   oidcButtonText?: string | null;
 
   @ApiProperty({ example: true })
