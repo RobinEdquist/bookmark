@@ -80,8 +80,43 @@ export class TtsGenerationProcessor implements OnModuleInit {
     private readonly libraryScanner: LibraryScannerService,
   ) {}
 
-  onModuleInit() {
+  async onModuleInit() {
     this.logger.log('TTS generation processor initialized');
+    await this.recoverOrphanedJobs();
+  }
+
+  /**
+   * Re-queue jobs a previous process left in flight (crash, redeploy,
+   * restart). There is exactly one processor with single concurrency, so any
+   * job still marked in-flight at boot is necessarily orphaned. Re-queued
+   * jobs resume from their temp artifacts: extraction is cached and finished
+   * chapter wavs are skipped, so at most the interrupted chapter is redone.
+   * A pending cancelRequested flag survives and is honored on pickup.
+   */
+  private async recoverOrphanedJobs(): Promise<void> {
+    try {
+      const requeued = await this.db
+        .update(ttsGenerationJobs)
+        .set({ status: 'pending' })
+        .where(
+          inArray(ttsGenerationJobs.status, [
+            'extracting',
+            'generating',
+            'assembling',
+            'importing',
+          ]),
+        )
+        .returning({ id: ttsGenerationJobs.id });
+      if (requeued.length > 0) {
+        this.logger.log(
+          `Re-queued ${requeued.length} TTS job(s) orphaned by a previous shutdown`,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to recover orphaned TTS jobs: ${String(error)}`,
+      );
+    }
   }
 
   @Interval(PROCESS_INTERVAL_MS)
