@@ -151,6 +151,10 @@
     "next": "Nästa ljudbok",
     "success": "Ljudboken har uppdaterats",
     "error": "Kunde inte uppdatera ljudboken",
+    "coverError": "Kunde inte uppdatera omslaget",
+    "matchMetadata": "Matcha",
+    "pendingCover": "Nytt omslag från metadatamatchning — tillämpas när du sparar",
+    "removePendingCover": "Ta bort nytt omslag",
     "fields": {
       "title": "Titel",
       "titlePlaceholder": "Ange titel",

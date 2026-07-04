@@ -224,10 +224,17 @@ export const queryKeys = {
   },
   audnexus: {
     all: ['audnexus'] as const,
-    search: (title: string, author?: string) =>
-      [...queryKeys.audnexus.all, 'search', title, author] as const,
+    search: (title: string, author?: string, region?: string) =>
+      [...queryKeys.audnexus.all, 'search', title, author, region] as const,
+    book: (asin: string, region?: string) =>
+      [...queryKeys.audnexus.all, 'book', asin, region] as const,
     chapters: (asin: string) =>
       [...queryKeys.audnexus.all, 'chapters', asin] as const,
+  },
+  itunes: {
+    all: ['itunes'] as const,
+    search: (term: string, media: string, country?: string) =>
+      [...queryKeys.itunes.all, 'search', term, media, country] as const,
   },
   lists: {
     all: ['lists'] as const,

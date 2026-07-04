@@ -52,6 +52,7 @@ export interface EbookDetail {
   language: string | null;
   publishedDate: string | null;
   isbn: string | null;
+  asin: string | null;
   pageCount: number | null;
   coverUrl: string | null;
   filePath: string;

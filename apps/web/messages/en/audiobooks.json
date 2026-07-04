@@ -151,6 +151,10 @@
     "next": "Next audiobook",
     "success": "Audiobook updated successfully",
     "error": "Failed to update audiobook",
+    "coverError": "Failed to update cover",
+    "matchMetadata": "Match",
+    "pendingCover": "New cover from metadata match — applied on save",
+    "removePendingCover": "Remove new cover",
     "fields": {
       "title": "Title",
       "titlePlaceholder": "Enter title",

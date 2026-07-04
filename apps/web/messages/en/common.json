@@ -91,6 +91,50 @@
       "linkFailed": "Failed to link"
     }
   },
+  "metadataMatch": {
+    "title": "Match Metadata",
+    "description": "Search an external provider and pull in metadata",
+    "reviewDescription": "Choose which fields to apply to the form",
+    "provider": "Provider",
+    "providers": {
+      "audible": "Audible",
+      "itunes": "iTunes"
+    },
+    "region": "Region",
+    "titleLabel": "Title",
+    "titlePlaceholder": "Search title...",
+    "authorLabel": "Author",
+    "authorPlaceholder": "Author (optional)",
+    "search": "Search",
+    "searchHint": "Enter a title and press Search",
+    "noResults": "No matching books found",
+    "error": "Search failed",
+    "narratedBy": "Narrated by {narrators}",
+    "next": "Next",
+    "back": "Back",
+    "apply": "Apply",
+    "cancel": "Cancel",
+    "loadingDetails": "Loading book details...",
+    "noChanges": "The selected result matches the current metadata",
+    "currentValue": "Current",
+    "newValue": "New",
+    "fields": {
+      "title": "Title",
+      "subtitle": "Subtitle",
+      "authors": "Authors",
+      "narrators": "Narrators",
+      "publisher": "Publisher",
+      "language": "Language",
+      "publishedYear": "Year",
+      "isbn": "ISBN",
+      "asin": "ASIN",
+      "description": "Description",
+      "genres": "Genres",
+      "tags": "Tags",
+      "series": "Series",
+      "cover": "Cover"
+    }
+  },
   "hardcoverLink": {
     "title": "Hardcover",
     "description": "Linked book metadata from Hardcover",

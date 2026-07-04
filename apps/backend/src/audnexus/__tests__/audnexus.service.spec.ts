@@ -155,6 +155,122 @@ describe('AudnexusService', () => {
     });
   });
 
+  // ===== fetchBookByAsin =====
+
+  describe('fetchBookByAsin', () => {
+    const sampleBookResponse = {
+      asin: 'B08G9PRS1K',
+      title: 'The Way of Kings',
+      subtitle: 'Book One of the Stormlight Archive',
+      authors: [{ asin: 'A1', name: 'Brandon Sanderson' }],
+      narrators: [{ name: 'Michael Kramer' }, { name: 'Kate Reading' }],
+      description: 'Short plain description.',
+      summary: '<p>Long HTML summary.</p>',
+      genres: [
+        { asin: 'G1', name: 'Science Fiction & Fantasy', type: 'genre' },
+        { asin: 'G2', name: 'Fantasy', type: 'genre' },
+        { asin: 'T1', name: 'Epic', type: 'tag' },
+      ],
+      seriesPrimary: { asin: 'S1', name: 'Stormlight Archive', position: '1' },
+      seriesSecondary: { asin: 'S2', name: 'Cosmere', position: '5' },
+      publisherName: 'Macmillan Audio',
+      releaseDate: '2010-08-31T00:00:00.000Z',
+      isbn: '9781429992800',
+      language: 'english',
+      image: 'https://img/cover.jpg',
+      runtimeLengthMin: 2734,
+    };
+
+    it('should build the URL with uppercase ASIN and region', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse(sampleBookResponse));
+
+      await service.fetchBookByAsin('b08g9prs1k', 'uk');
+
+      const calledUrl = mockFetch.mock.calls[0][0] as string;
+      expect(calledUrl).toBe(
+        'https://api.audnex.us/books/B08G9PRS1K?region=uk',
+      );
+    });
+
+    it('should map book fields correctly', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse(sampleBookResponse));
+
+      const result = await service.fetchBookByAsin('B08G9PRS1K');
+
+      expect(result).toEqual({
+        asin: 'B08G9PRS1K',
+        title: 'The Way of Kings',
+        subtitle: 'Book One of the Stormlight Archive',
+        description: '<p>Long HTML summary.</p>',
+        authors: ['Brandon Sanderson'],
+        narrators: ['Michael Kramer', 'Kate Reading'],
+        publisher: 'Macmillan Audio',
+        releaseDate: '2010-08-31T00:00:00.000Z',
+        isbn: '9781429992800',
+        language: 'english',
+        genres: ['Science Fiction & Fantasy', 'Fantasy'],
+        tags: ['Epic'],
+        series: [
+          { name: 'Stormlight Archive', position: '1' },
+          { name: 'Cosmere', position: '5' },
+        ],
+        coverUrl: 'https://img/cover.jpg',
+      });
+    });
+
+    it('should fall back to description when summary is missing', async () => {
+      const noSummary = { ...sampleBookResponse, summary: undefined };
+      mockFetch.mockResolvedValueOnce(mockResponse(noSummary));
+
+      const result = await service.fetchBookByAsin('B08G9PRS1K');
+
+      expect(result.description).toBe('Short plain description.');
+    });
+
+    it('should handle missing optional fields', async () => {
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ asin: 'B000000000', title: 'Minimal' }),
+      );
+
+      const result = await service.fetchBookByAsin('B000000000');
+
+      expect(result).toMatchObject({
+        asin: 'B000000000',
+        title: 'Minimal',
+        authors: [],
+        narrators: [],
+        genres: [],
+        tags: [],
+        series: [],
+        coverUrl: undefined,
+      });
+    });
+
+    it('should throw NotFoundException on 404', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse(null, 404));
+
+      await expect(service.fetchBookByAsin('B000000000')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('should throw on 429 rate limit', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse(null, 429));
+
+      await expect(service.fetchBookByAsin('B08G9PRS1K')).rejects.toThrow(
+        'Rate limit exceeded',
+      );
+    });
+
+    it('should throw on other HTTP errors', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse(null, 500));
+
+      await expect(service.fetchBookByAsin('B08G9PRS1K')).rejects.toThrow(
+        'Audnexus API error: 500',
+      );
+    });
+  });
+
   // ===== fetchChaptersByAsin =====
 
   describe('fetchChaptersByAsin', () => {

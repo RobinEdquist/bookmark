@@ -17,6 +17,23 @@ export interface AudibleSearchResult {
   publisher?: string;
 }
 
+export interface AudnexusBookDetail {
+  asin: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  authors: string[];
+  narrators: string[];
+  publisher?: string;
+  releaseDate?: string;
+  isbn?: string;
+  language?: string;
+  genres: string[];
+  tags: string[];
+  series: { name: string; position?: string }[];
+  coverUrl?: string;
+}
+
 export interface ChapterData {
   title: string;
   startTime: number;
@@ -51,6 +68,25 @@ async function searchAudible(
   if (!res.ok) {
     const error = await res.json().catch(() => ({}));
     throw new Error(error.message || "Failed to search Audible");
+  }
+
+  return res.json();
+}
+
+async function fetchBookByAsin(
+  asin: string,
+  region = "us"
+): Promise<AudnexusBookDetail> {
+  const res = await fetch(`/api/audnexus/book/${asin}?region=${region}`, {
+    credentials: "include",
+  });
+
+  if (!res.ok) {
+    if (res.status === 404) {
+      throw new Error("No book found for this ASIN");
+    }
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to fetch book details");
   }
 
   return res.json();
@@ -108,13 +144,31 @@ async function importChapters(
 export function useAudibleSearch(
   title: string,
   author?: string,
+  options?: { enabled?: boolean; region?: string }
+) {
+  const region = options?.region ?? "us";
+  return useQuery({
+    queryKey: queryKeys.audnexus.search(title, author, region),
+    queryFn: () => searchAudible(title, author, region),
+    enabled: options?.enabled ?? (title.length >= 2),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
+
+/**
+ * Fetch full book metadata from Audnexus by ASIN
+ */
+export function useAudnexusBook(
+  asin: string,
+  region = "us",
   options?: { enabled?: boolean }
 ) {
   return useQuery({
-    queryKey: queryKeys.audnexus.search(title, author),
-    queryFn: () => searchAudible(title, author),
-    enabled: options?.enabled ?? (title.length >= 2),
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    queryKey: queryKeys.audnexus.book(asin, region),
+    queryFn: () => fetchBookByAsin(asin, region),
+    enabled: (options?.enabled ?? true) && asin.length === 10,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    retry: false, // Don't retry on 404
   });
 }
 

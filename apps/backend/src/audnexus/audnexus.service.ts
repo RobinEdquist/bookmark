@@ -8,6 +8,10 @@ import {
   ChaptersResponse,
   ChapterData,
 } from './types/audnexus-chapters.types';
+import {
+  AudnexusBookResponse,
+  AudnexusBookDetail,
+} from './types/audnexus-book.types';
 import { SupportedRegion } from './dto/search-audible.dto';
 
 const AUDNEXUS_BASE_URL = 'https://api.audnex.us';
@@ -111,6 +115,79 @@ export class AudnexusService {
     } catch (error) {
       this.logger.error(
         `Failed to search Audible: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch full book metadata from Audnexus by ASIN
+   */
+  async fetchBookByAsin(
+    asin: string,
+    region: SupportedRegion = 'us',
+  ): Promise<AudnexusBookDetail> {
+    await this.throttle();
+
+    // ASIN must be uppercase for Audnexus
+    const normalizedAsin = asin.toUpperCase();
+    const url = `${AUDNEXUS_BASE_URL}/books/${normalizedAsin}?region=${region}`;
+
+    try {
+      this.logger.debug(`Fetching book from Audnexus: ${url}`);
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Bookmark/1.0',
+        },
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new NotFoundException(
+            `No book found for ASIN: ${normalizedAsin}`,
+          );
+        }
+        if (response.status === 429) {
+          this.logger.warn('Audnexus API rate limit reached');
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
+        throw new Error(`Audnexus API error: ${response.status}`);
+      }
+
+      const data = (await response.json()) as AudnexusBookResponse;
+
+      const genreEntries = data.genres || [];
+      const series = [data.seriesPrimary, data.seriesSecondary]
+        .filter((s): s is NonNullable<typeof s> => Boolean(s?.name))
+        .map((s) => ({ name: s.name, position: s.position }));
+
+      return {
+        asin: data.asin,
+        title: data.title,
+        subtitle: data.subtitle,
+        description: data.summary || data.description,
+        authors: data.authors?.map((a) => a.name) || [],
+        narrators: data.narrators?.map((n) => n.name) || [],
+        publisher: data.publisherName,
+        releaseDate: data.releaseDate,
+        isbn: data.isbn,
+        language: data.language,
+        genres: genreEntries
+          .filter((g) => g.type === 'genre')
+          .map((g) => g.name),
+        tags: genreEntries.filter((g) => g.type === 'tag').map((g) => g.name),
+        series,
+        coverUrl: data.image,
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      this.logger.error(
+        `Failed to fetch book from Audnexus: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
       throw error;
     }

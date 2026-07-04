@@ -19,8 +19,10 @@ import { SearchAudibleDto, GetChaptersDto } from './dto/search-audible.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { AudibleSearchResult } from './types/audible-search.types';
 import { ChaptersResponse } from './types/audnexus-chapters.types';
+import { AudnexusBookDetail } from './types/audnexus-book.types';
 import {
   AudibleSearchResponseDto,
+  AudnexusBookDetailDto,
   ChaptersResponseDto,
 } from './dto/audnexus-response.dto';
 
@@ -72,6 +74,44 @@ export class AudnexusController {
       results,
       total: results.length,
     };
+  }
+
+  @Get('book/:asin')
+  @ApiOperation({
+    summary: 'Get full book metadata by ASIN',
+    description:
+      'Fetch full book metadata (description, genres, series, publisher, etc.) for an audiobook by its Audible ASIN from Audnexus',
+  })
+  @ApiParam({
+    name: 'asin',
+    description:
+      'Audible Standard Identification Number (10 alphanumeric characters)',
+  })
+  @ApiQuery({
+    name: 'region',
+    required: false,
+    description: 'Audible region (e.g., us, uk, de)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Full book metadata',
+    type: AudnexusBookDetailDto,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid ASIN format' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Book not found for ASIN' })
+  async getBookByAsin(
+    @Param('asin') asin: string,
+    @Query() dto: GetChaptersDto,
+  ): Promise<AudnexusBookDetail> {
+    // Validate ASIN format (10 alphanumeric characters)
+    if (!/^[A-Za-z0-9]{10}$/.test(asin)) {
+      throw new BadRequestException(
+        'ASIN must be exactly 10 alphanumeric characters',
+      );
+    }
+
+    return this.audnexusService.fetchBookByAsin(asin.toUpperCase(), dto.region);
   }
 
   @Get('chapters/:asin')

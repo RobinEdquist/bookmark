@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ const LANGUAGE_OPTIONS = [
 import {
   useEbook,
   useUpdateEbook,
+  useUpdateEbookCover,
   type EbookDetail,
   type EbookListItem,
 } from "../../lib/use-ebooks";
@@ -61,6 +63,8 @@ import {
   SeriesEntryEditor,
   type SeriesEntry,
 } from "../shared/series-entry-editor";
+import { MetadataMatchDialog } from "../metadata-match/metadata-match-dialog";
+import type { MatchedMetadata } from "../metadata-match/mapping";
 
 // Helper to compare arrays by value
 function arraysEqual(a: string[], b: string[]): boolean {
@@ -87,6 +91,7 @@ interface InitialFormState {
   language: string;
   publishedYear: string;
   isbn: string;
+  asin: string;
   genres: string[];
   tags: string[];
   seriesEntries: SeriesEntry[];
@@ -111,6 +116,7 @@ export function EditEbookDialog({
 }: EditEbookDialogProps) {
   const t = useTranslations("ebooks.edit");
   const updateEbook = useUpdateEbook();
+  const updateCover = useUpdateEbookCover();
   const { data: existingAuthors = [] } = useAuthors();
   const { data: existingPublishers = [] } = usePublishers();
   const { data: existingGenres = [] } = useGenres();
@@ -133,12 +139,18 @@ export function EditEbookDialog({
   const [language, setLanguage] = useState("");
   const [publishedYear, setPublishedYear] = useState("");
   const [isbn, setIsbn] = useState("");
+  const [asin, setAsin] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
   const [seriesEntries, setSeriesEntries] = useState<SeriesEntry[]>([]);
 
   // Track initial values to detect which fields actually changed
   const [initialState, setInitialState] = useState<InitialFormState | null>(null);
+
+  // External metadata match dialog
+  const [matchOpen, setMatchOpen] = useState(false);
+  // Cover URL from a metadata match, uploaded after a successful save
+  const [pendingCoverUrl, setPendingCoverUrl] = useState<string | null>(null);
 
   // Convert existing data to combobox options (use ID as key to handle duplicates)
   const authorOptions = existingAuthors.map((a) => ({
@@ -219,6 +231,7 @@ export function EditEbookDialog({
         ? new Date(ebookData.publishedDate).getFullYear().toString()
         : "";
       const isbnVal = ebookData.isbn || "";
+      const asinVal = ebookData.asin || "";
       const genresVal = ebookData.genres.map((g) => g.name);
       const tagsVal = ebookData.tags.map((t) => t.name);
       const seriesEntriesVal: SeriesEntry[] = ebookData.series.map((s) => ({
@@ -235,6 +248,7 @@ export function EditEbookDialog({
       setLanguage(languageVal);
       setPublishedYear(publishedYearVal);
       setIsbn(isbnVal);
+      setAsin(asinVal);
       setGenres(genresVal);
       setTags(tagsVal);
       setSeriesEntries(seriesEntriesVal);
@@ -249,15 +263,41 @@ export function EditEbookDialog({
         language: languageVal,
         publishedYear: publishedYearVal,
         isbn: isbnVal,
+        asin: asinVal,
         genres: genresVal,
         tags: tagsVal,
         seriesEntries: seriesEntriesVal,
       });
+
+      // Discard any unapplied matched cover when the ebook (re)loads
+      setPendingCoverUrl(null);
     }
   }, [ebookData]);
 
+  // Apply checked fields from the metadata match dialog to the form state
+  const handleMatchApply = (fields: MatchedMetadata) => {
+    if (fields.title !== undefined) setTitle(fields.title);
+    if (fields.subtitle !== undefined) setSubtitle(fields.subtitle);
+    if (fields.description !== undefined) setDescription(fields.description);
+    if (fields.authors !== undefined) setAuthors(fields.authors);
+    if (fields.publisher !== undefined) setPublisher(fields.publisher);
+    if (fields.language !== undefined) setLanguage(fields.language);
+    if (fields.publishedYear !== undefined)
+      setPublishedYear(fields.publishedYear);
+    if (fields.isbn !== undefined) setIsbn(fields.isbn);
+    if (fields.asin !== undefined) setAsin(fields.asin);
+    if (fields.genres !== undefined) setGenres(fields.genres);
+    if (fields.tags !== undefined) setTags(fields.tags);
+    if (fields.series !== undefined) setSeriesEntries(fields.series);
+    if (fields.coverUrl !== undefined) setPendingCoverUrl(fields.coverUrl);
+  };
+
   const handleSave = async (closeAfterSave: boolean) => {
     if (!ebookData || !initialState) return;
+
+    // Capture before any await — the PUT response updates the detail cache,
+    // which re-runs the form-reset effect and clears pendingCoverUrl
+    const coverUrl = pendingCoverUrl;
 
     // Build update data with only fields that actually changed
     const data: Record<string, unknown> = {};
@@ -299,6 +339,11 @@ export function EditEbookDialog({
       data.isbn = trimmedIsbn || null;
     }
 
+    const trimmedAsin = asin.trim();
+    if (trimmedAsin !== initialState.asin) {
+      data.asin = trimmedAsin || null;
+    }
+
     // Compare array fields
     const filteredAuthors = authors.filter(Boolean);
     if (!arraysEqual(filteredAuthors, initialState.authors)) {
@@ -324,7 +369,7 @@ export function EditEbookDialog({
     }
 
     // If nothing changed, just close without making a request
-    if (Object.keys(data).length === 0) {
+    if (Object.keys(data).length === 0 && !coverUrl) {
       if (closeAfterSave) {
         onOpenChange(false);
       }
@@ -332,10 +377,25 @@ export function EditEbookDialog({
     }
 
     try {
-      await updateEbook.mutateAsync({
-        id: ebookData.id,
-        data,
-      });
+      if (Object.keys(data).length > 0) {
+        await updateEbook.mutateAsync({
+          id: ebookData.id,
+          data,
+        });
+      }
+
+      if (coverUrl) {
+        try {
+          await updateCover.mutateAsync({
+            ebookId: ebookData.id,
+            url: coverUrl,
+          });
+          setPendingCoverUrl(null);
+        } catch {
+          toast.error(t("coverError"));
+          return;
+        }
+      }
 
       toast.success(t("success"));
       if (closeAfterSave) {
@@ -351,7 +411,10 @@ export function EditEbookDialog({
     await handleSave(true);
   };
 
-  const isLoading = updateEbook.isPending || Boolean(isListItem && !fullEbook);
+  const isLoading =
+    updateEbook.isPending ||
+    updateCover.isPending ||
+    Boolean(isListItem && !fullEbook);
 
   const showNavigation = ebookIds && ebookIds.length > 1 && onNavigate;
 
@@ -368,6 +431,19 @@ export function EditEbookDialog({
                 </span>
               )}
             </DialogTitle>
+
+            {/* External metadata match */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setMatchOpen(true)}
+              disabled={isLoading}
+            >
+              <Sparkles className="h-4 w-4 mr-1" />
+              {t("matchMetadata")}
+            </Button>
 
             {/* Navigation buttons after title */}
             {showNavigation && (
@@ -567,6 +643,48 @@ export function EditEbookDialog({
               />
             </div>
           </div>
+
+          {/* ASIN */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="asin">{t("fields.asin")}</Label>
+              <Input
+                id="asin"
+                value={asin}
+                onChange={(e) => setAsin(e.target.value)}
+                placeholder={t("fields.asinPlaceholder")}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Cover pulled in from a metadata match, uploaded on save */}
+          {pendingCoverUrl && (
+            <div className="flex items-center gap-3 rounded-lg border p-3">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
+                <Image
+                  src={pendingCoverUrl}
+                  alt={t("pendingCover")}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+              <p className="flex-1 text-sm text-muted-foreground">
+                {t("pendingCover")}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => setPendingCoverUrl(null)}
+                title={t("removePendingCover")}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           </div>
 
           <DialogFooter className="shrink-0 border-t px-6 py-4">
@@ -592,6 +710,27 @@ export function EditEbookDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <MetadataMatchDialog
+        mediaType="ebook"
+        open={matchOpen}
+        onOpenChange={setMatchOpen}
+        current={{
+          title,
+          subtitle,
+          description,
+          authors,
+          publisher,
+          language,
+          publishedYear,
+          isbn,
+          asin,
+          genres,
+          tags,
+          series: seriesEntries,
+        }}
+        onApply={handleMatchApply}
+      />
     </Dialog>
   );
 }

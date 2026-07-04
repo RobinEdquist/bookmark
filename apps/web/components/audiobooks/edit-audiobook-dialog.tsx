@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ const LANGUAGE_OPTIONS = [
 import {
   useAudiobook,
   useUpdateAudiobook,
+  useUpdateCover,
   useAuthors,
   useNarrators,
   usePublishers,
@@ -59,6 +61,8 @@ import {
   SeriesEntryEditor,
   type SeriesEntry,
 } from "../shared/series-entry-editor";
+import { MetadataMatchDialog } from "../metadata-match/metadata-match-dialog";
+import type { MatchedMetadata } from "../metadata-match/mapping";
 
 // Helper to compare arrays by value
 function arraysEqual(a: string[], b: string[]): boolean {
@@ -111,6 +115,7 @@ export function EditAudiobookDialog({
 }: EditAudiobookDialogProps) {
   const t = useTranslations("audiobooks.edit");
   const updateAudiobook = useUpdateAudiobook();
+  const updateCover = useUpdateCover();
   const { data: existingAuthors = [] } = useAuthors();
   const { data: existingNarrators = [] } = useNarrators();
   const { data: existingPublishers = [] } = usePublishers();
@@ -142,6 +147,11 @@ export function EditAudiobookDialog({
 
   // Track initial values to detect which fields actually changed
   const [initialState, setInitialState] = useState<InitialFormState | null>(null);
+
+  // External metadata match dialog
+  const [matchOpen, setMatchOpen] = useState(false);
+  // Cover URL from a metadata match, uploaded after a successful save
+  const [pendingCoverUrl, setPendingCoverUrl] = useState<string | null>(null);
 
   // Convert existing data to combobox options (use ID as key to handle duplicates)
   const authorOptions = existingAuthors.map((a) => ({
@@ -268,11 +278,37 @@ export function EditAudiobookDialog({
         tags: tagsVal,
         seriesEntries: seriesEntriesVal,
       });
+
+      // Discard any unapplied matched cover when the audiobook (re)loads
+      setPendingCoverUrl(null);
     }
   }, [audiobookData]);
 
+  // Apply checked fields from the metadata match dialog to the form state
+  const handleMatchApply = (fields: MatchedMetadata) => {
+    if (fields.title !== undefined) setTitle(fields.title);
+    if (fields.subtitle !== undefined) setSubtitle(fields.subtitle);
+    if (fields.description !== undefined) setDescription(fields.description);
+    if (fields.authors !== undefined) setAuthors(fields.authors);
+    if (fields.narrators !== undefined) setNarrators(fields.narrators);
+    if (fields.publisher !== undefined) setPublisher(fields.publisher);
+    if (fields.language !== undefined) setLanguage(fields.language);
+    if (fields.publishedYear !== undefined)
+      setPublishedYear(fields.publishedYear);
+    if (fields.isbn !== undefined) setIsbn(fields.isbn);
+    if (fields.asin !== undefined) setAsin(fields.asin);
+    if (fields.genres !== undefined) setGenres(fields.genres);
+    if (fields.tags !== undefined) setTags(fields.tags);
+    if (fields.series !== undefined) setSeriesEntries(fields.series);
+    if (fields.coverUrl !== undefined) setPendingCoverUrl(fields.coverUrl);
+  };
+
   const handleSave = async (closeAfterSave: boolean) => {
     if (!audiobookData || !initialState) return;
+
+    // Capture before any await — the PUT response updates the detail cache,
+    // which re-runs the form-reset effect and clears pendingCoverUrl
+    const coverUrl = pendingCoverUrl;
 
     // Build update data with only fields that actually changed
     const data: Record<string, unknown> = {};
@@ -349,7 +385,7 @@ export function EditAudiobookDialog({
     }
 
     // If nothing changed, just close without making a request
-    if (Object.keys(data).length === 0) {
+    if (Object.keys(data).length === 0 && !coverUrl) {
       if (closeAfterSave) {
         onOpenChange(false);
       }
@@ -357,10 +393,25 @@ export function EditAudiobookDialog({
     }
 
     try {
-      await updateAudiobook.mutateAsync({
-        id: audiobookData.id,
-        data,
-      });
+      if (Object.keys(data).length > 0) {
+        await updateAudiobook.mutateAsync({
+          id: audiobookData.id,
+          data,
+        });
+      }
+
+      if (coverUrl) {
+        try {
+          await updateCover.mutateAsync({
+            audiobookId: audiobookData.id,
+            url: coverUrl,
+          });
+          setPendingCoverUrl(null);
+        } catch {
+          toast.error(t("coverError"));
+          return;
+        }
+      }
 
       toast.success(t("success"));
       if (closeAfterSave) {
@@ -376,7 +427,10 @@ export function EditAudiobookDialog({
     await handleSave(true);
   };
 
-  const isLoading = updateAudiobook.isPending || Boolean(isListItem && !fullAudiobook);
+  const isLoading =
+    updateAudiobook.isPending ||
+    updateCover.isPending ||
+    Boolean(isListItem && !fullAudiobook);
 
   const showNavigation = audiobookIds && audiobookIds.length > 1 && onNavigate;
 
@@ -393,6 +447,19 @@ export function EditAudiobookDialog({
                 </span>
               )}
             </DialogTitle>
+
+            {/* External metadata match */}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => setMatchOpen(true)}
+              disabled={isLoading}
+            >
+              <Sparkles className="h-4 w-4 mr-1" />
+              {t("matchMetadata")}
+            </Button>
 
             {/* Navigation buttons after title */}
             {showNavigation && (
@@ -620,6 +687,34 @@ export function EditAudiobookDialog({
               />
             </div>
           </div>
+
+          {/* Cover pulled in from a metadata match, uploaded on save */}
+          {pendingCoverUrl && (
+            <div className="flex items-center gap-3 rounded-lg border p-3">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
+                <Image
+                  src={pendingCoverUrl}
+                  alt={t("pendingCover")}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+              <p className="flex-1 text-sm text-muted-foreground">
+                {t("pendingCover")}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => setPendingCoverUrl(null)}
+                title={t("removePendingCover")}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           </div>
 
           <DialogFooter className="shrink-0 border-t px-6 py-4">
@@ -645,6 +740,28 @@ export function EditAudiobookDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <MetadataMatchDialog
+        mediaType="audiobook"
+        open={matchOpen}
+        onOpenChange={setMatchOpen}
+        current={{
+          title,
+          subtitle,
+          description,
+          authors,
+          narrators,
+          publisher,
+          language,
+          publishedYear,
+          isbn,
+          asin,
+          genres,
+          tags,
+          series: seriesEntries,
+        }}
+        onApply={handleMatchApply}
+      />
     </Dialog>
   );
 }

@@ -20,6 +20,7 @@ import { HardcoverModule } from './hardcover/hardcover.module';
 import { ComicvineModule } from './comicvine/comicvine.module';
 import { TtsModule } from './tts/tts.module';
 import { AudnexusModule } from './audnexus/audnexus.module';
+import { ItunesModule } from './itunes/itunes.module';
 import { LibraryModule } from './library/library.module';
 import { SeriesModule } from './series/series.module';
 import { EventsModule } from './events/events.module';
@@ -141,6 +142,7 @@ import { CommonModule } from './common/common.module';
     ComicvineModule,
     TtsModule,
     AudnexusModule,
+    ItunesModule,
     LibraryModule,
     SeriesModule,
     EventsModule,

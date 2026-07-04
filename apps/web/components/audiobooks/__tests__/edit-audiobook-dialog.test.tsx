@@ -3,8 +3,12 @@ import { render, screen, userEvent, waitFor } from "../../../__test-utils__/rend
 import { EditAudiobookDialog } from "../edit-audiobook-dialog";
 import type { AudiobookDetail } from "../../../lib/use-audiobooks";
 
-const { mockUpdateAudiobook, mockToast } = vi.hoisted(() => ({
+const { mockUpdateAudiobook, mockUpdateCover, mockToast } = vi.hoisted(() => ({
   mockUpdateAudiobook: {
+    mutateAsync: vi.fn(),
+    isPending: false,
+  },
+  mockUpdateCover: {
     mutateAsync: vi.fn(),
     isPending: false,
   },
@@ -14,10 +18,15 @@ const { mockUpdateAudiobook, mockToast } = vi.hoisted(() => ({
 vi.mock("../../../lib/use-audiobooks", () => ({
   useAudiobook: () => ({ data: null }),
   useUpdateAudiobook: () => mockUpdateAudiobook,
+  useUpdateCover: () => mockUpdateCover,
   useAuthors: () => ({ data: [] }),
   useNarrators: () => ({ data: [] }),
   usePublishers: () => ({ data: [] }),
   useGenres: () => ({ data: [] }),
+}));
+
+vi.mock("../../metadata-match/metadata-match-dialog", () => ({
+  MetadataMatchDialog: () => null,
 }));
 
 vi.mock("../../../lib/use-tags", () => ({

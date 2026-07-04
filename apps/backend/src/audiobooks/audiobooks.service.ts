@@ -1118,9 +1118,7 @@ export class AudiobooksService {
     return coverSource || coverUrl ? updatedAt : null;
   }
 
-  async getCover(
-    id: string,
-  ): Promise<{
+  async getCover(id: string): Promise<{
     data: Buffer;
     mimeType: string;
     lastModified: Date | null;

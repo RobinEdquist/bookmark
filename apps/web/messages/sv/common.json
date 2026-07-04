@@ -91,6 +91,50 @@
       "linkFailed": "Kunde inte länka"
     }
   },
+  "metadataMatch": {
+    "title": "Matcha metadata",
+    "description": "Sök i en extern källa och hämta metadata",
+    "reviewDescription": "Välj vilka fält som ska tillämpas på formuläret",
+    "provider": "Källa",
+    "providers": {
+      "audible": "Audible",
+      "itunes": "iTunes"
+    },
+    "region": "Region",
+    "titleLabel": "Titel",
+    "titlePlaceholder": "Sök titel...",
+    "authorLabel": "Författare",
+    "authorPlaceholder": "Författare (valfritt)",
+    "search": "Sök",
+    "searchHint": "Ange en titel och tryck på Sök",
+    "noResults": "Inga matchande böcker hittades",
+    "error": "Sökningen misslyckades",
+    "narratedBy": "Uppläst av {narrators}",
+    "next": "Nästa",
+    "back": "Tillbaka",
+    "apply": "Tillämpa",
+    "cancel": "Avbryt",
+    "loadingDetails": "Laddar bokdetaljer...",
+    "noChanges": "Det valda resultatet matchar nuvarande metadata",
+    "currentValue": "Nuvarande",
+    "newValue": "Ny",
+    "fields": {
+      "title": "Titel",
+      "subtitle": "Undertitel",
+      "authors": "Författare",
+      "narrators": "Uppläsare",
+      "publisher": "Förlag",
+      "language": "Språk",
+      "publishedYear": "År",
+      "isbn": "ISBN",
+      "asin": "ASIN",
+      "description": "Beskrivning",
+      "genres": "Genrer",
+      "tags": "Taggar",
+      "series": "Serier",
+      "cover": "Omslag"
+    }
+  },
   "hardcoverLink": {
     "title": "Hardcover",
     "description": "Länkad bokmetadata från Hardcover",
