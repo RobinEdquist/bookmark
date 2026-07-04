@@ -44,7 +44,7 @@
     "chokidar": "^5.0.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
-    "cookie": "^1.1.1",
+    "cookie": "^2.0.1",
     "drizzle-kit": "^0.31.7",
     "drizzle-orm": "^0.44.7",
     "epub2": "^3.0.2",
