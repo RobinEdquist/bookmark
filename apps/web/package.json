@@ -21,7 +21,7 @@
     "@repo/ui": "workspace:*",
     "@tailwindcss/typography": "^0.5.19",
     "@tanstack/react-query": "^5.80.6",
-    "better-auth": "^1.4.1",
+    "better-auth": "^1.6.11",
     "dompurify": "^3.3.1",
     "lucide-react": "^0.555.0",
     "motion": "^12.23.24",
