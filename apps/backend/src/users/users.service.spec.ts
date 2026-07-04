@@ -134,6 +134,7 @@ function setupToUserResponse(
         canDelete: perms.canDelete ?? false,
         canGenerateApiKeys: perms.canGenerateApiKeys ?? false,
         canRequestContent: perms.canRequestContent ?? false,
+        canGenerateAudiobooks: perms.canGenerateAudiobooks ?? false,
       }
     : undefined;
 
@@ -482,6 +483,7 @@ describe('UsersService', () => {
       expect(result.canDelete).toBe(true);
       expect(result.canGenerateApiKeys).toBe(true);
       expect(result.canRequestContent).toBe(true);
+      expect(result.canGenerateAudiobooks).toBe(true);
     });
 
     it('should return permissions from DB for regular user', async () => {
@@ -519,6 +521,7 @@ describe('UsersService', () => {
       expect(result.canDelete).toBe(false);
       expect(result.canGenerateApiKeys).toBe(false);
       expect(result.canRequestContent).toBe(false);
+      expect(result.canGenerateAudiobooks).toBe(false);
     });
   });
 

@@ -206,5 +206,37 @@
       "createSeries": "Add",
       "removeSeries": "Remove series"
     }
+  },
+  "tts": {
+    "generate": "Generate audiobook",
+    "listen": "Listen",
+    "cancel": "Cancel generation",
+    "progress": {
+      "queued": "Generation queued",
+      "generating": "Generating audiobook…",
+      "chapter": "Chapter {completed} of {total}",
+      "phase": {
+        "extracting": "Extracting text…",
+        "generating": "Generating speech…",
+        "assembling": "Assembling audio file…",
+        "importing": "Importing into library…"
+      }
+    },
+    "confirm": {
+      "title": "Generate audiobook?",
+      "description": "The ebook will be narrated with an AI voice and added as an audiobook in your library. Generation runs in the background and can take a while — roughly as long as the finished audiobook when running on CPU.",
+      "cancel": "Cancel",
+      "confirm": "Generate",
+      "starting": "Starting…",
+      "voiceLabel": "Voice",
+      "preview": "Preview voice"
+    },
+    "toast": {
+      "started": "Audiobook generation queued",
+      "startFailed": "Failed to start generation",
+      "cancelled": "Cancelling — stopping after the current segment",
+      "cancelFailed": "Failed to cancel generation",
+      "previewFailed": "Could not play the voice preview"
+    }
   }
 }

@@ -115,6 +115,9 @@ export class UsersService {
       canDelete: isAdmin ? true : (dto.canDelete ?? false),
       canGenerateApiKeys: isAdmin ? true : (dto.canGenerateApiKeys ?? false),
       canRequestContent: isAdmin ? true : (dto.canRequestContent ?? false),
+      canGenerateAudiobooks: isAdmin
+        ? true
+        : (dto.canGenerateAudiobooks ?? false),
     });
 
     // Create blacklisted tags (admins have no blacklisted tags)
@@ -174,6 +177,7 @@ export class UsersService {
           canDelete: true,
           canGenerateApiKeys: true,
           canRequestContent: true,
+          canGenerateAudiobooks: true,
         })
         .onConflictDoUpdate({
           target: userSchema.userPermissions.userId,
@@ -183,6 +187,7 @@ export class UsersService {
             canDelete: true,
             canGenerateApiKeys: true,
             canRequestContent: true,
+            canGenerateAudiobooks: true,
           },
         });
 
@@ -203,6 +208,8 @@ export class UsersService {
         permUpdates.canGenerateApiKeys = dto.canGenerateApiKeys;
       if (dto.canRequestContent !== undefined)
         permUpdates.canRequestContent = dto.canRequestContent;
+      if (dto.canGenerateAudiobooks !== undefined)
+        permUpdates.canGenerateAudiobooks = dto.canGenerateAudiobooks;
 
       if (Object.keys(permUpdates).length > 0) {
         await this.db
@@ -312,6 +319,7 @@ export class UsersService {
         canDelete: true,
         canGenerateApiKeys: true,
         canRequestContent: true,
+        canGenerateAudiobooks: true,
       };
     }
 
@@ -329,6 +337,7 @@ export class UsersService {
         canDelete: false,
         canGenerateApiKeys: false,
         canRequestContent: false,
+        canGenerateAudiobooks: false,
       };
     }
 
@@ -339,6 +348,7 @@ export class UsersService {
       canDelete: perms[0].canDelete,
       canGenerateApiKeys: perms[0].canGenerateApiKeys,
       canRequestContent: perms[0].canRequestContent,
+      canGenerateAudiobooks: perms[0].canGenerateAudiobooks,
     };
   }
 

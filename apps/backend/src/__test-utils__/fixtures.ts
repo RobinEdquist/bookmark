@@ -63,6 +63,7 @@ export function buildAudiobook(overrides?: Partial<Audiobook>): Audiobook {
     status: 'available',
     missingAt: null,
     manualFields: [],
+    generatedFromEbookId: null,
     createdAt: now(),
     updatedAt: now(),
     ...overrides,

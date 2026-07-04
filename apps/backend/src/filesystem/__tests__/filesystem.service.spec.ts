@@ -152,12 +152,12 @@ describe('FilesystemService', () => {
       expect(mockedFs.access).toHaveBeenCalledWith('/data', fs.constants.R_OK);
     });
 
-    it('returns / when /data is not accessible', async () => {
+    it('returns the working directory when /data is not accessible', async () => {
       mockedFs.access.mockRejectedValue(new Error('ENOENT'));
 
       const result = await service.getInitialPath();
 
-      expect(result).toBe('/');
+      expect(result).toBe(process.cwd());
     });
   });
 });

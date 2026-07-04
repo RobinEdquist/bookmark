@@ -47,6 +47,12 @@ export class AppSettingsService {
     watcherEnabled?: boolean;
     metadataPriority?: MetadataFieldPriority;
     comicMetadataPriority?: ComicMetadataFieldPriority;
+    ttsEnabled?: boolean;
+    ttsBaseUrl?: string | null;
+    ttsApiKey?: string | null;
+    ttsVoice?: string;
+    ttsSpeed?: number;
+    ttsModel?: string;
     opdsEnabled?: boolean;
     oidcButtonText?: string;
     emailPasswordEnabled?: boolean;
@@ -62,6 +68,7 @@ export class AppSettingsService {
     defaultCanDelete?: boolean;
     defaultCanGenerateApiKeys?: boolean;
     defaultCanRequestContent?: boolean;
+    defaultCanGenerateAudiobooks?: boolean;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)
@@ -156,6 +163,7 @@ export class AppSettingsService {
     canDelete: boolean;
     canGenerateApiKeys: boolean;
     canRequestContent: boolean;
+    canGenerateAudiobooks: boolean;
   }> {
     const settings = await this.getSettings();
     return {
@@ -164,6 +172,7 @@ export class AppSettingsService {
       canDelete: settings.defaultCanDelete,
       canGenerateApiKeys: settings.defaultCanGenerateApiKeys,
       canRequestContent: settings.defaultCanRequestContent,
+      canGenerateAudiobooks: settings.defaultCanGenerateAudiobooks,
     };
   }
 
@@ -178,5 +187,24 @@ export class AppSettingsService {
   async getComicMetadataPriority(): Promise<ComicMetadataFieldPriority> {
     const settings = await this.getSettings();
     return settings.comicMetadataPriority || DEFAULT_COMIC_METADATA_PRIORITY;
+  }
+
+  async getTtsConfig(): Promise<{
+    enabled: boolean;
+    baseUrl: string | null;
+    apiKey: string | null;
+    voice: string;
+    speed: number;
+    model: string;
+  }> {
+    const settings = await this.getSettings();
+    return {
+      enabled: settings.ttsEnabled,
+      baseUrl: settings.ttsBaseUrl,
+      apiKey: settings.ttsApiKey,
+      voice: settings.ttsVoice,
+      speed: settings.ttsSpeed,
+      model: settings.ttsModel,
+    };
   }
 }

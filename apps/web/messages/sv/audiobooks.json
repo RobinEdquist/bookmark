@@ -107,6 +107,10 @@
       "resetCancel": "Avbryt",
       "resetSuccess": "Framstegen har återställts",
       "resetError": "Kunde inte återställa framstegen"
+    },
+    "aiNarrated": {
+      "badge": "AI-uppläst",
+      "generatedFromEbook": "Skapad från den här e-boken"
     }
   },
   "changeCover": {

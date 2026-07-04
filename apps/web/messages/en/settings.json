@@ -247,6 +247,7 @@
       "canDelete": "Can delete",
       "canGenerateApiKeys": "Can generate API keys",
       "canRequestContent": "Can request content",
+      "canGenerateAudiobooks": "Can generate audiobooks from ebooks",
       "blacklistedTags": "Blacklisted Tags",
       "blacklistedTagsPlaceholder": "Select tags to hide...",
       "searchTags": "Search tags...",
@@ -339,7 +340,9 @@
       "canGenerateApiKeys": "Can generate API keys",
       "canGenerateApiKeysDescription": "Allow new users to generate API keys for programmatic access",
       "canRequestContent": "Can request content",
-      "canRequestContentDescription": "Allow new users to request new content from external sources"
+      "canRequestContentDescription": "Allow new users to request new content from external sources",
+      "canGenerateAudiobooks": "Can generate audiobooks from ebooks",
+      "canGenerateAudiobooksDescription": "Allow new users to generate AI-narrated audiobooks from ebooks"
     },
     "error": {
       "loadFailed": "Failed to load settings. Please try again.",
@@ -509,6 +512,37 @@
         "autoSyncEnabled": "Auto-sync enabled",
         "autoSyncDisabled": "Auto-sync disabled",
         "autoSyncFailed": "Failed to update auto-sync"
+      }
+    },
+    "tts": {
+      "title": "Text-to-speech (AI narration)",
+      "connected": "Configured",
+      "notConnected": "Not configured",
+      "description": "Generate audiobooks from your ebooks with a self-hosted AI voice. Works with any OpenAI-compatible TTS server; the bundled engine starts with “docker compose --profile tts up -d”.",
+      "enabled": {
+        "label": "Enable AI narration",
+        "description": "Allow generating audiobooks from ebooks"
+      },
+      "baseUrlLabel": "Server URL",
+      "baseUrlHelp": "URL of an OpenAI-compatible /v1/audio/speech server. When Bookmark runs in Docker, the bundled engine is reachable at http://tts:8880; from outside Docker use the host and published port instead (e.g. http://localhost:8880).",
+      "apiKeyLabel": "API key (optional)",
+      "apiKeyPlaceholder": "Leave empty if the server has no authentication",
+      "apiKeySetPlaceholder": "An API key is saved — enter a new one to replace it",
+      "voiceLabel": "Voice",
+      "speedLabel": "Speed",
+      "modelLabel": "Model",
+      "test": "Test connection",
+      "testing": "Testing…",
+      "save": "Save",
+      "saving": "Saving…",
+      "toast": {
+        "enabled": "AI narration enabled",
+        "disabled": "AI narration disabled",
+        "saved": "TTS settings saved",
+        "saveFailed": "Failed to save TTS settings",
+        "testSuccess": "{count, plural, =1 {Connected — 1 voice available} other {Connected — # voices available}}",
+        "testSuccessNoVoices": "Connected — the server can synthesize speech",
+        "testFailed": "Connection test failed"
       }
     }
   },

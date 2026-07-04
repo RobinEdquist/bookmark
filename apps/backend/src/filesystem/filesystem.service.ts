@@ -92,8 +92,8 @@ export class FilesystemService {
       await fs.access('/data', fs.constants.R_OK);
       return '/data';
     } catch {
-      // Fall back to root
-      return '/';
+      // Outside Docker, start where the app runs instead of filesystem root
+      return path.resolve('.');
     }
   }
 }

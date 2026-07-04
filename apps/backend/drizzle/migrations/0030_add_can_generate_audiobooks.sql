@@ -1,0 +1,2 @@
+ALTER TABLE "app_settings" ADD COLUMN "default_can_generate_audiobooks" boolean DEFAULT false NOT NULL;--> statement-breakpoint
+ALTER TABLE "user_permissions" ADD COLUMN "can_generate_audiobooks" boolean DEFAULT false NOT NULL;

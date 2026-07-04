@@ -27,10 +27,30 @@ export interface ScanStatus {
   libraryType?: "audiobook" | "ebook" | "comic";
 }
 
+export type TtsPhase = "extracting" | "generating" | "assembling" | "importing";
+
+export interface TtsActiveJob {
+  jobId: string;
+  ebookId: string;
+  ebookTitle: string;
+  phase: TtsPhase;
+  totalChapters: number | null;
+  completedChapters: number;
+  percentage: number | null;
+  currentChapterTitle: string | null;
+}
+
+export interface TtsTaskStatus {
+  active: TtsActiveJob | null;
+  pendingCount: number;
+  failedCount: number;
+}
+
 export interface TasksStatus {
   import: ImportStatus;
   hardcoverSync: HardcoverSyncStatus;
   scan: ScanStatus;
+  tts: TtsTaskStatus;
 }
 
 async function fetchTasksStatus(): Promise<TasksStatus> {
@@ -53,6 +73,7 @@ const defaultImportStatus: ImportStatus = {
 };
 const defaultHardcoverStatus: HardcoverSyncStatus = { pendingCount: 0, failedCount: 0 };
 const defaultScanStatus: ScanStatus = { isScanning: false };
+const defaultTtsStatus: TtsTaskStatus = { active: null, pendingCount: 0, failedCount: 0 };
 
 export function useTasksStatus() {
   // Initial fetch gets combined status from HTTP
@@ -85,21 +106,36 @@ export function useTasksStatus() {
     staleTime: Infinity,
   });
 
+  const { data: ttsStatus } = useQuery<TtsTaskStatus>({
+    queryKey: queryKeys.tasks.tts(),
+    queryFn: () => Promise.resolve(defaultTtsStatus),
+    enabled: false, // Only populated via WebSocket setQueryData
+    staleTime: Infinity,
+  });
+
   // Merge: WebSocket updates override HTTP initial data
   const import_ = importStatus ?? initialData?.import ?? defaultImportStatus;
   const hardcover = hardcoverStatus ?? initialData?.hardcoverSync ?? defaultHardcoverStatus;
   const scan = scanStatus ?? initialData?.scan ?? defaultScanStatus;
+  const tts = ttsStatus ?? initialData?.tts ?? defaultTtsStatus;
 
   const importPendingCount =
     import_.audiobooks.pendingCount + import_.ebooks.pendingCount + import_.comics.pendingCount;
-  const totalPending = importPendingCount + hardcover.pendingCount + (scan.isScanning ? 1 : 0);
+  const ttsActiveCount = tts.active ? 1 : 0;
+  const totalPending =
+    importPendingCount +
+    hardcover.pendingCount +
+    (scan.isScanning ? 1 : 0) +
+    ttsActiveCount +
+    tts.pendingCount;
 
   return {
     import: import_,
     hardcoverSync: hardcover,
     scan,
+    tts,
     totalPending,
-    hasTasks: totalPending > 0 || hardcover.failedCount > 0,
+    hasTasks: totalPending > 0 || hardcover.failedCount > 0 || tts.failedCount > 0,
     isLoading,
   };
 }

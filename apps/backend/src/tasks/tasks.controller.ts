@@ -10,6 +10,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { ImportQueueService } from '../library-watcher/import-queue.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
 import { LibraryScannerService } from '../library-watcher/library-scanner.service';
+import { TtsService } from '../tts/tts.service';
 
 @ApiTags('Tasks')
 @ApiSecurity('better-auth.session_token')
@@ -21,6 +22,7 @@ export class TasksController {
     private importQueueService: ImportQueueService,
     private hardcoverService: HardcoverService,
     private libraryScannerService: LibraryScannerService,
+    private ttsService: TtsService,
   ) {}
 
   @Get('status')
@@ -36,10 +38,12 @@ export class TasksController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getTasksStatus() {
-    const [pendingHardcoverCount, failedHardcoverItems] = await Promise.all([
-      this.hardcoverService.getPendingQueueCount(),
-      this.hardcoverService.getFailedQueueItems(),
-    ]);
+    const [pendingHardcoverCount, failedHardcoverItems, ttsStatus] =
+      await Promise.all([
+        this.hardcoverService.getPendingQueueCount(),
+        this.hardcoverService.getFailedQueueItems(),
+        this.ttsService.getQueueStatus(),
+      ]);
 
     const scanProgress = this.libraryScannerService.getProgress();
     const isScanning = this.libraryScannerService.isScanning();
@@ -63,6 +67,7 @@ export class TasksController {
         pendingCount: pendingHardcoverCount,
         failedCount: failedHardcoverItems.length,
       },
+      tts: ttsStatus,
       scan:
         isScanning && scanProgress
           ? {

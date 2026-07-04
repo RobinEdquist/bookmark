@@ -31,7 +31,11 @@ interface EditUserDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
+export function EditUserDialog({
+  user,
+  open,
+  onOpenChange,
+}: EditUserDialogProps) {
   const t = useTranslations("settings.users");
   const updateUser = useUpdateUser();
   const revokeUserApiKey = useRevokeUserApiKey();
@@ -48,6 +52,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const [canDelete, setCanDeleteAudiobooks] = useState(false);
   const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
   const [canRequestContent, setCanRequestContent] = useState(false);
+  const [canGenerateAudiobooks, setCanGenerateAudiobooks] = useState(false);
   const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
   useEffect(() => {
     if (user) {
@@ -59,6 +64,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       setCanDeleteAudiobooks(user.permissions.canDelete);
       setCanGenerateApiKeys(user.permissions.canGenerateApiKeys);
       setCanRequestContent(user.permissions.canRequestContent);
+      setCanGenerateAudiobooks(user.permissions.canGenerateAudiobooks);
       setBlacklistedTags(user.blacklistedTags);
     }
   }, [user]);
@@ -71,6 +77,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       setCanDeleteAudiobooks(true);
       setCanGenerateApiKeys(true);
       setCanRequestContent(true);
+      setCanGenerateAudiobooks(true);
       setBlacklistedTags([]);
     }
   }, [isAdmin]);
@@ -91,6 +98,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
           canDelete,
           canGenerateApiKeys,
           canRequestContent,
+          canGenerateAudiobooks,
           blacklistedTags,
         },
       });
@@ -98,7 +106,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
       onOpenChange(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("toast.updateError")
+        error instanceof Error ? error.message : t("toast.updateError"),
       );
     }
   };
@@ -135,7 +143,9 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
           <div className="flex items-center justify-between rounded-lg border p-3">
             <Label htmlFor="edit-isAdmin">{t("createDialog.role")}</Label>
             <div className="flex items-center gap-2">
-              <span className={`text-sm ${!isAdmin ? "font-medium" : "text-muted-foreground"}`}>
+              <span
+                className={`text-sm ${!isAdmin ? "font-medium" : "text-muted-foreground"}`}
+              >
                 {t("createDialog.roleUser")}
               </span>
               <Switch
@@ -143,7 +153,9 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 checked={isAdmin}
                 onCheckedChange={setIsAdmin}
               />
-              <span className={`text-sm ${isAdmin ? "font-medium" : "text-muted-foreground"}`}>
+              <span
+                className={`text-sm ${isAdmin ? "font-medium" : "text-muted-foreground"}`}
+              >
                 {t("createDialog.roleAdmin")}
               </span>
             </div>
@@ -186,7 +198,10 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 />
               </div>
               <div className="flex items-center justify-between rounded-lg border p-3">
-                <Label htmlFor="edit-canGenerateApiKeys" className="font-normal">
+                <Label
+                  htmlFor="edit-canGenerateApiKeys"
+                  className="font-normal"
+                >
                   {t("createDialog.canGenerateApiKeys")}
                 </Label>
                 <Switch
@@ -196,9 +211,26 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                   disabled={isAdmin}
                 />
               </div>
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <Label
+                  htmlFor="edit-canGenerateAudiobooks"
+                  className="font-normal"
+                >
+                  {t("createDialog.canGenerateAudiobooks")}
+                </Label>
+                <Switch
+                  id="edit-canGenerateAudiobooks"
+                  checked={canGenerateAudiobooks}
+                  onCheckedChange={setCanGenerateAudiobooks}
+                  disabled={isAdmin}
+                />
+              </div>
               {settings?.requestsEnabled && (
                 <div className="flex items-center justify-between rounded-lg border p-3">
-                  <Label htmlFor="edit-canRequestContent" className="font-normal">
+                  <Label
+                    htmlFor="edit-canRequestContent"
+                    className="font-normal"
+                  >
                     {t("createDialog.canRequestContent")}
                   </Label>
                   <Switch

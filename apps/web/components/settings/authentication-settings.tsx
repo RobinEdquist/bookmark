@@ -27,7 +27,8 @@ import { useState, useEffect } from "react";
 
 export function AuthenticationSettings() {
   const t = useTranslations("settings.authentication");
-  const { settings, isLoading, error, updateSettings, isUpdating } = useSettings();
+  const { settings, isLoading, error, updateSettings, isUpdating } =
+    useSettings();
   const { data: authConfig } = useAuthConfig();
 
   const [oidcButtonText, setOidcButtonText] = useState("");
@@ -43,20 +44,18 @@ export function AuthenticationSettings() {
       await updateSettings({ signupsEnabled: enabled });
       toast.success(enabled ? t("signups.enabled") : t("signups.disabled"));
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("error.updateFailed")
-      );
+      toast.error(err instanceof Error ? err.message : t("error.updateFailed"));
     }
   };
 
   const handleEmailPasswordToggle = async (enabled: boolean) => {
     try {
       await updateSettings({ emailPasswordEnabled: enabled });
-      toast.success(enabled ? t("emailPassword.enabled") : t("emailPassword.disabled"));
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("error.updateFailed")
+      toast.success(
+        enabled ? t("emailPassword.enabled") : t("emailPassword.disabled"),
       );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("error.updateFailed"));
     }
   };
 
@@ -66,9 +65,7 @@ export function AuthenticationSettings() {
       await updateSettings({ oidcButtonText });
       toast.success(t("oidc.buttonTextUpdated"));
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("error.updateFailed")
-      );
+      toast.error(err instanceof Error ? err.message : t("error.updateFailed"));
     }
   };
 
@@ -77,23 +74,25 @@ export function AuthenticationSettings() {
       await updateSettings({ oidcAutoCreateUsers: value });
       toast.success(t("oidc.autoCreateUpdated"));
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("error.updateFailed")
-      );
+      toast.error(err instanceof Error ? err.message : t("error.updateFailed"));
     }
   };
 
   const handleDefaultPermissionToggle = async (
-    field: 'defaultCanEditMetadata' | 'defaultCanUpload' | 'defaultCanDelete' | 'defaultCanGenerateApiKeys' | 'defaultCanRequestContent',
-    enabled: boolean
+    field:
+      | "defaultCanEditMetadata"
+      | "defaultCanUpload"
+      | "defaultCanDelete"
+      | "defaultCanGenerateApiKeys"
+      | "defaultCanRequestContent"
+      | "defaultCanGenerateAudiobooks",
+    enabled: boolean,
   ) => {
     try {
       await updateSettings({ [field]: enabled });
       toast.success(t("defaultPermissions.updated"));
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("error.updateFailed")
-      );
+      toast.error(err instanceof Error ? err.message : t("error.updateFailed"));
     }
   };
 
@@ -111,9 +110,7 @@ export function AuthenticationSettings() {
     return (
       <Card className="border-destructive">
         <CardContent className="p-6">
-          <p className="text-destructive">
-            {t("error.loadFailed")}
-          </p>
+          <p className="text-destructive">{t("error.loadFailed")}</p>
         </CardContent>
       </Card>
     );
@@ -126,15 +123,16 @@ export function AuthenticationSettings() {
       <Card>
         <CardHeader>
           <CardTitle>{t("title")}</CardTitle>
-          <CardDescription>
-            {t("description")}
-          </CardDescription>
+          <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Signups Toggle */}
           <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <Label htmlFor="signups-enabled" className="text-base font-medium">
+              <Label
+                htmlFor="signups-enabled"
+                className="text-base font-medium"
+              >
                 {t("signups.label")}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -154,7 +152,10 @@ export function AuthenticationSettings() {
           {/* Email/Password Toggle */}
           <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <Label htmlFor="email-password-enabled" className="text-base font-medium">
+              <Label
+                htmlFor="email-password-enabled"
+                className="text-base font-medium"
+              >
                 {t("emailPassword.label")}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -179,11 +180,12 @@ export function AuthenticationSettings() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
               <CardTitle>{t("oidc.title")}</CardTitle>
-              <CardDescription>
-                {t("oidc.description")}
-              </CardDescription>
+              <CardDescription>{t("oidc.description")}</CardDescription>
             </div>
-            <Badge variant={oidcEnabled ? "default" : "secondary"} className="w-fit shrink-0">
+            <Badge
+              variant={oidcEnabled ? "default" : "secondary"}
+              className="w-fit shrink-0"
+            >
               {oidcEnabled ? t("oidc.configured") : t("oidc.notConfigured")}
             </Badge>
           </div>
@@ -239,9 +241,15 @@ export function AuthenticationSettings() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="auto">{t("oidc.autoCreate.auto")}</SelectItem>
-                    <SelectItem value="pending">{t("oidc.autoCreate.pending")}</SelectItem>
-                    <SelectItem value="disabled">{t("oidc.autoCreate.disabled")}</SelectItem>
+                    <SelectItem value="auto">
+                      {t("oidc.autoCreate.auto")}
+                    </SelectItem>
+                    <SelectItem value="pending">
+                      {t("oidc.autoCreate.pending")}
+                    </SelectItem>
+                    <SelectItem value="disabled">
+                      {t("oidc.autoCreate.disabled")}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
@@ -264,7 +272,10 @@ export function AuthenticationSettings() {
         <CardContent className="space-y-4">
           <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <Label htmlFor="default-can-edit-metadata" className="text-base font-medium">
+              <Label
+                htmlFor="default-can-edit-metadata"
+                className="text-base font-medium"
+              >
                 {t("defaultPermissions.canEditMetadata")}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -274,7 +285,9 @@ export function AuthenticationSettings() {
             <Switch
               id="default-can-edit-metadata"
               checked={settings?.defaultCanEditMetadata ?? false}
-              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanEditMetadata', enabled)}
+              onCheckedChange={(enabled) =>
+                handleDefaultPermissionToggle("defaultCanEditMetadata", enabled)
+              }
               disabled={isUpdating}
               className="shrink-0"
             />
@@ -282,7 +295,10 @@ export function AuthenticationSettings() {
 
           <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <Label htmlFor="default-can-upload" className="text-base font-medium">
+              <Label
+                htmlFor="default-can-upload"
+                className="text-base font-medium"
+              >
                 {t("defaultPermissions.canUpload")}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -292,7 +308,9 @@ export function AuthenticationSettings() {
             <Switch
               id="default-can-upload"
               checked={settings?.defaultCanUpload ?? false}
-              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanUpload', enabled)}
+              onCheckedChange={(enabled) =>
+                handleDefaultPermissionToggle("defaultCanUpload", enabled)
+              }
               disabled={isUpdating}
               className="shrink-0"
             />
@@ -300,7 +318,10 @@ export function AuthenticationSettings() {
 
           <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <Label htmlFor="default-can-delete" className="text-base font-medium">
+              <Label
+                htmlFor="default-can-delete"
+                className="text-base font-medium"
+              >
                 {t("defaultPermissions.canDelete")}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -310,7 +331,9 @@ export function AuthenticationSettings() {
             <Switch
               id="default-can-delete"
               checked={settings?.defaultCanDelete ?? false}
-              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanDelete', enabled)}
+              onCheckedChange={(enabled) =>
+                handleDefaultPermissionToggle("defaultCanDelete", enabled)
+              }
               disabled={isUpdating}
               className="shrink-0"
             />
@@ -318,7 +341,10 @@ export function AuthenticationSettings() {
 
           <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <Label htmlFor="default-can-generate-api-keys" className="text-base font-medium">
+              <Label
+                htmlFor="default-can-generate-api-keys"
+                className="text-base font-medium"
+              >
                 {t("defaultPermissions.canGenerateApiKeys")}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -328,7 +354,12 @@ export function AuthenticationSettings() {
             <Switch
               id="default-can-generate-api-keys"
               checked={settings?.defaultCanGenerateApiKeys ?? false}
-              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanGenerateApiKeys', enabled)}
+              onCheckedChange={(enabled) =>
+                handleDefaultPermissionToggle(
+                  "defaultCanGenerateApiKeys",
+                  enabled,
+                )
+              }
               disabled={isUpdating}
               className="shrink-0"
             />
@@ -336,7 +367,10 @@ export function AuthenticationSettings() {
 
           <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0 flex-1 space-y-0.5">
-              <Label htmlFor="default-can-request-content" className="text-base font-medium">
+              <Label
+                htmlFor="default-can-request-content"
+                className="text-base font-medium"
+              >
                 {t("defaultPermissions.canRequestContent")}
               </Label>
               <p className="text-sm text-muted-foreground">
@@ -346,7 +380,38 @@ export function AuthenticationSettings() {
             <Switch
               id="default-can-request-content"
               checked={settings?.defaultCanRequestContent ?? false}
-              onCheckedChange={(enabled) => handleDefaultPermissionToggle('defaultCanRequestContent', enabled)}
+              onCheckedChange={(enabled) =>
+                handleDefaultPermissionToggle(
+                  "defaultCanRequestContent",
+                  enabled,
+                )
+              }
+              disabled={isUpdating}
+              className="shrink-0"
+            />
+          </fieldset>
+
+          <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 flex-1 space-y-0.5">
+              <Label
+                htmlFor="default-can-generate-audiobooks"
+                className="text-base font-medium"
+              >
+                {t("defaultPermissions.canGenerateAudiobooks")}
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                {t("defaultPermissions.canGenerateAudiobooksDescription")}
+              </p>
+            </div>
+            <Switch
+              id="default-can-generate-audiobooks"
+              checked={settings?.defaultCanGenerateAudiobooks ?? false}
+              onCheckedChange={(enabled) =>
+                handleDefaultPermissionToggle(
+                  "defaultCanGenerateAudiobooks",
+                  enabled,
+                )
+              }
               disabled={isUpdating}
               className="shrink-0"
             />

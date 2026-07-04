@@ -91,6 +91,15 @@ export class CreateUserDto {
   canRequestContent?: boolean;
 
   @ApiPropertyOptional({
+    description: 'Permission to generate audiobooks from ebooks',
+    example: true,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  canGenerateAudiobooks?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Tag IDs to hide from this user (UUIDs)',
     example: ['550e8400-e29b-41d4-a716-446655440000'],
     type: [String],

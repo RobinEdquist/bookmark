@@ -18,6 +18,9 @@ export class UserPermissionsResponseDto {
 
   @ApiProperty({ example: true })
   canRequestContent!: boolean;
+
+  @ApiProperty({ example: false })
+  canGenerateAudiobooks!: boolean;
 }
 
 export class ApiKeyInfoDto {
@@ -114,6 +117,7 @@ export interface UserPermissionsResponse {
   canDelete: boolean;
   canGenerateApiKeys: boolean;
   canRequestContent: boolean;
+  canGenerateAudiobooks: boolean;
 }
 
 export interface ApiKeyInfo {

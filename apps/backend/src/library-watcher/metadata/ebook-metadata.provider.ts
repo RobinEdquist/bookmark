@@ -38,6 +38,17 @@ interface WorkerEbookMetadata {
   };
 }
 
+export interface ExtractedEbookChapter {
+  title: string;
+  text: string;
+  characters: number;
+}
+
+export interface ExtractedEbookChapters {
+  language?: string;
+  chapters: ExtractedEbookChapter[];
+}
+
 const POOL_NAME = 'ebook-metadata';
 
 @Injectable()
@@ -86,6 +97,19 @@ export class EbookMetadataProvider implements OnModuleInit {
         authors: [],
       };
     }
+  }
+
+  /**
+   * Extract plain-text chapters for TTS narration. Unlike the other
+   * extractors this throws on failure - callers need to distinguish "broken
+   * epub" from "epub with no narratable text".
+   */
+  async extractChapters(filePath: string): Promise<ExtractedEbookChapters> {
+    return this.workerPool.executeTask<ExtractedEbookChapters>(
+      POOL_NAME,
+      'extractChapters',
+      { filePath },
+    );
   }
 
   async extractCoverFromFile(

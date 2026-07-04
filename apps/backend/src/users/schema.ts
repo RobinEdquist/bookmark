@@ -19,6 +19,9 @@ export const userPermissions = pgTable('user_permissions', {
   canDelete: boolean('can_delete').notNull().default(false),
   canGenerateApiKeys: boolean('can_generate_api_keys').notNull().default(false),
   canRequestContent: boolean('can_request_content').notNull().default(false),
+  canGenerateAudiobooks: boolean('can_generate_audiobooks')
+    .notNull()
+    .default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')
     .defaultNow()

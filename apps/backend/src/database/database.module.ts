@@ -15,6 +15,7 @@ import * as importErrorsSchema from '../import-errors/schema';
 import * as listsSchema from '../lists/schema';
 import * as announcementsSchema from '../announcements/schema';
 import * as comicvineSchema from '../comicvine/schema';
+import * as ttsSchema from '../tts/schema';
 
 @Global()
 @Module({
@@ -40,6 +41,7 @@ import * as comicvineSchema from '../comicvine/schema';
             ...listsSchema,
             ...announcementsSchema,
             ...comicvineSchema,
+            ...ttsSchema,
           },
         });
       },
