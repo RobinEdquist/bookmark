@@ -68,6 +68,9 @@ export function createAuthInstance(
         defaultPrefix: 'bkmrk_',
         enableMetadata: true,
         enableSessionForAPIKeys: true,
+        // Match CreateApiKeyDto's 100-char cap; the plugin default of 32
+        // rejects names like "Bookmark iOS – iPhone (2026-07-04)".
+        maximumNameLength: 100,
         // Rate limiting not needed for this application
         rateLimit: { enabled: false },
         // Support x-api-key header, Authorization: Bearer/Basic, and query param token
