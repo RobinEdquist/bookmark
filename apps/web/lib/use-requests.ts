@@ -5,7 +5,7 @@ import { queryKeys } from "./query-keys";
 
 // Types
 export type RequestStatus = 'pending' | 'approved' | 'downloading' | 'complete' | 'rejected';
-export type ContentType = 'audiobook' | 'ebook';
+export type ContentType = 'audiobook' | 'ebook' | 'comics';
 
 export interface SeriesInfo {
   name: string;
@@ -64,7 +64,7 @@ export interface TrackerSearchResponse {
 }
 
 export interface SearchFilters {
-  contentType?: 'all' | 'audiobooks' | 'ebooks';
+  contentType?: 'all' | 'audiobooks' | 'ebooks' | 'comics';
   searchIn?: string[];
   languages?: number[];
   perPage?: number;
@@ -88,6 +88,17 @@ export interface LibrarySearchItem {
 export interface LibrarySearchResponse {
   audiobooks: LibrarySearchItem[];
   ebooks: LibrarySearchItem[];
+}
+
+// Language taxonomy provided by the content request module; the ids are
+// opaque and only meaningful to the module that returned them.
+export interface TrackerLanguage {
+  id: number;
+  name: string;
+}
+
+interface TrackerLanguagesResponse {
+  languages: TrackerLanguage[];
 }
 
 // API functions
@@ -163,6 +174,19 @@ async function supportRequest(requestId: string): Promise<RequestResponse> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     throw new Error(error.message || "Failed to support request");
+  }
+
+  return response.json();
+}
+
+async function fetchTrackerLanguages(): Promise<TrackerLanguagesResponse> {
+  const response = await fetch('/api/requests/languages', {
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || 'Failed to fetch languages');
   }
 
   return response.json();
@@ -298,11 +322,25 @@ export function useSupportRequest() {
   };
 }
 
-export function useLibrarySearch(query: string, contentType: 'all' | 'audiobooks' | 'ebooks') {
+export function useTrackerLanguages() {
+  return useQuery({
+    queryKey: queryKeys.requests.languages(),
+    queryFn: fetchTrackerLanguages,
+    select: (data) => data.languages,
+    staleTime: 60 * 60 * 1000, // Module taxonomies rarely change
+  });
+}
+
+export function useLibrarySearch(
+  query: string,
+  contentType: 'all' | 'audiobooks' | 'ebooks' | 'comics',
+) {
   return useQuery({
     queryKey: queryKeys.library.search(query, contentType),
-    queryFn: () => searchLibrary(query, contentType),
-    enabled: query.length >= 2,
+    queryFn: () =>
+      searchLibrary(query, contentType === 'comics' ? 'all' : contentType),
+    // Library search has no comics support yet, so skip it for that filter
+    enabled: query.length >= 2 && contentType !== 'comics',
     staleTime: 60 * 1000, // Cache for 1 minute
   });
 }

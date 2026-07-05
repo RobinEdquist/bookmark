@@ -117,10 +117,17 @@ docker compose --profile tts up -d
 
 Then enter `http://tts:8880` as the server URL under **Settings → Integrations → Text-to-speech** — no env vars needed. Prefer a different engine, voice, or language? Point the server URL at any other OpenAI-compatible TTS server, self-hosted or cloud, and it works as a drop-in replacement. Generated audiobooks are written to `DATA_PATH/generated-audiobooks`, which appears inside the audiobook library as a `generated` folder — your own media stays on a read-only mount.
 
+**Content requests (optional)** — Bookmark can let users search an external catalog and request titles that aren't in the library yet, with an admin approval flow. The searching and downloading itself is handled by a **content request module** — a separate HTTP service you run alongside Bookmark. Point Bookmark at one, then enable requests under **Settings**. Want to build a module? See the [developer guide](docs/content-request-modules.md) and the [OpenAPI spec](docs/api/content-request-module.openapi.yaml) it must implement.
+
+| Variable                 | Required            | Default | Description                                     |
+| ------------------------ | ------------------- | ------- | ----------------------------------------------- |
+| `TRACKER_CLIENT_URL`     | If requests enabled | —       | Base URL of your content request module         |
+| `TRACKER_CLIENT_API_KEY` | If requests enabled | —       | Shared secret the module expects as `X-API-Key` |
+
 **Image** — which Bookmark image `docker compose up` runs. Ignored when building from source with `docker-compose.build.yml`.
 
-| Variable         | Required | Default                               | Description                    |
-| ---------------- | -------- | ------------------------------------- | ------------------------------ |
+| Variable         | Required | Default                                | Description                    |
+| ---------------- | -------- | -------------------------------------- | ------------------------------ |
 | `BOOKMARK_IMAGE` | No       | `ghcr.io/robinedquist/bookmark:latest` | Full image reference to deploy |
 
 #### Running without Docker

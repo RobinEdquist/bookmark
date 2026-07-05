@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { Headphones, BookOpen, Calendar, Tag, FileText, Globe, HardDrive, X, Check } from "lucide-react";
+import { Calendar, Tag, FileText, Globe, HardDrive, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
@@ -11,6 +11,7 @@ import { Badge } from "@repo/ui/components/ui/badge";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import type { TrackerSearchResult } from "../../lib/use-requests";
 import { getCategoryColor, formatCategoryName } from "./category-colors";
+import { CONTENT_TYPE_STYLES } from "./content-type-styles";
 
 interface RequestDetailPanelProps {
   item: TrackerSearchResult | null;
@@ -107,11 +108,10 @@ export function RequestDetailPanel({
                   />
                 ) : (
                   <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    {item.contentType === "audiobook" ? (
-                      <Headphones className="h-8 w-8 text-muted-foreground" />
-                    ) : (
-                      <BookOpen className="h-8 w-8 text-muted-foreground" />
-                    )}
+                    {(() => {
+                      const TypeIcon = CONTENT_TYPE_STYLES[item.contentType].icon;
+                      return <TypeIcon className="h-8 w-8 text-muted-foreground" />;
+                    })()}
                   </div>
                 )}
 
@@ -119,7 +119,7 @@ export function RequestDetailPanel({
                   {/* Content Type Badge */}
                   <div className="flex gap-2">
                     <Badge variant={item.contentType === "audiobook" ? "default" : "secondary"}>
-                      {item.contentType === "audiobook" ? t("badge.audiobook") : t("badge.ebook")}
+                      {t(`badge.${CONTENT_TYPE_STYLES[item.contentType].badgeKey}`)}
                     </Badge>
                     {(() => {
                       const categoryName = formatCategoryName(item.category);

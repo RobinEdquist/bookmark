@@ -1,0 +1,602 @@
+openapi: 3.0.3
+info:
+  title: Bookmark Content Request Module API
+  version: 1.2.0
+  description: |
+    The HTTP contract a **content request module** must implement so Bookmark
+    can search an external catalog, start downloads for approved requests, and
+    track their progress.
+
+    **Your module is the server described by this document; Bookmark is the
+    client.** Bookmark is pointed at the module via the `TRACKER_CLIENT_URL`
+    and `TRACKER_CLIENT_API_KEY` environment variables and calls the paths
+    below relative to that base URL.
+
+    Every request except `GET /health` carries an `X-API-Key` header that the
+    module must validate. `GET /health` is probed without credentials and must
+    be unauthenticated.
+
+    Any non-2xx response is treated as a hard failure (no retries): Bookmark
+    logs the response body and surfaces the status code to its user. A module
+    that is unreachable is reported as 503.
+
+    See `docs/content-request-modules.md` in the Bookmark repository for the
+    full developer guide, including the import-matching invariant that links
+    completed downloads back to requests by folder name.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Example module base URL (whatever TRACKER_CLIENT_URL points to)
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: Health
+    description: Liveness probing
+  - name: Search
+    description: Catalog search
+  - name: Downloads
+    description: Starting and tracking downloads
+  - name: Images
+    description: Cover art
+
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      tags: [Health]
+      summary: Liveness probe
+      description: |
+        Bookmark probes this endpoint **without** the `X-API-Key` header, so it
+        must not require authentication. Any 2xx status counts as healthy; the
+        response body is ignored.
+      security: []
+      responses:
+        "200":
+          description: Module is up and able to serve requests.
+        "503":
+          description: >-
+            Module is running but not ready (e.g. upstream source or download
+            client unreachable). Any non-2xx status is treated as unhealthy.
+
+  /languages:
+    get:
+      operationId: getLanguages
+      tags: [Search]
+      summary: Language taxonomy for the search filter
+      description: |
+        Returns the languages the module can filter searches by. The `id`
+        values are the module's own taxonomy — Bookmark never interprets
+        them, it only passes the user's selection back in the `languages`
+        field of `POST /search`.
+
+        Return an empty list if the catalog has no language concept; Bookmark
+        then hides its language filter. A missing endpoint (404) is treated
+        the same as an empty list.
+      responses:
+        "200":
+          description: Available languages, in any order.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanguagesResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /search:
+    post:
+      operationId: search
+      tags: [Search]
+      summary: Search the catalog
+      description: |
+        Called when a Bookmark user searches the request page. Return results
+        **pre-parsed and clean** — resolve upstream formatting quirks
+        (author/narrator splitting, series extraction, HTML stripping) inside
+        the module. Bookmark displays the returned fields as-is.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchRequest"
+      responses:
+        "200":
+          description: Search results for the requested page.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /download/{torrentId}:
+    post:
+      operationId: startDownload
+      tags: [Downloads]
+      summary: Start downloading a search result
+      description: |
+        Called when a request is approved in Bookmark. `torrentId` is the
+        string form of a search result `id`.
+
+        Return as soon as the download has been **accepted**, not completed.
+        The returned `hash` is stored by Bookmark and used for all subsequent
+        status lookups, so it must be stable and unique per download job.
+
+        Use the `category` field in the body to route the download's save
+        location so the finished files land in Bookmark's watched import
+        directory for that content type.
+      parameters:
+        - name: torrentId
+          in: path
+          required: true
+          description: Catalog item ID (string form of a search result `id`).
+          schema:
+            type: string
+            example: "123456"
+      requestBody:
+        required: true
+        description: |
+          May be an empty object. Bookmark currently sends `category` and,
+          when enabled, `usePersonalFL`; the remaining fields are reserved.
+          Accept and ignore unknown fields.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DownloadOptions"
+      responses:
+        "200":
+          description: Download accepted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No catalog item with this ID.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /torrent/{hash}:
+    get:
+      operationId: getTorrentStatus
+      tags: [Downloads]
+      summary: Status of a single download
+      description: |
+        Bookmark calls this **immediately after** a successful `/download` and
+        stores the returned `name` as the request's folder name for import
+        matching. `name` must therefore be the exact, final on-disk name of
+        the top-level folder or file the download produces in the import
+        directory — from the very first call.
+
+        A non-2xx response during the post-approval call fails the approval,
+        so a hash you just returned from `/download` must resolve here.
+      parameters:
+        - $ref: "#/components/parameters/Hash"
+      responses:
+        "200":
+          description: Current status of the download job.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TorrentStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: >-
+            Unknown hash. Alternatively return 200 with `state` set to
+            `not_found`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /torrents:
+    get:
+      operationId: getBulkTorrentStatus
+      tags: [Downloads]
+      summary: Bulk status of downloads
+      description: |
+        Polled periodically by Bookmark for every in-flight request. For
+        hashes the module no longer knows, include an entry with `state` set
+        to `not_found` rather than omitting it — Bookmark logs a warning for
+        those and leaves the request untouched. Every other state means the
+        job exists and moves the request to *downloading*.
+      parameters:
+        - name: hashes
+          in: query
+          required: true
+          description: Comma-separated list of download hashes.
+          schema:
+            type: string
+            example: "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3,deadbeef00000000000000000000000000000000"
+      responses:
+        "200":
+          description: Status for each requested hash.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BulkTorrentStatus"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /image/{torrentId}:
+    get:
+      operationId: getImage
+      tags: [Images]
+      summary: Cover/thumbnail image for a search result
+      description: |
+        Bookmark proxies this endpoint to browsers, forwarding the
+        `Content-Type`, `Cache-Control` and `ETag` response headers. If no
+        `Cache-Control` is sent, Bookmark substitutes a one-year immutable
+        cache header. Return 404 when the item has no image.
+      parameters:
+        - name: torrentId
+          in: path
+          required: true
+          description: Catalog item ID (string form of a search result `id`).
+          schema:
+            type: string
+            example: "123456"
+      responses:
+        "200":
+          description: The image bytes.
+          headers:
+            Cache-Control:
+              description: Forwarded to browsers by Bookmark's proxy.
+              schema:
+                type: string
+            ETag:
+              description: Forwarded to browsers by Bookmark's proxy.
+              schema:
+                type: string
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: No image available for this item.
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: >-
+        Shared secret configured as TRACKER_CLIENT_API_KEY in Bookmark. Sent
+        on every request except GET /health.
+
+  parameters:
+    Hash:
+      name: hash
+      in: path
+      required: true
+      description: Download hash previously returned by POST /download.
+      schema:
+        type: string
+        example: "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid X-API-Key header.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    SearchRequest:
+      type: object
+      required: [query, categories]
+      properties:
+        query:
+          type: string
+          description: Free-text search query entered by the user.
+          example: project hail mary
+        categories:
+          type: array
+          description: >-
+            Content types to include. Always sent by Bookmark (defaults to
+            all types when the user does not filter). A module whose catalog
+            lacks a type simply returns no results for it.
+          items:
+            type: string
+            enum: [audiobook, ebook, comics]
+          example: [audiobook, ebook, comics]
+        searchIn:
+          type: array
+          description: >-
+            Fields to match against. Omitted entirely when the user does not
+            restrict the search — search all fields in that case.
+          items:
+            type: string
+            enum: [title, author, narrator, series, tags, description]
+        languages:
+          type: array
+          description: >-
+            Language IDs from the module's GET /languages taxonomy, passed
+            through opaquely from the UI. Omitted when not filtering by
+            language.
+          items:
+            type: integer
+        perPage:
+          type: integer
+          description: >-
+            Page size. Bookmark's UI currently sends 10, 25, 50 or 100, but
+            modules should accept any positive integer. Pick a sensible
+            default when omitted.
+          minimum: 1
+          example: 25
+        offset:
+          type: integer
+          description: Zero-based result offset for pagination.
+          minimum: 0
+          default: 0
+      additionalProperties: false
+
+    Language:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+          description: Language ID in the module's own taxonomy.
+          example: 1
+        name:
+          type: string
+          description: Display name shown in Bookmark's filter UI.
+          example: English
+
+    LanguagesResponse:
+      type: object
+      required: [languages]
+      properties:
+        languages:
+          type: array
+          description: Empty when the catalog has no language concept.
+          items:
+            $ref: "#/components/schemas/Language"
+
+    SearchResponse:
+      type: object
+      required: [results, total]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/SearchResult"
+        total:
+          type: integer
+          description: Total number of matches across all pages.
+          minimum: 0
+          example: 87
+
+    SearchResult:
+      type: object
+      required: [id, title, contentType, categoryId]
+      properties:
+        id:
+          type: integer
+          description: >-
+            Stable unique catalog item ID. Bookmark stores it and later calls
+            POST /download/{id} and GET /image/{id} with it.
+          example: 123456
+        title:
+          type: string
+          example: Project Hail Mary
+        author:
+          type: string
+          nullable: true
+          example: Andy Weir
+        narrator:
+          type: string
+          nullable: true
+          example: Ray Porter
+        series:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/SeriesEntry"
+        description:
+          type: string
+          nullable: true
+          description: Plain-text description (strip upstream HTML).
+        contentType:
+          type: string
+          description: >-
+            The semantic content type Bookmark routes on. The module owns the
+            mapping from its upstream taxonomy to these values (e.g. comics
+            filed under an ebook category upstream must still be reported as
+            "comics").
+          enum: [audiobook, ebook, comics]
+        categoryId:
+          type: integer
+          description: >-
+            Category ID in the module's own taxonomy. Informational only -
+            Bookmark stores and displays it but never interprets it.
+          example: 42
+        categoryName:
+          type: string
+          description: Human-readable category label shown in the UI.
+          example: Audiobooks - Sci-Fi
+        size:
+          type: string
+          description: Human-readable size shown in the UI.
+          example: 1.2 GiB
+        language:
+          type: string
+          example: English
+        fileType:
+          type: string
+          example: M4B
+        tags:
+          type: array
+          items:
+            type: string
+        addedDate:
+          type: string
+          description: When the item was added upstream. ISO 8601 recommended.
+          example: "2026-01-15T10:30:00Z"
+
+    SeriesEntry:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: The Expanse
+        number:
+          type: string
+          nullable: true
+          description: Position within the series, as a string ("1", "2.5", …).
+          example: "3"
+
+    DownloadOptions:
+      type: object
+      properties:
+        category:
+          type: string
+          description: >-
+            Download category name configured in Bookmark's admin settings
+            (defaults - audiobooks, books, comics). Use it to route the save
+            location into the watched import directory for that content type.
+          example: audiobooks
+        tags:
+          type: string
+          description: Reserved. Not currently sent by Bookmark.
+        paused:
+          type: boolean
+          description: Reserved. Not currently sent by Bookmark.
+        savepath:
+          type: string
+          description: Reserved. Not currently sent by Bookmark.
+        usePersonalFL:
+          type: boolean
+          description: >-
+            Spend a personal freeleech credit before downloading, if the
+            module's backend has that concept. Sent only when enabled in
+            Bookmark's settings; safe to ignore otherwise.
+      additionalProperties: false
+
+    DownloadResponse:
+      type: object
+      required: [status, message, hash]
+      properties:
+        status:
+          type: string
+          description: Short machine-readable outcome, e.g. "ok".
+          example: ok
+        message:
+          type: string
+          description: Human-readable outcome for logs.
+          example: Download added
+        hash:
+          type: string
+          description: >-
+            Stable unique identifier for this download job (info-hash for
+            torrent-backed modules, otherwise any unique ID). Used for all
+            subsequent status lookups.
+          example: a94a8fe5ccb19ba61c4c0873d391e987982fbbd3
+
+    TorrentStatus:
+      type: object
+      required: [hash, name, state, progress]
+      properties:
+        hash:
+          type: string
+          description: The download hash this status refers to.
+          example: a94a8fe5ccb19ba61c4c0873d391e987982fbbd3
+        name:
+          type: string
+          description: >-
+            Exact, final on-disk name of the top-level folder or file the
+            download produces in the import directory. Bookmark matches
+            imported items back to requests by comparing this string, so it
+            must be correct from the first status call after /download.
+          example: Project Hail Mary [M4B]
+        state:
+          type: string
+          description: >-
+            Free-form state string. The only value Bookmark interprets is
+            "not_found" (download job no longer exists); every other value
+            means the job exists. Conventional values - downloading,
+            stalledDL, metaDL, pausedDL, queuedDL, checkingDL, forcedDL,
+            uploading, stalledUP, pausedUP, queuedUP, checkingUP, forcedUP,
+            checkingResumeData, moving, missingFiles, error, allocating,
+            completed, seeding.
+          example: downloading
+        progress:
+          type: number
+          format: double
+          description: Download progress as a 0-1 fraction.
+          minimum: 0
+          maximum: 1
+          example: 0.42
+        size:
+          type: integer
+          format: int64
+          description: Total size in bytes.
+          example: 1288490188
+        downloaded:
+          type: integer
+          format: int64
+          description: Bytes downloaded so far.
+          example: 541165879
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/TorrentFile"
+
+    TorrentFile:
+      type: object
+      required: [name, size]
+      properties:
+        name:
+          type: string
+          description: File path relative to the download's top-level folder.
+          example: Project Hail Mary.m4b
+        size:
+          type: integer
+          format: int64
+          description: File size in bytes.
+          example: 1288490188
+
+    BulkTorrentStatus:
+      type: object
+      required: [torrents]
+      properties:
+        torrents:
+          type: array
+          description: >-
+            One entry per requested hash. Use state "not_found" for hashes the
+            module no longer knows.
+          items:
+            $ref: "#/components/schemas/TorrentStatus"
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          description: >-
+            Human-readable error. Bookmark logs the raw response body on any
+            non-2xx status; the exact shape is up to the module.
+          example: Unknown torrent hash

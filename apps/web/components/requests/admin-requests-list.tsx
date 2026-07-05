@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Headphones, BookOpen, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { CONTENT_TYPE_STYLES } from "./content-type-styles";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Badge } from "@repo/ui/components/ui/badge";
@@ -100,17 +101,15 @@ export function AdminRequestsList({
   return (
     <>
       <div className="space-y-4">
-        {requests.map((request) => (
+        {requests.map((request) => {
+          const TypeIcon = CONTENT_TYPE_STYLES[request.contentType].icon;
+          return (
           <Card key={request.id}>
             <CardContent className="p-4">
               <div className="flex gap-4">
                 {/* Content Type Icon */}
                 <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-muted shrink-0">
-                  {request.contentType === "audiobook" ? (
-                    <Headphones className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-                  ) : (
-                    <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-                  )}
+                  <TypeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                 </div>
 
                 {/* Info */}
@@ -177,7 +176,8 @@ export function AdminRequestsList({
               )}
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>
 
       {/* Reject with reason dialog */}

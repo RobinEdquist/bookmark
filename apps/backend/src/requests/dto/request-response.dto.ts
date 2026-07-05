@@ -114,8 +114,11 @@ export class TrackerSearchResultItemDto {
   })
   coverUrl?: string | null;
 
-  @ApiProperty({ enum: ['audiobook', 'ebook'], example: 'audiobook' })
-  contentType!: 'audiobook' | 'ebook';
+  @ApiProperty({
+    enum: ['audiobook', 'ebook', 'comics'],
+    example: 'audiobook',
+  })
+  contentType!: 'audiobook' | 'ebook' | 'comics';
 
   @ApiProperty({ example: 'Audiobooks' })
   category!: string;
@@ -167,6 +170,26 @@ export class TrackerSearchResponseDto {
 
   @ApiProperty({ example: 25 })
   total!: number;
+}
+
+export class TrackerLanguageDto {
+  @ApiProperty({
+    example: 1,
+    description: "Language ID in the content request module's own taxonomy",
+  })
+  id!: number;
+
+  @ApiProperty({ example: 'English' })
+  name!: string;
+}
+
+export class TrackerLanguagesResponseDto {
+  @ApiProperty({
+    type: [TrackerLanguageDto],
+    description:
+      'Languages the module can filter by; empty when the module has no language taxonomy',
+  })
+  languages!: TrackerLanguageDto[];
 }
 
 export class RequestListResponseDto {
@@ -235,7 +258,7 @@ export interface TrackerSearchResultDto {
   series: SeriesInfo[] | null;
   description: string | null;
   coverUrl: string | null;
-  contentType: 'audiobook' | 'ebook';
+  contentType: 'audiobook' | 'ebook' | 'comics';
   category: string;
   categoryId: number;
   size: string;

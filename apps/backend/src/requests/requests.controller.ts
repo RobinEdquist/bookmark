@@ -23,6 +23,7 @@ import { RequestsService } from './requests.service';
 import { TrackerSearchDto, CreateRequestDto } from './dto';
 import {
   TrackerSearchResponseDto,
+  TrackerLanguagesResponseDto,
   RequestListResponseDto,
   ContentRequestDto,
   AutoApproveBudgetDto,
@@ -49,6 +50,26 @@ export class RequestsController {
   @ApiResponse({ status: 404, description: 'Image not found' })
   async proxyImage(@Param('id') id: string, @Res() res: Response) {
     await this.tracker.proxyImage(id, res);
+  }
+
+  @Get('languages')
+  @ApiOperation({
+    summary: 'List searchable content languages',
+    description:
+      "Returns the content request module's language taxonomy for the search filter. Empty when the module has none.",
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Available languages',
+    type: TrackerLanguagesResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - user cannot make requests',
+  })
+  async getLanguages(): Promise<TrackerLanguagesResponseDto> {
+    return this.requestsService.getLanguages();
   }
 
   @Post('search')

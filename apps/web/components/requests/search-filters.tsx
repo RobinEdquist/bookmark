@@ -14,12 +14,11 @@ import {
   CollapsibleTrigger,
 } from "@repo/ui/components/ui/collapsible";
 import { cn } from "@repo/ui/lib/utils";
-import type { SearchFilters } from "../../lib/use-requests";
+import { useTrackerLanguages, type SearchFilters } from "../../lib/use-requests";
 import {
-  TRACKER_LANGUAGES,
   SEARCH_IN_FIELDS,
   PER_PAGE_OPTIONS,
-} from "../../lib/constants/tracker-languages";
+} from "../../lib/constants/request-filters";
 
 interface SearchFiltersProps {
   filters: SearchFilters;
@@ -30,10 +29,16 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
   const t = useTranslations("requests.filters");
   const [isOpen, setIsOpen] = useState(false);
 
-  const languageOptions = TRACKER_LANGUAGES.map((lang) => ({
-    value: String(lang.id),
-    label: lang.name,
-  }));
+  // Language taxonomy comes from the content request module; when it has
+  // none, the language filter is hidden entirely.
+  const { data: languages } = useTrackerLanguages();
+  const languageOptions = (languages ?? [])
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((lang) => ({
+      value: String(lang.id),
+      label: lang.name,
+    }));
 
   const handleSearchInChange = (field: string, checked: boolean) => {
     const current = filters.searchIn ?? ["title", "author"];
@@ -106,18 +111,20 @@ export function SearchFiltersPanel({ filters, onChange }: SearchFiltersProps) {
             </div>
 
             {/* Languages */}
-            <div className="space-y-4">
-              <Label className="text-sm font-medium block">{t("languages.label")}</Label>
-              <MultiSelect
-                options={languageOptions}
-                selected={selectedLanguages}
-                onChange={handleLanguagesChange}
-                placeholder={t("languages.placeholder")}
-                searchPlaceholder={t("languages.searchPlaceholder")}
-                emptyText={t("languages.empty")}
-                className="max-w-md"
-              />
-            </div>
+            {languageOptions.length > 0 && (
+              <div className="space-y-4">
+                <Label className="text-sm font-medium block">{t("languages.label")}</Label>
+                <MultiSelect
+                  options={languageOptions}
+                  selected={selectedLanguages}
+                  onChange={handleLanguagesChange}
+                  placeholder={t("languages.placeholder")}
+                  searchPlaceholder={t("languages.searchPlaceholder")}
+                  emptyText={t("languages.empty")}
+                  className="max-w-md"
+                />
+              </div>
+            )}
 
             {/* Results per page */}
             <div className="space-y-4">

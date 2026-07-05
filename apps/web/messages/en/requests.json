@@ -1,10 +1,11 @@
 {
   "title": "Requests",
-  "description": "Search and request audiobooks and ebooks",
+  "description": "Search and request audiobooks, ebooks and comics",
   "searchPlaceholder": {
-    "all": "Search audiobooks & ebooks...",
+    "all": "Search audiobooks, ebooks & comics...",
     "audiobooks": "Search audiobooks...",
-    "ebooks": "Search ebooks..."
+    "ebooks": "Search ebooks...",
+    "comics": "Search comics..."
   },
   "searchButton": "Search",
   "filters": {
@@ -14,7 +15,8 @@
       "label": "Content Type",
       "all": "All",
       "audiobooks": "Audiobooks",
-      "ebooks": "Ebooks"
+      "ebooks": "Ebooks",
+      "comics": "Comics"
     },
     "searchIn": {
       "label": "Search In",
@@ -47,7 +49,8 @@
   },
   "badge": {
     "audiobook": "Audiobook",
-    "ebook": "Ebook"
+    "ebook": "Ebook",
+    "comics": "Comics"
   },
   "status": {
     "pending": "Pending",

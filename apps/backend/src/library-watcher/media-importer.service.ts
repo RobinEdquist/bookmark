@@ -621,6 +621,29 @@ export class MediaImporterService {
         this.wsEvents.comicSeriesUpdated(series.id);
       }
 
+      // Try to match with pending requests. Matching is by folder name only,
+      // never by the requested content type — a PDF request can legitimately
+      // be fulfilled by either the ebook or the comics importer, so whichever
+      // importer claims the files completes the request with the type that
+      // was actually imported.
+      const folderName = path.basename(unit.path);
+      const parentFolderName = path.basename(path.dirname(unit.path));
+
+      const matched = await this.requestsService.tryMatchImport(
+        folderName,
+        series.id,
+        'comics',
+      );
+      if (!matched) {
+        // Try parent folder if the series folder didn't match (for nested
+        // folder structures)
+        await this.requestsService.tryMatchImport(
+          parentFolderName,
+          series.id,
+          'comics',
+        );
+      }
+
       return series.id;
     } catch (error) {
       this.logger.error(

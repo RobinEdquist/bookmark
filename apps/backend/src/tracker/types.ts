@@ -1,7 +1,7 @@
 // Tracker Search Types
 export interface TrackerSearchParams {
   query: string;
-  categories?: string[]; // content-type ids: 'audiobook', 'ebook'
+  categories?: string[]; // content-type ids: 'audiobook', 'ebook', 'comics'
   searchIn?: string[]; // Fields to search: title, author, narrator, series, tags, description
   languages?: number[]; // Language IDs
   perPage?: number;
@@ -22,7 +22,7 @@ export interface TrackerSearchResult {
   narrator?: string | null;
   series?: TrackerSeries[] | null;
   description?: string | null;
-  contentType: 'audiobook' | 'ebook';
+  contentType: 'audiobook' | 'ebook' | 'comics';
   categoryId: number;
   categoryName?: string;
   size?: string;
@@ -37,13 +37,24 @@ export interface TrackerSearchResponse {
   total: number;
 }
 
+// Language taxonomy owned by the tracker client. The ids are opaque to
+// Bookmark and only meaningful to the module that returned them.
+export interface TrackerLanguage {
+  id: number;
+  name: string;
+}
+
+export interface TrackerLanguagesResponse {
+  languages: TrackerLanguage[];
+}
+
 // Tracker Download Types
 export interface TrackerDownloadOptions {
   category?: string; // download client category (e.g., "audiobooks", "books")
   tags?: string;
   paused?: boolean;
   savepath?: string;
-  usePersonalFL?: boolean; // Spend a personal freeleech wedge before downloading
+  usePersonalFL?: boolean; // Spend a personal freeleech credit before downloading
 }
 
 export interface TrackerDownloadResponse {

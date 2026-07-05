@@ -21,6 +21,7 @@ import {
   RequestResponseDto,
   TrackerSearchResultDto,
   TrackerSearchResultsDto,
+  TrackerLanguagesResponseDto,
 } from './dto';
 import { RequestStatus, ContentType } from './schema';
 
@@ -28,10 +29,6 @@ type CombinedSchema = typeof requestsSchema &
   typeof audiobooksSchema &
   typeof ebooksSchema &
   typeof authSchema;
-
-// Tracker category id for comics/graphic novels. Requests in this category are
-// routed to the dedicated comics download-client category on approval.
-const COMICS_CATEGORY_ID = 61;
 
 @Injectable()
 export class RequestsService {
@@ -49,7 +46,7 @@ export class RequestsService {
     perPage: number,
     offset: number,
     _userId: string,
-    contentType: 'all' | 'audiobooks' | 'ebooks' = 'all',
+    contentType: 'all' | 'audiobooks' | 'ebooks' | 'comics' = 'all',
     searchIn?: string[],
     languages?: number[],
   ): Promise<TrackerSearchResultsDto> {
@@ -62,8 +59,11 @@ export class RequestsService {
       case 'ebooks':
         categories = ['ebook'];
         break;
+      case 'comics':
+        categories = ['comics'];
+        break;
       default:
-        categories = ['audiobook', 'ebook'];
+        categories = ['audiobook', 'ebook', 'comics'];
     }
 
     const response = await this.tracker.search({
@@ -139,6 +139,23 @@ export class RequestsService {
       results,
       total: response.total ?? 0,
     };
+  }
+
+  async getLanguages(): Promise<TrackerLanguagesResponseDto> {
+    try {
+      const response = await this.tracker.getLanguages();
+      return {
+        languages: (response.languages ?? []).map((language) => ({
+          id: language.id,
+          name: language.name,
+        })),
+      };
+    } catch (error) {
+      // A module without a language taxonomy (or one predating the endpoint)
+      // is treated as having none; the UI hides the language filter.
+      this.logger.debug(`Tracker languages unavailable: ${error}`);
+      return { languages: [] };
+    }
   }
 
   async createRequest(
@@ -342,9 +359,9 @@ export class RequestsService {
     // Get configurable category names from settings
     const categories = await this.appSettingsService.getRequestsCategories();
 
-    // Determine download-client category based on content type and tracker category
+    // Determine download-client category based on content type
     let category: string;
-    if (request.categoryId === COMICS_CATEGORY_ID) {
+    if (request.contentType === 'comics') {
       category = categories.comics;
     } else if (request.contentType === 'audiobook') {
       category = categories.audiobook;
@@ -352,7 +369,7 @@ export class RequestsService {
       category = categories.ebook;
     }
 
-    // Check if freeleech wedges should be used
+    // Check if freeleech credits should be used
     const settings = await this.appSettingsService.getSettings();
     const usePersonalFL = settings.requestsUseFreeleech;
 

@@ -157,7 +157,7 @@ export class AppSettingsResponseDto {
   @ApiProperty({
     example: false,
     description:
-      'Whether to use personal freeleech wedges when downloading requested content',
+      'Whether to spend personal freeleech credits when downloading requested content',
   })
   requestsUseFreeleech!: boolean;
 

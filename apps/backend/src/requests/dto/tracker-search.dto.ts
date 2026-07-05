@@ -19,12 +19,12 @@ export class TrackerSearchDto {
   @ApiPropertyOptional({
     description: 'Filter by content type',
     example: 'audiobooks',
-    enum: ['all', 'audiobooks', 'ebooks'],
+    enum: ['all', 'audiobooks', 'ebooks', 'comics'],
     default: 'all',
   })
   @IsOptional()
-  @IsIn(['all', 'audiobooks', 'ebooks'])
-  contentType?: 'all' | 'audiobooks' | 'ebooks' = 'all';
+  @IsIn(['all', 'audiobooks', 'ebooks', 'comics'])
+  contentType?: 'all' | 'audiobooks' | 'ebooks' | 'comics' = 'all';
 
   @ApiPropertyOptional({
     description: 'Fields to search in',

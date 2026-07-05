@@ -24,7 +24,7 @@ import { useUrlTab } from "../../../lib/use-url-tab";
 const VIEW_TABS = ["search", "my-requests"] as const;
 type ViewTab = (typeof VIEW_TABS)[number];
 
-const CONTENT_TYPES = ["all", "audiobooks", "ebooks"] as const;
+const CONTENT_TYPES = ["all", "audiobooks", "ebooks", "comics"] as const;
 type ContentType = (typeof CONTENT_TYPES)[number];
 
 export default function RequestsPage() {
@@ -39,7 +39,6 @@ export default function RequestsPage() {
   const [filters, setFilters] = useState<SearchFilters>({
     contentType: "all",
     searchIn: ["title", "author"],
-    languages: [1], // Default to English
     perPage: 25,
   });
 
@@ -138,6 +137,7 @@ export default function RequestsPage() {
             <ContentTypeTabsTrigger value="all">{t("filters.contentType.all")}</ContentTypeTabsTrigger>
             <ContentTypeTabsTrigger value="audiobooks">{t("filters.contentType.audiobooks")}</ContentTypeTabsTrigger>
             <ContentTypeTabsTrigger value="ebooks">{t("filters.contentType.ebooks")}</ContentTypeTabsTrigger>
+            <ContentTypeTabsTrigger value="comics">{t("filters.contentType.comics")}</ContentTypeTabsTrigger>
           </ContentTypeTabsList>
         </ContentTypeTabs>
 
@@ -159,7 +159,9 @@ export default function RequestsPage() {
 
         <SearchFiltersPanel filters={filters} onChange={setFilters} />
 
-        {librarySearchQuery && (
+        {/* Library search has no comics support yet, so the matches section
+            is hidden for that filter */}
+        {librarySearchQuery && contentType !== "comics" && (
           <LibraryMatchesSection
             audiobooks={libraryResults?.audiobooks ?? []}
             ebooks={libraryResults?.ebooks ?? []}

@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Headphones, BookOpen, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import type { RequestResponse } from "../../lib/use-requests";
+import { CONTENT_TYPE_STYLES, libraryItemHref } from "./content-type-styles";
 
 interface MyRequestsListProps {
   requests: RequestResponse[];
@@ -42,17 +43,15 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
 
   return (
     <div className="space-y-4">
-      {requests.map((request) => (
+      {requests.map((request) => {
+        const TypeIcon = CONTENT_TYPE_STYLES[request.contentType].icon;
+        return (
         <Card key={request.id}>
           <CardContent className="p-4">
             <div className="flex gap-4">
               {/* Content Type Icon */}
               <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-muted shrink-0">
-                {request.contentType === "audiobook" ? (
-                  <Headphones className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-                ) : (
-                  <BookOpen className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-                )}
+                <TypeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
               </div>
 
               {/* Info */}
@@ -90,9 +89,11 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
                 </p>
 
                 {/* Link to library item if complete */}
-                {request.status === "complete" && request.libraryItemId && (
+                {request.status === "complete" &&
+                  request.libraryItemId &&
+                  request.libraryItemType && (
                   <Link
-                    href={`/${request.libraryItemType}s/${request.libraryItemId}`}
+                    href={libraryItemHref(request.libraryItemType, request.libraryItemId)}
                     className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
                   >
                     {t("viewInLibrary")}
@@ -103,7 +104,8 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
             </div>
           </CardContent>
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }

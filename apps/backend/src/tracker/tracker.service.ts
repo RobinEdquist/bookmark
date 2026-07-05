@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import {
   TrackerSearchParams,
   TrackerSearchResponse,
+  TrackerLanguagesResponse,
   TrackerDownloadOptions,
   TrackerDownloadResponse,
   TorrentStatus,
@@ -76,6 +77,10 @@ export class TrackerService {
       perPage: params.perPage,
       offset: params.offset,
     });
+  }
+
+  async getLanguages(): Promise<TrackerLanguagesResponse> {
+    return this.request<TrackerLanguagesResponse>('GET', '/languages');
   }
 
   async download(

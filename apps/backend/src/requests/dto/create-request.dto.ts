@@ -59,10 +59,10 @@ export class CreateRequestDto {
   @ApiProperty({
     description: 'Type of content being requested',
     example: 'audiobook',
-    enum: ['audiobook', 'ebook'],
+    enum: ['audiobook', 'ebook', 'comics'],
   })
-  @IsIn(['audiobook', 'ebook'])
-  contentType!: 'audiobook' | 'ebook';
+  @IsIn(['audiobook', 'ebook', 'comics'])
+  contentType!: 'audiobook' | 'ebook' | 'comics';
 
   @ApiProperty({
     description: 'Tracker category ID',

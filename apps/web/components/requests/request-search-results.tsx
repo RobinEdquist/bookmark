@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { Headphones, BookOpen, ChevronRight, Calendar, Tag, Check } from "lucide-react";
+import { ChevronRight, Calendar, Tag, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
@@ -12,6 +12,7 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import type { TrackerSearchResult, ContentType } from "../../lib/use-requests";
 import { RequestDetailPanel } from "./request-detail-panel";
 import { getCategoryColor, formatCategoryName } from "./category-colors";
+import { CONTENT_TYPE_STYLES } from "./content-type-styles";
 
 interface RequestSearchResultsProps {
   results: TrackerSearchResult[];
@@ -101,7 +102,8 @@ export function RequestSearchResults({
     <>
       <div className="space-y-3 sm:space-y-4">
         {results.map((item) => {
-          const isAudiobook = item.contentType === "audiobook";
+          const typeStyle = CONTENT_TYPE_STYLES[item.contentType];
+          const TypeIcon = typeStyle.icon;
           const categoryName = formatCategoryName(item.category);
           const categoryColors = getCategoryColor(categoryName);
 
@@ -115,11 +117,7 @@ export function RequestSearchResults({
                 {/* Desktop Layout (sm+) */}
                 <div className="hidden sm:flex gap-4">
                   {/* Colored accent bar */}
-                  <div
-                    className={`w-1.5 shrink-0 ${
-                      isAudiobook ? "bg-primary" : "bg-blue-500"
-                    }`}
-                  />
+                  <div className={`w-1.5 shrink-0 ${typeStyle.accentBar}`} />
 
                   {/* Cover Image / Content Type Icon & Category */}
                   <div className="my-4 flex shrink-0 flex-col items-center gap-1.5">
@@ -134,17 +132,9 @@ export function RequestSearchResults({
                       />
                     ) : (
                       <div
-                        className={`flex h-14 w-14 items-center justify-center rounded-lg ${
-                          isAudiobook
-                            ? "bg-primary/10 text-primary"
-                            : "bg-blue-500/10 text-blue-500"
-                        }`}
+                        className={`flex h-14 w-14 items-center justify-center rounded-lg ${typeStyle.iconBox}`}
                       >
-                        {isAudiobook ? (
-                          <Headphones className="h-7 w-7" />
-                        ) : (
-                          <BookOpen className="h-7 w-7" />
-                        )}
+                        <TypeIcon className="h-7 w-7" />
                       </div>
                     )}
                     <span
@@ -161,13 +151,9 @@ export function RequestSearchResults({
                       <div className="flex items-center gap-2">
                         <h3 className="truncate font-semibold">{item.title}</h3>
                         <span
-                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-                            isAudiobook
-                              ? "bg-primary/15 text-primary"
-                              : "bg-blue-500/15 text-blue-500"
-                          }`}
+                          className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${typeStyle.badge}`}
                         >
-                          {isAudiobook ? t("badge.audiobook") : t("badge.ebook")}
+                          {t(`badge.${typeStyle.badgeKey}`)}
                         </span>
                       </div>
                       {item.author && (
@@ -310,11 +296,7 @@ export function RequestSearchResults({
 
                 {/* Mobile Layout */}
                 <div className="sm:hidden">
-                  <div
-                    className={`h-1 w-full ${
-                      isAudiobook ? "bg-primary" : "bg-blue-500"
-                    }`}
-                  />
+                  <div className={`h-1 w-full ${typeStyle.accentBar}`} />
                   <div className="p-4 space-y-3">
                     {/* Header: Cover/Icon + Title */}
                     <div className="flex items-start gap-3">
@@ -329,30 +311,18 @@ export function RequestSearchResults({
                         />
                       ) : (
                         <div
-                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${
-                            isAudiobook
-                              ? "bg-primary/10 text-primary"
-                              : "bg-blue-500/10 text-blue-500"
-                          }`}
+                          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${typeStyle.iconBox}`}
                         >
-                          {isAudiobook ? (
-                            <Headphones className="h-6 w-6" />
-                          ) : (
-                            <BookOpen className="h-6 w-6" />
-                          )}
+                          <TypeIcon className="h-6 w-6" />
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
                           <h3 className="font-semibold leading-tight line-clamp-2">{item.title}</h3>
                           <span
-                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
-                              isAudiobook
-                                ? "bg-primary/15 text-primary"
-                                : "bg-blue-500/15 text-blue-500"
-                            }`}
+                            className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${typeStyle.badge}`}
                           >
-                            {isAudiobook ? t("badge.audiobook") : t("badge.ebook")}
+                            {t(`badge.${typeStyle.badgeKey}`)}
                           </span>
                         </div>
                         {item.author && (

@@ -1,10 +1,11 @@
 {
   "title": "Förfrågningar",
-  "description": "Sök och begär ljudböcker och e-böcker",
+  "description": "Sök och begär ljudböcker, e-böcker och serier",
   "searchPlaceholder": {
-    "all": "Sök ljudböcker & e-böcker...",
+    "all": "Sök ljudböcker, e-böcker & serier...",
     "audiobooks": "Sök ljudböcker...",
-    "ebooks": "Sök e-böcker..."
+    "ebooks": "Sök e-böcker...",
+    "comics": "Sök serier..."
   },
   "searchButton": "Sök",
   "filters": {
@@ -14,7 +15,8 @@
       "label": "Innehållstyp",
       "all": "Alla",
       "audiobooks": "Ljudböcker",
-      "ebooks": "E-böcker"
+      "ebooks": "E-böcker",
+      "comics": "Serier"
     },
     "searchIn": {
       "label": "Sök i",
@@ -47,7 +49,8 @@
   },
   "badge": {
     "audiobook": "Ljudbok",
-    "ebook": "E-bok"
+    "ebook": "E-bok",
+    "comics": "Serier"
   },
   "status": {
     "pending": "Väntande",

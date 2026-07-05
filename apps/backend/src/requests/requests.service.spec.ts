@@ -391,11 +391,10 @@ describe('RequestsService', () => {
       );
     });
 
-    it('uses comics category for categoryId 61', async () => {
+    it('uses comics category for comics content type', async () => {
       const request = buildRequest({
         status: 'pending',
-        categoryId: 61,
-        contentType: 'ebook',
+        contentType: 'comics',
       });
       const updateChain = chainMock([]);
 
@@ -814,7 +813,7 @@ describe('RequestsService', () => {
       );
     });
 
-    it('sends categories [audiobook, ebook] for all content type', async () => {
+    it('sends all categories for all content type', async () => {
       const tracker = createMockTracker();
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
@@ -824,7 +823,23 @@ describe('RequestsService', () => {
       await service.search('Book', 25, 0, 'user-1', 'all');
 
       expect(tracker.search).toHaveBeenCalledWith(
-        expect.objectContaining({ categories: ['audiobook', 'ebook'] }),
+        expect.objectContaining({
+          categories: ['audiobook', 'ebook', 'comics'],
+        }),
+      );
+    });
+
+    it('sends categories [comics] for comics content type', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({ results: [], total: 0 });
+
+      const db = createSequentialSelectDb([]);
+      const service = new RequestsService(db, tracker, createMockAppSettings());
+
+      await service.search('Book', 25, 0, 'user-1', 'comics');
+
+      expect(tracker.search).toHaveBeenCalledWith(
+        expect.objectContaining({ categories: ['comics'] }),
       );
     });
   });

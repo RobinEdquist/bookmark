@@ -21,7 +21,7 @@ export const requestStatus = [
 ] as const;
 export type RequestStatus = (typeof requestStatus)[number];
 
-export const contentType = ['audiobook', 'ebook'] as const;
+export const contentType = ['audiobook', 'ebook', 'comics'] as const;
 export type ContentType = (typeof contentType)[number];
 
 export const requests = pgTable(
