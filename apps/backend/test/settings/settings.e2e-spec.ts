@@ -84,7 +84,6 @@ describe('Settings (e2e)', () => {
       expect(data).toHaveProperty('defaultCanRequestContent');
       expect(data).toHaveProperty('defaultCanGenerateAudiobooks');
       expect(data).toHaveProperty('trackerClientConfigured');
-      expect(data).toHaveProperty('grFinderConfigured');
       expect(data).toHaveProperty('createdAt');
       expect(data).toHaveProperty('updatedAt');
     });

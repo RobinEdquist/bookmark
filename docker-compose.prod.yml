@@ -63,7 +63,6 @@ services:
       # Integrations (optional)
       TRACKER_CLIENT_URL: ${TRACKER_CLIENT_URL:-}
       TRACKER_CLIENT_API_KEY: ${TRACKER_CLIENT_API_KEY:-}
-      GR_FINDER_URL: ${GR_FINDER_URL:-}
     volumes:
       # Application data (covers, cache, auto-generated auth secret, etc.)
       - ${DATA_PATH:-./data}/app:/data

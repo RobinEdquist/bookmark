@@ -109,12 +109,6 @@ Everything is set through environment variables in your `.env` file. With Docker
 | `OIDC_CLIENT_ID`     | If SSO enabled | —       | Client ID                              |
 | `OIDC_CLIENT_SECRET` | If SSO enabled | —       | Client secret                          |
 
-**Integrations (optional)**
-
-| Variable        | Required | Default | Description                                                                    |
-| --------------- | -------- | ------- | ------------------------------------------------------------------------------ |
-| `GR_FINDER_URL` | No       | —       | URL of a Goodreads finder service; enables Goodreads metadata lookups when set |
-
 **AI-narrated audiobooks (optional)** — Bookmark can narrate an ebook into a real audiobook using any OpenAI-compatible text-to-speech server (`/v1/audio/speech`). A ready-to-use, CPU-friendly engine ships behind a compose profile:
 
 ```bash

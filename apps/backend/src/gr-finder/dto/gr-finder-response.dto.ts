@@ -3,7 +3,8 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export class GrFinderStatusResponseDto {
   @ApiProperty({
     example: true,
-    description: 'Whether Goodreads Finder is configured via GR_FINDER_URL',
+    description:
+      'Whether Goodreads lookups are available. Always true — the scraper is built into the server.',
   })
   configured!: boolean;
 }
@@ -45,7 +46,7 @@ export class GrFinderSearchResponseDto {
 
 /**
  * Full book details from `GET /gr-finder/book/:goodreadsId`. Mirrors the
- * gr-finder service's `GrFinderBookDetails` — the sidecar's raw book payload.
+ * gr-finder service's `GrFinderBookDetails` — the scraped book payload.
  */
 export class GrFinderBookDetailsDto {
   @ApiProperty({ example: "The Hitchhiker's Guide to the Galaxy" })
@@ -82,6 +83,15 @@ export class GrFinderBookDetailsDto {
 
   @ApiPropertyOptional({ example: 1500000, nullable: true })
   rating_count?: number | null;
+
+  @ApiPropertyOptional({
+    example: "The Hitchhiker's Guide to the Galaxy",
+    nullable: true,
+  })
+  series?: string | null;
+
+  @ApiPropertyOptional({ example: '1', nullable: true })
+  series_number?: string | null;
 }
 
 // Link-related DTOs

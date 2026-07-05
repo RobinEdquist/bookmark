@@ -1,6 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { createMockDb, createChainMock, type MockDb } from '@test-utils';
 import { GrFinderService } from '../gr-finder.service';
+import type { GoodreadsScraperService } from '../goodreads-scraper.service';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -9,33 +10,29 @@ import { GrFinderService } from '../gr-finder.service';
 const AUDIOBOOK_ID = 'audiobook-1';
 const EBOOK_ID = 'ebook-1';
 const GOODREADS_ID = '12345';
-const GR_FINDER_URL = 'http://gr-finder:3000';
 
-const mockBookDetails = {
+const mockScrapedDetails = {
   title: 'The Great Gatsby',
   author: 'F. Scott Fitzgerald',
   cover_url: 'https://covers.example.com/gatsby.jpg',
   rating: 4.2,
-  url: 'https://www.goodreads.com/book/show/12345',
-  description: 'A novel about the American Dream.',
-  genres: ['Fiction', 'Classics'],
   rating_count: 5000,
+  genres: ['Fiction', 'Classics'],
+  description: 'A novel about the American Dream.',
+  series: null,
+  series_number: null,
 };
 
-const mockSearchResponse = {
-  query: 'The Great Gatsby',
-  count: 1,
-  results: [
-    {
-      title: 'The Great Gatsby',
-      author: 'F. Scott Fitzgerald',
-      goodreads_id: GOODREADS_ID,
-      cover_url: 'https://covers.example.com/gatsby.jpg',
-      avg_rating: '4.2',
-      url: 'https://www.goodreads.com/book/show/12345',
-    },
-  ],
-};
+const mockSearchResults = [
+  {
+    title: 'The Great Gatsby',
+    author: 'F. Scott Fitzgerald',
+    goodreads_id: GOODREADS_ID,
+    cover_url: 'https://covers.example.com/gatsby.jpg',
+    avg_rating: '4.2',
+    url: 'https://www.goodreads.com/book/show/12345',
+  },
+];
 
 const mockGoodreadsBookRecord = {
   id: 'gr-book-1',
@@ -45,87 +42,56 @@ const mockGoodreadsBookRecord = {
 };
 
 // ---------------------------------------------------------------------------
-// Setup
-// ---------------------------------------------------------------------------
-
-const originalEnv = process.env;
-let mockFetch: jest.Mock;
-
-beforeEach(() => {
-  process.env = { ...originalEnv, GR_FINDER_URL };
-  mockFetch = jest.fn();
-  global.fetch = mockFetch;
-});
-
-afterEach(() => {
-  process.env = originalEnv;
-  jest.restoreAllMocks();
-});
-
-// ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('GrFinderService', () => {
   let db: MockDb;
+  let scraper: jest.Mocked<
+    Pick<GoodreadsScraperService, 'searchBooks' | 'getBookDetails'>
+  >;
   let service: GrFinderService;
 
   beforeEach(() => {
     db = createMockDb();
-    service = new GrFinderService(db as any);
+    scraper = {
+      searchBooks: jest.fn(),
+      getBookDetails: jest.fn(),
+    };
+    service = new GrFinderService(
+      db as any,
+      scraper as unknown as GoodreadsScraperService,
+    );
   });
 
-  // -----------------------------------------------------------------------
-  // isConfigured
-  // -----------------------------------------------------------------------
-  describe('isConfigured', () => {
-    it('returns true when GR_FINDER_URL is set', () => {
-      expect(service.isConfigured()).toBe(true);
-    });
-
-    it('returns false when GR_FINDER_URL is not set', () => {
-      delete process.env.GR_FINDER_URL;
-      expect(service.isConfigured()).toBe(false);
-    });
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   // -----------------------------------------------------------------------
   // search
   // -----------------------------------------------------------------------
   describe('search', () => {
-    it('calls fetch with correct URL', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockSearchResponse),
-      });
+    it('wraps scraper results in a search response', async () => {
+      scraper.searchBooks.mockResolvedValue(mockSearchResults);
 
       const result = await service.search('The Great Gatsby');
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${GR_FINDER_URL}/search?q=The+Great+Gatsby`,
-        expect.objectContaining({ method: 'GET' }),
-      );
-      expect(result).toEqual(mockSearchResponse);
-    });
-
-    it('throws when not configured', async () => {
-      delete process.env.GR_FINDER_URL;
-
-      await expect(service.search('query')).rejects.toThrow(
-        'GR_FINDER_URL is not configured',
-      );
-    });
-
-    it('throws on non-OK response', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 500,
-        statusText: 'Internal Server Error',
-        text: jest.fn().mockResolvedValue('Server error'),
+      expect(scraper.searchBooks).toHaveBeenCalledWith('The Great Gatsby');
+      expect(result).toEqual({
+        query: 'The Great Gatsby',
+        count: 1,
+        results: mockSearchResults,
       });
+    });
+
+    it('propagates scraper errors', async () => {
+      scraper.searchBooks.mockRejectedValue(
+        new Error('Goodreads search failed with status 500'),
+      );
 
       await expect(service.search('query')).rejects.toThrow(
-        'Search failed: Internal Server Error',
+        'Goodreads search failed with status 500',
       );
     });
   });
@@ -135,10 +101,7 @@ describe('GrFinderService', () => {
   // -----------------------------------------------------------------------
   describe('searchByMediaId', () => {
     it('uses custom query directly when provided', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockSearchResponse),
-      });
+      scraper.searchBooks.mockResolvedValue(mockSearchResults);
 
       const result = await service.searchByMediaId(
         'audiobook',
@@ -146,10 +109,7 @@ describe('GrFinderService', () => {
         'custom search term',
       );
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        expect.stringContaining('q=custom+search+term'),
-        expect.any(Object),
-      );
+      expect(scraper.searchBooks).toHaveBeenCalledWith('custom search term');
       expect(result.query).toBe('custom search term');
     });
 
@@ -160,11 +120,7 @@ describe('GrFinderService', () => {
       ]);
 
       db.select.mockReturnValueOnce(audiobookSelectChain);
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockSearchResponse),
-      });
+      scraper.searchBooks.mockResolvedValue(mockSearchResults);
 
       const result = await service.searchByMediaId('audiobook', AUDIOBOOK_ID);
 
@@ -188,11 +144,7 @@ describe('GrFinderService', () => {
       ]);
 
       db.select.mockReturnValueOnce(ebookSelectChain);
-
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockSearchResponse),
-      });
+      scraper.searchBooks.mockResolvedValue(mockSearchResults);
 
       const result = await service.searchByMediaId('ebook', EBOOK_ID);
 
@@ -214,39 +166,34 @@ describe('GrFinderService', () => {
   // getBookDetails
   // -----------------------------------------------------------------------
   describe('getBookDetails', () => {
-    it('calls correct URL', async () => {
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockBookDetails),
-      });
+    it('enriches scraped details with the goodreads id and URL', async () => {
+      scraper.getBookDetails.mockResolvedValue(mockScrapedDetails);
 
       const result = await service.getBookDetails(GOODREADS_ID);
 
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${GR_FINDER_URL}/book/${GOODREADS_ID}`,
-        expect.objectContaining({ method: 'GET' }),
-      );
-      expect(result).toEqual(mockBookDetails);
-    });
-
-    it('throws on error', async () => {
-      mockFetch.mockResolvedValue({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-        text: jest.fn().mockResolvedValue('Book not found'),
+      expect(scraper.getBookDetails).toHaveBeenCalledWith(GOODREADS_ID);
+      expect(result).toEqual({
+        ...mockScrapedDetails,
+        goodreads_id: GOODREADS_ID,
+        url: `https://www.goodreads.com/book/show/${GOODREADS_ID}`,
       });
+    });
 
-      await expect(service.getBookDetails(GOODREADS_ID)).rejects.toThrow(
-        'Failed to fetch book details: Not Found',
+    it('throws NotFoundException when the scraper finds nothing', async () => {
+      scraper.getBookDetails.mockResolvedValue(null);
+
+      await expect(service.getBookDetails(GOODREADS_ID)).rejects.toBeInstanceOf(
+        NotFoundException,
       );
     });
 
-    it('throws when not configured', async () => {
-      delete process.env.GR_FINDER_URL;
+    it('propagates scraper errors', async () => {
+      scraper.getBookDetails.mockRejectedValue(
+        new Error('Failed to launch the headless browser'),
+      );
 
       await expect(service.getBookDetails(GOODREADS_ID)).rejects.toThrow(
-        'GR_FINDER_URL is not configured',
+        'Failed to launch the headless browser',
       );
     });
   });
@@ -268,11 +215,7 @@ describe('GrFinderService', () => {
         .mockReturnValueOnce(verifyChain)
         .mockReturnValueOnce(findExistingChain);
 
-      // Mock: fetch book details
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: jest.fn().mockResolvedValue(mockBookDetails),
-      });
+      scraper.getBookDetails.mockResolvedValue(mockScrapedDetails);
 
       // Mock: insert goodreads book (create new)
       const insertChain = createChainMock(['values', 'returning']);
@@ -292,20 +235,9 @@ describe('GrFinderService', () => {
       );
 
       expect(result).toEqual(mockGoodreadsBookRecord);
-      expect(mockFetch).toHaveBeenCalledWith(
-        `${GR_FINDER_URL}/book/${GOODREADS_ID}`,
-        expect.any(Object),
-      );
+      expect(scraper.getBookDetails).toHaveBeenCalledWith(GOODREADS_ID);
       expect(db.delete).toHaveBeenCalled();
       expect(db.insert).toHaveBeenCalled();
-    });
-
-    it('throws when not configured', async () => {
-      delete process.env.GR_FINDER_URL;
-
-      await expect(
-        service.linkMediaToGoodreads('audiobook', AUDIOBOOK_ID, GOODREADS_ID),
-      ).rejects.toThrow('Goodreads Finder is not configured');
     });
 
     it('throws NotFoundException for missing audiobook', async () => {

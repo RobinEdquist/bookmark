@@ -46,9 +46,9 @@ export class GrFinderController {
 
   @Get('status')
   @ApiOperation({
-    summary: 'Get Goodreads Finder integration status',
+    summary: 'Get Goodreads Finder availability',
     description:
-      'Returns whether Goodreads Finder is configured via GR_FINDER_URL',
+      'Goodreads lookups are built into the server; reports availability for the current (admin) user',
   })
   @ApiResponse({
     status: 200,
@@ -58,7 +58,7 @@ export class GrFinderController {
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   getStatus(): GrFinderStatusResponseDto {
     return {
-      configured: this.grFinderService.isConfigured(),
+      configured: true,
     };
   }
 
@@ -75,16 +75,12 @@ export class GrFinderController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Search query required or service not configured',
+    description: 'Search query required',
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async search(@Query('q') query: string): Promise<GrFinderSearchResponseDto> {
     if (!query || typeof query !== 'string') {
       throw new BadRequestException('Search query is required');
-    }
-
-    if (!this.grFinderService.isConfigured()) {
-      throw new BadRequestException('Goodreads Finder is not configured');
     }
 
     try {
@@ -116,17 +112,12 @@ export class GrFinderController {
     description: 'Search results with computed query',
     type: GrFinderSearchResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Service not configured' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async searchByAudiobook(
     @Param('audiobookId') audiobookId: string,
     @Query('q') customQuery?: string,
   ): Promise<GrFinderSearchResponseDto> {
-    if (!this.grFinderService.isConfigured()) {
-      throw new BadRequestException('Goodreads Finder is not configured');
-    }
-
     try {
       return await this.grFinderService.searchByMediaId(
         'audiobook',
@@ -163,17 +154,12 @@ export class GrFinderController {
     description: 'Search results with computed query',
     type: GrFinderSearchResponseDto,
   })
-  @ApiResponse({ status: 400, description: 'Service not configured' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
   async searchByEbook(
     @Param('ebookId') ebookId: string,
     @Query('q') customQuery?: string,
   ): Promise<GrFinderSearchResponseDto> {
-    if (!this.grFinderService.isConfigured()) {
-      throw new BadRequestException('Goodreads Finder is not configured');
-    }
-
     try {
       return await this.grFinderService.searchByMediaId(
         'ebook',
@@ -208,22 +194,18 @@ export class GrFinderController {
     description: 'Book details',
     type: GrFinderBookDetailsDto,
   })
-  @ApiResponse({
-    status: 400,
-    description: 'Service not configured',
-  })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  @ApiResponse({ status: 404, description: 'Book not found' })
   async getBookDetails(
     @Param('goodreadsId') goodreadsId: string,
   ): Promise<GrFinderBookDetailsDto> {
-    if (!this.grFinderService.isConfigured()) {
-      throw new BadRequestException('Goodreads Finder is not configured');
-    }
-
     try {
       return await this.grFinderService.getBookDetails(goodreadsId);
     } catch (error) {
-      if (error instanceof BadRequestException) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof NotFoundException
+      ) {
         throw error;
       }
       throw new InternalServerErrorException(

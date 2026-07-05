@@ -91,7 +91,11 @@ export class AuthConfigResponseDto {
   @ApiProperty({ example: false })
   oidcEnabled!: boolean;
 
-  @ApiPropertyOptional({ example: 'Sign in with SSO', nullable: true, type: String })
+  @ApiPropertyOptional({
+    example: 'Sign in with SSO',
+    nullable: true,
+    type: String,
+  })
   oidcButtonText?: string | null;
 }
 
@@ -122,7 +126,11 @@ export class AppSettingsResponseDto {
   @ApiProperty({ type: ComicMetadataFieldPriorityDto })
   comicMetadataPriority!: ComicMetadataFieldPriorityDto;
 
-  @ApiPropertyOptional({ example: 'Sign in with SSO', nullable: true, type: String })
+  @ApiPropertyOptional({
+    example: 'Sign in with SSO',
+    nullable: true,
+    type: String,
+  })
   oidcButtonText?: string | null;
 
   @ApiProperty({ example: true })
@@ -177,13 +185,6 @@ export class AppSettingsResponseDto {
       'Whether the tracker client is configured via environment variables',
   })
   trackerClientConfigured!: boolean;
-
-  @ApiProperty({
-    example: false,
-    description:
-      'Whether Goodreads Finder is configured via GR_FINDER_URL environment variable',
-  })
-  grFinderConfigured!: boolean;
 
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
   createdAt!: Date;

@@ -142,6 +142,16 @@ COPY --from=mwader/static-ffmpeg:7.1.1 /ffprobe /usr/local/bin/ffprobe
 # drizzle.config.ts and the migrations folder are needed at startup for
 # `drizzle-kit migrate`; everything else the app loads lives in dist/.
 COPY --from=backend-proddeps /app /app
+
+# Headless Chromium for the built-in Goodreads scraper — book pages sit behind
+# an AWS WAF JS challenge that only a real browser solves. Installing through
+# the playwright CLI in node_modules keeps the browser build in lockstep with
+# the playwright library version; --with-deps pulls in the required system
+# libraries. Placed before the dist/ copies so source-only rebuilds reuse this
+# (large) layer.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+RUN cd /app/apps/backend && npx playwright install --with-deps chromium
+
 COPY --from=backend-installer /app/apps/backend/dist /app/apps/backend/dist
 COPY --from=backend-installer /app/apps/backend/drizzle /app/apps/backend/drizzle
 COPY --from=backend-installer /app/apps/backend/drizzle.config.ts /app/apps/backend/drizzle.config.ts

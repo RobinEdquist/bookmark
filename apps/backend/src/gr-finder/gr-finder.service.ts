@@ -5,6 +5,7 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { audiobooks } from '../audiobooks/schema';
 import { ebooks } from '../ebooks/schema';
 import * as goodreadsSchema from './schema';
+import { GoodreadsScraperService } from './goodreads-scraper.service';
 import { splitPersonNames } from '../common/utils/name.utils';
 import { splitTitleSubtitle } from '../common/utils/title.utils';
 
@@ -35,6 +36,8 @@ export interface GrFinderBookDetails {
   description: string | null;
   genres: string[];
   rating_count?: number | null;
+  series?: string | null;
+  series_number?: string | null;
 }
 
 export interface GoodreadsBookInput {
@@ -56,46 +59,19 @@ export class GrFinderService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private readonly db: NodePgDatabase,
+    private readonly scraper: GoodreadsScraperService,
   ) {}
 
-  isConfigured(): boolean {
-    return !!process.env.GR_FINDER_URL;
-  }
-
-  private getBaseUrl(): string | null {
-    const url = process.env.GR_FINDER_URL;
-    if (!url) return null;
-    return url.replace(/\/$/, '');
-  }
-
   async search(query: string): Promise<GrFinderSearchResponse> {
-    const baseUrl = this.getBaseUrl();
-    if (!baseUrl) {
-      throw new Error('GR_FINDER_URL is not configured');
-    }
+    this.logger.debug(`Searching Goodreads: ${query}`);
 
-    const searchParams = new URLSearchParams({ q: query });
-    const url = `${baseUrl}/search?${searchParams.toString()}`;
+    const results = await this.scraper.searchBooks(query);
 
-    this.logger.debug(`Searching Goodreads Finder: ${url}`);
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      this.logger.error(
-        `Goodreads Finder search failed: ${response.status} - ${errorText}`,
-      );
-      throw new Error(`Search failed: ${response.statusText}`);
-    }
-
-    const data = (await response.json()) as GrFinderSearchResponse;
-    return data;
+    return {
+      query,
+      count: results.length,
+      results,
+    };
   }
 
   async searchByMediaId(
@@ -157,35 +133,18 @@ export class GrFinderService {
   }
 
   async getBookDetails(goodreadsId: string): Promise<GrFinderBookDetails> {
-    const baseUrl = this.getBaseUrl();
-    if (!baseUrl) {
-      throw new Error('GR_FINDER_URL is not configured');
+    this.logger.debug(`Fetching Goodreads book details: ${goodreadsId}`);
+
+    const details = await this.scraper.getBookDetails(goodreadsId);
+    if (!details) {
+      throw new NotFoundException('Book not found');
     }
 
-    const url = `${baseUrl}/book/${goodreadsId}`;
-
-    this.logger.debug(`Fetching Goodreads book details: ${url}`);
-
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => 'Unknown error');
-      this.logger.error(
-        `Goodreads Finder book details failed: ${response.status} - ${errorText}`,
-      );
-      throw new Error(`Failed to fetch book details: ${response.statusText}`);
-    }
-
-    const data = await response.json();
-    this.logger.debug(
-      `Goodreads book details raw response: ${JSON.stringify(data)}`,
-    );
-    return data as GrFinderBookDetails;
+    return {
+      ...details,
+      goodreads_id: goodreadsId,
+      url: `https://www.goodreads.com/book/show/${goodreadsId}`,
+    };
   }
 
   async linkMediaToGoodreads(
@@ -193,11 +152,6 @@ export class GrFinderService {
     mediaId: string,
     goodreadsId: string,
   ) {
-    // Verify gr-finder is configured
-    if (!this.isConfigured()) {
-      throw new Error('Goodreads Finder is not configured');
-    }
-
     // Verify the media exists
     if (mediaType === 'audiobook') {
       const [audiobook] = await this.db

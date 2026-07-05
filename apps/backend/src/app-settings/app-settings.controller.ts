@@ -117,14 +117,12 @@ export class AppSettingsController {
     const trackerClientConfigured = !!(
       process.env.TRACKER_CLIENT_URL && process.env.TRACKER_CLIENT_API_KEY
     );
-    const grFinderConfigured = !!process.env.GR_FINDER_URL;
     const hardcoverConfigured = !!settings.hardcoverApiKey;
     const comicvineConfigured = !!settings.comicvineApiKey;
 
     // Merge stored metadataPriority with defaults to ensure new sources are included
     const metadataPriority = this.mergeMetadataPriority(
       settings.metadataPriority,
-      grFinderConfigured,
       hardcoverConfigured,
     );
 
@@ -157,7 +155,6 @@ export class AppSettingsController {
       defaultCanRequestContent: settings.defaultCanRequestContent,
       defaultCanGenerateAudiobooks: settings.defaultCanGenerateAudiobooks,
       trackerClientConfigured,
-      grFinderConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };
@@ -321,14 +318,12 @@ export class AppSettingsController {
     const trackerClientConfigured = !!(
       process.env.TRACKER_CLIENT_URL && process.env.TRACKER_CLIENT_API_KEY
     );
-    const grFinderConfigured = !!process.env.GR_FINDER_URL;
     const hardcoverConfigured = !!settings.hardcoverApiKey;
     const comicvineConfigured = !!settings.comicvineApiKey;
 
     // Merge stored metadataPriority with defaults to ensure new sources are included
     const metadataPriority = this.mergeMetadataPriority(
       settings.metadataPriority,
-      grFinderConfigured,
       hardcoverConfigured,
     );
 
@@ -361,7 +356,6 @@ export class AppSettingsController {
       defaultCanRequestContent: settings.defaultCanRequestContent,
       defaultCanGenerateAudiobooks: settings.defaultCanGenerateAudiobooks,
       trackerClientConfigured,
-      grFinderConfigured,
       createdAt: settings.createdAt,
       updatedAt: settings.updatedAt,
     };
@@ -411,12 +405,10 @@ export class AppSettingsController {
   /**
    * Merges stored metadata priority with defaults and filters based on integration status.
    * - Ensures new sources from DEFAULT_METADATA_PRIORITY are added
-   * - Removes goodreads if GR_FINDER_URL is not configured
    * - Removes hardcover if Hardcover API key is not configured
    */
   private mergeMetadataPriority(
     stored: MetadataFieldPriority | null,
-    grFinderConfigured: boolean,
     hardcoverConfigured: boolean,
   ): MetadataFieldPriority {
     // Start with defaults if nothing stored
@@ -424,9 +416,6 @@ export class AppSettingsController {
 
     // Sources to filter out based on integration status
     const disabledSources: string[] = [];
-    if (!grFinderConfigured) {
-      disabledSources.push('goodreads');
-    }
     if (!hardcoverConfigured) {
       disabledSources.push('hardcover');
     }

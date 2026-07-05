@@ -450,15 +450,12 @@
       }
     },
     "goodreads": {
-      "title": "Goodreads Finder",
+      "title": "Goodreads",
       "description": "Sök Goodreads efter bokmetadata och serieinformation",
-      "configured": "Konfigurerad",
-      "notConfigured": "Ej konfigurerad",
+      "builtIn": "Inbyggd",
       "status": {
         "active": "Integration aktiv",
-        "activeDescription": "Goodreads Finder är konfigurerad och redo att använda. Du kan söka efter bokmetadata och serieinformation.",
-        "inactive": "Konfiguration krävs",
-        "inactiveDescription": "Sätt miljövariabeln GR_FINDER_URL för att aktivera denna integration."
+        "activeDescription": "Goodreads-sökningar är inbyggda i servern och redo att använda — ingen konfiguration krävs. Du kan söka efter bokmetadata och serieinformation."
       }
     },
     "comicvine": {

@@ -49,7 +49,6 @@ export interface Settings {
   defaultCanRequestContent: boolean;
   defaultCanGenerateAudiobooks: boolean;
   trackerClientConfigured: boolean;
-  grFinderConfigured: boolean;
   createdAt: string;
   updatedAt: string;
 }
