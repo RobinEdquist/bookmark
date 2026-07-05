@@ -3,9 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Library } from "lucide-react";
 import { motion } from "motion/react";
 import type { SeriesWithBooks } from "../../lib/use-series";
+import { GeneratedCover } from "../common/generated-cover";
 
 interface SeriesGridCardProps {
   series: SeriesWithBooks;
@@ -111,8 +111,8 @@ export function SeriesGridCard({
                 })}
               </div>
             ) : (
-              <div className="flex h-full w-full items-center justify-center rounded-lg border border-dashed border-muted-foreground/30">
-                <Library className="h-12 w-12 text-muted-foreground" />
+              <div className="absolute left-[15%] top-[15%] h-[70%] w-[70%] overflow-hidden rounded-lg border border-black/10 shadow-lg dark:border-white/10">
+                <GeneratedCover title={series.name} aria-hidden />
               </div>
             )}
           </motion.div>

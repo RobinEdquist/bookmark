@@ -26,6 +26,7 @@ import { useLibraryAvailability } from "../../lib/use-library-availability";
 import { useMyPermissions } from "../../lib/use-users";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
 import { READABLE_FORMATS } from "../ebooks/read-button";
+import { GeneratedCover } from "../common/generated-cover";
 
 function ContinueReadingCard({
   progress,
@@ -82,8 +83,8 @@ function ContinueReadingCard({
               }}
             />
             {/* Fallback shown behind image or when image fails */}
-            <div className="absolute inset-0 flex h-full items-center justify-center -z-10">
-              <span className="text-4xl">📖</span>
+            <div className="absolute inset-0 -z-10">
+              <GeneratedCover title={progress.ebook.title} aria-hidden />
             </div>
 
             {/* Read button overlay */}

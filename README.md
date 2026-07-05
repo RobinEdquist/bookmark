@@ -51,10 +51,10 @@ git clone https://github.com/RobinEdquist/bookmark.git
 cd bookmark
 
 # Pre-built image, exposes port 3001
-docker compose -f docker-compose.prod.yml up -d
+docker compose up -d
 
 # Or build from source
-docker compose up -d
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 ```
 
 That's it for a local try-out — an auth secret is generated on first start, and everything defaults to `http://localhost:3001`. For a real deployment (your own domain, media folders), copy the config template and fill in the essentials:
@@ -112,18 +112,16 @@ Everything is set through environment variables in your `.env` file. With Docker
 **AI-narrated audiobooks (optional)** — Bookmark can narrate an ebook into a real audiobook using any OpenAI-compatible text-to-speech server (`/v1/audio/speech`). A ready-to-use, CPU-friendly engine ships behind a compose profile:
 
 ```bash
-docker compose --profile tts up -d        # add -f docker-compose.prod.yml for the pre-built image
+docker compose --profile tts up -d
 ```
 
 Then enter `http://tts:8880` as the server URL under **Settings → Integrations → Text-to-speech** — no env vars needed. Prefer a different engine, voice, or language? Point the server URL at any other OpenAI-compatible TTS server, self-hosted or cloud, and it works as a drop-in replacement. Generated audiobooks are written to `DATA_PATH/generated-audiobooks`, which appears inside the audiobook library as a `generated` folder — your own media stays on a read-only mount.
 
-**Pre-built image** — only used when you run `docker-compose.prod.yml` instead of building from source.
+**Image** — which Bookmark image `docker compose up` runs. Ignored when building from source with `docker-compose.build.yml`.
 
-| Variable     | Required | Default             | Description                           |
-| ------------ | -------- | ------------------- | ------------------------------------- |
-| `REGISTRY`   | No       | `ghcr.io`           | Container registry to pull image from |
-| `IMAGE_NAME` | No       | `your-org/bookmark` | Image name                            |
-| `IMAGE_TAG`  | No       | `latest`            | Image tag to deploy                   |
+| Variable         | Required | Default                               | Description                    |
+| ---------------- | -------- | ------------------------------------- | ------------------------------ |
+| `BOOKMARK_IMAGE` | No       | `ghcr.io/robinedquist/bookmark:latest` | Full image reference to deploy |
 
 #### Running without Docker
 
@@ -168,12 +166,7 @@ pnpm test             # unit tests
 pnpm test:e2e         # end-to-end tests
 ```
 
-API docs (Swagger) live at `http://localhost:3000/api/docs` once the backend is up. The repo is laid out as `apps/web` (Next.js) and `apps/backend` (NestJS), with shared code under `packages/`.
-
-## Roadmap
-
-- [x] Comics — browse, organize, and download (CBZ/CBR/PDF) with Comic Vine metadata
-- [ ] In-browser reader for ebooks and comics
+API docs (Swagger) live at `http://localhost:3000/api/docs` once the backend is up. The repo is laid out as `apps/web` (Next.js), `apps/backend` (NestJS), and `apps/website` (the static marketing site, dev server on :3002), with shared code under `packages/`.
 
 ## Thanks to
 

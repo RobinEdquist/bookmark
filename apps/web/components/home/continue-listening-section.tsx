@@ -22,6 +22,7 @@ import { useMyPermissions } from "../../lib/use-users";
 import { useTheme } from "../../lib/use-theme";
 import { usePlayer } from "../providers/player-provider";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
+import { GeneratedCover } from "../common/generated-cover";
 
 function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }) {
   const t = useTranslations("home.continueListening");
@@ -86,8 +87,8 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
               }}
             />
             {/* Fallback shown behind image or when image fails */}
-            <div className="absolute inset-0 flex h-full items-center justify-center -z-10">
-              <span className="text-4xl">📚</span>
+            <div className="absolute inset-0 -z-10">
+              <GeneratedCover title={progress.audiobook.title} aria-hidden />
             </div>
 
             {/* Play button overlay */}

@@ -32,6 +32,7 @@ import { ChangeComicSeriesCoverDialog } from "./change-comic-series-cover-dialog
 import { AddToListDialog } from "../lists/add-to-list-dialog";
 import { SeriesPickerDialog } from "./series-picker-dialog";
 import { AddToCollectionDialog } from "./add-to-collection-dialog";
+import { GeneratedCover } from "../common/generated-cover";
 
 interface ComicSeriesCardProps {
   series: ComicSeriesListItem;
@@ -103,11 +104,11 @@ export function ComicSeriesCard({
                 unoptimized={series.coverUrl.startsWith("/api/")}
               />
             ) : (
-              <div className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50" : ""}`}>
-                <span className="text-4xl text-muted-foreground" aria-hidden="true">
-                  📚
-                </span>
-              </div>
+              <GeneratedCover
+                title={series.title}
+                author={series.publisher}
+                className={isMissing ? "opacity-50 grayscale" : undefined}
+              />
             )}
             {/* Missing status overlay */}
             {isMissing && (

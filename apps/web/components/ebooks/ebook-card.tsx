@@ -26,6 +26,7 @@ import { DeleteEbookDialog } from "./delete-ebook-dialog";
 import { ChangeEbookCoverDialog } from "./change-ebook-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
 import { GoodreadsSearchDialog } from "../goodreads/goodreads-search-dialog";
+import { GeneratedCover } from "../common/generated-cover";
 import { formatSeriesOrder } from "../../lib/format-series";
 import { useTheme } from "../../lib/use-theme";
 
@@ -133,9 +134,11 @@ export function EbookCard({
                 unoptimized={ebook.coverUrl.startsWith("/api/")}
               />
             ) : (
-              <div className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50" : ""}`}>
-                <span className="text-4xl text-muted-foreground">📖</span>
-              </div>
+              <GeneratedCover
+                title={ebook.title}
+                author={primaryAuthor}
+                className={isMissing ? "opacity-50 grayscale" : undefined}
+              />
             )}
             {/* Missing status overlay */}
             {isMissing && (

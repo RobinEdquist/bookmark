@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import type { ComicCollectionListItem } from "../../lib/use-comic-collections";
+import { GeneratedCover } from "../common/generated-cover";
 
 export function ComicCollectionCard({
   collection,
@@ -37,9 +38,7 @@ export function ComicCollectionCard({
               unoptimized={collection.coverUrl.startsWith("/api/")}
             />
           ) : (
-            <div className="flex h-full items-center justify-center bg-muted">
-              <span className="text-4xl text-muted-foreground" aria-hidden="true">🗂️</span>
-            </div>
+            <GeneratedCover title={collection.name} />
           )}
         </motion.div>
       </Link>

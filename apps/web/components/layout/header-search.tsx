@@ -14,6 +14,7 @@ import {
 import { useDebouncedValue } from "../../lib/use-debounced-value";
 import { useAudiobooks, type AudiobookListItem } from "../../lib/use-audiobooks";
 import { useEbooks, type EbookListItem } from "../../lib/use-ebooks";
+import { GeneratedCover } from "../common/generated-cover";
 
 interface HeaderSearchProps {
   mediaType: "audiobook" | "ebook";
@@ -144,9 +145,7 @@ function SearchResultItem({ item, onSelect }: SearchResultItemProps) {
               unoptimized={item.coverUrl.startsWith("/api/")}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-muted">
-              <Search className="h-4 w-4 text-muted-foreground" />
-            </div>
+            <GeneratedCover title={item.title} author={authors || undefined} aria-hidden />
           )}
         </div>
         <div className="min-w-0 flex-1">

@@ -1,9 +1,12 @@
 # Docker Compose configuration for Bookmark
-# Build from source and run locally
+# Runs the pre-built image from GitHub Container Registry
 #
 # Usage:
 #   1. Copy example.env to .env and configure (optional for a local try-out)
 #   2. Run: docker compose up -d
+#
+# To build from source instead, add the build override:
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
 #
 # Access the application at http://localhost:3001
 
@@ -31,9 +34,7 @@ services:
   # Bookmark (web app + API in a single container)
   # ==========================================================================
   bookmark:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ${BOOKMARK_IMAGE:-ghcr.io/robinedquist/bookmark:latest}
     container_name: bookmark
     restart: unless-stopped
     init: true

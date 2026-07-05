@@ -5,17 +5,11 @@ import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import {
-  GripVertical,
-  Headphones,
-  BookOpen,
-  BookImage,
-  X,
-  ExternalLink,
-} from "lucide-react";
+import { GripVertical, X, ExternalLink } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import type { ListItem } from "../../lib/use-lists";
 import { cn } from "@repo/ui/lib/utils";
+import { GeneratedCover } from "../common/generated-cover";
 
 interface SortableListItemProps {
   item: ListItem;
@@ -93,15 +87,7 @@ export function SortableListItem({
             unoptimized
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center bg-muted">
-            {isAudiobook ? (
-              <Headphones className="h-6 w-6 text-muted-foreground" />
-            ) : isComicSeries ? (
-              <BookImage className="h-6 w-6 text-muted-foreground" />
-            ) : (
-              <BookOpen className="h-6 w-6 text-muted-foreground" />
-            )}
-          </div>
+          <GeneratedCover title={content.title} aria-hidden />
         )}
       </div>
 

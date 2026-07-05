@@ -144,10 +144,12 @@ describe("AudiobookCard", () => {
     expect(img).toHaveAttribute("src", "/api/audiobooks/ab-1/cover");
   });
 
-  it("renders placeholder when coverUrl is null", () => {
+  it("renders a generated placeholder cover when coverUrl is null", () => {
     render(<AudiobookCard audiobook={createAudiobook({ coverUrl: null })} />);
     expect(screen.queryByAltText("The Great Gatsby")).not.toBeInTheDocument();
-    expect(screen.getByText("\uD83D\uDCDA")).toBeInTheDocument();
+    expect(
+      screen.getByRole("img", { name: /The Great Gatsby/ })
+    ).toBeInTheDocument();
   });
 
   it("links to the audiobook detail page", () => {

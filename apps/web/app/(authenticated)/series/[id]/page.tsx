@@ -25,6 +25,7 @@ import { useSeriesDetail } from "../../../../lib/use-series";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { formatSeriesOrder } from "../../../../lib/format-series";
 import { EditSeriesDialog } from "../../../../components/series/edit-series-dialog";
+import { GeneratedCover } from "../../../../components/common/generated-cover";
 
 interface SeriesDetailPageProps {
   params: Promise<{ id: string }>;
@@ -160,9 +161,10 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
                         unoptimized={audiobook.coverUrl.startsWith("/api/")}
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center bg-muted">
-                        <Headphones className="h-12 w-12 text-muted-foreground" />
-                      </div>
+                      <GeneratedCover
+                        title={audiobook.title}
+                        author={audiobook.authors[0]?.name}
+                      />
                     )}
                     {audiobook.status === "missing" && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50">
@@ -222,9 +224,10 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
                         unoptimized={ebook.coverUrl.startsWith("/api/")}
                       />
                     ) : (
-                      <div className="flex h-full items-center justify-center bg-muted">
-                        <BookOpen className="h-12 w-12 text-muted-foreground" />
-                      </div>
+                      <GeneratedCover
+                        title={ebook.title}
+                        author={ebook.authors[0]?.name}
+                      />
                     )}
                     {ebook.status === "missing" && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/50">

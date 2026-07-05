@@ -30,6 +30,7 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { Marquee } from "@repo/ui/components/ui/marquee";
 import { usePlayer } from "../providers/player-provider";
+import { GeneratedCover } from "../common/generated-cover";
 import { ChapterDrawer } from "./chapter-drawer";
 import { SpeedDrawer } from "./speed-drawer";
 import { SleepTimerDrawer } from "./sleep-timer-drawer";
@@ -262,9 +263,11 @@ export function PlayerBar() {
                   unoptimized={audiobook.coverUrl.startsWith("/api/")}
                 />
               ) : (
-                <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center bg-muted" aria-hidden="true">
-                  <span className="text-lg">📚</span>
-                </div>
+                <GeneratedCover
+                  title={audiobook.title}
+                  className="h-10 w-10 sm:h-12 sm:w-12"
+                  aria-hidden
+                />
               )}
             </Link>
 

@@ -41,6 +41,7 @@ import { EditComicBookDialog } from "../../../../components/comics/edit-comic-bo
 import { ChangeComicBookCoverDialog } from "../../../../components/comics/change-comic-book-cover-dialog";
 import { DeleteComicBookDialog } from "../../../../components/comics/delete-comic-book-dialog";
 import { ComicBookList, formatDesignation } from "../../../../components/comics/comic-book-list";
+import { GeneratedCover } from "../../../../components/common/generated-cover";
 import { BatchEditComicBooksDialog } from "../../../../components/comics/batch-edit-comic-books-dialog";
 import { SeriesPickerDialog } from "../../../../components/comics/series-picker-dialog";
 import { useMoveComicBooks } from "../../../../lib/use-comics";
@@ -289,14 +290,7 @@ export default function ComicSeriesDetailPage({
                   sizes="(max-width: 1024px) 100vw, 280px"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center bg-muted">
-                  <span
-                    className="text-6xl text-muted-foreground"
-                    aria-hidden="true"
-                  >
-                    💥
-                  </span>
-                </div>
+                <GeneratedCover title={series.title} author={series.publisher} />
               )}
             </div>
 
@@ -618,6 +612,7 @@ export default function ComicSeriesDetailPage({
               <ComicBookList
                 books={issueBooks}
                 seriesId={id}
+                seriesTitle={series.title}
                 onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
                 onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
                 onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
@@ -635,6 +630,7 @@ export default function ComicSeriesDetailPage({
               <ComicBookList
                 books={specialBooks}
                 seriesId={id}
+                seriesTitle={series.title}
                 onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
                 onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
                 onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
@@ -652,6 +648,7 @@ export default function ComicSeriesDetailPage({
               <ComicBookList
                 books={collectedEditions}
                 seriesId={id}
+                seriesTitle={series.title}
                 onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
                 onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
                 onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}

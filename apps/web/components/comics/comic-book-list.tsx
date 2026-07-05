@@ -15,6 +15,7 @@ import {
 } from "@repo/ui/components/ui/dropdown-menu";
 import type { ComicBookListItem, ComicBookFormat } from "../../lib/use-comics";
 import { formatFileSize } from "../../lib/format-file-size";
+import { GeneratedCover } from "../common/generated-cover";
 
 // -----------------------------------------------------------------------
 // formatDesignation — EXPORTED so Task 9 book detail page can import it
@@ -51,6 +52,8 @@ export function formatDesignation(
 interface ComicBookListProps {
   books: ComicBookListItem[];
   seriesId: string;
+  /** Used for generated placeholder covers when a book has no cover art. */
+  seriesTitle?: string;
   onEditBook?: (id: string) => void;
   onChangeBookCover?: (id: string) => void;
   onDeleteBook?: (id: string) => void;
@@ -65,6 +68,7 @@ interface ComicBookListProps {
 export function ComicBookList({
   books,
   seriesId,
+  seriesTitle,
   onEditBook,
   onChangeBookCover,
   onDeleteBook,
@@ -89,6 +93,7 @@ export function ComicBookList({
           key={book.id}
           book={book}
           seriesId={seriesId}
+          seriesTitle={seriesTitle}
           t={t}
           onEditBook={onEditBook}
           onChangeBookCover={onChangeBookCover}
@@ -108,6 +113,7 @@ export function ComicBookList({
 interface BookRowProps {
   book: ComicBookListItem;
   seriesId: string;
+  seriesTitle?: string;
   t: ReturnType<typeof useTranslations<"comics">>;
   onEditBook?: (id: string) => void;
   onChangeBookCover?: (id: string) => void;
@@ -120,6 +126,7 @@ interface BookRowProps {
 function BookRow({
   book,
   seriesId,
+  seriesTitle,
   t,
   onEditBook,
   onChangeBookCover,
@@ -181,13 +188,12 @@ function BookRow({
               unoptimized={book.coverUrl.startsWith("/api/")}
             />
           ) : (
-            <div
-              className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50 grayscale" : ""}`}
-            >
-              <span className="text-lg text-muted-foreground" aria-hidden="true">
-                📖
-              </span>
-            </div>
+            <GeneratedCover
+              title={seriesTitle ?? book.title ?? designation}
+              issue={book.number}
+              className={isMissing ? "opacity-50 grayscale" : undefined}
+              aria-hidden
+            />
           )}
           {isMissing && (
             <div className="absolute inset-0 flex items-center justify-center bg-destructive/20">

@@ -40,6 +40,7 @@ import { GoodreadsLinkCard } from "../../../../components/goodreads/goodreads-li
 import { HeaderSearch } from "../../../../components/layout/header-search";
 import { DetailHeaderActions } from "../../../../components/layout/detail-header-actions";
 import { RemovableChip } from "../../../../components/common/removable-chip";
+import { GeneratedCover } from "../../../../components/common/generated-cover";
 import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
 import { formatFileSize } from "../../../../lib/format-file-size";
@@ -246,9 +247,10 @@ export default function EbookDetailPage({
                   unoptimized={ebook.coverUrl.startsWith("/api/")}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center bg-muted">
-                  <span className="text-6xl">📖</span>
-                </div>
+                <GeneratedCover
+                  title={ebook.title}
+                  author={ebook.authors[0]?.name}
+                />
               )}
             </div>
 

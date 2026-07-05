@@ -159,8 +159,9 @@ describe("ContinueListeningSection", () => {
 
   it("renders progress cards for in-progress audiobooks", () => {
     render(<ContinueListeningSection />);
-    expect(screen.getByText("The Great Gatsby")).toBeInTheDocument();
-    expect(screen.getByText("1984")).toBeInTheDocument();
+    // Title appears in the card text and again in the generated fallback cover
+    expect(screen.getAllByText("The Great Gatsby").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("1984").length).toBeGreaterThan(0);
   });
 
   it("renders the section title", () => {
@@ -206,7 +207,7 @@ describe("ContinueListeningSection", () => {
     });
     render(<ContinueListeningSection />);
     expect(screen.queryByText("The Great Gatsby")).not.toBeInTheDocument();
-    expect(screen.getByText("1984")).toBeInTheDocument();
+    expect(screen.getAllByText("1984").length).toBeGreaterThan(0);
   });
 
   it("filters out audiobooks with position 0", () => {

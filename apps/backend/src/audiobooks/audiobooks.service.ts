@@ -445,8 +445,14 @@ export class AudiobooksService {
       .where(whereClause)
       .orderBy(orderByClause);
 
+    // rating/series/author live in related tables and are sorted in memory
+    // after fetching, so pagination has to wait until after that sort — a
+    // LIMIT here would sort each page only within itself.
+    const sortsInMemory =
+      sortBy === 'rating' || sortBy === 'series' || sortBy === 'author';
+
     const audiobooks =
-      limit !== undefined
+      !sortsInMemory && limit !== undefined
         ? await baseQuery.limit(limit).offset(offset)
         : await baseQuery;
 
@@ -719,11 +725,17 @@ export class AudiobooksService {
 
     // Apply client-side sorting for rating and series
     if (sortBy === 'rating') {
+      // Same priority as the cards display: Goodreads first, Hardcover as
+      // fallback. Unrated books always sink to the end.
       result.sort((a, b) => {
         const ratingA =
-          a.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
+          a.goodreadsRating ??
+          a.hardcoverRating ??
+          (sortOrder === 'desc' ? -Infinity : Infinity);
         const ratingB =
-          b.hardcoverRating ?? (sortOrder === 'desc' ? -Infinity : Infinity);
+          b.goodreadsRating ??
+          b.hardcoverRating ??
+          (sortOrder === 'desc' ? -Infinity : Infinity);
         return sortOrder === 'desc' ? ratingB - ratingA : ratingA - ratingB;
       });
     } else if (sortBy === 'series') {
@@ -747,7 +759,12 @@ export class AudiobooksService {
       });
     }
 
-    return { audiobooks: result, total };
+    const paged =
+      sortsInMemory && limit !== undefined
+        ? result.slice(offset, offset + limit)
+        : result;
+
+    return { audiobooks: paged, total };
   }
 
   async findById(id: string): Promise<AudiobookDetailDto> {

@@ -46,6 +46,7 @@ import { ChangeCoverDialog } from "../../../../components/audiobooks/change-cove
 import { HeaderSearch } from "../../../../components/layout/header-search";
 import { DetailHeaderActions } from "../../../../components/layout/detail-header-actions";
 import { RemovableChip } from "../../../../components/common/removable-chip";
+import { GeneratedCover } from "../../../../components/common/generated-cover";
 import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
 import { ChapterImportDialog } from "../../../../components/chapters/chapter-import-dialog";
@@ -303,9 +304,10 @@ export default function AudiobookDetailPage({
                   unoptimized={audiobook.coverUrl.startsWith("/api/")}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center bg-muted">
-                  <span className="text-6xl">📚</span>
-                </div>
+                <GeneratedCover
+                  title={audiobook.title}
+                  author={audiobook.authors[0]?.name}
+                />
               )}
             </div>
 

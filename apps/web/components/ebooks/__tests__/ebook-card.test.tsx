@@ -132,10 +132,10 @@ describe("EbookCard", () => {
     expect(img).toHaveAttribute("src", "/api/ebooks/eb-1/cover");
   });
 
-  it("renders placeholder when coverUrl is null", () => {
+  it("renders a generated placeholder cover when coverUrl is null", () => {
     render(<EbookCard ebook={createEbook({ coverUrl: null })} />);
     expect(screen.queryByAltText("Dune")).not.toBeInTheDocument();
-    expect(screen.getByText("\uD83D\uDCD6")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: /Dune/ })).toBeInTheDocument();
   });
 
   it("links to the ebook detail page", () => {

@@ -28,6 +28,7 @@ import { GoodreadsSearchDialog } from "../goodreads/goodreads-search-dialog";
 import { DeleteAudiobookDialog } from "./delete-audiobook-dialog";
 import { ChangeCoverDialog } from "./change-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
+import { GeneratedCover } from "../common/generated-cover";
 import { formatSeriesOrder } from "../../lib/format-series";
 import { useTheme } from "../../lib/use-theme";
 
@@ -144,9 +145,11 @@ export function AudiobookCard({
                 unoptimized={audiobook.coverUrl.startsWith("/api/")}
               />
             ) : (
-              <div className={`flex h-full items-center justify-center bg-muted ${isMissing ? "opacity-50" : ""}`}>
-                <span className="text-4xl text-muted-foreground">📚</span>
-              </div>
+              <GeneratedCover
+                title={audiobook.title}
+                author={primaryAuthor}
+                className={isMissing ? "opacity-50 grayscale" : undefined}
+              />
             )}
             {/* Missing status overlay */}
             {isMissing && (
