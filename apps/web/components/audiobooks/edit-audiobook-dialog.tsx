@@ -739,29 +739,32 @@ export function EditAudiobookDialog({
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
 
-      <MetadataMatchDialog
-        mediaType="audiobook"
-        open={matchOpen}
-        onOpenChange={setMatchOpen}
-        current={{
-          title,
-          subtitle,
-          description,
-          authors,
-          narrators,
-          publisher,
-          language,
-          publishedYear,
-          isbn,
-          asin,
-          genres,
-          tags,
-          series: seriesEntries,
-        }}
-        onApply={handleMatchApply}
-      />
+        {/* Rendered inside DialogContent so clicks in the nested dialog count
+            as inside the edit dialog's dismissable layer — as a sibling, the
+            click that closes the match dialog dismisses the edit dialog too */}
+        <MetadataMatchDialog
+          mediaType="audiobook"
+          open={matchOpen}
+          onOpenChange={setMatchOpen}
+          current={{
+            title,
+            subtitle,
+            description,
+            authors,
+            narrators,
+            publisher,
+            language,
+            publishedYear,
+            isbn,
+            asin,
+            genres,
+            tags,
+            series: seriesEntries,
+          }}
+          onApply={handleMatchApply}
+        />
+      </DialogContent>
     </Dialog>
   );
 }
