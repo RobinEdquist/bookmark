@@ -1,5 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
-
 jest.mock('./comicvine.service', () => ({
   ComicvineService: class ComicvineService {},
 }));
