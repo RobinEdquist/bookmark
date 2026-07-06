@@ -18,7 +18,7 @@ function makeContext(request: Record<string, unknown>): ExecutionContext {
     switchToHttp: () => ({
       getRequest: () => request,
     }),
-  } as ExecutionContext;
+  } as unknown as ExecutionContext;
 }
 
 function createGuard(

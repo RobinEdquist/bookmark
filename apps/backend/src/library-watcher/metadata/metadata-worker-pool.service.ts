@@ -28,6 +28,10 @@ interface WorkerState {
   currentTaskId: string | null;
 }
 
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 @Injectable()
 export class MetadataWorkerPoolService implements OnModuleDestroy {
   private readonly logger = new Logger(MetadataWorkerPoolService.name);
@@ -69,9 +73,10 @@ export class MetadataWorkerPoolService implements OnModuleDestroy {
           this.handleWorkerResponse(workerState, response);
         });
 
-        worker.on('error', (error) => {
-          this.logger.error(`Worker ${i} error: ${error.message}`);
-          this.handleWorkerError(workerState, error);
+        worker.on('error', (error: unknown) => {
+          const workerError = toError(error);
+          this.logger.error(`Worker ${i} error: ${workerError.message}`);
+          this.handleWorkerError(workerState, workerError);
         });
 
         worker.on('exit', (code) => {

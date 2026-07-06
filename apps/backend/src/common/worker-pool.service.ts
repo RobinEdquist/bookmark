@@ -35,6 +35,10 @@ interface PoolConfig {
   maxWorkers?: number;
 }
 
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 /**
  * Generic worker pool that can manage multiple types of workers.
  * Each pool is identified by name and uses a specific worker script.
@@ -104,11 +108,12 @@ export class WorkerPoolService implements OnModuleDestroy {
           this.handleWorkerResponse(config.name, workerState, response);
         });
 
-        worker.on('error', (error) => {
+        worker.on('error', (error: unknown) => {
+          const workerError = toError(error);
           this.logger.error(
-            `${config.name} worker ${i} error: ${error.message}`,
+            `${config.name} worker ${i} error: ${workerError.message}`,
           );
-          this.handleWorkerError(config.name, workerState, error);
+          this.handleWorkerError(config.name, workerState, workerError);
         });
 
         worker.on('exit', (code) => {

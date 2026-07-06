@@ -9,7 +9,7 @@ function makeContext(user?: { role?: string | null }): ExecutionContext {
     switchToHttp: () => ({
       getRequest: () => ({ user }),
     }),
-  } as ExecutionContext;
+  } as unknown as ExecutionContext;
 }
 
 describe('RolesGuard', () => {

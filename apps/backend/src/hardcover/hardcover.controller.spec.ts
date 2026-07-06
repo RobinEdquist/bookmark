@@ -7,7 +7,30 @@ jest.mock('./hardcover.service', () => ({
 import { HardcoverController } from './hardcover.controller';
 import type { HardcoverService } from './hardcover.service';
 
-function createService(): jest.Mocked<Partial<HardcoverService>> {
+type HardcoverServiceMock = jest.Mocked<
+  Pick<
+    HardcoverService,
+    | 'getApiKey'
+    | 'getAutoSyncOnImport'
+    | 'setAutoSyncOnImport'
+    | 'validateApiKey'
+    | 'setApiKey'
+    | 'searchBooks'
+    | 'searchByAudiobookIdPaginated'
+    | 'getHardcoverLink'
+    | 'linkAudiobookToHardcover'
+    | 'unlinkAudiobookFromHardcover'
+    | 'searchByMediaIdPaginated'
+    | 'linkMediaToHardcover'
+    | 'unlinkMedia'
+    | 'getPendingQueueCount'
+    | 'getFailedQueueItems'
+    | 'dismissFailedItem'
+    | 'queueAllUnlinked'
+  >
+>;
+
+function createService(): HardcoverServiceMock {
   return {
     getApiKey: jest.fn().mockResolvedValue('key'),
     getAutoSyncOnImport: jest.fn().mockResolvedValue(true),
@@ -42,7 +65,7 @@ function createService(): jest.Mocked<Partial<HardcoverService>> {
 function createController() {
   const service = createService();
   return {
-    controller: new HardcoverController(service as HardcoverService),
+    controller: new HardcoverController(service as unknown as HardcoverService),
     service,
   };
 }
@@ -56,8 +79,8 @@ const hardcoverBook = {
 describe('HardcoverController', () => {
   it('returns integration status', async () => {
     const { controller, service } = createController();
-    service.getApiKey!.mockResolvedValue(null);
-    service.getAutoSyncOnImport!.mockResolvedValue(false);
+    service.getApiKey.mockResolvedValue(null);
+    service.getAutoSyncOnImport.mockResolvedValue(false);
 
     await expect(controller.getStatus()).resolves.toEqual({
       configured: false,
@@ -96,7 +119,7 @@ describe('HardcoverController', () => {
 
   it('does not store invalid API keys', async () => {
     const { controller, service } = createController();
-    service.validateApiKey!.mockResolvedValue({ valid: false, error: 'bad' });
+    service.validateApiKey.mockResolvedValue({ valid: false, error: 'bad' });
 
     await expect(
       controller.validateKey({ apiKey: 'bad-key' }),
@@ -124,7 +147,7 @@ describe('HardcoverController', () => {
       'Search query is required',
     );
 
-    service.searchBooks!.mockResolvedValue({
+    service.searchBooks.mockResolvedValue({
       success: false,
       error: 'offline',
     });
@@ -151,7 +174,7 @@ describe('HardcoverController', () => {
 
   it('throws when audiobook search fails', async () => {
     const { controller, service } = createController();
-    service.searchByAudiobookIdPaginated!.mockResolvedValue({
+    service.searchByAudiobookIdPaginated.mockResolvedValue({
       success: false,
       error: 'not configured',
     });
@@ -215,7 +238,7 @@ describe('HardcoverController', () => {
 
   it('throws when ebook search fails', async () => {
     const { controller, service } = createController();
-    service.searchByMediaIdPaginated!.mockResolvedValue({
+    service.searchByMediaIdPaginated.mockResolvedValue({
       success: false,
       error: 'api failed',
     });

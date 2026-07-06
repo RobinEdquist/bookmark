@@ -5,7 +5,32 @@ jest.mock('./comicvine.service', () => ({
 import { ComicvineController } from './comicvine.controller';
 import type { ComicvineService } from './comicvine.service';
 
-function createService(): jest.Mocked<Partial<ComicvineService>> {
+type ComicvineServiceMock = jest.Mocked<
+  Pick<
+    ComicvineService,
+    | 'getApiKey'
+    | 'getAutoSyncOnImport'
+    | 'validateApiKey'
+    | 'setApiKey'
+    | 'setAutoSyncOnImport'
+    | 'searchVolumes'
+    | 'getSeriesLink'
+    | 'searchVolumesForSeries'
+    | 'getVolumeIssuesPaged'
+    | 'linkSeriesToVolume'
+    | 'unlinkSeries'
+    | 'getBookLink'
+    | 'linkBookToIssue'
+    | 'unlinkBook'
+    | 'searchIssuesForBook'
+    | 'getPendingCount'
+    | 'getQueueItems'
+    | 'dismissItem'
+    | 'queueAllUnlinkedSeries'
+  >
+>;
+
+function createService(): ComicvineServiceMock {
   return {
     getApiKey: jest.fn().mockResolvedValue('cv-key'),
     getAutoSyncOnImport: jest.fn().mockResolvedValue(true),
@@ -38,7 +63,7 @@ function createService(): jest.Mocked<Partial<ComicvineService>> {
 function createController() {
   const service = createService();
   return {
-    controller: new ComicvineController(service as ComicvineService),
+    controller: new ComicvineController(service as unknown as ComicvineService),
     service,
   };
 }
@@ -46,8 +71,8 @@ function createController() {
 describe('ComicvineController', () => {
   it('returns integration status', async () => {
     const { controller, service } = createController();
-    service.getApiKey!.mockResolvedValue(null);
-    service.getAutoSyncOnImport!.mockResolvedValue(false);
+    service.getApiKey.mockResolvedValue(null);
+    service.getAutoSyncOnImport.mockResolvedValue(false);
 
     await expect(controller.getStatus()).resolves.toEqual({
       configured: false,
@@ -72,7 +97,7 @@ describe('ComicvineController', () => {
 
   it('does not store invalid API keys', async () => {
     const { controller, service } = createController();
-    service.validateApiKey!.mockResolvedValue({ valid: false, error: 'bad' });
+    service.validateApiKey.mockResolvedValue({ valid: false, error: 'bad' });
 
     await expect(controller.validateKey({ apiKey: 'bad' })).resolves.toEqual({
       valid: false,
