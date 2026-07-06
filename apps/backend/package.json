@@ -125,7 +125,28 @@
       "^@test-utils$": "<rootDir>/__test-utils__/"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!**/*.spec.ts",
+      "!**/__tests__/**",
+      "!**/__test-utils__/**",
+      "!**/*.module.ts",
+      "!**/*.dto.ts",
+      "!**/dto/**",
+      "!**/*.schema.ts",
+      "!**/schema.ts",
+      "!**/*.types.ts",
+      "!**/types/**",
+      "!**/*.d.ts",
+      "!**/index.ts",
+      "!**/*.constants.ts",
+      "!**/*enums.ts",
+      "!**/theme-config.ts",
+      "!main.ts",
+      "!app.module.ts",
+      "!swagger.ts",
+      "!scripts/**",
+      "!../drizzle/**",
+      "!../apps/**"
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"

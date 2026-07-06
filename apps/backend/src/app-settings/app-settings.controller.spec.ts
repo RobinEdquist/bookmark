@@ -1,16 +1,89 @@
-/**
- * Controller-level tests for the comicMetadataPriority merge/filter logic.
- *
- * We cannot instantiate AppSettingsController directly in unit tests because
- * its import chain pulls in @thallesp/nestjs-better-auth (ESM). Instead, we
- * replicate the private mergeComicMetadataPriority logic inline — this is the
- * exact same algorithm copied from the controller — so that changes to the
- * algorithm will naturally break these tests.
- */
+import { BadRequestException } from '@nestjs/common';
+
+jest.mock('@thallesp/nestjs-better-auth', () => ({
+  AllowAnonymous: () => () => undefined,
+}));
+
+jest.mock('fs/promises', () => ({
+  constants: { R_OK: 4 },
+  access: jest.fn(),
+  stat: jest.fn(),
+}));
+
+import * as fs from 'fs/promises';
+import { AppSettingsController } from './app-settings.controller';
 import {
   DEFAULT_COMIC_METADATA_PRIORITY,
   ComicMetadataFieldPriority,
+  DEFAULT_METADATA_PRIORITY,
+  MetadataFieldPriority,
 } from './schema';
+
+const mockedFs = jest.mocked(fs);
+
+const createdAt = new Date('2026-01-01T00:00:00.000Z');
+const updatedAt = new Date('2026-01-02T00:00:00.000Z');
+
+function createSettings(
+  overrides: Record<string, unknown> = {},
+): Record<string, unknown> {
+  return {
+    signupsEnabled: true,
+    audiobookLibraryPath: '/library/audiobooks',
+    ebookLibraryPath: '/library/ebooks',
+    comicLibraryPath: '/library/comics',
+    opdsEnabled: true,
+    metadataPriority: null,
+    comicMetadataPriority: null,
+    hardcoverApiKey: null,
+    comicvineApiKey: null,
+    oidcButtonText: 'Continue with SSO',
+    emailPasswordEnabled: true,
+    oidcAutoCreateUsers: 'pending',
+    requestsEnabled: true,
+    requestsAudiobookCategory: 'audiobooks',
+    requestsEbookCategory: 'ebooks',
+    requestsComicsCategory: 'comics',
+    autoApproveRequestsPerWeek: 3,
+    requestsUseFreeleech: false,
+    defaultCanEditMetadata: false,
+    defaultCanUpload: true,
+    defaultCanDelete: false,
+    defaultCanGenerateApiKeys: true,
+    defaultCanRequestContent: true,
+    defaultCanGenerateAudiobooks: false,
+    createdAt,
+    updatedAt,
+    ...overrides,
+  };
+}
+
+function createController(
+  settings: Record<string, unknown> = createSettings(),
+) {
+  const appSettingsService = {
+    getSettings: jest.fn().mockResolvedValue(settings),
+    isSetupCompleted: jest.fn().mockResolvedValue(true),
+    updateSettings: jest.fn().mockImplementation(async (updates) =>
+      createSettings({
+        ...settings,
+        ...updates,
+      }),
+    ),
+  };
+  const oidcConfigService = {
+    isOidcEnabled: jest.fn().mockReturnValue(true),
+  };
+
+  return {
+    controller: new AppSettingsController(
+      appSettingsService as any,
+      oidcConfigService as any,
+    ),
+    appSettingsService,
+    oidcConfigService,
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Replicate the controller's mergeComicMetadataPriority helper
@@ -121,5 +194,173 @@ describe('mergeComicMetadataPriority (controller logic)', () => {
 
     expect(comicMetadataPriority.description).toContain('comicvine');
     expect(comicMetadataPriority.description[0]).toBe('comicvine');
+  });
+});
+
+describe('AppSettingsController', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env = { ...originalEnv };
+    delete process.env.TRACKER_CLIENT_URL;
+    delete process.env.TRACKER_CLIENT_API_KEY;
+  });
+
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
+  it('returns public signup settings', async () => {
+    const { controller } = createController(
+      createSettings({ signupsEnabled: false }),
+    );
+
+    await expect(controller.getPublicSettings()).resolves.toEqual({
+      signupsEnabled: false,
+    });
+  });
+
+  it('returns auth configuration with OIDC status', async () => {
+    const { controller, oidcConfigService } = createController(
+      createSettings({
+        emailPasswordEnabled: false,
+        oidcButtonText: 'Login',
+      }),
+    );
+    oidcConfigService.isOidcEnabled.mockReturnValue(false);
+
+    await expect(controller.getAuthConfig()).resolves.toEqual({
+      emailPasswordEnabled: false,
+      oidcEnabled: false,
+      oidcButtonText: 'Login',
+    });
+  });
+
+  it('returns setup status', async () => {
+    const { controller, appSettingsService } = createController();
+    appSettingsService.isSetupCompleted.mockResolvedValue(false);
+
+    await expect(controller.getSetupStatus()).resolves.toEqual({
+      setupCompleted: false,
+    });
+  });
+
+  it('returns settings with integration-aware priority sources', async () => {
+    process.env.TRACKER_CLIENT_URL = 'https://tracker.example.com';
+    process.env.TRACKER_CLIENT_API_KEY = 'secret';
+    const storedPriority: MetadataFieldPriority = {
+      ...DEFAULT_METADATA_PRIORITY,
+      title: ['manual'] as any,
+    };
+    const storedComicPriority: ComicMetadataFieldPriority = {
+      ...DEFAULT_COMIC_METADATA_PRIORITY,
+      title: ['manual'] as any,
+    };
+    const { controller } = createController(
+      createSettings({
+        metadataPriority: storedPriority,
+        comicMetadataPriority: storedComicPriority,
+        hardcoverApiKey: null,
+        comicvineApiKey: 'cv-key',
+      }),
+    );
+
+    const result = await controller.getSettings();
+
+    expect(result.trackerClientConfigured).toBe(true);
+    expect(result.metadataPriority.title[0]).toBe('manual');
+    expect(result.metadataPriority.title).not.toContain('hardcover');
+    expect(result.comicMetadataPriority.title[0]).toBe('manual');
+    expect(result.comicMetadataPriority.title).toContain('comicvine');
+  });
+
+  it('rejects empty updates', async () => {
+    const { controller } = createController();
+
+    await expect(controller.updateSettings({})).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('rejects disabling password login when OIDC is disabled', async () => {
+    const { controller, oidcConfigService } = createController();
+    oidcConfigService.isOidcEnabled.mockReturnValue(false);
+
+    await expect(
+      controller.updateSettings({ emailPasswordEnabled: false }),
+    ).rejects.toThrow('Cannot disable email/password login');
+  });
+
+  it('rejects invalid OIDC auto-create modes', async () => {
+    const { controller } = createController();
+
+    await expect(
+      controller.updateSettings({ oidcAutoCreateUsers: 'invalid' as any }),
+    ).rejects.toThrow('Invalid value for oidcAutoCreateUsers');
+  });
+
+  it('validates library paths and persists provided settings only', async () => {
+    mockedFs.stat.mockResolvedValue({ isDirectory: () => true } as any);
+    mockedFs.access.mockResolvedValue(undefined);
+    const { controller, appSettingsService } = createController();
+
+    const result = await controller.updateSettings({
+      audiobookLibraryPath: '/new/audiobooks',
+      ebookLibraryPath: null,
+      comicLibraryPath: '/new/comics',
+      signupsEnabled: false,
+      metadataPriority: DEFAULT_METADATA_PRIORITY as any,
+      comicMetadataPriority: DEFAULT_COMIC_METADATA_PRIORITY as any,
+      opdsEnabled: false,
+      oidcButtonText: 'SSO',
+      emailPasswordEnabled: true,
+      oidcAutoCreateUsers: 'auto',
+      requestsEnabled: false,
+      requestsAudiobookCategory: 'audio',
+      requestsEbookCategory: 'books',
+      requestsComicsCategory: 'comics',
+      autoApproveRequestsPerWeek: 7,
+      requestsUseFreeleech: true,
+      defaultCanEditMetadata: true,
+      defaultCanUpload: false,
+      defaultCanDelete: true,
+      defaultCanGenerateApiKeys: false,
+      defaultCanRequestContent: false,
+      defaultCanGenerateAudiobooks: true,
+    });
+
+    expect(mockedFs.stat).toHaveBeenCalledWith('/new/audiobooks');
+    expect(mockedFs.stat).toHaveBeenCalledWith('/new/comics');
+    expect(mockedFs.stat).not.toHaveBeenCalledWith(null);
+    expect(appSettingsService.updateSettings).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audiobookLibraryPath: '/new/audiobooks',
+        ebookLibraryPath: null,
+        comicLibraryPath: '/new/comics',
+        signupsEnabled: false,
+        defaultCanGenerateAudiobooks: true,
+      }),
+    );
+    expect(result.signupsEnabled).toBe(false);
+    expect(result.ebookLibraryPath).toBeNull();
+  });
+
+  it('rejects library paths that are not directories', async () => {
+    mockedFs.stat.mockResolvedValue({ isDirectory: () => false } as any);
+    const { controller } = createController();
+
+    await expect(
+      controller.updateSettings({ audiobookLibraryPath: '/tmp/file' }),
+    ).rejects.toThrow('Path is not a directory');
+  });
+
+  it('rejects inaccessible library paths', async () => {
+    mockedFs.stat.mockRejectedValue(new Error('ENOENT'));
+    const { controller } = createController();
+
+    await expect(
+      controller.updateSettings({ audiobookLibraryPath: '/missing' }),
+    ).rejects.toThrow('Path does not exist or is not accessible');
   });
 });
