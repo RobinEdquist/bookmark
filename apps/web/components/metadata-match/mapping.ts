@@ -111,6 +111,20 @@ export function mapAudibleSearchResult(
 }
 
 /**
+ * Resolve the metadata shown in the review step for Audible results.
+ * Audnexus enrichment is optional, so the selected search result is used
+ * immediately and replaced only when the full book detail arrives.
+ */
+export function resolveAudibleReviewMetadata(
+  detail: AudnexusBookDetail | undefined,
+  fallback: AudibleSearchResult | null
+): MatchedMetadata | null {
+  if (detail) return mapAudnexusBook(detail);
+  if (fallback) return mapAudibleSearchResult(fallback);
+  return null;
+}
+
+/**
  * Map an iTunes search result to form metadata.
  */
 export function mapItunesResult(result: ItunesSearchResult): MatchedMetadata {

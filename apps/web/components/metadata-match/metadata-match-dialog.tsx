@@ -210,18 +210,20 @@ export function MetadataMatchDialog({
     { enabled: open && step === "review" && provider === "audible" }
   );
 
+  const audibleFallback = selectedAudible
+    ? mapAudibleSearchResult(selectedAudible)
+    : null;
+
   const matched: MatchedMetadata | null = useMemo(() => {
     if (step !== "review") return null;
     if (provider === "itunes") {
       return selectedItunes ? mapItunesResult(selectedItunes) : null;
     }
     if (bookQuery.data) return mapAudnexusBook(bookQuery.data);
-    // Audnexus doesn't index every regional ASIN — fall back to the search result
-    if (bookQuery.isError && selectedAudible) {
-      return mapAudibleSearchResult(selectedAudible);
-    }
-    return null; // detail still loading
-  }, [step, provider, selectedItunes, selectedAudible, bookQuery.data, bookQuery.isError]);
+    // Audnexus enrichment is optional; keep the review step usable with the
+    // search result while the detail request is pending or unavailable.
+    return audibleFallback;
+  }, [step, provider, selectedItunes, bookQuery.data, audibleFallback]);
 
   // Rows shown in the review step: fields the provider returned that differ
   // from the current form values
@@ -302,6 +304,18 @@ export function MetadataMatchDialog({
     onOpenChange(false);
   };
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (nextOpen) {
+      onOpenChange(true);
+      return;
+    }
+    handleClose();
+  };
+
+  const allowPortaledSelects = (target: EventTarget | null) =>
+    target instanceof HTMLElement &&
+    Boolean(target.closest('[data-radix-popper-content-wrapper]'));
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!titleInput.trim()) return;
@@ -343,8 +357,20 @@ export function MetadataMatchDialog({
     Boolean(checked.cover && matched?.coverUrl);
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="max-w-2xl max-h-[85vh] flex flex-col"
+        onInteractOutside={(event) => {
+          if (allowPortaledSelects(event.target)) {
+            event.preventDefault();
+          }
+        }}
+        onPointerDownOutside={(event) => {
+          if (allowPortaledSelects(event.target)) {
+            event.preventDefault();
+          }
+        }}
+      >
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>

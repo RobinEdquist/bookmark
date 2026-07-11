@@ -9,7 +9,9 @@
     "appearance": "Utseende",
     "integrations": "Integrationer",
     "announcements": "Meddelanden",
-    "genres": "Genrer"
+    "genres": "Genrer",
+    "authors": "Författare",
+    "narrators": "Inläsare"
   },
   "libraries": {
     "title": "Bibliotek",
@@ -652,6 +654,116 @@
       "renamed": "Genre omdöpt",
       "merged": "Genrer ihopslagna",
       "deleted": "Genre borttagen",
+      "error": "Ett fel uppstod"
+    }
+  },
+  "authors": {
+    "title": "Författare",
+    "description": "Hantera författarnamn som används i ljudböcker och e-böcker",
+    "searchLabel": "Sök författare",
+    "searchPlaceholder": "Sök författare...",
+    "peopleCount": "författare",
+    "loadError": "Kunde inte ladda författare",
+    "emptyTitle": "Inga författare",
+    "empty": "Inga författare hittades. Författare skapas automatiskt när ljudböcker och e-böcker importeras.",
+    "table": {
+      "name": "Namn",
+      "audiobooks": "Ljudböcker",
+      "ebooks": "E-böcker",
+      "actions": "Åtgärder"
+    },
+    "rename": {
+      "title": "Byt namn på författare",
+      "label": "Namn",
+      "save": "Spara",
+      "saving": "Sparar...",
+      "cancel": "Avbryt"
+    },
+    "merge": {
+      "title": "Slå ihop författare?",
+      "description": "\"{target}\" finns redan. Detta kommer slå ihop alla länkar från källpersonen.",
+      "source": "{count, plural, =1 {1 författarlänk} other {# författarlänkar}} från \"{source}\"",
+      "audiobooks": "{count, plural, =1 {1 ljudboksförfattarlänk} other {# ljudboksförfattarlänkar}} från \"{source}\"",
+      "ebooks": "{count, plural, =1 {1 e-boksförfattarlänk} other {# e-boksförfattarlänkar}} från \"{source}\"",
+      "warning": "Denna åtgärd kan inte ångras.",
+      "confirm": "Slå ihop",
+      "merging": "Slår ihop...",
+      "cancel": "Avbryt"
+    },
+    "split": {
+      "title": "Dela författare",
+      "description": "Ersätt den här författaren med flera namn för alla länkade böcker.",
+      "label": "Ersättningsnamn",
+      "placeholder": "Välj namn...",
+      "searchPlaceholder": "Sök namn...",
+      "empty": "Inga matchande namn hittades.",
+      "create": "Skapa",
+      "confirm": "Dela",
+      "splitting": "Delar...",
+      "cancel": "Avbryt"
+    },
+    "actions": {
+      "rename": "Byt namn",
+      "split": "Dela"
+    },
+    "toast": {
+      "renamed": "Författare omdöpt",
+      "merged": "Författare ihopslagna",
+      "split": "Författare delad",
+      "error": "Ett fel uppstod"
+    }
+  },
+  "narrators": {
+    "title": "Inläsare",
+    "description": "Hantera inläsarnamn som används i ljudböcker",
+    "searchLabel": "Sök inläsare",
+    "searchPlaceholder": "Sök inläsare...",
+    "peopleCount": "inläsare",
+    "loadError": "Kunde inte ladda inläsare",
+    "emptyTitle": "Inga inläsare",
+    "empty": "Inga inläsare hittades. Inläsare skapas automatiskt när ljudböcker importeras.",
+    "table": {
+      "name": "Namn",
+      "audiobooks": "Ljudböcker",
+      "actions": "Åtgärder"
+    },
+    "rename": {
+      "title": "Byt namn på inläsare",
+      "label": "Namn",
+      "save": "Spara",
+      "saving": "Sparar...",
+      "cancel": "Avbryt"
+    },
+    "merge": {
+      "title": "Slå ihop inläsare?",
+      "description": "\"{target}\" finns redan. Detta kommer slå ihop alla länkar från källpersonen.",
+      "source": "{count, plural, =1 {1 inläsarlänk} other {# inläsarlänkar}} från \"{source}\"",
+      "audiobooks": "{count, plural, =1 {1 ljudboksinläsarlänk} other {# ljudboksinläsarlänkar}} från \"{source}\"",
+      "warning": "Denna åtgärd kan inte ångras.",
+      "confirm": "Slå ihop",
+      "merging": "Slår ihop...",
+      "cancel": "Avbryt"
+    },
+    "split": {
+      "title": "Dela inläsare",
+      "description": "Ersätt den här inläsaren med flera namn för alla länkade böcker.",
+      "label": "Ersättningsnamn",
+      "placeholder": "Välj namn...",
+      "searchPlaceholder": "Sök namn...",
+      "empty": "Inga matchande namn hittades.",
+      "create": "Skapa",
+      "confirm": "Dela",
+      "splitting": "Delar...",
+      "cancel": "Avbryt"
+    },
+    "actions": {
+      "rename": "Byt namn",
+      "split": "Dela"
+    },
+    "toast": {
+      "renamed": "Inläsare omdöpt",
+      "merged": "Inläsare ihopslagna",
+      "split": "Inläsare delad",
       "error": "Ett fel uppstod"
     }
   },

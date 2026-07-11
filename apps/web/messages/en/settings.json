@@ -9,7 +9,9 @@
     "appearance": "Appearance",
     "integrations": "Integrations",
     "announcements": "Announcements",
-    "genres": "Genres"
+    "genres": "Genres",
+    "authors": "Authors",
+    "narrators": "Narrators"
   },
   "libraries": {
     "title": "Libraries",
@@ -652,6 +654,116 @@
       "renamed": "Genre renamed successfully",
       "merged": "Genres merged successfully",
       "deleted": "Genre deleted successfully",
+      "error": "An error occurred"
+    }
+  },
+  "authors": {
+    "title": "Authors",
+    "description": "Manage author names used across audiobooks and ebooks",
+    "searchLabel": "Search authors",
+    "searchPlaceholder": "Search authors...",
+    "peopleCount": "authors",
+    "loadError": "Failed to load authors",
+    "emptyTitle": "No authors",
+    "empty": "No authors found. Authors are created automatically when importing audiobooks and ebooks.",
+    "table": {
+      "name": "Name",
+      "audiobooks": "Audiobooks",
+      "ebooks": "Ebooks",
+      "actions": "Actions"
+    },
+    "rename": {
+      "title": "Rename Author",
+      "label": "Name",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+    "merge": {
+      "title": "Merge Authors?",
+      "description": "\"{target}\" already exists. This will merge all links from the source person into it.",
+      "source": "{count, plural, =1 {1 author link} other {# author links}} from \"{source}\"",
+      "audiobooks": "{count, plural, =1 {1 audiobook author link} other {# audiobook author links}} from \"{source}\"",
+      "ebooks": "{count, plural, =1 {1 ebook author link} other {# ebook author links}} from \"{source}\"",
+      "warning": "This action cannot be undone.",
+      "confirm": "Merge",
+      "merging": "Merging...",
+      "cancel": "Cancel"
+    },
+    "split": {
+      "title": "Split Author",
+      "description": "Replace this author with multiple names for all linked books.",
+      "label": "Replacement names",
+      "placeholder": "Select names...",
+      "searchPlaceholder": "Search names...",
+      "empty": "No matching names found.",
+      "create": "Create",
+      "confirm": "Split",
+      "splitting": "Splitting...",
+      "cancel": "Cancel"
+    },
+    "actions": {
+      "rename": "Rename",
+      "split": "Split"
+    },
+    "toast": {
+      "renamed": "Author renamed successfully",
+      "merged": "Authors merged successfully",
+      "split": "Author split successfully",
+      "error": "An error occurred"
+    }
+  },
+  "narrators": {
+    "title": "Narrators",
+    "description": "Manage narrator names used across audiobooks",
+    "searchLabel": "Search narrators",
+    "searchPlaceholder": "Search narrators...",
+    "peopleCount": "narrators",
+    "loadError": "Failed to load narrators",
+    "emptyTitle": "No narrators",
+    "empty": "No narrators found. Narrators are created automatically when importing audiobooks.",
+    "table": {
+      "name": "Name",
+      "audiobooks": "Audiobooks",
+      "actions": "Actions"
+    },
+    "rename": {
+      "title": "Rename Narrator",
+      "label": "Name",
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel"
+    },
+    "merge": {
+      "title": "Merge Narrators?",
+      "description": "\"{target}\" already exists. This will merge all links from the source person into it.",
+      "source": "{count, plural, =1 {1 narration link} other {# narration links}} from \"{source}\"",
+      "audiobooks": "{count, plural, =1 {1 audiobook narration link} other {# audiobook narration links}} from \"{source}\"",
+      "warning": "This action cannot be undone.",
+      "confirm": "Merge",
+      "merging": "Merging...",
+      "cancel": "Cancel"
+    },
+    "split": {
+      "title": "Split Narrator",
+      "description": "Replace this narrator with multiple names for all linked books.",
+      "label": "Replacement names",
+      "placeholder": "Select names...",
+      "searchPlaceholder": "Search names...",
+      "empty": "No matching names found.",
+      "create": "Create",
+      "confirm": "Split",
+      "splitting": "Splitting...",
+      "cancel": "Cancel"
+    },
+    "actions": {
+      "rename": "Rename",
+      "split": "Split"
+    },
+    "toast": {
+      "renamed": "Narrator renamed successfully",
+      "merged": "Narrators merged successfully",
+      "split": "Narrator split successfully",
       "error": "An error occurred"
     }
   },

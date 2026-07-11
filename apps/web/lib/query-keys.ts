@@ -223,6 +223,13 @@ export const queryKeys = {
     all: ['admin-requests'] as const,
     list: (status?: string) => [...queryKeys.adminRequests.all, 'list', status] as const,
   },
+  adminPeople: {
+    all: ['admin-people'] as const,
+    authors: (search?: string) =>
+      [...queryKeys.adminPeople.all, 'authors', search] as const,
+    narrators: (search?: string) =>
+      [...queryKeys.adminPeople.all, 'narrators', search] as const,
+  },
   audnexus: {
     all: ['audnexus'] as const,
     search: (title: string, author?: string, region?: string) =>
