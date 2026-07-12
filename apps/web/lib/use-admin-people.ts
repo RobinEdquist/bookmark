@@ -1,6 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
 export interface AdminPerson {
@@ -110,6 +115,7 @@ export function useAdminPeople(role: PeopleRole, search?: string) {
     queryFn: () => fetchPeople(role, search),
     select: (data) => data.people,
     staleTime: 30 * 1000,
+    placeholderData: keepPreviousData,
   });
 }
 

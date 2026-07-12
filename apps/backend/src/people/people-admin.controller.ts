@@ -40,13 +40,24 @@ export class PeopleAdminController {
   @Get('authors')
   @ApiOperation({
     summary: 'List all authors',
-    description: 'Returns all people with author links, including counts for ebooks and audiobooks.',
+    description:
+      'Returns all people with author links, including counts for ebooks and audiobooks.',
   })
-  @ApiQuery({ name: 'search', required: false, description: 'Filter authors by name' })
-  @ApiResponse({ status: 200, description: 'List of authors with counts', type: AdminPeopleResponseDto })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter authors by name',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of authors with counts',
+    type: AdminPeopleResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin access required' })
-  async findAuthors(@Query('search') search?: string): Promise<AdminPeopleResponseDto> {
+  async findAuthors(
+    @Query('search') search?: string,
+  ): Promise<AdminPeopleResponseDto> {
     const people = await this.peopleAdminService.findAuthors(search);
     return { people };
   }
@@ -54,13 +65,24 @@ export class PeopleAdminController {
   @Get('narrators')
   @ApiOperation({
     summary: 'List all narrators',
-    description: 'Returns all people with narrator links and counts for audiobooks.',
+    description:
+      'Returns all people with narrator links and counts for audiobooks.',
   })
-  @ApiQuery({ name: 'search', required: false, description: 'Filter narrators by name' })
-  @ApiResponse({ status: 200, description: 'List of narrators with counts', type: AdminPeopleResponseDto })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Filter narrators by name',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of narrators with counts',
+    type: AdminPeopleResponseDto,
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin access required' })
-  async findNarrators(@Query('search') search?: string): Promise<AdminPeopleResponseDto> {
+  async findNarrators(
+    @Query('search') search?: string,
+  ): Promise<AdminPeopleResponseDto> {
     const people = await this.peopleAdminService.findNarrators(search);
     return { people };
   }
@@ -68,7 +90,8 @@ export class PeopleAdminController {
   @Patch(':id')
   @ApiOperation({
     summary: 'Rename person',
-    description: 'Rename a person. Returns conflict info if a name already exists.',
+    description:
+      'Rename a person. Returns conflict info if a name already exists.',
   })
   @ApiParam({ name: 'id', description: 'Person ID' })
   @ApiResponse({ status: 200, description: 'Person renamed or conflict info' })
@@ -85,12 +108,16 @@ export class PeopleAdminController {
   @Post(':id/merge/:targetId')
   @ApiOperation({
     summary: 'Merge people',
-    description: 'Merge source person into target person and move all author/narrator links.',
+    description:
+      'Merge source person into target person and move all author/narrator links.',
   })
   @ApiParam({ name: 'id', description: 'Source person ID (will be deleted)' })
   @ApiParam({ name: 'targetId', description: 'Target person ID (will remain)' })
   @ApiResponse({ status: 200, description: 'People merged successfully' })
-  @ApiResponse({ status: 400, description: 'Cannot merge a person with itself' })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot merge a person with itself',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin access required' })
   @ApiResponse({ status: 404, description: 'Person not found' })
@@ -107,11 +134,19 @@ export class PeopleAdminController {
   @Post(':id/split')
   @ApiOperation({
     summary: 'Split person',
-    description: 'Replace a person with multiple people and move all author/narrator links.',
+    description:
+      'Replace a person with multiple people and move all author/narrator links.',
   })
   @ApiParam({ name: 'id', description: 'Source person ID' })
-  @ApiResponse({ status: 200, description: 'Person split successfully', type: SplitPersonResultDto })
-  @ApiResponse({ status: 400, description: 'At least two replacement names are required' })
+  @ApiResponse({
+    status: 200,
+    description: 'Person split successfully',
+    type: SplitPersonResultDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'At least two replacement names are required',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Admin access required' })
   @ApiResponse({ status: 404, description: 'Person not found' })

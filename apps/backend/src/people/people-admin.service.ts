@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, asc, eq, ilike, ne, sql, type SQL } from 'drizzle-orm';
+import { and, asc, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as ebookSchema from '../ebooks/schema';
@@ -109,7 +109,11 @@ export class PeopleAdminService {
     }
 
     if (person.name === newName) {
-      return { id: person.id, name: person.name, ...(await this.getCounts(id)) };
+      return {
+        id: person.id,
+        name: person.name,
+        ...(await this.getCounts(id)),
+      };
     }
 
     const [existing] = await this.db
@@ -139,7 +143,10 @@ export class PeopleAdminService {
     return { id: person.id, name: newName, ...(await this.getCounts(id)) };
   }
 
-  async merge(sourceId: string, targetId: string): Promise<MergePersonResultDto> {
+  async merge(
+    sourceId: string,
+    targetId: string,
+  ): Promise<MergePersonResultDto> {
     if (sourceId === targetId) {
       throw new BadRequestException('Cannot merge a person with itself');
     }
@@ -167,7 +174,9 @@ export class PeopleAdminService {
       await this.moveEbookAuthorLinks(tx, sourceId, targetId);
       await this.moveAudiobookNarratorLinks(tx, sourceId, targetId);
 
-      await tx.delete(audiobookSchema.people).where(eq(audiobookSchema.people.id, sourceId));
+      await tx
+        .delete(audiobookSchema.people)
+        .where(eq(audiobookSchema.people.id, sourceId));
 
       return {
         id: target.id,
@@ -251,7 +260,9 @@ export class PeopleAdminService {
         sourceId,
       );
 
-      await tx.delete(audiobookSchema.people).where(eq(audiobookSchema.people.id, sourceId));
+      await tx
+        .delete(audiobookSchema.people)
+        .where(eq(audiobookSchema.people.id, sourceId));
 
       return {
         id: source.id,
@@ -263,8 +274,14 @@ export class PeopleAdminService {
     });
   }
 
-  private buildWhereClause(search: string | undefined, clauses: SQL[]) {
-    const parts = [...clauses];
+  private buildWhereClause(search: string | undefined, roleClauses: SQL[]) {
+    // A person belongs to the role if ANY of the role clauses match
+    const parts: SQL[] = [];
+    const roleClause =
+      roleClauses.length === 1 ? roleClauses[0] : or(...roleClauses);
+    if (roleClause) {
+      parts.push(roleClause);
+    }
     if (search?.trim()) {
       parts.push(ilike(audiobookSchema.people.name, `%${search.trim()}%`));
     }
@@ -289,7 +306,10 @@ export class PeopleAdminService {
     return normalized;
   }
 
-  private async getCounts(id: string, tx = this.db): Promise<{
+  private async getCounts(
+    id: string,
+    tx = this.db,
+  ): Promise<{
     audiobookAuthorCount: number;
     ebookAuthorCount: number;
     audiobookNarratorCount: number;

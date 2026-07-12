@@ -12,7 +12,9 @@ export class SplitPersonDto {
   @IsString({ each: true })
   @Transform(({ value }) =>
     Array.isArray(value)
-      ? value.map((entry) => (typeof entry === 'string' ? entry.trim() : entry)).filter(Boolean)
+      ? value
+          .map((entry) => (typeof entry === 'string' ? entry.trim() : entry))
+          .filter(Boolean)
       : [],
   )
   @Type(() => String)
