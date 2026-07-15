@@ -56,13 +56,23 @@ export class GoodreadsScraperService implements OnModuleDestroy {
     const response = await fetch(
       `${GOODREADS_BASE_URL}/book/auto_complete?${params.toString()}`,
       {
-        headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
+        // The AWS WAF in front of Goodreads answers plain requests to this
+        // endpoint with an empty 202 challenge; it only serves JSON when the
+        // request looks like the site's own search-box XHR.
+        headers: {
+          'User-Agent': USER_AGENT,
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          Referer: `${GOODREADS_BASE_URL}/`,
+        },
         redirect: 'follow',
         signal: AbortSignal.timeout(30_000),
       },
     );
 
-    if (!response.ok) {
+    // 202 is the WAF challenge (empty body), not a real result set — treat
+    // anything but a plain 200 as a failed search instead of "0 results".
+    if (response.status !== 200) {
       throw new Error(`Goodreads search failed with status ${response.status}`);
     }
 
@@ -70,6 +80,9 @@ export class GoodreadsScraperService implements OnModuleDestroy {
     try {
       entries = await response.json();
     } catch {
+      this.logger.warn(
+        `Goodreads auto_complete returned a non-JSON body for query "${query}"`,
+      );
       return [];
     }
 

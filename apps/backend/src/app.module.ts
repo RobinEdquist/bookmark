@@ -41,9 +41,10 @@ import { AnnouncementsModule } from './announcements/announcements.module';
 import { GenresModule } from './genres/genres.module';
 import { UserProfileModule } from './user-profile/user-profile.module';
 import { StatsModule } from './stats/stats.module';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { createAuthInstance } from './auth/auth.provider';
 import { CommonModule } from './common/common.module';
 
@@ -84,23 +85,62 @@ import { CommonModule } from './common/common.module';
                     },
                   },
                 }),
-            customProps: (req) => {
+            // Emit level labels ("info") instead of numbers (30) so log
+            // viewers like Dozzle can color-code and filter by level.
+            formatters: {
+              level: (label: string) => ({ level: label }),
+            },
+            // The default serializers dump every request/response header —
+            // including session cookies — into each log line. Keep only
+            // what's needed to identify the request.
+            serializers: {
+              req: (req: {
+                id?: unknown;
+                method?: string;
+                url?: string;
+                remoteAddress?: string;
+              }) => ({
+                id: req.id,
+                method: req.method,
+                url: req.url,
+                remoteAddress: req.remoteAddress,
+              }),
+              res: (res: { statusCode?: number }) => ({
+                statusCode: res.statusCode,
+              }),
+            },
+            // pino-http evaluates customProps twice per request: once when
+            // the request comes in (before auth guards have resolved the
+            // session, so the actor would always be "system") and once when
+            // the response finishes. Emitting props from both calls is what
+            // used to produce duplicate `actor` keys — so only answer the
+            // finish-time call, when the session is known.
+            customProps: (req, res) => {
+              if (!(res as { writableEnded?: boolean }).writableEnded) {
+                return {};
+              }
               const typedReq = req as {
                 session?: { user?: { id: string; email: string } };
                 apiTokenUser?: { id: string; email: string };
               };
               // Check cookie session first, then API token user
               const user = typedReq.session?.user || typedReq.apiTokenUser;
-              if (user) {
-                return {
-                  actor: {
-                    id: user.id,
-                    email: user.email,
-                  },
-                };
-              }
-              return { actor: { id: 'system', email: null } };
+              return {
+                actor: user
+                  ? { id: user.id, email: user.email }
+                  : { id: 'system', email: null },
+              };
             },
+            customSuccessMessage: (
+              req: { method?: string; url?: string },
+              res: { statusCode?: number },
+              responseTime: number,
+            ) =>
+              `${req.method} ${req.url} → ${res.statusCode} (${responseTime}ms)`,
+            customErrorMessage: (
+              req: { method?: string; url?: string },
+              res: { statusCode?: number },
+            ) => `${req.method} ${req.url} → ${res.statusCode}`,
             customLogLevel: (
               _req: unknown,
               res: { statusCode: number },
@@ -166,6 +206,10 @@ import { CommonModule } from './common/common.module';
   ],
   controllers: [],
   providers: [
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
     {
       provide: APP_GUARD,
       useClass: SignupGuard,

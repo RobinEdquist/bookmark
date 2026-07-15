@@ -61,6 +61,7 @@ describe('GoodreadsScraperService', () => {
     it('queries the auto_complete endpoint and maps entries', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
+        status: 200,
         json: jest.fn().mockResolvedValue([autoCompleteEntry]),
       });
 
@@ -69,7 +70,12 @@ describe('GoodreadsScraperService', () => {
       expect(mockFetch).toHaveBeenCalledWith(
         'https://www.goodreads.com/book/auto_complete?format=json&q=the+hobbit',
         expect.objectContaining({
-          headers: expect.objectContaining({ Accept: 'application/json' }),
+          headers: expect.objectContaining({
+            Accept: 'application/json',
+            // Required to bypass the WAF's empty-202 challenge response.
+            'X-Requested-With': 'XMLHttpRequest',
+            Referer: 'https://www.goodreads.com/',
+          }),
         }),
       );
       expect(results).toEqual([
@@ -87,6 +93,7 @@ describe('GoodreadsScraperService', () => {
     it('falls back to bookId when bookUrl is missing', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
+        status: 200,
         json: jest
           .fn()
           .mockResolvedValue([
@@ -103,6 +110,7 @@ describe('GoodreadsScraperService', () => {
     it('defaults author and title when fields are missing', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
+        status: 200,
         json: jest.fn().mockResolvedValue([{ bookId: 1 }]),
       });
 
@@ -121,6 +129,7 @@ describe('GoodreadsScraperService', () => {
     it('returns empty list for a non-array payload', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
+        status: 200,
         json: jest.fn().mockResolvedValue({ error: 'nope' }),
       });
 
@@ -130,6 +139,7 @@ describe('GoodreadsScraperService', () => {
     it('returns empty list when the payload is not JSON', async () => {
       mockFetch.mockResolvedValue({
         ok: true,
+        status: 200,
         json: jest.fn().mockRejectedValue(new Error('invalid json')),
       });
 
@@ -141,6 +151,14 @@ describe('GoodreadsScraperService', () => {
 
       await expect(service.searchBooks('query')).rejects.toThrow(
         'Goodreads search failed with status 503',
+      );
+    });
+
+    it('throws on a 202 WAF challenge instead of returning 0 results', async () => {
+      mockFetch.mockResolvedValue({ ok: true, status: 202 });
+
+      await expect(service.searchBooks('query')).rejects.toThrow(
+        'Goodreads search failed with status 202',
       );
     });
   });
