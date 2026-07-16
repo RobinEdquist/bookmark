@@ -210,9 +210,12 @@ export function MetadataMatchDialog({
     { enabled: open && step === "review" && provider === "audible" }
   );
 
-  const audibleFallback = selectedAudible
-    ? mapAudibleSearchResult(selectedAudible)
-    : null;
+  // Memoized so `matched` keeps a stable identity across renders — the
+  // default-check effect below resets `checked` whenever `matched` changes.
+  const audibleFallback = useMemo(
+    () => (selectedAudible ? mapAudibleSearchResult(selectedAudible) : null),
+    [selectedAudible]
+  );
 
   const matched: MatchedMetadata | null = useMemo(() => {
     if (step !== "review") return null;

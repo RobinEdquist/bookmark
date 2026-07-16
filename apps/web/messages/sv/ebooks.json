@@ -16,8 +16,17 @@
     "linkedToHardcover": "Länkad till Hardcover",
     "rating": "{rating} ({count})",
     "addToList": "Lägg till i lista",
+    "syncWithHardcover": "Länka till Hardcover",
+    "unlinkFromHardcover": "Avlänka från Hardcover",
     "syncWithGoodreads": "Länka till Goodreads",
     "unlinkFromGoodreads": "Avlänka från Goodreads"
+  },
+  "hardcoverLink": {
+    "unlinking": "Avlänkar...",
+    "toast": {
+      "unlinked": "Avlänkad från Hardcover",
+      "unlinkFailed": "Kunde inte avlänka från Hardcover"
+    }
   },
   "goodreadsLink": {
     "unlinking": "Avlänkar...",

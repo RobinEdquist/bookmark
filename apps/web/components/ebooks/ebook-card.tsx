@@ -18,6 +18,7 @@ import type { EbookListItem } from "../../lib/use-ebooks";
 import { useDeleteEbook } from "../../lib/use-ebooks";
 import { useMyPermissions } from "../../lib/use-users";
 import { useGrFinderStatus, useGoodreadsUnlinkMedia } from "../../lib/use-goodreads";
+import { useHardcoverStatus, useHardcoverUnlinkMedia } from "../../lib/use-hardcover";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "../../lib/query-keys";
@@ -26,6 +27,7 @@ import { DeleteEbookDialog } from "./delete-ebook-dialog";
 import { ChangeEbookCoverDialog } from "./change-ebook-cover-dialog";
 import { AddToListDialog } from "../lists/add-to-list-dialog";
 import { GoodreadsSearchDialog } from "../goodreads/goodreads-search-dialog";
+import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
 import { GeneratedCover } from "../common/generated-cover";
 import { formatSeriesOrder } from "../../lib/format-series";
 import { useTheme } from "../../lib/use-theme";
@@ -49,15 +51,19 @@ export function EbookCard({
   const t = useTranslations("ebooks.card");
   const tDelete = useTranslations("ebooks.deleteDialog");
   const tGoodreads = useTranslations("ebooks.goodreadsLink");
+  const tHardcover = useTranslations("ebooks.hardcoverLink");
   const { isDark } = useTheme();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [addToListOpen, setAddToListOpen] = useState(false);
   const [goodreadsSyncOpen, setGoodreadsSyncOpen] = useState(false);
+  const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isGoodreadsConfigured } = useGrFinderStatus();
+  const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const { unlinkMedia: unlinkGoodreads, isUnlinking: isUnlinkingGoodreads } = useGoodreadsUnlinkMedia();
+  const { unlinkMedia: unlinkHardcover, isUnlinking: isUnlinkingHardcover } = useHardcoverUnlinkMedia();
   const { mutateAsync: deleteEbook, isPending: isDeleting } = useDeleteEbook();
   const queryClient = useQueryClient();
 
@@ -67,6 +73,16 @@ export function EbookCard({
   const isMissing = ebook.status === "missing";
   const isLinkedToHardcover = ebook.hardcoverLinked;
   const isLinkedToGoodreads = ebook.goodreadsLinked;
+
+  const handleUnlinkHardcover = async () => {
+    try {
+      await unlinkHardcover({ mediaType: "ebook", mediaId: ebook.id });
+      queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
+      toast.success(tHardcover("toast.unlinked"));
+    } catch {
+      toast.error(tHardcover("toast.unlinkFailed"));
+    }
+  };
 
   const handleUnlinkGoodreads = async () => {
     try {
@@ -255,6 +271,29 @@ export function EbookCard({
                   <ListPlus className="h-4 w-4" />
                   {t("addToList")}
                 </DropdownMenuItem>
+                {isHardcoverConfigured && <DropdownMenuSeparator />}
+                {isHardcoverConfigured && !isLinkedToHardcover && (
+                  <DropdownMenuItem onClick={() => setHardcoverSyncOpen(true)}>
+                    <Image
+                      src="/hardcover.svg"
+                      alt="Hardcover"
+                      width={16}
+                      height={16}
+                    />
+                    {t("syncWithHardcover")}
+                  </DropdownMenuItem>
+                )}
+                {isHardcoverConfigured && isLinkedToHardcover && (
+                  <DropdownMenuItem onClick={handleUnlinkHardcover} disabled={isUnlinkingHardcover}>
+                    <Image
+                      src="/hardcover.svg"
+                      alt="Hardcover"
+                      width={16}
+                      height={16}
+                    />
+                    {isUnlinkingHardcover ? tHardcover("unlinking") : t("unlinkFromHardcover")}
+                  </DropdownMenuItem>
+                )}
                 {isGoodreadsConfigured && <DropdownMenuSeparator />}
                 {isGoodreadsConfigured && !isLinkedToGoodreads && (
                   <DropdownMenuItem onClick={() => setGoodreadsSyncOpen(true)}>
@@ -330,6 +369,16 @@ export function EbookCard({
           itemId={ebook.id}
           open={addToListOpen}
           onOpenChange={setAddToListOpen}
+        />
+      )}
+
+      {isHardcoverConfigured && (
+        <HardcoverSyncDialog
+          mediaType="ebook"
+          mediaId={ebook.id}
+          mediaTitle={ebook.title}
+          open={hardcoverSyncOpen}
+          onOpenChange={setHardcoverSyncOpen}
         />
       )}
 

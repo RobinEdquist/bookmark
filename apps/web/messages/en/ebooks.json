@@ -16,8 +16,17 @@
     "linkedToHardcover": "Linked to Hardcover",
     "rating": "{rating} ({count})",
     "addToList": "Add to list",
+    "syncWithHardcover": "Link to Hardcover",
+    "unlinkFromHardcover": "Unlink from Hardcover",
     "syncWithGoodreads": "Link to Goodreads",
     "unlinkFromGoodreads": "Unlink from Goodreads"
+  },
+  "hardcoverLink": {
+    "unlinking": "Unlinking...",
+    "toast": {
+      "unlinked": "Unlinked from Hardcover",
+      "unlinkFailed": "Failed to unlink from Hardcover"
+    }
   },
   "goodreadsLink": {
     "unlinking": "Unlinking...",
