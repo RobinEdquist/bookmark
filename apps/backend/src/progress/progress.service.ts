@@ -225,6 +225,20 @@ export class ProgressService {
    */
   private static readonly SESSION_MERGE_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
 
+  /**
+   * Clamp a chunk's reported duration to its own wall-clock span: listening
+   * time (which excludes pauses) can never exceed endedAt - startedAt.
+   */
+  private static sanitizeChunkDuration(dto: CreateSessionDto): number {
+    const startedMs = new Date(dto.startedAt).getTime();
+    const endedMs = new Date(dto.endedAt).getTime();
+    const wallSpanSeconds = Math.max(
+      0,
+      Math.round((endedMs - startedMs) / 1000),
+    );
+    return Math.min(Math.max(dto.durationSeconds, 0), wallSpanSeconds);
+  }
+
   async createSession(
     userId: string,
     audiobookId: string,
@@ -239,6 +253,10 @@ export class ProgressService {
       .select({
         id: progressSchema.listeningSessions.id,
         durationSeconds: progressSchema.listeningSessions.durationSeconds,
+        startedAt: progressSchema.listeningSessions.startedAt,
+        endedAt: progressSchema.listeningSessions.endedAt,
+        startPosition: progressSchema.listeningSessions.startPosition,
+        endPosition: progressSchema.listeningSessions.endPosition,
       })
       .from(progressSchema.listeningSessions)
       .where(
@@ -276,7 +294,7 @@ export class ProgressService {
         endedAt: new Date(dto.endedAt),
         startPosition: dto.startPosition,
         endPosition: dto.endPosition,
-        durationSeconds: dto.durationSeconds,
+        durationSeconds: ProgressService.sanitizeChunkDuration(dto),
       })
       .returning({
         id: progressSchema.listeningSessions.id,
@@ -287,22 +305,54 @@ export class ProgressService {
   }
 
   /**
-   * Extend an existing session with values from a new session DTO.
-   * Uses MAX semantics for endedAt, endPosition, and durationSeconds.
+   * Extend an existing session with an incremental chunk (one play→pause
+   * stretch reported by a client). Durations SUM, capped at the merged
+   * session's wall-clock span so a re-sent chunk can't inflate the total.
+   * The merged row spans from the chronologically earliest chunk to the
+   * latest, so an out-of-order chunk (e.g. an offline queue flushing late)
+   * adds its duration without rewinding the session's end.
    */
   private async extendSession(
-    existing: { id: string; durationSeconds: number },
+    existing: {
+      id: string;
+      durationSeconds: number;
+      startedAt: Date;
+      endedAt: Date;
+      startPosition: number;
+      endPosition: number;
+    },
     dto: CreateSessionDto,
   ): Promise<{ id: string; durationSeconds: number }> {
+    const dtoStartedAt = new Date(dto.startedAt);
+    const dtoEndedAt = new Date(dto.endedAt);
+
+    const dtoStartsEarlier = dtoStartedAt < existing.startedAt;
+    const dtoEndsLater = dtoEndedAt > existing.endedAt;
+
+    const startedAt = dtoStartsEarlier ? dtoStartedAt : existing.startedAt;
+    const endedAt = dtoEndsLater ? dtoEndedAt : existing.endedAt;
+    const startPosition = dtoStartsEarlier
+      ? dto.startPosition
+      : existing.startPosition;
+    const endPosition = dtoEndsLater ? dto.endPosition : existing.endPosition;
+
+    const mergedWallSpanSeconds = Math.max(
+      0,
+      Math.round((endedAt.getTime() - startedAt.getTime()) / 1000),
+    );
+    const durationSeconds = Math.min(
+      existing.durationSeconds + ProgressService.sanitizeChunkDuration(dto),
+      mergedWallSpanSeconds,
+    );
+
     const [updated] = await this.db
       .update(progressSchema.listeningSessions)
       .set({
-        endedAt: new Date(dto.endedAt),
-        endPosition: dto.endPosition,
-        durationSeconds: Math.max(
-          existing.durationSeconds,
-          dto.durationSeconds,
-        ),
+        startedAt,
+        endedAt,
+        startPosition,
+        endPosition,
+        durationSeconds,
       })
       .where(eq(progressSchema.listeningSessions.id, existing.id))
       .returning({
@@ -322,11 +372,25 @@ export class ProgressService {
     userId: string,
     audiobookId: string,
     dto: CreateSessionDto,
-  ): Promise<{ id: string; durationSeconds: number } | undefined> {
+  ): Promise<
+    | {
+        id: string;
+        durationSeconds: number;
+        startedAt: Date;
+        endedAt: Date;
+        startPosition: number;
+        endPosition: number;
+      }
+    | undefined
+  > {
     const [match] = await this.db
       .select({
         id: progressSchema.listeningSessions.id,
         durationSeconds: progressSchema.listeningSessions.durationSeconds,
+        startedAt: progressSchema.listeningSessions.startedAt,
+        endedAt: progressSchema.listeningSessions.endedAt,
+        startPosition: progressSchema.listeningSessions.startPosition,
+        endPosition: progressSchema.listeningSessions.endPosition,
       })
       .from(progressSchema.listeningSessions)
       .where(

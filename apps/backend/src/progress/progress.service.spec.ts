@@ -169,12 +169,19 @@ describe('ProgressService', () => {
     });
 
     it('merges with existing session within 10-minute time window', async () => {
-      const existingSession = { id: 'existing-1', durationSeconds: 200 };
+      const existingSession = {
+        id: 'existing-1',
+        durationSeconds: 200,
+        startedAt: new Date('2026-03-15T09:50:00Z'),
+        endedAt: new Date('2026-03-15T09:56:00Z'),
+        startPosition: 0,
+        endPosition: 100,
+      };
       const timeWindowSelect = buildSelectChain([existingSession]);
 
-      const { update } = buildUpdateChain({
+      const { update, set } = buildUpdateChain({
         id: 'existing-1',
-        durationSeconds: 300,
+        durationSeconds: 500,
       });
 
       const db = createMockDb({
@@ -186,12 +193,21 @@ describe('ProgressService', () => {
       const result = await service.createSession('user-1', 'ab-1', baseDto);
 
       expect(result.id).toBe('existing-1');
-      expect(result.durationSeconds).toBe(300);
+      // Incremental chunks SUM: 200 (existing) + 300 (new chunk)
+      expect(result.durationSeconds).toBe(500);
       expect(update).toHaveBeenCalled();
+      expect(set.mock.calls[0][0].durationSeconds).toBe(500);
     });
 
     it('merges with existing session when positions overlap on same day', async () => {
-      const existingSession = { id: 'existing-2', durationSeconds: 150 };
+      const existingSession = {
+        id: 'existing-2',
+        durationSeconds: 150,
+        startedAt: new Date('2026-03-15T09:48:00Z'),
+        endedAt: new Date('2026-03-15T09:53:00Z'),
+        startPosition: 50,
+        endPosition: 150,
+      };
 
       // First call (time-window): no match. Second call (position-overlap): match.
       const emptySelect = buildSelectChain([]);
@@ -202,9 +218,9 @@ describe('ProgressService', () => {
         .mockReturnValueOnce(emptySelect)
         .mockReturnValueOnce(overlapSelect);
 
-      const { update } = buildUpdateChain({
+      const { update, set } = buildUpdateChain({
         id: 'existing-2',
-        durationSeconds: 300,
+        durationSeconds: 450,
       });
 
       const db = createMockDb({ select: selectFn, update });
@@ -213,8 +229,10 @@ describe('ProgressService', () => {
       const result = await service.createSession('user-1', 'ab-1', baseDto);
 
       expect(result.id).toBe('existing-2');
-      expect(result.durationSeconds).toBe(300);
+      // Incremental chunks SUM: 150 (existing) + 300 (new chunk)
+      expect(result.durationSeconds).toBe(450);
       expect(update).toHaveBeenCalled();
+      expect(set.mock.calls[0][0].durationSeconds).toBe(450);
     });
 
     it('does NOT merge sessions on different days even with position overlap', async () => {
@@ -259,22 +277,23 @@ describe('ProgressService', () => {
       expect(selectFn).toHaveBeenCalledTimes(2);
     });
 
-    it('uses MAX of durations when merging via extendSession', async () => {
-      // Existing session has a LARGER duration than the new one
-      const existingSession = { id: 'existing-3', durationSeconds: 500 };
+    it('sums durations when merging incremental chunks via extendSession', async () => {
+      // Each chunk is one play→pause stretch; the merged session's duration
+      // is the sum of all chunks, not the longest one.
+      const existingSession = {
+        id: 'existing-3',
+        durationSeconds: 500,
+        startedAt: new Date('2026-03-15T09:30:00Z'),
+        endedAt: new Date('2026-03-15T09:58:00Z'),
+        startPosition: 0,
+        endPosition: 100,
+      };
       const timeWindowSelect = buildSelectChain([existingSession]);
 
-      const updateReturning = jest.fn().mockResolvedValue([
-        {
-          id: 'existing-3',
-          durationSeconds: 500,
-        },
-      ]);
-      const updateWhere = jest
-        .fn()
-        .mockReturnValue({ returning: updateReturning });
-      const updateSet = jest.fn().mockReturnValue({ where: updateWhere });
-      const update = jest.fn().mockReturnValue({ set: updateSet });
+      const { update, set } = buildUpdateChain({
+        id: 'existing-3',
+        durationSeconds: 700,
+      });
 
       const db = createMockDb({
         select: jest.fn().mockReturnValue(timeWindowSelect),
@@ -287,9 +306,105 @@ describe('ProgressService', () => {
         durationSeconds: 200, // smaller than existing 500
       });
 
-      // Verify set was called with MAX(500, 200) = 500
-      const setArg = updateSet.mock.calls[0][0];
-      expect(setArg.durationSeconds).toBe(500);
+      // SUM(500, 200) = 700, not MAX(500, 200) = 500
+      const setArg = set.mock.calls[0][0];
+      expect(setArg.durationSeconds).toBe(700);
+      expect(setArg.endedAt).toEqual(new Date(baseDto.endedAt));
+      expect(setArg.endPosition).toBe(400);
+      expect(setArg.startedAt).toEqual(existingSession.startedAt);
+      expect(setArg.startPosition).toBe(0);
+    });
+
+    it('clamps an inserted chunk duration to its own wall-clock span', async () => {
+      const emptySelect = buildSelectChain([]);
+      const { insert, values } = buildInsertChain({
+        id: 'new-session',
+        durationSeconds: 300,
+      });
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(emptySelect),
+        insert,
+      });
+      const service = new ProgressService(db);
+
+      // Chunk claims 9000s of listening inside a 300s wall-clock window
+      await service.createSession('user-1', 'ab-1', {
+        ...baseDto,
+        durationSeconds: 9000,
+      });
+
+      expect(values.mock.calls[0][0].durationSeconds).toBe(300);
+    });
+
+    it('caps the merged duration at the merged session wall-clock span', async () => {
+      // Existing 09:58–10:03 (290s) + chunk 10:00–10:05 (300s) overlap in
+      // wall time; the merged session spans 09:58–10:05 = 420s, so the sum
+      // (590) is capped at 420 to bound double-counting from re-sent chunks.
+      const existingSession = {
+        id: 'existing-4',
+        durationSeconds: 290,
+        startedAt: new Date('2026-03-15T09:58:00Z'),
+        endedAt: new Date('2026-03-15T10:03:00Z'),
+        startPosition: 0,
+        endPosition: 450,
+      };
+      const timeWindowSelect = buildSelectChain([existingSession]);
+
+      const { update, set } = buildUpdateChain({
+        id: 'existing-4',
+        durationSeconds: 420,
+      });
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(timeWindowSelect),
+        update,
+      });
+      const service = new ProgressService(db);
+
+      await service.createSession('user-1', 'ab-1', baseDto);
+
+      expect(set.mock.calls[0][0].durationSeconds).toBe(420);
+    });
+
+    it('adds an out-of-order chunk without rewinding endedAt/endPosition', async () => {
+      // An offline queue can flush a chunk that predates the session row.
+      const existingSession = {
+        id: 'existing-5',
+        durationSeconds: 300,
+        startedAt: new Date('2026-03-15T10:00:00Z'),
+        endedAt: new Date('2026-03-15T10:05:00Z'),
+        startPosition: 100,
+        endPosition: 400,
+      };
+      const timeWindowSelect = buildSelectChain([existingSession]);
+
+      const { update, set } = buildUpdateChain({
+        id: 'existing-5',
+        durationSeconds: 580,
+      });
+
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(timeWindowSelect),
+        update,
+      });
+      const service = new ProgressService(db);
+
+      await service.createSession('user-1', 'ab-1', {
+        startedAt: '2026-03-15T09:50:00Z',
+        endedAt: '2026-03-15T09:55:00Z',
+        startPosition: 0,
+        endPosition: 100,
+        durationSeconds: 280,
+      });
+
+      const setArg = set.mock.calls[0][0];
+      // The late chunk extends the session backwards, not forwards
+      expect(setArg.startedAt).toEqual(new Date('2026-03-15T09:50:00Z'));
+      expect(setArg.startPosition).toBe(0);
+      expect(setArg.endedAt).toEqual(existingSession.endedAt);
+      expect(setArg.endPosition).toBe(400);
+      expect(setArg.durationSeconds).toBe(580);
     });
   });
 
