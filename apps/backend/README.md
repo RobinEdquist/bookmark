@@ -89,6 +89,40 @@ The backend runs on port 3000 by default and provides:
 - `GET /audiobooks/genres` - List genres
 - `GET /audiobooks/tags` - List tags
 
+## Monitoring (optional)
+
+The backend can expose [Prometheus](https://prometheus.io/) metrics. This is
+fully opt-in — without it the app behaves exactly as before, so you don't need
+a monitoring stack to run Bookmark.
+
+```env
+METRICS_ENABLED=true
+# METRICS_PORT=9464
+```
+
+Metrics are served at `http://<host>:9464/metrics` on a **separate internal
+port**, never on the public API port — expose it only to your monitoring
+network (e.g. a shared Docker network with Prometheus), not through your
+reverse proxy.
+
+You get:
+
+- Node.js process metrics (CPU, memory, event loop lag, GC)
+- `http_request_duration_seconds` — request latency/count histogram labeled by
+  method, route pattern, and status code
+- `bookmark_*` gauges — library item counts by type, content requests by
+  status, requests created today, and total listening time (refreshed from the
+  database at most once per minute)
+
+Example Prometheus scrape config:
+
+```yaml
+scrape_configs:
+  - job_name: bookmark
+    static_configs:
+      - targets: ["bookmark:9464"]
+```
+
 ## Docker
 
 When deploying with Docker, ensure FFmpeg is installed in your image:

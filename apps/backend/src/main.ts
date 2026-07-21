@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
+import { MetricsService } from './metrics/metrics.service';
 import { buildSwaggerConfig } from './swagger';
 
 async function bootstrap() {
@@ -13,6 +14,11 @@ async function bootstrap() {
 
   const logger = app.get(Logger);
   app.useLogger(logger);
+
+  // Optional Prometheus instrumentation (METRICS_ENABLED=true). Registered
+  // before Nest mounts its routers so every request is timed; a no-op
+  // pass-through when disabled.
+  app.use(app.get(MetricsService).middleware());
 
   // Validate APP_DATA_PATH in production
   const isProduction = process.env.NODE_ENV === 'production';
