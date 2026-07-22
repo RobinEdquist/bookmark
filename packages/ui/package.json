@@ -48,6 +48,6 @@
     "@repo/typescript-config": "workspace:*",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "typescript": "5.9.2"
+    "typescript": "7.0.2"
   }
 }
