@@ -52,7 +52,7 @@
     "@types/react-dom": "19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "@vitest/coverage-v8": "^4.1.10",
-    "eslint": "^9.39.1",
+    "eslint": "^10.8.0",
     "jsdom": "^29.1.1",
     "pg": "^8.22.0",
     "postcss": "^8.5.21",
