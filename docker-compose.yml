@@ -66,6 +66,10 @@ services:
       # Integrations (optional)
       TRACKER_CLIENT_URL: ${TRACKER_CLIENT_URL:-}
       TRACKER_CLIENT_API_KEY: ${TRACKER_CLIENT_API_KEY:-}
+
+      # Update checks (optional) - see example.env
+      UPDATE_CHECK_ENABLED: ${UPDATE_CHECK_ENABLED:-true}
+      UPDATE_CHECK_REPO: ${UPDATE_CHECK_REPO:-}
     volumes:
       # Application data (covers, cache, auto-generated auth secret, etc.)
       - ${DATA_PATH:-./data}/app:/data

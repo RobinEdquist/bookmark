@@ -3,7 +3,9 @@
   "version": {
     "preAlpha": "pre-alpha",
     "devBuild": "dev",
-    "buildDetails": "Version {version} · commit {sha}"
+    "buildDetails": "Version {version} · commit {sha}",
+    "updateShort": "v{version} available",
+    "updateAvailable": "Version {version} is available — click for release notes"
   },
   "loading": "Loading...",
   "error": {

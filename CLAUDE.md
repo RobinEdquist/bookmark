@@ -280,7 +280,7 @@ export class AudiobooksController {
   @Get()
   async findAll(
     @Query() query: ListAudiobooksDto,
-    @Session() session: UserSession
+    @Session() session: UserSession,
   ): Promise<PaginatedResponse<AudiobookDto>> {
     return this.audiobooksService.findAll(query, session.user);
   }
@@ -289,7 +289,7 @@ export class AudiobooksController {
   @Get(":id")
   async findOne(
     @Param("id") id: string,
-    @Session() session: UserSession
+    @Session() session: UserSession,
   ): Promise<AudiobookDto> {
     const audiobook = await this.audiobooksService.findOne(id, session.user);
     if (!audiobook) {
@@ -304,7 +304,7 @@ export class AudiobooksController {
   @Roles("admin")
   async create(
     @Body() dto: CreateAudiobookDto,
-    @Session() session: UserSession
+    @Session() session: UserSession,
   ): Promise<AudiobookDto> {
     return this.audiobooksService.create(dto, session.user);
   }
@@ -316,7 +316,7 @@ export class AudiobooksController {
   async update(
     @Param("id") id: string,
     @Body() dto: UpdateAudiobookDto,
-    @Session() session: UserSession
+    @Session() session: UserSession,
   ): Promise<AudiobookDto> {
     return this.audiobooksService.update(id, dto, session.user);
   }
@@ -328,7 +328,7 @@ export class AudiobooksController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(
     @Param("id") id: string,
-    @Session() session: UserSession
+    @Session() session: UserSession,
   ): Promise<void> {
     await this.audiobooksService.remove(id, session.user);
   }
@@ -342,12 +342,12 @@ export class AudiobooksController {
 export class AudiobooksService {
   constructor(
     @Inject(DATABASE_CONNECTION)
-    private readonly db: DrizzleDatabase
+    private readonly db: DrizzleDatabase,
   ) {}
 
   async findAll(
     query: ListAudiobooksDto,
-    user: User
+    user: User,
   ): Promise<PaginatedResponse<AudiobookDto>> {
     const { page = 1, limit = 20, search, genre, author } = query;
     const offset = (page - 1) * limit;
@@ -359,8 +359,8 @@ export class AudiobooksService {
       conditions.push(
         or(
           ilike(audiobooks.title, `%${search}%`),
-          ilike(audiobooks.author, `%${search}%`)
-        )
+          ilike(audiobooks.author, `%${search}%`),
+        ),
       );
     }
 
@@ -465,7 +465,7 @@ export const audiobooks = pgTable(
     index("audiobooks_title_idx").on(table.title),
     index("audiobooks_author_idx").on(table.author),
     index("audiobooks_created_at_idx").on(table.createdAt),
-  ]
+  ],
 );
 
 export const audiobookRelations = relations(audiobooks, ({ many, one }) => ({
@@ -685,7 +685,8 @@ export function useUpdateProgress() {
       // Update the audiobook detail cache
       queryClient.setQueryData(
         queryKeys.audiobooks.detail(variables.audiobookId),
-        (old: Audiobook | undefined) => (old ? { ...old, progress: data } : old)
+        (old: Audiobook | undefined) =>
+          old ? { ...old, progress: data } : old,
       );
       // Invalidate list queries to reflect progress changes
       queryClient.invalidateQueries({
@@ -739,7 +740,7 @@ class ApiError extends Error {
   constructor(
     public status: number,
     public code: string,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -761,7 +762,7 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     throw new ApiError(
       response.status,
       error.error?.code || "UNKNOWN_ERROR",
-      error.error?.message || "An error occurred"
+      error.error?.message || "An error occurred",
     );
   }
 
@@ -1439,6 +1440,33 @@ Brief description of changes
 - [ ] Mobile API compatibility considered
 ```
 
+### Releases
+
+**The git tag is the only version.** Nothing reads `package.json` versions — the app packages are pinned at `0.0.0` on purpose. CI derives the version with `git describe`, bakes it into the image as `APP_VERSION`, and the running container reports it at `GET /api/version` (rendered in the sidebar).
+
+To cut a release:
+
+```bash
+git tag -a v0.2.0 -m "Short summary"
+git push origin v0.2.0
+```
+
+That publishes `ghcr.io/robinedquist/bookmark:0.2.0`, `:0.2`, and moves `:latest`. Pushes to `main` publish `:edge` instead — never point `latest` at main, or a first-time `docker compose up -d` pulls an unreleased build.
+
+Version shapes you'll see:
+
+| Build                  | `version`           | `channel` |
+| ---------------------- | ------------------- | --------- |
+| tag `v0.2.0`           | `0.2.0`             | `release` |
+| main, 12 commits later | `0.2.0-12-ga1b2c3d` | `dev`     |
+
+Two things depend on this and will break quietly if changed:
+
+- **`fetch-depth: 0` in `build.yml`** — a shallow clone can't see tags, so `git describe` silently degrades to a bare SHA.
+- **`baseVersion`, not `version`, drives the update check** — a dev build at `0.2.0-12-g…` is _ahead_ of `0.2.0` but sorts below it as semver, so comparing the full version would nag every `edge` user forever.
+
+Once published, a release is what every instance compares itself against — so don't delete or re-point a tag that has shipped.
+
 ---
 
 ## Deployment Checklist
@@ -1485,4 +1513,5 @@ Before deploying to production:
 ---
 
 _This document is the authoritative guide for development. When in doubt, refer here first._
+
 - Always run linting when reviewing of task is done

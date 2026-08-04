@@ -1,5 +1,48 @@
 import { ApiProperty } from '@nestjs/swagger';
 
+export class UpdateInfoDto {
+  @ApiProperty({
+    example: false,
+    description:
+      'True when the latest published release is newer than the release this ' +
+      'build was cut from.',
+  })
+  available!: boolean;
+
+  @ApiProperty({
+    example: '0.2.0',
+    description: 'Version of the latest published release, without the `v`.',
+  })
+  latestVersion!: string;
+
+  @ApiProperty({
+    example: 'Chapters and bookmarks',
+    nullable: true,
+    description: 'Title of the latest release, if it has one.',
+  })
+  releaseName!: string | null;
+
+  @ApiProperty({
+    example: 'https://github.com/RobinEdquist/bookmark/releases/tag/v0.2.0',
+    nullable: true,
+    description: 'Link to the release notes.',
+  })
+  releaseUrl!: string | null;
+
+  @ApiProperty({
+    example: '2026-09-01T09:00:00Z',
+    nullable: true,
+    description: 'When the latest release was published (ISO 8601).',
+  })
+  publishedAt!: string | null;
+
+  @ApiProperty({
+    example: '2026-09-02T06:00:00Z',
+    description: 'When this instance last successfully checked (ISO 8601).',
+  })
+  checkedAt!: string;
+}
+
 export class VersionResponseDto {
   @ApiProperty({
     example: '0.1.0',
@@ -39,4 +82,13 @@ export class VersionResponseDto {
     description: 'When the image was built (ISO 8601), or null if unknown.',
   })
   buildTime!: string | null;
+
+  @ApiProperty({
+    type: UpdateInfoDto,
+    nullable: true,
+    description:
+      'Result of the last release check, or null when update checks are ' +
+      'disabled, have not run yet, or could not reach GitHub.',
+  })
+  update!: UpdateInfoDto | null;
 }

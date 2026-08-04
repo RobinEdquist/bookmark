@@ -12,10 +12,17 @@ const GIT_DESCRIBE_DEV_SUFFIX = /-\d+-g[0-9a-f]+$/;
 
 const UNKNOWN_VERSION = '0.0.0-dev';
 
+/**
+ * The build-provenance half of {@link VersionResponseDto}. Derived from `Omit`
+ * so the two cannot drift: the controller pairs this with the update-check
+ * result to form the response.
+ */
+export type BuildInfo = Omit<VersionResponseDto, 'update'>;
+
 @Injectable()
 export class VersionService {
   private readonly logger = new Logger(VersionService.name);
-  private readonly info: VersionResponseDto;
+  private readonly info: BuildInfo;
 
   constructor(private readonly config: ConfigService) {
     // Baked in at image build time (Dockerfile ARG -> ENV). A container has no
@@ -50,7 +57,7 @@ export class VersionService {
     }
   }
 
-  getVersion(): VersionResponseDto {
+  getVersion(): BuildInfo {
     return this.info;
   }
 }

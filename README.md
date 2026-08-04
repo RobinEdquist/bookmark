@@ -124,11 +124,18 @@ Then enter `http://tts:8880` as the server URL under **Settings → Integrations
 | `TRACKER_CLIENT_URL`     | If requests enabled | —       | Base URL of your content request module         |
 | `TRACKER_CLIENT_API_KEY` | If requests enabled | —       | Shared secret the module expects as `X-API-Key` |
 
-**Image** — which Bookmark image `docker compose up` runs. Ignored when building from source with `docker-compose.build.yml`.
+**Image** — which Bookmark image `docker compose up` runs. Ignored when building from source with `docker-compose.build.yml`. The `latest` tag tracks the newest release; `edge` follows the main branch and is not release-tested.
 
 | Variable         | Required | Default                                | Description                    |
 | ---------------- | -------- | -------------------------------------- | ------------------------------ |
 | `BOOKMARK_IMAGE` | No       | `ghcr.io/robinedquist/bookmark:latest` | Full image reference to deploy |
+
+**Update checks (optional)** — every 6 hours Bookmark asks GitHub whether a newer release exists and marks the sidebar if so. It's a plain request for a public release list: no telemetry, and nothing about your instance or library is sent. It is still an outbound call, so you can turn it off.
+
+| Variable               | Required | Default                 | Description                                            |
+| ---------------------- | -------- | ----------------------- | ------------------------------------------------------ |
+| `UPDATE_CHECK_ENABLED` | No       | `true`                  | Set to `false` to never contact GitHub                 |
+| `UPDATE_CHECK_REPO`    | No       | `RobinEdquist/bookmark` | Repository to check releases against; useful for forks |
 
 #### Running without Docker
 

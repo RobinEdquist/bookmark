@@ -3,7 +3,9 @@
   "version": {
     "preAlpha": "pre-alpha",
     "devBuild": "dev",
-    "buildDetails": "Version {version} · commit {sha}"
+    "buildDetails": "Version {version} · commit {sha}",
+    "updateShort": "v{version} tillgänglig",
+    "updateAvailable": "Version {version} finns tillgänglig — klicka för versionsinformation"
   },
   "loading": "Laddar...",
   "error": {

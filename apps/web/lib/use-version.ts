@@ -3,6 +3,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
+export interface UpdateInfo {
+  available: boolean;
+  latestVersion: string;
+  releaseName: string | null;
+  releaseUrl: string | null;
+  publishedAt: string | null;
+  checkedAt: string;
+}
+
 export interface VersionInfo {
   /** Full version, e.g. `0.1.0` or `0.1.0-12-ga1b2c3d` for a build off main. */
   version: string;
@@ -11,6 +20,8 @@ export interface VersionInfo {
   channel: "release" | "dev";
   gitSha: string;
   buildTime: string | null;
+  /** Null when update checks are disabled, pending, or GitHub was unreachable. */
+  update: UpdateInfo | null;
 }
 
 async function fetchVersion(): Promise<VersionInfo> {
@@ -24,15 +35,17 @@ async function fetchVersion(): Promise<VersionInfo> {
 }
 
 /**
- * The running build's version. Baked into the image at build time, so it cannot
- * change while the app is open — cached indefinitely and never refetched.
+ * The running build's version, plus the last release check.
+ *
+ * The version itself is immutable for the life of the process, but the update
+ * result is refreshed by the backend every 6 hours — so this refetches hourly
+ * rather than caching forever. Re-fetching the immutable half costs nothing.
  */
 export function useVersion() {
   const { data, isLoading, error } = useQuery({
     queryKey: queryKeys.version.current(),
     queryFn: fetchVersion,
-    staleTime: Infinity,
-    gcTime: Infinity,
+    staleTime: 60 * 60 * 1000, // 1 hour
     refetchOnWindowFocus: false,
     retry: false,
   });
