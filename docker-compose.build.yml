@@ -1,0 +1,20 @@
+# Build override: build Bookmark from source instead of pulling the
+# pre-built image. Use together with the main compose file:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+
+services:
+  bookmark:
+    image: bookmark:local
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # Compose cannot shell out to git, so a local build reports 0.0.0-local
+      # unless you hand it a version:
+      #
+      #   APP_VERSION=$(git describe --tags --always --match 'v[0-9]*') \
+      #   GIT_SHA=$(git rev-parse --short HEAD) \
+      #   docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build
+      args:
+        APP_VERSION: ${APP_VERSION:-0.0.0-local}
+        GIT_SHA: ${GIT_SHA:-local}

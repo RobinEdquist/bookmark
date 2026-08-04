@@ -43,6 +43,12 @@ yarn-error.log*
 *.pem
 2025-12-04T0130
 
+# Local Compose overrides. Compose auto-loads docker-compose.override.yml, so
+# committing one would silently apply a developer's local database name, password,
+# and published ports to every user's `docker compose up -d`.
+docker-compose.override.yml
+docker-compose.*.local.yml
+
 # Worktrees
 .worktrees/
 2025-12-13T0502
