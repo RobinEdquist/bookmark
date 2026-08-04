@@ -11,6 +11,7 @@ import { ImportQueueService } from '../library-watcher/import-queue.service';
 import { HardcoverService } from '../hardcover/hardcover.service';
 import { LibraryScannerService } from '../library-watcher/library-scanner.service';
 import { TtsService } from '../tts/tts.service';
+import { GoodreadsLinkQueueService } from '../gr-finder/goodreads-link-queue.service';
 
 @ApiTags('Tasks')
 @ApiSecurity('better-auth.session_token')
@@ -23,6 +24,7 @@ export class TasksController {
     private hardcoverService: HardcoverService,
     private libraryScannerService: LibraryScannerService,
     private ttsService: TtsService,
+    private goodreadsLinkQueue: GoodreadsLinkQueueService,
   ) {}
 
   @Get('status')
@@ -37,7 +39,7 @@ export class TasksController {
     type: TasksStatusResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getTasksStatus() {
+  async getTasksStatus(): Promise<TasksStatusResponseDto> {
     const [pendingHardcoverCount, failedHardcoverItems, ttsStatus] =
       await Promise.all([
         this.hardcoverService.getPendingQueueCount(),
@@ -68,6 +70,7 @@ export class TasksController {
         failedCount: failedHardcoverItems.length,
       },
       tts: ttsStatus,
+      goodreadsLink: this.goodreadsLinkQueue.getStatus(),
       scan:
         isScanning && scanProgress
           ? {

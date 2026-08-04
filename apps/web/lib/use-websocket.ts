@@ -9,6 +9,7 @@ import type {
   HardcoverSyncStatus,
   ScanStatus,
   TtsTaskStatus,
+  GoodreadsLinkStatus,
 } from "./use-tasks";
 import type { RescanStatus } from "./use-rescan";
 
@@ -55,10 +56,14 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({
             queryKey: queryKeys.library.stats(),
           });
-          // If specific audiobook, also invalidate its hardcover link
+          // If specific audiobook, also invalidate its external links — a
+          // background Goodreads link job reports itself as an update
           if (entityId) {
             queryClient.invalidateQueries({
               queryKey: queryKeys.hardcover.link("audiobook", entityId),
+            });
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.grFinder.link("audiobook", entityId),
             });
           }
           break;
@@ -72,6 +77,11 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
           queryClient.invalidateQueries({
             queryKey: queryKeys.library.stats(),
           });
+          if (entityId) {
+            queryClient.invalidateQueries({
+              queryKey: queryKeys.grFinder.link("ebook", entityId),
+            });
+          }
           break;
 
         // Series events invalidate series queries
@@ -162,6 +172,16 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
                 queryKey: queryKeys.audiobooks.all,
               });
             }
+          }
+          break;
+
+        // Goodreads link queue status events - directly update cache
+        case type === "tasks.goodreads.status":
+          if (payload) {
+            queryClient.setQueryData(
+              queryKeys.tasks.goodreadsLink(),
+              payload as GoodreadsLinkStatus,
+            );
           }
           break;
 

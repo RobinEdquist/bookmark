@@ -77,6 +77,13 @@
       },
       "pending": "{count, plural, =1 {1 book queued} other {# books queued}}",
       "failed": "{count, plural, =1 {1 generation failed} other {# generations failed}}"
+    },
+    "goodreadsLink": {
+      "title": "Linking to Goodreads",
+      "linking": "Linking “{title}”",
+      "pending": "{count, plural, =1 {1 book queued} other {# books queued}}",
+      "failed": "{count, plural, =1 {1 link failed} other {# links failed}}",
+      "dismiss": "Dismiss"
     }
   },
   "hardcoverSync": {
@@ -172,7 +179,8 @@
     "linking": "Linking...",
     "toast": {
       "linked": "Successfully linked to Goodreads",
-      "linkFailed": "Failed to link"
+      "linkFailed": "Failed to link",
+      "queued": "Queued link for “{title}”"
     }
   },
   "goodreadsLink": {

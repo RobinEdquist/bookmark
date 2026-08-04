@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { createMockDb, createChainMock, type MockDb } from '@test-utils';
 import { GrFinderService } from '../gr-finder.service';
 import type { GoodreadsScraperService } from '../goodreads-scraper.service';
@@ -179,11 +179,11 @@ describe('GrFinderService', () => {
       });
     });
 
-    it('throws NotFoundException when the scraper finds nothing', async () => {
+    it('throws ServiceUnavailableException when the page cannot be read', async () => {
       scraper.getBookDetails.mockResolvedValue(null);
 
       await expect(service.getBookDetails(GOODREADS_ID)).rejects.toBeInstanceOf(
-        NotFoundException,
+        ServiceUnavailableException,
       );
     });
 
@@ -202,6 +202,36 @@ describe('GrFinderService', () => {
   // linkMediaToGoodreads
   // -----------------------------------------------------------------------
   describe('linkMediaToGoodreads', () => {
+    /**
+     * Wires the db mocks a link needs: the media-exists check, the
+     * find-existing-book lookup, and the insert/update + delete chains.
+     */
+    function mockLinkFlow({ existing }: { existing: object | null }) {
+      const verifyChain = createChainMock(['from', 'where', 'limit']);
+      verifyChain.limit.mockResolvedValue([{ id: EBOOK_ID }]);
+
+      const findExistingChain = createChainMock(['from', 'where', 'limit']);
+      findExistingChain.limit.mockResolvedValue(existing ? [existing] : []);
+
+      db.select
+        .mockReturnValueOnce(verifyChain)
+        .mockReturnValueOnce(findExistingChain);
+
+      const insertChain = createChainMock(['values', 'returning']);
+      insertChain.returning.mockResolvedValue([mockGoodreadsBookRecord]);
+      db.insert.mockReturnValue(insertChain);
+
+      const updateChain = createChainMock(['set', 'where', 'returning']);
+      updateChain.returning.mockResolvedValue([mockGoodreadsBookRecord]);
+      db.update.mockReturnValue(updateChain);
+
+      const deleteChain = createChainMock(['where']);
+      deleteChain.where.mockResolvedValue(undefined);
+      db.delete.mockReturnValue(deleteChain);
+
+      return { insertChain, updateChain, deleteChain };
+    }
+
     it('verifies audiobook exists, fetches details, creates book record and link', async () => {
       // Mock: verify audiobook exists
       const verifyChain = createChainMock(['from', 'where', 'limit']);
@@ -258,6 +288,132 @@ describe('GrFinderService', () => {
       await expect(
         service.linkMediaToGoodreads('ebook', 'nonexistent', GOODREADS_ID),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    // -- unreadable book page -------------------------------------------------
+
+    it('falls back to search-result metadata when the book page cannot be read', async () => {
+      const { insertChain } = mockLinkFlow({ existing: null });
+      scraper.getBookDetails.mockResolvedValue(null);
+
+      await service.linkMediaToGoodreads('ebook', EBOOK_ID, GOODREADS_ID, {
+        title: 'The Chilango Burrito Bible: Mind-Blowing Mexican Flavours',
+        author: 'Eric Partaker',
+        cover_url: 'https://covers.example.com/burrito.jpg',
+        avg_rating: '3.92',
+      });
+
+      expect(insertChain.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'The Chilango Burrito Bible',
+          subtitle: 'Mind-Blowing Mexican Flavours',
+          author: 'Eric Partaker',
+          coverUrl: 'https://covers.example.com/burrito.jpg',
+          rating: '3.92',
+        }),
+      );
+    });
+
+    it('throws ServiceUnavailableException when the page fails and no fallback is sent', async () => {
+      mockLinkFlow({ existing: null });
+      scraper.getBookDetails.mockResolvedValue(null);
+
+      await expect(
+        service.linkMediaToGoodreads('ebook', EBOOK_ID, GOODREADS_ID),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    });
+
+    it('treats an Unknown fallback title as no data rather than linking it', async () => {
+      mockLinkFlow({ existing: null });
+      scraper.getBookDetails.mockResolvedValue(null);
+
+      await expect(
+        service.linkMediaToGoodreads('ebook', EBOOK_ID, GOODREADS_ID, {
+          title: 'Unknown',
+          author: 'Unknown',
+        }),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    });
+
+    it('recovers when the scraper throws but fallback data is available', async () => {
+      const { insertChain } = mockLinkFlow({ existing: null });
+      scraper.getBookDetails.mockRejectedValue(new Error('Chromium crashed'));
+
+      await service.linkMediaToGoodreads('ebook', EBOOK_ID, GOODREADS_ID, {
+        title: 'The Great Gatsby',
+        author: 'F. Scott Fitzgerald',
+      });
+
+      expect(insertChain.values).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'The Great Gatsby',
+          author: 'F. Scott Fitzgerald',
+        }),
+      );
+    });
+
+    it('never downgrades a stored record when the page parses thin', async () => {
+      const existing = {
+        id: 'gr-book-1',
+        title: 'The Great Gatsby',
+        subtitle: 'A Novel',
+        author: 'F. Scott Fitzgerald',
+        description: 'A novel about the American Dream.',
+        coverUrl: 'https://covers.example.com/gatsby.jpg',
+        rating: '4.2',
+        ratingsCount: 5000,
+        genres: ['Fiction', 'Classics'],
+      };
+      const { updateChain } = mockLinkFlow({ existing });
+
+      // The page rendered (so we get a title) but every other field came back
+      // empty. None of that may overwrite what we already hold.
+      scraper.getBookDetails.mockResolvedValue({
+        title: 'The Great Gatsby',
+        author: 'Unknown',
+        cover_url: null,
+        rating: null,
+        rating_count: null,
+        genres: [],
+        description: null,
+        series: null,
+        series_number: null,
+      });
+
+      await service.linkMediaToGoodreads('ebook', EBOOK_ID, GOODREADS_ID);
+
+      expect(updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'The Great Gatsby',
+          author: 'F. Scott Fitzgerald',
+          description: 'A novel about the American Dream.',
+          coverUrl: 'https://covers.example.com/gatsby.jpg',
+          rating: '4.2',
+          ratingsCount: 5000,
+          genres: ['Fiction', 'Classics'],
+        }),
+      );
+    });
+
+    it('keeps the stored title when the fallback title is a placeholder', async () => {
+      const existing = {
+        id: 'gr-book-1',
+        title: 'The Great Gatsby',
+        subtitle: 'A Novel',
+        author: 'F. Scott Fitzgerald',
+        genres: ['Fiction'],
+      };
+      mockLinkFlow({ existing });
+      scraper.getBookDetails.mockResolvedValue(null);
+
+      // No usable fallback either, so the link is refused outright rather than
+      // writing "Unknown" over the row every linked book shares.
+      await expect(
+        service.linkMediaToGoodreads('ebook', EBOOK_ID, GOODREADS_ID, {
+          title: 'Unknown',
+        }),
+      ).rejects.toBeInstanceOf(ServiceUnavailableException);
+      expect(db.update).not.toHaveBeenCalled();
     });
   });
 

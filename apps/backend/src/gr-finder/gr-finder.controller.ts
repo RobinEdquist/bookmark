@@ -8,6 +8,7 @@ import {
   Body,
   UseGuards,
   BadRequestException,
+  HttpException,
   InternalServerErrorException,
   NotFoundException,
   HttpCode,
@@ -22,18 +23,17 @@ import {
   ApiSecurity,
 } from '@nestjs/swagger';
 import { Roles, RolesGuard } from '../auth/roles.guard';
-import { GrFinderService } from './gr-finder.service';
+import { GrFinderService, type MediaType } from './gr-finder.service';
+import { GoodreadsLinkQueueService } from './goodreads-link-queue.service';
 import {
   GrFinderSearchResponseDto,
   GrFinderBookDetailsDto,
   GrFinderStatusResponseDto,
   GrFinderLinkResponseDto,
-  GrFinderLinkCreatedResponseDto,
+  GrFinderLinkQueuedResponseDto,
+  GoodreadsLinkTaskStatusDto,
 } from './dto/gr-finder-response.dto';
-
-interface LinkGoodreadsDto {
-  goodreadsId: string;
-}
+import { LinkGoodreadsDto } from './dto/link-goodreads.dto';
 
 @ApiTags('Goodreads Finder')
 @ApiSecurity('better-auth.session_token')
@@ -42,7 +42,35 @@ interface LinkGoodreadsDto {
 @UseGuards(RolesGuard)
 @Roles('admin')
 export class GrFinderController {
-  constructor(private readonly grFinderService: GrFinderService) {}
+  constructor(
+    private readonly grFinderService: GrFinderService,
+    private readonly linkQueue: GoodreadsLinkQueueService,
+  ) {}
+
+  /**
+   * Validates the request up front so a bad id or missing Goodreads ID is
+   * answered here, then hands the slow part to the background queue.
+   */
+  private async queueLink(
+    mediaType: MediaType,
+    mediaId: string,
+    dto: LinkGoodreadsDto,
+  ): Promise<GrFinderLinkQueuedResponseDto> {
+    if (!dto.goodreadsId) {
+      throw new BadRequestException('Goodreads ID is required');
+    }
+
+    await this.grFinderService.assertMediaExists(mediaType, mediaId);
+
+    const { jobId } = this.linkQueue.enqueue({
+      mediaType,
+      mediaId,
+      goodreadsId: dto.goodreadsId,
+      ...(dto.searchResult ? { searchResult: dto.searchResult } : {}),
+    });
+
+    return { queued: true, jobId };
+  }
 
   @Get('status')
   @ApiOperation({
@@ -195,17 +223,19 @@ export class GrFinderController {
     type: GrFinderBookDetailsDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
-  @ApiResponse({ status: 404, description: 'Book not found' })
+  @ApiResponse({
+    status: 503,
+    description: 'Goodreads book page could not be read — retry',
+  })
   async getBookDetails(
     @Param('goodreadsId') goodreadsId: string,
   ): Promise<GrFinderBookDetailsDto> {
     try {
       return await this.grFinderService.getBookDetails(goodreadsId);
     } catch (error) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof NotFoundException
-      ) {
+      // Pass through any deliberate status (503 for an unreadable page, 404,
+      // 400) instead of flattening it to a 500.
+      if (error instanceof HttpException) {
         throw error;
       }
       throw new InternalServerErrorException(
@@ -243,10 +273,11 @@ export class GrFinderController {
   }
 
   @Post('link/:audiobookId')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
-    summary: 'Link audiobook to Goodreads',
-    description: 'Link an audiobook to a Goodreads book for metadata reference',
+    summary: 'Queue an audiobook Goodreads link',
+    description:
+      'Queues the link and returns immediately. Reading the Goodreads book page can take minutes, so the work runs in the background and its progress is reported via GET /tasks/status and the tasks.goodreads.status WebSocket event.',
   })
   @ApiParam({
     name: 'audiobookId',
@@ -254,9 +285,9 @@ export class GrFinderController {
     format: 'uuid',
   })
   @ApiResponse({
-    status: 200,
-    description: 'Link created successfully',
-    type: GrFinderLinkCreatedResponseDto,
+    status: 202,
+    description: 'Link queued',
+    type: GrFinderLinkQueuedResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Goodreads ID required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -264,18 +295,8 @@ export class GrFinderController {
   async linkAudiobook(
     @Param('audiobookId') audiobookId: string,
     @Body() dto: LinkGoodreadsDto,
-  ): Promise<GrFinderLinkCreatedResponseDto> {
-    if (!dto.goodreadsId) {
-      throw new BadRequestException('Goodreads ID is required');
-    }
-
-    const link = await this.grFinderService.linkMediaToGoodreads(
-      'audiobook',
-      audiobookId,
-      dto.goodreadsId,
-    );
-
-    return { success: true, link };
+  ): Promise<GrFinderLinkQueuedResponseDto> {
+    return this.queueLink('audiobook', audiobookId, dto);
   }
 
   @Delete('link/:audiobookId')
@@ -295,6 +316,36 @@ export class GrFinderController {
     @Param('audiobookId') audiobookId: string,
   ): Promise<void> {
     await this.grFinderService.unlinkMedia('audiobook', audiobookId);
+  }
+
+  // ============ Link Queue Endpoints ============
+
+  @Get('link-jobs')
+  @ApiOperation({
+    summary: 'Get Goodreads link queue status',
+    description:
+      'Active job, queue depth and remembered failures for background Goodreads links',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Link queue status',
+    type: GoodreadsLinkTaskStatusDto,
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  getLinkJobs(): GoodreadsLinkTaskStatusDto {
+    return this.linkQueue.getStatus();
+  }
+
+  @Delete('link-jobs/failed')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Dismiss failed Goodreads links',
+    description: 'Clears remembered link failures so they leave the task list',
+  })
+  @ApiResponse({ status: 204, description: 'Failures dismissed' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  dismissFailedLinkJobs(): void {
+    this.linkQueue.dismissFailures();
   }
 
   // ============ Ebook Link Endpoints ============
@@ -319,16 +370,17 @@ export class GrFinderController {
   }
 
   @Post('ebook-link/:ebookId')
-  @HttpCode(HttpStatus.OK)
+  @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
-    summary: 'Link ebook to Goodreads',
-    description: 'Link an ebook to a Goodreads book for metadata reference',
+    summary: 'Queue an ebook Goodreads link',
+    description:
+      'Queues the link and returns immediately. Reading the Goodreads book page can take minutes, so the work runs in the background and its progress is reported via GET /tasks/status and the tasks.goodreads.status WebSocket event.',
   })
   @ApiParam({ name: 'ebookId', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({
-    status: 200,
-    description: 'Link created successfully',
-    type: GrFinderLinkCreatedResponseDto,
+    status: 202,
+    description: 'Link queued',
+    type: GrFinderLinkQueuedResponseDto,
   })
   @ApiResponse({ status: 400, description: 'Goodreads ID required' })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
@@ -336,18 +388,8 @@ export class GrFinderController {
   async linkEbook(
     @Param('ebookId') ebookId: string,
     @Body() dto: LinkGoodreadsDto,
-  ): Promise<GrFinderLinkCreatedResponseDto> {
-    if (!dto.goodreadsId) {
-      throw new BadRequestException('Goodreads ID is required');
-    }
-
-    const link = await this.grFinderService.linkMediaToGoodreads(
-      'ebook',
-      ebookId,
-      dto.goodreadsId,
-    );
-
-    return { success: true, link };
+  ): Promise<GrFinderLinkQueuedResponseDto> {
+    return this.queueLink('ebook', ebookId, dto);
   }
 
   @Delete('ebook-link/:ebookId')

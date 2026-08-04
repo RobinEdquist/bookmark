@@ -46,11 +46,30 @@ export interface TtsTaskStatus {
   failedCount: number;
 }
 
+export interface GoodreadsLinkJob {
+  jobId: string;
+  mediaType: "audiobook" | "ebook";
+  mediaId: string;
+  bookTitle: string;
+}
+
+export interface GoodreadsLinkFailure extends GoodreadsLinkJob {
+  error: string;
+}
+
+export interface GoodreadsLinkStatus {
+  active: GoodreadsLinkJob | null;
+  pendingCount: number;
+  failedCount: number;
+  failures: GoodreadsLinkFailure[];
+}
+
 export interface TasksStatus {
   import: ImportStatus;
   hardcoverSync: HardcoverSyncStatus;
   scan: ScanStatus;
   tts: TtsTaskStatus;
+  goodreadsLink: GoodreadsLinkStatus;
 }
 
 async function fetchTasksStatus(): Promise<TasksStatus> {
@@ -74,6 +93,12 @@ const defaultImportStatus: ImportStatus = {
 const defaultHardcoverStatus: HardcoverSyncStatus = { pendingCount: 0, failedCount: 0 };
 const defaultScanStatus: ScanStatus = { isScanning: false };
 const defaultTtsStatus: TtsTaskStatus = { active: null, pendingCount: 0, failedCount: 0 };
+const defaultGoodreadsLinkStatus: GoodreadsLinkStatus = {
+  active: null,
+  pendingCount: 0,
+  failedCount: 0,
+  failures: [],
+};
 
 export function useTasksStatus() {
   // Initial fetch gets combined status from HTTP
@@ -113,29 +138,46 @@ export function useTasksStatus() {
     staleTime: Infinity,
   });
 
+  const { data: goodreadsLinkStatus } = useQuery<GoodreadsLinkStatus>({
+    queryKey: queryKeys.tasks.goodreadsLink(),
+    queryFn: () => Promise.resolve(defaultGoodreadsLinkStatus),
+    enabled: false, // Only populated via WebSocket setQueryData
+    staleTime: Infinity,
+  });
+
   // Merge: WebSocket updates override HTTP initial data
   const import_ = importStatus ?? initialData?.import ?? defaultImportStatus;
   const hardcover = hardcoverStatus ?? initialData?.hardcoverSync ?? defaultHardcoverStatus;
   const scan = scanStatus ?? initialData?.scan ?? defaultScanStatus;
   const tts = ttsStatus ?? initialData?.tts ?? defaultTtsStatus;
+  const goodreadsLink =
+    goodreadsLinkStatus ?? initialData?.goodreadsLink ?? defaultGoodreadsLinkStatus;
 
   const importPendingCount =
     import_.audiobooks.pendingCount + import_.ebooks.pendingCount + import_.comics.pendingCount;
   const ttsActiveCount = tts.active ? 1 : 0;
+  const goodreadsActiveCount = goodreadsLink.active ? 1 : 0;
   const totalPending =
     importPendingCount +
     hardcover.pendingCount +
     (scan.isScanning ? 1 : 0) +
     ttsActiveCount +
-    tts.pendingCount;
+    tts.pendingCount +
+    goodreadsActiveCount +
+    goodreadsLink.pendingCount;
 
   return {
     import: import_,
     hardcoverSync: hardcover,
     scan,
     tts,
+    goodreadsLink,
     totalPending,
-    hasTasks: totalPending > 0 || hardcover.failedCount > 0 || tts.failedCount > 0,
+    hasTasks:
+      totalPending > 0 ||
+      hardcover.failedCount > 0 ||
+      tts.failedCount > 0 ||
+      goodreadsLink.failedCount > 0,
     isLoading,
   };
 }

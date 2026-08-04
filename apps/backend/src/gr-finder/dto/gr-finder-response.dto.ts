@@ -148,15 +148,52 @@ export class GoodreadsBookDto {
   updatedAt!: Date;
 }
 
+export class GoodreadsLinkJobDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  jobId!: string;
+
+  @ApiProperty({ example: 'ebook', enum: ['audiobook', 'ebook'] })
+  mediaType!: 'audiobook' | 'ebook';
+
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  mediaId!: string;
+
+  @ApiProperty({ example: 'The Chilango Burrito Bible' })
+  bookTitle!: string;
+}
+
+export class GoodreadsLinkFailureDto extends GoodreadsLinkJobDto {
+  @ApiProperty({ example: 'Could not read the Goodreads book page.' })
+  error!: string;
+}
+
+export class GoodreadsLinkTaskStatusDto {
+  // Always present, null when idle — hence @ApiProperty, not the Optional form.
+  @ApiProperty({ type: GoodreadsLinkJobDto, nullable: true })
+  active!: GoodreadsLinkJobDto | null;
+
+  @ApiProperty({ example: 0 })
+  pendingCount!: number;
+
+  @ApiProperty({ example: 0 })
+  failedCount!: number;
+
+  @ApiProperty({ type: [GoodreadsLinkFailureDto] })
+  failures!: GoodreadsLinkFailureDto[];
+}
+
+export class GrFinderLinkQueuedResponseDto {
+  @ApiProperty({
+    example: true,
+    description: 'The link was queued; watch the tasks status for its outcome',
+  })
+  queued!: boolean;
+
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  jobId!: string;
+}
+
 export class GrFinderLinkResponseDto {
   @ApiPropertyOptional({ type: GoodreadsBookDto })
   link!: GoodreadsBookDto | null;
-}
-
-export class GrFinderLinkCreatedResponseDto {
-  @ApiProperty({ example: true })
-  success!: boolean;
-
-  @ApiProperty({ type: GoodreadsBookDto })
-  link!: GoodreadsBookDto;
 }

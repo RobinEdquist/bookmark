@@ -10,10 +10,21 @@ import {
 } from "@repo/ui/components/ui/popover";
 import { Button } from "@repo/ui/components/ui/button";
 import { useTasksStatus } from "../../lib/use-tasks";
+import { useDismissGoodreadsLinkFailures } from "../../lib/use-goodreads";
 
 export function TasksIndicator() {
   const t = useTranslations("common.tasks");
-  const { import: importStatus, hardcoverSync, scan, tts, totalPending, hasTasks, isLoading } = useTasksStatus();
+  const {
+    import: importStatus,
+    hardcoverSync,
+    scan,
+    tts,
+    goodreadsLink,
+    totalPending,
+    hasTasks,
+    isLoading,
+  } = useTasksStatus();
+  const { dismissFailures, isDismissing } = useDismissGoodreadsLinkFailures();
 
   // Don't render if no tasks and not loading
   if (!hasTasks && !isLoading) {
@@ -33,7 +44,10 @@ export function TasksIndicator() {
   const ttsActive = tts.active;
   const ttsPending = tts.pendingCount;
   const ttsFailed = tts.failedCount;
-  const anyFailed = hardcoverFailed > 0 || ttsFailed > 0;
+  const goodreadsActive = goodreadsLink.active;
+  const goodreadsPending = goodreadsLink.pendingCount;
+  const goodreadsFailed = goodreadsLink.failedCount;
+  const anyFailed = hardcoverFailed > 0 || ttsFailed > 0 || goodreadsFailed > 0;
 
   return (
     <div className="px-4 pb-2">
@@ -216,8 +230,55 @@ export function TasksIndicator() {
               </div>
             )}
 
+            {/* Goodreads Linking */}
+            {(goodreadsActive || goodreadsPending > 0 || goodreadsFailed > 0) && (
+              <div className="space-y-1">
+                <div className="text-sm font-medium">{t("goodreadsLink.title")}</div>
+                {goodreadsActive && (
+                  <div className="text-sm text-muted-foreground truncate">
+                    {t("goodreadsLink.linking", {
+                      title: goodreadsActive.bookTitle,
+                    })}
+                  </div>
+                )}
+                {goodreadsPending > 0 && (
+                  <div className="text-sm text-muted-foreground">
+                    {t("goodreadsLink.pending", { count: goodreadsPending })}
+                  </div>
+                )}
+                {goodreadsFailed > 0 && (
+                  <>
+                    <div className="flex items-center gap-1.5 text-sm text-destructive">
+                      <AlertTriangle className="h-3.5 w-3.5" />
+                      {t("goodreadsLink.failed", { count: goodreadsFailed })}
+                    </div>
+                    <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
+                      {goodreadsLink.failures.slice(0, 3).map((failure) => (
+                        <li key={failure.jobId} className="truncate">
+                          • {failure.bookTitle}
+                        </li>
+                      ))}
+                      {goodreadsLink.failures.length > 3 && (
+                        <li className="text-muted-foreground/70">
+                          +{goodreadsLink.failures.length - 3} {t("more")}
+                        </li>
+                      )}
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => void dismissFailures()}
+                      disabled={isDismissing}
+                      className="block text-xs text-primary hover:underline disabled:opacity-50"
+                    >
+                      {t("goodreadsLink.dismiss")}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Empty state - only happens briefly during loading */}
-            {!scan.isScanning && audiobookImportCount === 0 && ebookImportCount === 0 && comicImportCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && !ttsActive && ttsPending === 0 && ttsFailed === 0 && (
+            {!scan.isScanning && audiobookImportCount === 0 && ebookImportCount === 0 && comicImportCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && !ttsActive && ttsPending === 0 && ttsFailed === 0 && !goodreadsActive && goodreadsPending === 0 && goodreadsFailed === 0 && (
               <div className="text-sm text-muted-foreground">{t("noTasks")}</div>
             )}
           </div>

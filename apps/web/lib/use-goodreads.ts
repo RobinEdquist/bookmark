@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
+import type { GoodreadsLinkStatus } from "./use-tasks";
 
 export type MediaType = "audiobook" | "ebook";
 
@@ -174,11 +175,17 @@ interface LinkMediaParams {
   mediaType: MediaType;
   mediaId: string;
   goodreadsId: string;
+  /**
+   * The search result the user picked. Sent so the backend can still complete
+   * the link with real title/author/rating when the Goodreads book page itself
+   * can't be scraped, instead of storing "Unknown" for everything.
+   */
+  searchResult?: GrFinderSearchResult;
 }
 
 async function linkMediaToGoodreads(
   params: LinkMediaParams
-): Promise<{ success: boolean; link: GoodreadsLink }> {
+): Promise<{ queued: boolean; jobId: string }> {
   const endpoint =
     params.mediaType === "audiobook"
       ? `/api/gr-finder/link/${params.mediaId}`
@@ -188,7 +195,20 @@ async function linkMediaToGoodreads(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ goodreadsId: params.goodreadsId }),
+    body: JSON.stringify({
+      goodreadsId: params.goodreadsId,
+      // Only the fields the backend accepts — it rejects unknown properties.
+      ...(params.searchResult
+        ? {
+            searchResult: {
+              title: params.searchResult.title,
+              author: params.searchResult.author,
+              cover_url: params.searchResult.cover_url,
+              avg_rating: params.searchResult.avg_rating,
+            },
+          }
+        : {}),
+    }),
   });
 
   if (!response.ok) {
@@ -199,32 +219,55 @@ async function linkMediaToGoodreads(
   return response.json();
 }
 
+/**
+ * Queues a Goodreads link. The request only enqueues — the link itself runs as
+ * a background job shown in the sidebar, and the `audiobook.updated` /
+ * `ebook.updated` WebSocket event it emits on completion is what refreshes the
+ * media caches. Nothing to invalidate here yet.
+ */
 export function useGoodreadsLinkMedia() {
-  const queryClient = useQueryClient();
-
   const mutation = useMutation({
     mutationFn: linkMediaToGoodreads,
-    onSuccess: (_, variables) => {
-      // Invalidate the goodreads link query
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.grFinder.link(variables.mediaType, variables.mediaId),
-      });
-      // Invalidate the audiobook/ebook list and detail
-      if (variables.mediaType === "audiobook") {
-        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(variables.mediaId) });
-      } else {
-        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(variables.mediaId) });
-      }
-      queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
-    },
   });
 
   return {
     linkMedia: mutation.mutateAsync,
     isLinking: mutation.isPending,
     error: mutation.error,
+  };
+}
+
+async function dismissGoodreadsLinkFailures(): Promise<void> {
+  const response = await fetch("/api/gr-finder/link-jobs/failed", {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to dismiss link failures");
+  }
+}
+
+export function useDismissGoodreadsLinkFailures() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: dismissGoodreadsLinkFailures,
+    onSuccess: () => {
+      // Clear just the failures — a job may still be running. The backend also
+      // pushes fresh status over the socket right after this.
+      queryClient.setQueryData<GoodreadsLinkStatus>(
+        queryKeys.tasks.goodreadsLink(),
+        (previous) =>
+          previous ? { ...previous, failedCount: 0, failures: [] } : previous
+      );
+    },
+  });
+
+  return {
+    dismissFailures: mutation.mutateAsync,
+    isDismissing: mutation.isPending,
   };
 }
 

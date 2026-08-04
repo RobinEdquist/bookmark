@@ -165,7 +165,7 @@ describe('GoodreadsScraperService', () => {
 
   describe('parseBookDetails', () => {
     it('extracts all fields from a rendered book page', () => {
-      const details = service.parseBookDetails(bookPageHtml);
+      const details = service.parseBookDetails(bookPageHtml)!;
 
       expect(details).toEqual({
         title: 'The Hobbit, or There and Back Again',
@@ -186,7 +186,7 @@ describe('GoodreadsScraperService', () => {
         'The Lord of the Rings',
       );
 
-      const details = service.parseBookDetails(html);
+      const details = service.parseBookDetails(html)!;
 
       expect(details.series).toBe('The Lord of the Rings');
       expect(details.series_number).toBeNull();
@@ -202,25 +202,36 @@ describe('GoodreadsScraperService', () => {
         </body></html>
       `;
 
-      const details = service.parseBookDetails(html);
+      const details = service.parseBookDetails(html)!;
 
       expect(details.genres).toEqual(['Horror', 'Thriller']);
     });
 
-    it('returns Unknown/null fields for a page that failed to render', () => {
-      const details = service.parseBookDetails('<html><body></body></html>');
+    it('returns null for a page that failed to render', () => {
+      // A half-empty "Unknown" book here is what used to get persisted over
+      // real metadata when the WAF challenge didn't clear.
+      expect(service.parseBookDetails('<html><body></body></html>')).toBeNull();
+    });
 
-      expect(details).toEqual({
-        title: 'Unknown',
-        author: 'Unknown',
-        cover_url: null,
-        rating: null,
-        rating_count: null,
-        genres: [],
-        description: null,
-        series: null,
-        series_number: null,
-      });
+    it('returns null for a WAF challenge page', () => {
+      const challenge = `
+        <html><body>
+          <div id="challenge-container">Checking your browser…</div>
+          <a href="/genres/fantasy">Fantasy</a>
+        </body></html>
+      `;
+
+      expect(service.parseBookDetails(challenge)).toBeNull();
+    });
+
+    it('still parses a book page whose author is missing', () => {
+      const html = '<h1 class="Text__title1">Some Book</h1>';
+
+      const details = service.parseBookDetails(html)!;
+
+      expect(details).not.toBeNull();
+      expect(details!.title).toBe('Some Book');
+      expect(details!.author).toBe('Unknown');
     });
   });
 });

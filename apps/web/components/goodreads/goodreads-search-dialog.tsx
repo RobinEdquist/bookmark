@@ -85,8 +85,11 @@ export function GoodreadsSearchDialog({
         mediaType,
         mediaId,
         goodreadsId: selectedBook.goodreads_id,
+        searchResult: selectedBook,
       });
-      toast.success(t("toast.linked"));
+      // Only queued at this point — reading the Goodreads page happens as a
+      // background job tracked in the sidebar.
+      toast.success(t("toast.queued", { title: selectedBook.title }));
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {

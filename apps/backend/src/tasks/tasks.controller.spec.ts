@@ -14,6 +14,10 @@ jest.mock('../tts/tts.service', () => ({
   TtsService: class TtsService {},
 }));
 
+jest.mock('../gr-finder/goodreads-link-queue.service', () => ({
+  GoodreadsLinkQueueService: class GoodreadsLinkQueueService {},
+}));
+
 import { TasksController } from './tasks.controller';
 
 function createController(scanProgress?: {
@@ -41,12 +45,21 @@ function createController(scanProgress?: {
   const ttsService = {
     getQueueStatus: jest.fn().mockResolvedValue({ pendingCount: 5 }),
   };
+  const goodreadsLinkQueue = {
+    getStatus: jest.fn().mockReturnValue({
+      active: null,
+      pendingCount: 6,
+      failedCount: 0,
+      failures: [],
+    }),
+  };
 
   return new TasksController(
     importQueueService as any,
     hardcoverService as any,
     libraryScannerService as any,
     ttsService as any,
+    goodreadsLinkQueue as any,
   );
 }
 
@@ -66,6 +79,12 @@ describe('TasksController', () => {
         comics: { pendingCount: 3, pendingNames: ['comic'] },
       },
       hardcoverSync: { pendingCount: 4, failedCount: 1 },
+      goodreadsLink: {
+        active: null,
+        pendingCount: 6,
+        failedCount: 0,
+        failures: [],
+      },
       tts: { pendingCount: 5 },
       scan: {
         isScanning: true,

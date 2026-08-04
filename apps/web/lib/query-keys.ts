@@ -201,6 +201,7 @@ export const queryKeys = {
     scan: () => [...queryKeys.tasks.all, "scan"] as const,
     rescan: () => [...queryKeys.tasks.all, "rescan"] as const,
     tts: () => [...queryKeys.tasks.all, "tts"] as const,
+    goodreadsLink: () => [...queryKeys.tasks.all, "goodreadsLink"] as const,
   },
   importErrors: {
     all: ["importErrors"] as const,

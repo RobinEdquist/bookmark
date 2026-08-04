@@ -8,6 +8,10 @@ jest.mock('./gr-finder.service', () => ({
   GrFinderService: class GrFinderService {},
 }));
 
+jest.mock('./goodreads-link-queue.service', () => ({
+  GoodreadsLinkQueueService: class GoodreadsLinkQueueService {},
+}));
+
 import { GrFinderController } from './gr-finder.controller';
 
 function createController() {
@@ -19,13 +23,25 @@ function createController() {
     }),
     getBookDetails: jest.fn().mockResolvedValue({ id: 'gr-1' }),
     getGoodreadsLink: jest.fn().mockResolvedValue({ id: 'link-1' }),
+    assertMediaExists: jest.fn().mockResolvedValue(undefined),
     linkMediaToGoodreads: jest.fn().mockResolvedValue({ id: 'link-1' }),
     unlinkMedia: jest.fn().mockResolvedValue(undefined),
   };
+  const linkQueue = {
+    enqueue: jest.fn().mockReturnValue({ jobId: 'job-1' }),
+    getStatus: jest.fn().mockReturnValue({
+      active: null,
+      pendingCount: 0,
+      failedCount: 0,
+      failures: [],
+    }),
+    dismissFailures: jest.fn(),
+  };
 
   return {
-    controller: new GrFinderController(service as any),
+    controller: new GrFinderController(service as any, linkQueue as any),
     service,
+    linkQueue,
   };
 }
 
@@ -122,19 +138,26 @@ describe('GrFinderController', () => {
   });
 
   it('gets, links, and unlinks audiobook Goodreads records', async () => {
-    const { controller, service } = createController();
+    const { controller, service, linkQueue } = createController();
 
     await expect(controller.getAudiobookLink('audio-1')).resolves.toEqual({
       link: { id: 'link-1' },
     });
     await expect(
-      controller.linkAudiobook('audio-1', { goodreadsId: 'gr-1' }),
-    ).resolves.toEqual({ success: true, link: { id: 'link-1' } });
-    expect(service.linkMediaToGoodreads).toHaveBeenCalledWith(
-      'audiobook',
-      'audio-1',
-      'gr-1',
-    );
+      controller.linkAudiobook('audio-1', {
+        goodreadsId: 'gr-1',
+        searchResult: { title: 'Gatsby', author: 'Fitzgerald' },
+      }),
+    ).resolves.toEqual({ queued: true, jobId: 'job-1' });
+    // Linking is queued rather than awaited, and the search result travels
+    // with it so the worker can fall back to it.
+    expect(linkQueue.enqueue).toHaveBeenCalledWith({
+      mediaType: 'audiobook',
+      mediaId: 'audio-1',
+      goodreadsId: 'gr-1',
+      searchResult: { title: 'Gatsby', author: 'Fitzgerald' },
+    });
+    expect(service.linkMediaToGoodreads).not.toHaveBeenCalled();
     await controller.unlinkAudiobook('audio-1');
     expect(service.unlinkMedia).toHaveBeenCalledWith('audiobook', 'audio-1');
     await expect(
@@ -143,19 +166,21 @@ describe('GrFinderController', () => {
   });
 
   it('gets, links, and unlinks ebook Goodreads records', async () => {
-    const { controller, service } = createController();
+    const { controller, service, linkQueue } = createController();
 
     await expect(controller.getEbookLink('ebook-1')).resolves.toEqual({
       link: { id: 'link-1' },
     });
     await expect(
       controller.linkEbook('ebook-1', { goodreadsId: 'gr-1' }),
-    ).resolves.toEqual({ success: true, link: { id: 'link-1' } });
-    expect(service.linkMediaToGoodreads).toHaveBeenCalledWith(
-      'ebook',
-      'ebook-1',
-      'gr-1',
-    );
+    ).resolves.toEqual({ queued: true, jobId: 'job-1' });
+    expect(linkQueue.enqueue).toHaveBeenCalledWith({
+      mediaType: 'ebook',
+      mediaId: 'ebook-1',
+      goodreadsId: 'gr-1',
+    });
+    // A missing media id is still rejected by the request itself, not the queue.
+    expect(service.assertMediaExists).toHaveBeenCalledWith('ebook', 'ebook-1');
     await controller.unlinkEbook('ebook-1');
     expect(service.unlinkMedia).toHaveBeenCalledWith('ebook', 'ebook-1');
     await expect(

@@ -44,6 +44,24 @@ export interface RescanStatus {
   currentAudiobook?: string;
 }
 
+export interface GoodreadsLinkTaskStatus {
+  active: {
+    jobId: string;
+    mediaType: 'audiobook' | 'ebook';
+    mediaId: string;
+    bookTitle: string;
+  } | null;
+  pendingCount: number;
+  failedCount: number;
+  failures: {
+    jobId: string;
+    mediaType: 'audiobook' | 'ebook';
+    mediaId: string;
+    bookTitle: string;
+    error: string;
+  }[];
+}
+
 export interface TtsTaskStatus {
   active: {
     jobId: string;
@@ -68,6 +86,7 @@ export class WsEventsService {
   private lastScanStatusJson: string | null = null;
   private lastRescanStatusJson: string | null = null;
   private lastTtsStatusJson: string | null = null;
+  private lastGoodreadsLinkStatusJson: string | null = null;
 
   constructor(private readonly gateway: EventsGateway) {}
 
@@ -291,6 +310,22 @@ export class WsEventsService {
 
     this.lastTtsStatusJson = statusJson;
     this.emit({ type: 'tasks.tts.status', payload: status });
+  }
+
+  /**
+   * Push Goodreads link-queue status update to all connected clients.
+   * Debounced - only emits if status has changed.
+   */
+  goodreadsLinkStatusUpdated(status: GoodreadsLinkTaskStatus): void {
+    const statusJson = JSON.stringify(status);
+
+    // Debounce: only emit if status actually changed
+    if (statusJson === this.lastGoodreadsLinkStatusJson) {
+      return;
+    }
+
+    this.lastGoodreadsLinkStatusJson = statusJson;
+    this.emit({ type: 'tasks.goodreads.status', payload: status });
   }
 
   /**

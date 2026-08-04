@@ -1,15 +1,37 @@
-import { Injectable, Logger, Inject, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  Inject,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { audiobooks } from '../audiobooks/schema';
 import { ebooks } from '../ebooks/schema';
 import * as goodreadsSchema from './schema';
-import { GoodreadsScraperService } from './goodreads-scraper.service';
+import {
+  GoodreadsScraperService,
+  UNKNOWN_PLACEHOLDER,
+} from './goodreads-scraper.service';
+import type { ScrapedBookDetails } from './goodreads-scraper.service';
 import { splitPersonNames } from '../common/utils/name.utils';
 import { splitTitleSubtitle } from '../common/utils/title.utils';
 
 export type MediaType = 'audiobook' | 'ebook';
+
+/**
+ * Treats blank values and the `Unknown` placeholder as "no data", so neither
+ * can be written over metadata we already hold.
+ */
+function meaningful(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed || trimmed === UNKNOWN_PLACEHOLDER) {
+    return null;
+  }
+  return trimmed;
+}
 
 export interface GrFinderSearchResult {
   title: string;
@@ -50,6 +72,17 @@ export interface GoodreadsBookInput {
   genres?: string[];
   rating?: number | null;
   ratings_count?: number | null;
+}
+
+/**
+ * The search-result fields the client already had on screen, used to complete
+ * a link when the book page itself can't be read.
+ */
+export interface GoodreadsSearchFallback {
+  title?: string;
+  author?: string;
+  cover_url?: string | null;
+  avg_rating?: string | null;
 }
 
 @Injectable()
@@ -137,7 +170,11 @@ export class GrFinderService {
 
     const details = await this.scraper.getBookDetails(goodreadsId);
     if (!details) {
-      throw new NotFoundException('Book not found');
+      // Usually the WAF challenge rather than a missing book, and either way
+      // retrying is the useful advice — so not a 404.
+      throw new ServiceUnavailableException(
+        'Could not read the Goodreads book page. Please try again.',
+      );
     }
 
     return {
@@ -147,12 +184,15 @@ export class GrFinderService {
     };
   }
 
-  async linkMediaToGoodreads(
+  /**
+   * Throws NotFoundException unless the media exists. Called before a link is
+   * queued so an unknown id fails the request itself rather than surfacing
+   * later as a background job failure.
+   */
+  async assertMediaExists(
     mediaType: MediaType,
     mediaId: string,
-    goodreadsId: string,
-  ) {
-    // Verify the media exists
+  ): Promise<void> {
     if (mediaType === 'audiobook') {
       const [audiobook] = await this.db
         .select({ id: audiobooks.id })
@@ -174,32 +214,17 @@ export class GrFinderService {
         throw new NotFoundException('Ebook not found');
       }
     }
+  }
 
-    // Fetch full book details from gr-finder
-    const bookDetails = await this.getBookDetails(goodreadsId);
-    this.logger.debug(`Fetched details for Goodreads book ${goodreadsId}`);
+  async linkMediaToGoodreads(
+    mediaType: MediaType,
+    mediaId: string,
+    goodreadsId: string,
+    searchResult?: GoodreadsSearchFallback,
+  ) {
+    await this.assertMediaExists(mediaType, mediaId);
 
-    // Handle field name variations from the API:
-    const ratingsCount = bookDetails.rating_count ?? null;
-
-    this.logger.debug(
-      `Goodreads rating_count: ${bookDetails.rating_count}, ratings_count: ${bookDetails.rating}, resolved: ${ratingsCount}`,
-    );
-
-    // Create the book input from fetched details
-    // Use the goodreadsId parameter since the API might not return it in the response
-    const bookInput: GoodreadsBookInput = {
-      goodreads_id: goodreadsId,
-      title: bookDetails.title,
-      author: bookDetails.author,
-      cover_url: bookDetails.cover_url,
-      url:
-        bookDetails.url ?? `https://www.goodreads.com/book/show/${goodreadsId}`,
-      description: bookDetails.description,
-      genres: bookDetails.genres,
-      ratings_count: ratingsCount,
-      rating: bookDetails.rating,
-    };
+    const bookInput = await this.buildBookInput(goodreadsId, searchResult);
 
     // Find or create the Goodreads book record
     const goodreadsBookRecord = await this.findOrCreateGoodreadsBook(bookInput);
@@ -237,9 +262,71 @@ export class GrFinderService {
     return goodreadsBookRecord;
   }
 
+  /**
+   * Builds the record to persist from the Goodreads book page, falling back to
+   * the search-result data the client already had when that page can't be
+   * read. Fields only the book page carries are left unset in that case so an
+   * existing record keeps them rather than having them blanked.
+   */
+  private async buildBookInput(
+    goodreadsId: string,
+    searchResult?: GoodreadsSearchFallback,
+  ): Promise<GoodreadsBookInput> {
+    const url = `https://www.goodreads.com/book/show/${goodreadsId}`;
+
+    let details: ScrapedBookDetails | null = null;
+    try {
+      details = await this.scraper.getBookDetails(goodreadsId);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Goodreads detail lookup failed for ${goodreadsId}: ${message}`,
+      );
+    }
+
+    if (details) {
+      return {
+        goodreads_id: goodreadsId,
+        title: details.title,
+        author: details.author,
+        cover_url: details.cover_url,
+        url,
+        description: details.description,
+        genres: details.genres,
+        rating: details.rating,
+        ratings_count: details.rating_count,
+      };
+    }
+
+    const fallbackTitle = meaningful(searchResult?.title);
+    if (!fallbackTitle) {
+      throw new ServiceUnavailableException(
+        'Could not read the Goodreads book page. Please try again.',
+      );
+    }
+
+    this.logger.warn(
+      `Goodreads book page unavailable for ${goodreadsId}; linking with search-result metadata instead`,
+    );
+
+    const avgRating = Number.parseFloat(searchResult?.avg_rating ?? '');
+
+    return {
+      goodreads_id: goodreadsId,
+      title: fallbackTitle,
+      author: meaningful(searchResult?.author) ?? UNKNOWN_PLACEHOLDER,
+      cover_url: searchResult?.cover_url ?? null,
+      url,
+      rating: Number.isNaN(avgRating) ? null : avgRating,
+    };
+  }
+
   private async findOrCreateGoodreadsBook(book: GoodreadsBookInput) {
-    const normalizedAuthor =
-      splitPersonNames(book.author).join(', ') || book.author.trim();
+    const knownTitle = meaningful(book.title);
+    const knownAuthor = meaningful(book.author);
+    const normalizedAuthor = knownAuthor
+      ? splitPersonNames(knownAuthor).join(', ') || knownAuthor
+      : null;
     // Goodreads stores `"Title: Subtitle"` in a single field; split into our
     // separate columns so the subtitle isn't baked into the title.
     const { title: splitTitle, subtitle: splitSubtitle } = splitTitleSubtitle(
@@ -260,15 +347,18 @@ export class GrFinderService {
       const [updated] = await this.db
         .update(goodreadsSchema.goodreadsBooks)
         .set({
-          title: splitTitle ?? book.title,
-          subtitle: splitSubtitle,
-          author: normalizedAuthor,
+          // Every field falls back to what we already stored: a lookup that
+          // came back thin must never downgrade a record that was complete.
+          title: knownTitle ? (splitTitle ?? book.title) : existing.title,
+          subtitle: knownTitle ? splitSubtitle : existing.subtitle,
+          author: normalizedAuthor ?? existing.author,
           description: book.description ?? existing.description,
           coverUrl: book.cover_url ?? existing.coverUrl,
           url: book.url,
           rating: rating?.toString() ?? existing.rating,
           ratingsCount: book.ratings_count ?? existing.ratingsCount,
-          genres: book.genres ?? existing.genres,
+          // An empty list means "none parsed", not "this book has no genres".
+          genres: book.genres?.length ? book.genres : existing.genres,
           syncedAt: new Date(),
         })
         .where(eq(goodreadsSchema.goodreadsBooks.id, existing.id))
@@ -284,7 +374,7 @@ export class GrFinderService {
         goodreadsId: book.goodreads_id,
         title: splitTitle ?? book.title,
         subtitle: splitSubtitle,
-        author: normalizedAuthor,
+        author: normalizedAuthor ?? book.author,
         description: book.description ?? null,
         coverUrl: book.cover_url ?? null,
         url: book.url,

@@ -77,6 +77,13 @@
       },
       "pending": "{count, plural, =1 {1 bok i kö} other {# böcker i kö}}",
       "failed": "{count, plural, =1 {1 generering misslyckades} other {# genereringar misslyckades}}"
+    },
+    "goodreadsLink": {
+      "title": "Länkar till Goodreads",
+      "linking": "Länkar ”{title}”",
+      "pending": "{count, plural, =1 {1 bok i kö} other {# böcker i kö}}",
+      "failed": "{count, plural, =1 {1 länkning misslyckades} other {# länkningar misslyckades}}",
+      "dismiss": "Avvisa"
     }
   },
   "hardcoverSync": {
@@ -172,7 +179,8 @@
     "linking": "Länkar...",
     "toast": {
       "linked": "Länkad till Goodreads",
-      "linkFailed": "Kunde inte länka"
+      "linkFailed": "Kunde inte länka",
+      "queued": "Länkning köad för ”{title}”"
     }
   },
   "goodreadsLink": {
