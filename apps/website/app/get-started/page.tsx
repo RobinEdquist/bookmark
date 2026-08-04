@@ -46,6 +46,8 @@ const COMPOSE = `services:
       # Where you reach Bookmark. Both need your real address or logins break.
       BETTER_AUTH_URL: http://localhost:3001
       UI_URL: http://localhost:3001
+      # Your timezone, so dates and times match your clock. Defaults to UTC.
+      TZ: Europe/Stockholm # change this
     volumes:
       - ./data/app:/data
       # Your audiobooks. Read-only: Bookmark never writes here.
@@ -152,7 +154,7 @@ export default function GetStarted() {
               <h3>Change the lines that matter</h3>
               <p>
                 Bookmark will start on the defaults, but you would be running an
-                empty library on a placeholder database password. Three edits,
+                empty library on a placeholder database password. Four edits,
                 all marked in the file:
               </p>
               <ul className="prose-list">
@@ -175,6 +177,22 @@ export default function GetStarted() {
                 <li>
                   <strong>The ebook and comic lines</strong>: set them to real
                   paths, or delete both lines if you only have audiobooks.
+                </li>
+                <li>
+                  <strong>Your timezone</strong>: set{" "}
+                  <code className="ui-path">TZ</code> to your own zone &mdash;{" "}
+                  <code className="ui-path">Europe/Berlin</code>,{" "}
+                  <code className="ui-path">America/New_York</code>. Leave it out
+                  and everything is timestamped in UTC, which is rarely the clock
+                  you actually read. The{" "}
+                  <a
+                    href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
+                    className="link-arrow"
+                    style={{ fontSize: "inherit" }}
+                  >
+                    full list of zone names
+                  </a>{" "}
+                  has yours.
                 </li>
               </ul>
               <p style={{ marginTop: "1rem" }}>

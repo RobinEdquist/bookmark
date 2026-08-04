@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { cookies } from "next/headers";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTimeZone } from "next-intl/server";
 import "./globals.css";
 import { ThemeProvider } from "../components/providers/theme-provider";
 import { QueryProvider } from "../components/providers/query-provider";
@@ -35,6 +35,7 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const timeZone = await getTimeZone();
 
   // Read color preferences from cookies for server-side rendering
   const cookieStore = await cookies();
@@ -80,7 +81,11 @@ export default async function RootLayout({
       >
         <QueryProvider>
           <ThemeProvider>
-            <IntlProvider locale={locale} messages={messages}>
+            <IntlProvider
+              locale={locale}
+              messages={messages}
+              timeZone={timeZone}
+            >
               <PlayerProvider>
                 {children}
                 <Toaster />

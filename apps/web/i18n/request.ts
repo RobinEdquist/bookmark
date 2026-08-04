@@ -2,6 +2,18 @@ import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
 import { defaultLocale, isValidLocale } from './config';
 
+/**
+ * The zone this process is actually running in, resolved once: it cannot change
+ * while the process lives. Outside Docker this is the machine's own zone, so a
+ * bare-metal install follows the server clock without being told to. Inside
+ * Docker it comes out as UTC - containers do not inherit the host's zone, and
+ * the usual `/etc/localtime` bind-mount does not help, because Node takes the
+ * zone *name* from the symlink path rather than the file contents. `TZ` is the
+ * only thing that moves it.
+ */
+const RUNTIME_TIME_ZONE =
+  Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
 export default getRequestConfig(async () => {
   const cookieStore = await cookies();
   const localeCookie = cookieStore.get('locale')?.value;
@@ -9,6 +21,10 @@ export default getRequestConfig(async () => {
 
   return {
     locale,
+    // Must be set explicitly rather than left to next-intl: the value is handed
+    // to the client provider so SSR and hydration format against the same zone
+    // instead of the server's and the browser's diverging.
+    timeZone: process.env.TZ || RUNTIME_TIME_ZONE,
     messages: {
       common: (await import(`../messages/${locale}/common.json`)).default,
       auth: (await import(`../messages/${locale}/auth.json`)).default,

@@ -67,10 +67,19 @@ cp example.env .env
 PUBLIC_URL=https://bookmark.yourdomain.com
 POSTGRES_PASSWORD=pick-something-strong
 
+# Your timezone, so dates and times match your clock (defaults to UTC in Docker)
+TZ=Europe/Stockholm
+
 # Your media (read-only mounts — Bookmark never writes to them)
 AUDIOBOOK_LIBRARY_PATH=/path/to/your/audiobooks
 EBOOK_LIBRARY_PATH=/path/to/your/ebooks
 COMIC_LIBRARY_PATH=/path/to/your/comics
+```
+
+A container doesn't inherit the timezone of the machine it runs on, so without `TZ` everything is timestamped in UTC. To copy the host's zone straight into your `.env` instead of looking it up:
+
+```bash
+echo "TZ=$(readlink /etc/localtime | sed 's|.*/zoneinfo/||')" >> .env
 ```
 
 Visit `http://localhost:3001` (or your domain). The first account you create becomes the admin. From there, head to **Settings → Libraries**, point Bookmark at your folders, hit **Scan**, and you're set.
@@ -90,6 +99,7 @@ Everything is set through environment variables in your `.env` file. With Docker
 | `POSTGRES_DB`        | No                | `bookmark`              | Database name                                                                                   |
 | `PORT`               | No                | `3001`                  | Host port the web app is published on                                                           |
 | `LOG_LEVEL`          | No                | `info`                  | Backend log verbosity (`debug`, `info`, `warn`, `error`)                                        |
+| `TZ`                 | No                | `UTC`                   | Timezone for displayed dates and times, as an IANA zone name (e.g. `Europe/Stockholm`)          |
 
 **Media and storage**
 

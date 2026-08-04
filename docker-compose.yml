@@ -57,6 +57,10 @@ services:
       NODE_ENV: production
       APP_DATA_PATH: /data
 
+      # Timezone for rendering dates and times. Set TZ in .env to your own zone
+      # (e.g. Europe/Stockholm) - the UTC fallback is rarely the clock you read.
+      TZ: ${TZ:-UTC}
+
       # OIDC Configuration (optional)
       OIDC_ENABLED: ${OIDC_ENABLED:-false}
       OIDC_ISSUER_URL: ${OIDC_ISSUER_URL:-}

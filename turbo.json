@@ -1,6 +1,9 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
+  // TZ is read per-request by the server at runtime, so it must reach tasks but
+  // must not affect build hashes - the compiled output is identical either way
+  "globalPassThroughEnv": ["TZ"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
