@@ -77,7 +77,9 @@ export class WsEventsService {
       timestamp: Date.now(),
     };
 
-    this.logger.log(
+    // Debug level: this is a fan-out hot path — a library scan emits one event
+    // per row, so info-level logging here floods the log at startup.
+    this.logger.debug(
       `Emitting WS event: ${fullEvent.type}${fullEvent.entityId ? ` (entityId: ${fullEvent.entityId})` : ''}`,
     );
 
