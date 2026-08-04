@@ -33,6 +33,7 @@ import { MobileAuthModule } from './mobile-auth/mobile-auth.module';
 import { PeopleModule } from './people/people.module';
 import { RestoreModule } from './restore/restore.module';
 import { HealthModule } from './health/health.module';
+import { VersionModule } from './version/version.module';
 import { TrackerModule } from './tracker';
 import { RequestsModule } from './requests';
 import { ListsModule } from './lists/lists.module';
@@ -196,6 +197,7 @@ import { CommonModule } from './common/common.module';
     PeopleModule,
     RestoreModule,
     HealthModule,
+    VersionModule,
     TrackerModule,
     RequestsModule,
     ListsModule,

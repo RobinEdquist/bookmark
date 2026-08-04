@@ -3,6 +3,10 @@ export const queryKeys = {
     all: ["tags"] as const,
     list: (search?: string) => [...queryKeys.tags.all, "list", search] as const,
   },
+  version: {
+    all: ["version"] as const,
+    current: () => [...queryKeys.version.all, "current"] as const,
+  },
   settings: {
     all: ["settings"] as const,
     public: () => [...queryKeys.settings.all, "public"] as const,

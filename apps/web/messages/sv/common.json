@@ -1,5 +1,10 @@
 {
   "appName": "Bookmark",
+  "version": {
+    "preAlpha": "pre-alpha",
+    "devBuild": "dev",
+    "buildDetails": "Version {version} · commit {sha}"
+  },
   "loading": "Laddar...",
   "error": {
     "generic": "Ett fel uppstod",

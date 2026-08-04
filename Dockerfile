@@ -173,6 +173,18 @@ ENV APP_DATA_PATH=/data
 # Runtime URL the web app uses for SSR API calls — same container, so localhost
 ENV API_URL=http://127.0.0.1:3000
 
+# Build provenance, supplied by CI (see .github/workflows/build.yml). The
+# running container has no git checkout and cannot read its own OCI labels, so
+# passing these in as build args is the only way /api/version can report what
+# the image actually is. Declared this late on purpose: they change on every
+# commit, and an earlier ARG would invalidate every layer below it.
+ARG APP_VERSION=0.0.0-dev
+ARG GIT_SHA=unknown
+ARG BUILD_TIME=""
+ENV APP_VERSION=${APP_VERSION}
+ENV GIT_SHA=${GIT_SHA}
+ENV BUILD_TIME=${BUILD_TIME}
+
 # 3001: web app (publish this). 3000: backend API (internal, optional to publish)
 EXPOSE 3001
 EXPOSE 3000
