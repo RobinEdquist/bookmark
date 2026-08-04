@@ -1,4 +1,21 @@
 import { ComicsOpdsService } from '../comics-opds.service';
+
+/**
+ * Titles/numbers in the feed now come from MetadataResolverService (covered by
+ * its own spec). Default to "no resolved entry" so the feed falls back to the
+ * stored rows these tests build.
+ */
+function createMetadataResolver(
+  series: Record<string, unknown> = {},
+  books: Record<string, unknown> = {},
+) {
+  return {
+    forComicSeries: jest
+      .fn()
+      .mockResolvedValue(new Map(Object.entries(series))),
+    forComicBooks: jest.fn().mockResolvedValue(new Map(Object.entries(books))),
+  } as any;
+}
 import { ComicProgressService } from '../../comic-progress/comic-progress.service';
 
 const BASE = 'http://host/api/comics/opds';
@@ -12,7 +29,11 @@ describe('ComicsOpdsService', () => {
     const progressService = {
       getProgress: jest.fn().mockResolvedValue(progress),
     } as unknown as ComicProgressService;
-    return new ComicsOpdsService(db as never, progressService);
+    return new ComicsOpdsService(
+      db as never,
+      progressService,
+      createMetadataResolver(),
+    );
   }
 
   describe('buildRootCatalog', () => {

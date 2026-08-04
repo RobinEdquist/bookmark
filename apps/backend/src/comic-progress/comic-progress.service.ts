@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { and, desc, eq, notExists, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as schema from './schema';
 import * as comicsSchema from '../comics/schema';
 import * as usersSchema from '../users/schema';
@@ -34,6 +35,7 @@ export class ComicProgressService {
     private readonly db: NodePgDatabase<
       typeof schema & typeof comicsSchema & typeof usersSchema
     >,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   private toResponse(
@@ -225,10 +227,24 @@ export class ComicProgressService {
     this.logger.log(
       `[comic-progress] getOnDeck userId=${userId} resultCount=${rows.length}`,
     );
-    return rows.map(({ progress, book }) => ({
-      ...this.toResponse(progress),
-      book,
-    }));
+
+    // Show the same title/number the book's own page shows
+    const metadata = await this.metadataResolver.forComicBooks(
+      rows.map((r) => r.book.id),
+    );
+
+    return rows.map(({ progress, book }) => {
+      const resolved = metadata.get(book.id);
+      return {
+        ...this.toResponse(progress),
+        book: {
+          id: book.id,
+          seriesId: book.seriesId,
+          title: resolved?.title ?? book.title,
+          number: resolved?.number ?? book.number,
+        },
+      };
+    });
   }
 
   async resetProgress(userId: string, bookId: string): Promise<void> {

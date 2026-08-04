@@ -7,6 +7,7 @@ import * as audiobookSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
 import * as comicProgressSchema from '../comic-progress/schema';
 import { ComicProgressService } from '../comic-progress/comic-progress.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 
 type Db = NodePgDatabase<
   typeof schema &
@@ -40,6 +41,7 @@ export class ComicsOpdsService {
   constructor(
     @Inject(DATABASE_CONNECTION) private readonly db: Db,
     private readonly progressService: ComicProgressService,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   private escapeXml(str: string): string {
@@ -216,10 +218,22 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
     const e = (s: string) => this.escapeXml(s);
     const updated = new Date().toISOString();
     const entries: string[] = [];
+    // Catalog readers must see the same title/number the book's own page shows
+    const metadata = await this.metadataResolver.forComicBooks(
+      opts.books.map((b) => b.id),
+    );
     for (const book of opts.books) {
       const names = await this.authorNamesForBook(book.id);
+      const resolved = metadata.get(book.id);
       entries.push(
-        await this.buildIssueEntryXml(book, names, opts.baseUrl, opts.userId),
+        await this.buildIssueEntryXml(
+          resolved
+            ? { ...book, title: resolved.title, number: resolved.number }
+            : book,
+          names,
+          opts.baseUrl,
+          opts.userId,
+        ),
       );
     }
     const up = opts.upLink ?? opts.baseUrl;
@@ -263,12 +277,16 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
         ),
       );
 
+    // Catalog readers must see the same names the series pages show
+    const seriesMetadata = await this.metadataResolver.forComicSeries(
+      seriesList.map((s) => s.id),
+    );
     const entries = seriesList
       .map(
         (s) => `
   <entry>
     <id>${e(baseUrl)}/series/${s.id}</id>
-    <title>${e(s.title)}</title>
+    <title>${e(seriesMetadata.get(s.id)?.title ?? s.title)}</title>
     <updated>${updated}</updated>
     <link rel="subsection" href="${e(baseUrl)}/series/${s.id}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
   </entry>`,
@@ -351,12 +369,16 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
         ),
       );
 
+    // Catalog readers must see the same names the series pages show
+    const seriesMetadata = await this.metadataResolver.forComicSeries(
+      seriesList.map((s) => s.id),
+    );
     const entries = seriesList
       .map(
         (s) => `
   <entry>
     <id>${e(baseUrl)}/series/${s.id}</id>
-    <title>${e(s.title)}</title>
+    <title>${e(seriesMetadata.get(s.id)?.title ?? s.title)}</title>
     <updated>${updated}</updated>
     <link rel="subsection" href="${e(baseUrl)}/series/${s.id}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
   </entry>`,
@@ -457,12 +479,16 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
       )
       .orderBy(asc(schema.comicCollectionSeries.position));
 
+    // Catalog readers must see the same names the series pages show
+    const seriesMetadata = await this.metadataResolver.forComicSeries(
+      seriesList.map((s) => s.id),
+    );
     const entries = seriesList
       .map(
         (s) => `
   <entry>
     <id>${e(baseUrl)}/series/${s.id}</id>
-    <title>${e(s.title)}</title>
+    <title>${e(seriesMetadata.get(s.id)?.title ?? s.title)}</title>
     <updated>${updated}</updated>
     <link rel="subsection" href="${e(baseUrl)}/series/${s.id}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
   </entry>`,
@@ -519,9 +545,13 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
     this.logger.log(
       `[comics-opds-svc] buildSeriesFeed bookCount=${books.length} seriesId=${seriesId} userId=${userId}`,
     );
+    const seriesMetadata = await this.metadataResolver.forComicSeries([
+      series.id,
+    ]);
+
     return this.buildAcquisitionFeed({
       id: `${baseUrl}/series/${seriesId}`,
-      title: series.title,
+      title: seriesMetadata.get(series.id)?.title ?? series.title,
       baseUrl,
       books,
       userId,

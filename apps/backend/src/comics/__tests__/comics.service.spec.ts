@@ -45,6 +45,7 @@ function chainMock(resolvedValue: unknown = []) {
     'offset',
     'orderBy',
     'innerJoin',
+    'leftJoin',
     'selectDistinct',
   ];
   for (const m of methods) {

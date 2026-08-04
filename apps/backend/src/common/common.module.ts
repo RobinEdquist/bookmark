@@ -2,6 +2,7 @@ import { Global, Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { WorkerPoolService } from './worker-pool.service';
 import { ImageProcessingService } from './image-processing.service';
 import { CoverService } from './cover.service';
+import { MetadataResolverService } from './metadata-resolver.service';
 import { ApiTokenMiddleware } from './middleware/api-token.middleware';
 import { DatabaseModule } from '../database/database.module';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
@@ -13,9 +14,15 @@ import { ApiKeysModule } from '../api-keys/api-keys.module';
     WorkerPoolService,
     ImageProcessingService,
     CoverService,
+    MetadataResolverService,
     ApiTokenMiddleware,
   ],
-  exports: [WorkerPoolService, ImageProcessingService, CoverService],
+  exports: [
+    WorkerPoolService,
+    ImageProcessingService,
+    CoverService,
+    MetadataResolverService,
+  ],
 })
 export class CommonModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

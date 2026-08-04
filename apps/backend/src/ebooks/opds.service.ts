@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, asc, count } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 
@@ -10,6 +11,7 @@ export class OpdsService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<typeof schema>,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   private escapeXml(str: string): string {
@@ -289,26 +291,21 @@ export class OpdsService {
   ): Promise<string> {
     const entries: string[] = [];
 
-    for (const ebook of ebooks) {
-      // Get authors for this ebook
-      const authors = await this.db
-        .select({ name: audiobookSchema.people.name })
-        .from(schema.ebookAuthors)
-        .innerJoin(
-          audiobookSchema.people,
-          eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
-        )
-        .where(eq(schema.ebookAuthors.ebookId, ebook.id))
-        .orderBy(asc(schema.ebookAuthors.order));
+    // Catalog readers must see the same titles/authors the web UI shows
+    const metadata = await this.metadataResolver.forEbooks(
+      ebooks.map((e) => e.id),
+    );
 
-      const authorNames = authors.map((a) => a.name);
+    for (const ebook of ebooks) {
+      const resolved = metadata.get(ebook.id);
+      const authorNames = resolved?.authorNames ?? [];
       const summary = this.truncateDescription(ebook.description);
       const apiBaseUrl = baseUrl.replace('/opds', '');
 
       let entry = `
   <entry>
     <id>urn:uuid:${ebook.id}</id>
-    <title>${this.escapeXml(ebook.title)}</title>
+    <title>${this.escapeXml(resolved?.title ?? ebook.title)}</title>
     <updated>${ebook.updatedAt.toISOString()}</updated>`;
 
       // Add authors

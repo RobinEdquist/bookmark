@@ -29,10 +29,8 @@ import * as audiobooksSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
 import * as comicvineSchema from '../comicvine/schema';
 import { AppSettingsService } from '../app-settings/app-settings.service';
-import {
-  DEFAULT_COMIC_METADATA_PRIORITY,
-  type MetadataSource,
-} from '../app-settings/schema';
+import { DEFAULT_COMIC_METADATA_PRIORITY } from '../app-settings/schema';
+import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
 import { CoverService } from '../common/cover.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { ComicMetadataProvider } from '../library-watcher/metadata/comic-metadata.provider';
@@ -106,48 +104,6 @@ export class ComicsService {
       throw new Error('Comic library path not configured');
     }
     return path.join(libraryPath, relativePath);
-  }
-
-  // ===== METADATA PRIORITY HELPERS =====
-
-  /**
-   * Check if a value is non-empty (not null, undefined, empty string, or empty array)
-   */
-  private hasValue<T>(value: T | null | undefined): value is T {
-    if (value === null || value === undefined) return false;
-    if (typeof value === 'string' && value.trim() === '') return false;
-    if (Array.isArray(value) && value.length === 0) return false;
-    return true;
-  }
-
-  /**
-   * Resolve a field value according to the configured priority order.
-   * `manualFieldName` is the COLUMN name (used to check manualFields[]).
-   * `priority` is the MetadataSource[] from ComicMetadataFieldPriority.
-   */
-  private resolveFieldByPriority<T>(
-    manualFieldName: string,
-    sources: {
-      manual: T | null | undefined;
-      embedded: T | null | undefined;
-      comicvine: T | null | undefined;
-    },
-    priority: MetadataSource[],
-    manualFields: string[],
-  ): T | null {
-    if (manualFields.includes(manualFieldName)) {
-      if (this.hasValue(sources.manual)) return sources.manual;
-    }
-    for (const source of priority) {
-      if (source === 'manual') continue;
-      else if (source === 'embedded') {
-        if (this.hasValue(sources.embedded)) return sources.embedded;
-      } else if (source === 'comicvine') {
-        if (this.hasValue(sources.comicvine)) return sources.comicvine;
-      }
-      // 'filename' / 'folder_image' / others are import-only
-    }
-    return sources.embedded ?? null; // fallback = original stored column
   }
 
   // ===== BLACKLIST =====
@@ -391,7 +347,7 @@ export class ComicsService {
         return {
           id: series.id,
           title:
-            this.resolveFieldByPriority(
+            resolveFieldByPriority(
               'title',
               {
                 manual: series.title,
@@ -401,7 +357,7 @@ export class ComicsService {
               comicPriority.title,
               mf,
             ) ?? series.title,
-          publisher: this.resolveFieldByPriority(
+          publisher: resolveFieldByPriority(
             'publisher',
             {
               manual: series.publisher,
@@ -411,7 +367,7 @@ export class ComicsService {
             comicPriority.publisher,
             mf,
           ),
-          startYear: this.resolveFieldByPriority(
+          startYear: resolveFieldByPriority(
             'startYear',
             {
               manual: series.startYear,
@@ -583,7 +539,7 @@ export class ComicsService {
     return {
       id: series.id,
       title:
-        this.resolveFieldByPriority(
+        resolveFieldByPriority(
           'title',
           {
             manual: series.title,
@@ -594,7 +550,7 @@ export class ComicsService {
           mf,
         ) ?? series.title,
       sortTitle: series.sortTitle,
-      description: this.resolveFieldByPriority(
+      description: resolveFieldByPriority(
         'description',
         {
           manual: series.description,
@@ -604,7 +560,7 @@ export class ComicsService {
         comicPriority.description,
         mf,
       ),
-      publisher: this.resolveFieldByPriority(
+      publisher: resolveFieldByPriority(
         'publisher',
         {
           manual: series.publisher,
@@ -615,7 +571,7 @@ export class ComicsService {
         mf,
       ),
       imprint: series.imprint,
-      startYear: this.resolveFieldByPriority(
+      startYear: resolveFieldByPriority(
         'startYear',
         {
           manual: series.startYear,
@@ -696,12 +652,30 @@ export class ComicsService {
     if (!book) throw new NotFoundException('Comic book not found');
 
     const [[series], creators, issueRows, tagRows] = await Promise.all([
+      // Left-joined against ComicVine so the parent-series name resolves the
+      // same way it does on the series page itself
       this.db
         .select({
           id: schema.comicSeries.id,
           title: schema.comicSeries.title,
+          manualFields: schema.comicSeries.manualFields,
+          volumeName: comicvineSchema.comicvineVolumes.name,
         })
         .from(schema.comicSeries)
+        .leftJoin(
+          comicvineSchema.comicvineVolumeLinks,
+          eq(
+            comicvineSchema.comicvineVolumeLinks.seriesId,
+            schema.comicSeries.id,
+          ),
+        )
+        .leftJoin(
+          comicvineSchema.comicvineVolumes,
+          eq(
+            comicvineSchema.comicvineVolumeLinks.comicvineVolumeRowId,
+            comicvineSchema.comicvineVolumes.id,
+          ),
+        )
         .where(eq(schema.comicSeries.id, book.seriesId))
         .limit(1),
       this.db
@@ -763,13 +737,13 @@ export class ComicsService {
     return {
       ...this.toBookListItem(book),
       // Override merged fields after the spread (toBookListItem carries raw title/number/coverDate)
-      title: this.resolveFieldByPriority(
+      title: resolveFieldByPriority(
         'title',
         { manual: book.title, embedded: book.title, comicvine: issue?.name },
         comicPriority.bookTitle,
         mf,
       ),
-      number: this.resolveFieldByPriority(
+      number: resolveFieldByPriority(
         'number',
         {
           manual: book.number,
@@ -779,7 +753,7 @@ export class ComicsService {
         comicPriority.bookNumber,
         mf,
       ),
-      coverDate: this.resolveFieldByPriority(
+      coverDate: resolveFieldByPriority(
         'coverDate',
         {
           manual: book.coverDate,
@@ -789,7 +763,7 @@ export class ComicsService {
         comicPriority.coverDate,
         mf,
       ),
-      summary: this.resolveFieldByPriority(
+      summary: resolveFieldByPriority(
         'summary',
         {
           manual: book.summary,
@@ -805,7 +779,20 @@ export class ComicsService {
       ageRating: book.ageRating,
       issueCountFromFile: book.issueCountFromFile,
       metadataTags,
-      series,
+      series: {
+        id: series.id,
+        title:
+          resolveFieldByPriority(
+            'title',
+            {
+              manual: series.title,
+              embedded: series.title,
+              comicvine: series.volumeName,
+            },
+            comicPriority.title,
+            series.manualFields ?? [],
+          ) ?? series.title,
+      },
       creators,
       comicvine: {
         linked: !!issue,

@@ -3,6 +3,22 @@ import * as ebookProgressSchema from './schema';
 
 import { EbookProgressService } from './ebook-progress.service';
 
+/**
+ * The resolver is exercised in its own spec; here it stands in as a no-op so
+ * the service falls back to the stored row values these tests assert on.
+ */
+function createMetadataResolver(
+  audiobooks: Record<string, unknown> = {},
+  ebooks: Record<string, unknown> = {},
+) {
+  return {
+    forAudiobooks: jest
+      .fn()
+      .mockResolvedValue(new Map(Object.entries(audiobooks))),
+    forEbooks: jest.fn().mockResolvedValue(new Map(Object.entries(ebooks))),
+  } as any;
+}
+
 function createMockDb(overrides: Record<string, any> = {}) {
   return {
     select: jest.fn(),
@@ -43,7 +59,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.getProgress('user-1', 'ebook-1');
 
       expect(result).toEqual({
@@ -66,7 +82,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.getProgress('user-1', 'ebook-1');
 
       expect(result).toBeNull();
@@ -87,7 +103,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.getProgress('user-1', 'ebook-1');
 
       expect(result!.completedAt).toBe(completedAt.toISOString());
@@ -104,7 +120,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.getProgress('user-1', 'ebook-1');
 
       expect(result!.cfi).toBeNull();
@@ -133,7 +149,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
 
       await expect(
         service.updateProgress('user-1', 'nonexistent', {
@@ -152,7 +168,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       await service.updateProgress('user-1', 'ebook-1', {
         progressPercent: 50,
       });
@@ -180,7 +196,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.updateProgress('user-1', 'ebook-1', {
         progressPercent: 50,
       });
@@ -210,7 +226,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.updateProgress('user-1', 'ebook-1', {
         progressPercent: 97,
       });
@@ -243,7 +259,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.updateProgress('user-1', 'ebook-1', {
         progressPercent: 95,
       });
@@ -263,7 +279,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       await service.updateProgress('user-1', 'ebook-1', {
         progressPercent: 94,
       });
@@ -284,7 +300,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       await service.updateProgress('user-1', 'ebook-1', {
         progressPercent: 30,
         cfi,
@@ -304,7 +320,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       await service.updateProgress('user-1', 'ebook-1', {
         progressPercent: 30,
       });
@@ -323,7 +339,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       await service.updateProgress('user-1', 'ebook-1', {
         progressPercent: 50,
       });
@@ -359,7 +375,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.getAllProgress('user-1');
 
       expect(result).toHaveLength(1);
@@ -392,7 +408,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.getAllProgress('user-1');
 
       expect(result).toEqual([]);
@@ -437,7 +453,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       const result = await service.getAllProgress('user-1');
 
       expect(result).toHaveLength(2);
@@ -459,7 +475,7 @@ describe('EbookProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       await service.getAllProgress('user-1');
 
       expect(db.select).toHaveBeenCalled();
@@ -477,7 +493,7 @@ describe('EbookProgressService', () => {
 
       const db = createMockDb({ delete: deleteFn });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       await service.resetProgress('user-1', 'ebook-1');
 
       expect(deleteFn).toHaveBeenCalledWith(
@@ -492,7 +508,7 @@ describe('EbookProgressService', () => {
 
       const db = createMockDb({ delete: deleteFn });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
 
       await expect(
         service.resetProgress('user-1', 'nonexistent'),
@@ -505,7 +521,7 @@ describe('EbookProgressService', () => {
 
       const db = createMockDb({ delete: deleteFn });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
 
       await expect(service.resetProgress('user-1', 'ebook-1')).rejects.toThrow(
         'Progress record not found',
@@ -521,7 +537,7 @@ describe('EbookProgressService', () => {
 
       const db = createMockDb({ update });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
       await service.hideProgress('user-1', 'ebook-1');
 
       expect(update).toHaveBeenCalledWith(
@@ -538,7 +554,7 @@ describe('EbookProgressService', () => {
 
       const db = createMockDb({ update });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
 
       await expect(
         service.hideProgress('user-1', 'nonexistent'),
@@ -552,7 +568,7 @@ describe('EbookProgressService', () => {
 
       const db = createMockDb({ update });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
 
       await expect(service.hideProgress('user-1', 'ebook-1')).rejects.toThrow(
         'Progress record not found',
@@ -566,7 +582,7 @@ describe('EbookProgressService', () => {
 
       const db = createMockDb({ update });
 
-      const service = new EbookProgressService(db);
+      const service = new EbookProgressService(db, createMetadataResolver());
 
       await expect(
         service.hideProgress('user-1', 'ebook-1'),

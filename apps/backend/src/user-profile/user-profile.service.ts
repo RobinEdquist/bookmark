@@ -1,21 +1,14 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, count, desc, eq, gte, inArray, sql, sum } from 'drizzle-orm';
+import { and, count, desc, eq, gte, sql, sum } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
-import { AppSettingsService } from '../app-settings/app-settings.service';
-import type {
-  MetadataSource,
-  MetadataFieldPriority,
-} from '../app-settings/schema';
-import { splitPersonNames } from '../common/utils/name.utils';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as progressSchema from '../progress/schema';
 import * as ebookProgressSchema from '../ebook-progress/schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as authSchema from '../auth/schema';
-import * as hardcoverSchema from '../hardcover/schema';
-import * as goodreadsSchema from '../gr-finder/schema';
 import type {
   UserProfileStatsDto,
   UserProfileActivityDto,
@@ -36,52 +29,8 @@ export class UserProfileService {
         typeof authSchema
     >,
     private readonly coverService: CoverService,
-    private readonly appSettingsService: AppSettingsService,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
-
-  /**
-   * Resolve a field value based on metadata priority settings.
-   * Manual edits always take priority, then follows the configured order.
-   */
-  private resolveFieldByPriority<T>(
-    fieldName: keyof MetadataFieldPriority,
-    sources: {
-      manual: T | null | undefined;
-      embedded: T | null | undefined;
-      hardcover: T | null | undefined;
-      goodreads?: T | null | undefined;
-    },
-    priority: MetadataSource[],
-    manualFields: string[],
-  ): T | null {
-    if (manualFields.includes(fieldName)) {
-      const value = sources.manual;
-      if (this.hasValue(value)) return value;
-    }
-
-    for (const source of priority) {
-      if (source === 'manual') {
-        continue;
-      } else if (source === 'embedded') {
-        const value = sources.embedded;
-        if (this.hasValue(value)) return value;
-      } else if (source === 'hardcover') {
-        const value = sources.hardcover;
-        if (this.hasValue(value)) return value;
-      } else if (source === 'goodreads') {
-        const value = sources.goodreads;
-        if (this.hasValue(value)) return value;
-      }
-    }
-    return sources.embedded ?? null;
-  }
-
-  private hasValue<T>(value: T | null | undefined): value is T {
-    if (value === null || value === undefined) return false;
-    if (typeof value === 'string' && value.trim() === '') return false;
-    if (Array.isArray(value) && value.length === 0) return false;
-    return true;
-  }
 
   /**
    * Get aggregated stats for a user profile.
@@ -369,159 +318,14 @@ export class UserProfileService {
       ) as RawEbookRow[];
     }
 
-    // Batch-fetch metadata sources for priority resolution
-    const audiobookIds = audiobookRows.map((r) => r.id);
-    const ebookIds = ebookRows.map((r) => r.id);
-
-    const [
-      hardcoverAbLinks,
-      goodreadsAbLinks,
-      hardcoverEbLinks,
-      goodreadsEbLinks,
-      metadataPriority,
-    ] = await Promise.all([
-      audiobookIds.length > 0
-        ? this.db
-            .select({
-              audiobookId: hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
-              hardcoverBook: hardcoverSchema.hardcoverBooks,
-            })
-            .from(hardcoverSchema.hardcoverAudiobookLinks)
-            .innerJoin(
-              hardcoverSchema.hardcoverBooks,
-              eq(
-                hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
-                hardcoverSchema.hardcoverBooks.id,
-              ),
-            )
-            .where(
-              inArray(
-                hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
-                audiobookIds,
-              ),
-            )
-        : [],
-      audiobookIds.length > 0
-        ? this.db
-            .select({
-              audiobookId: goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
-              goodreadsBook: goodreadsSchema.goodreadsBooks,
-            })
-            .from(goodreadsSchema.goodreadsAudiobookLinks)
-            .innerJoin(
-              goodreadsSchema.goodreadsBooks,
-              eq(
-                goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
-                goodreadsSchema.goodreadsBooks.id,
-              ),
-            )
-            .where(
-              inArray(
-                goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
-                audiobookIds,
-              ),
-            )
-        : [],
-      ebookIds.length > 0
-        ? this.db
-            .select({
-              ebookId: hardcoverSchema.hardcoverEbookLinks.ebookId,
-              hardcoverBook: hardcoverSchema.hardcoverBooks,
-            })
-            .from(hardcoverSchema.hardcoverEbookLinks)
-            .innerJoin(
-              hardcoverSchema.hardcoverBooks,
-              eq(
-                hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
-                hardcoverSchema.hardcoverBooks.id,
-              ),
-            )
-            .where(
-              inArray(hardcoverSchema.hardcoverEbookLinks.ebookId, ebookIds),
-            )
-        : [],
-      ebookIds.length > 0
-        ? this.db
-            .select({
-              ebookId: goodreadsSchema.goodreadsEbookLinks.ebookId,
-              goodreadsBook: goodreadsSchema.goodreadsBooks,
-            })
-            .from(goodreadsSchema.goodreadsEbookLinks)
-            .innerJoin(
-              goodreadsSchema.goodreadsBooks,
-              eq(
-                goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
-                goodreadsSchema.goodreadsBooks.id,
-              ),
-            )
-            .where(
-              inArray(goodreadsSchema.goodreadsEbookLinks.ebookId, ebookIds),
-            )
-        : [],
-      this.appSettingsService.getMetadataPriority(),
+    // Resolve titles/authors the same way the detail pages do
+    const [audiobookMetadata, ebookMetadata] = await Promise.all([
+      this.metadataResolver.forAudiobooks(audiobookRows.map((r) => r.id)),
+      this.metadataResolver.forEbooks(ebookRows.map((r) => r.id)),
     ]);
 
-    // Build lookup maps
-    type HardcoverBook = typeof hardcoverSchema.hardcoverBooks.$inferSelect;
-    type GoodreadsBook = typeof goodreadsSchema.goodreadsBooks.$inferSelect;
-
-    const hcAbMap = new Map<string, HardcoverBook>(
-      hardcoverAbLinks.map(
-        (l) => [l.audiobookId, l.hardcoverBook] as [string, HardcoverBook],
-      ),
-    );
-    const grAbMap = new Map<string, GoodreadsBook>(
-      goodreadsAbLinks.map(
-        (l) => [l.audiobookId, l.goodreadsBook] as [string, GoodreadsBook],
-      ),
-    );
-    const hcEbMap = new Map<string, HardcoverBook>(
-      hardcoverEbLinks.map(
-        (l) => [l.ebookId, l.hardcoverBook] as [string, HardcoverBook],
-      ),
-    );
-    const grEbMap = new Map<string, GoodreadsBook>(
-      goodreadsEbLinks.map(
-        (l) => [l.ebookId, l.goodreadsBook] as [string, GoodreadsBook],
-      ),
-    );
-
-    // Build audiobook items with metadata priority resolution
     for (const row of audiobookRows) {
-      const manualFields = (row.manualFields as string[]) || [];
-      const hc = hcAbMap.get(row.id) || null;
-      const gr = grAbMap.get(row.id) || null;
-
-      const resolvedTitle =
-        this.resolveFieldByPriority(
-          'title',
-          {
-            manual: row.title,
-            embedded: row.title,
-            hardcover: hc?.title,
-            goodreads: gr?.title,
-          },
-          metadataPriority.title,
-          manualFields,
-        ) || row.title;
-
-      const hardcoverAuthorNames = hc?.authorNames || [];
-      const goodreadsAuthorName = gr?.author
-        ? splitPersonNames(gr.author)[0]
-        : null;
-      const resolvedAuthorName =
-        this.resolveFieldByPriority(
-          'author',
-          {
-            manual: row.authorName,
-            embedded: row.authorName,
-            hardcover: hardcoverAuthorNames[0] ?? null,
-            goodreads: goodreadsAuthorName,
-          },
-          metadataPriority.author,
-          manualFields,
-        ) ?? null;
-
+      const resolved = audiobookMetadata.get(row.id);
       const progressPercent = row.duration
         ? Math.round((row.currentPosition / row.duration) * 100)
         : 0;
@@ -529,8 +333,8 @@ export class UserProfileService {
       items.push({
         id: row.id,
         type: 'audiobook',
-        title: resolvedTitle,
-        authorName: resolvedAuthorName,
+        title: resolved?.title ?? row.title,
+        authorName: resolved?.authorNames[0] ?? row.authorName,
         coverUrl: this.coverService.getCoverUrl(
           row.id,
           row.coverUrl,
@@ -546,47 +350,14 @@ export class UserProfileService {
       });
     }
 
-    // Build ebook items with metadata priority resolution
     for (const row of ebookRows) {
-      const manualFields = (row.manualFields as string[]) || [];
-      const hc = hcEbMap.get(row.id) || null;
-      const gr = grEbMap.get(row.id) || null;
-
-      const resolvedTitle =
-        this.resolveFieldByPriority(
-          'title',
-          {
-            manual: row.title,
-            embedded: row.title,
-            hardcover: hc?.title,
-            goodreads: gr?.title,
-          },
-          metadataPriority.title,
-          manualFields,
-        ) || row.title;
-
-      const hardcoverAuthorNames = hc?.authorNames || [];
-      const goodreadsAuthorName = gr?.author
-        ? splitPersonNames(gr.author)[0]
-        : null;
-      const resolvedAuthorName =
-        this.resolveFieldByPriority(
-          'author',
-          {
-            manual: row.authorName,
-            embedded: row.authorName,
-            hardcover: hardcoverAuthorNames[0] ?? null,
-            goodreads: goodreadsAuthorName,
-          },
-          metadataPriority.author,
-          manualFields,
-        ) ?? null;
+      const resolved = ebookMetadata.get(row.id);
 
       items.push({
         id: row.id,
         type: 'ebook',
-        title: resolvedTitle,
-        authorName: resolvedAuthorName,
+        title: resolved?.title ?? row.title,
+        authorName: resolved?.authorNames[0] ?? row.authorName,
         coverUrl: this.coverService.getCoverUrl(
           row.id,
           row.coverUrl,
@@ -696,108 +467,17 @@ export class UserProfileService {
         .where(eq(progressSchema.listeningSessions.userId, userId)),
     ]);
 
-    // Batch-fetch metadata sources for priority resolution
-    const audiobookIds = [...new Set(results.map((r) => r.audiobookId))];
-
-    const [hardcoverLinks, goodreadsLinks, metadataPriority] =
-      await Promise.all([
-        audiobookIds.length > 0
-          ? this.db
-              .select({
-                audiobookId:
-                  hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
-                hardcoverBook: hardcoverSchema.hardcoverBooks,
-              })
-              .from(hardcoverSchema.hardcoverAudiobookLinks)
-              .innerJoin(
-                hardcoverSchema.hardcoverBooks,
-                eq(
-                  hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
-                  hardcoverSchema.hardcoverBooks.id,
-                ),
-              )
-              .where(
-                inArray(
-                  hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
-                  audiobookIds,
-                ),
-              )
-          : [],
-        audiobookIds.length > 0
-          ? this.db
-              .select({
-                audiobookId:
-                  goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
-                goodreadsBook: goodreadsSchema.goodreadsBooks,
-              })
-              .from(goodreadsSchema.goodreadsAudiobookLinks)
-              .innerJoin(
-                goodreadsSchema.goodreadsBooks,
-                eq(
-                  goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
-                  goodreadsSchema.goodreadsBooks.id,
-                ),
-              )
-              .where(
-                inArray(
-                  goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
-                  audiobookIds,
-                ),
-              )
-          : [],
-        this.appSettingsService.getMetadataPriority(),
-      ]);
-
-    type HardcoverBook = typeof hardcoverSchema.hardcoverBooks.$inferSelect;
-    type GoodreadsBook = typeof goodreadsSchema.goodreadsBooks.$inferSelect;
-
-    const hcMap = new Map<string, HardcoverBook>(
-      hardcoverLinks.map(
-        (l) => [l.audiobookId, l.hardcoverBook] as [string, HardcoverBook],
-      ),
-    );
-    const grMap = new Map<string, GoodreadsBook>(
-      goodreadsLinks.map(
-        (l) => [l.audiobookId, l.goodreadsBook] as [string, GoodreadsBook],
-      ),
+    // Resolve titles/authors the same way the audiobook detail page does
+    const metadata = await this.metadataResolver.forAudiobooks(
+      results.map((r) => r.audiobookId),
     );
 
     const items = results.map((row) => {
-      const manualFields = (row.manualFields as string[]) || [];
-      const hc = hcMap.get(row.audiobookId) || null;
-      const gr = grMap.get(row.audiobookId) || null;
-
+      const resolved = metadata.get(row.audiobookId);
       const resolvedTitle =
-        this.resolveFieldByPriority(
-          'title',
-          {
-            manual: row.audiobookTitle,
-            embedded: row.audiobookTitle,
-            hardcover: hc?.title,
-            goodreads: gr?.title,
-          },
-          metadataPriority.title,
-          manualFields,
-        ) ||
-        row.audiobookTitle ||
-        'Unknown audiobook';
-
-      const hardcoverAuthorNames = hc?.authorNames || [];
-      const goodreadsAuthorName = gr?.author
-        ? splitPersonNames(gr.author)[0]
-        : null;
+        resolved?.title ?? row.audiobookTitle ?? 'Unknown audiobook';
       const resolvedAuthorName =
-        this.resolveFieldByPriority(
-          'author',
-          {
-            manual: row.authorName,
-            embedded: row.authorName,
-            hardcover: hardcoverAuthorNames[0] ?? null,
-            goodreads: goodreadsAuthorName,
-          },
-          metadataPriority.author,
-          manualFields,
-        ) ?? null;
+        resolved?.authorNames[0] ?? row.authorName ?? null;
 
       return {
         id: row.id,

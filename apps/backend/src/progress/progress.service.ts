@@ -18,6 +18,7 @@ import {
   sum,
 } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as progressSchema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
@@ -100,6 +101,7 @@ export class ProgressService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<typeof progressSchema & typeof audiobookSchema>,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   /**
@@ -467,6 +469,11 @@ export class ProgressService {
       )
       .orderBy(desc(progressSchema.userAudiobookProgress.updatedAt));
 
+    // Show the same title the audiobook's own page shows
+    const metadata = await this.metadataResolver.forAudiobooks(
+      results.map((r) => r.audiobook.id),
+    );
+
     const mapped = results
       .map(({ progress, audiobook }) => ({
         audiobookId: progress.audiobookId,
@@ -477,7 +484,7 @@ export class ProgressService {
         updatedAt: progress.updatedAt.toISOString(),
         audiobook: {
           id: audiobook.id,
-          title: audiobook.title,
+          title: metadata.get(audiobook.id)?.title ?? audiobook.title,
           coverUrl: audiobook.coverUrl,
           duration: audiobook.duration,
         },
@@ -824,13 +831,20 @@ export class ProgressService {
         .limit(20),
     ]);
 
+    // Show the same title/author the audiobook's own page shows
+    const metadata = await this.metadataResolver.forAudiobooks([
+      ...itemsResult.map((row) => row.audiobookId),
+      ...recentSessionsResult.map((row) => row.audiobookId),
+    ]);
+
     // Build items map
     const items: Record<string, ListeningStatsItem> = {};
     for (const row of itemsResult) {
+      const resolved = metadata.get(row.audiobookId);
       items[row.audiobookId] = {
         id: row.audiobookId,
-        title: row.title,
-        authorName: row.authorName,
+        title: resolved?.title ?? row.title,
+        authorName: resolved?.authorNames[0] ?? row.authorName,
         coverUrl: row.coverUrl,
         timeListening: Number(row.timeListening ?? 0),
       };
@@ -856,8 +870,10 @@ export class ProgressService {
     const recentSessions: RecentSession[] = recentSessionsResult.map((row) => ({
       id: row.id,
       audiobookId: row.audiobookId,
-      audiobookTitle: row.audiobookTitle,
-      authorName: row.authorName,
+      audiobookTitle:
+        metadata.get(row.audiobookId)?.title ?? row.audiobookTitle,
+      authorName:
+        metadata.get(row.audiobookId)?.authorNames[0] ?? row.authorName,
       coverUrl: row.coverUrl,
       date: row.startedAt.toISOString().split('T')[0],
       timeListening: row.durationSeconds,

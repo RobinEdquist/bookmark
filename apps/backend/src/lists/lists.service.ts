@@ -6,7 +6,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, desc, asc, inArray, ne, notExists, sql } from 'drizzle-orm';
+import { eq, and, desc, asc, ne, notExists, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as listsSchema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
@@ -17,6 +17,10 @@ import * as usersSchema from '../users/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
 import { CoverService } from '../common/cover.service';
+import {
+  MetadataResolverService,
+  type ResolvedBookMetadata,
+} from '../common/metadata-resolver.service';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import type { MetadataFieldPriority } from '../app-settings/schema';
 import {
@@ -51,6 +55,19 @@ type TopListVersion = {
   title: string;
 };
 
+/** Overlay resolved display metadata onto a book summary, if we have any. */
+function applyResolved<
+  T extends { title: string; subtitle?: string | null; authors: string[] },
+>(summary: T, resolved: ResolvedBookMetadata | undefined): T {
+  if (!resolved) return summary;
+  return {
+    ...summary,
+    title: resolved.title,
+    ...('subtitle' in summary ? { subtitle: resolved.subtitle } : {}),
+    authors: resolved.authorNames,
+  };
+}
+
 @Injectable()
 export class ListsService {
   constructor(
@@ -58,6 +75,7 @@ export class ListsService {
     private db: NodePgDatabase<CombinedSchema>,
     private appSettingsService: AppSettingsService,
     private coverService: CoverService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   /**
@@ -201,23 +219,36 @@ export class ListsService {
       ),
     ];
 
-    const audiobookIds = uniqueRankedItems
-      .filter((item) => item.type === 'audiobook')
-      .map((item) => item.id);
-    const ebookIds = uniqueRankedItems
-      .filter((item) => item.type === 'ebook')
-      .map((item) => item.id);
+    // Every ranked item plus the other editions listed under it, so the
+    // version rows resolve to the same titles as the headline row
+    const renderedItems = uniqueRankedItems.flatMap(
+      (item) =>
+        groupsByRepresentative.get(this.toTopListItemKey(item))?.members ?? [
+          item,
+        ],
+    );
 
-    const [audiobookAuthors, ebookAuthors] = await Promise.all([
-      this.getAudiobookAuthorsByIds(audiobookIds),
-      this.getEbookAuthorsByIds(ebookIds),
+    // Show the same titles/authors the detail pages show
+    const [audiobookMetadata, ebookMetadata] = await Promise.all([
+      this.metadataResolver.forAudiobooks(
+        renderedItems.filter((i) => i.type === 'audiobook').map((i) => i.id),
+      ),
+      this.metadataResolver.forEbooks(
+        renderedItems.filter((i) => i.type === 'ebook').map((i) => i.id),
+      ),
     ]);
+
+    const resolvedFor = (item: Pick<RankableItem, 'id' | 'type'>) =>
+      item.type === 'audiobook'
+        ? audiobookMetadata.get(item.id)
+        : ebookMetadata.get(item.id);
 
     const mapRankedItem = (item: RankedTopListItem) => {
       const groupMembers = groupsByRepresentative.get(
         this.toTopListItemKey(item),
       )?.members ?? [item];
       const canonicalId = getCanonicalGroupIdentity(groupMembers);
+      const resolved = resolvedFor(item);
 
       return {
         id: canonicalId.id,
@@ -225,20 +256,17 @@ export class ListsService {
         primaryVersionId: item.id,
         primaryVersionType: item.type,
         itemType: item.type,
-        title: item.title,
+        title: resolved?.title ?? item.title,
         coverUrl:
           item.type === 'audiobook'
             ? `/api/audiobooks/${item.id}/cover`
             : `/api/ebooks/${item.id}/cover`,
-        authors:
-          item.type === 'audiobook'
-            ? (audiobookAuthors.get(item.id) ?? [])
-            : (ebookAuthors.get(item.id) ?? []),
+        authors: resolved?.authorNames ?? [],
         rating: item.rating,
         ratingsCount: item.ratingsCount,
         ratingSource: item.ratingSource,
         weightedScore: item.weightedScore,
-        versions: this.toTopListVersions(groupMembers),
+        versions: this.toTopListVersions(groupMembers, resolvedFor),
       };
     };
 
@@ -252,12 +280,17 @@ export class ListsService {
     return `${item.type}:${item.id}`;
   }
 
-  private toTopListVersions(items: RankableItem[]): TopListVersion[] {
+  private toTopListVersions(
+    items: RankableItem[],
+    resolvedFor: (
+      item: Pick<RankableItem, 'id' | 'type'>,
+    ) => ResolvedBookMetadata | undefined,
+  ): TopListVersion[] {
     return items
       .map((item) => ({
         id: item.id,
         itemType: item.type,
-        title: item.title,
+        title: resolvedFor(item)?.title ?? item.title,
       }))
       .sort((a, b) => {
         if (a.itemType !== b.itemType) {
@@ -458,77 +491,6 @@ export class ListsService {
     return unique;
   }
 
-  private async getAudiobookAuthorsByIds(
-    audiobookIds: string[],
-  ): Promise<Map<string, string[]>> {
-    if (audiobookIds.length === 0) {
-      return new Map();
-    }
-
-    const rows = await this.db
-      .select({
-        audiobookId: audiobooksSchema.audiobookAuthors.audiobookId,
-        authorName: audiobooksSchema.people.name,
-      })
-      .from(audiobooksSchema.audiobookAuthors)
-      .innerJoin(
-        audiobooksSchema.people,
-        eq(
-          audiobooksSchema.audiobookAuthors.personId,
-          audiobooksSchema.people.id,
-        ),
-      )
-      .where(
-        inArray(audiobooksSchema.audiobookAuthors.audiobookId, audiobookIds),
-      )
-      .orderBy(
-        asc(audiobooksSchema.audiobookAuthors.audiobookId),
-        asc(audiobooksSchema.audiobookAuthors.order),
-      );
-
-    const map = new Map<string, string[]>();
-    for (const row of rows) {
-      const current = map.get(row.audiobookId) ?? [];
-      current.push(row.authorName);
-      map.set(row.audiobookId, current);
-    }
-
-    return map;
-  }
-
-  private async getEbookAuthorsByIds(
-    ebookIds: string[],
-  ): Promise<Map<string, string[]>> {
-    if (ebookIds.length === 0) {
-      return new Map();
-    }
-
-    const rows = await this.db
-      .select({
-        ebookId: ebooksSchema.ebookAuthors.ebookId,
-        authorName: audiobooksSchema.people.name,
-      })
-      .from(ebooksSchema.ebookAuthors)
-      .innerJoin(
-        audiobooksSchema.people,
-        eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
-      )
-      .where(inArray(ebooksSchema.ebookAuthors.ebookId, ebookIds))
-      .orderBy(
-        asc(ebooksSchema.ebookAuthors.ebookId),
-        asc(ebooksSchema.ebookAuthors.order),
-      );
-
-    const map = new Map<string, string[]>();
-    for (const row of rows) {
-      const current = map.get(row.ebookId) ?? [];
-      current.push(row.authorName);
-      map.set(row.ebookId, current);
-    }
-
-    return map;
-  }
-
   /**
    * Get lists with cover previews
    */
@@ -719,13 +681,49 @@ export class ListsService {
       }),
     );
 
-    // Filter out items where the related entity no longer exists
-    return itemsWithDetails.filter(
+    const presentItems = itemsWithDetails.filter(
       (item) =>
         item.audiobook !== null ||
         item.ebook !== null ||
         item.comicSeries !== null,
     );
+
+    // Show the same titles/authors the detail pages show
+    const [audiobookMetadata, ebookMetadata, comicSeriesMetadata] =
+      await Promise.all([
+        this.metadataResolver.forAudiobooks(
+          presentItems.flatMap((i) => (i.audiobook ? [i.audiobook.id] : [])),
+        ),
+        this.metadataResolver.forEbooks(
+          presentItems.flatMap((i) => (i.ebook ? [i.ebook.id] : [])),
+        ),
+        this.metadataResolver.forComicSeries(
+          presentItems.flatMap((i) =>
+            i.comicSeries ? [i.comicSeries.id] : [],
+          ),
+        ),
+      ]);
+
+    return presentItems.map((item) => ({
+      ...item,
+      audiobook: item.audiobook
+        ? applyResolved(
+            item.audiobook,
+            audiobookMetadata.get(item.audiobook.id),
+          )
+        : null,
+      ebook: item.ebook
+        ? applyResolved(item.ebook, ebookMetadata.get(item.ebook.id))
+        : null,
+      comicSeries: item.comicSeries
+        ? {
+            ...item.comicSeries,
+            title:
+              comicSeriesMetadata.get(item.comicSeries.id)?.title ??
+              item.comicSeries.title,
+          }
+        : null,
+    }));
   }
 
   private async getAudiobookSummary(audiobookId: string) {

@@ -4,6 +4,96 @@ import { createCanvas } from '@napi-rs/canvas';
 
 const MAX_RENDER_DIMENSION = 4096;
 
+type PdfjsModule = typeof import('pdfjs-dist/legacy/build/pdf.mjs');
+
+/**
+ * Load the ESM-only pdfjs-dist v6 bundle from this CommonJS-compiled module.
+ *
+ * In production (`nest build`, tsconfig module:nodenext) the `import()` below is
+ * emitted verbatim as a native dynamic import and is the only path taken.
+ *
+ * Jest evaluates this file inside a vm context whose dynamic import() throws
+ * `TypeError: A dynamic import callback was invoked without
+ * --experimental-vm-modules` unless node was started with that flag. Only the
+ * `test*` package scripts set it, so `npx jest`, `pnpm exec jest` and IDE test
+ * runners hit that error. The fallback loads pdf.mjs through node's real module
+ * system instead: process.getBuiltinModule() returns the genuine `module`
+ * builtin — unlike `require('module')`, Jest cannot intercept it — and node's
+ * require(esm) support then loads the bundle directly, bypassing the vm
+ * context. pdf.mjs has no top-level await, so a sync load is safe.
+ *
+ * If the fallback cannot help either, the original error is rethrown so a
+ * genuine load failure is never masked by a confusing secondary one.
+ */
+async function loadPdfjs(): Promise<PdfjsModule> {
+  try {
+    return await import('pdfjs-dist/legacy/build/pdf.mjs');
+  } catch (error) {
+    try {
+      const { createRequire } = process.getBuiltinModule('module');
+      return createRequire(__filename)(
+        'pdfjs-dist/legacy/build/pdf.mjs',
+      ) as PdfjsModule;
+    } catch {
+      throw error;
+    }
+  }
+}
+
+type PdfLoadingTask = ReturnType<PdfjsModule['getDocument']>;
+type PdfDocument = Awaited<PdfLoadingTask['promise']>;
+type PdfDocumentParams = Parameters<PdfjsModule['getDocument']>[0];
+
+/**
+ * Shared getDocument parameters for reading a comic PDF.
+ *
+ * `verbosity` matters: at its default (WARNINGS) pdfjs writes recovery chatter
+ * straight to the console — most visibly `Warning: Indexing all PDF objects`,
+ * emitted for any PDF whose xref table is damaged. It is not actionable, since
+ * pdfjs recovers and the file still imports, but it floods both the import log
+ * and the test output (the spec's deliberately corrupt fixtures trigger it).
+ * ERRORS silences that without hiding real failures: those reject
+ * `loadingTask.promise` and are reported by loadDocument below. Raise this back
+ * to `VerbosityLevel.WARNINGS` when debugging a PDF that imports incorrectly.
+ */
+function documentParams(pdfjs: PdfjsModule, buf: Buffer): PdfDocumentParams {
+  return {
+    data: new Uint8Array(buf),
+    useSystemFonts: true,
+    disableFontFace: true,
+    verbosity: pdfjs.VerbosityLevel.ERRORS,
+  };
+}
+
+/** Read `message` off an unknown throwable without relying on `instanceof`. */
+function describeError(error: unknown): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
+}
+
+/**
+ * Await a loading task, normalising a load failure into an Error created here.
+ *
+ * pdfjs throws its own exception classes (InvalidPDFException, …). Those are
+ * `Error` subclasses, but only within the realm pdfjs was loaded into — via the
+ * loadPdfjs fallback that is node's realm, not this module's. Cross-realm,
+ * `error instanceof Error` is false, which silently degrades
+ * comic-metadata.worker.ts (it falls back to `String(error)` for the quarantine
+ * message) and defeats Jest's toThrow(). Re-throwing a local Error keeps the
+ * diagnosis in `cause` and gives callers one stable type in every environment.
+ */
+async function loadDocument(loadingTask: PdfLoadingTask): Promise<PdfDocument> {
+  try {
+    return await loadingTask.promise;
+  } catch (error) {
+    throw new Error(`Unreadable PDF: ${describeError(error)}`, {
+      cause: error,
+    });
+  }
+}
+
 export interface ComicPdfContents {
   pageCount: number;
   coverImage: { data: Buffer; extension: string } | null;
@@ -12,30 +102,20 @@ export interface ComicPdfContents {
 /**
  * Read a PDF comic: page count + first page rendered to PNG.
  * Throws on unreadable PDFs (callers quarantine).
- *
- * pdfjs-dist v6 is ESM-only (.mjs). This file uses a real ESM dynamic import(),
- * which works at runtime because:
- *   - NestJS production: tsconfig module:nodenext preserves import() as native ESM.
- *   - Jest tests: test scripts set NODE_OPTIONS=--experimental-vm-modules so Jest
- *     can evaluate ESM modules via the vm module system.
  */
 export async function readComicPdf(
   filePath: string,
 ): Promise<ComicPdfContents> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = await loadPdfjs();
 
   const buf = await fs.readFile(filePath);
   // Keep the loading task so we can call destroy() on it after use.
   // PDFDocumentProxy (the .promise result) has cleanup() but not destroy();
   // destroy() lives on PDFDocumentLoadingTask.
-  const loadingTask = pdfjs.getDocument({
-    data: new Uint8Array(buf),
-    useSystemFonts: true,
-    disableFontFace: true,
-  });
+  const loadingTask = pdfjs.getDocument(documentParams(pdfjs, buf));
 
   try {
-    const doc = await loadingTask.promise;
+    const doc = await loadDocument(loadingTask);
 
     let coverImage: { data: Buffer; extension: string } | null = null;
     try {
@@ -96,13 +176,9 @@ export async function readComicPdfPage(
   filePath: string,
   pageIndex: number,
 ): Promise<ExtractedPdfPage | null> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
+  const pdfjs = await loadPdfjs();
   const buf = await fs.readFile(filePath);
-  const loadingTask = pdfjs.getDocument({
-    data: new Uint8Array(buf),
-    useSystemFonts: true,
-    disableFontFace: true,
-  });
+  const loadingTask = pdfjs.getDocument(documentParams(pdfjs, buf));
   try {
     const doc = await loadingTask.promise;
     if (pageIndex < 0 || pageIndex >= doc.numPages) return null;

@@ -2,6 +2,22 @@ import { NotFoundException } from '@nestjs/common';
 import * as progressSchema from './schema';
 import { ProgressService } from './progress.service';
 
+/**
+ * The resolver is exercised in its own spec; here it stands in as a no-op so
+ * the service falls back to the stored row values these tests assert on.
+ */
+function createMetadataResolver(
+  audiobooks: Record<string, unknown> = {},
+  ebooks: Record<string, unknown> = {},
+) {
+  return {
+    forAudiobooks: jest
+      .fn()
+      .mockResolvedValue(new Map(Object.entries(audiobooks))),
+    forEbooks: jest.fn().mockResolvedValue(new Map(Object.entries(ebooks))),
+  } as any;
+}
+
 function createMockDb(overrides: Record<string, any> = {}) {
   return {
     select: jest.fn(),
@@ -43,7 +59,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       await service.updateProgress('user-1', 'audiobook-1', { position: 120 });
 
       expect(insert).toHaveBeenCalledWith(progressSchema.userAudiobookProgress);
@@ -66,7 +82,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await expect(
         service.updateProgress('user-1', 'nonexistent', { position: 100 }),
@@ -102,7 +118,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const result = await service.updateProgress('user-1', 'audiobook-1', {
         position: 3580,
       });
@@ -159,7 +175,7 @@ describe('ProgressService', () => {
       const selectFn = jest.fn().mockReturnValue(emptySelect);
 
       const db = createMockDb({ select: selectFn, insert });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       const result = await service.createSession('user-1', 'ab-1', baseDto);
 
@@ -188,7 +204,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(timeWindowSelect),
         update,
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       const result = await service.createSession('user-1', 'ab-1', baseDto);
 
@@ -224,7 +240,7 @@ describe('ProgressService', () => {
       });
 
       const db = createMockDb({ select: selectFn, update });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       const result = await service.createSession('user-1', 'ab-1', baseDto);
 
@@ -246,7 +262,7 @@ describe('ProgressService', () => {
       });
 
       const db = createMockDb({ select: selectFn, insert });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       const result = await service.createSession('user-1', 'ab-1', baseDto);
 
@@ -268,7 +284,7 @@ describe('ProgressService', () => {
       });
 
       const db = createMockDb({ select: selectFn, insert });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       const result = await service.createSession('user-1', 'ab-1', baseDto);
 
@@ -299,7 +315,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(timeWindowSelect),
         update,
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await service.createSession('user-1', 'ab-1', {
         ...baseDto,
@@ -326,7 +342,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(emptySelect),
         insert,
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       // Chunk claims 9000s of listening inside a 300s wall-clock window
       await service.createSession('user-1', 'ab-1', {
@@ -360,7 +376,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(timeWindowSelect),
         update,
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await service.createSession('user-1', 'ab-1', baseDto);
 
@@ -388,7 +404,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(timeWindowSelect),
         update,
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await service.createSession('user-1', 'ab-1', {
         startedAt: '2026-03-15T09:50:00Z',
@@ -460,7 +476,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const results = await service.getAllProgress('user-1');
 
       // Should return only 1 entry (deduplicated)
@@ -518,7 +534,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const results = await service.getAllProgress('user-1');
 
       expect(results).toHaveLength(2);
@@ -560,7 +576,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const results = await service.getAllProgress('user-1');
 
       expect(results).toHaveLength(1);
@@ -596,7 +612,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const result = await service.getProgress('user-1', 'audiobook-1');
 
       expect(result).toEqual({
@@ -619,7 +635,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const result = await service.getProgress('user-1', 'audiobook-1');
 
       expect(result).toBeNull();
@@ -649,7 +665,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const result = await service.getProgress('user-1', 'audiobook-1');
 
       expect(result).not.toBeNull();
@@ -680,7 +696,7 @@ describe('ProgressService', () => {
         select: jest.fn().mockReturnValue(selectQuery),
       });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const result = await service.getProgress('user-1', 'audiobook-1');
 
       expect(result!.position).toBe(9999);
@@ -695,7 +711,7 @@ describe('ProgressService', () => {
       const selectFn = jest.fn().mockReturnValue(selectQuery);
       const db = createMockDb({ select: selectFn });
 
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       await service.getProgress('user-1', 'audiobook-1');
 
       expect(selectFn).toHaveBeenCalled();
@@ -762,7 +778,7 @@ describe('ProgressService', () => {
 
     it('returns correct structure with all zero stats', async () => {
       const db = buildStatsDb({});
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const stats = await service.getListeningStats('user-1');
 
       expect(stats).toEqual({
@@ -782,7 +798,7 @@ describe('ProgressService', () => {
       const db = buildStatsDb({
         todayStats: [{ duration: 3600, sessions: 5 }],
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const stats = await service.getListeningStats('user-1');
 
       expect(stats.today.durationSeconds).toBe(3600);
@@ -793,7 +809,7 @@ describe('ProgressService', () => {
       const db = buildStatsDb({
         weekStats: [{ duration: 14400, sessions: 12 }],
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const stats = await service.getListeningStats('user-1');
 
       expect(stats.thisWeek.durationSeconds).toBe(14400);
@@ -804,7 +820,7 @@ describe('ProgressService', () => {
       const db = buildStatsDb({
         monthStats: [{ duration: 86400, sessions: 50 }],
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const stats = await service.getListeningStats('user-1');
 
       expect(stats.thisMonth.durationSeconds).toBe(86400);
@@ -816,7 +832,7 @@ describe('ProgressService', () => {
         allTimeStats: [{ duration: 360000 }],
         progressStats: [{ started: 10, completed: 3 }],
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const stats = await service.getListeningStats('user-1');
 
       expect(stats.allTime.durationSeconds).toBe(360000);
@@ -828,7 +844,7 @@ describe('ProgressService', () => {
       const now = new Date('2026-03-15T10:00:00Z');
 
       const db = buildStatsDb({});
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       // Spy on getAllProgress to return controlled data
       jest.spyOn(service, 'getAllProgress').mockResolvedValue([
@@ -875,7 +891,7 @@ describe('ProgressService', () => {
       const now = new Date('2026-03-15T10:00:00Z');
 
       const db = buildStatsDb({});
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       // Spy on getAllProgress to return 8 in-progress items
       jest.spyOn(service, 'getAllProgress').mockResolvedValue(
@@ -907,7 +923,7 @@ describe('ProgressService', () => {
         todayStats: [{ duration: '1800', sessions: 3 }],
         allTimeStats: [{ duration: '99999' }],
       });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
       const stats = await service.getListeningStats('user-1');
 
       expect(stats.today.durationSeconds).toBe(1800);
@@ -921,7 +937,7 @@ describe('ProgressService', () => {
       const deleteFn = jest.fn().mockReturnValue({ where });
 
       const db = createMockDb({ delete: deleteFn });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await expect(
         service.resetProgress('user-1', 'audiobook-1'),
@@ -937,7 +953,7 @@ describe('ProgressService', () => {
       const deleteFn = jest.fn().mockReturnValue({ where });
 
       const db = createMockDb({ delete: deleteFn });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await expect(
         service.resetProgress('user-1', 'nonexistent'),
@@ -949,7 +965,7 @@ describe('ProgressService', () => {
       const deleteFn = jest.fn().mockReturnValue({ where });
 
       const db = createMockDb({ delete: deleteFn });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await expect(
         service.resetProgress('user-1', 'nonexistent'),
@@ -961,7 +977,7 @@ describe('ProgressService', () => {
       const deleteFn = jest.fn().mockReturnValue({ where });
 
       const db = createMockDb({ delete: deleteFn });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       const result = await service.resetProgress('user-1', 'audiobook-1');
       expect(result).toBeUndefined();
@@ -975,7 +991,7 @@ describe('ProgressService', () => {
       const update = jest.fn().mockReturnValue({ set });
 
       const db = createMockDb({ update });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await service.hideProgress('user-1', 'audiobook-1');
 
@@ -989,7 +1005,7 @@ describe('ProgressService', () => {
       const update = jest.fn().mockReturnValue({ set });
 
       const db = createMockDb({ update });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await expect(
         service.hideProgress('user-1', 'nonexistent'),
@@ -1002,7 +1018,7 @@ describe('ProgressService', () => {
       const update = jest.fn().mockReturnValue({ set });
 
       const db = createMockDb({ update });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await expect(
         service.hideProgress('user-1', 'nonexistent'),
@@ -1015,7 +1031,7 @@ describe('ProgressService', () => {
       const update = jest.fn().mockReturnValue({ set });
 
       const db = createMockDb({ update });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       const result = await service.hideProgress('user-1', 'audiobook-1');
       expect(result).toBeUndefined();
@@ -1027,7 +1043,7 @@ describe('ProgressService', () => {
       const update = jest.fn().mockReturnValue({ set });
 
       const db = createMockDb({ update });
-      const service = new ProgressService(db);
+      const service = new ProgressService(db, createMetadataResolver());
 
       await expect(
         service.hideProgress('user-1', 'audiobook-1'),

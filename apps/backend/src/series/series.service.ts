@@ -7,6 +7,7 @@ import {
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, desc, sql, asc, ilike } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as schema from '../audiobooks/schema';
 import * as ebookSchema from '../ebooks/schema';
 
@@ -70,11 +71,16 @@ export interface UpdatedSeries {
 export type SortBy = 'name' | 'lastUpdated' | 'bookCount';
 export type SortOrder = 'asc' | 'desc';
 
+function toAuthorRefs(names: string[] | undefined): { name: string }[] {
+  return (names ?? []).map((name) => ({ name }));
+}
+
 @Injectable()
 export class SeriesService {
   constructor(
     @Inject(DATABASE_CONNECTION)
     private db: NodePgDatabase<typeof schema>,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   async getRecentlyUpdated(
@@ -370,101 +376,83 @@ export class SeriesService {
       throw new NotFoundException('Series not found');
     }
 
-    // Get all audiobooks in series with their authors
-    const audiobookRows = await this.db
-      .select({
-        id: schema.audiobooks.id,
-        title: schema.audiobooks.title,
-        subtitle: schema.audiobooks.subtitle,
-        coverUrl: schema.audiobooks.coverUrl,
-        coverSource: schema.audiobooks.coverSource,
-        duration: schema.audiobooks.duration,
-        status: schema.audiobooks.status,
-        order: schema.audiobookSeries.order,
-      })
-      .from(schema.audiobooks)
-      .innerJoin(
-        schema.audiobookSeries,
-        eq(schema.audiobooks.id, schema.audiobookSeries.audiobookId),
-      )
-      .where(eq(schema.audiobookSeries.seriesId, id))
-      .orderBy(asc(schema.audiobookSeries.order));
+    // Get all audiobooks and ebooks in the series
+    const [audiobookRows, ebookRows] = await Promise.all([
+      this.db
+        .select({
+          id: schema.audiobooks.id,
+          title: schema.audiobooks.title,
+          subtitle: schema.audiobooks.subtitle,
+          coverUrl: schema.audiobooks.coverUrl,
+          coverSource: schema.audiobooks.coverSource,
+          duration: schema.audiobooks.duration,
+          status: schema.audiobooks.status,
+          order: schema.audiobookSeries.order,
+        })
+        .from(schema.audiobooks)
+        .innerJoin(
+          schema.audiobookSeries,
+          eq(schema.audiobooks.id, schema.audiobookSeries.audiobookId),
+        )
+        .where(eq(schema.audiobookSeries.seriesId, id))
+        .orderBy(asc(schema.audiobookSeries.order)),
 
-    // Get authors for each audiobook
-    const audiobooks: SeriesDetailAudiobook[] = await Promise.all(
-      audiobookRows.map(async (ab) => {
-        const authors = await this.db
-          .select({ name: schema.people.name })
-          .from(schema.audiobookAuthors)
-          .innerJoin(
-            schema.people,
-            eq(schema.audiobookAuthors.personId, schema.people.id),
-          )
-          .where(eq(schema.audiobookAuthors.audiobookId, ab.id))
-          .orderBy(asc(schema.audiobookAuthors.order));
+      this.db
+        .select({
+          id: ebookSchema.ebooks.id,
+          title: ebookSchema.ebooks.title,
+          subtitle: ebookSchema.ebooks.subtitle,
+          coverUrl: ebookSchema.ebooks.coverUrl,
+          coverSource: ebookSchema.ebooks.coverSource,
+          pageCount: ebookSchema.ebooks.pageCount,
+          status: ebookSchema.ebooks.status,
+          order: ebookSchema.ebookSeries.order,
+        })
+        .from(ebookSchema.ebooks)
+        .innerJoin(
+          ebookSchema.ebookSeries,
+          eq(ebookSchema.ebooks.id, ebookSchema.ebookSeries.ebookId),
+        )
+        .where(eq(ebookSchema.ebookSeries.seriesId, id))
+        .orderBy(asc(ebookSchema.ebookSeries.order)),
+    ]);
 
-        return {
-          id: ab.id,
-          title: ab.title,
-          subtitle: ab.subtitle,
-          coverUrl: this.getAudiobookCoverUrl(
-            ab.id,
-            ab.coverUrl,
-            ab.coverSource,
-          ),
-          duration: ab.duration,
-          authors,
-          order: ab.order,
-          status: ab.status,
-        };
-      }),
-    );
+    // Resolve titles/authors the same way the audiobook and ebook detail
+    // endpoints do, so a book doesn't render under a different name here
+    const [audiobookMetadata, ebookMetadata] = await Promise.all([
+      this.metadataResolver.forAudiobooks(audiobookRows.map((ab) => ab.id)),
+      this.metadataResolver.forEbooks(ebookRows.map((eb) => eb.id)),
+    ]);
 
-    // Get all ebooks in series with their authors
-    const ebookRows = await this.db
-      .select({
-        id: ebookSchema.ebooks.id,
-        title: ebookSchema.ebooks.title,
-        subtitle: ebookSchema.ebooks.subtitle,
-        coverUrl: ebookSchema.ebooks.coverUrl,
-        coverSource: ebookSchema.ebooks.coverSource,
-        pageCount: ebookSchema.ebooks.pageCount,
-        status: ebookSchema.ebooks.status,
-        order: ebookSchema.ebookSeries.order,
-      })
-      .from(ebookSchema.ebooks)
-      .innerJoin(
-        ebookSchema.ebookSeries,
-        eq(ebookSchema.ebooks.id, ebookSchema.ebookSeries.ebookId),
-      )
-      .where(eq(ebookSchema.ebookSeries.seriesId, id))
-      .orderBy(asc(ebookSchema.ebookSeries.order));
+    const audiobooks: SeriesDetailAudiobook[] = audiobookRows.map((ab) => {
+      const resolved = audiobookMetadata.get(ab.id);
 
-    // Get authors for each ebook
-    const ebooks: SeriesDetailEbook[] = await Promise.all(
-      ebookRows.map(async (eb) => {
-        const authors = await this.db
-          .select({ name: schema.people.name })
-          .from(ebookSchema.ebookAuthors)
-          .innerJoin(
-            schema.people,
-            eq(ebookSchema.ebookAuthors.personId, schema.people.id),
-          )
-          .where(eq(ebookSchema.ebookAuthors.ebookId, eb.id))
-          .orderBy(asc(ebookSchema.ebookAuthors.order));
+      return {
+        id: ab.id,
+        title: resolved?.title ?? ab.title,
+        subtitle: resolved?.subtitle ?? ab.subtitle,
+        coverUrl: this.getAudiobookCoverUrl(ab.id, ab.coverUrl, ab.coverSource),
+        duration: ab.duration,
+        authors: toAuthorRefs(resolved?.authorNames),
+        order: ab.order,
+        status: ab.status,
+      };
+    });
 
-        return {
-          id: eb.id,
-          title: eb.title,
-          subtitle: eb.subtitle,
-          coverUrl: this.getEbookCoverUrl(eb.id, eb.coverUrl, eb.coverSource),
-          pageCount: eb.pageCount,
-          authors,
-          order: eb.order,
-          status: eb.status,
-        };
-      }),
-    );
+    const ebooks: SeriesDetailEbook[] = ebookRows.map((eb) => {
+      const resolved = ebookMetadata.get(eb.id);
+
+      return {
+        id: eb.id,
+        title: resolved?.title ?? eb.title,
+        subtitle: resolved?.subtitle ?? eb.subtitle,
+        coverUrl: this.getEbookCoverUrl(eb.id, eb.coverUrl, eb.coverSource),
+        pageCount: eb.pageCount,
+        authors: toAuthorRefs(resolved?.authorNames),
+        order: eb.order,
+        status: eb.status,
+      };
+    });
 
     return {
       id: seriesInfo.id,

@@ -32,7 +32,7 @@ import * as usersSchema from '../users/schema';
 import { UpdateEbookDto, EbookSeriesEntryDto } from './dto/update-ebook.dto';
 import { EbookDetailDto } from './dto/ebook-response.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
-import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
+import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadata.provider';
@@ -80,59 +80,6 @@ export class EbooksService {
     private ebookMetadataProvider: EbookMetadataProvider,
     private coverService: CoverService,
   ) {}
-
-  /**
-   * Resolve a field value based on metadata priority settings.
-   * Manual edits always take priority, then follows the configured order.
-   * Returns the first non-empty value according to priority order.
-   */
-  private resolveFieldByPriority<T>(
-    fieldName: keyof MetadataFieldPriority,
-    sources: {
-      manual: T | null | undefined;
-      embedded: T | null | undefined;
-      hardcover: T | null | undefined;
-      goodreads?: T | null | undefined;
-    },
-    priority: MetadataSource[],
-    manualFields: string[],
-  ): T | null {
-    // Manual edits always take priority
-    if (manualFields.includes(fieldName)) {
-      const value = sources.manual;
-      if (this.hasValue(value)) return value;
-    }
-
-    // Then follow the configured priority order (excluding 'manual' since we already checked it)
-    for (const source of priority) {
-      if (source === 'manual') {
-        // Already checked above
-        continue;
-      } else if (source === 'embedded') {
-        const value = sources.embedded;
-        if (this.hasValue(value)) return value;
-      } else if (source === 'hardcover') {
-        const value = sources.hardcover;
-        if (this.hasValue(value)) return value;
-      } else if (source === 'goodreads') {
-        const value = sources.goodreads;
-        if (this.hasValue(value)) return value;
-      }
-      // 'filename' and 'folder_image' sources are only relevant during import
-    }
-    // Fallback: return embedded (which is the original DB value)
-    return sources.embedded ?? null;
-  }
-
-  /**
-   * Check if a value is non-empty (not null, undefined, empty string, or empty array)
-   */
-  private hasValue<T>(value: T | null | undefined): value is T {
-    if (value === null || value === undefined) return false;
-    if (typeof value === 'string' && value.trim() === '') return false;
-    if (Array.isArray(value) && value.length === 0) return false;
-    return true;
-  }
 
   /**
    * Convert a relative file path (stored in DB) to an absolute path using the ebook library path
@@ -525,7 +472,7 @@ export class EbooksService {
       // so the subtitle line below doesn't end up duplicating text already
       // baked into the resolved title.
       const resolvedTitle =
-        this.resolveFieldByPriority(
+        resolveFieldByPriority(
           'title',
           {
             manual: eb.title,
@@ -550,7 +497,7 @@ export class EbooksService {
       // Apply priority-based resolution for subtitle.
       // External sources populate `subtitle` when their incoming title has the
       // form `"Title: Subtitle"` — see splitTitleSubtitle in title.utils.
-      const resolvedSubtitle = this.resolveFieldByPriority(
+      const resolvedSubtitle = resolveFieldByPriority(
         'subtitle',
         {
           manual: eb.subtitle,
@@ -567,7 +514,7 @@ export class EbooksService {
       const hardcoverAuthorNames = hc?.authorNames || [];
       const goodreadsAuthorNames = splitPersonNames(gr?.author);
       const resolvedAuthorNames =
-        this.resolveFieldByPriority(
+        resolveFieldByPriority(
           'author',
           {
             manual: embeddedAuthorNames,
@@ -600,7 +547,7 @@ export class EbooksService {
         : [];
       // Goodreads doesn't have series info
       const resolvedSeriesNames =
-        this.resolveFieldByPriority(
+        resolveFieldByPriority(
           'series',
           {
             manual: embeddedSeriesNames,
@@ -799,7 +746,7 @@ export class EbooksService {
     // resolution done in `findAll` so the detail/edit view shows the same
     // values as the list, instead of always returning embedded values.
     const resolvedTitle =
-      this.resolveFieldByPriority(
+      resolveFieldByPriority(
         'title',
         {
           manual: eb.title,
@@ -821,7 +768,7 @@ export class EbooksService {
         manualFields,
       ) || eb.title;
 
-    const resolvedSubtitle = this.resolveFieldByPriority(
+    const resolvedSubtitle = resolveFieldByPriority(
       'subtitle',
       {
         manual: eb.subtitle,
@@ -833,7 +780,7 @@ export class EbooksService {
       manualFields,
     );
 
-    const resolvedDescription = this.resolveFieldByPriority(
+    const resolvedDescription = resolveFieldByPriority(
       'description',
       {
         manual: eb.description,
@@ -845,7 +792,7 @@ export class EbooksService {
       manualFields,
     );
 
-    const resolvedPublisher = this.resolveFieldByPriority(
+    const resolvedPublisher = resolveFieldByPriority(
       'publisher',
       {
         manual: eb.publisher,
@@ -857,7 +804,7 @@ export class EbooksService {
       manualFields,
     );
 
-    const resolvedPublishedDate = this.resolveFieldByPriority(
+    const resolvedPublishedDate = resolveFieldByPriority(
       'publishedDate',
       {
         manual: eb.publishedDate,
@@ -869,7 +816,7 @@ export class EbooksService {
       manualFields,
     );
 
-    const resolvedLanguage = this.resolveFieldByPriority(
+    const resolvedLanguage = resolveFieldByPriority(
       'language',
       {
         manual: eb.language,
@@ -887,7 +834,7 @@ export class EbooksService {
     const hardcoverAuthorNames = hc?.authorNames || [];
     const goodreadsAuthorNames = splitPersonNames(gr?.author);
     const resolvedAuthorNames =
-      this.resolveFieldByPriority(
+      resolveFieldByPriority(
         'author',
         {
           manual: embeddedAuthorNames,
@@ -920,7 +867,7 @@ export class EbooksService {
       ? [hc.featuredSeriesName]
       : [];
     const resolvedSeriesNames =
-      this.resolveFieldByPriority(
+      resolveFieldByPriority(
         'series',
         {
           manual: embeddedSeriesNames,

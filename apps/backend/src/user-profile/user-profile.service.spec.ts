@@ -1,6 +1,23 @@
 import { NotFoundException } from '@nestjs/common';
 import { UserProfileService } from './user-profile.service';
 
+/**
+ * Title/author resolution now lives in MetadataResolverService (covered by its
+ * own spec). Default to "no resolved entry" so these tests exercise the
+ * fallback to the stored row values they build.
+ */
+function createMetadataResolver(
+  audiobooks: Record<string, unknown> = {},
+  ebooks: Record<string, unknown> = {},
+) {
+  return {
+    forAudiobooks: jest
+      .fn()
+      .mockResolvedValue(new Map(Object.entries(audiobooks))),
+    forEbooks: jest.fn().mockResolvedValue(new Map(Object.entries(ebooks))),
+  } as any;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -57,17 +74,6 @@ function createMockCoverService() {
         (id: string, _coverUrl: any, _coverSource: any, apiPath: string) =>
           `/api/${apiPath}/${id}/cover`,
       ),
-  } as any;
-}
-
-function createMockAppSettings() {
-  return {
-    getMetadataPriority: jest.fn().mockResolvedValue({
-      title: ['embedded', 'hardcover'],
-      author: ['embedded', 'hardcover'],
-      description: ['embedded', 'hardcover'],
-      cover: ['embedded', 'hardcover'],
-    }),
   } as any;
 }
 
@@ -131,11 +137,9 @@ function setupGetStatsMocks(
 
 describe('UserProfileService', () => {
   let coverService: ReturnType<typeof createMockCoverService>;
-  let appSettings: ReturnType<typeof createMockAppSettings>;
 
   beforeEach(() => {
     coverService = createMockCoverService();
-    appSettings = createMockAppSettings();
   });
 
   // -----------------------------------------------------------------------
@@ -151,7 +155,11 @@ describe('UserProfileService', () => {
         ebookCompleted: 1,
         ebookInProgress: 4,
       });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -169,7 +177,11 @@ describe('UserProfileService', () => {
     it('throws NotFoundException when user not found', async () => {
       const db = createMockDb();
       setupGetStatsMocks(db, { user: null });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       await expect(service.getStats('nonexistent')).rejects.toBeInstanceOf(
         NotFoundException,
@@ -179,7 +191,11 @@ describe('UserProfileService', () => {
     it('returns zero stats when user has no activity', async () => {
       const db = createMockDb();
       setupGetStatsMocks(db, {});
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -197,7 +213,11 @@ describe('UserProfileService', () => {
       setupGetStatsMocks(db, {
         user: { ...mockUser, image: null, role: null },
       });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -215,7 +235,11 @@ describe('UserProfileService', () => {
         ebookCompleted: '1' as any,
         ebookInProgress: '3' as any,
       });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -234,7 +258,11 @@ describe('UserProfileService', () => {
     it('returns 0 streaks when no listening sessions', async () => {
       const db = createMockDb();
       setupGetStatsMocks(db, { streakDates: [] });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -246,7 +274,11 @@ describe('UserProfileService', () => {
       const today = new Date().toISOString().split('T')[0];
       const db = createMockDb();
       setupGetStatsMocks(db, { streakDates: [today] });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -265,7 +297,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupGetStatsMocks(db, { streakDates: dates });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -279,7 +315,11 @@ describe('UserProfileService', () => {
       setupGetStatsMocks(db, {
         streakDates: ['2025-01-01', '2025-01-02', '2025-01-03'],
       });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -305,7 +345,11 @@ describe('UserProfileService', () => {
           todayStr,
         ],
       });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -325,7 +369,11 @@ describe('UserProfileService', () => {
       setupGetStatsMocks(db, {
         streakDates: [dayBeforeStr, yesterdayStr],
       });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getStats(USER_ID);
 
@@ -347,7 +395,11 @@ describe('UserProfileService', () => {
       const selectChain = chainMock(daysResult);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getActivity(USER_ID, 2026);
 
@@ -361,7 +413,11 @@ describe('UserProfileService', () => {
       const selectChain = chainMock([]);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getActivity(USER_ID, 2026);
 
@@ -373,7 +429,11 @@ describe('UserProfileService', () => {
       const selectChain = chainMock(daysResult);
       const select = jest.fn().mockReturnValue(selectChain);
       const db = createMockDb({ select });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getActivity(USER_ID, 2026);
 
@@ -414,7 +474,11 @@ describe('UserProfileService', () => {
     it('returns empty items when user has no progress', async () => {
       const db = createMockDb();
       setupLibraryProgressMocks(db, [], []);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,
@@ -450,7 +514,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupLibraryProgressMocks(db, audiobookRows, []);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,
@@ -495,7 +563,11 @@ describe('UserProfileService', () => {
         if (callCount === 1) return chainMock(ebookRows);
         return chainMock([]);
       });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,
@@ -548,7 +620,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupLibraryProgressMocks(db, audiobookRows, []);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,
@@ -598,7 +674,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupLibraryProgressMocks(db, audiobookRows, []);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,
@@ -632,7 +712,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupLibraryProgressMocks(db, audiobookRows, []);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,
@@ -682,7 +766,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupLibraryProgressMocks(db, audiobookRows, []);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,
@@ -734,7 +822,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupLibraryProgressMocks(db, audiobookRows, []);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,
@@ -778,7 +870,11 @@ describe('UserProfileService', () => {
     it('returns empty history when no sessions exist', async () => {
       const db = createMockDb();
       setupListeningHistoryMocks(db, [], 0);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getListeningHistory(USER_ID, 20, 0);
 
@@ -808,7 +904,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupListeningHistoryMocks(db, sessions, 1);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getListeningHistory(USER_ID, 20, 0);
 
@@ -843,7 +943,11 @@ describe('UserProfileService', () => {
 
       const db = createMockDb();
       setupListeningHistoryMocks(db, sessions, 1);
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getListeningHistory(USER_ID, 20, 0);
 
@@ -852,9 +956,9 @@ describe('UserProfileService', () => {
   });
 
   // -----------------------------------------------------------------------
-  // resolveFieldByPriority (private, tested indirectly via getLibraryProgress)
+  // Fallback when the resolver has no entry for a row
   // -----------------------------------------------------------------------
-  describe('resolveFieldByPriority (via getLibraryProgress)', () => {
+  describe('metadata fallback (via getLibraryProgress)', () => {
     it('uses embedded title by default', async () => {
       const now = new Date('2026-01-15T12:00:00.000Z');
       const audiobookRows = [
@@ -881,7 +985,11 @@ describe('UserProfileService', () => {
         if (callCount === 1) return chainMock(audiobookRows);
         return chainMock([]);
       });
-      const service = new UserProfileService(db, coverService, appSettings);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
 
       const result = await service.getLibraryProgress(
         USER_ID,

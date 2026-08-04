@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { and, desc, eq, gt, notExists, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as ebookProgressSchema from './schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as usersSchema from '../users/schema';
@@ -33,6 +34,7 @@ export class EbookProgressService {
     private db: NodePgDatabase<
       typeof ebookProgressSchema & typeof ebooksSchema
     >,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   /**
@@ -177,6 +179,11 @@ export class EbookProgressService {
       )
       .orderBy(desc(ebookProgressSchema.userEbookProgress.updatedAt));
 
+    // Show the same title the ebook's own page shows
+    const metadata = await this.metadataResolver.forEbooks(
+      results.map((r) => r.ebook.id),
+    );
+
     return results.map(({ progress, ebook }) => ({
       ebookId: progress.ebookId,
       cfi: progress.cfi,
@@ -187,7 +194,7 @@ export class EbookProgressService {
       updatedAt: progress.updatedAt.toISOString(),
       ebook: {
         id: ebook.id,
-        title: ebook.title,
+        title: metadata.get(ebook.id)?.title ?? ebook.title,
         coverUrl: ebook.coverUrl,
         format: ebook.format,
       },

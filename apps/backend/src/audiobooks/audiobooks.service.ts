@@ -35,7 +35,7 @@ import { AudiobookDetailDto } from './dto/audiobook-response.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
-import { MetadataSource, MetadataFieldPriority } from '../app-settings/schema';
+import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
 import { splitPersonNames } from '../common/utils/name.utils';
 import { resolveExternalTitle } from '../common/utils/title.utils';
 
@@ -92,59 +92,6 @@ export class AudiobooksService {
       throw new Error('Audiobook library path not configured');
     }
     return path.join(audiobookLibraryPath, relativePath);
-  }
-
-  /**
-   * Resolve a field value based on metadata priority settings.
-   * Manual edits always take priority, then follows the configured order.
-   * Returns the first non-empty value according to priority order.
-   */
-  private resolveFieldByPriority<T>(
-    fieldName: keyof MetadataFieldPriority,
-    sources: {
-      manual: T | null | undefined;
-      embedded: T | null | undefined;
-      hardcover: T | null | undefined;
-      goodreads?: T | null | undefined;
-    },
-    priority: MetadataSource[],
-    manualFields: string[],
-  ): T | null {
-    // Manual edits always take priority
-    if (manualFields.includes(fieldName)) {
-      const value = sources.manual;
-      if (this.hasValue(value)) return value;
-    }
-
-    // Then follow the configured priority order (excluding 'manual' since we already checked it)
-    for (const source of priority) {
-      if (source === 'manual') {
-        // Already checked above
-        continue;
-      } else if (source === 'embedded') {
-        const value = sources.embedded;
-        if (this.hasValue(value)) return value;
-      } else if (source === 'hardcover') {
-        const value = sources.hardcover;
-        if (this.hasValue(value)) return value;
-      } else if (source === 'goodreads') {
-        const value = sources.goodreads;
-        if (this.hasValue(value)) return value;
-      }
-      // 'filename' and 'folder_image' sources are only relevant during import
-    }
-    // Fallback: return embedded (which is the original DB value)
-    return sources.embedded ?? null;
-  }
-
-  /**
-   * Check if a value is non-empty (not null, undefined, empty string, or empty array)
-   */
-  private hasValue<T>(value: T | null | undefined): value is T {
-    if (value === null || value === undefined) return false;
-    if (typeof value === 'string' && value.trim() === '') return false;
-    if (Array.isArray(value) && value.length === 0) return false;
-    return true;
   }
 
   /**
@@ -599,7 +546,7 @@ export class AudiobooksService {
       // so the subtitle line below doesn't end up duplicating text already
       // baked into the resolved title.
       const resolvedTitle =
-        this.resolveFieldByPriority(
+        resolveFieldByPriority(
           'title',
           {
             manual: ab.title,
@@ -624,7 +571,7 @@ export class AudiobooksService {
       // Apply priority-based resolution for subtitle.
       // External sources populate `subtitle` when their incoming title has the
       // form `"Title: Subtitle"` — see splitTitleSubtitle in title.utils.
-      const resolvedSubtitle = this.resolveFieldByPriority(
+      const resolvedSubtitle = resolveFieldByPriority(
         'subtitle',
         {
           manual: ab.subtitle,
@@ -641,7 +588,7 @@ export class AudiobooksService {
       const hardcoverAuthorNames = hc?.authorNames || [];
       const goodreadsAuthorNames = splitPersonNames(gr?.author);
       const resolvedAuthorNames =
-        this.resolveFieldByPriority(
+        resolveFieldByPriority(
           'author',
           {
             manual: embeddedAuthorNames,
@@ -674,7 +621,7 @@ export class AudiobooksService {
         : [];
       // Goodreads doesn't have series info
       const resolvedSeriesNames =
-        this.resolveFieldByPriority(
+        resolveFieldByPriority(
           'series',
           {
             manual: embeddedSeriesNames,
@@ -908,7 +855,7 @@ export class AudiobooksService {
     // against the embedded title/subtitle so the subtitle line below doesn't
     // duplicate text already baked into the resolved title.
     const resolvedTitle =
-      this.resolveFieldByPriority(
+      resolveFieldByPriority(
         'title',
         {
           manual: ab.title,
@@ -932,7 +879,7 @@ export class AudiobooksService {
 
     // Subtitle. External sources populate this when their incoming title has
     // the form `"Title: Subtitle"` — see splitTitleSubtitle in title.utils.
-    const resolvedSubtitle = this.resolveFieldByPriority(
+    const resolvedSubtitle = resolveFieldByPriority(
       'subtitle',
       {
         manual: ab.subtitle,
@@ -945,7 +892,7 @@ export class AudiobooksService {
     );
 
     // Description
-    const resolvedDescription = this.resolveFieldByPriority(
+    const resolvedDescription = resolveFieldByPriority(
       'description',
       {
         manual: ab.description,
@@ -958,7 +905,7 @@ export class AudiobooksService {
     );
 
     // Publisher
-    const resolvedPublisher = this.resolveFieldByPriority(
+    const resolvedPublisher = resolveFieldByPriority(
       'publisher',
       {
         manual: ab.publisher,
@@ -971,7 +918,7 @@ export class AudiobooksService {
     );
 
     // Published Date
-    const resolvedPublishedDate = this.resolveFieldByPriority(
+    const resolvedPublishedDate = resolveFieldByPriority(
       'publishedDate',
       {
         manual: ab.publishedDate,
@@ -984,7 +931,7 @@ export class AudiobooksService {
     );
 
     // Language
-    const resolvedLanguage = this.resolveFieldByPriority(
+    const resolvedLanguage = resolveFieldByPriority(
       'language',
       {
         manual: ab.language,
@@ -1001,7 +948,7 @@ export class AudiobooksService {
     const hardcoverAuthorNames = hc?.authorNames || [];
     const goodreadsAuthorNames = splitPersonNames(gr?.author);
     const resolvedAuthorNames =
-      this.resolveFieldByPriority(
+      resolveFieldByPriority(
         'author',
         {
           manual: embeddedAuthorNames,
@@ -1040,7 +987,7 @@ export class AudiobooksService {
       ? [hc.featuredSeriesName]
       : [];
     const resolvedSeriesNames =
-      this.resolveFieldByPriority(
+      resolveFieldByPriority(
         'series',
         {
           manual: embeddedSeriesNames,

@@ -1,6 +1,7 @@
 import { Test } from '@nestjs/testing';
 import { ComicProgressService } from '../comic-progress.service';
 import { DATABASE_CONNECTION } from '../../database/database-connection.constants';
+import { MetadataResolverService } from '../../common/metadata-resolver.service';
 
 function makeDb(returnRow: Record<string, unknown>) {
   const captured: {
@@ -38,6 +39,10 @@ describe('ComicProgressService.recordPageView', () => {
       providers: [
         ComicProgressService,
         { provide: DATABASE_CONNECTION, useValue: db },
+        {
+          provide: MetadataResolverService,
+          useValue: { forComicBooks: jest.fn().mockResolvedValue(new Map()) },
+        },
       ],
     }).compile();
     const service = moduleRef.get(ComicProgressService);
@@ -67,6 +72,10 @@ describe('ComicProgressService.recordPageView', () => {
       providers: [
         ComicProgressService,
         { provide: DATABASE_CONNECTION, useValue: db },
+        {
+          provide: MetadataResolverService,
+          useValue: { forComicBooks: jest.fn().mockResolvedValue(new Map()) },
+        },
       ],
     }).compile();
     const service = moduleRef.get(ComicProgressService);

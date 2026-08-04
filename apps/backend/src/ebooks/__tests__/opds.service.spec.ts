@@ -1,6 +1,17 @@
 import { createMockDb, createChainMock, buildEbook } from '@test-utils';
 import { OpdsService } from '../opds.service';
 
+/**
+ * Titles/authors in the feed now come from MetadataResolverService (covered by
+ * its own spec). Default to "no resolved entry" so the feed falls back to the
+ * stored row these tests build.
+ */
+function createMetadataResolver(ebooks: Record<string, unknown> = {}) {
+  return {
+    forEbooks: jest.fn().mockResolvedValue(new Map(Object.entries(ebooks))),
+  } as any;
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -35,7 +46,7 @@ describe('OpdsService', () => {
   describe('escapeXml (via buildRootCatalog)', () => {
     it('escapes &, <, >, ", and \' in the baseUrl', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const result = await service.buildRootCatalog(
         'http://example.com?a=1&b=2<>"\'',
@@ -54,7 +65,7 @@ describe('OpdsService', () => {
   describe('truncateDescription (via buildAllEbooksFeed)', () => {
     it('returns no summary element when description is null', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook({ description: null });
 
@@ -90,7 +101,7 @@ describe('OpdsService', () => {
 
     it('strips HTML tags from description', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook({
         description: '<p>Hello <strong>world</strong></p>',
@@ -130,7 +141,7 @@ describe('OpdsService', () => {
 
     it('truncates description with "..." when over maxLength', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const longText = 'A'.repeat(600);
       const ebook = makeEbook({ description: longText });
@@ -168,7 +179,7 @@ describe('OpdsService', () => {
 
     it('returns full text when under maxLength', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const shortText = 'Short description';
       const ebook = makeEbook({ description: shortText });
@@ -211,7 +222,7 @@ describe('OpdsService', () => {
   describe('buildRootCatalog', () => {
     it('returns valid XML with 3 entries', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const result = await service.buildRootCatalog(BASE_URL);
 
@@ -224,7 +235,7 @@ describe('OpdsService', () => {
 
     it('escapes special characters in baseUrl', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const urlWithSpecial = 'http://host.com/path?foo=1&bar=2';
       const result = await service.buildRootCatalog(urlWithSpecial);
@@ -241,7 +252,16 @@ describe('OpdsService', () => {
   describe('buildAllEbooksFeed', () => {
     it('queries for available ebooks only and returns entries', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(
+        db as any,
+        createMetadataResolver({
+          'ebook-1': {
+            title: 'Test Ebook',
+            subtitle: null,
+            authorNames: ['Author One'],
+          },
+        }),
+      );
 
       const ebook = makeEbook();
 
@@ -279,7 +299,7 @@ describe('OpdsService', () => {
 
     it('includes next pagination link when there are multiple pages', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook();
 
@@ -316,7 +336,7 @@ describe('OpdsService', () => {
 
     it('does not include next link on last page', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook();
 
@@ -352,7 +372,7 @@ describe('OpdsService', () => {
 
     it('does not include previous link on first page', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook();
 
@@ -393,7 +413,7 @@ describe('OpdsService', () => {
   describe('buildAuthorsNavigationFeed', () => {
     it('lists authors with ebook counts', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const authorsNavChain = createChainMock([
         'from',
@@ -427,7 +447,7 @@ describe('OpdsService', () => {
   describe('buildAuthorFeed', () => {
     it('throws Error when author not found', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const authorChain = createChainMock(['from', 'where', 'limit']);
       authorChain.limit.mockResolvedValueOnce([]);
@@ -441,7 +461,16 @@ describe('OpdsService', () => {
 
     it('returns ebooks by author', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(
+        db as any,
+        createMetadataResolver({
+          'ebook-1': {
+            title: 'Test Ebook',
+            subtitle: null,
+            authorNames: ['Jane Austen'],
+          },
+        }),
+      );
 
       const ebook = makeEbook();
 
@@ -490,7 +519,7 @@ describe('OpdsService', () => {
   describe('buildSeriesNavigationFeed', () => {
     it('lists series with ebook counts', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const seriesNavChain = createChainMock([
         'from',
@@ -523,7 +552,7 @@ describe('OpdsService', () => {
   describe('buildSeriesFeed', () => {
     it('throws Error when series not found', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const seriesChain = createChainMock(['from', 'where', 'limit']);
       seriesChain.limit.mockResolvedValueOnce([]);
@@ -537,7 +566,7 @@ describe('OpdsService', () => {
 
     it('returns ebooks ordered by series position', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook1 = makeEbook({ id: 'ebook-1', title: 'Book One' });
       const ebook2 = makeEbook({ id: 'ebook-2', title: 'Book Two' });
@@ -596,7 +625,7 @@ describe('OpdsService', () => {
 
     it('filters to available status only', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const availableEbook = makeEbook({
         id: 'ebook-1',
@@ -654,7 +683,16 @@ describe('OpdsService', () => {
   describe('buildEbookEntries (via buildAllEbooksFeed)', () => {
     it('includes author names in entry', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(
+        db as any,
+        createMetadataResolver({
+          'ebook-1': {
+            title: 'Test Ebook',
+            subtitle: null,
+            authorNames: ['Author A', 'Author B'],
+          },
+        }),
+      );
 
       const ebook = makeEbook();
 
@@ -694,7 +732,7 @@ describe('OpdsService', () => {
 
     it('includes cover link when coverUrl is set', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook({ coverUrl: 'cover.jpg' });
 
@@ -732,7 +770,7 @@ describe('OpdsService', () => {
 
     it('includes ISBN when available', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook({ isbn: '978-0-123456-78-9' });
 
@@ -768,7 +806,7 @@ describe('OpdsService', () => {
 
     it('includes language when available', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook({ language: 'sv' });
 
@@ -805,7 +843,7 @@ describe('OpdsService', () => {
 
     it('includes download link with acquisition rel', async () => {
       const db = createMockDb();
-      const service = new OpdsService(db as any);
+      const service = new OpdsService(db as any, createMetadataResolver());
 
       const ebook = makeEbook();
 

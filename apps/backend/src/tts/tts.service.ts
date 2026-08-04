@@ -14,6 +14,7 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { WsEventsService, TtsTaskStatus } from '../events/ws-events.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import { TtsApiClient, TtsConnectionResult } from './tts-api.client';
 import * as schema from './schema';
 import { ttsGenerationJobs, TTS_ACTIVE_JOB_STATUSES } from './schema';
@@ -70,6 +71,7 @@ export class TtsService {
     private readonly appSettings: AppSettingsService,
     private readonly appData: AppDataService,
     private readonly wsEvents: WsEventsService,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   // -------------------------------------------------------------------------
@@ -269,7 +271,17 @@ export class TtsService {
       .leftJoin(ebooks, eq(ttsGenerationJobs.ebookId, ebooks.id))
       .orderBy(desc(ttsGenerationJobs.createdAt))
       .limit(limit);
-    return rows;
+
+    // Label jobs with the same title the ebook's own page shows
+    const metadata = await this.metadataResolver.forEbooks(
+      rows.flatMap((r) => (r.ebookId ? [r.ebookId] : [])),
+    );
+    return rows.map((row) => ({
+      ...row,
+      ebookTitle: row.ebookId
+        ? (metadata.get(row.ebookId)?.title ?? row.ebookTitle)
+        : row.ebookTitle,
+    }));
   }
 
   /** Active job for a specific ebook, if any (pending or in flight). */
@@ -399,12 +411,19 @@ export class TtsService {
       })
       .from(ttsGenerationJobs);
 
+    // Label the running job with the same title the ebook's own page shows
+    const activeTitle = inFlight?.ebookId
+      ? (await this.metadataResolver.forEbooks([inFlight.ebookId])).get(
+          inFlight.ebookId,
+        )?.title
+      : undefined;
+
     return {
       active: inFlight
         ? {
             jobId: inFlight.jobId,
             ebookId: inFlight.ebookId,
-            ebookTitle: inFlight.ebookTitle ?? 'Unknown ebook',
+            ebookTitle: activeTitle ?? inFlight.ebookTitle ?? 'Unknown ebook',
             phase: inFlight.status as
               'extracting' | 'generating' | 'assembling' | 'importing',
             totalChapters: inFlight.totalChapters,
