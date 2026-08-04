@@ -538,7 +538,25 @@ export class TtsGenerationProcessor implements OnModuleInit {
         .slice(0, 80) || 'Untitled';
     const slug = `${safeTitle} - ${ebook.id.slice(0, 8)}`;
     const destDir = path.join(libraryPath, 'generated', slug);
-    await fs.mkdir(destDir, { recursive: true });
+    try {
+      await fs.mkdir(destDir, { recursive: true });
+    } catch (error) {
+      // The audiobook library is mounted read-only, so `<library>/generated`
+      // needs its own writable mount. That mount is opt-in, which makes
+      // "forgot to enable it" the most likely way to land here — and a raw
+      // EROFS tells the user nothing about how to fix it.
+      const code = (error as NodeJS.ErrnoException)?.code;
+      if (code === 'EROFS' || code === 'EACCES' || code === 'EPERM') {
+        throw new Error(
+          `Cannot write to ${path.join(libraryPath, 'generated')} - the audiobook ` +
+            'library is read-only. Create a "generated" folder inside your library, ' +
+            'then enable the generated-audiobooks mount in docker-compose.yml (see ' +
+            'the text-to-speech section of example.env).',
+          { cause: error },
+        );
+      }
+      throw error;
+    }
 
     // Dotfile copy first (invisible to the library watcher), then an atomic
     // same-directory rename to the final name.

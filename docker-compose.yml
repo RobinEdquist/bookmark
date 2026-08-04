@@ -75,10 +75,20 @@ services:
       - ${DATA_PATH:-./data}/app:/data
       # Audiobook library - mount your media folder here
       - ${AUDIOBOOK_LIBRARY_PATH:-./media/audiobooks}:/library/audiobooks:ro
-      # Writable location for AI-generated audiobooks, nested inside the
-      # (read-only) audiobook library so the scanner picks them up.
-      # Note: this shadows any pre-existing "generated" folder in your library.
-      - ${DATA_PATH:-./data}/generated-audiobooks:/library/audiobooks/generated
+      # Writable location for AI-generated audiobooks. Only needed if you use
+      # the tts profile; TTS writes to <library>/generated, which has to be a
+      # separate writable mount because the library itself is read-only.
+      #
+      # Commented out by default because Docker cannot create the mountpoint
+      # inside a read-only mount: with this enabled and no "generated" folder
+      # already in your library, the container fails to start with
+      # "create mountpoint ...: read-only file system".
+      #
+      # To use TTS: create the folder in your audiobook library first
+      #   mkdir -p "$AUDIOBOOK_LIBRARY_PATH/generated"
+      # then uncomment the line below. It shadows that folder, so anything
+      # already inside it becomes invisible to Bookmark.
+      # - ${DATA_PATH:-./data}/generated-audiobooks:/library/audiobooks/generated
       # Ebook library - mount your media folder here
       - ${EBOOK_LIBRARY_PATH:-./media/ebooks}:/library/ebooks:ro
       # Comic library - mount your media folder here

@@ -12,7 +12,7 @@ Point it at the folders you already have. It scans them, fills in covers and met
 
 **Audiobooks** are the heart of it. Stream straight from the browser with full M4B chapter support, variable playback speed, skip controls, and a sleep timer. Your progress syncs to the server every few seconds, so you can start on your laptop and pick up exactly where you left off on your phone.
 
-**Ebooks** are scanned from your EPUB collection and exposed through an OPDS feed, so you can read them in whatever OPDS-compatible app you already use. (An in-browser reader is on the way — see the roadmap.)
+**Ebooks** are scanned from your EPUB collection and can be read right in the browser, with your position saved as you go. They're also exposed through an OPDS feed, so you can keep using whatever OPDS-compatible reader app you already prefer.
 
 **Comics** are organized the way you'd expect: series and issues, including TPBs, omnibuses, and one-shots, scanned folder-by-folder from CBZ, CBR, and PDF archives. Metadata comes from embedded `ComicInfo.xml` and Comic Vine. You can browse, organize, and download today; the in-browser reader is still to come.
 
@@ -25,7 +25,7 @@ Beyond the media itself:
 - **A REST API** — documented with Swagger, intended to keep the door open for native mobile apps later.
 - **Yours to make your own** — light and dark themes, custom accent colors, and currently shipping in English and Swedish (more translations very welcome).
 
-It's honest about where it is, too. A few things — Hardcover progress sync, the AudiobookShelf importer, and the full breadth of the API — are partially there and still being worked on. The roadmap below is the source of truth.
+It's honest about where it is, too. The AudiobookShelf importer wants more real-world mileage before anyone calls it stable, and the API — fully documented, but young — can still change shape between releases. The [roadmap](#roadmap) is the source of truth.
 
 ## Tech stack
 
@@ -109,13 +109,16 @@ Everything is set through environment variables in your `.env` file. With Docker
 | `OIDC_CLIENT_ID`     | If SSO enabled | —       | Client ID                              |
 | `OIDC_CLIENT_SECRET` | If SSO enabled | —       | Client secret                          |
 
-**AI-narrated audiobooks (optional)** — Bookmark can narrate an ebook into a real audiobook using any OpenAI-compatible text-to-speech server (`/v1/audio/speech`). A ready-to-use, CPU-friendly engine ships behind a compose profile:
+**AI-narrated audiobooks (optional)** — Bookmark can narrate an ebook into a real audiobook using any OpenAI-compatible text-to-speech server (`/v1/audio/speech`). A ready-to-use, CPU-friendly engine ships behind a compose profile.
+
+Generated files are written to `DATA_PATH/generated-audiobooks` and surface inside the audiobook library as a `generated` folder, which needs its own writable mount — your own media stays read-only. That mount is commented out in `docker-compose.yml` by default, because Docker cannot create a mountpoint inside a read-only mount and the container won't start if the folder is missing. So create it first, then uncomment the mount:
 
 ```bash
+mkdir -p "$AUDIOBOOK_LIBRARY_PATH/generated"   # then uncomment the mount in docker-compose.yml
 docker compose --profile tts up -d
 ```
 
-Then enter `http://tts:8880` as the server URL under **Settings → Integrations → Text-to-speech** — no env vars needed. Prefer a different engine, voice, or language? Point the server URL at any other OpenAI-compatible TTS server, self-hosted or cloud, and it works as a drop-in replacement. Generated audiobooks are written to `DATA_PATH/generated-audiobooks`, which appears inside the audiobook library as a `generated` folder — your own media stays on a read-only mount.
+Then enter `http://tts:8880` as the server URL under **Settings → Integrations → Text-to-speech** — no env vars needed. Prefer a different engine, voice, or language? Point the server URL at any other OpenAI-compatible TTS server, self-hosted or cloud, and it works as a drop-in replacement.
 
 **Content requests (optional)** — Bookmark can let users search an external catalog and request titles that aren't in the library yet, with an admin approval flow. The searching and downloading itself is handled by a **content request module** — a separate HTTP service you run alongside Bookmark. Point Bookmark at one, then enable requests under **Settings**. Want to build a module? See the [developer guide](docs/content-request-modules.md) and the [OpenAPI spec](docs/api/content-request-module.openapi.yaml) it must implement.
 
@@ -157,6 +160,27 @@ If you start the apps directly (see [Development](#development)), the Docker-der
 - **Audiobooks** — M4B (with chapters), MP3, M4A/AAC, OGG/Opus
 - **Ebooks** — EPUB
 - **Comics** — CBZ, CBR, PDF
+
+## Roadmap
+
+What's actually next, and what's honestly unfinished. Roughly in the order it's likely to land.
+
+**Next up**
+
+- **Automatic backups** — the database, covers, and settings on a schedule, from inside the app. Today a correct backup means stopping the stack before copying `DATA_PATH`, or taking a `pg_dump` by hand; neither belongs in a self-hosted product's setup guide.
+
+**In progress**
+
+- **AudiobookShelf import** — brings a library across from AudiobookShelf, including per-user progress. It works; what it hasn't had yet is mileage on libraries other than the ones it was built against. Calling it stable needs that feedback first, so if you migrate, reports of what did and didn't survive are genuinely useful.
+- **The REST API** — The api is documented with Swagger. It just isn't being called stable yet: names and shapes can still change between releases, and some aren't truly correct at the moment, therefore work in progress.
+
+**Later**
+
+- **Comics reader** — in-browser reading for comics. Browsing, organizing, and downloading work now; reading in the app doesn't.
+- **Comic read lists** — ordered sequences that cut across series, the way crossover events are actually read.
+- **More translations** — English and Swedish ship today, and the groundwork is there for any number more. Contributions very welcome.
+
+Nothing here has a date attached. It's a spare-time project, and the list reflects intent rather than a commitment. Feel free to propose other additions or changes that you feel could improve the application.
 
 ## Development
 

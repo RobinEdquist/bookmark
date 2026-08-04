@@ -679,6 +679,38 @@ code {
   margin-top: 0.65rem;
 }
 
+/* Matches .step p, so a list of instructions reads as the same voice as the
+   prose around it rather than a nested block. */
+.prose-list {
+  margin: 0.9rem 0 0;
+  padding-left: 1.1rem;
+  list-style: none;
+  color: var(--ink-muted);
+  font-size: 0.9875rem;
+  max-width: 62ch;
+}
+
+.prose-list li {
+  position: relative;
+  line-height: 1.65;
+}
+
+.prose-list li + li {
+  margin-top: 0.6rem;
+}
+
+.prose-list li::before {
+  content: "—";
+  position: absolute;
+  left: -1.1rem;
+  color: var(--magenta);
+}
+
+.prose-list strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
 @media (max-width: 560px) {
   .step {
     grid-template-columns: minmax(0, 1fr);
