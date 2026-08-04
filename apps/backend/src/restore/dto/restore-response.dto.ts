@@ -46,6 +46,7 @@ export class RestoreSessionDto {
   availableLibraries?: LibraryInfoDto[];
 
   @ApiPropertyOptional({
+    type: String,
     example: 'lib-123',
     description: 'Selected library ID',
   })
@@ -58,16 +59,23 @@ export class RestoreSessionDto {
   createdAt?: string;
 }
 
+export class UploadedSessionDto {
+  @ApiProperty({ example: 'session-123' })
+  id!: string;
+
+  @ApiProperty({ example: 'library_selection' })
+  state!: string;
+
+  @ApiPropertyOptional({ type: [LibraryInfoDto] })
+  availableLibraries?: LibraryInfoDto[];
+}
+
 export class UploadBackupResponseDto {
   @ApiProperty({ example: true, description: 'Whether upload was successful' })
   success!: boolean;
 
-  @ApiProperty({ description: 'Session information' })
-  session!: {
-    id: string;
-    state: string;
-    availableLibraries?: LibraryInfoDto[];
-  };
+  @ApiProperty({ type: UploadedSessionDto, description: 'Session information' })
+  session!: UploadedSessionDto;
 }
 
 export class RestoreSuccessMessageDto {
@@ -89,6 +97,7 @@ export class AudiobookPreviewItemDto {
   title!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Author Name',
     description: 'Author of the audiobook',
   })
@@ -101,30 +110,29 @@ export class AudiobookPreviewItemDto {
   path!: string;
 }
 
+export class AudiobookPreviewGroupDto {
+  @ApiProperty({
+    example: 50,
+    description: 'Number of audiobooks in the group',
+  })
+  count!: number;
+
+  @ApiProperty({ type: [AudiobookPreviewItemDto] })
+  items!: AudiobookPreviewItemDto[];
+}
+
 export class ImportPreviewDto {
   @ApiProperty({
+    type: AudiobookPreviewGroupDto,
     description: 'Audiobooks to import',
-    example: {
-      count: 50,
-      items: [{ title: 'Book 1', author: 'Author 1', path: '/path/to/book' }],
-    },
   })
-  audiobooksToImport!: {
-    count: number;
-    items: AudiobookPreviewItemDto[];
-  };
+  audiobooksToImport!: AudiobookPreviewGroupDto;
 
   @ApiProperty({
+    type: AudiobookPreviewGroupDto,
     description: 'Audiobooks that will be skipped',
-    example: {
-      count: 5,
-      items: [{ title: 'Book 2', author: 'Author 2', path: '/path/to/book2' }],
-    },
   })
-  audiobooksToSkip!: {
-    count: number;
-    items: AudiobookPreviewItemDto[];
-  };
+  audiobooksToSkip!: AudiobookPreviewGroupDto;
 
   @ApiProperty({
     example: 0,

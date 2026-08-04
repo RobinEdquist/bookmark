@@ -273,13 +273,13 @@ export class ListItemDto {
   })
   itemType!: 'audiobook' | 'ebook' | 'comic_series';
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   audiobookId?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   ebookId?: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   comicSeriesId?: string | null;
 
   @ApiProperty({ example: 1 })

@@ -5,7 +5,7 @@ export class SeriesInfoDto {
   @ApiProperty({ example: 'The Stormlight Archive' })
   name!: string;
 
-  @ApiPropertyOptional({ example: '1', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '1', nullable: true })
   number?: string | null;
 }
 
@@ -31,19 +31,36 @@ export class ContentRequestDto {
   @ApiProperty({ example: 'The Way of Kings' })
   title!: string;
 
-  @ApiPropertyOptional({ example: 'Brandon Sanderson', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Brandon Sanderson',
+    nullable: true,
+  })
   author?: string | null;
 
-  @ApiPropertyOptional({ example: 'Michael Kramer', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Michael Kramer',
+    nullable: true,
+  })
   narrator?: string | null;
 
-  @ApiPropertyOptional({ example: 'The Stormlight Archive #1', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'The Stormlight Archive #1',
+    nullable: true,
+  })
   series?: string | null;
 
-  @ApiPropertyOptional({ example: 'An epic fantasy...', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'An epic fantasy...',
+    nullable: true,
+  })
   description?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://example.com/cover.jpg',
     nullable: true,
   })
@@ -52,16 +69,22 @@ export class ContentRequestDto {
   @ApiProperty({ enum: ['audiobook', 'ebook', 'comics'], example: 'audiobook' })
   contentType!: 'audiobook' | 'ebook' | 'comics';
 
-  @ApiPropertyOptional({ example: 'Already in library', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Already in library',
+    nullable: true,
+  })
   rejectionReason?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
   libraryItemId?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     enum: ['audiobook', 'ebook', 'comics'],
     nullable: true,
   })
@@ -74,12 +97,17 @@ export class ContentRequestDto {
   isSupporter!: boolean;
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
   autoApprovedByUserId?: string | null;
 
-  @ApiPropertyOptional({ example: 'john@example.com', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'john@example.com',
+    nullable: true,
+  })
   autoApprovedByEmail?: string | null;
 
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
@@ -96,19 +124,32 @@ export class TrackerSearchResultItemDto {
   @ApiProperty({ example: 'The Way of Kings' })
   title!: string;
 
-  @ApiPropertyOptional({ example: 'Brandon Sanderson', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Brandon Sanderson',
+    nullable: true,
+  })
   author?: string | null;
 
-  @ApiPropertyOptional({ example: 'Michael Kramer', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'Michael Kramer',
+    nullable: true,
+  })
   narrator?: string | null;
 
   @ApiPropertyOptional({ type: [SeriesInfoDto], nullable: true })
   series?: SeriesInfoDto[] | null;
 
-  @ApiPropertyOptional({ example: 'An epic fantasy...', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'An epic fantasy...',
+    nullable: true,
+  })
   description?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://example.com/cover.jpg',
     nullable: true,
   })
@@ -142,6 +183,7 @@ export class TrackerSearchResultItemDto {
   addedDate!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
@@ -158,6 +200,7 @@ export class TrackerSearchResultItemDto {
   inLibrary!: boolean;
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })

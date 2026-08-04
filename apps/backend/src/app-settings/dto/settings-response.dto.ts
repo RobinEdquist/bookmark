@@ -108,13 +108,25 @@ export class AppSettingsResponseDto {
   @ApiProperty({ example: true })
   signupsEnabled!: boolean;
 
-  @ApiPropertyOptional({ example: '/media/audiobooks', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '/media/audiobooks',
+    nullable: true,
+  })
   audiobookLibraryPath?: string | null;
 
-  @ApiPropertyOptional({ example: '/media/ebooks', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '/media/ebooks',
+    nullable: true,
+  })
   ebookLibraryPath?: string | null;
 
-  @ApiPropertyOptional({ example: '/media/comics', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '/media/comics',
+    nullable: true,
+  })
   comicLibraryPath?: string | null;
 
   @ApiProperty({ example: true })
@@ -142,13 +154,13 @@ export class AppSettingsResponseDto {
   @ApiProperty({ example: true })
   requestsEnabled!: boolean;
 
-  @ApiPropertyOptional({ example: 'audiobooks', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'audiobooks', nullable: true })
   requestsAudiobookCategory?: string | null;
 
-  @ApiPropertyOptional({ example: 'ebooks', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'ebooks', nullable: true })
   requestsEbookCategory?: string | null;
 
-  @ApiPropertyOptional({ example: 'comics', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'comics', nullable: true })
   requestsComicsCategory?: string | null;
 
   @ApiProperty({ example: 5 })

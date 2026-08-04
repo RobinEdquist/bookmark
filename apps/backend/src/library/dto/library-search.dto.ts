@@ -45,10 +45,10 @@ export class LibrarySearchItemDto {
   @ApiProperty()
   title!: string;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   subtitle!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   coverUrl!: string | null;
 
   @ApiPropertyOptional({

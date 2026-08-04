@@ -32,6 +32,7 @@ export class UpdateAudiobookDto {
   title?: string;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Audiobook subtitle',
     example: 'Part One of The Lord of the Rings',
     nullable: true,
@@ -42,6 +43,7 @@ export class UpdateAudiobookDto {
   subtitle?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Full description or synopsis',
     nullable: true,
   })
@@ -51,6 +53,7 @@ export class UpdateAudiobookDto {
   description?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Publisher name',
     example: 'HarperAudio',
     nullable: true,
@@ -61,6 +64,7 @@ export class UpdateAudiobookDto {
   publisher?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Language code (ISO 639-1)',
     example: 'en',
     nullable: true,
@@ -71,6 +75,7 @@ export class UpdateAudiobookDto {
   language?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Publication date',
     example: '2001-11-12',
     nullable: true,
@@ -81,6 +86,7 @@ export class UpdateAudiobookDto {
   publishedDate?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'ISBN-10 or ISBN-13',
     example: '978-0007141296',
     nullable: true,
@@ -91,6 +97,7 @@ export class UpdateAudiobookDto {
   isbn?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Amazon ASIN (10 characters)',
     example: 'B007978NPG',
     nullable: true,

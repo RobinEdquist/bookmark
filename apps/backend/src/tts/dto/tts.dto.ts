@@ -20,6 +20,7 @@ export class UpdateTtsConfigDto {
   enabled?: boolean;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Base URL of the OpenAI-compatible TTS server',
     example: 'http://tts:8880',
     nullable: true,
@@ -30,6 +31,7 @@ export class UpdateTtsConfigDto {
   baseUrl?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'API key for the TTS server (if it requires one)',
     nullable: true,
   })
@@ -75,7 +77,11 @@ export class ValidateTtsConnectionDto {
   @IsString()
   baseUrl!: string;
 
-  @ApiPropertyOptional({ description: 'API key to test with', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    description: 'API key to test with',
+    nullable: true,
+  })
   @IsOptional()
   @ValidateIf((_, value) => value !== null)
   @IsString()

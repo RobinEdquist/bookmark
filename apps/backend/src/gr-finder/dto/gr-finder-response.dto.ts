@@ -20,11 +20,12 @@ export class GrFinderSearchResultDto {
   goodreads_id!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://images.gr-assets.com/books/1531891848l/386162.jpg',
   })
   cover_url!: string | null;
 
-  @ApiPropertyOptional({ example: '4.22' })
+  @ApiPropertyOptional({ type: String, example: '4.22' })
   avg_rating!: string | null;
 
   @ApiProperty({
@@ -59,12 +60,13 @@ export class GrFinderBookDetailsDto {
   goodreads_id?: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://images.gr-assets.com/books/1531891848l/386162.jpg',
     nullable: true,
   })
   cover_url!: string | null;
 
-  @ApiPropertyOptional({ example: 4.22, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 4.22, nullable: true })
   rating?: number | null;
 
   @ApiPropertyOptional({
@@ -73,6 +75,7 @@ export class GrFinderBookDetailsDto {
   url?: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'A classic science fiction comedy...',
     nullable: true,
   })
@@ -81,16 +84,17 @@ export class GrFinderBookDetailsDto {
   @ApiProperty({ type: [String], example: ['Science Fiction', 'Comedy'] })
   genres!: string[];
 
-  @ApiPropertyOptional({ example: 1500000, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 1500000, nullable: true })
   rating_count?: number | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: "The Hitchhiker's Guide to the Galaxy",
     nullable: true,
   })
   series?: string | null;
 
-  @ApiPropertyOptional({ example: '1', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '1', nullable: true })
   series_number?: string | null;
 }
 
@@ -107,6 +111,7 @@ export class GoodreadsBookDto {
   title!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Book One',
     nullable: true,
     description:
@@ -118,10 +123,14 @@ export class GoodreadsBookDto {
   @ApiProperty({ example: 'Douglas Adams' })
   author!: string;
 
-  @ApiPropertyOptional({ example: 'A classic science fiction comedy...' })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'A classic science fiction comedy...',
+  })
   description!: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://images.gr-assets.com/books/1531891848l/386162.jpg',
   })
   coverUrl!: string | null;
@@ -129,10 +138,10 @@ export class GoodreadsBookDto {
   @ApiProperty({ example: 'https://www.goodreads.com/book/show/386162' })
   url!: string;
 
-  @ApiPropertyOptional({ example: '4.22' })
+  @ApiPropertyOptional({ type: String, example: '4.22' })
   rating!: string | null;
 
-  @ApiPropertyOptional({ example: 1500000 })
+  @ApiPropertyOptional({ type: Number, example: 1500000 })
   ratingsCount!: number | null;
 
   @ApiProperty({ example: ['Science Fiction', 'Comedy', 'Classic'] })

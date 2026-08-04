@@ -7,7 +7,7 @@ class EbookSummaryDto {
   @ApiProperty({ description: 'Ebook title' })
   title!: string;
 
-  @ApiPropertyOptional({ description: 'Cover image URL' })
+  @ApiPropertyOptional({ type: String, description: 'Cover image URL' })
   coverUrl!: string | null;
 
   @ApiPropertyOptional({ description: 'Ebook format (epub, pdf, mobi)' })
@@ -19,6 +19,7 @@ export class EbookProgressResponseDto {
   ebookId!: string;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'EPUB CFI location',
     example: '/6/4[chap01ref]!/4/2/10/2:91',
   })
@@ -31,6 +32,7 @@ export class EbookProgressResponseDto {
   completed!: boolean;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'When the ebook was marked as completed',
   })
   completedAt!: string | null;

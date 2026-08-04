@@ -16,6 +16,7 @@ export class UpdateInfoDto {
   latestVersion!: string;
 
   @ApiProperty({
+    type: String,
     example: 'Chapters and bookmarks',
     nullable: true,
     description: 'Title of the latest release, if it has one.',
@@ -23,6 +24,7 @@ export class UpdateInfoDto {
   releaseName!: string | null;
 
   @ApiProperty({
+    type: String,
     example: 'https://github.com/RobinEdquist/bookmark/releases/tag/v0.2.0',
     nullable: true,
     description: 'Link to the release notes.',
@@ -30,6 +32,7 @@ export class UpdateInfoDto {
   releaseUrl!: string | null;
 
   @ApiProperty({
+    type: String,
     example: '2026-09-01T09:00:00Z',
     nullable: true,
     description: 'When the latest release was published (ISO 8601).',
@@ -77,6 +80,7 @@ export class VersionResponseDto {
   gitSha!: string;
 
   @ApiProperty({
+    type: String,
     example: '2026-08-04T10:32:00Z',
     nullable: true,
     description: 'When the image was built (ISO 8601), or null if unknown.',

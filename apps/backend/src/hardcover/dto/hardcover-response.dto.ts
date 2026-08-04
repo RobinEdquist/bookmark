@@ -28,6 +28,29 @@ export class HardcoverValidateResponseDto {
   error?: string;
 }
 
+/** Mirrors the `HardcoverImage` service type. */
+export class HardcoverImageDto {
+  @ApiPropertyOptional({
+    example: 'https://hardcover.app/images/book.jpg',
+  })
+  url?: string;
+
+  @ApiPropertyOptional({ example: 1200 })
+  id?: number;
+
+  @ApiPropertyOptional({ example: 400 })
+  width?: number;
+
+  @ApiPropertyOptional({ example: 600 })
+  height?: number;
+
+  @ApiPropertyOptional({ example: '#2f4f4f' })
+  color?: string;
+
+  @ApiPropertyOptional({ example: 'dark slate gray' })
+  color_name?: string;
+}
+
 /**
  * A single Hardcover typesense "hit" document. This mirrors the
  * `HardcoverBookDocument` service type — the raw book payload returned inside
@@ -53,8 +76,8 @@ export class HardcoverBookResultDto {
   ratings_count!: number;
 
   @ApiPropertyOptional({
+    type: HardcoverImageDto,
     description: 'Cover image metadata from Hardcover',
-    example: { url: 'https://hardcover.app/images/book.jpg' },
   })
   image?: HardcoverImage;
 
@@ -145,12 +168,17 @@ export class HardcoverLinkDataDto {
   title!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Book One of the Stormlight Archive',
     nullable: true,
   })
   subtitle!: string | null;
 
-  @ApiPropertyOptional({ example: 'An epic fantasy novel', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'An epic fantasy novel',
+    nullable: true,
+  })
   description!: string | null;
 
   @ApiProperty({ type: [String], example: ['Brandon Sanderson'] })
@@ -159,16 +187,21 @@ export class HardcoverLinkDataDto {
   @ApiProperty({ type: [String], example: ['Violence'] })
   contentWarnings!: string[];
 
-  @ApiPropertyOptional({ example: 'The Stormlight Archive', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'The Stormlight Archive',
+    nullable: true,
+  })
   featuredSeriesName!: string | null;
 
-  @ApiPropertyOptional({ example: '1.0', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '1.0', nullable: true })
   featuredSeriesPosition!: string | null;
 
   @ApiProperty({ type: [String], example: ['Fantasy', 'Epic Fantasy'] })
   genres!: string[];
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://hardcover.app/images/book.jpg',
     nullable: true,
   })
@@ -180,10 +213,10 @@ export class HardcoverLinkDataDto {
   @ApiProperty({ type: [String], example: ['Adventurous'] })
   moods!: string[];
 
-  @ApiPropertyOptional({ example: '4.50', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '4.50', nullable: true })
   rating!: string | null;
 
-  @ApiPropertyOptional({ example: 15000, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 15000, nullable: true })
   ratingsCount!: number | null;
 
   @ApiProperty({ type: [String], example: ['fantasy'] })
@@ -223,12 +256,14 @@ export class HardcoverFailedItemMediaDto {
   title!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Book One of the Stormlight Archive',
     nullable: true,
   })
   subtitle!: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/api/audiobooks/550e8400/cover',
     nullable: true,
   })
@@ -240,18 +275,24 @@ export class HardcoverFailedItemDto {
   id!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
   audiobookId!: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
   ebookId!: string | null;
 
-  @ApiPropertyOptional({ example: 'API rate limit exceeded', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'API rate limit exceeded',
+    nullable: true,
+  })
   errorMessage!: string | null;
 
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })

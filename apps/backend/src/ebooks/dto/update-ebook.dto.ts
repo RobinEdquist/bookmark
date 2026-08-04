@@ -33,6 +33,7 @@ export class UpdateEbookDto {
   title?: string;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Ebook subtitle',
     example: 'Part One of The Lord of the Rings',
     nullable: true,
@@ -43,6 +44,7 @@ export class UpdateEbookDto {
   subtitle?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Full description or synopsis',
     nullable: true,
   })
@@ -52,6 +54,7 @@ export class UpdateEbookDto {
   description?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Publisher name',
     example: 'Houghton Mifflin',
     nullable: true,
@@ -62,6 +65,7 @@ export class UpdateEbookDto {
   publisher?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Language code (ISO 639-1)',
     example: 'en',
     nullable: true,
@@ -72,6 +76,7 @@ export class UpdateEbookDto {
   language?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Publication date',
     example: '1954-07-29',
     nullable: true,
@@ -82,6 +87,7 @@ export class UpdateEbookDto {
   publishedDate?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'ISBN-10 or ISBN-13',
     example: '978-0547928210',
     nullable: true,
@@ -92,6 +98,7 @@ export class UpdateEbookDto {
   isbn?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Amazon ASIN (10 characters)',
     example: 'B007978NPG',
     nullable: true,

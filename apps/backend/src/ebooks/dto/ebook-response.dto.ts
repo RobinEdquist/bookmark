@@ -8,6 +8,7 @@ export class EbookPersonDto {
   name!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://example.com/author.jpg',
     nullable: true,
   })
@@ -96,13 +97,14 @@ export class EbookHardcoverDataDto {
   @ApiProperty({ example: 'the-way-of-kings' })
   slug!: string;
 
-  @ApiPropertyOptional({ example: 4.5, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 4.5, nullable: true })
   rating?: number | null;
 
-  @ApiPropertyOptional({ example: 15000, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 15000, nullable: true })
   ratingsCount?: number | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://hardcover.app/images/book.jpg',
     nullable: true,
   })
@@ -138,6 +140,7 @@ export class EbookListItemDto {
   title!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/api/ebooks/550e8400-e29b-41d4-a716-446655440000/cover',
     nullable: true,
   })
@@ -167,10 +170,10 @@ export class EbookListItemDto {
   })
   hardcoverLinked!: boolean;
 
-  @ApiPropertyOptional({ example: 4.5, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 4.5, nullable: true })
   hardcoverRating?: number | null;
 
-  @ApiPropertyOptional({ example: 15000, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 15000, nullable: true })
   hardcoverRatingsCount?: number | null;
 }
 
@@ -193,30 +196,36 @@ export class EbookDetailDto {
   title!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Book One of The Stormlight Archive',
     nullable: true,
   })
   subtitle?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'A sweeping epic fantasy...',
     nullable: true,
   })
   description?: string | null;
 
-  @ApiPropertyOptional({ example: 'Tor Books', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Tor Books', nullable: true })
   publisher?: string | null;
 
-  @ApiPropertyOptional({ example: '2010-08-31', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2010-08-31', nullable: true })
   publishedDate?: string | null;
 
-  @ApiPropertyOptional({ example: 'en', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'en', nullable: true })
   language?: string | null;
 
-  @ApiPropertyOptional({ example: '978-0765326355', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '978-0765326355',
+    nullable: true,
+  })
   isbn?: string | null;
 
-  @ApiPropertyOptional({ example: 'B003P2WO5E', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'B003P2WO5E', nullable: true })
   asin?: string | null;
 
   @ApiPropertyOptional({ type: Number, example: 384, nullable: true })
@@ -238,6 +247,7 @@ export class EbookDetailDto {
   isExplicit!: boolean;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/api/ebooks/550e8400-e29b-41d4-a716-446655440000/cover',
     nullable: true,
   })

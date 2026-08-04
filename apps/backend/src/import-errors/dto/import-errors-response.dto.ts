@@ -20,6 +20,7 @@ export class ImportErrorDto {
   errorMessage!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Error: ENOENT...',
     description: 'Full error stack trace',
   })
@@ -33,6 +34,7 @@ export class ImportErrorDto {
   status!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'audiobook',
     enum: ['audiobook', 'ebook'],
     description: 'Type of library item',
@@ -40,12 +42,14 @@ export class ImportErrorDto {
   libraryType?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'user-123',
     description: 'User ID who marked this as ignored',
   })
   ignoredBy?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '2024-01-15T12:00:00.000Z',
     description: 'When the error was marked as ignored',
   })

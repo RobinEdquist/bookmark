@@ -93,22 +93,33 @@ export class CvVolumeResultDto {
   @ApiProperty({ example: 'Batman' })
   name!: string;
 
-  @ApiPropertyOptional({ example: 2011, nullable: true })
+  // ComicVine returns this as either a number or a numeric string, so the
+  // schema documents the looser of the two rather than lying about one.
+  @ApiPropertyOptional({
+    oneOf: [{ type: 'number' }, { type: 'string' }],
+    example: 2011,
+    nullable: true,
+  })
   start_year?: number | string | null;
 
   @ApiPropertyOptional({ type: CvPublisherDto, nullable: true })
   publisher?: CvPublisherDto | null;
 
-  @ApiPropertyOptional({ example: 52, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 52, nullable: true })
   count_of_issues?: number | null;
 
-  @ApiPropertyOptional({ example: 'The Dark Knight...', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'The Dark Knight...',
+    nullable: true,
+  })
   description?: string | null;
 
   @ApiPropertyOptional({ type: CvImageDto, nullable: true })
   image?: CvImageDto | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://comicvine.gamespot.com/batman/4050-4050/',
     nullable: true,
   })
@@ -129,16 +140,16 @@ export class CvIssueResultDto {
   @ApiProperty({ example: 401234 })
   id!: number;
 
-  @ApiPropertyOptional({ example: '1', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '1', nullable: true })
   issue_number?: string | null;
 
-  @ApiPropertyOptional({ example: 'Knife Trick', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Knife Trick', nullable: true })
   name?: string | null;
 
-  @ApiPropertyOptional({ example: '2011-11-01', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2011-11-01', nullable: true })
   cover_date?: string | null;
 
-  @ApiPropertyOptional({ example: '2011-09-21', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2011-09-21', nullable: true })
   store_date?: string | null;
 
   @ApiPropertyOptional({ type: CvVolumeRefDto, nullable: true })
@@ -153,13 +164,17 @@ export class CvIssueResultDto {
   @ApiPropertyOptional({ type: [CvStoryArcCreditDto], nullable: true })
   story_arc_credits?: CvStoryArcCreditDto[] | null;
 
-  @ApiPropertyOptional({ example: 'An epic tale...', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'An epic tale...',
+    nullable: true,
+  })
   description?: string | null;
 
   @ApiPropertyOptional({ type: CvImageDto, nullable: true })
   image?: CvImageDto | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   site_detail_url?: string | null;
 }
 
@@ -187,25 +202,30 @@ export class CachedVolumeDto {
   @ApiProperty({ example: 'Batman' })
   name!: string;
 
-  @ApiPropertyOptional({ example: 2011, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 2011, nullable: true })
   startYear!: number | null;
 
-  @ApiPropertyOptional({ example: 'DC Comics', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'DC Comics', nullable: true })
   publisherName!: string | null;
 
-  @ApiPropertyOptional({ example: 52, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 52, nullable: true })
   countOfIssues!: number | null;
 
-  @ApiPropertyOptional({ example: 'The Dark Knight...', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'The Dark Knight...',
+    nullable: true,
+  })
   description!: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://comicvine.gamespot.com/a/medium.jpg',
     nullable: true,
   })
   imageUrl!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   siteDetailUrl!: string | null;
 
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
@@ -229,31 +249,36 @@ export class CachedIssueDto {
   @ApiProperty({ example: 401234 })
   comicvineIssueId!: number;
 
-  @ApiPropertyOptional({ example: 4050, nullable: true })
+  @ApiPropertyOptional({ type: Number, example: 4050, nullable: true })
   comicvineVolumeId!: number | null;
 
-  @ApiPropertyOptional({ example: '1', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '1', nullable: true })
   issueNumber!: string | null;
 
-  @ApiPropertyOptional({ example: 'Knife Trick', nullable: true })
+  @ApiPropertyOptional({ type: String, example: 'Knife Trick', nullable: true })
   name!: string | null;
 
-  @ApiPropertyOptional({ example: '2011-11-01', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2011-11-01', nullable: true })
   coverDate!: string | null;
 
-  @ApiPropertyOptional({ example: '2011-09-21', nullable: true })
+  @ApiPropertyOptional({ type: String, example: '2011-09-21', nullable: true })
   storeDate!: string | null;
 
-  @ApiPropertyOptional({ example: 'An epic tale...', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'An epic tale...',
+    nullable: true,
+  })
   description!: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'https://comicvine.gamespot.com/a/medium.jpg',
     nullable: true,
   })
   imageUrl!: string | null;
 
-  @ApiPropertyOptional({ nullable: true })
+  @ApiPropertyOptional({ type: String, nullable: true })
   siteDetailUrl!: string | null;
 
   @ApiProperty({ type: [CvPersonCreditEntryDto] })
@@ -356,12 +381,14 @@ export class ComicvineQueueItemDto {
   level!: 'series' | 'book';
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
   seriesId!: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
@@ -373,13 +400,18 @@ export class ComicvineQueueItemDto {
   })
   status!: 'pending' | 'processing' | 'failed' | 'needs_review';
 
-  @ApiPropertyOptional({ example: 'No confident match found', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: 'No confident match found',
+    nullable: true,
+  })
   errorMessage!: string | null;
 
   @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
   createdAt!: Date;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Batman',
     nullable: true,
     description: 'Series or book title for display',

@@ -11,6 +11,7 @@ export class AudibleSearchResultDto {
   title!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: 'Book One of the Stormlight Archive',
     description: 'Book subtitle',
   })

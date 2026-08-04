@@ -28,6 +28,7 @@ export class BrowseResultDto {
   currentPath!: string;
 
   @ApiPropertyOptional({
+    type: String,
     example: '/',
     description: 'Parent directory path (null for root)',
   })

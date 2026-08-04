@@ -7,13 +7,25 @@ export class LibraryWatcherStatusResponseDto {
   })
   isWatching!: boolean;
 
-  @ApiPropertyOptional({ example: '2024-01-15T12:00:00.000Z', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '2024-01-15T12:00:00.000Z',
+    nullable: true,
+  })
   lastScanAt?: string | null;
 
-  @ApiPropertyOptional({ example: '/media/audiobooks', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '/media/audiobooks',
+    nullable: true,
+  })
   audiobookLibraryPath?: string | null;
 
-  @ApiPropertyOptional({ example: '/media/ebooks', nullable: true })
+  @ApiPropertyOptional({
+    type: String,
+    example: '/media/ebooks',
+    nullable: true,
+  })
   ebookLibraryPath?: string | null;
 }
 

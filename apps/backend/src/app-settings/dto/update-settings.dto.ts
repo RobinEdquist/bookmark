@@ -273,6 +273,7 @@ export class UpdateSettingsDto {
   signupsEnabled?: boolean;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Path to the audiobook library directory',
     example: '/media/audiobooks',
     nullable: true,
@@ -283,6 +284,7 @@ export class UpdateSettingsDto {
   audiobookLibraryPath?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Path to the ebook library directory',
     example: '/media/ebooks',
     nullable: true,
@@ -293,6 +295,7 @@ export class UpdateSettingsDto {
   ebookLibraryPath?: string | null;
 
   @ApiPropertyOptional({
+    type: String,
     description: 'Path to the comic library directory',
     example: '/media/comics',
     nullable: true,

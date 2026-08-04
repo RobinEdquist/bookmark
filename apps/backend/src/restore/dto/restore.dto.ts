@@ -56,6 +56,7 @@ export class UserMappingUpdateDto {
   absUserId!: string;
 
   @ApiProperty({
+    type: String,
     description: 'Corresponding user ID in SAV (null to skip user)',
     example: 'sav-user-456',
     nullable: true,
