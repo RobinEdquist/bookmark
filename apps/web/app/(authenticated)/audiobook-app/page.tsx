@@ -2,7 +2,15 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { Smartphone, AlertTriangle, QrCode, Camera, Settings, ExternalLink } from "lucide-react";
+import {
+  Smartphone,
+  AlertTriangle,
+  QrCode,
+  Camera,
+  Settings,
+  ExternalLink,
+  LogIn,
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -15,9 +23,14 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Button } from "@repo/ui/components/ui/button";
 import { cn } from "@repo/ui/lib/utils";
-import { useCreateApiKey, useMyApiKeys, MAX_API_KEYS, ApiKeyLimitError } from "../../../lib/use-api-keys";
+import {
+  useCreateApiKey,
+  useMyApiKeys,
+  MAX_API_KEYS,
+  ApiKeyLimitError,
+} from "../../../lib/use-api-keys";
 
-type SetupMethod = "qr" | "manual";
+type SetupMethod = "qr" | "signIn" | "manual";
 
 export default function AudiobookAppPage() {
   const t = useTranslations("audiobookApp");
@@ -84,9 +97,7 @@ export default function AudiobookAppPage() {
             <Smartphone className="h-8 w-8" />
             {tCommon("nav.audiobookApp")}
           </h1>
-          <p className="text-muted-foreground mt-2">
-            {t("description")}
-          </p>
+          <p className="text-muted-foreground mt-2">{t("description")}</p>
         </header>
 
         {/* Connect Card */}
@@ -107,11 +118,26 @@ export default function AudiobookAppPage() {
                   "flex-1 flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   setupMethod === "qr"
                     ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <QrCode className="h-4 w-4" />
                 {t("connect.app.methods.qr")}
+              </button>
+              <button
+                onClick={() => {
+                  setSetupMethod("signIn");
+                  setGeneratedKey(null);
+                }}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                  setupMethod === "signIn"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <LogIn className="h-4 w-4" />
+                {t("connect.app.methods.signIn")}
               </button>
               <button
                 onClick={() => {
@@ -122,7 +148,7 @@ export default function AudiobookAppPage() {
                   "flex-1 flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   setupMethod === "manual"
                     ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 <Settings className="h-4 w-4" />
@@ -137,17 +163,23 @@ export default function AudiobookAppPage() {
                   <>
                     {/* Instructions */}
                     <div className="rounded-lg bg-muted/50 p-4 space-y-4">
-                      {(["step1", "step2", "step3"] as const).map((stepKey, i) => (
-                        <div key={stepKey} className="flex items-start gap-3">
-                          <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
-                            {i + 1}
+                      {(["step1", "step2", "step3"] as const).map(
+                        (stepKey, i) => (
+                          <div key={stepKey} className="flex items-start gap-3">
+                            <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
+                              {i + 1}
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">
+                                {t(`connect.app.qr.${stepKey}.title`)}
+                              </p>
+                              <p className="text-sm text-muted-foreground">
+                                {t(`connect.app.qr.${stepKey}.description`)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">{t(`connect.app.qr.${stepKey}.title`)}</p>
-                            <p className="text-sm text-muted-foreground">{t(`connect.app.qr.${stepKey}.description`)}</p>
-                          </div>
-                        </div>
-                      ))}
+                        ),
+                      )}
                     </div>
 
                     {/* Notice when the API key cap is reached */}
@@ -156,8 +188,14 @@ export default function AudiobookAppPage() {
                         <div className="flex items-start gap-3">
                           <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
                           <div className="space-y-1">
-                            <p className="text-sm font-medium text-amber-600">{t("connect.app.limitReached.title")}</p>
-                            <p className="text-sm text-amber-600/80">{t("connect.app.limitReached.description", { max: MAX_API_KEYS })}</p>
+                            <p className="text-sm font-medium text-amber-600">
+                              {t("connect.app.limitReached.title")}
+                            </p>
+                            <p className="text-sm text-amber-600/80">
+                              {t("connect.app.limitReached.description", {
+                                max: MAX_API_KEYS,
+                              })}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -197,10 +235,7 @@ export default function AudiobookAppPage() {
                       </div>
 
                       {/* Open in App button for mobile users */}
-                      <Button
-                        asChild
-                        className="w-full max-w-xs"
-                      >
+                      <Button asChild className="w-full max-w-xs">
                         <a href={qrCodeUrl || "#"}>
                           <ExternalLink className="h-4 w-4 mr-2" />
                           {t("connect.app.openInApp")}
@@ -211,10 +246,7 @@ export default function AudiobookAppPage() {
                         {t("connect.app.openInAppNote")}
                       </p>
 
-                      <Button
-                        variant="outline"
-                        onClick={handleResetQrCode}
-                      >
+                      <Button variant="outline" onClick={handleResetQrCode}>
                         {t("connect.app.done")}
                       </Button>
                     </div>
@@ -223,22 +255,69 @@ export default function AudiobookAppPage() {
               </>
             )}
 
+            {/* Sign-in Setup — the app mints its own key, so there is nothing
+                to generate or copy here. */}
+            {setupMethod === "signIn" && (
+              <div className="space-y-4">
+                <div className="rounded-lg bg-muted/50 p-4 space-y-4">
+                  {(["step1", "step2", "step3", "step4"] as const).map(
+                    (stepKey, i) => (
+                      <div key={stepKey} className="flex items-start gap-3">
+                        <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
+                          {i + 1}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">
+                            {t(`connect.app.signIn.${stepKey}.title`)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {t(`connect.app.signIn.${stepKey}.description`)}
+                          </p>
+                        </div>
+                      </div>
+                    ),
+                  )}
+                </div>
+
+                {serverUrl && (
+                  <div className="rounded-lg border p-4 space-y-2">
+                    <p className="text-sm font-medium">
+                      {t("connect.app.signIn.serverDetails")}
+                    </p>
+                    <code className="block font-mono bg-muted px-3 py-2 rounded text-xs break-all">
+                      {serverUrl}
+                    </code>
+                  </div>
+                )}
+
+                <p className="text-sm text-muted-foreground">
+                  {t("connect.app.signIn.note")}
+                </p>
+              </div>
+            )}
+
             {/* Manual Setup */}
             {setupMethod === "manual" && (
               <div className="space-y-4">
                 {/* Instructions */}
                 <div className="rounded-lg bg-muted/50 p-4 space-y-4">
-                  {(["step1", "step2", "step3", "step4", "step5"] as const).map((stepKey, i) => (
-                    <div key={stepKey} className="flex items-start gap-3">
-                      <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
-                        {i + 1}
+                  {(["step1", "step2", "step3", "step4", "step5"] as const).map(
+                    (stepKey, i) => (
+                      <div key={stepKey} className="flex items-start gap-3">
+                        <div className="bg-primary/10 text-primary rounded-full w-6 h-6 flex items-center justify-center text-sm font-medium shrink-0">
+                          {i + 1}
+                        </div>
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">
+                            {t(`connect.app.manual.${stepKey}.title`)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {t(`connect.app.manual.${stepKey}.description`)}
+                          </p>
+                        </div>
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium">{t(`connect.app.manual.${stepKey}.title`)}</p>
-                        <p className="text-sm text-muted-foreground">{t(`connect.app.manual.${stepKey}.description`)}</p>
-                      </div>
-                    </div>
-                  ))}
+                    ),
+                  )}
                 </div>
 
                 {/* Server URL Card — Bookmark's setup screen takes the full
@@ -246,7 +325,9 @@ export default function AudiobookAppPage() {
                     than splitting protocol/host/port. */}
                 {serverUrl && (
                   <div className="rounded-lg border p-4 space-y-2">
-                    <p className="text-sm font-medium">{t("connect.app.manual.serverDetails")}</p>
+                    <p className="text-sm font-medium">
+                      {t("connect.app.manual.serverDetails")}
+                    </p>
                     <code className="block font-mono bg-muted px-3 py-2 rounded text-xs break-all">
                       {serverUrl}
                     </code>

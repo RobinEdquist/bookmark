@@ -194,6 +194,33 @@ code {
   color: var(--ink-muted);
 }
 
+/* Status pill for something that is not shipping yet. Quiet on purpose: it
+   should read as an honest note, not a marketing badge. */
+.badge-soon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--night-panel);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.badge-soon::before {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+}
+
 /* Two-column feature fold: text beside a big visual */
 .fold {
   display: grid;

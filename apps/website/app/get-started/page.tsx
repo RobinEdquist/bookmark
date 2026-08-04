@@ -251,13 +251,30 @@ export default function GetStarted() {
             <div>
               <h3>Pair your phone</h3>
               <p>
-                Install the Bookmark app on iPhone or Android (both currently in
-                beta), open the <span className="ui-path">Audiobook App</span>{" "}
-                page in the web sidebar, and scan the QR code. It carries the
-                server address and a fresh API key in one scan; no passwords
-                retyped on a phone keyboard. Manual entry works too if you
-                prefer.
+                The Bookmark apps for iPhone and Android reach public beta soon.
+                Once you have one installed, there are three ways to connect it,
+                all under the <span className="ui-path">Audiobook App</span>{" "}
+                page in the web sidebar.
               </p>
+              <ul className="prose-list">
+                <li>
+                  <strong>Scan the QR code.</strong> It carries the server
+                  address and a fresh access key in one scan, with no passwords
+                  retyped on a phone keyboard.
+                </li>
+                <li>
+                  <strong>Sign in inside the app.</strong> Enter your server
+                  address and use your normal Bookmark account, or your identity
+                  provider if you have single sign-on switched on. The app reads
+                  which methods your server offers and shows only those, then
+                  creates its own access key so there is nothing to copy across.
+                </li>
+                <li>
+                  <strong>Paste a key by hand.</strong> Generate one under{" "}
+                  <span className="ui-path">Preferences</span> if you would
+                  rather not do either of the above.
+                </li>
+              </ul>
             </div>
           </div>
         </div>

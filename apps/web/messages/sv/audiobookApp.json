@@ -6,6 +6,7 @@
     "app": {
       "methods": {
         "qr": "QR-kod",
+        "signIn": "Logga in",
         "manual": "Manuellt"
       },
       "qr": {
@@ -19,8 +20,28 @@
         },
         "step3": {
           "title": "Skanna eller tryck för att öppna",
-          "description": "Skanna QR-koden med telefonens kamera, eller öppna länken från enheten — Bookmark startar med server och nyckel ifyllda."
+          "description": "Skanna QR-koden med telefonens kamera, eller öppna länken från enheten. Bookmark startar med server och nyckel ifyllda."
         }
+      },
+      "signIn": {
+        "step1": {
+          "title": "Installera Bookmark",
+          "description": "Installera Bookmark-appen på din iPhone eller Android-enhet."
+        },
+        "step2": {
+          "title": "Ange din serveradress",
+          "description": "Öppna appen och skriv in server-URL:en som visas nedan. Appen kontrollerar vilka inloggningsmetoder din server erbjuder."
+        },
+        "step3": {
+          "title": "Logga in med ditt konto",
+          "description": "Använd samma e-postadress och lösenord som du använder här, eller tryck på SSO-knappen om din server har enkel inloggning aktiverad."
+        },
+        "step4": {
+          "title": "Klart",
+          "description": "Appen skapar sin egen åtkomstnyckel för den här enheten, så det finns inget att kopiera över. Du kan återkalla den senare under Preferenser."
+        },
+        "serverDetails": "Din server-URL",
+        "note": "Ingen API-nyckel behövs: appen skapar en åt sig själv när du har loggat in. Om du redan har nått nyckelgränsen meddelar appen det."
       },
       "manual": {
         "step1": {
@@ -56,7 +77,7 @@
       "keyError": "Kunde inte generera anslutningskod",
       "keyLimitError": "Gräns för API-nycklar nådd. Ta bort en oanvänd nyckel under Inställningar först.",
       "scanInstructions": "Skanna denna QR-kod med telefonens kamera",
-      "scanNote": "Se till att Bookmark är installerad. När du skannar koden öppnas appen med server och nyckel ifyllda — tryck på Anslut i appen för att slutföra.",
+      "scanNote": "Se till att Bookmark är installerad. När du skannar koden öppnas appen med server och nyckel ifyllda; tryck på Anslut i appen för att slutföra.",
       "openInApp": "Öppna i Bookmark",
       "openInAppNote": "Redan på din telefon? Tryck på knappen ovan för att öppna Bookmark med dina uppgifter ifyllda.",
       "done": "Klar"

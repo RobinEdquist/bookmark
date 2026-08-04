@@ -6,6 +6,7 @@
     "app": {
       "methods": {
         "qr": "QR Code",
+        "signIn": "Sign in",
         "manual": "Manual"
       },
       "qr": {
@@ -19,8 +20,28 @@
         },
         "step3": {
           "title": "Scan or tap to open",
-          "description": "Scan the QR code with your phone's camera, or open the link from your device — Bookmark will launch with your server and key pre-filled."
+          "description": "Scan the QR code with your phone's camera, or open the link from your device. Bookmark will launch with your server and key pre-filled."
         }
+      },
+      "signIn": {
+        "step1": {
+          "title": "Install Bookmark",
+          "description": "Install the Bookmark app on your iPhone or Android device."
+        },
+        "step2": {
+          "title": "Enter your server address",
+          "description": "Open the app and type the server URL shown below. The app checks which sign-in methods your server offers."
+        },
+        "step3": {
+          "title": "Sign in with your account",
+          "description": "Use the same email and password you use here, or tap the SSO button if your server has single sign-on enabled."
+        },
+        "step4": {
+          "title": "That is it",
+          "description": "The app creates its own access key for this device, so there is nothing to copy across. You can revoke it later under Preferences."
+        },
+        "serverDetails": "Your Server URL",
+        "note": "No API key needed: the app generates one for itself once you have signed in. If you have already reached the key limit, the app will tell you so."
       },
       "manual": {
         "step1": {
@@ -56,7 +77,7 @@
       "keyError": "Failed to generate connection code",
       "keyLimitError": "API key limit reached. Remove an unused key in Preferences first.",
       "scanInstructions": "Scan this QR code with your phone's camera",
-      "scanNote": "Make sure Bookmark is installed. When you scan the code, the app will open with your server and key pre-filled — tap Connect inside the app to finish.",
+      "scanNote": "Make sure Bookmark is installed. When you scan the code, the app will open with your server and key pre-filled; tap Connect inside the app to finish.",
       "openInApp": "Open in Bookmark",
       "openInAppNote": "Already on your phone? Tap the button above to open Bookmark with your details pre-filled.",
       "done": "Done"
