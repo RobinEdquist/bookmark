@@ -19,7 +19,7 @@ interface AppLogoProps {
 }
 
 export function AppLogo({ onClick }: AppLogoProps) {
-  const text = "bookmarks";
+  const text = "bookmark";
 
   // Generate random colors for each letter, memoized to prevent re-renders
   const letterColors = useMemo(() => {
@@ -40,7 +40,7 @@ export function AppLogo({ onClick }: AppLogoProps) {
     <Link
       href="/home"
       onClick={handleClick}
-      aria-label="bookmarks - Go to home"
+      aria-label="bookmark - Go to home"
       className="block font-[family-name:var(--font-neonderthaw)] text-5xl leading-tight select-none transition-all duration-300 hover:brightness-125 hover:saturate-150 hover:drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]"
     >
       {text.split("").map((char, index) => {

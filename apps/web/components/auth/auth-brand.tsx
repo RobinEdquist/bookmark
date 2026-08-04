@@ -18,7 +18,7 @@ export function AuthBrand() {
             "0 0 10px hsl(var(--primary) / 0.65), 0 0 28px hsl(var(--primary) / 0.4)",
         }}
       >
-        bookmarks
+        bookmark
       </span>
       <p className="text-sm text-muted-foreground">{t("tagline")}</p>
     </div>
