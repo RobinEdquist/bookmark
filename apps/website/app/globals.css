@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Bookmark marketing site — design tokens & base
+   Bookmark marketing site: design tokens & base
    Voice: a neon bookmark sign glowing in a dark bookshop window.
    ========================================================================== */
 
@@ -22,11 +22,19 @@
   --magenta-soft: oklch(71% 0.27 340 / 0.14);
   --cyan: oklch(86% 0.125 200);
   --cyan-soft: oklch(86% 0.125 200 / 0.12);
-  --neon-stroke: linear-gradient(180deg, var(--magenta), oklch(97% 0.02 300), var(--cyan));
+  --neon-stroke: linear-gradient(
+    180deg,
+    var(--magenta),
+    oklch(97% 0.02 300),
+    var(--cyan)
+  );
 
   /* Type */
-  --font-sans: var(--font-geist), -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --font-sans:
+    var(--font-geist), -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "Segoe UI", system-ui, Roboto, sans-serif;
+  --font-mono:
+    var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-script: var(--font-neonderthaw), cursive;
 
   /* Motion */
@@ -62,13 +70,17 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Ambient room light from the sign — fixed, very quiet */
+/* Ambient room light from the sign; fixed, very quiet */
 .ambient {
   position: fixed;
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(52rem 36rem at 18% -8%, var(--magenta-soft), transparent 65%),
+    radial-gradient(
+      52rem 36rem at 18% -8%,
+      var(--magenta-soft),
+      transparent 65%
+    ),
     radial-gradient(56rem 40rem at 88% 12%, var(--cyan-soft), transparent 65%),
     var(--night);
 }
@@ -497,7 +509,8 @@ code {
 
 /* Neon sign flicker-on */
 .neon-sign {
-  filter: drop-shadow(0 0 14px oklch(71% 0.27 340 / 0.45)) drop-shadow(0 0 34px oklch(86% 0.125 200 / 0.3));
+  filter: drop-shadow(0 0 14px oklch(71% 0.27 340 / 0.45))
+    drop-shadow(0 0 34px oklch(86% 0.125 200 / 0.3));
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -511,19 +524,49 @@ code {
 }
 
 @keyframes neon-on {
-  0% { opacity: 0; filter: none; }
-  6% { opacity: 0.75; }
-  9% { opacity: 0.2; filter: none; }
-  14% { opacity: 0.9; }
-  20% { opacity: 0.35; }
-  28% { opacity: 1; filter: drop-shadow(0 0 14px oklch(71% 0.27 340 / 0.45)) drop-shadow(0 0 34px oklch(86% 0.125 200 / 0.3)); }
-  36% { opacity: 0.6; }
-  44%, 100% { opacity: 1; filter: drop-shadow(0 0 14px oklch(71% 0.27 340 / 0.45)) drop-shadow(0 0 34px oklch(86% 0.125 200 / 0.3)); }
+  0% {
+    opacity: 0;
+    filter: none;
+  }
+  6% {
+    opacity: 0.75;
+  }
+  9% {
+    opacity: 0.2;
+    filter: none;
+  }
+  14% {
+    opacity: 0.9;
+  }
+  20% {
+    opacity: 0.35;
+  }
+  28% {
+    opacity: 1;
+    filter: drop-shadow(0 0 14px oklch(71% 0.27 340 / 0.45))
+      drop-shadow(0 0 34px oklch(86% 0.125 200 / 0.3));
+  }
+  36% {
+    opacity: 0.6;
+  }
+  44%,
+  100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 14px oklch(71% 0.27 340 / 0.45))
+      drop-shadow(0 0 34px oklch(86% 0.125 200 / 0.3));
+  }
 }
 
 @keyframes neon-breathe {
-  0%, 100% { filter: drop-shadow(0 0 14px oklch(71% 0.27 340 / 0.45)) drop-shadow(0 0 34px oklch(86% 0.125 200 / 0.3)); }
-  50% { filter: drop-shadow(0 0 20px oklch(71% 0.27 340 / 0.6)) drop-shadow(0 0 46px oklch(86% 0.125 200 / 0.42)); }
+  0%,
+  100% {
+    filter: drop-shadow(0 0 14px oklch(71% 0.27 340 / 0.45))
+      drop-shadow(0 0 34px oklch(86% 0.125 200 / 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px oklch(71% 0.27 340 / 0.6))
+      drop-shadow(0 0 46px oklch(86% 0.125 200 / 0.42));
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -595,7 +638,9 @@ code {
   border-radius: 6px;
   padding: 0.25rem 0.6rem;
   cursor: pointer;
-  transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
+  transition:
+    color 0.18s var(--ease),
+    border-color 0.18s var(--ease);
 }
 
 .terminal-copy:hover {
@@ -679,6 +724,49 @@ code {
   margin-top: 0.65rem;
 }
 
+/* Long-form legal pages (privacy policy). Narrower measure and plainer type
+   than the marketing sections, because this is meant to be read, not skimmed. */
+.legal {
+  max-width: 46rem;
+}
+
+.legal h2 {
+  margin-top: 2.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  color: var(--ink);
+}
+
+.legal p {
+  color: var(--ink-muted);
+  font-size: 0.9875rem;
+  line-height: 1.7;
+}
+
+.legal p + p {
+  margin-top: 0.85rem;
+}
+
+.legal .prose-list {
+  margin-top: 0.85rem;
+}
+
+.legal strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.legal a {
+  color: var(--cyan);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.legal a:hover {
+  color: var(--ink);
+}
+
 /* Matches .step p, so a list of instructions reads as the same voice as the
    prose around it rather than a nested block. */
 .prose-list {
@@ -700,7 +788,7 @@ code {
 }
 
 .prose-list li::before {
-  content: "—";
+  content: "\2022";
   position: absolute;
   left: -1.1rem;
   color: var(--magenta);

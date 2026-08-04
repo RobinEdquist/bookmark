@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Product mockups — the web app, the phone player, demos.
+   Product mockups: the web app, the phone player, demos.
    Hand-rebuilt UI so every "screenshot" is crisp at any DPI and animatable.
    ========================================================================== */
 
@@ -455,7 +455,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   Phone — rebuilt from the iOS app's SwiftUI sources.
+   Phone, rebuilt from the iOS app's SwiftUI sources.
    Tokens: Surface.background #07050D, Ink.primary #EDE6FF, Ink.secondary
    #8E83AD, Brand.magenta #FF2EA5. Sizes are pt x 0.06em.
    -------------------------------------------------------------------------- */

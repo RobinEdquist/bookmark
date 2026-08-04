@@ -31,13 +31,13 @@ const DESCRIPTION =
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Bookmark — a self-hosted home for your audiobooks",
+  title: "Bookmark: a self-hosted home for your audiobooks",
   description: DESCRIPTION,
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Bookmark — a self-hosted home for your audiobooks",
+    title: "Bookmark: a self-hosted home for your audiobooks",
     description: DESCRIPTION,
     url: SITE_URL,
     siteName: "Bookmark",
@@ -51,7 +51,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable} ${neonderthaw.variable}`}>
+    <html
+      lang="en"
+      className={`${geist.variable} ${geistMono.variable} ${neonderthaw.variable}`}
+    >
       <body>
         <noscript>
           <style>{`.reveal { opacity: 1 !important; transform: none !important; }`}</style>
