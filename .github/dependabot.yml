@@ -39,6 +39,26 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    # Majors that cannot pass CI until something upstream of us moves first.
+    # Dependabot reopens these every time a new major ships, so each one is
+    # parked here with the exact condition that unblocks it — delete the entry
+    # and let the PR land once that condition is met.
+    ignore:
+      # ts-jest declares `typescript: >=4.3 <7`, and TS 7 no longer exposes the
+      # JS compiler API ts-jest needs, so the backend e2e suite cannot even
+      # reach globalSetup. Unblocks when ts-jest ships TS 7 support.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # eslint-plugin-react peers at `^9.7` max; under ESLint 10 its rules
+      # crash on load (`contextOrFilename.getFilename is not a function`).
+      # Unblocks when eslint-plugin-react adds an ESLint 10 peer range.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      # archiver 8 is ESM-only (`"type": "module"`) while apps/backend compiles
+      # to CommonJS, so `import archiver from 'archiver'` stops being callable
+      # (TS2349). Unblocks when the backend moves to ESM.
+      - dependency-name: "archiver"
+        update-types: ["version-update:semver-major"]
     commit-message:
       prefix: "chore(deps)"
 
