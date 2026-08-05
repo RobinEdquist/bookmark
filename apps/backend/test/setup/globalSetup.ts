@@ -14,7 +14,7 @@ declare global {
 export default async function globalSetup() {
   console.log('\n🐘 Starting PostgreSQL container...');
 
-  const container = await new PostgreSqlContainer('postgres:16')
+  const container = await new PostgreSqlContainer('postgres:18')
     .withDatabase('bookmark_test')
     .withUsername('postgres')
     .withPassword('postgres')

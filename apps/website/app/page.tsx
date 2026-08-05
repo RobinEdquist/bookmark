@@ -307,9 +307,9 @@ export default function Home() {
             <p className="kicker kicker-magenta">Self-hosting</p>
             <h2 className="section-title">From zero to listening tonight</h2>
             <p className="section-lede">
-              One image for the app, one for Postgres. Copy the config template,
-              point it at your media folders, and start both with a single
-              command. The first account you create becomes the admin.
+              One image, database included. Copy the config template, point it
+              at your media folders, and start it with a single command. The
+              first account you create becomes the admin.
             </p>
             <div
               className="hero-ctas"

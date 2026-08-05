@@ -56,6 +56,7 @@ simple-audiobook-vault/
 ├── apps/
 │   ├── web/                 # Next.js 16 frontend (port 3001)
 │   ├── backend/             # NestJS REST API (port 3000)
+│   ├── website/             # Static marketing site (port 3002, never deployed with the app)
 │   ├── mobile-ios/          # Future: React Native iOS app
 │   └── mobile-android/      # Future: React Native Android app
 ├── packages/
@@ -75,9 +76,9 @@ simple-audiobook-vault/
 | **UI Framework**    | React                | 19.x    |
 | **Styling**         | Tailwind CSS         | 4.x     |
 | **Backend**         | NestJS               | 11.x    |
-| **Database**        | PostgreSQL           | 16.x    |
-| **ORM**             | Drizzle ORM          | 0.44.x  |
-| **Auth**            | Better Auth          | 1.4.x   |
+| **Database**        | PostgreSQL           | 18.x    |
+| **ORM**             | Drizzle ORM          | 0.45.x  |
+| **Auth**            | Better Auth          | 1.6.x   |
 | **State**           | TanStack React Query | 5.x     |
 | **Package Manager** | pnpm                 | 9.x     |
 | **Monorepo**        | Turborepo            | 2.x     |
@@ -1506,7 +1507,7 @@ Before deploying to production:
 ## Resources
 
 - **Scope Document:** `docs/scope.md`
-- **API Documentation:** `docs/api/` (generate with Swagger)
+- **API Documentation:** OpenAPI spec at `/api/docs-json`, Swagger UI at `/api/docs`; `pnpm --filter backend openapi:export` writes the spec to a file. Hand-written specs for external contracts live in `docs/api/`.
 - **Component Storybook:** Run `pnpm storybook` (when implemented)
 - **Hardcover API:** https://hardcover.app/graphql
 
