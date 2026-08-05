@@ -6,7 +6,7 @@ import { Terminal } from "../../components/terminal";
 export const metadata: Metadata = {
   title: "Get started with Bookmark",
   description:
-    "Self-host Bookmark in about five minutes: one container, one compose file, and your audiobook folder. This guide walks through the first run, adding your library, and pairing the mobile apps.",
+    "Set up Bookmark in about five minutes: one container, one file, and your audiobook folder.",
 };
 
 /**
@@ -21,17 +21,16 @@ const COMPOSE = `services:
     container_name: bookmark
     restart: unless-stopped
     init: true
-    # Give the database time to shut down cleanly on stop. Docker's 10s
-    # default can cut a large one off mid-write.
+    # Time to shut the database down cleanly on stop.
     stop_grace_period: 2m
     environment:
-      # Where you reach Bookmark. Both need your real address or logins break.
+      # The address you open Bookmark at. Both lines need it.
       BETTER_AUTH_URL: http://localhost:3001
       UI_URL: http://localhost:3001
-      # Your timezone, so dates and times match your clock. Defaults to UTC.
+      # Your timezone, so times match your clock.
       TZ: Europe/Stockholm # change this
     volumes:
-      # Database, covers and cache. Keep this on local disk, not a NAS share.
+      # Bookmark's own data. Keep this on local disk, not a NAS share.
       - ./data/app:/data
       # Your audiobooks. Read-only: Bookmark never writes here.
       - /path/to/your/audiobooks:/library/audiobooks:ro
@@ -41,8 +40,8 @@ const COMPOSE = `services:
     ports:
       - "3001:3001"
 
-  # Optional engine for AI-narrated audiobooks. Sits idle until you ask for it
-  # with: docker compose --profile tts up -d
+  # Optional, for AI-narrated audiobooks. Idle until you start it with:
+  # docker compose --profile tts up -d
   tts:
     image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
     container_name: bookmark-tts
@@ -90,19 +89,17 @@ export default function GetStarted() {
           From zero to listening
         </h1>
         <p className="section-lede">
-          Bookmark ships as a single container &mdash; web app, API, and
-          database together. One file to paste, no database to set up, and about
-          five minutes if your audiobooks are already in a folder.
+          One container, one file to paste, about five minutes. Nothing to
+          clone, nothing to build.
         </p>
         <p
           className="section-lede prose-muted"
           style={{ marginTop: "0.9rem", fontSize: "0.9875rem" }}
         >
-          You will need{" "}
+          You need{" "}
           <strong style={{ color: "var(--ink)" }}>Docker with Compose</strong>{" "}
-          and a folder of audiobooks (M4B, MP3, M4A, or OGG). Ebooks (EPUB) and
-          comics (CBZ, CBR, PDF) are optional and can join later. There is
-          nothing to clone and nothing to build.
+          and a folder of audiobooks (M4B, MP3, M4A, OGG). Ebooks and comics are
+          optional and can join later.
         </p>
       </section>
 
@@ -112,10 +109,8 @@ export default function GetStarted() {
             <div>
               <h3>Create the compose file</h3>
               <p>
-                Make a folder to keep Bookmark in, and save the file below
-                inside it as <code className="ui-path">docker-compose.yml</code>
-                . This is the entire deployment, with no second config file to
-                copy.
+                Make a folder for Bookmark, then save the file below inside it
+                as <code className="ui-path">docker-compose.yml</code>.
               </p>
               <Terminal
                 title="~ on your-server"
@@ -134,74 +129,59 @@ export default function GetStarted() {
 
           <div className="step">
             <div>
-              <h3>Change the lines that matter</h3>
-              <p>
-                Bookmark will start on the defaults, but you would be running an
-                empty library. Three edits, all marked in the file:
-              </p>
+              <h3>Edit three lines</h3>
+              <p>Everything you need to change is marked in the file:</p>
               <ul className="prose-list">
                 <li>
                   <strong>Your audiobook folder</strong>: replace{" "}
-                  <code className="ui-path">/path/to/your/audiobooks</code> with
-                  the real path on your machine. The part after the colon stays
-                  as it is; that is where the folder appears inside the
-                  container.
+                  <code className="ui-path">/path/to/your/audiobooks</code>.
+                  Leave the part after the colon alone.
                 </li>
                 <li>
-                  <strong>The ebook and comic lines</strong>: set them to real
-                  paths, or delete both lines if you only have audiobooks.
+                  <strong>Ebooks and comics</strong>: real paths, or delete both
+                  lines.
                 </li>
                 <li>
-                  <strong>Your timezone</strong>: set{" "}
-                  <code className="ui-path">TZ</code> to your own zone &mdash;{" "}
-                  <code className="ui-path">Europe/Berlin</code>,{" "}
-                  <code className="ui-path">America/New_York</code>. Leave it
-                  out and everything is timestamped in UTC, which is rarely the
-                  clock you actually read. The{" "}
+                  <strong>Your timezone</strong>: for example{" "}
+                  <code className="ui-path">America/New_York</code>.{" "}
                   <a
                     href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
                     className="link-arrow"
                     style={{ fontSize: "inherit" }}
                   >
-                    full list of zone names
-                  </a>{" "}
-                  has yours.
+                    Find yours
+                  </a>
+                  .
                 </li>
               </ul>
               <p style={{ marginTop: "1rem" }}>
-                Your media mounts are read-only, so Bookmark can scan your files
-                but never rewrite them.
+                Your folders are read-only. Bookmark reads your files and never
+                changes them.
               </p>
             </div>
           </div>
 
           <div className="step">
             <div>
-              <h3>Start it and claim the admin account</h3>
+              <h3>Start it and sign up</h3>
               <Terminal title="~/bookmark" copyText={"docker compose up -d"}>
                 <span className="t-prompt">$ </span>docker compose up -d
               </Terminal>
               <p style={{ marginTop: "1rem" }}>
                 Open <code className="ui-path">http://localhost:3001</code> and
-                sign up. The first account created becomes the admin; everyone
-                after that is a regular listener with their own progress, lists,
-                and preferences. An auth secret is generated and persisted for
-                you on first start, which is why the file above does not mention
-                one.
+                sign up. The first account is the admin. Everyone after that is
+                a listener with their own progress and lists.
               </p>
             </div>
           </div>
 
           <div className="step">
             <div>
-              <h3>Let the wizard take it from here</h3>
+              <h3>Let the wizard finish</h3>
               <p>
-                Your first sign-in opens a short setup wizard where you confirm
-                your library folders, and scanning starts automatically. Covers,
-                chapters, and metadata fill in with live progress, and Bookmark
-                keeps watching the folders for new files from then on; big
-                libraries keep importing in the background while you start
-                listening. Everything stays adjustable later under{" "}
+                A short wizard confirms your folders, then scanning starts on
+                its own. Covers and chapters fill in while you browse, and new
+                files are picked up automatically. Change anything later under{" "}
                 <span className="ui-path">Settings → Libraries</span>.
               </p>
             </div>
@@ -209,12 +189,11 @@ export default function GetStarted() {
 
           <div className="step">
             <div>
-              <h3>Take it beyond localhost</h3>
+              <h3>Use your own domain</h3>
               <p>
-                To reach Bookmark on your own domain, point your reverse proxy
-                at port <code className="ui-path">3001</code> and change both
-                address lines in the <code className="ui-path">bookmark</code>{" "}
-                service:
+                Point your reverse proxy at port{" "}
+                <code className="ui-path">3001</code>, then put your address on
+                both lines:
               </p>
               <div className="terminal env-block">
                 <div className="terminal-bar">
@@ -230,13 +209,9 @@ export default function GetStarted() {
                 </pre>
               </div>
               <p style={{ marginTop: "1rem" }}>
-                Both take the address your browser uses, not a container port
-                &mdash; the API is never reached directly, so neither of these
-                is ever <code className="ui-path">:3000</code>. They are used
-                for auth callbacks and CORS, so logins break if they do not
-                match what is in your address bar. Re-run{" "}
-                <code className="ui-path">docker compose up -d</code> after
-                changing them.
+                They have to match the address in your browser, or logins fail.
+                Run <code className="ui-path">docker compose up -d</code> again
+                afterwards.
               </p>
             </div>
           </div>
@@ -245,30 +220,11 @@ export default function GetStarted() {
             <div>
               <h3>Pair your phone</h3>
               <p>
-                The Bookmark apps for iPhone and Android reach public beta soon.
-                Once you have one installed, there are three ways to connect it,
-                all under the <span className="ui-path">Audiobook App</span>{" "}
-                page in the web sidebar.
+                The iPhone and Android apps reach public beta soon. When you
+                have one, open <span className="ui-path">Audiobook App</span> in
+                the sidebar and either scan the QR code or sign in with your
+                usual account. No keys to type.
               </p>
-              <ul className="prose-list">
-                <li>
-                  <strong>Scan the QR code.</strong> It carries the server
-                  address and a fresh access key in one scan, with no passwords
-                  retyped on a phone keyboard.
-                </li>
-                <li>
-                  <strong>Sign in inside the app.</strong> Enter your server
-                  address and use your normal Bookmark account, or your identity
-                  provider if you have single sign-on switched on. The app reads
-                  which methods your server offers and shows only those, then
-                  creates its own access key so there is nothing to copy across.
-                </li>
-                <li>
-                  <strong>Paste a key by hand.</strong> Generate one under{" "}
-                  <span className="ui-path">Preferences</span> if you would
-                  rather not do either of the above.
-                </li>
-              </ul>
             </div>
           </div>
         </div>
@@ -283,29 +239,9 @@ export default function GetStarted() {
         </h2>
         <div style={{ display: "grid", gap: "1rem", marginTop: "1.75rem" }}>
           <div className="note">
-            <strong>Staying current.</strong> The{" "}
-            <code className="ui-path">latest</code> tag follows released
-            versions, so{" "}
-            <code className="ui-path">
-              docker compose pull &amp;&amp; docker compose up -d
-            </code>{" "}
-            takes you to the newest one. Bookmark also checks for new releases
-            on its own and marks the sidebar when you are behind; set{" "}
-            <code className="ui-path">
-              UPDATE_CHECK_ENABLED: &quot;false&quot;
-            </code>{" "}
-            in the <code className="ui-path">bookmark</code> environment to
-            switch that off. Prefer to live on the very latest commit? Swap the
-            image tag for <code className="ui-path">edge</code>, which is
-            untested by release standards, so keep backups.
-          </div>
-          <div className="note">
             <strong>AI narration.</strong> Bookmark can narrate an ebook into a
-            real M4B. It writes the result to a{" "}
-            <code className="ui-path">generated</code> folder inside your
-            audiobook library, and since that library is mounted read-only, this
-            is the one feature that needs an extra mount. Create the folder,
-            then add the line:
+            real audiobook. Make a folder for the results first, then add it to
+            the file:
             <br />
             <br />
             <code className="ui-path">
@@ -318,16 +254,11 @@ export default function GetStarted() {
             </code>
             <br />
             <br />
-            The folder has to exist before you add the mount, because Docker
-            cannot create a mountpoint inside a read-only mount, and the
-            container will refuse to start if it is missing. The mount then
-            shadows that folder, so your originals are still never written to;
-            the generated files live under{" "}
-            <code className="ui-path">./data</code> with everything else
-            Bookmark owns.
+            The folder has to exist before you add that line, or Bookmark will
+            not start.
             <br />
             <br />
-            Then start the engine with{" "}
+            Then run{" "}
             <code className="ui-path">
               docker compose --profile tts up -d
             </code>{" "}
@@ -335,16 +266,13 @@ export default function GetStarted() {
             <span className="ui-path">
               Settings → Integrations → Text-to-speech
             </span>
-            . Any OpenAI-compatible text-to-speech server works as a drop-in
-            replacement, self-hosted or cloud.
+            .
           </div>
           <div className="note">
             <strong>Single sign-on.</strong> Add{" "}
             <code className="ui-path">OIDC_ENABLED: &quot;true&quot;</code> plus
-            your issuer URL, client ID, and client secret to the{" "}
-            <code className="ui-path">bookmark</code> environment to slot
-            Bookmark into an existing Authentik, Keycloak, or Authelia setup.
-            The{" "}
+            your issuer URL, client ID, and client secret to sign in through
+            Authentik, Keycloak, or Authelia. The{" "}
             <a
               href={`${GITHUB_URL}#configuration`}
               className="link-arrow"
@@ -355,75 +283,11 @@ export default function GetStarted() {
             lists the exact names.
           </div>
           <div className="note">
-            <strong>Already run a Postgres server?</strong> Add{" "}
-            <code className="ui-path">DATABASE_URL</code> to the{" "}
-            <code className="ui-path">bookmark</code> environment and the
-            built-in database never starts &mdash; Bookmark connects to yours
-            instead. Create an empty database and a user that owns it; the
-            schema is applied on first start. The user needs permission to
-            create extensions. Everything else in this guide is unchanged.
-          </div>
-          <div className="note">
-            <strong>Backups.</strong> Everything Bookmark writes lives in the{" "}
-            <code className="ui-path">./data</code> folder next to your compose
-            file: the database, covers, the generated auth secret, and any
-            AI-narrated audiobooks. Your media is never written to, so it needs
-            no backup beyond whatever you already do.
-            <br />
-            <br />
-            One catch worth knowing: copying{" "}
-            <code className="ui-path">./data</code> while Bookmark is running is
-            not a safe database backup. Postgres is writing as you copy, so you
-            can capture a half-written state that refuses to start when
-            restored. Stop it first, and the copy is sound:
-            <br />
-            <br />
-            <code className="ui-path">docker compose down</code> → copy{" "}
-            <code className="ui-path">./data</code> →{" "}
-            <code className="ui-path">docker compose up -d</code>
-            <br />
-            <br />
-            If you would rather not stop anything, take a database dump while it
-            runs and keep it alongside your copy of{" "}
-            <code className="ui-path">./data/app</code>:
-            <br />
-            <br />
-            <code className="ui-path">
-              docker compose exec -T bookmark pg_dump -U bookmark bookmark &gt;
-              bookmark.sql
-            </code>
-            <br />
-            <br />
-            That dump restores into any Bookmark instance. The database folder
-            itself, <code className="ui-path">./data/app/db</code>, is only
-            readable by the Postgres major version that created it &mdash; which
-            is why the image pins one rather than tracking the latest, and why
-            the dump is the portable copy.{" "}
-            <strong style={{ color: "var(--ink)" }}>
-              Scheduled backups from inside Bookmark are coming
-            </strong>
-            : one button, correct by construction, no shell required.
-          </div>
-          <div className="note">
-            <strong>Building from source instead.</strong> If you would rather
-            compile the image yourself, clone the{" "}
-            <a
-              href={GITHUB_URL}
-              className="link-arrow"
-              style={{ fontSize: "inherit" }}
-            >
-              repository
-            </a>{" "}
-            and use the build override it ships with; that path is for
-            contributors and does not need this guide.
-          </div>
-          <div className="note">
-            <strong>Something not working?</strong>{" "}
-            <code className="ui-path">docker compose logs -f bookmark</code>{" "}
-            tells you most of the story. Login loops usually mean{" "}
-            <code className="ui-path">BETTER_AUTH_URL</code> does not match the
-            address in your browser. The full configuration reference lives in
-            the{" "}
+            <strong>Something not working?</strong> Run{" "}
+            <code className="ui-path">docker compose logs -f bookmark</code>.
+            Login problems almost always mean the two address lines do not match
+            the address in your browser. Everything you can configure is listed
+            in the{" "}
             <a
               href={`${GITHUB_URL}#configuration`}
               className="link-arrow"
