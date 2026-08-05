@@ -7,7 +7,23 @@ import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import { toast } from "sonner";
 import DOMPurify from "dompurify";
-import { ArrowLeft, ChevronLeft, ChevronRight, Calendar, User, BookOpen, Library, Pencil, ChevronDown, ChevronUp, FileText, ImageIcon, Download, CheckCircle2, RotateCcw } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  User,
+  BookOpen,
+  Library,
+  Pencil,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  ImageIcon,
+  Download,
+  CheckCircle2,
+  RotateCcw,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
@@ -22,7 +38,10 @@ import {
   AlertDialogTrigger,
 } from "@repo/ui/components/ui/alert-dialog";
 import { useEbook } from "../../../../lib/use-ebooks";
-import { useEbookProgress, useResetEbookProgress } from "../../../../lib/use-ebook-progress";
+import {
+  useEbookProgress,
+  useResetEbookProgress,
+} from "../../../../lib/use-ebook-progress";
 import { useMyPermissions } from "../../../../lib/use-users";
 import { useHardcoverStatus } from "../../../../lib/use-hardcover";
 import { useGrFinderStatus } from "../../../../lib/use-goodreads";
@@ -90,7 +109,11 @@ export default function EbookDetailPage({
     descriptionFullHeight > COLLAPSED_DESCRIPTION_HEIGHT;
 
   const canEdit = permissions?.canEditMetadata ?? false;
-  const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("ebook", id);
+  const {
+    removeGenre,
+    removeTag,
+    isPending: isMetadataPending,
+  } = useQuickAddMetadata("ebook", id);
 
   const handleResetProgress = () => {
     resetProgressMutation.mutate(id, {
@@ -280,7 +303,12 @@ export default function EbookDetailPage({
               generatedAudiobook={ebook.generatedAudiobook}
             />
 
-            <Button size="lg" className="w-full" variant="outline" onClick={handleDownload}>
+            <Button
+              size="lg"
+              className="w-full"
+              variant="outline"
+              onClick={handleDownload}
+            >
               <Download className="mr-2 h-5 w-5" />
               {t("download")}
             </Button>
@@ -322,13 +350,17 @@ export default function EbookDetailPage({
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>{t("progress.resetConfirmTitle")}</AlertDialogTitle>
+                      <AlertDialogTitle>
+                        {t("progress.resetConfirmTitle")}
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
                         {t("progress.resetConfirmDescription")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>{t("progress.resetCancel")}</AlertDialogCancel>
+                      <AlertDialogCancel>
+                        {t("progress.resetCancel")}
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleResetProgress}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -400,7 +432,9 @@ export default function EbookDetailPage({
                     <User className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("author")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("author")}
+                    </p>
                     <p className="font-medium">{authors}</p>
                   </div>
                 </div>
@@ -412,7 +446,9 @@ export default function EbookDetailPage({
                     <Library className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("series")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("series")}
+                    </p>
                     <p className="font-medium">
                       {ebook.series.map((s, i) => (
                         <span key={s.id}>
@@ -437,7 +473,9 @@ export default function EbookDetailPage({
                     <BookOpen className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("pages")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("pages")}
+                    </p>
                     <p className="font-medium">{ebook.pageCount}</p>
                   </div>
                 </div>
@@ -449,7 +487,9 @@ export default function EbookDetailPage({
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("published")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("published")}
+                    </p>
                     <p className="font-medium">
                       {new Date(ebook.publishedDate).getFullYear()}
                     </p>
@@ -462,9 +502,12 @@ export default function EbookDetailPage({
                   <FileText className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">{t("fileInfo")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("fileInfo")}
+                  </p>
                   <p className="font-medium">
-                    {ebook.format.toUpperCase()} • {formatFileSize(ebook.sizeBytes)}
+                    {ebook.format.toUpperCase()} •{" "}
+                    {formatFileSize(ebook.sizeBytes)}
                   </p>
                 </div>
               </div>
@@ -487,7 +530,9 @@ export default function EbookDetailPage({
                   />
                   <div
                     className={`pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent transition-opacity duration-200 ${
-                      descriptionOverflows && !descriptionExpanded ? "opacity-100" : "opacity-0"
+                      descriptionOverflows && !descriptionExpanded
+                        ? "opacity-100"
+                        : "opacity-0"
                     }`}
                   />
                 </div>
@@ -521,7 +566,9 @@ export default function EbookDetailPage({
                 <dl className="grid gap-2 text-sm sm:grid-cols-2">
                   {ebook.publisher && (
                     <>
-                      <dt className="text-muted-foreground">{t("publisher")}</dt>
+                      <dt className="text-muted-foreground">
+                        {t("publisher")}
+                      </dt>
                       <dd>{ebook.publisher}</dd>
                     </>
                   )}

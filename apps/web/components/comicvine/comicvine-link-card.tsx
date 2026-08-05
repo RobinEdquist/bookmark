@@ -221,14 +221,17 @@ function ComicvineBookLinkCard({ entityId }: { entityId: string }) {
 
       // Dedupe by name+role
       const alreadyExists = existingCreators.some(
-        (c) => c.name === cvName && c.role === mappedRole
+        (c) => c.name === cvName && c.role === mappedRole,
       );
       if (alreadyExists) {
         toast.success(t("toast.creatorAdded"));
         return;
       }
 
-      const newCreators = [...existingCreators, { name: cvName, role: mappedRole }];
+      const newCreators = [
+        ...existingCreators,
+        { name: cvName, role: mappedRole },
+      ];
 
       await updateBook.mutateAsync({
         id: entityId,
@@ -237,7 +240,9 @@ function ComicvineBookLinkCard({ entityId }: { entityId: string }) {
 
       toast.success(t("toast.creatorAdded"));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("toast.creatorFailed"));
+      toast.error(
+        err instanceof Error ? err.message : t("toast.creatorFailed"),
+      );
     } finally {
       setAddingCreator(null);
     }
@@ -326,9 +331,10 @@ function ComicvineBookLinkCard({ entityId }: { entityId: string }) {
                 const mappedRole = mapCvRole(credit.role);
                 const key = `${credit.name}|${mappedRole}`;
                 const isAdding = addingCreator === key;
-                const alreadyAdded = bookData?.creators.some(
-                  (c) => c.name === credit.name && c.role === mappedRole
-                ) ?? false;
+                const alreadyAdded =
+                  bookData?.creators.some(
+                    (c) => c.name === credit.name && c.role === mappedRole,
+                  ) ?? false;
 
                 return (
                   <div
@@ -342,7 +348,9 @@ function ComicvineBookLinkCard({ entityId }: { entityId: string }) {
                       variant="ghost"
                       size="sm"
                       className="h-5 w-auto px-1.5 py-0 text-xs text-primary hover:text-primary/80"
-                      disabled={isAdding || alreadyAdded || updateBook.isPending}
+                      disabled={
+                        isAdding || alreadyAdded || updateBook.isPending
+                      }
                       onClick={() => handleAddCreator(credit.name, credit.role)}
                     >
                       {alreadyAdded ? "✓" : t("addCreator")}

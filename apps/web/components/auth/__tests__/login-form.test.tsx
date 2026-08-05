@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, userEvent, waitFor } from "../../../__test-utils__/render";
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "../../../__test-utils__/render";
 import { LoginForm } from "../login-form";
 
 const { mockSignIn, mockToast } = vi.hoisted(() => ({

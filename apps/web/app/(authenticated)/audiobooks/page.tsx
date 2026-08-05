@@ -52,7 +52,9 @@ export default function AudiobooksPage() {
     } else {
       params.delete("search");
     }
-    const newUrl = params.toString() ? `/audiobooks?${params.toString()}` : "/audiobooks";
+    const newUrl = params.toString()
+      ? `/audiobooks?${params.toString()}`
+      : "/audiobooks";
     router.replace(newUrl, { scroll: false });
   }, [debouncedSearch, router, searchParams]);
   const { sortBy, sortOrder, setSortField } = useSortPreference("audiobooks");
@@ -66,7 +68,8 @@ export default function AudiobooksPage() {
     fetchNextPage,
   } = useInfiniteAudiobooks({
     search: debouncedSearch || undefined,
-    sortBy: sortBy as "title" | "createdAt" | "author" | "rating" | "series" | undefined,
+    sortBy: sortBy as
+      "title" | "createdAt" | "author" | "rating" | "series" | undefined,
     sortOrder,
   });
 
@@ -74,7 +77,10 @@ export default function AudiobooksPage() {
   const audiobooks = data?.pages.flatMap((page) => page.audiobooks) ?? [];
 
   // Save ordered item IDs for next/prev navigation on detail pages
-  useSaveLibraryNavigation("/audiobooks", audiobooks.map((a) => a.id));
+  useSaveLibraryNavigation(
+    "/audiobooks",
+    audiobooks.map((a) => a.id),
+  );
 
   // Scroll position restoration (search is in the URL; sort is stored locally)
   const { hasSavedPosition } = useScrollRestoration({
@@ -83,7 +89,8 @@ export default function AudiobooksPage() {
   });
 
   // Show spinner when search is pending (query differs from debounced) or fetching first page
-  const isSearching = searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
+  const isSearching =
+    searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
 
   // Only show skeleton loading on initial load, not during search
   const showSkeletons = isLoading && !data;

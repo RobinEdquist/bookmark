@@ -53,7 +53,9 @@ export function UsersSettings() {
       await unbanUser.mutateAsync(user.id);
       toast.success(t("toast.unbanSuccess"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t("toast.unbanError"));
+      toast.error(
+        error instanceof Error ? error.message : t("toast.unbanError"),
+      );
     }
   };
 

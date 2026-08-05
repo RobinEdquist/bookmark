@@ -66,18 +66,33 @@ export function GeneratedCover({
   const titleSize =
     title.length <= 18 ? "12.5cqw" : title.length <= 34 ? "10.5cqw" : "8.75cqw";
   const titleClamp =
-    title.length <= 18 ? "line-clamp-4" : title.length <= 34 ? "line-clamp-5" : "line-clamp-6";
+    title.length <= 18
+      ? "line-clamp-4"
+      : title.length <= 34
+        ? "line-clamp-5"
+        : "line-clamp-6";
 
   const issueText = issue != null && issue !== "" ? String(issue) : null;
   const issueSize =
-    issueText === null ? undefined : issueText.length <= 2 ? "42cqw" : issueText.length <= 4 ? "28cqw" : "15cqw";
+    issueText === null
+      ? undefined
+      : issueText.length <= 2
+        ? "42cqw"
+        : issueText.length <= 4
+          ? "28cqw"
+          : "15cqw";
 
   return (
     <span
       role={ariaHidden ? undefined : "img"}
-      aria-label={ariaHidden ? undefined : author ? `${title}, ${author}` : title}
+      aria-label={
+        ariaHidden ? undefined : author ? `${title}, ${author}` : title
+      }
       aria-hidden={ariaHidden}
-      className={cn("relative block h-full w-full select-none overflow-hidden", className)}
+      className={cn(
+        "relative block h-full w-full select-none overflow-hidden",
+        className,
+      )}
       style={{
         background,
         color: INK,
@@ -104,8 +119,15 @@ export function GeneratedCover({
         />
       )}
       <span
-        className={cn("absolute inset-x-[9%] top-[9%] text-balance font-bold", titleClamp)}
-        style={{ fontSize: titleSize, lineHeight: 1.08, letterSpacing: "-0.015em" }}
+        className={cn(
+          "absolute inset-x-[9%] top-[9%] text-balance font-bold",
+          titleClamp,
+        )}
+        style={{
+          fontSize: titleSize,
+          lineHeight: 1.08,
+          letterSpacing: "-0.015em",
+        }}
       >
         {title}
       </span>
@@ -115,7 +137,11 @@ export function GeneratedCover({
       {issueText && (
         <span
           className="absolute bottom-[2%] right-[6%] font-extrabold opacity-20"
-          style={{ fontSize: issueSize, lineHeight: 1, letterSpacing: "-0.05em" }}
+          style={{
+            fontSize: issueSize,
+            lineHeight: 1,
+            letterSpacing: "-0.05em",
+          }}
         >
           {issueText}
         </span>

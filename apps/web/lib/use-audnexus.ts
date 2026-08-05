@@ -56,7 +56,7 @@ interface SearchResponse {
 async function searchAudible(
   title: string,
   author?: string,
-  region = "us"
+  region = "us",
 ): Promise<SearchResponse> {
   const params = new URLSearchParams({ title, region });
   if (author) params.set("author", author);
@@ -75,7 +75,7 @@ async function searchAudible(
 
 async function fetchBookByAsin(
   asin: string,
-  region = "us"
+  region = "us",
 ): Promise<AudnexusBookDetail> {
   const res = await fetch(`/api/audnexus/book/${asin}?region=${region}`, {
     credentials: "include",
@@ -94,7 +94,7 @@ async function fetchBookByAsin(
 
 async function fetchChaptersByAsin(
   asin: string,
-  region = "us"
+  region = "us",
 ): Promise<ChaptersResponse> {
   const res = await fetch(`/api/audnexus/chapters/${asin}?region=${region}`, {
     credentials: "include",
@@ -114,7 +114,7 @@ async function fetchChaptersByAsin(
 async function importChapters(
   audiobookId: string,
   asin: string,
-  chapters: ChapterData[]
+  chapters: ChapterData[],
 ): Promise<{ count: number }> {
   const res = await fetch(`/api/audiobooks/${audiobookId}/chapters/import`, {
     method: "POST",
@@ -144,13 +144,13 @@ async function importChapters(
 export function useAudibleSearch(
   title: string,
   author?: string,
-  options?: { enabled?: boolean; region?: string }
+  options?: { enabled?: boolean; region?: string },
 ) {
   const region = options?.region ?? "us";
   return useQuery({
     queryKey: queryKeys.audnexus.search(title, author, region),
     queryFn: () => searchAudible(title, author, region),
-    enabled: options?.enabled ?? (title.length >= 2),
+    enabled: options?.enabled ?? title.length >= 2,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
@@ -161,7 +161,7 @@ export function useAudibleSearch(
 export function useAudnexusBook(
   asin: string,
   region = "us",
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: queryKeys.audnexus.book(asin, region),
@@ -177,12 +177,12 @@ export function useAudnexusBook(
  */
 export function useAudnexusChapters(
   asin: string,
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: queryKeys.audnexus.chapters(asin),
     queryFn: () => fetchChaptersByAsin(asin),
-    enabled: options?.enabled ?? (asin.length === 10),
+    enabled: options?.enabled ?? asin.length === 10,
     staleTime: 10 * 60 * 1000, // 10 minutes
     retry: false, // Don't retry on 404
   });

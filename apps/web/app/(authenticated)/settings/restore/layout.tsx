@@ -6,7 +6,10 @@ import { useTranslations } from "next-intl";
 import { X, Check } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card } from "@repo/ui/components/ui/card";
-import { useCancelRestore, useRestoreSession } from "../../../../lib/use-restore";
+import {
+  useCancelRestore,
+  useRestoreSession,
+} from "../../../../lib/use-restore";
 import { toast } from "sonner";
 
 interface RestoreLayoutProps {
@@ -111,9 +114,7 @@ export default function RestoreLayout({ children }: RestoreLayoutProps) {
                     {index < STEPS.length - 1 && (
                       <div
                         className={`absolute left-1/2 top-5 hidden h-0.5 w-full sm:block ${
-                          status === "complete"
-                            ? "bg-primary"
-                            : "bg-muted"
+                          status === "complete" ? "bg-primary" : "bg-muted"
                         }`}
                         style={{ marginLeft: "50%" }}
                       />

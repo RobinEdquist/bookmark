@@ -11,10 +11,14 @@ export interface GenreWithCount {
 export type ContentType = "audiobooks" | "ebooks" | "comics";
 
 const queryKeys = {
-  genres: (type: ContentType, search?: string) => ["genres", type, search] as const,
+  genres: (type: ContentType, search?: string) =>
+    ["genres", type, search] as const,
 };
 
-async function fetchGenres(type: ContentType, search?: string): Promise<GenreWithCount[]> {
+async function fetchGenres(
+  type: ContentType,
+  search?: string,
+): Promise<GenreWithCount[]> {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
 

@@ -36,7 +36,9 @@ async function fetchImportErrors(): Promise<ImportErrorsResponse> {
   return response.json();
 }
 
-async function retryImport(errorId: string): Promise<{ success: boolean; message: string }> {
+async function retryImport(
+  errorId: string,
+): Promise<{ success: boolean; message: string }> {
   const response = await fetch(`/api/admin/import-errors/${errorId}/retry`, {
     method: "POST",
     credentials: "include",
@@ -49,7 +51,9 @@ async function retryImport(errorId: string): Promise<{ success: boolean; message
   return response.json();
 }
 
-async function dismissImportError(errorId: string): Promise<{ success: boolean }> {
+async function dismissImportError(
+  errorId: string,
+): Promise<{ success: boolean }> {
   const response = await fetch(`/api/admin/import-errors/${errorId}/ignore`, {
     method: "POST",
     credentials: "include",

@@ -51,7 +51,13 @@ export function PlayerCloseup() {
         <div className="dm-right">
           <span className="dm-chip">1.25×</span>
           <span className="dm-chip">
-            <Moon width="1.1em" height="1.1em" strokeWidth={1.8} style={{ display: "inline", verticalAlign: "-0.15em" }} /> end of chapter
+            <Moon
+              width="1.1em"
+              height="1.1em"
+              strokeWidth={1.8}
+              style={{ display: "inline", verticalAlign: "-0.15em" }}
+            />{" "}
+            end of chapter
           </span>
           <List width="1.5em" height="1.5em" strokeWidth={1.7} />
         </div>

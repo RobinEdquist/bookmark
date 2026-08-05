@@ -71,9 +71,12 @@ export function useGrFinderStatus() {
 
 async function searchGrFinder(query: string): Promise<GrFinderSearchResponse> {
   const searchParams = new URLSearchParams({ q: query });
-  const response = await fetch(`/api/gr-finder/search?${searchParams.toString()}`, {
-    credentials: "include",
-  });
+  const response = await fetch(
+    `/api/gr-finder/search?${searchParams.toString()}`,
+    {
+      credentials: "include",
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -96,7 +99,7 @@ export function useGrFinderSearch(query: string, enabled: boolean = true) {
 async function searchGrFinderByMedia(
   mediaType: MediaType,
   mediaId: string,
-  customQuery?: string
+  customQuery?: string,
 ): Promise<GrFinderSearchResponse & { query: string }> {
   const endpoint =
     mediaType === "audiobook"
@@ -124,7 +127,7 @@ export function useGrFinderSearchByMedia(
   mediaType: MediaType,
   mediaId: string,
   enabled: boolean = true,
-  customQuery?: string
+  customQuery?: string,
 ) {
   return useQuery({
     queryKey: queryKeys.grFinder.searchByMedia(mediaType, mediaId, customQuery),
@@ -137,7 +140,7 @@ export function useGrFinderSearchByMedia(
 
 async function fetchGoodreadsLink(
   mediaType: MediaType,
-  mediaId: string
+  mediaId: string,
 ): Promise<GoodreadsLinkResponse> {
   const endpoint =
     mediaType === "audiobook"
@@ -184,7 +187,7 @@ interface LinkMediaParams {
 }
 
 async function linkMediaToGoodreads(
-  params: LinkMediaParams
+  params: LinkMediaParams,
 ): Promise<{ queued: boolean; jobId: string }> {
   const endpoint =
     params.mediaType === "audiobook"
@@ -260,7 +263,7 @@ export function useDismissGoodreadsLinkFailures() {
       queryClient.setQueryData<GoodreadsLinkStatus>(
         queryKeys.tasks.goodreadsLink(),
         (previous) =>
-          previous ? { ...previous, failedCount: 0, failures: [] } : previous
+          previous ? { ...previous, failedCount: 0, failures: [] } : previous,
       );
     },
   });
@@ -276,7 +279,9 @@ interface UnlinkMediaParams {
   mediaId: string;
 }
 
-async function unlinkMediaFromGoodreads(params: UnlinkMediaParams): Promise<void> {
+async function unlinkMediaFromGoodreads(
+  params: UnlinkMediaParams,
+): Promise<void> {
   const endpoint =
     params.mediaType === "audiobook"
       ? `/api/gr-finder/link/${params.mediaId}`
@@ -301,15 +306,22 @@ export function useGoodreadsUnlinkMedia() {
     onSuccess: (_, variables) => {
       // Invalidate the goodreads link query
       queryClient.invalidateQueries({
-        queryKey: queryKeys.grFinder.link(variables.mediaType, variables.mediaId),
+        queryKey: queryKeys.grFinder.link(
+          variables.mediaType,
+          variables.mediaId,
+        ),
       });
       // Invalidate the audiobook/ebook list and detail
       if (variables.mediaType === "audiobook") {
         queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(variables.mediaId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.audiobooks.detail(variables.mediaId),
+        });
       } else {
         queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(variables.mediaId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.ebooks.detail(variables.mediaId),
+        });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },

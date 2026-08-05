@@ -66,7 +66,9 @@ export function SleepTimerDrawer({
           {/* Duration presets */}
           <div className="grid grid-cols-5 gap-2">
             {SLEEP_TIMER_PRESETS.map((minutes) => {
-              const isSelected = isActive && activeType === "duration" &&
+              const isSelected =
+                isActive &&
+                activeType === "duration" &&
                 remainingSeconds !== null &&
                 Math.ceil(remainingSeconds / 60) === minutes;
               return (
@@ -76,7 +78,8 @@ export function SleepTimerDrawer({
                   className={cn(
                     "flex h-12 items-center justify-center rounded-lg text-sm font-medium transition-colors",
                     "hover:bg-accent focus:bg-accent focus:outline-none",
-                    isSelected && "bg-primary text-primary-foreground hover:bg-primary/90"
+                    isSelected &&
+                      "bg-primary text-primary-foreground hover:bg-primary/90",
                   )}
                 >
                   {t("sleepTimerMinutes", { minutes })}
@@ -92,7 +95,9 @@ export function SleepTimerDrawer({
               className={cn(
                 "flex w-full h-12 items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors",
                 "hover:bg-accent focus:bg-accent focus:outline-none",
-                isActive && activeType === "endOfChapter" && "bg-primary text-primary-foreground hover:bg-primary/90"
+                isActive &&
+                  activeType === "endOfChapter" &&
+                  "bg-primary text-primary-foreground hover:bg-primary/90",
               )}
             >
               <BookOpen className="h-4 w-4" />
@@ -102,11 +107,7 @@ export function SleepTimerDrawer({
 
           {/* Cancel button when timer is active */}
           {isActive && (
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleCancel}
-            >
+            <Button variant="outline" className="w-full" onClick={handleCancel}>
               {t("sleepTimerCancel")}
             </Button>
           )}

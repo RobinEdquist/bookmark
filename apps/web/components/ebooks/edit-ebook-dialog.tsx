@@ -53,11 +53,7 @@ import {
   type EbookDetail,
   type EbookListItem,
 } from "../../lib/use-ebooks";
-import {
-  useAuthors,
-  usePublishers,
-  useGenres,
-} from "../../lib/use-audiobooks";
+import { useAuthors, usePublishers, useGenres } from "../../lib/use-audiobooks";
 import { useTags } from "../../lib/use-tags";
 import {
   SeriesEntryEditor,
@@ -77,7 +73,7 @@ function seriesEntriesEqual(a: SeriesEntry[], b: SeriesEntry[]): boolean {
   if (a.length !== b.length) return false;
   return a.every(
     (entry, i) =>
-      entry.seriesName === b[i]?.seriesName && entry.order === b[i]?.order
+      entry.seriesName === b[i]?.seriesName && entry.order === b[i]?.order,
   );
 }
 
@@ -140,7 +136,7 @@ export function EditEbookDialog({
   // For list items, fetch full details only when dialog is open
   const isListItem = ebook && !("description" in ebook);
   const { data: fullEbook } = useEbook(
-    isListItem && ebook && open ? ebook.id : ""
+    isListItem && ebook && open ? ebook.id : "",
   );
 
   const ebookData = isListItem ? fullEbook : (ebook as EbookDetail);
@@ -205,7 +201,9 @@ function EditEbookForm({
   const [authors, setAuthors] = useState<string[]>(initialState.authors);
   const [publisher, setPublisher] = useState(initialState.publisher);
   const [language, setLanguage] = useState(initialState.language);
-  const [publishedYear, setPublishedYear] = useState(initialState.publishedYear);
+  const [publishedYear, setPublishedYear] = useState(
+    initialState.publishedYear,
+  );
   const [isbn, setIsbn] = useState(initialState.isbn);
   const [asin, setAsin] = useState(initialState.asin);
   const [genres, setGenres] = useState<string[]>(initialState.genres);
@@ -241,7 +239,8 @@ function EditEbookForm({
   // Navigation logic
   const currentIndex = ebookIds ? ebookIds.indexOf(ebookData.id) : -1;
   const hasPrevious = currentIndex > 0;
-  const hasNext = currentIndex >= 0 && currentIndex < (ebookIds?.length ?? 0) - 1;
+  const hasNext =
+    currentIndex >= 0 && currentIndex < (ebookIds?.length ?? 0) - 1;
 
   const handlePrevious = useCallback(() => {
     if (hasPrevious && ebookIds && onNavigate) {
@@ -263,7 +262,8 @@ function EditEbookForm({
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle if not focused on an input element
       const target = e.target as HTMLElement;
-      const isInputFocused = target.tagName === "INPUT" ||
+      const isInputFocused =
+        target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
         target.isContentEditable;
 
@@ -281,7 +281,6 @@ function EditEbookForm({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [hasPrevious, hasNext, handlePrevious, handleNext]);
-
 
   // Apply checked fields from the metadata match dialog to the form state
   const handleMatchApply = (fields: MatchedMetadata) => {
@@ -367,9 +366,11 @@ function EditEbookForm({
 
     // Compare series entries
     const filteredSeriesEntries = seriesEntries.filter(
-      (entry) => entry.seriesName.trim() && entry.order.trim()
+      (entry) => entry.seriesName.trim() && entry.order.trim(),
     );
-    if (!seriesEntriesEqual(filteredSeriesEntries, initialState.seriesEntries)) {
+    if (
+      !seriesEntriesEqual(filteredSeriesEntries, initialState.seriesEntries)
+    ) {
       data.series = filteredSeriesEntries;
     }
 
@@ -422,318 +423,320 @@ function EditEbookForm({
 
   return (
     <>
-    <DialogHeader className="shrink-0 border-b px-6 py-4">
-      <div className="flex items-center gap-2">
-        <DialogTitle className="flex-1">
-          {t("title")}
-          {showNavigation && (
-            <span className="ml-2 text-sm font-normal text-muted-foreground">
-              ({currentIndex + 1} / {ebookIds.length})
-            </span>
-          )}
-        </DialogTitle>
+      <DialogHeader className="shrink-0 border-b px-6 py-4">
+        <div className="flex items-center gap-2">
+          <DialogTitle className="flex-1">
+            {t("title")}
+            {showNavigation && (
+              <span className="ml-2 text-sm font-normal text-muted-foreground">
+                ({currentIndex + 1} / {ebookIds.length})
+              </span>
+            )}
+          </DialogTitle>
 
-        {/* External metadata match */}
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={() => setMatchOpen(true)}
-          disabled={isLoading}
-        >
-          <Sparkles className="h-4 w-4 mr-1" />
-          {t("matchMetadata")}
-        </Button>
-
-        {/* Navigation buttons after title */}
-        {showNavigation && (
-          <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={handlePrevious}
-              disabled={!hasPrevious || isLoading}
-              title={t("previous")}
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 shrink-0"
-              onClick={handleNext}
-              disabled={!hasNext || isLoading}
-              title={t("next")}
-            >
-              <ChevronRight className="h-5 w-5" />
-            </Button>
-          </div>
-        )}
-      </div>
-    </DialogHeader>
-
-    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-      {/* Title and Subtitle */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="title">{t("fields.title")}</Label>
-          <Input
-            id="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t("fields.titlePlaceholder")}
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="subtitle">{t("fields.subtitle")}</Label>
-          <Input
-            id="subtitle"
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-            placeholder={t("fields.subtitlePlaceholder")}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-
-      {/* Authors */}
-      <div className="space-y-2">
-        <Label>{t("fields.authors")}</Label>
-        <CreatableCombobox
-          options={authorOptions}
-          value={authors}
-          onChange={setAuthors}
-          placeholder={t("fields.authorsPlaceholder")}
-          searchPlaceholder={t("fields.searchAuthors")}
-          emptyText={t("fields.noAuthorsFound")}
-          createText={t("fields.createAuthor")}
-          disabled={isLoading}
-        />
-      </div>
-
-      {/* Genres and Tags */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>{t("fields.genres")}</Label>
-          <CreatableCombobox
-            options={genreOptions}
-            value={genres}
-            onChange={setGenres}
-            placeholder={t("fields.genresPlaceholder")}
-            searchPlaceholder={t("fields.searchGenres")}
-            emptyText={t("fields.noGenresFound")}
-            createText={t("fields.createGenre")}
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label>{t("fields.tags")}</Label>
-          <CreatableCombobox
-            options={tagOptions}
-            value={tags}
-            onChange={setTags}
-            placeholder={t("fields.tagsPlaceholder")}
-            searchPlaceholder={t("fields.searchTags")}
-            emptyText={t("fields.noTagsFound")}
-            createText={t("fields.createTag")}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-
-      {/* Series */}
-      <SeriesEntryEditor
-        value={seriesEntries}
-        onChange={setSeriesEntries}
-        disabled={isLoading}
-        labels={{
-          series: t("fields.series"),
-          addSeries: t("fields.addSeries"),
-          order: t("fields.seriesOrder"),
-          orderPlaceholder: t("fields.seriesOrderPlaceholder"),
-          searchSeries: t("fields.searchSeries"),
-          noSeriesFound: t("fields.noSeriesFound"),
-          createSeries: t("fields.createSeries"),
-          removeSeries: t("fields.removeSeries"),
-        }}
-      />
-
-      {/* Description */}
-      <div className="space-y-2">
-        <Label>{t("fields.description")}</Label>
-        <RichTextEditor
-          value={description}
-          onChange={setDescription}
-          placeholder={t("fields.descriptionPlaceholder")}
-          disabled={isLoading}
-        />
-      </div>
-
-      {/* Publisher and Year */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>{t("fields.publisher")}</Label>
-          <CreatableSelect
-            options={existingPublishers}
-            value={publisher}
-            onChange={setPublisher}
-            placeholder={t("fields.publisherPlaceholder")}
-            searchPlaceholder={t("fields.searchPublisher")}
-            emptyText={t("fields.noPublishersFound")}
-            createText={t("fields.createPublisher")}
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="publishedYear">{t("fields.publishedYear")}</Label>
-          <Input
-            id="publishedYear"
-            type="number"
-            value={publishedYear}
-            onChange={(e) => setPublishedYear(e.target.value)}
-            placeholder={t("fields.publishedYearPlaceholder")}
-            disabled={isLoading}
-            min={1000}
-            max={9999}
-          />
-        </div>
-      </div>
-
-      {/* Language and ISBN */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label>{t("fields.language")}</Label>
-          <Select
-            value={language}
-            onValueChange={setLanguage}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={t("fields.languagePlaceholder")} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">
-                <span className="text-muted-foreground">{t("fields.noLanguage")}</span>
-              </SelectItem>
-              {LANGUAGE_OPTIONS.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="isbn">{t("fields.isbn")}</Label>
-          <Input
-            id="isbn"
-            value={isbn}
-            onChange={(e) => setIsbn(e.target.value)}
-            placeholder={t("fields.isbnPlaceholder")}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-
-      {/* ASIN */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <Label htmlFor="asin">{t("fields.asin")}</Label>
-          <Input
-            id="asin"
-            value={asin}
-            onChange={(e) => setAsin(e.target.value)}
-            placeholder={t("fields.asinPlaceholder")}
-            disabled={isLoading}
-          />
-        </div>
-      </div>
-
-      {/* Cover pulled in from a metadata match, uploaded on save */}
-      {pendingCoverUrl && (
-        <div className="flex items-center gap-3 rounded-lg border p-3">
-          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
-            <Image
-              src={pendingCoverUrl}
-              alt={t("pendingCover")}
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          </div>
-          <p className="flex-1 text-sm text-muted-foreground">
-            {t("pendingCover")}
-          </p>
+          {/* External metadata match */}
           <Button
             type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0"
-            onClick={() => setPendingCoverUrl(null)}
-            title={t("removePendingCover")}
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => setMatchOpen(true)}
+            disabled={isLoading}
           >
-            <X className="h-4 w-4" />
+            <Sparkles className="h-4 w-4 mr-1" />
+            {t("matchMetadata")}
           </Button>
+
+          {/* Navigation buttons after title */}
+          {showNavigation && (
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={handlePrevious}
+                disabled={!hasPrevious || isLoading}
+                title={t("previous")}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={handleNext}
+                disabled={!hasNext || isLoading}
+                title={t("next")}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
+            </div>
+          )}
         </div>
-      )}
-      </div>
+      </DialogHeader>
 
-      <DialogFooter className="shrink-0 border-t px-6 py-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-          disabled={isLoading}
-        >
-          {t("cancel")}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => handleSave(false)}
-          disabled={isLoading}
-        >
-          {isLoading ? t("saving") : t("save")}
-        </Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? t("saving") : t("saveAndClose")}
-        </Button>
-      </DialogFooter>
-    </form>
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          {/* Title and Subtitle */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="title">{t("fields.title")}</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={t("fields.titlePlaceholder")}
+                disabled={isLoading}
+              />
+            </div>
 
-    {/* Rendered inside DialogContent so clicks in the nested dialog count
+            <div className="space-y-2">
+              <Label htmlFor="subtitle">{t("fields.subtitle")}</Label>
+              <Input
+                id="subtitle"
+                value={subtitle}
+                onChange={(e) => setSubtitle(e.target.value)}
+                placeholder={t("fields.subtitlePlaceholder")}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Authors */}
+          <div className="space-y-2">
+            <Label>{t("fields.authors")}</Label>
+            <CreatableCombobox
+              options={authorOptions}
+              value={authors}
+              onChange={setAuthors}
+              placeholder={t("fields.authorsPlaceholder")}
+              searchPlaceholder={t("fields.searchAuthors")}
+              emptyText={t("fields.noAuthorsFound")}
+              createText={t("fields.createAuthor")}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Genres and Tags */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{t("fields.genres")}</Label>
+              <CreatableCombobox
+                options={genreOptions}
+                value={genres}
+                onChange={setGenres}
+                placeholder={t("fields.genresPlaceholder")}
+                searchPlaceholder={t("fields.searchGenres")}
+                emptyText={t("fields.noGenresFound")}
+                createText={t("fields.createGenre")}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("fields.tags")}</Label>
+              <CreatableCombobox
+                options={tagOptions}
+                value={tags}
+                onChange={setTags}
+                placeholder={t("fields.tagsPlaceholder")}
+                searchPlaceholder={t("fields.searchTags")}
+                emptyText={t("fields.noTagsFound")}
+                createText={t("fields.createTag")}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Series */}
+          <SeriesEntryEditor
+            value={seriesEntries}
+            onChange={setSeriesEntries}
+            disabled={isLoading}
+            labels={{
+              series: t("fields.series"),
+              addSeries: t("fields.addSeries"),
+              order: t("fields.seriesOrder"),
+              orderPlaceholder: t("fields.seriesOrderPlaceholder"),
+              searchSeries: t("fields.searchSeries"),
+              noSeriesFound: t("fields.noSeriesFound"),
+              createSeries: t("fields.createSeries"),
+              removeSeries: t("fields.removeSeries"),
+            }}
+          />
+
+          {/* Description */}
+          <div className="space-y-2">
+            <Label>{t("fields.description")}</Label>
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+              placeholder={t("fields.descriptionPlaceholder")}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Publisher and Year */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{t("fields.publisher")}</Label>
+              <CreatableSelect
+                options={existingPublishers}
+                value={publisher}
+                onChange={setPublisher}
+                placeholder={t("fields.publisherPlaceholder")}
+                searchPlaceholder={t("fields.searchPublisher")}
+                emptyText={t("fields.noPublishersFound")}
+                createText={t("fields.createPublisher")}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="publishedYear">{t("fields.publishedYear")}</Label>
+              <Input
+                id="publishedYear"
+                type="number"
+                value={publishedYear}
+                onChange={(e) => setPublishedYear(e.target.value)}
+                placeholder={t("fields.publishedYearPlaceholder")}
+                disabled={isLoading}
+                min={1000}
+                max={9999}
+              />
+            </div>
+          </div>
+
+          {/* Language and ISBN */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label>{t("fields.language")}</Label>
+              <Select
+                value={language}
+                onValueChange={setLanguage}
+                disabled={isLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("fields.languagePlaceholder")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">
+                    <span className="text-muted-foreground">
+                      {t("fields.noLanguage")}
+                    </span>
+                  </SelectItem>
+                  {LANGUAGE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="isbn">{t("fields.isbn")}</Label>
+              <Input
+                id="isbn"
+                value={isbn}
+                onChange={(e) => setIsbn(e.target.value)}
+                placeholder={t("fields.isbnPlaceholder")}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* ASIN */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="asin">{t("fields.asin")}</Label>
+              <Input
+                id="asin"
+                value={asin}
+                onChange={(e) => setAsin(e.target.value)}
+                placeholder={t("fields.asinPlaceholder")}
+                disabled={isLoading}
+              />
+            </div>
+          </div>
+
+          {/* Cover pulled in from a metadata match, uploaded on save */}
+          {pendingCoverUrl && (
+            <div className="flex items-center gap-3 rounded-lg border p-3">
+              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
+                <Image
+                  src={pendingCoverUrl}
+                  alt={t("pendingCover")}
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+              <p className="flex-1 text-sm text-muted-foreground">
+                {t("pendingCover")}
+              </p>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 shrink-0"
+                onClick={() => setPendingCoverUrl(null)}
+                title={t("removePendingCover")}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="shrink-0 border-t px-6 py-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
+            {t("cancel")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => handleSave(false)}
+            disabled={isLoading}
+          >
+            {isLoading ? t("saving") : t("save")}
+          </Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? t("saving") : t("saveAndClose")}
+          </Button>
+        </DialogFooter>
+      </form>
+
+      {/* Rendered inside DialogContent so clicks in the nested dialog count
         as inside the edit dialog's dismissable layer — as a sibling, the
         click that closes the match dialog dismisses the edit dialog too */}
-    <MetadataMatchDialog
-      mediaType="ebook"
-      open={matchOpen}
-      onOpenChange={setMatchOpen}
-      current={{
-        title,
-        subtitle,
-        description,
-        authors,
-        publisher,
-        language,
-        publishedYear,
-        isbn,
-        asin,
-        genres,
-        tags,
-        series: seriesEntries,
-      }}
-      onApply={handleMatchApply}
-    />
+      <MetadataMatchDialog
+        mediaType="ebook"
+        open={matchOpen}
+        onOpenChange={setMatchOpen}
+        current={{
+          title,
+          subtitle,
+          description,
+          authors,
+          publisher,
+          language,
+          publishedYear,
+          isbn,
+          asin,
+          genres,
+          tags,
+          series: seriesEntries,
+        }}
+        onApply={handleMatchApply}
+      />
     </>
   );
 }

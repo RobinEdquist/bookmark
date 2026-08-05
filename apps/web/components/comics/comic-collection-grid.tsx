@@ -70,7 +70,7 @@ export function ComicCollectionGrid({
         onLoadMore();
       }
     },
-    { enabled: hasNextPage && !isFetchingNextPage }
+    { enabled: hasNextPage && !isFetchingNextPage },
   );
 
   if (error) {

@@ -51,7 +51,8 @@ export default function ListDetailPage({ params }: ListDetailPageProps) {
 
   const { data: list, isLoading, error } = useList(id);
   const { mutate: reorderItems } = useReorderListItems();
-  const { mutateAsync: removeItem, isPending: isRemoving } = useRemoveFromList();
+  const { mutateAsync: removeItem, isPending: isRemoving } =
+    useRemoveFromList();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -64,7 +65,7 @@ export default function ListDetailPage({ params }: ListDetailPageProps) {
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
-    })
+    }),
   );
 
   const handleDragEnd = (event: DragEndEvent) => {
@@ -171,7 +172,11 @@ export default function ListDetailPage({ params }: ListDetailPageProps) {
 
             {list.isOwner && (
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditOpen(true)}
+                >
                   <Pencil className="h-4 w-4" />
                   {t("edit")}
                 </Button>
@@ -220,11 +225,7 @@ export default function ListDetailPage({ params }: ListDetailPageProps) {
         ) : (
           <div className="space-y-2">
             {list.items.map((item) => (
-              <SortableListItem
-                key={item.id}
-                item={item}
-                isOwner={false}
-              />
+              <SortableListItem key={item.id} item={item} isOwner={false} />
             ))}
           </div>
         )}

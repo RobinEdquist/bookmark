@@ -100,7 +100,7 @@ export interface ComicvineQueueItem {
  * persists `volume.id` as `comicvineVolumeId`.
  */
 export function cachedIssueToRawPayload(
-  issue: ComicvineBookLink
+  issue: ComicvineBookLink,
 ): ComicvineIssue {
   return {
     id: issue.comicvineIssueId,
@@ -232,7 +232,7 @@ async function disconnectComicvine(): Promise<{ success: true }> {
 }
 
 async function setAutoSyncOnImport(
-  enabled: boolean
+  enabled: boolean,
 ): Promise<{ success: true; autoSyncOnImport: boolean }> {
   const response = await fetch("/api/comicvine/auto-sync", {
     method: "POST",
@@ -249,7 +249,7 @@ async function setAutoSyncOnImport(
 
 async function fetchSearchVolumes(
   query: string,
-  page: number
+  page: number,
 ): Promise<SearchVolumesResponse> {
   const params = new URLSearchParams({ q: query, page: String(page) });
   const response = await fetch(`/api/comicvine/search/volumes?${params}`, {
@@ -264,12 +264,12 @@ async function fetchSearchVolumes(
 
 async function fetchVolumeForSeries(
   seriesId: string,
-  page: number
+  page: number,
 ): Promise<VolumeForSeriesResponse> {
   const params = new URLSearchParams({ page: String(page) });
   const response = await fetch(
     `/api/comicvine/search/volume-for-series/${seriesId}?${params}`,
-    { credentials: "include" }
+    { credentials: "include" },
   );
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -280,12 +280,12 @@ async function fetchVolumeForSeries(
 
 async function fetchVolumeIssues(
   cvVolumeId: number,
-  page: number
+  page: number,
 ): Promise<VolumeIssuesResponse> {
   const params = new URLSearchParams({ page: String(page) });
   const response = await fetch(
     `/api/comicvine/volume/${cvVolumeId}/issues?${params}`,
-    { credentials: "include" }
+    { credentials: "include" },
   );
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -296,12 +296,12 @@ async function fetchVolumeIssues(
 
 async function fetchIssuesForBook(
   bookId: string,
-  page: number
+  page: number,
 ): Promise<IssuesForBookResponse> {
   const params = new URLSearchParams({ page: String(page) });
   const response = await fetch(
     `/api/comicvine/search/issue-for-book/${bookId}?${params}`,
-    { credentials: "include" }
+    { credentials: "include" },
   );
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
@@ -310,9 +310,7 @@ async function fetchIssuesForBook(
   return response.json();
 }
 
-async function fetchSeriesLink(
-  seriesId: string
-): Promise<SeriesLinkResponse> {
+async function fetchSeriesLink(seriesId: string): Promise<SeriesLinkResponse> {
   const response = await fetch(`/api/comicvine/link/series/${seriesId}`, {
     credentials: "include",
   });
@@ -336,7 +334,7 @@ async function fetchBookLink(bookId: string): Promise<BookLinkResponse> {
 
 async function linkSeries(
   seriesId: string,
-  volume: ComicvineVolume
+  volume: ComicvineVolume,
 ): Promise<LinkSeriesResponse> {
   const response = await fetch(`/api/comicvine/link/series/${seriesId}`, {
     method: "POST",
@@ -364,7 +362,7 @@ async function unlinkSeries(seriesId: string): Promise<void> {
 
 async function linkBook(
   bookId: string,
-  issue: ComicvineIssue
+  issue: ComicvineIssue,
 ): Promise<LinkBookResponse> {
   const response = await fetch(`/api/comicvine/link/book/${bookId}`, {
     method: "POST",
@@ -506,7 +504,7 @@ export function useComicvineAutoSync() {
 export function useComicvineSearchVolumes(
   query: string,
   page = 1,
-  enabled = true
+  enabled = true,
 ) {
   return useQuery({
     queryKey: queryKeys.comicvine.searchVolumes(query, page),
@@ -518,7 +516,7 @@ export function useComicvineSearchVolumes(
 export function useComicvineVolumeForSeries(
   seriesId: string,
   page = 1,
-  enabled = true
+  enabled = true,
 ) {
   return useQuery({
     queryKey: queryKeys.comicvine.volumeForSeries(seriesId, page),
@@ -530,7 +528,7 @@ export function useComicvineVolumeForSeries(
 export function useComicvineVolumeIssues(
   cvVolumeId: number,
   page = 1,
-  enabled = true
+  enabled = true,
 ) {
   return useQuery({
     queryKey: queryKeys.comicvine.volumeIssues(cvVolumeId, page),
@@ -542,7 +540,7 @@ export function useComicvineVolumeIssues(
 export function useComicvineIssuesForBook(
   bookId: string,
   page = 1,
-  enabled = true
+  enabled = true,
 ) {
   return useQuery({
     queryKey: queryKeys.comicvine.issuesForBook(bookId, page),

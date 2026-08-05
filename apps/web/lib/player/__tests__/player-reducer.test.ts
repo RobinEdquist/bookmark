@@ -10,7 +10,9 @@ import {
 import type { AudiobookDetail, AudiobookChapter } from "../../use-audiobooks";
 
 // Helper to create a minimal audiobook for testing
-function makeAudiobook(overrides: Partial<AudiobookDetail> = {}): AudiobookDetail {
+function makeAudiobook(
+  overrides: Partial<AudiobookDetail> = {},
+): AudiobookDetail {
   return {
     id: "ab-1",
     title: "Test Book",
@@ -34,7 +36,9 @@ function makeAudiobook(overrides: Partial<AudiobookDetail> = {}): AudiobookDetai
   } as AudiobookDetail;
 }
 
-function makeChapter(overrides: Partial<AudiobookChapter> = {}): AudiobookChapter {
+function makeChapter(
+  overrides: Partial<AudiobookChapter> = {},
+): AudiobookChapter {
   return {
     id: "ch-1",
     title: "Chapter 1",
@@ -338,8 +342,18 @@ describe("playerReducer", () => {
 describe("findCurrentChapter", () => {
   const chapters: AudiobookChapter[] = [
     makeChapter({ id: "ch-1", title: "Chapter 1", startTime: 0, endTime: 600 }),
-    makeChapter({ id: "ch-2", title: "Chapter 2", startTime: 600, endTime: 1200 }),
-    makeChapter({ id: "ch-3", title: "Chapter 3", startTime: 1200, endTime: 1800 }),
+    makeChapter({
+      id: "ch-2",
+      title: "Chapter 2",
+      startTime: 600,
+      endTime: 1200,
+    }),
+    makeChapter({
+      id: "ch-3",
+      title: "Chapter 3",
+      startTime: 1200,
+      endTime: 1800,
+    }),
   ];
 
   it("returns null for empty chapters array", () => {
@@ -379,8 +393,16 @@ describe("findCurrentChapter", () => {
 
   it("handles chapters without endTime", () => {
     const noEndTime: AudiobookChapter[] = [
-      makeChapter({ id: "ch-1", startTime: 0, endTime: undefined as unknown as number }),
-      makeChapter({ id: "ch-2", startTime: 600, endTime: undefined as unknown as number }),
+      makeChapter({
+        id: "ch-1",
+        startTime: 0,
+        endTime: undefined as unknown as number,
+      }),
+      makeChapter({
+        id: "ch-2",
+        startTime: 600,
+        endTime: undefined as unknown as number,
+      }),
     ];
     const result = findCurrentChapter(300, noEndTime);
     expect(result?.id).toBe("ch-1");

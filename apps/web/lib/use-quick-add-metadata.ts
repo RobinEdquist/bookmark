@@ -24,11 +24,11 @@ export function useQuickAddMetadata(mediaType: MediaType, mediaId: string) {
   const getMediaDetail = useCallback(() => {
     if (mediaType === "audiobook") {
       return queryClient.getQueryData<AudiobookDetail>(
-        queryKeys.audiobooks.detail(mediaId)
+        queryKeys.audiobooks.detail(mediaId),
       );
     }
     return queryClient.getQueryData<EbookDetail>(
-      queryKeys.ebooks.detail(mediaId)
+      queryKeys.ebooks.detail(mediaId),
     );
   }, [queryClient, mediaType, mediaId]);
 
@@ -62,7 +62,7 @@ export function useQuickAddMetadata(mediaType: MediaType, mediaId: string) {
         toast.error(t("addFailed", { name }));
       }
     },
-    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t]
+    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t],
   );
 
   const addAsTag = useCallback(
@@ -95,7 +95,7 @@ export function useQuickAddMetadata(mediaType: MediaType, mediaId: string) {
         toast.error(t("addFailed", { name }));
       }
     },
-    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t]
+    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t],
   );
 
   const removeGenre = useCallback(
@@ -124,7 +124,7 @@ export function useQuickAddMetadata(mediaType: MediaType, mediaId: string) {
         toast.error(t("removeFailed", { name }));
       }
     },
-    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t]
+    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t],
   );
 
   const removeTag = useCallback(
@@ -153,7 +153,7 @@ export function useQuickAddMetadata(mediaType: MediaType, mediaId: string) {
         toast.error(t("removeFailed", { name }));
       }
     },
-    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t]
+    [getMediaDetail, mediaType, mediaId, updateAudiobook, updateEbook, t],
   );
 
   return { addAsGenre, addAsTag, removeGenre, removeTag, canEdit, isPending };

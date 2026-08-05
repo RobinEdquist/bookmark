@@ -84,15 +84,25 @@ async function fetchTasksStatus(): Promise<TasksStatus> {
   return response.json();
 }
 
-const defaultMediaImportStatus: MediaImportStatus = { pendingCount: 0, pendingNames: [] };
+const defaultMediaImportStatus: MediaImportStatus = {
+  pendingCount: 0,
+  pendingNames: [],
+};
 const defaultImportStatus: ImportStatus = {
   audiobooks: defaultMediaImportStatus,
   ebooks: defaultMediaImportStatus,
   comics: defaultMediaImportStatus,
 };
-const defaultHardcoverStatus: HardcoverSyncStatus = { pendingCount: 0, failedCount: 0 };
+const defaultHardcoverStatus: HardcoverSyncStatus = {
+  pendingCount: 0,
+  failedCount: 0,
+};
 const defaultScanStatus: ScanStatus = { isScanning: false };
-const defaultTtsStatus: TtsTaskStatus = { active: null, pendingCount: 0, failedCount: 0 };
+const defaultTtsStatus: TtsTaskStatus = {
+  active: null,
+  pendingCount: 0,
+  failedCount: 0,
+};
 const defaultGoodreadsLinkStatus: GoodreadsLinkStatus = {
   active: null,
   pendingCount: 0,
@@ -147,14 +157,19 @@ export function useTasksStatus() {
 
   // Merge: WebSocket updates override HTTP initial data
   const import_ = importStatus ?? initialData?.import ?? defaultImportStatus;
-  const hardcover = hardcoverStatus ?? initialData?.hardcoverSync ?? defaultHardcoverStatus;
+  const hardcover =
+    hardcoverStatus ?? initialData?.hardcoverSync ?? defaultHardcoverStatus;
   const scan = scanStatus ?? initialData?.scan ?? defaultScanStatus;
   const tts = ttsStatus ?? initialData?.tts ?? defaultTtsStatus;
   const goodreadsLink =
-    goodreadsLinkStatus ?? initialData?.goodreadsLink ?? defaultGoodreadsLinkStatus;
+    goodreadsLinkStatus ??
+    initialData?.goodreadsLink ??
+    defaultGoodreadsLinkStatus;
 
   const importPendingCount =
-    import_.audiobooks.pendingCount + import_.ebooks.pendingCount + import_.comics.pendingCount;
+    import_.audiobooks.pendingCount +
+    import_.ebooks.pendingCount +
+    import_.comics.pendingCount;
   const ttsActiveCount = tts.active ? 1 : 0;
   const goodreadsActiveCount = goodreadsLink.active ? 1 : 0;
   const totalPending =

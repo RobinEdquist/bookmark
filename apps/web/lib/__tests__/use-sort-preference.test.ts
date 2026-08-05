@@ -16,7 +16,7 @@ describe("useSortPreference", () => {
   it("loads saved preference from localStorage", () => {
     localStorage.setItem(
       "bookmark-audiobooks-sort",
-      JSON.stringify({ sortBy: "title", sortOrder: "asc" })
+      JSON.stringify({ sortBy: "title", sortOrder: "asc" }),
     );
 
     const { result } = renderHook(() => useSortPreference("audiobooks"));
@@ -29,18 +29,18 @@ describe("useSortPreference", () => {
   it("uses different storage keys for audiobooks and ebooks", () => {
     localStorage.setItem(
       "bookmark-audiobooks-sort",
-      JSON.stringify({ sortBy: "title", sortOrder: "asc" })
+      JSON.stringify({ sortBy: "title", sortOrder: "asc" }),
     );
     localStorage.setItem(
       "bookmark-ebooks-sort",
-      JSON.stringify({ sortBy: "author", sortOrder: "desc" })
+      JSON.stringify({ sortBy: "author", sortOrder: "desc" }),
     );
 
     const { result: audiobooksResult } = renderHook(() =>
-      useSortPreference("audiobooks")
+      useSortPreference("audiobooks"),
     );
     const { result: ebooksResult } = renderHook(() =>
-      useSortPreference("ebooks")
+      useSortPreference("ebooks"),
     );
 
     expect(audiobooksResult.current.sortBy).toBe("title");
@@ -88,7 +88,7 @@ describe("useSortPreference", () => {
     });
 
     const stored = JSON.parse(
-      localStorage.getItem("bookmark-audiobooks-sort") || "{}"
+      localStorage.getItem("bookmark-audiobooks-sort") || "{}",
     );
     expect(stored.sortBy).toBe("author");
     expect(stored.sortOrder).toBe("asc");
@@ -104,7 +104,7 @@ describe("useSortPreference", () => {
   it("ignores invalid sortBy values in localStorage", () => {
     localStorage.setItem(
       "bookmark-audiobooks-sort",
-      JSON.stringify({ sortBy: "invalid", sortOrder: "asc" })
+      JSON.stringify({ sortBy: "invalid", sortOrder: "asc" }),
     );
 
     const { result } = renderHook(() => useSortPreference("audiobooks"));

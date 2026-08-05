@@ -61,7 +61,9 @@ export function GenresSettings() {
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState<AdminGenre | null>(null);
-  const [mergeConflict, setMergeConflict] = useState<RenameConflict | null>(null);
+  const [mergeConflict, setMergeConflict] = useState<RenameConflict | null>(
+    null,
+  );
 
   const { data: genres, isLoading, error } = useAdminGenres();
 
@@ -114,19 +116,33 @@ export function GenresSettings() {
               <TableHeader>
                 <TableRow>
                   <TableHead>{t("table.name")}</TableHead>
-                  <TableHead className="text-right">{t("table.audiobooks")}</TableHead>
-                  <TableHead className="text-right">{t("table.ebooks")}</TableHead>
-                  <TableHead className="text-right">{t("table.comics")}</TableHead>
-                  <TableHead className="w-[70px]">{t("table.actions")}</TableHead>
+                  <TableHead className="text-right">
+                    {t("table.audiobooks")}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {t("table.ebooks")}
+                  </TableHead>
+                  <TableHead className="text-right">
+                    {t("table.comics")}
+                  </TableHead>
+                  <TableHead className="w-[70px]">
+                    {t("table.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {genres.map((genre) => (
                   <TableRow key={genre.id}>
                     <TableCell className="font-medium">{genre.name}</TableCell>
-                    <TableCell className="text-right">{genre.audiobookCount}</TableCell>
-                    <TableCell className="text-right">{genre.ebookCount}</TableCell>
-                    <TableCell className="text-right">{genre.comicCount}</TableCell>
+                    <TableCell className="text-right">
+                      {genre.audiobookCount}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {genre.ebookCount}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {genre.comicCount}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -158,7 +174,9 @@ export function GenresSettings() {
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <Tags className="h-12 w-12 text-muted-foreground/50 mb-4" />
               <h3 className="text-lg font-medium">No genres</h3>
-              <p className="text-muted-foreground mt-1 max-w-md">{t("empty")}</p>
+              <p className="text-muted-foreground mt-1 max-w-md">
+                {t("empty")}
+              </p>
             </div>
           )}
         </CardContent>
@@ -299,7 +317,11 @@ interface MergeGenreDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function MergeGenreDialog({ conflict, open, onOpenChange }: MergeGenreDialogProps) {
+function MergeGenreDialog({
+  conflict,
+  open,
+  onOpenChange,
+}: MergeGenreDialogProps) {
   const t = useTranslations("settings.genres.merge");
   const tToast = useTranslations("settings.genres.toast");
   const mergeGenres = useMergeGenres();
@@ -382,7 +404,11 @@ interface DeleteGenreDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-function DeleteGenreDialog({ genre, open, onOpenChange }: DeleteGenreDialogProps) {
+function DeleteGenreDialog({
+  genre,
+  open,
+  onOpenChange,
+}: DeleteGenreDialogProps) {
   const t = useTranslations("settings.genres.delete");
   const tToast = useTranslations("settings.genres.toast");
   const deleteGenre = useDeleteGenre();

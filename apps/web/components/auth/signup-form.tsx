@@ -33,7 +33,10 @@ export function SignupForm() {
       if (result.error) {
         if (result.error.message?.includes("already exists")) {
           toast.error(t("error.emailExists"));
-        } else if (result.error.message?.includes("disabled") || result.error.message?.includes("closed")) {
+        } else if (
+          result.error.message?.includes("disabled") ||
+          result.error.message?.includes("closed")
+        ) {
           toast.error(t("error.signupsClosed"));
         } else {
           toast.error(result.error.message || t("error.generic"));

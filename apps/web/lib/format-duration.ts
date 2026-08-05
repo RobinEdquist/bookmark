@@ -19,20 +19,20 @@ export function formatDurationLong(seconds: number): string {
   if (days >= 1) {
     const remainingHours = hours % 24;
     if (remainingHours === 0) {
-      return `${days} ${days === 1 ? 'day' : 'days'}`;
+      return `${days} ${days === 1 ? "day" : "days"}`;
     }
-    return `${days} ${days === 1 ? 'day' : 'days'} ${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`;
+    return `${days} ${days === 1 ? "day" : "days"} ${remainingHours} ${remainingHours === 1 ? "hour" : "hours"}`;
   }
 
   if (hours >= 1) {
     const remainingMinutes = minutes % 60;
     if (remainingMinutes === 0) {
-      return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+      return `${hours} ${hours === 1 ? "hour" : "hours"}`;
     }
-    return `${hours} ${hours === 1 ? 'hour' : 'hours'} ${remainingMinutes} ${remainingMinutes === 1 ? 'minute' : 'minutes'}`;
+    return `${hours} ${hours === 1 ? "hour" : "hours"} ${remainingMinutes} ${remainingMinutes === 1 ? "minute" : "minutes"}`;
   }
 
-  return `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+  return `${minutes} ${minutes === 1 ? "minute" : "minutes"}`;
 }
 
 /**
@@ -62,5 +62,5 @@ export function formatDurationShort(seconds: number | null): string {
  */
 export function formatDurationHours(seconds: number): string {
   const hours = Math.round(seconds / 3600);
-  return `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+  return `${hours} ${hours === 1 ? "hour" : "hours"}`;
 }

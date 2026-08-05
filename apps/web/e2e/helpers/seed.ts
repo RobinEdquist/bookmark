@@ -6,16 +6,14 @@
  */
 
 /* eslint-disable turbo/no-undeclared-env-vars */
-import pg from 'pg';
+import pg from "pg";
 
 const { Client } = pg;
 
 function getClient(): pg.Client {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error(
-      'DATABASE_URL not set — is global-setup.ts exporting it?',
-    );
+    throw new Error("DATABASE_URL not set — is global-setup.ts exporting it?");
   }
   return new Client({ connectionString });
 }
@@ -56,19 +54,19 @@ export async function seedAudiobook(overrides?: {
   await client.connect();
 
   try {
-    const title = overrides?.title ?? 'E2E Test Audiobook';
-    const authorName = overrides?.authorName ?? 'E2E Test Author';
-    const narratorName = overrides?.narratorName ?? 'E2E Test Narrator';
-    const description = overrides?.description ?? 'A test audiobook for E2E.';
+    const title = overrides?.title ?? "E2E Test Audiobook";
+    const authorName = overrides?.authorName ?? "E2E Test Author";
+    const narratorName = overrides?.narratorName ?? "E2E Test Narrator";
+    const description = overrides?.description ?? "A test audiobook for E2E.";
     const duration = overrides?.duration ?? 3600;
-    const language = overrides?.language ?? 'en';
+    const language = overrides?.language ?? "en";
 
     // Insert audiobook
     const abResult = await client.query(
       `INSERT INTO audiobooks (title, description, duration, language, file_path, status)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id`,
-      [title, description, duration, language, '/fake/e2e/path', 'available'],
+      [title, description, duration, language, "/fake/e2e/path", "available"],
     );
     const audiobookId = abResult.rows[0].id as string;
 
@@ -108,11 +106,11 @@ export async function seedAudiobook(overrides?: {
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         audiobookId,
-        '/fake/e2e/path/chapter1.mp3',
-        'chapter1.mp3',
+        "/fake/e2e/path/chapter1.mp3",
+        "chapter1.mp3",
         1,
         duration,
-        'mp3',
+        "mp3",
         50000000,
       ],
     );
@@ -140,13 +138,13 @@ export async function seedEbook(overrides?: {
   await client.connect();
 
   try {
-    const title = overrides?.title ?? 'E2E Test Ebook';
-    const authorName = overrides?.authorName ?? 'E2E Test Ebook Author';
-    const description = overrides?.description ?? 'A test ebook for E2E.';
+    const title = overrides?.title ?? "E2E Test Ebook";
+    const authorName = overrides?.authorName ?? "E2E Test Ebook Author";
+    const description = overrides?.description ?? "A test ebook for E2E.";
     const pageCount = overrides?.pageCount ?? 320;
-    const language = overrides?.language ?? 'en';
-    const publisher = overrides?.publisher ?? 'E2E Publisher';
-    const isbn = overrides?.isbn ?? '978-0-123456-78-9';
+    const language = overrides?.language ?? "en";
+    const publisher = overrides?.publisher ?? "E2E Publisher";
+    const isbn = overrides?.isbn ?? "978-0-123456-78-9";
 
     // Insert ebook
     const ebResult = await client.query(
@@ -160,11 +158,11 @@ export async function seedEbook(overrides?: {
         language,
         publisher,
         isbn,
-        '/fake/e2e/path/book.epub',
-        'book.epub',
+        "/fake/e2e/path/book.epub",
+        "book.epub",
         5000000,
-        'epub',
-        'available',
+        "epub",
+        "available",
       ],
     );
     const ebookId = ebResult.rows[0].id as string;
@@ -202,13 +200,13 @@ export async function seedComicSeries(overrides?: {
   await client.connect();
 
   try {
-    const title = overrides?.title ?? 'E2E Test Comic Series';
+    const title = overrides?.title ?? "E2E Test Comic Series";
     // folderPath must be unique in the DB; use null for virtual/merged series
     // When provided it must be unique across all series rows.
     const folderPath =
       overrides?.folderPath !== undefined
         ? overrides.folderPath
-        : `e2e/comics/${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`;
+        : `e2e/comics/${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}`;
 
     const result = await client.query(
       `INSERT INTO comic_series (title, folder_path, status)
@@ -239,7 +237,7 @@ export async function seedComicBook(
   await client.connect();
 
   try {
-    const number = overrides?.number ?? '1';
+    const number = overrides?.number ?? "1";
     const title = overrides?.title ?? null;
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const filePath = `e2e/comics/issue-${number}-${suffix}.cbz`;

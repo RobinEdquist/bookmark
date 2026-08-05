@@ -76,13 +76,15 @@ export function AudiobookGrid({
         onLoadMore();
       }
     },
-    { enabled: hasNextPage && !isFetchingNextPage }
+    { enabled: hasNextPage && !isFetchingNextPage },
   );
 
   // Shared edit dialog state for navigation between audiobooks
-  const [editingAudiobookId, setEditingAudiobookId] = useState<string | null>(null);
+  const [editingAudiobookId, setEditingAudiobookId] = useState<string | null>(
+    null,
+  );
   const editingAudiobook = editingAudiobookId
-    ? audiobooks.find((a) => a.id === editingAudiobookId) ?? null
+    ? (audiobooks.find((a) => a.id === editingAudiobookId) ?? null)
     : null;
   const audiobookIds = audiobooks.map((a) => a.id);
 

@@ -55,7 +55,7 @@ export function SortableListItem({
       className={cn(
         "group flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors",
         isDragging && "z-50 shadow-lg opacity-90",
-        !isDragging && "hover:border-primary/30"
+        !isDragging && "hover:border-primary/30",
       )}
     >
       {/* Drag handle */}
@@ -74,7 +74,7 @@ export function SortableListItem({
       <div
         className={cn(
           "relative shrink-0 overflow-hidden rounded",
-          isAudiobook ? "h-16 w-16" : "h-16 w-11"
+          isAudiobook ? "h-16 w-16" : "h-16 w-11",
         )}
       >
         {content.coverUrl ? (
@@ -126,7 +126,7 @@ export function SortableListItem({
             ? "bg-primary/10 text-primary"
             : isComicSeries
               ? "bg-orange-500/10 text-orange-600 dark:text-orange-400"
-              : "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+              : "bg-blue-500/10 text-blue-600 dark:text-blue-400",
         )}
       >
         {isAudiobook

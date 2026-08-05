@@ -73,7 +73,9 @@ export function TasksIndicator() {
             {/* Library Scan */}
             {scan.isScanning && (
               <div className="space-y-1">
-                <div className="text-sm font-medium">{t("scanningLibrary")}</div>
+                <div className="text-sm font-medium">
+                  {t("scanningLibrary")}
+                </div>
                 <div className="text-sm text-muted-foreground">
                   {scan.phase && t(`scanPhase.${scan.phase}`)}
                   {scan.percentage !== undefined && ` (${scan.percentage}%)`}
@@ -89,20 +91,25 @@ export function TasksIndicator() {
             {/* Audiobook Import Queue */}
             {audiobookImportCount > 0 && (
               <div className="space-y-1">
-                <div className="text-sm font-medium">{t("importingAudiobooks")}</div>
+                <div className="text-sm font-medium">
+                  {t("importingAudiobooks")}
+                </div>
                 <div className="text-sm text-muted-foreground">
                   {t("audiobooks", { count: audiobookImportCount })}
                 </div>
                 {importStatus.audiobooks.pendingNames.length > 0 && (
                   <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                    {importStatus.audiobooks.pendingNames.slice(0, 3).map((name, index) => (
-                      <li key={index} className="truncate">
-                        • {name}
-                      </li>
-                    ))}
+                    {importStatus.audiobooks.pendingNames
+                      .slice(0, 3)
+                      .map((name, index) => (
+                        <li key={index} className="truncate">
+                          • {name}
+                        </li>
+                      ))}
                     {importStatus.audiobooks.pendingNames.length > 3 && (
                       <li className="text-muted-foreground/70">
-                        +{importStatus.audiobooks.pendingNames.length - 3} {t("more")}
+                        +{importStatus.audiobooks.pendingNames.length - 3}{" "}
+                        {t("more")}
                       </li>
                     )}
                   </ul>
@@ -113,20 +120,25 @@ export function TasksIndicator() {
             {/* Ebook Import Queue */}
             {ebookImportCount > 0 && (
               <div className="space-y-1">
-                <div className="text-sm font-medium">{t("importingEbooks")}</div>
+                <div className="text-sm font-medium">
+                  {t("importingEbooks")}
+                </div>
                 <div className="text-sm text-muted-foreground">
                   {t("ebooks", { count: ebookImportCount })}
                 </div>
                 {importStatus.ebooks.pendingNames.length > 0 && (
                   <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                    {importStatus.ebooks.pendingNames.slice(0, 3).map((name, index) => (
-                      <li key={index} className="truncate">
-                        • {name}
-                      </li>
-                    ))}
+                    {importStatus.ebooks.pendingNames
+                      .slice(0, 3)
+                      .map((name, index) => (
+                        <li key={index} className="truncate">
+                          • {name}
+                        </li>
+                      ))}
                     {importStatus.ebooks.pendingNames.length > 3 && (
                       <li className="text-muted-foreground/70">
-                        +{importStatus.ebooks.pendingNames.length - 3} {t("more")}
+                        +{importStatus.ebooks.pendingNames.length - 3}{" "}
+                        {t("more")}
                       </li>
                     )}
                   </ul>
@@ -137,20 +149,25 @@ export function TasksIndicator() {
             {/* Comic Import Queue */}
             {comicImportCount > 0 && (
               <div className="space-y-1">
-                <div className="text-sm font-medium">{t("importingComics")}</div>
+                <div className="text-sm font-medium">
+                  {t("importingComics")}
+                </div>
                 <div className="text-sm text-muted-foreground">
                   {t("comics", { count: comicImportCount })}
                 </div>
                 {importStatus.comics.pendingNames.length > 0 && (
                   <ul className="mt-1 space-y-0.5 text-xs text-muted-foreground">
-                    {importStatus.comics.pendingNames.slice(0, 3).map((name, index) => (
-                      <li key={index} className="truncate">
-                        • {name}
-                      </li>
-                    ))}
+                    {importStatus.comics.pendingNames
+                      .slice(0, 3)
+                      .map((name, index) => (
+                        <li key={index} className="truncate">
+                          • {name}
+                        </li>
+                      ))}
                     {importStatus.comics.pendingNames.length > 3 && (
                       <li className="text-muted-foreground/70">
-                        +{importStatus.comics.pendingNames.length - 3} {t("more")}
+                        +{importStatus.comics.pendingNames.length - 3}{" "}
+                        {t("more")}
                       </li>
                     )}
                   </ul>
@@ -231,9 +248,13 @@ export function TasksIndicator() {
             )}
 
             {/* Goodreads Linking */}
-            {(goodreadsActive || goodreadsPending > 0 || goodreadsFailed > 0) && (
+            {(goodreadsActive ||
+              goodreadsPending > 0 ||
+              goodreadsFailed > 0) && (
               <div className="space-y-1">
-                <div className="text-sm font-medium">{t("goodreadsLink.title")}</div>
+                <div className="text-sm font-medium">
+                  {t("goodreadsLink.title")}
+                </div>
                 {goodreadsActive && (
                   <div className="text-sm text-muted-foreground truncate">
                     {t("goodreadsLink.linking", {
@@ -278,9 +299,22 @@ export function TasksIndicator() {
             )}
 
             {/* Empty state - only happens briefly during loading */}
-            {!scan.isScanning && audiobookImportCount === 0 && ebookImportCount === 0 && comicImportCount === 0 && hardcoverPending === 0 && hardcoverFailed === 0 && !ttsActive && ttsPending === 0 && ttsFailed === 0 && !goodreadsActive && goodreadsPending === 0 && goodreadsFailed === 0 && (
-              <div className="text-sm text-muted-foreground">{t("noTasks")}</div>
-            )}
+            {!scan.isScanning &&
+              audiobookImportCount === 0 &&
+              ebookImportCount === 0 &&
+              comicImportCount === 0 &&
+              hardcoverPending === 0 &&
+              hardcoverFailed === 0 &&
+              !ttsActive &&
+              ttsPending === 0 &&
+              ttsFailed === 0 &&
+              !goodreadsActive &&
+              goodreadsPending === 0 &&
+              goodreadsFailed === 0 && (
+                <div className="text-sm text-muted-foreground">
+                  {t("noTasks")}
+                </div>
+              )}
           </div>
         </PopoverContent>
       </Popover>

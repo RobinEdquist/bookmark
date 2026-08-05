@@ -34,7 +34,10 @@ interface AdminRequestsListProps {
   isRejecting: boolean;
 }
 
-const statusVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const statusVariants: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   pending: "secondary",
   approved: "default",
   downloading: "default",
@@ -53,7 +56,9 @@ export function AdminRequestsList({
   const t = useTranslations("admin.requests");
   const tRequests = useTranslations("requests");
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
-  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(
+    null,
+  );
   const [rejectReason, setRejectReason] = useState("");
 
   if (isLoading) {
@@ -104,78 +109,93 @@ export function AdminRequestsList({
         {requests.map((request) => {
           const TypeIcon = CONTENT_TYPE_STYLES[request.contentType].icon;
           return (
-          <Card key={request.id}>
-            <CardContent className="p-4">
-              <div className="flex gap-4">
-                {/* Content Type Icon */}
-                <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-muted shrink-0">
-                  <TypeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0 space-y-1">
-                  <div className="flex flex-wrap items-start gap-2">
-                    <h3 className="font-semibold flex-1 min-w-0">
-                      <span className="line-clamp-2 sm:line-clamp-1">
-                        {request.title}
-                        {request.author && ` - ${request.author}`}
-                      </span>
-                    </h3>
-                    <Badge variant={statusVariants[request.status]} className="shrink-0">
-                      {request.status === 'approved' && request.autoApprovedByUserId ? (
-                        request.autoApprovedByUserId === request.userId
-                          ? tRequests('autoApprove.autoApproved')
-                          : tRequests('autoApprove.autoApprovedBy', { email: request.autoApprovedByEmail ?? 'Unknown' })
-                      ) : (
-                        t(`status.${request.status}`)
-                      )}
-                    </Badge>
+            <Card key={request.id}>
+              <CardContent className="p-4">
+                <div className="flex gap-4">
+                  {/* Content Type Icon */}
+                  <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-muted shrink-0">
+                    <TypeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">
-                    {t("requestedBy", { email: request.userEmail })}
-                    {request.supporterCount > 0 && (
-                      <span className="ml-1">
-                        {t("supporters", { count: request.supporterCount })}
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTimeAgo(request.createdAt)}
-                  </p>
-                </div>
-              </div>
 
-              {/* Actions - separate row on mobile */}
-              {request.status === "pending" && (
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-                  <Button
-                    onClick={() => onApprove(request.id)}
-                    disabled={isApproving}
-                    size="sm"
-                    className="flex-1 sm:flex-none"
-                  >
-                    {isApproving ? <LoadingSpinner size="sm" /> : t("approve")}
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" disabled={isRejecting} className="flex-1 sm:flex-none">
-                        {t("reject")}
-                        <ChevronDown className="ml-1 h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onReject(request.id)}>
-                        {t("rejectWithoutReason")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleRejectClick(request.id)}>
-                        {t("rejectWithReason")}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-start gap-2">
+                      <h3 className="font-semibold flex-1 min-w-0">
+                        <span className="line-clamp-2 sm:line-clamp-1">
+                          {request.title}
+                          {request.author && ` - ${request.author}`}
+                        </span>
+                      </h3>
+                      <Badge
+                        variant={statusVariants[request.status]}
+                        className="shrink-0"
+                      >
+                        {request.status === "approved" &&
+                        request.autoApprovedByUserId
+                          ? request.autoApprovedByUserId === request.userId
+                            ? tRequests("autoApprove.autoApproved")
+                            : tRequests("autoApprove.autoApprovedBy", {
+                                email: request.autoApprovedByEmail ?? "Unknown",
+                              })
+                          : t(`status.${request.status}`)}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">
+                      {t("requestedBy", { email: request.userEmail })}
+                      {request.supporterCount > 0 && (
+                        <span className="ml-1">
+                          {t("supporters", { count: request.supporterCount })}
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatTimeAgo(request.createdAt)}
+                    </p>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+
+                {/* Actions - separate row on mobile */}
+                {request.status === "pending" && (
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+                    <Button
+                      onClick={() => onApprove(request.id)}
+                      disabled={isApproving}
+                      size="sm"
+                      className="flex-1 sm:flex-none"
+                    >
+                      {isApproving ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        t("approve")
+                      )}
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={isRejecting}
+                          className="flex-1 sm:flex-none"
+                        >
+                          {t("reject")}
+                          <ChevronDown className="ml-1 h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => onReject(request.id)}>
+                          {t("rejectWithoutReason")}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => handleRejectClick(request.id)}
+                        >
+                          {t("rejectWithReason")}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           );
         })}
       </div>
@@ -185,15 +205,22 @@ export function AdminRequestsList({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("rejectDialog.title")}</DialogTitle>
-            <DialogDescription>{t("rejectDialog.description")}</DialogDescription>
+            <DialogDescription>
+              {t("rejectDialog.description")}
+            </DialogDescription>
           </DialogHeader>
           <Textarea
             placeholder={t("rejectDialog.placeholder")}
             value={rejectReason}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setRejectReason(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+              setRejectReason(e.target.value)
+            }
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setRejectDialogOpen(false)}
+            >
               {t("rejectDialog.cancel")}
             </Button>
             <Button
@@ -201,7 +228,11 @@ export function AdminRequestsList({
               onClick={handleRejectConfirm}
               disabled={isRejecting}
             >
-              {isRejecting ? <LoadingSpinner size="sm" /> : t("rejectDialog.confirm")}
+              {isRejecting ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                t("rejectDialog.confirm")
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

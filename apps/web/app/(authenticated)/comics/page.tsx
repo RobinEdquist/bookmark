@@ -9,7 +9,10 @@ import { ComicSeriesGrid } from "../../../components/comics/comic-series-grid";
 import { ComicCollectionsView } from "../../../components/comics/comic-collections-view";
 import { useInfiniteComicSeries } from "../../../lib/use-comics";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
-import { SortSelect, COMICS_SORT_OPTIONS } from "../../../components/library/sort-select";
+import {
+  SortSelect,
+  COMICS_SORT_OPTIONS,
+} from "../../../components/library/sort-select";
 import { useSortPreference } from "../../../lib/use-sort-preference";
 import { useSaveLibraryUrl } from "../../../lib/use-library-return-url";
 import { useSaveLibraryNavigation } from "../../../lib/use-library-navigation";
@@ -19,10 +22,12 @@ import { authClient } from "../../../lib/auth-client";
 import type { ComicSeriesFilters } from "../../../lib/use-comics";
 
 // Map SortField values to ComicSeriesFilters.sortBy
-function toComicSortBy(
-  sortBy: string,
-): ComicSeriesFilters["sortBy"] {
-  if (sortBy === "recentlyAdded" || sortBy === "startYear" || sortBy === "title") {
+function toComicSortBy(sortBy: string): ComicSeriesFilters["sortBy"] {
+  if (
+    sortBy === "recentlyAdded" ||
+    sortBy === "startYear" ||
+    sortBy === "title"
+  ) {
     return sortBy;
   }
   return "title";
@@ -37,7 +42,8 @@ export default function ComicsPage() {
   const isAdmin = session?.user?.role === "admin";
 
   // Browse mode: "series" (default) or "collections"
-  const view = searchParams.get("view") === "collections" ? "collections" : "series";
+  const view =
+    searchParams.get("view") === "collections" ? "collections" : "series";
 
   // Save current URL for back navigation from detail pages
   useSaveLibraryUrl("/comics");
@@ -78,7 +84,9 @@ export default function ComicsPage() {
     } else {
       params.delete("search");
     }
-    const newUrl = params.toString() ? `/comics?${params.toString()}` : "/comics";
+    const newUrl = params.toString()
+      ? `/comics?${params.toString()}`
+      : "/comics";
     router.replace(newUrl, { scroll: false });
   }, [debouncedSearch, router, searchParams]);
 
@@ -104,7 +112,10 @@ export default function ComicsPage() {
   const series = data?.pages.flatMap((page) => page.series) ?? [];
 
   // Save ordered item IDs for next/prev navigation on detail pages
-  useSaveLibraryNavigation("/comics", series.map((s) => s.id));
+  useSaveLibraryNavigation(
+    "/comics",
+    series.map((s) => s.id),
+  );
 
   // Scroll position restoration (search/view/metadataTag are in the URL;
   // sort is stored locally, so it goes into the extra key)
@@ -114,7 +125,8 @@ export default function ComicsPage() {
   });
 
   // Show spinner when search is pending (query differs from debounced) or fetching first page
-  const isSearching = searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
+  const isSearching =
+    searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
 
   // Only show skeleton loading on initial load, not during search
   const showSkeletons = isLoading && !data;

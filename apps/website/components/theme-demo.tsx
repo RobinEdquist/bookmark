@@ -64,7 +64,13 @@ export function ThemeDemo() {
     <div className="theme-demo">
       <div
         className="theme-demo-stage"
-        style={{ "--td-accent": a.value, "--td-accent-fg": a.fg, ...s.vars } as CSSProperties}
+        style={
+          {
+            "--td-accent": a.value,
+            "--td-accent-fg": a.fg,
+            ...s.vars,
+          } as CSSProperties
+        }
       >
         <div className="td-app" aria-hidden>
           <div className="dm-h2">Continue listening</div>

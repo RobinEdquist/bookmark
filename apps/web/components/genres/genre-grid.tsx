@@ -12,7 +12,12 @@ interface GenreGridProps {
   onGenreSelect: (genreId: string) => void;
 }
 
-export function GenreGrid({ genres, contentType, isLoading, onGenreSelect }: GenreGridProps) {
+export function GenreGrid({
+  genres,
+  contentType,
+  isLoading,
+  onGenreSelect,
+}: GenreGridProps) {
   const t = useTranslations("common.genres");
 
   if (isLoading) {

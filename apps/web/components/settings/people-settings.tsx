@@ -3,18 +3,25 @@
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { MoreHorizontal, Pencil, Scissors, Users } from "lucide-react";
 import {
-  MoreHorizontal,
-  Pencil,
-  Scissors,
-  Users,
-} from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@repo/ui/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@repo/ui/components/ui/dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,9 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@repo/ui/components/ui/alert-dialog";
-import {
-  CreatableCombobox,
-} from "@repo/ui/components/ui/creatable-combobox";
+import { CreatableCombobox } from "@repo/ui/components/ui/creatable-combobox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,12 +69,15 @@ export function PeopleSettings({ role }: PeopleSettingsProps) {
   );
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search.trim(), 250);
-  const { data: people, isLoading, error } = useAdminPeople(
-    role,
-    debouncedSearch || undefined,
-  );
+  const {
+    data: people,
+    isLoading,
+    error,
+  } = useAdminPeople(role, debouncedSearch || undefined);
 
-  const [selectedPerson, setSelectedPerson] = useState<AdminPerson | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<AdminPerson | null>(
+    null,
+  );
   const [renameOpen, setRenameOpen] = useState(false);
   const [splitOpen, setSplitOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
@@ -154,7 +162,9 @@ export function PeopleSettings({ role }: PeopleSettingsProps) {
                       {t("table.ebooks")}
                     </TableHead>
                   )}
-                  <TableHead className="w-[70px]">{t("table.actions")}</TableHead>
+                  <TableHead className="w-[70px]">
+                    {t("table.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -176,11 +186,15 @@ export function PeopleSettings({ role }: PeopleSettingsProps) {
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon">
                             <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">{t("table.actions")}</span>
+                            <span className="sr-only">
+                              {t("table.actions")}
+                            </span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleRename(person)}>
+                          <DropdownMenuItem
+                            onClick={() => handleRename(person)}
+                          >
                             <Pencil className="mr-2 h-4 w-4" />
                             {t("actions.rename")}
                           </DropdownMenuItem>
@@ -249,7 +263,9 @@ function RenamePersonDialog({
   role,
 }: RenamePersonDialogProps) {
   const t = useTranslations(
-    role === "authors" ? "settings.authors.rename" : "settings.narrators.rename",
+    role === "authors"
+      ? "settings.authors.rename"
+      : "settings.narrators.rename",
   );
 
   return (
@@ -288,7 +304,9 @@ function RenamePersonForm({
   role: PeopleRole;
 }) {
   const t = useTranslations(
-    role === "authors" ? "settings.authors.rename" : "settings.narrators.rename",
+    role === "authors"
+      ? "settings.authors.rename"
+      : "settings.narrators.rename",
   );
   const tToast = useTranslations(
     role === "authors" ? "settings.authors.toast" : "settings.narrators.toast",
@@ -380,7 +398,7 @@ function MergePersonDialog({
       ? conflict
         ? conflict.audiobookAuthorCount + conflict.ebookAuthorCount
         : 0
-      : conflict?.audiobookNarratorCount ?? 0;
+      : (conflict?.audiobookNarratorCount ?? 0);
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -397,7 +415,12 @@ function MergePersonDialog({
         </AlertDialogHeader>
         {conflict && (
           <div className="space-y-2 text-sm">
-            <p>{t("source", { source: conflict.sourcePerson.name, count: sourceCount })}</p>
+            <p>
+              {t("source", {
+                source: conflict.sourcePerson.name,
+                count: sourceCount,
+              })}
+            </p>
             {role === "authors" && (
               <>
                 <p>
@@ -427,7 +450,10 @@ function MergePersonDialog({
         )}
         <AlertDialogFooter>
           <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-          <AlertDialogAction onClick={handleMerge} disabled={mergePeople.isPending}>
+          <AlertDialogAction
+            onClick={handleMerge}
+            disabled={mergePeople.isPending}
+          >
             {mergePeople.isPending ? t("merging") : t("confirm")}
           </AlertDialogAction>
         </AlertDialogFooter>

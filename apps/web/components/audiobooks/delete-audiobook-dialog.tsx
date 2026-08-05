@@ -63,13 +63,18 @@ export function DeleteAudiobookDialog({
         <div className="py-4">
           <RadioGroup
             value={deleteOption}
-            onValueChange={(value: string) => setDeleteOption(value as "keep" | "delete")}
+            onValueChange={(value: string) =>
+              setDeleteOption(value as "keep" | "delete")
+            }
             className="space-y-3"
           >
             <div className="flex items-start space-x-3 rounded-lg border p-4">
               <RadioGroupItem value="keep" id="keep" className="mt-0.5" />
               <div className="flex-1">
-                <Label htmlFor="keep" className="flex items-center gap-2 font-medium cursor-pointer">
+                <Label
+                  htmlFor="keep"
+                  className="flex items-center gap-2 font-medium cursor-pointer"
+                >
                   <FolderX className="h-4 w-4" />
                   {t("keepFiles.label")}
                 </Label>
@@ -82,7 +87,10 @@ export function DeleteAudiobookDialog({
             <div className="flex items-start space-x-3 rounded-lg border border-destructive/50 p-4">
               <RadioGroupItem value="delete" id="delete" className="mt-0.5" />
               <div className="flex-1">
-                <Label htmlFor="delete" className="flex items-center gap-2 font-medium cursor-pointer text-destructive">
+                <Label
+                  htmlFor="delete"
+                  className="flex items-center gap-2 font-medium cursor-pointer text-destructive"
+                >
                   <Trash2 className="h-4 w-4" />
                   {t("deleteFiles.label")}
                 </Label>

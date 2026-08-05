@@ -135,7 +135,9 @@ export function AnnouncementsSettings() {
                   <TableHead>{t("table.message")}</TableHead>
                   <TableHead>{t("table.status")}</TableHead>
                   <TableHead>{t("table.createdAt")}</TableHead>
-                  <TableHead className="w-[70px]">{t("table.actions")}</TableHead>
+                  <TableHead className="w-[70px]">
+                    {t("table.actions")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -149,7 +151,9 @@ export function AnnouncementsSettings() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={announcement.isActive ? "default" : "secondary"}
+                        variant={
+                          announcement.isActive ? "default" : "secondary"
+                        }
                       >
                         {announcement.isActive
                           ? t("status.active")
@@ -168,7 +172,9 @@ export function AnnouncementsSettings() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleEdit(announcement)}>
+                          <DropdownMenuItem
+                            onClick={() => handleEdit(announcement)}
+                          >
                             <Pencil className="mr-2 h-4 w-4" />
                             {t("actions.edit")}
                           </DropdownMenuItem>
@@ -287,7 +293,9 @@ function CreateAnnouncementDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="create-message">{t("createDialog.messageLabel")}</Label>
+            <Label htmlFor="create-message">
+              {t("createDialog.messageLabel")}
+            </Label>
             <Textarea
               id="create-message"
               value={message}
@@ -300,7 +308,9 @@ function CreateAnnouncementDialog({
 
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
-              <Label htmlFor="create-active">{t("createDialog.isActiveLabel")}</Label>
+              <Label htmlFor="create-active">
+                {t("createDialog.isActiveLabel")}
+              </Label>
               <p className="text-xs text-muted-foreground">
                 {t("createDialog.isActiveDescription")}
               </p>
@@ -402,7 +412,7 @@ function EditAnnouncementForm({
   };
 
   return (
-<form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="edit-title">{t("createDialog.titleLabel")}</Label>
         <Input

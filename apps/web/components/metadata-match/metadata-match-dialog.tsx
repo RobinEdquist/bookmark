@@ -128,7 +128,7 @@ function stripHtml(html: string): string {
 function formatSeries(entries: SeriesEntry[]): string {
   return entries
     .map((entry) =>
-      entry.order ? `${entry.seriesName} #${entry.order}` : entry.seriesName
+      entry.order ? `${entry.seriesName} #${entry.order}` : entry.seriesName,
     )
     .join("; ");
 }
@@ -204,14 +204,14 @@ function MetadataMatchBody({
     {
       enabled: open && submitted?.provider === "audible",
       region: submitted?.region,
-    }
+    },
   );
 
   const itunesQuery = useItunesSearch(
     [submitted?.title, submitted?.author].filter(Boolean).join(" "),
     mediaType,
     itunesCountry,
-    { enabled: open && submitted?.provider === "itunes" }
+    { enabled: open && submitted?.provider === "itunes" },
   );
 
   const isSearching =
@@ -225,14 +225,14 @@ function MetadataMatchBody({
   const bookQuery = useAudnexusBook(
     selectedAudible?.asin ?? "",
     submitted?.region ?? region,
-    { enabled: open && step === "review" && provider === "audible" }
+    { enabled: open && step === "review" && provider === "audible" },
   );
 
   // Memoized so `matched` keeps a stable identity across renders — the
   // default-check effect below resets `checked` whenever `matched` changes.
   const audibleFallback = useMemo(
     () => (selectedAudible ? mapAudibleSearchResult(selectedAudible) : null),
-    [selectedAudible]
+    [selectedAudible],
   );
 
   const matched: MatchedMetadata | null = useMemo(() => {
@@ -346,7 +346,7 @@ function MetadataMatchBody({
 
   const allowPortaledSelects = (target: EventTarget | null) =>
     target instanceof HTMLElement &&
-    Boolean(target.closest('[data-radix-popper-content-wrapper]'));
+    Boolean(target.closest("[data-radix-popper-content-wrapper]"));
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -406,9 +406,7 @@ function MetadataMatchBody({
         <DialogHeader>
           <DialogTitle>{t("title")}</DialogTitle>
           <DialogDescription>
-            {step === "search"
-              ? t("description")
-              : t("reviewDescription")}
+            {step === "search" ? t("description") : t("reviewDescription")}
           </DialogDescription>
         </DialogHeader>
 
@@ -507,9 +505,7 @@ function MetadataMatchBody({
                       audibleResults.map((result) => {
                         const isSelected =
                           selectedAudible?.asin === result.asin;
-                        const duration = formatDuration(
-                          result.durationMinutes
-                        );
+                        const duration = formatDuration(result.durationMinutes);
                         return (
                           <button
                             key={result.asin}

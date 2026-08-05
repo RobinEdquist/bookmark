@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, userEvent, waitFor } from "../../../__test-utils__/render";
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "../../../__test-utils__/render";
 import { CreateListDialog } from "../create-list-dialog";
 
 // --- Hoisted mocks ---
@@ -23,7 +28,10 @@ vi.mock("sonner", () => ({
 beforeEach(() => {
   class Pointer extends MouseEvent {
     pointerId: number;
-    constructor(type: string, init?: PointerEventInit & { pointerId?: number }) {
+    constructor(
+      type: string,
+      init?: PointerEventInit & { pointerId?: number },
+    ) {
       super(type, init);
       this.pointerId = init?.pointerId ?? 0;
     }
@@ -38,18 +46,20 @@ beforeEach(() => {
 
 // --- Helpers ---
 
-function renderDialog(props: {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  initialItem?: { itemType: "audiobook" | "ebook"; itemId: string };
-} = {}) {
+function renderDialog(
+  props: {
+    open?: boolean;
+    onOpenChange?: (open: boolean) => void;
+    initialItem?: { itemType: "audiobook" | "ebook"; itemId: string };
+  } = {},
+) {
   const onOpenChange = props.onOpenChange ?? vi.fn();
   const result = render(
     <CreateListDialog
       open={props.open ?? true}
       onOpenChange={onOpenChange}
       initialItem={props.initialItem}
-    />
+    />,
   );
   return { ...result, onOpenChange };
 }
@@ -60,7 +70,9 @@ describe("CreateListDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseCreateList.mockReturnValue({
-      mutateAsync: vi.fn().mockResolvedValue({ id: "new-list-1", name: "Test" }),
+      mutateAsync: vi
+        .fn()
+        .mockResolvedValue({ id: "new-list-1", name: "Test" }),
       isPending: false,
     });
     mockUseAddToList.mockReturnValue({
@@ -109,8 +121,13 @@ describe("CreateListDialog", () => {
   });
 
   it("calls createList on form submit with name and visibility", async () => {
-    const createListFn = vi.fn().mockResolvedValue({ id: "new-1", name: "My List" });
-    mockUseCreateList.mockReturnValue({ mutateAsync: createListFn, isPending: false });
+    const createListFn = vi
+      .fn()
+      .mockResolvedValue({ id: "new-1", name: "My List" });
+    mockUseCreateList.mockReturnValue({
+      mutateAsync: createListFn,
+      isPending: false,
+    });
     const onOpenChange = vi.fn();
 
     const user = userEvent.setup();
@@ -128,10 +145,18 @@ describe("CreateListDialog", () => {
   });
 
   it("adds initial item to created list when initialItem is provided", async () => {
-    const createListFn = vi.fn().mockResolvedValue({ id: "new-1", name: "My List" });
+    const createListFn = vi
+      .fn()
+      .mockResolvedValue({ id: "new-1", name: "My List" });
     const addToListFn = vi.fn().mockResolvedValue({});
-    mockUseCreateList.mockReturnValue({ mutateAsync: createListFn, isPending: false });
-    mockUseAddToList.mockReturnValue({ mutateAsync: addToListFn, isPending: false });
+    mockUseCreateList.mockReturnValue({
+      mutateAsync: createListFn,
+      isPending: false,
+    });
+    mockUseAddToList.mockReturnValue({
+      mutateAsync: addToListFn,
+      isPending: false,
+    });
 
     const user = userEvent.setup();
     renderDialog({ initialItem: { itemType: "audiobook", itemId: "ab-1" } });
@@ -150,7 +175,10 @@ describe("CreateListDialog", () => {
 
   it("shows toast error when create fails", async () => {
     const createListFn = vi.fn().mockRejectedValue(new Error("fail"));
-    mockUseCreateList.mockReturnValue({ mutateAsync: createListFn, isPending: false });
+    mockUseCreateList.mockReturnValue({
+      mutateAsync: createListFn,
+      isPending: false,
+    });
 
     const user = userEvent.setup();
     renderDialog();

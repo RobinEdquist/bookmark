@@ -51,7 +51,9 @@ function EmptyState() {
         📚
       </motion.div>
       <h3 className="text-lg font-medium">{t("empty.title")}</h3>
-      <p className="mt-1 text-sm text-muted-foreground">{t("empty.description")}</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {t("empty.description")}
+      </p>
     </motion.div>
   );
 }
@@ -76,13 +78,13 @@ export function ComicSeriesGrid({
         onLoadMore();
       }
     },
-    { enabled: hasNextPage && !isFetchingNextPage }
+    { enabled: hasNextPage && !isFetchingNextPage },
   );
 
   // Shared edit dialog state for navigation between series
   const [editingSeriesId, setEditingSeriesId] = useState<string | null>(null);
   const editingSeries = editingSeriesId
-    ? series.find((s) => s.id === editingSeriesId) ?? null
+    ? (series.find((s) => s.id === editingSeriesId) ?? null)
     : null;
   const seriesIds = series.map((s) => s.id);
 

@@ -40,7 +40,10 @@ export function SeriesPickerDialog({
   const [query, setQuery] = useState("");
   const debounced = useDebouncedValue(query, 300);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const { data } = useComicSeries({ search: debounced || undefined, limit: 20 });
+  const { data } = useComicSeries({
+    search: debounced || undefined,
+    limit: 20,
+  });
   const createSeries = useCreateComicSeries();
 
   const exclude = new Set(excludeIds);

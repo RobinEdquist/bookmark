@@ -97,7 +97,7 @@ export function RichTextEditor({
       className={cn(
         "rounded-md border border-input bg-background ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2",
         disabled && "cursor-not-allowed opacity-50",
-        className
+        className,
       )}
     >
       {/* Toolbar */}
@@ -135,7 +135,9 @@ export function RichTextEditor({
         <Toggle
           size="sm"
           pressed={editor.isActive("bulletList")}
-          onPressedChange={() => editor.chain().focus().toggleBulletList().run()}
+          onPressedChange={() =>
+            editor.chain().focus().toggleBulletList().run()
+          }
           disabled={disabled}
           aria-label="Bullet list"
         >
@@ -144,7 +146,9 @@ export function RichTextEditor({
         <Toggle
           size="sm"
           pressed={editor.isActive("orderedList")}
-          onPressedChange={() => editor.chain().focus().toggleOrderedList().run()}
+          onPressedChange={() =>
+            editor.chain().focus().toggleOrderedList().run()
+          }
           disabled={disabled}
           aria-label="Numbered list"
         >
@@ -153,7 +157,9 @@ export function RichTextEditor({
         <Toggle
           size="sm"
           pressed={editor.isActive("blockquote")}
-          onPressedChange={() => editor.chain().focus().toggleBlockquote().run()}
+          onPressedChange={() =>
+            editor.chain().focus().toggleBlockquote().run()
+          }
           disabled={disabled}
           aria-label="Blockquote"
         >

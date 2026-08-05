@@ -20,8 +20,10 @@ export function SeriesGridCard({
   const t = useTranslations("series");
 
   // Get up to 3 covers for stacking (prioritize audiobooks, fall back to ebooks)
-  const audiobookCovers = series.audiobooks?.map((ab) => ab.coverUrl).filter(Boolean) ?? [];
-  const ebookCovers = series.ebooks?.map((eb) => eb.coverUrl).filter(Boolean) ?? [];
+  const audiobookCovers =
+    series.audiobooks?.map((ab) => ab.coverUrl).filter(Boolean) ?? [];
+  const ebookCovers =
+    series.ebooks?.map((eb) => eb.coverUrl).filter(Boolean) ?? [];
   const covers = [...audiobookCovers, ...ebookCovers].slice(0, 3) as string[];
 
   return (
@@ -66,11 +68,15 @@ export function SeriesGridCard({
                     3: {
                       // Front centered, others fan left and right symmetrically
                       idle: { rotations: [0, -8, 8], xOffsets: [0, -14, 14] },
-                      hover: { rotations: [0, -14, 14], xOffsets: [0, -22, 22] },
+                      hover: {
+                        rotations: [0, -14, 14],
+                        xOffsets: [0, -22, 22],
+                      },
                     },
                   };
 
-                  const config = configs[totalCovers as 1 | 2 | 3] ?? configs[1];
+                  const config =
+                    configs[totalCovers as 1 | 2 | 3] ?? configs[1];
 
                   return (
                     <motion.div
@@ -96,7 +102,11 @@ export function SeriesGridCard({
                           scale: index === 0 ? 1.02 : 1,
                         },
                       }}
-                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 25,
+                      }}
                     >
                       <Image
                         src={coverUrl}
@@ -123,9 +133,7 @@ export function SeriesGridCard({
               {series.name}
             </h3>
             <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-              <span>
-                {t("bookCount", { count: series.bookCount })}
-              </span>
+              <span>{t("bookCount", { count: series.bookCount })}</span>
             </div>
           </div>
         </motion.article>

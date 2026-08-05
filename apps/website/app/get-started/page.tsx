@@ -182,9 +182,9 @@ export default function GetStarted() {
                   <strong>Your timezone</strong>: set{" "}
                   <code className="ui-path">TZ</code> to your own zone &mdash;{" "}
                   <code className="ui-path">Europe/Berlin</code>,{" "}
-                  <code className="ui-path">America/New_York</code>. Leave it out
-                  and everything is timestamped in UTC, which is rarely the clock
-                  you actually read. The{" "}
+                  <code className="ui-path">America/New_York</code>. Leave it
+                  out and everything is timestamped in UTC, which is rarely the
+                  clock you actually read. The{" "}
                   <a
                     href="https://en.wikipedia.org/wiki/List_of_tz_database_time_zones"
                     className="link-arrow"

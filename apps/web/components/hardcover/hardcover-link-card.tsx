@@ -26,20 +26,26 @@ interface HardcoverLinkCardProps {
   mediaId: string;
 }
 
-export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps) {
+export function HardcoverLinkCard({
+  mediaType,
+  mediaId,
+}: HardcoverLinkCardProps) {
   const t = useTranslations("common.hardcoverLink");
   const { link, isLoading } = useHardcoverLink(mediaType, mediaId);
   const { unlinkMedia, isUnlinking } = useHardcoverUnlinkMedia();
-  const { addAsGenre, addAsTag, canEdit: canQuickAdd, isPending } = useQuickAddMetadata(mediaType, mediaId);
+  const {
+    addAsGenre,
+    addAsTag,
+    canEdit: canQuickAdd,
+    isPending,
+  } = useQuickAddMetadata(mediaType, mediaId);
 
   const handleUnlink = async () => {
     try {
       await unlinkMedia({ mediaType, mediaId });
       toast.success(t("toast.unlinked"));
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("toast.unlinkFailed")
-      );
+      toast.error(err instanceof Error ? err.message : t("toast.unlinkFailed"));
     }
   };
 
@@ -114,7 +120,8 @@ export function HardcoverLinkCard({ mediaType, mediaId }: HardcoverLinkCardProps
             {link.featuredSeriesName && (
               <p className="text-sm text-primary mt-0.5">
                 {link.featuredSeriesName}
-                {link.featuredSeriesPosition && ` #${link.featuredSeriesPosition}`}
+                {link.featuredSeriesPosition &&
+                  ` #${link.featuredSeriesPosition}`}
               </p>
             )}
 

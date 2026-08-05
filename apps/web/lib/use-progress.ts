@@ -81,7 +81,7 @@ async function fetchListeningStats(): Promise<ListeningStats> {
 
 async function updateProgress(
   audiobookId: string,
-  position: number
+  position: number,
 ): Promise<AudiobookProgress> {
   const response = await fetch(`/api/progress/${audiobookId}`, {
     method: "PATCH",
@@ -125,13 +125,18 @@ export function useUpdateProgress() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ audiobookId, position }: { audiobookId: string; position: number }) =>
-      updateProgress(audiobookId, position),
+    mutationFn: ({
+      audiobookId,
+      position,
+    }: {
+      audiobookId: string;
+      position: number;
+    }) => updateProgress(audiobookId, position),
     onSuccess: (data, variables) => {
       // Update the specific progress cache
       queryClient.setQueryData(
         queryKeys.progress.detail(variables.audiobookId),
-        data
+        data,
       );
       // Invalidate the list to ensure consistency
       queryClient.invalidateQueries({

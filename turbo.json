@@ -20,7 +20,15 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "inputs": ["$TURBO_DEFAULT$", "jest.config.*", "vitest.config.*", "vitest.setup.*", "**/*.spec.ts", "**/*.test.ts", "**/*.test.tsx"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "jest.config.*",
+        "vitest.config.*",
+        "vitest.setup.*",
+        "**/*.spec.ts",
+        "**/*.test.ts",
+        "**/*.test.tsx"
+      ],
       "env": ["NODE_ENV"]
     },
     "dev": {

@@ -28,7 +28,7 @@ function setupMock() {
 
     constructor(
       callback: IntersectionObserverCallback,
-      options?: IntersectionObserverInit
+      options?: IntersectionObserverInit,
     ) {
       this.callback = callback;
       this.options = options;
@@ -81,7 +81,7 @@ describe("useIntersectionObserver", () => {
     expect(observers[0]!.observe).toHaveBeenCalledOnce();
     // It should observe the actual DOM element
     expect(observers[0]!.observe).toHaveBeenCalledWith(
-      screen.getByTestId("observed")
+      screen.getByTestId("observed"),
     );
   });
 
@@ -92,7 +92,7 @@ describe("useIntersectionObserver", () => {
     act(() => {
       observers[0]!.callback(
         [{ isIntersecting: true } as IntersectionObserverEntry],
-        {} as IntersectionObserver
+        {} as IntersectionObserver,
       );
     });
 
@@ -106,7 +106,7 @@ describe("useIntersectionObserver", () => {
     act(() => {
       observers[0]!.callback(
         [{ isIntersecting: false } as IntersectionObserverEntry],
-        {} as IntersectionObserver
+        {} as IntersectionObserver,
       );
     });
 
@@ -140,7 +140,7 @@ describe("useIntersectionObserver", () => {
       <TestComponent
         callback={callback}
         options={{ threshold: 0.5, rootMargin: "200px" }}
-      />
+      />,
     );
 
     expect(observers[0]!.options).toEqual({
@@ -151,9 +151,7 @@ describe("useIntersectionObserver", () => {
 
   it("does not create observer when enabled is false", () => {
     const callback = vi.fn();
-    render(
-      <TestComponent callback={callback} options={{ enabled: false }} />
-    );
+    render(<TestComponent callback={callback} options={{ enabled: false }} />);
 
     expect(observers).toHaveLength(0);
   });
@@ -176,7 +174,7 @@ describe("useIntersectionObserver", () => {
     act(() => {
       observers[0]!.callback(
         [{ isIntersecting: true } as IntersectionObserverEntry],
-        {} as IntersectionObserver
+        {} as IntersectionObserver,
       );
     });
 

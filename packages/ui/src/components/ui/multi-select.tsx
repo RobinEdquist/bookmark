@@ -68,7 +68,7 @@ export function MultiSelect({
           className={cn(
             "w-full justify-start text-left font-normal h-auto min-h-10",
             !selected.length && "text-muted-foreground",
-            className
+            className,
           )}
         >
           {selected.length > 0 ? (
@@ -81,7 +81,9 @@ export function MultiSelect({
                   onClick={(e: React.MouseEvent) => handleRemove(item.value, e)}
                 >
                   {item.label}
-                  <span className="ml-1 cursor-pointer hover:text-destructive">&times;</span>
+                  <span className="ml-1 cursor-pointer hover:text-destructive">
+                    &times;
+                  </span>
                 </Badge>
               ))}
               {selected.length > 3 && (
@@ -93,7 +95,10 @@ export function MultiSelect({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
@@ -112,7 +117,7 @@ export function MultiSelect({
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                         isSelected
                           ? "bg-primary text-primary-foreground"
-                          : "opacity-50 [&_svg]:invisible"
+                          : "opacity-50 [&_svg]:invisible",
                       )}
                     >
                       <svg

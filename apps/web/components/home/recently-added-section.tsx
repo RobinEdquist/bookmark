@@ -21,7 +21,7 @@ export function RecentlyAddedSection() {
 
   // Shared edit dialog state for navigation between audiobooks
   const [editingAudiobookId, setEditingAudiobookId] = useState<string | null>(
-    null
+    null,
   );
   const audiobooks = data?.audiobooks ?? [];
   const editingAudiobook = editingAudiobookId

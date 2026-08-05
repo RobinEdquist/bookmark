@@ -4,7 +4,22 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import Link from "next/link";
-import { Folder, ChevronUp, ChevronDown, Headphones, BookOpen, BookImage, X, Rss, Copy, Check, Upload, Link2, RefreshCw, ScanLine } from "lucide-react";
+import {
+  Folder,
+  ChevronUp,
+  ChevronDown,
+  Headphones,
+  BookOpen,
+  BookImage,
+  X,
+  Rss,
+  Copy,
+  Check,
+  Upload,
+  Link2,
+  RefreshCw,
+  ScanLine,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -24,7 +39,10 @@ import {
   MetadataSource,
   MetadataFieldPriority,
 } from "../../lib/use-settings";
-import { useHardcoverStatus, useQueueAllUnlinked } from "../../lib/use-hardcover";
+import {
+  useHardcoverStatus,
+  useQueueAllUnlinked,
+} from "../../lib/use-hardcover";
 import { useRescan, useRescanStatus } from "../../lib/use-rescan";
 import { useRescanComics } from "../../lib/use-comics";
 
@@ -43,12 +61,22 @@ const CONFIGURABLE_FIELDS: (keyof MetadataFieldPriority)[] = [
 interface PriorityItemProps {
   field: keyof MetadataFieldPriority;
   sources: MetadataSource[];
-  onMove: (field: keyof MetadataFieldPriority, sourceIndex: number, direction: "up" | "down") => void;
+  onMove: (
+    field: keyof MetadataFieldPriority,
+    sourceIndex: number,
+    direction: "up" | "down",
+  ) => void;
   t: ReturnType<typeof useTranslations>;
   isUpdating: boolean;
 }
 
-function PriorityItem({ field, sources, onMove, t, isUpdating }: PriorityItemProps) {
+function PriorityItem({
+  field,
+  sources,
+  onMove,
+  t,
+  isUpdating,
+}: PriorityItemProps) {
   // Filter out 'manual' since it's always first (handled separately in backend)
   const configurableSources = sources.filter((s) => s !== "manual");
 
@@ -62,15 +90,21 @@ function PriorityItem({ field, sources, onMove, t, isUpdating }: PriorityItemPro
         <div className="flex items-center gap-2 bg-primary/10 rounded px-2 py-1 text-sm">
           <span className="text-xs text-muted-foreground w-4">1.</span>
           <span className="flex-1">{t("metadataPriority.sources.manual")}</span>
-          <span className="text-xs text-muted-foreground">{t("metadataPriority.alwaysFirst")}</span>
+          <span className="text-xs text-muted-foreground">
+            {t("metadataPriority.alwaysFirst")}
+          </span>
         </div>
         {configurableSources.map((source, index) => (
           <div
             key={source}
             className="flex items-center gap-2 bg-muted/50 rounded px-2 py-1 text-sm"
           >
-            <span className="text-xs text-muted-foreground w-4">{index + 2}.</span>
-            <span className="flex-1">{t(`metadataPriority.sources.${source}`)}</span>
+            <span className="text-xs text-muted-foreground w-4">
+              {index + 2}.
+            </span>
+            <span className="flex-1">
+              {t(`metadataPriority.sources.${source}`)}
+            </span>
             <div className="flex gap-0.5">
               <Button
                 variant="ghost"
@@ -85,7 +119,9 @@ function PriorityItem({ field, sources, onMove, t, isUpdating }: PriorityItemPro
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6"
-                disabled={index === configurableSources.length - 1 || isUpdating}
+                disabled={
+                  index === configurableSources.length - 1 || isUpdating
+                }
                 onClick={() => onMove(field, index, "down")}
               >
                 <ChevronDown className="h-3 w-3" />
@@ -101,8 +137,10 @@ function PriorityItem({ field, sources, onMove, t, isUpdating }: PriorityItemPro
 export function LibrariesSettings() {
   const t = useTranslations("settings.libraries");
   const tRestore = useTranslations("settings.restore");
-  const { settings, isLoading, error, updateSettings, isUpdating } = useSettings();
-  const [audiobookFolderPickerOpen, setAudiobookFolderPickerOpen] = useState(false);
+  const { settings, isLoading, error, updateSettings, isUpdating } =
+    useSettings();
+  const [audiobookFolderPickerOpen, setAudiobookFolderPickerOpen] =
+    useState(false);
   const [ebookFolderPickerOpen, setEbookFolderPickerOpen] = useState(false);
   const [comicFolderPickerOpen, setComicFolderPickerOpen] = useState(false);
   const [isEbookScanning, setIsEbookScanning] = useState(false);
@@ -122,7 +160,9 @@ export function LibrariesSettings() {
       toast.success(t("audiobookLibrary.toast.updateSuccess"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("audiobookLibrary.toast.updateError")
+        err instanceof Error
+          ? err.message
+          : t("audiobookLibrary.toast.updateError"),
       );
     }
   };
@@ -133,7 +173,9 @@ export function LibrariesSettings() {
       toast.success(t("ebookLibrary.toast.updateSuccess"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("ebookLibrary.toast.updateError")
+        err instanceof Error
+          ? err.message
+          : t("ebookLibrary.toast.updateError"),
       );
     }
   };
@@ -144,7 +186,9 @@ export function LibrariesSettings() {
       toast.success(t("audiobookLibrary.toast.removeSuccess"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("audiobookLibrary.toast.removeError")
+        err instanceof Error
+          ? err.message
+          : t("audiobookLibrary.toast.removeError"),
       );
     }
   };
@@ -155,7 +199,9 @@ export function LibrariesSettings() {
       toast.success(t("ebookLibrary.toast.removeSuccess"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("ebookLibrary.toast.removeError")
+        err instanceof Error
+          ? err.message
+          : t("ebookLibrary.toast.removeError"),
       );
     }
   };
@@ -171,10 +217,23 @@ export function LibrariesSettings() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || t("ebookLibrary.toast.scanError"));
       }
-      const data = (await response.json()) as { success: boolean; result: { added: number; errors: Array<{ path: string; error: string }> } };
-      toast.success(t("ebookLibrary.toast.scanSuccess", { added: data.result.added, errors: data.result.errors.length }));
+      const data = (await response.json()) as {
+        success: boolean;
+        result: {
+          added: number;
+          errors: Array<{ path: string; error: string }>;
+        };
+      };
+      toast.success(
+        t("ebookLibrary.toast.scanSuccess", {
+          added: data.result.added,
+          errors: data.result.errors.length,
+        }),
+      );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("ebookLibrary.toast.scanError"));
+      toast.error(
+        err instanceof Error ? err.message : t("ebookLibrary.toast.scanError"),
+      );
     } finally {
       setIsEbookScanning(false);
     }
@@ -186,7 +245,9 @@ export function LibrariesSettings() {
       toast.success(t("comicLibrary.toast.updateSuccess"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("comicLibrary.toast.updateError")
+        err instanceof Error
+          ? err.message
+          : t("comicLibrary.toast.updateError"),
       );
     }
   };
@@ -197,7 +258,9 @@ export function LibrariesSettings() {
       toast.success(t("comicLibrary.toast.removeSuccess"));
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("comicLibrary.toast.removeError")
+        err instanceof Error
+          ? err.message
+          : t("comicLibrary.toast.removeError"),
       );
     }
   };
@@ -213,10 +276,23 @@ export function LibrariesSettings() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || t("comicLibrary.toast.scanError"));
       }
-      const data = (await response.json()) as { success: boolean; result: { added: number; errors: Array<{ path: string; error: string }> } };
-      toast.success(t("comicLibrary.toast.scanSuccess", { added: data.result.added, errors: data.result.errors.length }));
+      const data = (await response.json()) as {
+        success: boolean;
+        result: {
+          added: number;
+          errors: Array<{ path: string; error: string }>;
+        };
+      };
+      toast.success(
+        t("comicLibrary.toast.scanSuccess", {
+          added: data.result.added,
+          errors: data.result.errors.length,
+        }),
+      );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t("comicLibrary.toast.scanError"));
+      toast.error(
+        err instanceof Error ? err.message : t("comicLibrary.toast.scanError"),
+      );
     } finally {
       setIsComicScanning(false);
     }
@@ -225,11 +301,11 @@ export function LibrariesSettings() {
   const handleToggleOpds = async (enabled: boolean) => {
     try {
       await updateSettings({ opdsEnabled: enabled });
-      toast.success(enabled ? t("opds.toast.enabled") : t("opds.toast.disabled"));
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("opds.toast.error")
+      toast.success(
+        enabled ? t("opds.toast.enabled") : t("opds.toast.disabled"),
       );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("opds.toast.error"));
     }
   };
 
@@ -248,7 +324,11 @@ export function LibrariesSettings() {
   const metadataPriority = settings?.metadataPriority;
 
   const handleMoveSource = useCallback(
-    async (field: keyof MetadataFieldPriority, sourceIndex: number, direction: "up" | "down") => {
+    async (
+      field: keyof MetadataFieldPriority,
+      sourceIndex: number,
+      direction: "up" | "down",
+    ) => {
       if (!metadataPriority) return;
 
       const newPriority = { ...metadataPriority };
@@ -266,18 +346,22 @@ export function LibrariesSettings() {
 
       // Reconstruct the full array with 'manual' at the start (if it was present)
       const hadManual = allSources.includes("manual");
-      newPriority[field] = hadManual ? ["manual", ...configurableSources] : configurableSources;
+      newPriority[field] = hadManual
+        ? ["manual", ...configurableSources]
+        : configurableSources;
 
       try {
         await updateSettings({ metadataPriority: newPriority });
         toast.success(t("metadataPriority.toast.updateSuccess"));
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : t("metadataPriority.toast.updateError")
+          err instanceof Error
+            ? err.message
+            : t("metadataPriority.toast.updateError"),
         );
       }
     },
-    [metadataPriority, updateSettings, t]
+    [metadataPriority, updateSettings, t],
   );
 
   const handleQueueAllAudiobooks = async () => {
@@ -288,7 +372,11 @@ export function LibrariesSettings() {
     setIsQueueingAudiobooks(true);
     try {
       const result = await queueAllUnlinked("audiobook");
-      toast.success(t("hardcoverLinking.toast.queuedAudiobooks", { count: result.queuedCount }));
+      toast.success(
+        t("hardcoverLinking.toast.queuedAudiobooks", {
+          count: result.queuedCount,
+        }),
+      );
     } catch (err) {
       if (err instanceof Error && err.message === "HARDCOVER_NOT_CONFIGURED") {
         toast.error(t("hardcoverLinking.toast.notConfigured"));
@@ -308,7 +396,9 @@ export function LibrariesSettings() {
     setIsQueueingEbooks(true);
     try {
       const result = await queueAllUnlinked("ebook");
-      toast.success(t("hardcoverLinking.toast.queuedEbooks", { count: result.queuedCount }));
+      toast.success(
+        t("hardcoverLinking.toast.queuedEbooks", { count: result.queuedCount }),
+      );
     } catch (err) {
       if (err instanceof Error && err.message === "HARDCOVER_NOT_CONFIGURED") {
         toast.error(t("hardcoverLinking.toast.notConfigured"));
@@ -327,12 +417,10 @@ export function LibrariesSettings() {
         t("rescan.toast.completed", {
           succeeded: result.result.succeeded,
           failed: result.result.failed,
-        })
+        }),
       );
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("rescan.toast.error")
-      );
+      toast.error(err instanceof Error ? err.message : t("rescan.toast.error"));
     }
   };
 
@@ -343,11 +431,13 @@ export function LibrariesSettings() {
         t("comicLibrary.rescan.toast.completed", {
           succeeded: result.result.succeeded,
           failed: result.result.failed,
-        })
+        }),
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : t("comicLibrary.rescan.toast.error")
+        err instanceof Error
+          ? err.message
+          : t("comicLibrary.rescan.toast.error"),
       );
     }
   };
@@ -422,7 +512,8 @@ export function LibrariesSettings() {
               <div className="flex items-start gap-2">
                 <Folder className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                 <code className="text-sm bg-muted px-2 py-0.5 rounded break-all">
-                  {settings?.audiobookLibraryPath || t("audiobookLibrary.notConfigured")}
+                  {settings?.audiobookLibraryPath ||
+                    t("audiobookLibrary.notConfigured")}
                 </code>
               </div>
             </div>
@@ -465,7 +556,8 @@ export function LibrariesSettings() {
               <div className="flex items-start gap-2">
                 <Folder className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                 <code className="text-sm bg-muted px-2 py-0.5 rounded break-all">
-                  {settings?.ebookLibraryPath || t("ebookLibrary.notConfigured")}
+                  {settings?.ebookLibraryPath ||
+                    t("ebookLibrary.notConfigured")}
                 </code>
               </div>
               <div className="flex items-center gap-2 pt-2 border-t">
@@ -528,7 +620,8 @@ export function LibrariesSettings() {
               <div className="flex items-start gap-2">
                 <Folder className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                 <code className="text-sm bg-muted px-2 py-0.5 rounded break-all">
-                  {settings?.comicLibraryPath || t("comicLibrary.notConfigured")}
+                  {settings?.comicLibraryPath ||
+                    t("comicLibrary.notConfigured")}
                 </code>
               </div>
               <div className="flex items-center gap-2 pt-2 border-t">
@@ -554,7 +647,9 @@ export function LibrariesSettings() {
                   variant="outline"
                   size="sm"
                   onClick={handleRescanComics}
-                  disabled={isRescanComicsPending || !settings?.comicLibraryPath}
+                  disabled={
+                    isRescanComicsPending || !settings?.comicLibraryPath
+                  }
                 >
                   {isRescanComicsPending ? (
                     <>
@@ -594,10 +689,14 @@ export function LibrariesSettings() {
 
             {settings?.opdsEnabled && (
               <div className="space-y-2 pt-2 border-t">
-                <Label className="text-sm text-muted-foreground">{t("opds.feedUrl")}</Label>
+                <Label className="text-sm text-muted-foreground">
+                  {t("opds.feedUrl")}
+                </Label>
                 <div className="flex items-start gap-2">
                   <code className="flex-1 text-sm bg-muted px-3 py-2 rounded break-all">
-                    {typeof window !== 'undefined' ? `${window.location.origin}/api/ebooks/opds` : '/api/ebooks/opds'}
+                    {typeof window !== "undefined"
+                      ? `${window.location.origin}/api/ebooks/opds`
+                      : "/api/ebooks/opds"}
                   </code>
                   <Button
                     variant="outline"
@@ -606,7 +705,11 @@ export function LibrariesSettings() {
                     title={t("opds.copy")}
                     className="shrink-0"
                   >
-                    {opdsCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    {opdsCopied ? (
+                      <Check className="h-4 w-4" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">
@@ -626,16 +729,17 @@ export function LibrariesSettings() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {settings?.metadataPriority && CONFIGURABLE_FIELDS.map((field) => (
-              <PriorityItem
-                key={field}
-                field={field}
-                sources={settings.metadataPriority[field]}
-                onMove={handleMoveSource}
-                t={t}
-                isUpdating={isUpdating}
-              />
-            ))}
+            {settings?.metadataPriority &&
+              CONFIGURABLE_FIELDS.map((field) => (
+                <PriorityItem
+                  key={field}
+                  field={field}
+                  sources={settings.metadataPriority[field]}
+                  onMove={handleMoveSource}
+                  t={t}
+                  isUpdating={isUpdating}
+                />
+              ))}
           </div>
         </CardContent>
       </Card>
@@ -704,7 +808,9 @@ export function LibrariesSettings() {
               <div className="flex flex-col gap-1 text-sm sm:flex-row sm:justify-between">
                 <span className="text-muted-foreground break-words">
                   {rescanStatus.currentAudiobook
-                    ? t("rescan.progress.current", { title: rescanStatus.currentAudiobook })
+                    ? t("rescan.progress.current", {
+                        title: rescanStatus.currentAudiobook,
+                      })
                     : t("rescan.progress.preparing")}
                 </span>
                 <span className="font-medium shrink-0">
@@ -718,7 +824,11 @@ export function LibrariesSettings() {
             <Button
               variant="outline"
               onClick={handleRescan}
-              disabled={isRescanPending || rescanStatus.isRescanning || !settings?.audiobookLibraryPath}
+              disabled={
+                isRescanPending ||
+                rescanStatus.isRescanning ||
+                !settings?.audiobookLibraryPath
+              }
             >
               {rescanStatus.isRescanning ? (
                 <>
@@ -733,9 +843,7 @@ export function LibrariesSettings() {
               )}
             </Button>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {t("rescan.hint")}
-          </p>
+          <p className="text-xs text-muted-foreground">{t("rescan.hint")}</p>
         </CardContent>
       </Card>
 
@@ -762,7 +870,7 @@ export function LibrariesSettings() {
         open={audiobookFolderPickerOpen}
         onOpenChange={setAudiobookFolderPickerOpen}
         onSelect={handleSelectAudiobookPath}
-        initialPath={settings?.audiobookLibraryPath || '/library/audiobooks'}
+        initialPath={settings?.audiobookLibraryPath || "/library/audiobooks"}
         title={t("folderPicker.audiobookTitle")}
         description={t("folderPicker.audiobookDescription")}
       />
@@ -770,7 +878,7 @@ export function LibrariesSettings() {
         open={ebookFolderPickerOpen}
         onOpenChange={setEbookFolderPickerOpen}
         onSelect={handleSelectEbookPath}
-        initialPath={settings?.ebookLibraryPath || '/library/ebooks'}
+        initialPath={settings?.ebookLibraryPath || "/library/ebooks"}
         title={t("folderPicker.ebookTitle")}
         description={t("folderPicker.ebookDescription")}
       />
@@ -778,7 +886,7 @@ export function LibrariesSettings() {
         open={comicFolderPickerOpen}
         onOpenChange={setComicFolderPickerOpen}
         onSelect={handleSelectComicPath}
-        initialPath={settings?.comicLibraryPath || '/library/comics'}
+        initialPath={settings?.comicLibraryPath || "/library/comics"}
         title={t("folderPicker.comicTitle")}
         description={t("folderPicker.comicDescription")}
       />

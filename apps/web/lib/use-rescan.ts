@@ -32,7 +32,10 @@ async function fetchRescanStatus(): Promise<RescanStatus> {
   return response.json();
 }
 
-async function triggerRescanApi(): Promise<{ success: boolean; result: RescanResult }> {
+async function triggerRescanApi(): Promise<{
+  success: boolean;
+  result: RescanResult;
+}> {
   const response = await fetch("/api/admin/library-watcher/rescan", {
     method: "POST",
     credentials: "include",

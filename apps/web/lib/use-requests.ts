@@ -4,8 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
 // Types
-export type RequestStatus = 'pending' | 'approved' | 'downloading' | 'complete' | 'rejected';
-export type ContentType = 'audiobook' | 'ebook' | 'comics';
+export type RequestStatus =
+  "pending" | "approved" | "downloading" | "complete" | "rejected";
+export type ContentType = "audiobook" | "ebook" | "comics";
 
 export interface SeriesInfo {
   name: string;
@@ -64,7 +65,7 @@ export interface TrackerSearchResponse {
 }
 
 export interface SearchFilters {
-  contentType?: 'all' | 'audiobooks' | 'ebooks' | 'comics';
+  contentType?: "all" | "audiobooks" | "ebooks" | "comics";
   searchIn?: string[];
   languages?: number[];
   perPage?: number;
@@ -102,7 +103,10 @@ interface TrackerLanguagesResponse {
 }
 
 // API functions
-async function searchTracker(query: string, filters?: SearchFilters): Promise<TrackerSearchResponse> {
+async function searchTracker(
+  query: string,
+  filters?: SearchFilters,
+): Promise<TrackerSearchResponse> {
   const response = await fetch("/api/requests/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -149,7 +153,9 @@ interface CreateRequestParams {
   categoryId: number;
 }
 
-async function createRequest(params: CreateRequestParams): Promise<RequestResponse> {
+async function createRequest(
+  params: CreateRequestParams,
+): Promise<RequestResponse> {
   const response = await fetch("/api/requests", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -180,13 +186,13 @@ async function supportRequest(requestId: string): Promise<RequestResponse> {
 }
 
 async function fetchTrackerLanguages(): Promise<TrackerLanguagesResponse> {
-  const response = await fetch('/api/requests/languages', {
-    credentials: 'include',
+  const response = await fetch("/api/requests/languages", {
+    credentials: "include",
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Failed to fetch languages');
+    throw new Error(error.message || "Failed to fetch languages");
   }
 
   return response.json();
@@ -194,28 +200,30 @@ async function fetchTrackerLanguages(): Promise<TrackerLanguagesResponse> {
 
 async function searchLibrary(
   query: string,
-  contentType: 'all' | 'audiobooks' | 'ebooks' = 'all',
+  contentType: "all" | "audiobooks" | "ebooks" = "all",
 ): Promise<LibrarySearchResponse> {
   const params = new URLSearchParams({
     query,
     contentType,
-    limit: '10',
+    limit: "10",
   });
 
   const response = await fetch(`/api/library/search?${params}`, {
-    credentials: 'include',
+    credentials: "include",
   });
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Library search failed');
+    throw new Error(error.message || "Library search failed");
   }
 
   return response.json();
 }
 
 // Admin API functions
-async function fetchAdminRequests(status?: RequestStatus): Promise<RequestResponse[]> {
+async function fetchAdminRequests(
+  status?: RequestStatus,
+): Promise<RequestResponse[]> {
   const url = status
     ? `/api/admin/requests?status=${status}`
     : "/api/admin/requests";
@@ -246,7 +254,10 @@ async function approveRequest(requestId: string): Promise<RequestResponse> {
   return response.json();
 }
 
-async function rejectRequest(requestId: string, reason?: string): Promise<RequestResponse> {
+async function rejectRequest(
+  requestId: string,
+  reason?: string,
+): Promise<RequestResponse> {
   const response = await fetch(`/api/admin/requests/${requestId}/reject`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -265,8 +276,13 @@ async function rejectRequest(requestId: string, reason?: string): Promise<Reques
 // Hooks
 export function useTrackerSearch() {
   const mutation = useMutation({
-    mutationFn: ({ query, filters }: { query: string; filters?: SearchFilters }) =>
-      searchTracker(query, filters),
+    mutationFn: ({
+      query,
+      filters,
+    }: {
+      query: string;
+      filters?: SearchFilters;
+    }) => searchTracker(query, filters),
   });
 
   return {
@@ -293,7 +309,9 @@ export function useCreateRequest() {
     mutationFn: createRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests.autoApproveBudget() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.requests.autoApproveBudget(),
+      });
     },
   });
 
@@ -311,7 +329,9 @@ export function useSupportRequest() {
     mutationFn: supportRequest,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.requests.autoApproveBudget() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.requests.autoApproveBudget(),
+      });
     },
   });
 
@@ -333,14 +353,14 @@ export function useTrackerLanguages() {
 
 export function useLibrarySearch(
   query: string,
-  contentType: 'all' | 'audiobooks' | 'ebooks' | 'comics',
+  contentType: "all" | "audiobooks" | "ebooks" | "comics",
 ) {
   return useQuery({
     queryKey: queryKeys.library.search(query, contentType),
     queryFn: () =>
-      searchLibrary(query, contentType === 'comics' ? 'all' : contentType),
+      searchLibrary(query, contentType === "comics" ? "all" : contentType),
     // Library search has no comics support yet, so skip it for that filter
-    enabled: query.length >= 2 && contentType !== 'comics',
+    enabled: query.length >= 2 && contentType !== "comics",
     staleTime: 60 * 1000, // Cache for 1 minute
   });
 }
@@ -374,8 +394,13 @@ export function useRejectRequest() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: ({ requestId, reason }: { requestId: string; reason?: string }) =>
-      rejectRequest(requestId, reason),
+    mutationFn: ({
+      requestId,
+      reason,
+    }: {
+      requestId: string;
+      reason?: string;
+    }) => rejectRequest(requestId, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.adminRequests.all });
     },

@@ -16,7 +16,10 @@ import {
 import { Label } from "@repo/ui/components/ui/label";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/ui/radio-group";
-import { useRestoreSession, useSelectLibrary } from "../../../../../lib/use-restore";
+import {
+  useRestoreSession,
+  useSelectLibrary,
+} from "../../../../../lib/use-restore";
 import type { AvailableLibrary } from "../../../../../lib/types/restore";
 
 export default function LibraryPage() {
@@ -33,8 +36,10 @@ export default function LibraryPage() {
   // Get available libraries from session
   const availableLibraries: AvailableLibrary[] =
     session?.extractedPath &&
-    (session as unknown as { availableLibraries?: AvailableLibrary[] }).availableLibraries
-      ? (session as unknown as { availableLibraries: AvailableLibrary[] }).availableLibraries
+    (session as unknown as { availableLibraries?: AvailableLibrary[] })
+      .availableLibraries
+      ? (session as unknown as { availableLibraries: AvailableLibrary[] })
+          .availableLibraries
       : [];
 
   // Redirect if no session ID
@@ -54,12 +59,17 @@ export default function LibraryPage() {
     if (!sessionId || !selectedLibraryId) return;
 
     try {
-      await selectLibrary.mutateAsync({ sessionId, libraryId: selectedLibraryId });
+      await selectLibrary.mutateAsync({
+        sessionId,
+        libraryId: selectedLibraryId,
+      });
       toast.success(t("library.success"));
       router.push(`/settings/restore/paths?session=${sessionId}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("library.errors.selectFailed")
+        error instanceof Error
+          ? error.message
+          : t("library.errors.selectFailed"),
       );
     }
   };
@@ -78,9 +88,7 @@ export default function LibraryPage() {
     return (
       <Card className="border-destructive">
         <CardContent className="p-6">
-          <p className="text-destructive">
-            {t("library.errors.loadFailed")}
-          </p>
+          <p className="text-destructive">{t("library.errors.loadFailed")}</p>
           <Button
             variant="outline"
             onClick={() => router.push("/settings/restore/upload")}
@@ -152,12 +160,18 @@ export default function LibraryPage() {
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center gap-2">
                       <Library className="h-5 w-5 text-primary" />
-                      <span className="font-medium text-lg">{library.name}</span>
+                      <span className="font-medium text-lg">
+                        {library.name}
+                      </span>
                     </div>
                     <div className="space-y-1 text-sm text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <BookOpen className="h-4 w-4" />
-                        <span>{t("library.folders", { count: library.folders.length })}</span>
+                        <span>
+                          {t("library.folders", {
+                            count: library.folders.length,
+                          })}
+                        </span>
                       </div>
                       <div className="ml-6 space-y-1">
                         {library.folders.map((folder, index) => (
@@ -176,9 +190,7 @@ export default function LibraryPage() {
 
         {/* Info Banner */}
         <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-          <p className="text-sm font-medium">
-            {t("library.infoTitle")}
-          </p>
+          <p className="text-sm font-medium">{t("library.infoTitle")}</p>
           <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
             <li>{t("library.infoPoint1")}</li>
             <li>{t("library.infoPoint2")}</li>

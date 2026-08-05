@@ -31,7 +31,7 @@ export function ComicvineQueuePanel() {
   }, [refetch]);
 
   const needsReviewItems = items.filter(
-    (item) => item.status === "needs_review"
+    (item) => item.status === "needs_review",
   );
   const failedItems = items.filter((item) => item.status === "failed");
 
@@ -57,7 +57,8 @@ export function ComicvineQueuePanel() {
     }
   };
 
-  const allZero = pendingCount === 0 && needsReviewCount === 0 && failedCount === 0;
+  const allZero =
+    pendingCount === 0 && needsReviewCount === 0 && failedCount === 0;
 
   return (
     <div className="rounded-lg border p-4 space-y-4">
@@ -91,9 +92,7 @@ export function ComicvineQueuePanel() {
         </div>
       </div>
 
-      {allZero && (
-        <p className="text-sm text-muted-foreground">{t("empty")}</p>
-      )}
+      {allZero && <p className="text-sm text-muted-foreground">{t("empty")}</p>}
 
       {/* Needs review items */}
       {needsReviewItems.length > 0 && (

@@ -21,8 +21,7 @@ export const queryKeys = {
   },
   userProfile: {
     all: ["user-profile"] as const,
-    stats: (id: string) =>
-      [...queryKeys.userProfile.all, "stats", id] as const,
+    stats: (id: string) => [...queryKeys.userProfile.all, "stats", id] as const,
     activity: (id: string, year: number) =>
       [...queryKeys.userProfile.all, "activity", id, year] as const,
     libraryProgress: (
@@ -33,7 +32,7 @@ export const queryKeys = {
         sort?: string;
         limit?: number;
         offset?: number;
-      }
+      },
     ) =>
       [...queryKeys.userProfile.all, "library-progress", id, filters] as const,
     listeningHistory: (id: string, offset?: number) =>
@@ -85,11 +84,16 @@ export const queryKeys = {
       sortBy?: string;
       sortOrder?: string;
     }) => [...queryKeys.audiobooks.all, "infinite", filters] as const,
-    detail: (id: string) => [...queryKeys.audiobooks.all, "detail", id] as const,
-    authors: (search?: string) => [...queryKeys.audiobooks.all, "authors", search] as const,
-    narrators: (search?: string) => [...queryKeys.audiobooks.all, "narrators", search] as const,
-    publishers: (search?: string) => [...queryKeys.audiobooks.all, "publishers", search] as const,
-    genres: (search?: string) => [...queryKeys.audiobooks.all, "genres", search] as const,
+    detail: (id: string) =>
+      [...queryKeys.audiobooks.all, "detail", id] as const,
+    authors: (search?: string) =>
+      [...queryKeys.audiobooks.all, "authors", search] as const,
+    narrators: (search?: string) =>
+      [...queryKeys.audiobooks.all, "narrators", search] as const,
+    publishers: (search?: string) =>
+      [...queryKeys.audiobooks.all, "publishers", search] as const,
+    genres: (search?: string) =>
+      [...queryKeys.audiobooks.all, "genres", search] as const,
   },
   ebooks: {
     all: ["ebooks"] as const,
@@ -110,9 +114,12 @@ export const queryKeys = {
       sortOrder?: string;
     }) => [...queryKeys.ebooks.all, "infinite", filters] as const,
     detail: (id: string) => [...queryKeys.ebooks.all, "detail", id] as const,
-    authors: (search?: string) => [...queryKeys.ebooks.all, "authors", search] as const,
-    publishers: (search?: string) => [...queryKeys.ebooks.all, "publishers", search] as const,
-    genres: (search?: string) => [...queryKeys.ebooks.all, "genres", search] as const,
+    authors: (search?: string) =>
+      [...queryKeys.ebooks.all, "authors", search] as const,
+    publishers: (search?: string) =>
+      [...queryKeys.ebooks.all, "publishers", search] as const,
+    genres: (search?: string) =>
+      [...queryKeys.ebooks.all, "genres", search] as const,
   },
   comics: {
     all: ["comics"] as const,
@@ -138,22 +145,38 @@ export const queryKeys = {
       [...queryKeys.comics.all, "publishers", search] as const,
     genres: (search?: string) =>
       [...queryKeys.comics.all, "genres", search] as const,
-    collections: (filters?: { search?: string; sortBy?: string; sortOrder?: string }) =>
-      [...queryKeys.comics.all, "collections", filters] as const,
+    collections: (filters?: {
+      search?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.comics.all, "collections", filters] as const,
     collectionDetail: (id: string) =>
       [...queryKeys.comics.all, "collectionDetail", id] as const,
   },
   filesystem: {
     all: ["filesystem"] as const,
-    browse: (path: string) => [...queryKeys.filesystem.all, "browse", path] as const,
+    browse: (path: string) =>
+      [...queryKeys.filesystem.all, "browse", path] as const,
   },
   hardcover: {
     all: ["hardcover"] as const,
     status: () => [...queryKeys.hardcover.all, "status"] as const,
     link: (mediaType: "audiobook" | "ebook", mediaId: string) =>
       [...queryKeys.hardcover.all, "link", mediaType, mediaId] as const,
-    search: (mediaType: "audiobook" | "ebook", mediaId: string, page?: number, customQuery?: string) =>
-      [...queryKeys.hardcover.all, "search", mediaType, mediaId, page, customQuery] as const,
+    search: (
+      mediaType: "audiobook" | "ebook",
+      mediaId: string,
+      page?: number,
+      customQuery?: string,
+    ) =>
+      [
+        ...queryKeys.hardcover.all,
+        "search",
+        mediaType,
+        mediaId,
+        page,
+        customQuery,
+      ] as const,
     queueStatus: () => [...queryKeys.hardcover.all, "queue", "status"] as const,
   },
   comicvine: {
@@ -162,7 +185,12 @@ export const queryKeys = {
     searchVolumes: (query: string, page?: number) =>
       [...queryKeys.comicvine.all, "search-volumes", query, page] as const,
     volumeForSeries: (seriesId: string, page?: number) =>
-      [...queryKeys.comicvine.all, "volume-for-series", seriesId, page] as const,
+      [
+        ...queryKeys.comicvine.all,
+        "volume-for-series",
+        seriesId,
+        page,
+      ] as const,
     volumeIssues: (cvVolumeId: number, page?: number) =>
       [...queryKeys.comicvine.all, "volume-issues", cvVolumeId, page] as const,
     issuesForBook: (bookId: string, page?: number) =>
@@ -211,69 +239,89 @@ export const queryKeys = {
   },
   restore: {
     all: ["restore"] as const,
-    session: (sessionId: string) => [...queryKeys.restore.all, "session", sessionId] as const,
-    preview: (sessionId: string) => [...queryKeys.restore.all, "preview", sessionId] as const,
+    session: (sessionId: string) =>
+      [...queryKeys.restore.all, "session", sessionId] as const,
+    preview: (sessionId: string) =>
+      [...queryKeys.restore.all, "preview", sessionId] as const,
     bookmarkUsers: () => [...queryKeys.restore.all, "bookmark-users"] as const,
-    progress: (sessionId: string) => [...queryKeys.restore.all, "progress", sessionId] as const,
+    progress: (sessionId: string) =>
+      [...queryKeys.restore.all, "progress", sessionId] as const,
   },
   requests: {
-    all: ['requests'] as const,
-    list: () => [...queryKeys.requests.all, 'list'] as const,
-    search: (query: string) => [...queryKeys.requests.all, 'search', query] as const,
-    detail: (id: string) => [...queryKeys.requests.all, 'detail', id] as const,
-    autoApproveBudget: () => [...queryKeys.requests.all, 'auto-approve-budget'] as const,
-    languages: () => [...queryKeys.requests.all, 'languages'] as const,
+    all: ["requests"] as const,
+    list: () => [...queryKeys.requests.all, "list"] as const,
+    search: (query: string) =>
+      [...queryKeys.requests.all, "search", query] as const,
+    detail: (id: string) => [...queryKeys.requests.all, "detail", id] as const,
+    autoApproveBudget: () =>
+      [...queryKeys.requests.all, "auto-approve-budget"] as const,
+    languages: () => [...queryKeys.requests.all, "languages"] as const,
   },
   adminRequests: {
-    all: ['admin-requests'] as const,
-    list: (status?: string) => [...queryKeys.adminRequests.all, 'list', status] as const,
+    all: ["admin-requests"] as const,
+    list: (status?: string) =>
+      [...queryKeys.adminRequests.all, "list", status] as const,
   },
   adminPeople: {
-    all: ['admin-people'] as const,
+    all: ["admin-people"] as const,
     authors: (search?: string) =>
-      [...queryKeys.adminPeople.all, 'authors', search] as const,
+      [...queryKeys.adminPeople.all, "authors", search] as const,
     narrators: (search?: string) =>
-      [...queryKeys.adminPeople.all, 'narrators', search] as const,
+      [...queryKeys.adminPeople.all, "narrators", search] as const,
   },
   audnexus: {
-    all: ['audnexus'] as const,
+    all: ["audnexus"] as const,
     search: (title: string, author?: string, region?: string) =>
-      [...queryKeys.audnexus.all, 'search', title, author, region] as const,
+      [...queryKeys.audnexus.all, "search", title, author, region] as const,
     book: (asin: string, region?: string) =>
-      [...queryKeys.audnexus.all, 'book', asin, region] as const,
+      [...queryKeys.audnexus.all, "book", asin, region] as const,
     chapters: (asin: string) =>
-      [...queryKeys.audnexus.all, 'chapters', asin] as const,
+      [...queryKeys.audnexus.all, "chapters", asin] as const,
   },
   itunes: {
-    all: ['itunes'] as const,
+    all: ["itunes"] as const,
     search: (term: string, media: string, country?: string) =>
-      [...queryKeys.itunes.all, 'search', term, media, country] as const,
+      [...queryKeys.itunes.all, "search", term, media, country] as const,
   },
   lists: {
-    all: ['lists'] as const,
-    list: () => [...queryKeys.lists.all, 'list'] as const,
-    detail: (id: string) => [...queryKeys.lists.all, 'detail', id] as const,
-    forItem: (itemType: 'audiobook' | 'ebook' | 'comic_series', itemId: string) =>
-      [...queryKeys.lists.all, 'for-item', itemType, itemId] as const,
-    recent: (limit?: number) => [...queryKeys.lists.all, 'recent', limit] as const,
-    top: (limit?: number) => [...queryKeys.lists.all, 'top', limit] as const,
+    all: ["lists"] as const,
+    list: () => [...queryKeys.lists.all, "list"] as const,
+    detail: (id: string) => [...queryKeys.lists.all, "detail", id] as const,
+    forItem: (
+      itemType: "audiobook" | "ebook" | "comic_series",
+      itemId: string,
+    ) => [...queryKeys.lists.all, "for-item", itemType, itemId] as const,
+    recent: (limit?: number) =>
+      [...queryKeys.lists.all, "recent", limit] as const,
+    top: (limit?: number) => [...queryKeys.lists.all, "top", limit] as const,
   },
   grFinder: {
-    all: ['gr-finder'] as const,
-    status: () => [...queryKeys.grFinder.all, 'status'] as const,
-    search: (query: string) => [...queryKeys.grFinder.all, 'search', query] as const,
-    searchByMedia: (mediaType: "audiobook" | "ebook", mediaId: string, customQuery?: string) =>
-      [...queryKeys.grFinder.all, 'search-by-media', mediaType, mediaId, customQuery] as const,
+    all: ["gr-finder"] as const,
+    status: () => [...queryKeys.grFinder.all, "status"] as const,
+    search: (query: string) =>
+      [...queryKeys.grFinder.all, "search", query] as const,
+    searchByMedia: (
+      mediaType: "audiobook" | "ebook",
+      mediaId: string,
+      customQuery?: string,
+    ) =>
+      [
+        ...queryKeys.grFinder.all,
+        "search-by-media",
+        mediaType,
+        mediaId,
+        customQuery,
+      ] as const,
     link: (mediaType: "audiobook" | "ebook", mediaId: string) =>
-      [...queryKeys.grFinder.all, 'link', mediaType, mediaId] as const,
+      [...queryKeys.grFinder.all, "link", mediaType, mediaId] as const,
   },
   announcements: {
-    all: ['announcements'] as const,
-    active: () => [...queryKeys.announcements.all, 'active'] as const,
-    admin: () => [...queryKeys.announcements.all, 'admin'] as const,
+    all: ["announcements"] as const,
+    active: () => [...queryKeys.announcements.all, "active"] as const,
+    admin: () => [...queryKeys.announcements.all, "admin"] as const,
   },
   adminGenres: {
-    all: ['admin-genres'] as const,
-    list: () => [...queryKeys.adminGenres.all, 'list'] as const,
+    all: ["admin-genres"] as const,
+    list: () => [...queryKeys.adminGenres.all, "list"] as const,
   },
 } as const;

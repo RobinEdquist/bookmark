@@ -24,7 +24,7 @@ interface SearchResponse {
 async function searchItunes(
   term: string,
   media: ItunesMediaType,
-  country = "US"
+  country = "US",
 ): Promise<SearchResponse> {
   const params = new URLSearchParams({ term, media, country });
 
@@ -49,7 +49,7 @@ export function useItunesSearch(
   term: string,
   media: ItunesMediaType,
   country = "US",
-  options?: { enabled?: boolean }
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: queryKeys.itunes.search(term, media, country),

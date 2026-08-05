@@ -55,7 +55,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const isSeekingRef = useRef<boolean>(false); // True while user is dragging the slider
   const isStoppingRef = useRef<boolean>(false); // True when intentionally stopping (to ignore error events)
   const isInitializingRef = useRef<boolean>(false); // True during initial load until seek completes
-  const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sleepTimerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
   const previousChapterIdRef = useRef<string | null>(null); // For detecting chapter changes
 
   // Initialize audio element
@@ -67,20 +69,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Sync progress to server
-  const syncProgress = useCallback(async (position: number) => {
-    if (!state.audiobook) return;
+  const syncProgress = useCallback(
+    async (position: number) => {
+      if (!state.audiobook) return;
 
-    try {
-      await fetch(`/api/progress/${state.audiobook.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ position: Math.floor(position) }),
-        credentials: "include",
-      });
-    } catch (error) {
-      console.error("[Player] Failed to sync progress:", error);
-    }
-  }, [state.audiobook]);
+      try {
+        await fetch(`/api/progress/${state.audiobook.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ position: Math.floor(position) }),
+          credentials: "include",
+        });
+      } catch (error) {
+        console.error("[Player] Failed to sync progress:", error);
+      }
+    },
+    [state.audiobook],
+  );
 
   // Record listening session
   const recordSession = useCallback(async () => {
@@ -88,7 +93,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!session || !state.audiobook) return;
 
     const now = Date.now();
-    const duration = session.accumulatedDuration +
+    const duration =
+      session.accumulatedDuration +
       (state.isPlaying ? (now - session.lastPlayTimestamp) / 1000 : 0);
 
     if (duration < 5) return; // Don't record sessions shorter than 5 seconds
@@ -128,7 +134,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
       // Update current chapter
       if (state.audiobook?.chapters) {
-        const chapter = findCurrentChapter(actualPosition, state.audiobook.chapters);
+        const chapter = findCurrentChapter(
+          actualPosition,
+          state.audiobook.chapters,
+        );
         if (chapter?.id !== state.currentChapter?.id) {
           dispatch({ type: "SET_CHAPTER", payload: chapter });
           // Sync on chapter change
@@ -172,7 +181,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       const session = sessionRef.current;
       if (session && state.audiobook) {
         const now = Date.now();
-        const duration = session.accumulatedDuration +
+        const duration =
+          session.accumulatedDuration +
           (now - session.lastPlayTimestamp) / 1000;
 
         // Only record sessions longer than 5 seconds
@@ -188,7 +198,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
               durationSeconds: Math.floor(duration),
             }),
             credentials: "include",
-          }).catch(error => {
+          }).catch((error) => {
             console.error("[Player] Failed to record session:", error);
           });
         }
@@ -211,13 +221,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           // Get stream info for the next file
           const response = await fetch(
             `/api/audiobooks/${state.audiobook.id}/stream?position=${Math.floor(nextPosition)}`,
-            { method: "HEAD", credentials: "include" }
+            { method: "HEAD", credentials: "include" },
           );
           if (!response.ok) throw new Error("Stream not available");
 
           const fileStartPosition = parseInt(
             response.headers.get("X-File-Start-Position") || "0",
-            10
+            10,
           );
           fileStartPositionRef.current = fileStartPosition;
 
@@ -257,7 +267,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       }
       console.error("[Player] Audio error:", e);
       dispatch({ type: "SET_ERROR", payload: "Failed to load audio" });
-      toast.error("Failed to play audio. The file format may not be supported.");
+      toast.error(
+        "Failed to play audio. The file format may not be supported.",
+      );
     };
 
     audio.addEventListener("timeupdate", handleTimeUpdate);
@@ -277,14 +289,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       audio.removeEventListener("ended", handleEnded);
       audio.removeEventListener("error", handleError);
     };
-  }, [state.audiobook, state.currentChapter, state.duration, syncProgress, recordSession]);
+  }, [
+    state.audiobook,
+    state.currentChapter,
+    state.duration,
+    syncProgress,
+    recordSession,
+  ]);
 
   // Set up periodic sync (every 60s while playing)
   useEffect(() => {
     if (state.isPlaying && state.audiobook) {
       syncIntervalRef.current = setInterval(() => {
         if (audioRef.current) {
-          const actualPosition = fileStartPositionRef.current + audioRef.current.currentTime;
+          const actualPosition =
+            fileStartPositionRef.current + audioRef.current.currentTime;
           syncProgress(actualPosition);
         }
       }, 60000);
@@ -304,11 +323,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (state.audiobook && audioRef.current) {
-        const actualPosition = fileStartPositionRef.current + audioRef.current.currentTime;
+        const actualPosition =
+          fileStartPositionRef.current + audioRef.current.currentTime;
         // Use sendBeacon for reliable delivery
         navigator.sendBeacon(
           `/api/progress/${state.audiobook.id}`,
-          JSON.stringify({ position: Math.floor(actualPosition) })
+          JSON.stringify({ position: Math.floor(actualPosition) }),
         );
       }
     };
@@ -328,16 +348,29 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // Browser will pick the best one for the context
         artwork.push(
           { src: state.audiobook.coverUrl, sizes: "96x96", type: "image/jpeg" },
-          { src: state.audiobook.coverUrl, sizes: "128x128", type: "image/jpeg" },
-          { src: state.audiobook.coverUrl, sizes: "256x256", type: "image/jpeg" },
-          { src: state.audiobook.coverUrl, sizes: "512x512", type: "image/jpeg" },
+          {
+            src: state.audiobook.coverUrl,
+            sizes: "128x128",
+            type: "image/jpeg",
+          },
+          {
+            src: state.audiobook.coverUrl,
+            sizes: "256x256",
+            type: "image/jpeg",
+          },
+          {
+            src: state.audiobook.coverUrl,
+            sizes: "512x512",
+            type: "image/jpeg",
+          },
         );
       }
 
       // Get author name from authors array
       const authorName = state.audiobook.authors[0]?.name || "Unknown Author";
       // Get series name from series array, fallback to title
-      const albumName = state.audiobook.series[0]?.name || state.audiobook.title;
+      const albumName =
+        state.audiobook.series[0]?.name || state.audiobook.title;
 
       navigator.mediaSession.metadata = new MediaMetadata({
         title: state.audiobook.title,
@@ -351,68 +384,76 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [state.audiobook]);
 
   // Player actions
-  const play = useCallback(async (audiobook: AudiobookDetail, startPosition: number = 0) => {
-    const audio = audioRef.current;
-    if (!audio) return;
+  const play = useCallback(
+    async (audiobook: AudiobookDetail, startPosition: number = 0) => {
+      const audio = audioRef.current;
+      if (!audio) return;
 
-    dispatch({ type: "SET_AUDIOBOOK", payload: audiobook });
-    dispatch({ type: "SET_LOADING", payload: true });
-    dispatch({ type: "SET_POSITION", payload: startPosition });
+      dispatch({ type: "SET_AUDIOBOOK", payload: audiobook });
+      dispatch({ type: "SET_LOADING", payload: true });
+      dispatch({ type: "SET_POSITION", payload: startPosition });
 
-    // Block timeupdate from overwriting position until seek completes
-    isInitializingRef.current = true;
+      // Block timeupdate from overwriting position until seek completes
+      isInitializingRef.current = true;
 
-    // Start new session
-    sessionRef.current = {
-      audiobookId: audiobook.id,
-      startedAt: new Date(),
-      startPosition,
-      accumulatedDuration: 0,
-      lastPlayTimestamp: Date.now(),
-    };
-
-    try {
-      // Get stream info to find which file contains the start position
-      const response = await fetch(
-        `/api/audiobooks/${audiobook.id}/stream?position=${Math.floor(startPosition)}`,
-        { method: "HEAD", credentials: "include" }
-      );
-      if (!response.ok) {
-        throw new Error("Stream not available");
-      }
-      const fileStartPosition = parseInt(response.headers.get("X-File-Start-Position") || "0", 10);
-      fileStartPositionRef.current = fileStartPosition;
-
-      // Calculate offset within the file
-      const offsetInFile = startPosition - fileStartPosition;
-
-      // Load the file from its beginning
-      const streamUrl = `/api/audiobooks/${audiobook.id}/stream?position=${Math.floor(fileStartPosition)}`;
-      audio.src = streamUrl;
-
-      // Wait for audio to be ready, then seek and apply settings
-      const handleCanPlay = () => {
-        audio.removeEventListener("canplay", handleCanPlay);
-        // Seek to position if needed
-        if (offsetInFile > 0) {
-          audio.currentTime = offsetInFile;
-        }
-        // Apply playback rate and volume AFTER source is loaded
-        audio.playbackRate = playbackRateRef.current;
-        audio.volume = volumeRef.current;
-        // Allow timeupdate to run now that we're at the correct position
-        isInitializingRef.current = false;
+      // Start new session
+      sessionRef.current = {
+        audiobookId: audiobook.id,
+        startedAt: new Date(),
+        startPosition,
+        accumulatedDuration: 0,
+        lastPlayTimestamp: Date.now(),
       };
-      audio.addEventListener("canplay", handleCanPlay);
 
-      await audio.play();
-    } catch (error) {
-      console.error("[Player] Failed to play:", error);
-      isInitializingRef.current = false;
-      dispatch({ type: "SET_ERROR", payload: "Failed to play audio" });
-      toast.error("Failed to play audio. The file format may not be supported.");
-    }
-  }, []);
+      try {
+        // Get stream info to find which file contains the start position
+        const response = await fetch(
+          `/api/audiobooks/${audiobook.id}/stream?position=${Math.floor(startPosition)}`,
+          { method: "HEAD", credentials: "include" },
+        );
+        if (!response.ok) {
+          throw new Error("Stream not available");
+        }
+        const fileStartPosition = parseInt(
+          response.headers.get("X-File-Start-Position") || "0",
+          10,
+        );
+        fileStartPositionRef.current = fileStartPosition;
+
+        // Calculate offset within the file
+        const offsetInFile = startPosition - fileStartPosition;
+
+        // Load the file from its beginning
+        const streamUrl = `/api/audiobooks/${audiobook.id}/stream?position=${Math.floor(fileStartPosition)}`;
+        audio.src = streamUrl;
+
+        // Wait for audio to be ready, then seek and apply settings
+        const handleCanPlay = () => {
+          audio.removeEventListener("canplay", handleCanPlay);
+          // Seek to position if needed
+          if (offsetInFile > 0) {
+            audio.currentTime = offsetInFile;
+          }
+          // Apply playback rate and volume AFTER source is loaded
+          audio.playbackRate = playbackRateRef.current;
+          audio.volume = volumeRef.current;
+          // Allow timeupdate to run now that we're at the correct position
+          isInitializingRef.current = false;
+        };
+        audio.addEventListener("canplay", handleCanPlay);
+
+        await audio.play();
+      } catch (error) {
+        console.error("[Player] Failed to play:", error);
+        isInitializingRef.current = false;
+        dispatch({ type: "SET_ERROR", payload: "Failed to play audio" });
+        toast.error(
+          "Failed to play audio. The file format may not be supported.",
+        );
+      }
+    },
+    [],
+  );
 
   const pause = useCallback(() => {
     audioRef.current?.pause();
@@ -454,102 +495,120 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "STOP" });
   }, [recordSession, syncProgress]);
 
-  const seek = useCallback(async (position: number) => {
-    if (!state.audiobook || !audioRef.current) return;
+  const seek = useCallback(
+    async (position: number) => {
+      if (!state.audiobook || !audioRef.current) return;
 
-    const clampedPosition = Math.max(0, Math.min(position, state.duration));
+      const clampedPosition = Math.max(0, Math.min(position, state.duration));
 
-    // Check if seeking within the same file or to a different file
-    // We need to reload if seeking to a position outside the current file
-    const currentFileEnd = fileStartPositionRef.current + (audioRef.current.duration || 0);
-    const needsNewFile = clampedPosition < fileStartPositionRef.current || clampedPosition >= currentFileEnd;
+      // Check if seeking within the same file or to a different file
+      // We need to reload if seeking to a position outside the current file
+      const currentFileEnd =
+        fileStartPositionRef.current + (audioRef.current.duration || 0);
+      const needsNewFile =
+        clampedPosition < fileStartPositionRef.current ||
+        clampedPosition >= currentFileEnd;
 
-    if (needsNewFile) {
-      // Need to load a different file (or position is outside current file bounds)
-      dispatch({ type: "SET_LOADING", payload: true });
-      const wasPlaying = state.isPlaying;
+      if (needsNewFile) {
+        // Need to load a different file (or position is outside current file bounds)
+        dispatch({ type: "SET_LOADING", payload: true });
+        const wasPlaying = state.isPlaying;
 
-      // Fetch stream info to get the file start position
-      try {
-        const response = await fetch(
-          `/api/audiobooks/${state.audiobook.id}/stream?position=${Math.floor(clampedPosition)}`,
-          { method: "HEAD", credentials: "include" }
-        );
-        const fileStartPosition = parseInt(response.headers.get("X-File-Start-Position") || "0", 10);
-        fileStartPositionRef.current = fileStartPosition;
+        // Fetch stream info to get the file start position
+        try {
+          const response = await fetch(
+            `/api/audiobooks/${state.audiobook.id}/stream?position=${Math.floor(clampedPosition)}`,
+            { method: "HEAD", credentials: "include" },
+          );
+          const fileStartPosition = parseInt(
+            response.headers.get("X-File-Start-Position") || "0",
+            10,
+          );
+          fileStartPositionRef.current = fileStartPosition;
 
-        // Calculate the offset within the file where we want to start
-        const offsetInFile = clampedPosition - fileStartPosition;
+          // Calculate the offset within the file where we want to start
+          const offsetInFile = clampedPosition - fileStartPosition;
 
-        // Load the file from the beginning (no byte offset - let browser handle seeking)
-        const streamUrl = `/api/audiobooks/${state.audiobook.id}/stream?position=${Math.floor(fileStartPosition)}`;
-        audioRef.current.src = streamUrl;
+          // Load the file from the beginning (no byte offset - let browser handle seeking)
+          const streamUrl = `/api/audiobooks/${state.audiobook.id}/stream?position=${Math.floor(fileStartPosition)}`;
+          audioRef.current.src = streamUrl;
 
-        // Wait for the audio to be ready, then seek within the file and apply settings
-        const handleCanPlay = () => {
-          audioRef.current?.removeEventListener("canplay", handleCanPlay);
-          if (audioRef.current) {
-            if (offsetInFile > 0) {
-              audioRef.current.currentTime = offsetInFile;
+          // Wait for the audio to be ready, then seek within the file and apply settings
+          const handleCanPlay = () => {
+            audioRef.current?.removeEventListener("canplay", handleCanPlay);
+            if (audioRef.current) {
+              if (offsetInFile > 0) {
+                audioRef.current.currentTime = offsetInFile;
+              }
+              // Apply playback rate and volume AFTER source is loaded
+              audioRef.current.playbackRate = playbackRateRef.current;
+              audioRef.current.volume = volumeRef.current;
             }
-            // Apply playback rate and volume AFTER source is loaded
-            audioRef.current.playbackRate = playbackRateRef.current;
-            audioRef.current.volume = volumeRef.current;
-          }
-        };
-        audioRef.current.addEventListener("canplay", handleCanPlay);
+          };
+          audioRef.current.addEventListener("canplay", handleCanPlay);
 
-        if (wasPlaying) {
-          try {
-            await audioRef.current.play();
-          } catch (error) {
-            console.error("[Player] Failed to play after seek:", error);
+          if (wasPlaying) {
+            try {
+              await audioRef.current.play();
+            } catch (error) {
+              console.error("[Player] Failed to play after seek:", error);
+            }
           }
+        } catch (error) {
+          console.error("[Player] Failed to seek:", error);
+          dispatch({ type: "SET_LOADING", payload: false });
         }
-      } catch (error) {
-        console.error("[Player] Failed to seek:", error);
-        dispatch({ type: "SET_LOADING", payload: false });
+      } else {
+        // Seeking within current file - use native seeking
+        const newTime = clampedPosition - fileStartPositionRef.current;
+        if (newTime >= 0 && isFinite(newTime)) {
+          audioRef.current.currentTime = newTime;
+        }
       }
-    } else {
-      // Seeking within current file - use native seeking
-      const newTime = clampedPosition - fileStartPositionRef.current;
-      if (newTime >= 0 && isFinite(newTime)) {
-        audioRef.current.currentTime = newTime;
-      }
-    }
 
-    dispatch({ type: "SET_POSITION", payload: clampedPosition });
-    syncProgress(clampedPosition);
-  }, [state.audiobook, state.duration, state.isPlaying, syncProgress]);
+      dispatch({ type: "SET_POSITION", payload: clampedPosition });
+      syncProgress(clampedPosition);
+    },
+    [state.audiobook, state.duration, state.isPlaying, syncProgress],
+  );
 
   // Preview seek: updates audio position without syncing to server
   // Used during slider dragging for responsive UI
-  const seekPreview = useCallback((position: number) => {
-    if (!state.audiobook || !audioRef.current) return;
+  const seekPreview = useCallback(
+    (position: number) => {
+      if (!state.audiobook || !audioRef.current) return;
 
-    const clampedPosition = Math.max(0, Math.min(position, state.duration));
+      const clampedPosition = Math.max(0, Math.min(position, state.duration));
 
-    // Check if seeking within the same file
-    const currentFileEnd = fileStartPositionRef.current + (audioRef.current.duration || 0);
-    const isWithinCurrentFile = clampedPosition >= fileStartPositionRef.current && clampedPosition < currentFileEnd;
+      // Check if seeking within the same file
+      const currentFileEnd =
+        fileStartPositionRef.current + (audioRef.current.duration || 0);
+      const isWithinCurrentFile =
+        clampedPosition >= fileStartPositionRef.current &&
+        clampedPosition < currentFileEnd;
 
-    if (isWithinCurrentFile) {
-      // Seeking within current file - use native seeking
-      const newTime = clampedPosition - fileStartPositionRef.current;
-      if (newTime >= 0 && isFinite(newTime)) {
-        audioRef.current.currentTime = newTime;
+      if (isWithinCurrentFile) {
+        // Seeking within current file - use native seeking
+        const newTime = clampedPosition - fileStartPositionRef.current;
+        if (newTime >= 0 && isFinite(newTime)) {
+          audioRef.current.currentTime = newTime;
+        }
       }
-    }
-    // If seeking outside current file, just update the UI position
-    // The actual file loading will happen on seekCommit (via seek)
+      // If seeking outside current file, just update the UI position
+      // The actual file loading will happen on seekCommit (via seek)
 
-    dispatch({ type: "SET_POSITION", payload: clampedPosition });
-    // Note: No syncProgress call here - that happens only on commit
-  }, [state.audiobook, state.duration]);
+      dispatch({ type: "SET_POSITION", payload: clampedPosition });
+      // Note: No syncProgress call here - that happens only on commit
+    },
+    [state.audiobook, state.duration],
+  );
 
-  const seekRelative = useCallback((delta: number) => {
-    seek(state.currentPosition + delta);
-  }, [state.currentPosition, seek]);
+  const seekRelative = useCallback(
+    (delta: number) => {
+      seek(state.currentPosition + delta);
+    },
+    [state.currentPosition, seek],
+  );
 
   // Called when user starts dragging the slider
   const seekStart = useCallback(() => {
@@ -589,8 +648,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const nextChapter = useCallback(() => {
     if (!state.audiobook?.chapters || !state.currentChapter) return;
 
-    const sorted = [...state.audiobook.chapters].sort((a, b) => a.startTime - b.startTime);
-    const currentIndex = sorted.findIndex((c) => c.id === state.currentChapter?.id);
+    const sorted = [...state.audiobook.chapters].sort(
+      (a, b) => a.startTime - b.startTime,
+    );
+    const currentIndex = sorted.findIndex(
+      (c) => c.id === state.currentChapter?.id,
+    );
 
     if (currentIndex >= 0 && currentIndex < sorted.length - 1) {
       const nextChapterItem = sorted[currentIndex + 1];
@@ -603,8 +666,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const prevChapter = useCallback(() => {
     if (!state.audiobook?.chapters || !state.currentChapter) return;
 
-    const sorted = [...state.audiobook.chapters].sort((a, b) => a.startTime - b.startTime);
-    const currentIndex = sorted.findIndex((c) => c.id === state.currentChapter?.id);
+    const sorted = [...state.audiobook.chapters].sort(
+      (a, b) => a.startTime - b.startTime,
+    );
+    const currentIndex = sorted.findIndex(
+      (c) => c.id === state.currentChapter?.id,
+    );
 
     if (currentIndex > 0) {
       const prevChapterItem = sorted[currentIndex - 1];
@@ -617,24 +684,27 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   }, [state.audiobook, state.currentChapter, seek]);
 
   // Sleep timer actions
-  const startSleepTimer = useCallback((type: "duration" | "endOfChapter", minutes?: number) => {
-    // Store the current volume to restore later
-    const originalVolume = volumeRef.current;
+  const startSleepTimer = useCallback(
+    (type: "duration" | "endOfChapter", minutes?: number) => {
+      // Store the current volume to restore later
+      const originalVolume = volumeRef.current;
 
-    if (type === "duration" && minutes) {
-      dispatch({
-        type: "START_SLEEP_TIMER",
-        payload: { type, seconds: minutes * 60, originalVolume },
-      });
-    } else if (type === "endOfChapter") {
-      dispatch({
-        type: "START_SLEEP_TIMER",
-        payload: { type, seconds: null, originalVolume },
-      });
-      // Store current chapter ID for change detection
-      previousChapterIdRef.current = state.currentChapter?.id ?? null;
-    }
-  }, [state.currentChapter]);
+      if (type === "duration" && minutes) {
+        dispatch({
+          type: "START_SLEEP_TIMER",
+          payload: { type, seconds: minutes * 60, originalVolume },
+        });
+      } else if (type === "endOfChapter") {
+        dispatch({
+          type: "START_SLEEP_TIMER",
+          payload: { type, seconds: null, originalVolume },
+        });
+        // Store current chapter ID for change detection
+        previousChapterIdRef.current = state.currentChapter?.id ?? null;
+      }
+    },
+    [state.currentChapter],
+  );
 
   const cancelSleepTimer = useCallback(() => {
     // Clear the interval if running
@@ -647,7 +717,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (state.sleepTimer.isFading && audioRef.current) {
       audioRef.current.volume = state.sleepTimer.originalVolume;
       volumeRef.current = state.sleepTimer.originalVolume;
-      dispatch({ type: "SET_VOLUME", payload: state.sleepTimer.originalVolume });
+      dispatch({
+        type: "SET_VOLUME",
+        payload: state.sleepTimer.originalVolume,
+      });
     }
 
     dispatch({ type: "CANCEL_SLEEP_TIMER" });
@@ -713,17 +786,27 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       dispatch({ type: "SET_VOLUME", payload: sleepTimerOriginalVolume });
       dispatch({ type: "CANCEL_SLEEP_TIMER" });
     }
-  }, [sleepTimerActive, sleepTimerRemainingSeconds, sleepTimerIsFading, sleepTimerOriginalVolume, pause]);
+  }, [
+    sleepTimerActive,
+    sleepTimerRemainingSeconds,
+    sleepTimerIsFading,
+    sleepTimerOriginalVolume,
+    pause,
+  ]);
 
   // Handle end-of-chapter sleep timer
   const currentChapterId = state.currentChapter?.id;
   const isPlaying = state.isPlaying;
 
   useEffect(() => {
-    if (!sleepTimerActive || sleepTimerType !== "endOfChapter" || !isPlaying) return;
+    if (!sleepTimerActive || sleepTimerType !== "endOfChapter" || !isPlaying)
+      return;
 
     // Detect chapter change
-    if (previousChapterIdRef.current && currentChapterId !== previousChapterIdRef.current) {
+    if (
+      previousChapterIdRef.current &&
+      currentChapterId !== previousChapterIdRef.current
+    ) {
       // Chapter changed - start fade and pause sequence
       const fadeAndPause = () => {
         const FADE_DURATION = 30; // seconds
@@ -759,7 +842,14 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
     // Update previous chapter ID
     previousChapterIdRef.current = currentChapterId ?? null;
-  }, [sleepTimerActive, sleepTimerType, sleepTimerOriginalVolume, currentChapterId, isPlaying, pause]);
+  }, [
+    sleepTimerActive,
+    sleepTimerType,
+    sleepTimerOriginalVolume,
+    currentChapterId,
+    isPlaying,
+    pause,
+  ]);
 
   // Cancel sleep timer when audiobook changes or playback stops manually
   useEffect(() => {
@@ -773,21 +863,50 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (!("mediaSession" in navigator)) return;
 
     const actionHandlers: [MediaSessionAction, MediaSessionActionHandler][] = [
-      ["play", () => { resume(); }],
-      ["pause", () => { pause(); }],
-      ["seekbackward", (details) => {
-        seekRelative(-(details.seekOffset || 15));
-      }],
-      ["seekforward", (details) => {
-        seekRelative(details.seekOffset || 30);
-      }],
-      ["previoustrack", () => { prevChapter(); }],
-      ["nexttrack", () => { nextChapter(); }],
-      ["seekto", (details) => {
-        if (details.seekTime !== undefined) {
-          seek(details.seekTime);
-        }
-      }],
+      [
+        "play",
+        () => {
+          resume();
+        },
+      ],
+      [
+        "pause",
+        () => {
+          pause();
+        },
+      ],
+      [
+        "seekbackward",
+        (details) => {
+          seekRelative(-(details.seekOffset || 15));
+        },
+      ],
+      [
+        "seekforward",
+        (details) => {
+          seekRelative(details.seekOffset || 30);
+        },
+      ],
+      [
+        "previoustrack",
+        () => {
+          prevChapter();
+        },
+      ],
+      [
+        "nexttrack",
+        () => {
+          nextChapter();
+        },
+      ],
+      [
+        "seekto",
+        (details) => {
+          if (details.seekTime !== undefined) {
+            seek(details.seekTime);
+          }
+        },
+      ],
     ];
 
     for (const [action, handler] of actionHandlers) {
@@ -825,7 +944,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         // Position state not supported or invalid values
       }
     }
-  }, [state.audiobook, state.currentPosition, state.duration, state.playbackRate]);
+  }, [
+    state.audiobook,
+    state.currentPosition,
+    state.duration,
+    state.playbackRate,
+  ]);
 
   const value: PlayerContextValue = {
     ...state,
@@ -847,9 +971,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <PlayerContext.Provider value={value}>
-      {children}
-    </PlayerContext.Provider>
+    <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>
   );
 }
 

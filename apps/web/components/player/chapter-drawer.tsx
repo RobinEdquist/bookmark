@@ -37,7 +37,7 @@ function formatDuration(seconds: number): string {
 function getChapterDuration(
   chapter: AudiobookChapter,
   chapters: AudiobookChapter[],
-  totalDuration: number
+  totalDuration: number,
 ): number {
   const sorted = [...chapters].sort((a, b) => a.startTime - b.startTime);
   const index = sorted.findIndex((c) => c.id === chapter.id);
@@ -58,14 +58,14 @@ export function ChapterDrawer({
   const currentChapterRef = useRef<HTMLButtonElement>(null);
 
   // Sort chapters by startTime
-  const sortedChapters = [...chapters].sort((a, b) => a.startTime - b.startTime);
+  const sortedChapters = [...chapters].sort(
+    (a, b) => a.startTime - b.startTime,
+  );
 
   // Calculate total duration from chapters
   const totalDuration =
     sortedChapters.length > 0
-      ? Math.max(
-          ...sortedChapters.map((c) => c.endTime ?? c.startTime)
-        )
+      ? Math.max(...sortedChapters.map((c) => c.endTime ?? c.startTime))
       : 0;
 
   // Scroll to current chapter when drawer opens
@@ -106,7 +106,7 @@ export function ChapterDrawer({
               const duration = getChapterDuration(
                 chapter,
                 sortedChapters,
-                totalDuration
+                totalDuration,
               );
 
               return (
@@ -117,7 +117,7 @@ export function ChapterDrawer({
                   className={cn(
                     "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition-colors",
                     "hover:bg-accent focus:bg-accent focus:outline-none",
-                    isCurrent && "bg-accent"
+                    isCurrent && "bg-accent",
                   )}
                 >
                   {/* Chapter number or playing indicator */}
@@ -148,7 +148,7 @@ export function ChapterDrawer({
                     <p
                       className={cn(
                         "truncate text-sm font-medium",
-                        isCurrent && "text-primary"
+                        isCurrent && "text-primary",
                       )}
                     >
                       {chapter.title}

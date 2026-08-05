@@ -43,12 +43,17 @@ export function AddToListDialog({
   const handleToggleList = async (
     listId: string,
     isInList: boolean,
-    listItemId: string | null
+    listItemId: string | null,
   ) => {
     setProcessingListId(listId);
     try {
       if (isInList && listItemId) {
-        await removeFromList({ listId, itemId: listItemId, itemType, mediaItemId: itemId });
+        await removeFromList({
+          listId,
+          itemId: listItemId,
+          itemType,
+          mediaItemId: itemId,
+        });
         toast.success(t("removed"));
       } else {
         await addToList({ listId, itemType, itemId });
@@ -87,7 +92,11 @@ export function AddToListDialog({
                   <button
                     key={list.id}
                     onClick={() =>
-                      handleToggleList(list.id, list.containsItem, list.listItemId)
+                      handleToggleList(
+                        list.id,
+                        list.containsItem,
+                        list.listItemId,
+                      )
                     }
                     disabled={processingListId === list.id}
                     className="flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-muted disabled:opacity-50"

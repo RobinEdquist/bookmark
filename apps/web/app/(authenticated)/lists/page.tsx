@@ -56,7 +56,9 @@ export default function ListsPage() {
             {/* My Lists Section */}
             {myLists.length > 0 && (
               <section>
-                <h2 className="mb-4 text-lg font-semibold">{t("myListsSection")}</h2>
+                <h2 className="mb-4 text-lg font-semibold">
+                  {t("myListsSection")}
+                </h2>
                 <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {myLists.map((list) => (
                     <ListCard
@@ -75,14 +77,13 @@ export default function ListsPage() {
               <section>
                 <div className="mb-4 flex items-center gap-2">
                   <Globe className="h-5 w-5 text-muted-foreground" />
-                  <h2 className="text-lg font-semibold">{t("publicListsSection")}</h2>
+                  <h2 className="text-lg font-semibold">
+                    {t("publicListsSection")}
+                  </h2>
                 </div>
                 <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {publicLists.map((list) => (
-                    <ListCard
-                      key={list.id}
-                      list={list}
-                    />
+                    <ListCard key={list.id} list={list} />
                   ))}
                 </div>
               </section>
@@ -91,7 +92,9 @@ export default function ListsPage() {
             {/* Empty state for my lists when only public exist */}
             {myLists.length === 0 && publicLists.length > 0 && (
               <div className="flex flex-col items-center justify-center rounded-lg border border-dashed py-8">
-                <p className="mb-3 text-sm text-muted-foreground">{t("noOwnLists")}</p>
+                <p className="mb-3 text-sm text-muted-foreground">
+                  {t("noOwnLists")}
+                </p>
                 <Button size="sm" onClick={() => setCreateOpen(true)}>
                   <Plus className="h-4 w-4" />
                   {t("createFirstList")}

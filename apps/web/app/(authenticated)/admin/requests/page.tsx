@@ -2,7 +2,12 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
   useAdminRequests,
@@ -21,7 +26,11 @@ export default function AdminRequestsPage() {
   const router = useRouter();
   const { data: session, isPending: sessionPending } = authClient.useSession();
 
-  const [activeTab, setActiveTab] = useUrlTab<StatusTab>("status", "pending", STATUS_TABS);
+  const [activeTab, setActiveTab] = useUrlTab<StatusTab>(
+    "status",
+    "pending",
+    STATUS_TABS,
+  );
 
   const status = activeTab === "all" ? undefined : activeTab;
   const { data: requests, isLoading } = useAdminRequests(status);
@@ -43,7 +52,8 @@ export default function AdminRequestsPage() {
     return null;
   }
 
-  const pendingCount = requests?.filter((r) => r.status === "pending").length ?? 0;
+  const pendingCount =
+    requests?.filter((r) => r.status === "pending").length ?? 0;
 
   return (
     <div className="p-8">
@@ -53,13 +63,18 @@ export default function AdminRequestsPage() {
           <p className="text-muted-foreground">{t("description")}</p>
         </header>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as StatusTab)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as StatusTab)}
+        >
           <TabsList>
             <TabsTrigger value="pending">
               {t("tabs.pending")} {pendingCount > 0 && `(${pendingCount})`}
             </TabsTrigger>
             <TabsTrigger value="approved">{t("tabs.approved")}</TabsTrigger>
-            <TabsTrigger value="downloading">{t("tabs.downloading")}</TabsTrigger>
+            <TabsTrigger value="downloading">
+              {t("tabs.downloading")}
+            </TabsTrigger>
             <TabsTrigger value="all">{t("tabs.all")}</TabsTrigger>
           </TabsList>
 
@@ -68,7 +83,9 @@ export default function AdminRequestsPage() {
               requests={requests ?? []}
               isLoading={isLoading}
               onApprove={approveRequest}
-              onReject={(id, reason) => rejectRequest({ requestId: id, reason })}
+              onReject={(id, reason) =>
+                rejectRequest({ requestId: id, reason })
+              }
               isApproving={isApproving}
               isRejecting={isRejecting}
             />

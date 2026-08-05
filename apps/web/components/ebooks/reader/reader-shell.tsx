@@ -85,9 +85,7 @@ export default function ReaderShell({ ebookId }: ReaderShellProps) {
 
   const handleRelocate = useCallback(
     (info: ReaderRelocateInfo) => {
-      const percent = Math.round(
-        Math.min(Math.max(info.fraction, 0), 1) * 100,
-      );
+      const percent = Math.round(Math.min(Math.max(info.fraction, 0), 1) * 100);
       setPosition({
         percent: Math.min(Math.max(info.fraction, 0), 1) * 100,
         label: info.pageLabel ?? info.tocLabel ?? null,

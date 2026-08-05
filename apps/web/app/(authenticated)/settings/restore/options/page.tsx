@@ -36,7 +36,8 @@ export default function RestoreOptionsPage() {
   const sessionId = searchParams.get("session");
   const t = useTranslations("settings.restore.options");
 
-  const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
+  const { data: session, isLoading: sessionLoading } =
+    useRestoreSession(sessionId);
   const setRestoreOptions = useSetRestoreOptions();
 
   // Draft wins once the user toggles anything; until then the options come from
@@ -68,7 +69,7 @@ export default function RestoreOptionsPage() {
       router.push(`/settings/restore/preview?session=${sessionId}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       );
     }
   };
@@ -111,9 +112,7 @@ export default function RestoreOptionsPage() {
             <Settings className="h-5 w-5 text-primary" />
             <CardTitle>{t("title")}</CardTitle>
           </div>
-          <CardDescription>
-            {t("description")}
-          </CardDescription>
+          <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-start space-x-3">

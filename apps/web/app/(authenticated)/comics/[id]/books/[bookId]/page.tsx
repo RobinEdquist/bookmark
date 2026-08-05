@@ -293,7 +293,9 @@ export default function ComicBookDetailPage({
                     <p className="text-xs text-muted-foreground">
                       {t("book.fileSize")}
                     </p>
-                    <p className="font-medium">{formatFileSize(data.sizeBytes)}</p>
+                    <p className="font-medium">
+                      {formatFileSize(data.sizeBytes)}
+                    </p>
                   </div>
                 </div>
               )}

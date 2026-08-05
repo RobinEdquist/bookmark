@@ -24,7 +24,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
-import { useMergeComicSeries, type ComicSeriesListItem } from "../../lib/use-comics";
+import {
+  useMergeComicSeries,
+  type ComicSeriesListItem,
+} from "../../lib/use-comics";
 import { useMyPermissions } from "../../lib/use-users";
 import { toast } from "sonner";
 import { DeleteComicSeriesDialog } from "./delete-comic-series-dialog";
@@ -126,7 +129,11 @@ export function ComicSeriesCard({
 
         {/* Text Content with Menu */}
         <div className="mt-3 flex items-start gap-1">
-          <Link href={`/comics/${series.id}`} prefetch={false} className="min-w-0 flex-1">
+          <Link
+            href={`/comics/${series.id}`}
+            prefetch={false}
+            className="min-w-0 flex-1"
+          >
             <div className="space-y-1">
               {/* Book count badge */}
               <div className="text-xs text-muted-foreground">
@@ -180,7 +187,9 @@ export function ComicSeriesCard({
                   </DropdownMenuItem>
                 )}
                 {canEdit && (
-                  <DropdownMenuItem onClick={() => setAddToCollectionOpen(true)}>
+                  <DropdownMenuItem
+                    onClick={() => setAddToCollectionOpen(true)}
+                  >
                     <FolderPlus className="h-4 w-4" />
                     {t("collections.addToCollection")}
                   </DropdownMenuItem>

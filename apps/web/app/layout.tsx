@@ -66,7 +66,7 @@ export default async function RootLayout({
     "--accent": surface.vars.secondary,
     "--accent-foreground": surface.vars["secondary-foreground"],
     ...Object.fromEntries(
-      Object.entries(surface.vars).map(([key, value]) => [`--${key}`, value])
+      Object.entries(surface.vars).map(([key, value]) => [`--${key}`, value]),
     ),
   };
 
@@ -76,9 +76,7 @@ export default async function RootLayout({
       style={cssVars as React.CSSProperties}
       suppressHydrationWarning
     >
-      <body
-        className={`${neonderthaw.variable} font-sans antialiased`}
-      >
+      <body className={`${neonderthaw.variable} font-sans antialiased`}>
         <QueryProvider>
           <ThemeProvider>
             <IntlProvider

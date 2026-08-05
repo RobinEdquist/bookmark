@@ -132,7 +132,11 @@ export function AuthCard({ signupsEnabled }: AuthCardProps) {
                 </nav>
               )}
 
-              {activeTab === "login" || !showTabs ? <LoginForm /> : <SignupForm />}
+              {activeTab === "login" || !showTabs ? (
+                <LoginForm />
+              ) : (
+                <SignupForm />
+              )}
             </>
           )}
         </CardContent>
