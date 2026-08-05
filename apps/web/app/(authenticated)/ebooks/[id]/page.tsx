@@ -44,6 +44,7 @@ import { GeneratedCover } from "../../../../components/common/generated-cover";
 import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
 import { formatFileSize } from "../../../../lib/format-file-size";
+import { COLLAPSED_DESCRIPTION_HEIGHT } from "../../../../lib/constants/description";
 
 export default function EbookDetailPage({
   params,
@@ -68,12 +69,25 @@ export default function EbookDetailPage({
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [goodreadsSearchOpen, setGoodreadsSearchOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  // Full rendered height of the description, measured after commit — see the
+  // audiobook detail page for why this is state rather than a render-time read
+  // of descriptionRef.current.scrollHeight.
+  const [descriptionFullHeight, setDescriptionFullHeight] = useState<
+    number | null
+  >(null);
   const descriptionRef = useRef<HTMLDivElement>(null);
+
+  // Read the field out first so the memo closes over the string, not `ebook` —
+  // otherwise the compiler's inferred dependency widens past the declared deps.
+  const description = ebook?.description;
   const sanitizedDescription = useMemo(
-    () => (ebook?.description ? DOMPurify.sanitize(ebook.description) : ""),
-    [ebook?.description],
+    () => (description ? DOMPurify.sanitize(description) : ""),
+    [description],
   );
+
+  const descriptionOverflows =
+    descriptionFullHeight !== null &&
+    descriptionFullHeight > COLLAPSED_DESCRIPTION_HEIGHT;
 
   const canEdit = permissions?.canEditMetadata ?? false;
   const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("ebook", id);
@@ -94,10 +108,10 @@ export default function EbookDetailPage({
   };
 
   useEffect(() => {
-    if (descriptionRef.current) {
-      setDescriptionOverflows(descriptionRef.current.scrollHeight > 200);
-    }
-  }, [ebook?.description]);
+    const el = descriptionRef.current;
+    if (!el) return;
+    setDescriptionFullHeight(el.scrollHeight);
+  }, [sanitizedDescription]);
 
   if (isLoading) {
     return (
@@ -466,8 +480,8 @@ export default function EbookDetailPage({
                     className="text-sm leading-relaxed text-muted-foreground [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_strong]:font-semibold [&_em]:italic overflow-hidden transition-[max-height] duration-300 ease-in-out"
                     style={{
                       maxHeight: descriptionExpanded
-                        ? descriptionRef.current?.scrollHeight ?? 9999
-                        : 200,
+                        ? (descriptionFullHeight ?? 9999)
+                        : COLLAPSED_DESCRIPTION_HEIGHT,
                     }}
                     dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                   />

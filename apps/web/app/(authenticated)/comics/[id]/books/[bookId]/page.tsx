@@ -63,27 +63,34 @@ export default function ComicBookDetailPage({
 
   const seriesId = data?.series.id ?? id;
 
+  // These two fields are read out of `data` before the memos rather than inside
+  // them. Mixing `data?.summary` with `data.summary` in one callback makes the
+  // compiler widen the inferred dependency to `data` itself, which stops
+  // matching the declared dep list and costs the component its optimisation.
+  const summary = data?.summary;
+  const creators = data?.creators;
+
   // Sanitize summary if it contains HTML
   const sanitizedSummary = useMemo(() => {
-    if (!data?.summary) return "";
-    return DOMPurify.sanitize(data.summary);
-  }, [data?.summary]);
+    if (!summary) return "";
+    return DOMPurify.sanitize(summary);
+  }, [summary]);
 
   // Group creators by role, preserving order within each role
   const creatorsByRole = useMemo(() => {
-    if (!data?.creators || data.creators.length === 0) {
+    if (!creators || creators.length === 0) {
       return new Map<ComicCreatorRole, string[]>();
     }
     const map = new Map<ComicCreatorRole, string[]>();
     // Sort by order first so grouping respects intended sequence
-    const sorted = [...data.creators].sort((a, b) => a.order - b.order);
+    const sorted = [...creators].sort((a, b) => a.order - b.order);
     for (const creator of sorted) {
       const existing = map.get(creator.role) ?? [];
       existing.push(creator.name);
       map.set(creator.role, existing);
     }
     return map;
-  }, [data?.creators]);
+  }, [creators]);
 
   const handleDownload = () => {
     window.open(`/api/comics/books/${bookId}/download`, "_blank");
