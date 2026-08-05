@@ -9,7 +9,13 @@ export function SiteHeader() {
     <header className="site-header">
       <div className="shell site-header-inner">
         <Link href="/" className="wordmark" aria-label="Bookmark home">
-          <Image src="/bookmark-icon.png" alt="" width={64} height={64} priority />
+          <Image
+            src="/bookmark-icon.png"
+            alt=""
+            width={64}
+            height={64}
+            priority
+          />
           <span className="wordmark-text">Bookmark</span>
         </Link>
         <nav className="site-nav" aria-label="Site">
@@ -19,7 +25,11 @@ export function SiteHeader() {
           <Link href="/#apps" className="nav-link-optional">
             Mobile apps
           </Link>
-          <a href={GITHUB_URL} aria-label="Bookmark on GitHub" style={{ display: "inline-flex" }}>
+          <a
+            href={GITHUB_URL}
+            aria-label="Bookmark on GitHub"
+            style={{ display: "inline-flex" }}
+          >
             <GitHub width={20} height={20} />
           </a>
           <Link href="/get-started/" className="btn btn-neon">

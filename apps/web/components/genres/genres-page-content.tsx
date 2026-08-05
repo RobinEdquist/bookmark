@@ -53,19 +53,19 @@ export function GenresPageContent() {
   const audiobooksQuery = useInfiniteAudiobooks(
     selectedGenreId && contentType === "audiobooks"
       ? { genreId: selectedGenreId }
-      : {}
+      : {},
   );
 
   const ebooksQuery = useInfiniteEbooks(
     selectedGenreId && contentType === "ebooks"
       ? { genreId: selectedGenreId }
-      : {}
+      : {},
   );
 
   const comicsQuery = useInfiniteComicSeries(
     selectedGenreId && contentType === "comics"
       ? { genreId: selectedGenreId }
-      : {}
+      : {},
   );
 
   // URL state management
@@ -76,21 +76,21 @@ export function GenresPageContent() {
       if (genreId) params.set("genre", genreId);
       router.push(`/genres?${params.toString()}`);
     },
-    [router]
+    [router],
   );
 
   const handleTypeChange = useCallback(
     (type: string) => {
       updateUrl(type as ContentType);
     },
-    [updateUrl]
+    [updateUrl],
   );
 
   const handleGenreSelect = useCallback(
     (genreId: string) => {
       updateUrl(contentType, genreId);
     },
-    [contentType, updateUrl]
+    [contentType, updateUrl],
   );
 
   const handleBack = useCallback(() => {
@@ -98,11 +98,14 @@ export function GenresPageContent() {
   }, [contentType, updateUrl]);
 
   // Show tabs only when at least 2 types are available
-  const availableCount = [showAudiobooks, showEbooks, showComics].filter(Boolean).length;
+  const availableCount = [showAudiobooks, showEbooks, showComics].filter(
+    Boolean,
+  ).length;
   const showToggle = availableCount >= 2;
 
   // Extract items from query data
-  const audiobooks = audiobooksQuery.data?.pages.flatMap((p) => p.audiobooks) ?? [];
+  const audiobooks =
+    audiobooksQuery.data?.pages.flatMap((p) => p.audiobooks) ?? [];
   const ebooks = ebooksQuery.data?.pages.flatMap((p) => p.ebooks) ?? [];
   const comicSeries = comicsQuery.data?.pages.flatMap((p) => p.series) ?? [];
 

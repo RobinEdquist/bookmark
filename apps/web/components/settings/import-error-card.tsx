@@ -2,7 +2,14 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { RefreshCw, Loader2, ChevronDown, ChevronUp, X, Trash2 } from "lucide-react";
+import {
+  RefreshCw,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -93,7 +100,9 @@ export function ImportErrorCard({ error }: ImportErrorCardProps) {
             ) : (
               <RefreshCw className="h-4 w-4 mr-1" />
             )}
-            {isRetrying || error.status === "retrying" ? t("retrying") : t("retry")}
+            {isRetrying || error.status === "retrying"
+              ? t("retrying")
+              : t("retry")}
           </Button>
           <Button
             variant="ghost"
@@ -149,11 +158,15 @@ export function ImportErrorCard({ error }: ImportErrorCardProps) {
               </div>
               <div>
                 <dt className="text-muted-foreground">{t("firstOccurred")}</dt>
-                <dd className="whitespace-nowrap">{formatDate(error.firstOccurredAt)}</dd>
+                <dd className="whitespace-nowrap">
+                  {formatDate(error.firstOccurredAt)}
+                </dd>
               </div>
               <div>
                 <dt className="text-muted-foreground">{t("lastOccurred")}</dt>
-                <dd className="whitespace-nowrap">{formatDate(error.lastOccurredAt)}</dd>
+                <dd className="whitespace-nowrap">
+                  {formatDate(error.lastOccurredAt)}
+                </dd>
               </div>
             </div>
             {error.errorDetails?.stack && (

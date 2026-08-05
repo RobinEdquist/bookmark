@@ -62,12 +62,14 @@ export function LibraryProgressList({ userId }: LibraryProgressListProps) {
       <div className="flex flex-wrap gap-4">
         {/* Type filter */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">{t("filterType")}:</span>
-          {([
+          <span className="text-xs text-muted-foreground">
+            {t("filterType")}:
+          </span>
+          {[
             { value: "" as TypeFilter, label: t("all") },
             { value: "audiobook" as TypeFilter, label: t("audiobooks") },
             { value: "ebook" as TypeFilter, label: t("ebooks") },
-          ]).map((opt) => (
+          ].map((opt) => (
             <button
               key={opt.value}
               onClick={() => handleTypeChange(opt.value)}
@@ -84,12 +86,14 @@ export function LibraryProgressList({ userId }: LibraryProgressListProps) {
 
         {/* Status filter */}
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-muted-foreground">{t("filterStatus")}:</span>
-          {([
+          <span className="text-xs text-muted-foreground">
+            {t("filterStatus")}:
+          </span>
+          {[
             { value: "" as StatusFilter, label: t("all") },
             { value: "in_progress" as StatusFilter, label: t("inProgress") },
             { value: "completed" as StatusFilter, label: t("completed") },
-          ]).map((opt) => (
+          ].map((opt) => (
             <button
               key={opt.value}
               onClick={() => handleStatusChange(opt.value)}
@@ -107,11 +111,11 @@ export function LibraryProgressList({ userId }: LibraryProgressListProps) {
         {/* Sort */}
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-muted-foreground">{t("sort")}:</span>
-          {([
+          {[
             { value: "recent" as SortOption, label: t("sortRecent") },
             { value: "progress" as SortOption, label: t("sortProgress") },
             { value: "title" as SortOption, label: t("sortTitle") },
-          ]).map((opt) => (
+          ].map((opt) => (
             <button
               key={opt.value}
               onClick={() => handleSortChange(opt.value)}
@@ -188,7 +192,9 @@ export function LibraryProgressList({ userId }: LibraryProgressListProps) {
                             : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        {item.type === "audiobook" ? t("audiobookBadge") : t("ebookBadge")}
+                        {item.type === "audiobook"
+                          ? t("audiobookBadge")
+                          : t("ebookBadge")}
                       </span>
                     </div>
                     {item.authorName && (

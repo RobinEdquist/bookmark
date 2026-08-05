@@ -124,20 +124,12 @@ export default function RestoreImportPage() {
               </>
             )}
           </div>
-          {isImporting && (
-            <CardDescription>
-              {t("description")}
-            </CardDescription>
-          )}
+          {isImporting && <CardDescription>{t("description")}</CardDescription>}
           {isCompleted && (
-            <CardDescription>
-              {t("descriptionComplete")}
-            </CardDescription>
+            <CardDescription>{t("descriptionComplete")}</CardDescription>
           )}
           {(isFailed || isRolledBack) && (
-            <CardDescription>
-              {t("descriptionFailed")}
-            </CardDescription>
+            <CardDescription>{t("descriptionFailed")}</CardDescription>
           )}
         </CardHeader>
         <CardContent className="space-y-6">
@@ -177,7 +169,9 @@ export default function RestoreImportPage() {
                   {t("itemsProcessed")}
                 </p>
                 <p className="mt-1 text-2xl font-bold">
-                  {(progress?.processedItems ?? session.processedItems).toLocaleString()}
+                  {(
+                    progress?.processedItems ?? session.processedItems
+                  ).toLocaleString()}
                 </p>
               </div>
               <div className="text-right">
@@ -185,7 +179,9 @@ export default function RestoreImportPage() {
                   {t("totalItems")}
                 </p>
                 <p className="mt-1 text-2xl font-bold">
-                  {(progress?.totalItems ?? session.totalItems).toLocaleString()}
+                  {(
+                    progress?.totalItems ?? session.totalItems
+                  ).toLocaleString()}
                 </p>
               </div>
             </div>

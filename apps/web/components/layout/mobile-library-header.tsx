@@ -122,7 +122,10 @@ export function MobileLibraryHeader({
           />
           <div className="fixed inset-y-0 left-0 z-50 lg:hidden">
             <div className="relative h-full">
-              <Sidebar isAdmin={isAdmin} onNavigate={() => setMenuOpen(false)} />
+              <Sidebar
+                isAdmin={isAdmin}
+                onNavigate={() => setMenuOpen(false)}
+              />
               <Button
                 variant="ghost"
                 size="icon"

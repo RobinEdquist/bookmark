@@ -19,7 +19,7 @@ export function useSaveLibraryUrl(libraryPath: LibraryPath) {
     const query = searchParams.toString();
     sessionStorage.setItem(
       `${libraryPath}-return-url`,
-      pathname + (query ? `?${query}` : "")
+      pathname + (query ? `?${query}` : ""),
     );
   }, [libraryPath, pathname, searchParams]);
 }

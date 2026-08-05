@@ -29,7 +29,10 @@ export interface CoverUploadState {
 export interface CoverUploadActions {
   setActiveTab: (tab: "upload" | "url") => void;
   handleFileSelect: (file: File | null) => { success: boolean; error?: string };
-  handleDrop: (e: React.DragEvent<HTMLDivElement>) => { success: boolean; error?: string };
+  handleDrop: (e: React.DragEvent<HTMLDivElement>) => {
+    success: boolean;
+    error?: string;
+  };
   handleDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   handleUrlChange: (url: string) => void;
   handlePreviewUrl: () => { success: boolean; error?: string };
@@ -41,7 +44,9 @@ export interface UseCoverUploadReturn {
   state: CoverUploadState;
   actions: CoverUploadActions;
   mutation: {
-    mutateAsync: (params: { entityId: string }) => Promise<{ coverUrl: string }>;
+    mutateAsync: (params: {
+      entityId: string;
+    }) => Promise<{ coverUrl: string }>;
     isPending: boolean;
   };
 }
@@ -50,7 +55,7 @@ async function updateCover(
   apiPath: string,
   entityId: string,
   file: File | null,
-  url: string | null
+  url: string | null,
 ): Promise<{ coverUrl: string }> {
   const formData = new FormData();
 
@@ -78,7 +83,9 @@ async function updateCover(
  * Shared hook for cover image upload functionality.
  * Used by both audiobook and ebook cover dialogs.
  */
-export function useCoverUpload(config: CoverUploadConfig): UseCoverUploadReturn {
+export function useCoverUpload(
+  config: CoverUploadConfig,
+): UseCoverUploadReturn {
   const queryClient = useQueryClient();
 
   // State
@@ -99,7 +106,9 @@ export function useCoverUpload(config: CoverUploadConfig): UseCoverUploadReturn 
     },
     onSuccess: (_, { entityId }) => {
       queryClient.invalidateQueries({ queryKey: config.queryKeys.all });
-      queryClient.invalidateQueries({ queryKey: config.queryKeys.detail(entityId) });
+      queryClient.invalidateQueries({
+        queryKey: config.queryKeys.detail(entityId),
+      });
     },
   });
 
@@ -114,19 +123,22 @@ export function useCoverUpload(config: CoverUploadConfig): UseCoverUploadReturn 
   }, []);
 
   // Validate and process file
-  const processFile = useCallback((file: File): { success: boolean; error?: string } => {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return { success: false, error: "invalidType" };
-    }
+  const processFile = useCallback(
+    (file: File): { success: boolean; error?: string } => {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        return { success: false, error: "invalidType" };
+      }
 
-    if (file.size > MAX_FILE_SIZE) {
-      return { success: false, error: "tooLarge" };
-    }
+      if (file.size > MAX_FILE_SIZE) {
+        return { success: false, error: "tooLarge" };
+      }
 
-    setSelectedFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    return { success: true };
-  }, []);
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      return { success: true };
+    },
+    [],
+  );
 
   // Handle file input change
   const handleFileSelect = useCallback(
@@ -134,18 +146,20 @@ export function useCoverUpload(config: CoverUploadConfig): UseCoverUploadReturn 
       if (!file) return { success: false };
       return processFile(file);
     },
-    [processFile]
+    [processFile],
   );
 
   // Handle drag and drop
   const handleDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>): { success: boolean; error?: string } => {
+    (
+      e: React.DragEvent<HTMLDivElement>,
+    ): { success: boolean; error?: string } => {
       e.preventDefault();
       const file = e.dataTransfer.files?.[0];
       if (!file) return { success: false };
       return processFile(file);
     },
-    [processFile]
+    [processFile],
   );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -160,7 +174,10 @@ export function useCoverUpload(config: CoverUploadConfig): UseCoverUploadReturn 
   }, []);
 
   // Preview URL
-  const handlePreviewUrl = useCallback((): { success: boolean; error?: string } => {
+  const handlePreviewUrl = useCallback((): {
+    success: boolean;
+    error?: string;
+  } => {
     if (!urlInput.trim()) return { success: false };
 
     setIsLoadingPreview(true);

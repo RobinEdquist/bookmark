@@ -98,7 +98,11 @@ export function CreateListDialog({
                 disabled={isPending}
               >
                 <div className="flex items-start space-x-3 rounded-lg border p-3">
-                  <RadioGroupItem value="private" id="private" className="mt-0.5" />
+                  <RadioGroupItem
+                    value="private"
+                    id="private"
+                    className="mt-0.5"
+                  />
                   <div className="flex-1">
                     <Label
                       htmlFor="private"
@@ -113,7 +117,11 @@ export function CreateListDialog({
                   </div>
                 </div>
                 <div className="flex items-start space-x-3 rounded-lg border p-3">
-                  <RadioGroupItem value="public" id="public" className="mt-0.5" />
+                  <RadioGroupItem
+                    value="public"
+                    id="public"
+                    className="mt-0.5"
+                  />
                   <div className="flex-1">
                     <Label
                       htmlFor="public"

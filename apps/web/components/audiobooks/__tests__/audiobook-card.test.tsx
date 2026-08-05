@@ -5,7 +5,15 @@ import type { AudiobookListItem } from "../../../lib/use-audiobooks";
 
 // --- Hoisted mocks ---
 
-const { mockUseMyPermissions, mockUseHardcoverStatus, mockUseGrFinderStatus, mockUseHardcoverUnlinkAudiobook, mockUseGoodreadsUnlinkMedia, mockUseDeleteAudiobook, mockUseTheme } = vi.hoisted(() => ({
+const {
+  mockUseMyPermissions,
+  mockUseHardcoverStatus,
+  mockUseGrFinderStatus,
+  mockUseHardcoverUnlinkAudiobook,
+  mockUseGoodreadsUnlinkMedia,
+  mockUseDeleteAudiobook,
+  mockUseTheme,
+} = vi.hoisted(() => ({
   mockUseMyPermissions: vi.fn(),
   mockUseHardcoverStatus: vi.fn(),
   mockUseGrFinderStatus: vi.fn(),
@@ -42,7 +50,6 @@ vi.mock("../../../lib/use-theme", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   default: ({ fill, unoptimized, ...rest }: Record<string, unknown>) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img {...rest} />
@@ -50,24 +57,42 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-    <a {...props}>{children}</a>
-  ),
+  default: ({
+    children,
+    ...props
+  }: {
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => <a {...props}>{children}</a>,
 }));
 
 // Mock motion components to render plain elements
 vi.mock("motion/react", () => ({
   motion: {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    article: ({ children, initial, animate, whileHover, transition, ...htmlProps }: Record<string, unknown>) => (
+    article: ({
+      children,
+      initial,
+      animate,
+      whileHover,
+      transition,
+      ...htmlProps
+    }: Record<string, unknown>) => (
       <article {...htmlProps}>{children as React.ReactNode}</article>
     ),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    div: ({ children, initial, animate, whileHover, transition, ...htmlProps }: Record<string, unknown>) => (
+    div: ({
+      children,
+      initial,
+      animate,
+      whileHover,
+      transition,
+      ...htmlProps
+    }: Record<string, unknown>) => (
       <div {...htmlProps}>{children as React.ReactNode}</div>
     ),
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // Mock dialog components to avoid complex rendering
@@ -92,7 +117,9 @@ vi.mock("../../lists/add-to-list-dialog", () => ({
 
 // --- Test data helpers ---
 
-function createAudiobook(overrides: Partial<AudiobookListItem> = {}): AudiobookListItem {
+function createAudiobook(
+  overrides: Partial<AudiobookListItem> = {},
+): AudiobookListItem {
   return {
     id: "ab-1",
     title: "The Great Gatsby",
@@ -118,13 +145,28 @@ function createAudiobook(overrides: Partial<AudiobookListItem> = {}): AudiobookL
 describe("AudiobookCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseMyPermissions.mockReturnValue({ data: { canEditMetadata: false, canDelete: false } });
+    mockUseMyPermissions.mockReturnValue({
+      data: { canEditMetadata: false, canDelete: false },
+    });
     mockUseHardcoverStatus.mockReturnValue({ isConfigured: false });
     mockUseGrFinderStatus.mockReturnValue({ isConfigured: false });
-    mockUseHardcoverUnlinkAudiobook.mockReturnValue({ unlinkAudiobook: vi.fn(), isUnlinking: false });
-    mockUseGoodreadsUnlinkMedia.mockReturnValue({ unlinkMedia: vi.fn(), isUnlinking: false });
-    mockUseDeleteAudiobook.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
-    mockUseTheme.mockReturnValue({ isDark: false, primaryColor: "orange", surfaceColor: "zinc" });
+    mockUseHardcoverUnlinkAudiobook.mockReturnValue({
+      unlinkAudiobook: vi.fn(),
+      isUnlinking: false,
+    });
+    mockUseGoodreadsUnlinkMedia.mockReturnValue({
+      unlinkMedia: vi.fn(),
+      isUnlinking: false,
+    });
+    mockUseDeleteAudiobook.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    });
+    mockUseTheme.mockReturnValue({
+      isDark: false,
+      primaryColor: "orange",
+      surfaceColor: "zinc",
+    });
   });
 
   it("renders the audiobook title", () => {
@@ -148,20 +190,24 @@ describe("AudiobookCard", () => {
     render(<AudiobookCard audiobook={createAudiobook({ coverUrl: null })} />);
     expect(screen.queryByAltText("The Great Gatsby")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("img", { name: /The Great Gatsby/ })
+      screen.getByRole("img", { name: /The Great Gatsby/ }),
     ).toBeInTheDocument();
   });
 
   it("links to the audiobook detail page", () => {
     render(<AudiobookCard audiobook={createAudiobook()} />);
     const links = screen.getAllByRole("link");
-    const detailLinks = links.filter((l) => l.getAttribute("href") === "/audiobooks/ab-1");
+    const detailLinks = links.filter(
+      (l) => l.getAttribute("href") === "/audiobooks/ab-1",
+    );
     expect(detailLinks.length).toBeGreaterThan(0);
   });
 
   it("renders subtitle when no series is present", () => {
     render(
-      <AudiobookCard audiobook={createAudiobook({ subtitle: "A Novel of the Jazz Age" })} />
+      <AudiobookCard
+        audiobook={createAudiobook({ subtitle: "A Novel of the Jazz Age" })}
+      />,
     );
     expect(screen.getByText("A Novel of the Jazz Age")).toBeInTheDocument();
   });
@@ -173,22 +219,28 @@ describe("AudiobookCard", () => {
           subtitle: "Should not appear",
           series: [{ id: "s-1", name: "Gatsby Chronicles", order: "1.0" }],
         })}
-      />
+      />,
     );
     // The translation mock returns: key(JSON.stringify(values))
     expect(
-      screen.getByText('bookInSeries({"series":"Gatsby Chronicles","order":"1"})')
+      screen.getByText(
+        'bookInSeries({"series":"Gatsby Chronicles","order":"1"})',
+      ),
     ).toBeInTheDocument();
     expect(screen.queryByText("Should not appear")).not.toBeInTheDocument();
   });
 
   it("shows missing status overlay when status is missing", () => {
-    render(<AudiobookCard audiobook={createAudiobook({ status: "missing" })} />);
+    render(
+      <AudiobookCard audiobook={createAudiobook({ status: "missing" })} />,
+    );
     expect(screen.getByTitle("missingDescription")).toBeInTheDocument();
   });
 
   it("does not show missing overlay for available audiobooks", () => {
-    render(<AudiobookCard audiobook={createAudiobook({ status: "available" })} />);
+    render(
+      <AudiobookCard audiobook={createAudiobook({ status: "available" })} />,
+    );
     expect(screen.queryByTitle("missingDescription")).not.toBeInTheDocument();
   });
 
@@ -198,7 +250,9 @@ describe("AudiobookCard", () => {
   });
 
   it("renders dropdown menu when user has edit permissions", () => {
-    mockUseMyPermissions.mockReturnValue({ data: { canEditMetadata: true, canDelete: false } });
+    mockUseMyPermissions.mockReturnValue({
+      data: { canEditMetadata: true, canDelete: false },
+    });
     render(<AudiobookCard audiobook={createAudiobook()} />);
     expect(screen.getByRole("button")).toBeInTheDocument();
   });
@@ -211,7 +265,7 @@ describe("AudiobookCard", () => {
           goodreadsRating: 4.25,
           goodreadsRatingsCount: 1500,
         })}
-      />
+      />,
     );
     expect(screen.getByText("4.25")).toBeInTheDocument();
     expect(screen.getByText("(1,500)")).toBeInTheDocument();
@@ -226,7 +280,7 @@ describe("AudiobookCard", () => {
           hardcoverRating: 3.75,
           hardcoverRatingsCount: 200,
         })}
-      />
+      />,
     );
     expect(screen.getByText("3.75")).toBeInTheDocument();
     expect(screen.getByText("(200)")).toBeInTheDocument();
@@ -244,7 +298,7 @@ describe("AudiobookCard", () => {
           goodreadsRating: 4.1,
           goodreadsRatingsCount: 5000,
         })}
-      />
+      />,
     );
     // Should show Goodreads, not Hardcover
     expect(screen.getByText("4.10")).toBeInTheDocument();
@@ -260,7 +314,7 @@ describe("AudiobookCard", () => {
 
   it("applies grayscale style to cover image when missing", () => {
     render(
-      <AudiobookCard audiobook={createAudiobook({ status: "missing" })} />
+      <AudiobookCard audiobook={createAudiobook({ status: "missing" })} />,
     );
     const img = screen.getByAltText("The Great Gatsby");
     expect(img.className).toContain("grayscale");

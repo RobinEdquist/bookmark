@@ -171,9 +171,7 @@ function EditComicBookForm({
   const [coverDateError, setCoverDateError] = useState<string | null>(null);
   const [summary, setSummary] = useState(initialState.summary);
   const [collects, setCollects] = useState(initialState.collects);
-  const [creators, setCreators] = useState<CreatorRow[]>(
-    initialState.creators,
-  );
+  const [creators, setCreators] = useState<CreatorRow[]>(initialState.creators);
 
   const collectsParsed = parseCollects(collects);
   const collectsInvalid =
@@ -290,217 +288,214 @@ function EditComicBookForm({
 
   return (
     <>
-    <DialogHeader className="shrink-0 border-b px-6 py-4">
-      <DialogTitle>{t("bookTitle")}</DialogTitle>
-    </DialogHeader>
+      <DialogHeader className="shrink-0 border-b px-6 py-4">
+        <DialogTitle>{t("bookTitle")}</DialogTitle>
+      </DialogHeader>
 
-    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-        {/* Number and Format */}
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="book-number">{t("fields.number")}</Label>
-            <Input
-              id="book-number"
-              value={number}
-              onChange={(e) => setNumber(e.target.value)}
-              placeholder="#1"
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="book-format">{t("fields.format")}</Label>
-            <Select
-              value={format}
-              onValueChange={(v) => setFormat(v as ComicBookFormat)}
-              disabled={isLoading}
-            >
-              <SelectTrigger id="book-format">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {FORMATS.map((f) => (
-                  <SelectItem key={f} value={f}>
-                    {tFormat(f)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Title */}
-        <div className="space-y-2">
-          <Label htmlFor="book-title">{t("fields.title")}</Label>
-          <Input
-            id="book-title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={t("fields.titlePlaceholder")}
-            disabled={isLoading}
-          />
-        </div>
-
-        {/* Cover Date */}
-        <div className="space-y-2">
-          <Label htmlFor="book-coverDate">{t("fields.coverDate")}</Label>
-          <Input
-            id="book-coverDate"
-            value={coverDate}
-            onChange={(e) => handleCoverDateChange(e.target.value)}
-            onBlur={() => validateCoverDate(coverDate)}
-            placeholder="YYYY-MM-DD"
-            disabled={isLoading}
-            aria-invalid={!!coverDateError}
-            aria-describedby={
-              coverDateError ? "book-coverDate-error" : undefined
-            }
-          />
-          {coverDateError && (
-            <p
-              id="book-coverDate-error"
-              className="text-sm text-destructive"
-            >
-              {coverDateError}
-            </p>
-          )}
-        </div>
-
-        {/* Summary */}
-        <div className="space-y-2">
-          <Label htmlFor="book-summary">{t("fields.summary")}</Label>
-          <Textarea
-            id="book-summary"
-            value={summary}
-            onChange={(e) => setSummary(e.target.value)}
-            placeholder={t("fields.descriptionPlaceholder")}
-            disabled={isLoading}
-            rows={4}
-            className="resize-none"
-          />
-        </div>
-
-        {/* Collects — shown only for collected editions */}
-        {isCollectedEdition(format) && (
-          <div className="space-y-2">
-            <Label htmlFor="book-collects">{t("fields.collects")}</Label>
-            <Input
-              id="book-collects"
-              value={collects}
-              onChange={(e) => setCollects(e.target.value)}
-              placeholder={t("fields.collectsPlaceholder")}
-              disabled={isLoading}
-            />
-            {collects.trim() !== "" &&
-              collectsParsed.presentInts.length > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  {t("fields.collectsPreview", {
-                    issues: formatIssueList(collectsParsed.presentInts),
-                    count: collectsParsed.presentInts.length,
-                  })}
-                </p>
-              )}
-            {collectsParsed.unrecognized.length > 0 && (
-              <p className="text-xs text-destructive">
-                {t("fields.collectsUnrecognized", {
-                  tokens: collectsParsed.unrecognized.join(", "),
-                })}
-              </p>
-            )}
-            <p className="text-xs text-muted-foreground">
-              {t("fields.collectsHelp")}
-            </p>
-          </div>
-        )}
-
-        {/* Creators repeatable editor */}
-        <div className="space-y-3">
-          <Label>{t("fields.creators")}</Label>
-
-          {creators.map((row, index) => (
-            <div key={row.id} className="flex items-center gap-2">
+      <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          {/* Number and Format */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="book-number">{t("fields.number")}</Label>
               <Input
-                value={row.name}
-                onChange={(e) =>
-                  handleCreatorNameChange(row.id, e.target.value)
-                }
-                placeholder={t("fields.creatorName")}
+                id="book-number"
+                value={number}
+                onChange={(e) => setNumber(e.target.value)}
+                placeholder="#1"
                 disabled={isLoading}
-                className="flex-1"
-                aria-label={`${t("fields.creatorName")} ${index + 1}`}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="book-format">{t("fields.format")}</Label>
               <Select
-                value={row.role}
-                onValueChange={(v) =>
-                  handleCreatorRoleChange(row.id, v as ComicCreatorRole)
-                }
+                value={format}
+                onValueChange={(v) => setFormat(v as ComicBookFormat)}
                 disabled={isLoading}
               >
-                <SelectTrigger
-                  className="w-40 shrink-0"
-                  aria-label={`${t("fields.creatorRole")} ${index + 1}`}
-                >
+                <SelectTrigger id="book-format">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {ROLES.map((role) => (
-                    <SelectItem key={role} value={role}>
-                      {tRole(role)}
+                  {FORMATS.map((f) => (
+                    <SelectItem key={f} value={f}>
+                      {tFormat(f)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => handleRemoveCreator(row.id)}
-                disabled={isLoading}
-                className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
-                aria-label={t("fields.removeCreator")}
-              >
-                <X className="h-4 w-4" />
-              </Button>
             </div>
-          ))}
+          </div>
 
+          {/* Title */}
+          <div className="space-y-2">
+            <Label htmlFor="book-title">{t("fields.title")}</Label>
+            <Input
+              id="book-title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("fields.titlePlaceholder")}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* Cover Date */}
+          <div className="space-y-2">
+            <Label htmlFor="book-coverDate">{t("fields.coverDate")}</Label>
+            <Input
+              id="book-coverDate"
+              value={coverDate}
+              onChange={(e) => handleCoverDateChange(e.target.value)}
+              onBlur={() => validateCoverDate(coverDate)}
+              placeholder="YYYY-MM-DD"
+              disabled={isLoading}
+              aria-invalid={!!coverDateError}
+              aria-describedby={
+                coverDateError ? "book-coverDate-error" : undefined
+              }
+            />
+            {coverDateError && (
+              <p id="book-coverDate-error" className="text-sm text-destructive">
+                {coverDateError}
+              </p>
+            )}
+          </div>
+
+          {/* Summary */}
+          <div className="space-y-2">
+            <Label htmlFor="book-summary">{t("fields.summary")}</Label>
+            <Textarea
+              id="book-summary"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              placeholder={t("fields.descriptionPlaceholder")}
+              disabled={isLoading}
+              rows={4}
+              className="resize-none"
+            />
+          </div>
+
+          {/* Collects — shown only for collected editions */}
+          {isCollectedEdition(format) && (
+            <div className="space-y-2">
+              <Label htmlFor="book-collects">{t("fields.collects")}</Label>
+              <Input
+                id="book-collects"
+                value={collects}
+                onChange={(e) => setCollects(e.target.value)}
+                placeholder={t("fields.collectsPlaceholder")}
+                disabled={isLoading}
+              />
+              {collects.trim() !== "" &&
+                collectsParsed.presentInts.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("fields.collectsPreview", {
+                      issues: formatIssueList(collectsParsed.presentInts),
+                      count: collectsParsed.presentInts.length,
+                    })}
+                  </p>
+                )}
+              {collectsParsed.unrecognized.length > 0 && (
+                <p className="text-xs text-destructive">
+                  {t("fields.collectsUnrecognized", {
+                    tokens: collectsParsed.unrecognized.join(", "),
+                  })}
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {t("fields.collectsHelp")}
+              </p>
+            </div>
+          )}
+
+          {/* Creators repeatable editor */}
+          <div className="space-y-3">
+            <Label>{t("fields.creators")}</Label>
+
+            {creators.map((row, index) => (
+              <div key={row.id} className="flex items-center gap-2">
+                <Input
+                  value={row.name}
+                  onChange={(e) =>
+                    handleCreatorNameChange(row.id, e.target.value)
+                  }
+                  placeholder={t("fields.creatorName")}
+                  disabled={isLoading}
+                  className="flex-1"
+                  aria-label={`${t("fields.creatorName")} ${index + 1}`}
+                />
+                <Select
+                  value={row.role}
+                  onValueChange={(v) =>
+                    handleCreatorRoleChange(row.id, v as ComicCreatorRole)
+                  }
+                  disabled={isLoading}
+                >
+                  <SelectTrigger
+                    className="w-40 shrink-0"
+                    aria-label={`${t("fields.creatorRole")} ${index + 1}`}
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {tRole(role)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleRemoveCreator(row.id)}
+                  disabled={isLoading}
+                  className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+                  aria-label={t("fields.removeCreator")}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddCreator}
+              disabled={isLoading}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              {t("fields.addCreator")}
+            </Button>
+          </div>
+        </div>
+
+        <DialogFooter className="shrink-0 border-t px-6 py-4">
           <Button
             type="button"
             variant="outline"
-            size="sm"
-            onClick={handleAddCreator}
+            onClick={() => onOpenChange(false)}
             disabled={isLoading}
-            className="gap-2"
           >
-            <Plus className="h-4 w-4" />
-            {t("fields.addCreator")}
+            {t("cancel")}
           </Button>
-        </div>
-      </div>
-
-      <DialogFooter className="shrink-0 border-t px-6 py-4">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => onOpenChange(false)}
-          disabled={isLoading}
-        >
-          {t("cancel")}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => handleSave(false)}
-          disabled={isLoading || collectsInvalid}
-        >
-          {isLoading ? t("saving") : t("save")}
-        </Button>
-        <Button type="submit" disabled={isLoading || collectsInvalid}>
-          {isLoading ? t("saving") : t("saveAndClose")}
-        </Button>
-      </DialogFooter>
-    </form>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => handleSave(false)}
+            disabled={isLoading || collectsInvalid}
+          >
+            {isLoading ? t("saving") : t("save")}
+          </Button>
+          <Button type="submit" disabled={isLoading || collectsInvalid}>
+            {isLoading ? t("saving") : t("saveAndClose")}
+          </Button>
+        </DialogFooter>
+      </form>
     </>
   );
 }

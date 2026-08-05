@@ -74,7 +74,14 @@ describe("queryKeys", () => {
   describe("hardcover", () => {
     it("search includes all params", () => {
       const key = queryKeys.hardcover.search("audiobook", "ab-1", 2, "dune");
-      expect(key).toEqual(["hardcover", "search", "audiobook", "ab-1", 2, "dune"]);
+      expect(key).toEqual([
+        "hardcover",
+        "search",
+        "audiobook",
+        "ab-1",
+        2,
+        "dune",
+      ]);
     });
 
     it("link includes mediaType and mediaId", () => {

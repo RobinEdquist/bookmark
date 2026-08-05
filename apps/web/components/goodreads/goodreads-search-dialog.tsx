@@ -45,13 +45,15 @@ export function GoodreadsSearchDialog({
   const [searchDraft, setSearchDraft] = useState<string | null>(null);
   const [customQuery, setCustomQuery] = useState<string | undefined>(undefined);
 
-  const [selectedBook, setSelectedBook] = useState<GrFinderSearchResult | null>(null);
+  const [selectedBook, setSelectedBook] = useState<GrFinderSearchResult | null>(
+    null,
+  );
 
   const { data, isLoading, error } = useGrFinderSearchByMedia(
     mediaType,
     mediaId,
     open,
-    customQuery
+    customQuery,
   );
 
   // Until the user edits the box it mirrors the default query the API derived
@@ -93,9 +95,7 @@ export function GoodreadsSearchDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("toast.linkFailed")
-      );
+      toast.error(err instanceof Error ? err.message : t("toast.linkFailed"));
     }
   };
 
@@ -133,7 +133,11 @@ export function GoodreadsSearchDialog({
               className="pl-9"
             />
           </div>
-          <Button type="submit" variant="secondary" disabled={isLoading || !searchInput.trim()}>
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={isLoading || !searchInput.trim()}
+          >
             {t("search")}
           </Button>
         </form>
@@ -161,7 +165,8 @@ export function GoodreadsSearchDialog({
               {/* Results list */}
               <div className="flex-1 overflow-y-auto space-y-2 pr-2">
                 {results.map((book) => {
-                  const isSelected = selectedBook?.goodreads_id === book.goodreads_id;
+                  const isSelected =
+                    selectedBook?.goodreads_id === book.goodreads_id;
 
                   return (
                     <button
@@ -230,10 +235,7 @@ export function GoodreadsSearchDialog({
           <Button variant="outline" onClick={handleClose} disabled={isLinking}>
             {t("cancel")}
           </Button>
-          <Button
-            onClick={handleLink}
-            disabled={!selectedBook || isLinking}
-          >
+          <Button onClick={handleLink} disabled={!selectedBook || isLinking}>
             <LinkIcon className="h-4 w-4 mr-2" />
             {isLinking ? t("linking") : t("link")}
           </Button>

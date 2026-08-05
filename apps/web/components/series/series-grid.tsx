@@ -40,7 +40,7 @@ export function SeriesGrid({
           fetchNextPage();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
 
     const currentRef = loadMoreRef.current;
@@ -89,7 +89,11 @@ export function SeriesGrid({
     <>
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
         {series.map((s) => (
-          <SeriesGridCard key={s.id} series={s} animateEntrance={animateEntrance} />
+          <SeriesGridCard
+            key={s.id}
+            series={s}
+            animateEntrance={animateEntrance}
+          />
         ))}
       </div>
 

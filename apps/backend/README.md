@@ -120,7 +120,7 @@ Example Prometheus scrape config:
 scrape_configs:
   - job_name: bookmark
     static_configs:
-      - targets: ["bookmark:9464"]
+      - targets: ['bookmark:9464']
 ```
 
 ## Docker

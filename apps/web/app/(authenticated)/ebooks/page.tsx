@@ -52,7 +52,9 @@ export default function EbooksPage() {
     } else {
       params.delete("search");
     }
-    const newUrl = params.toString() ? `/ebooks?${params.toString()}` : "/ebooks";
+    const newUrl = params.toString()
+      ? `/ebooks?${params.toString()}`
+      : "/ebooks";
     router.replace(newUrl, { scroll: false });
   }, [debouncedSearch, router, searchParams]);
   const { sortBy, sortOrder, setSortField } = useSortPreference("ebooks");
@@ -66,7 +68,8 @@ export default function EbooksPage() {
     fetchNextPage,
   } = useInfiniteEbooks({
     search: debouncedSearch || undefined,
-    sortBy: sortBy as "title" | "createdAt" | "author" | "rating" | "series" | undefined,
+    sortBy: sortBy as
+      "title" | "createdAt" | "author" | "rating" | "series" | undefined,
     sortOrder,
   });
 
@@ -74,7 +77,10 @@ export default function EbooksPage() {
   const ebooks = data?.pages.flatMap((page) => page.ebooks) ?? [];
 
   // Save ordered item IDs for next/prev navigation on detail pages
-  useSaveLibraryNavigation("/ebooks", ebooks.map((e) => e.id));
+  useSaveLibraryNavigation(
+    "/ebooks",
+    ebooks.map((e) => e.id),
+  );
 
   // Scroll position restoration (search is in the URL; sort is stored locally)
   const { hasSavedPosition } = useScrollRestoration({
@@ -83,7 +89,8 @@ export default function EbooksPage() {
   });
 
   // Show spinner when search is pending (query differs from debounced) or fetching first page
-  const isSearching = searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
+  const isSearching =
+    searchQuery !== debouncedSearch || (isFetching && !isFetchingNextPage);
 
   // Only show skeleton loading on initial load, not during search
   const showSkeletons = isLoading && !data;

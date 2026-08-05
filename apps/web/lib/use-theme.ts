@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useCallback } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   isValidPrimaryColor,
   isValidSurfaceColor,
@@ -10,7 +10,7 @@ import {
   surfaceColors,
   type PrimaryColor,
   type SurfaceColor,
-} from './theme-config';
+} from "./theme-config";
 
 // Re-export for convenience
 export {
@@ -18,7 +18,7 @@ export {
   surfaceColorKeys,
   type PrimaryColor,
   type SurfaceColor,
-} from './theme-config';
+} from "./theme-config";
 
 interface ThemeColors {
   primaryColor: PrimaryColor;
@@ -26,7 +26,7 @@ interface ThemeColors {
 }
 
 function parseCookieTheme(): ThemeColors {
-  if (typeof document === 'undefined') {
+  if (typeof document === "undefined") {
     return {
       primaryColor: DEFAULT_PRIMARY_COLOR,
       surfaceColor: DEFAULT_SURFACE_COLOR,
@@ -35,12 +35,12 @@ function parseCookieTheme(): ThemeColors {
 
   const getCookie = (name: string) =>
     document.cookie
-      .split('; ')
+      .split("; ")
       .find((row) => row.startsWith(`${name}=`))
-      ?.split('=')[1];
+      ?.split("=")[1];
 
-  const primaryColor = getCookie('primaryColor');
-  const surfaceColor = getCookie('surfaceColor');
+  const primaryColor = getCookie("primaryColor");
+  const surfaceColor = getCookie("surfaceColor");
 
   return {
     primaryColor:
@@ -55,8 +55,8 @@ function parseCookieTheme(): ThemeColors {
 }
 
 async function fetchTheme(): Promise<ThemeColors> {
-  const res = await fetch('/api/users/me/theme', {
-    credentials: 'include',
+  const res = await fetch("/api/users/me/theme", {
+    credentials: "include",
   });
 
   if (!res.ok) {
@@ -83,10 +83,10 @@ async function updateTheme(colors: ThemeColors): Promise<void> {
 
   // Try to update server (will fail if not logged in, that's okay)
   try {
-    await fetch('/api/users/me/theme', {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+    await fetch("/api/users/me/theme", {
+      method: "PATCH",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(colors),
     });
   } catch {
@@ -98,7 +98,7 @@ export function useTheme() {
   const queryClient = useQueryClient();
 
   const { data: colors = parseCookieTheme(), isLoading } = useQuery({
-    queryKey: ['theme'],
+    queryKey: ["theme"],
     queryFn: fetchTheme,
     staleTime: Infinity,
   });
@@ -106,7 +106,7 @@ export function useTheme() {
   const mutation = useMutation({
     mutationFn: updateTheme,
     onSuccess: (_, newColors) => {
-      queryClient.setQueryData(['theme'], newColors);
+      queryClient.setQueryData(["theme"], newColors);
     },
   });
 

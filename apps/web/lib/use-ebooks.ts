@@ -1,6 +1,11 @@
 "use client";
 
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
 export interface EbookAuthor {
@@ -81,7 +86,7 @@ export interface EbookFilters {
 }
 
 async function fetchEbooks(
-  filters: EbookFilters = {}
+  filters: EbookFilters = {},
 ): Promise<{ ebooks: EbookListItem[]; total: number }> {
   const params = new URLSearchParams();
 
@@ -116,14 +121,17 @@ export function useEbooks(filters: EbookFilters = {}) {
 const ITEMS_PER_PAGE = 50;
 
 export function useInfiniteEbooks(
-  filters: Omit<EbookFilters, "limit" | "offset"> = {}
+  filters: Omit<EbookFilters, "limit" | "offset"> = {},
 ) {
   return useInfiniteQuery({
     queryKey: queryKeys.ebooks.infinite(filters),
     queryFn: ({ pageParam = 0 }) =>
       fetchEbooks({ ...filters, limit: ITEMS_PER_PAGE, offset: pageParam }),
     getNextPageParam: (lastPage, allPages) => {
-      const loaded = allPages.reduce((acc, page) => acc + page.ebooks.length, 0);
+      const loaded = allPages.reduce(
+        (acc, page) => acc + page.ebooks.length,
+        0,
+      );
       return loaded < lastPage.total ? loaded : undefined;
     },
     initialPageParam: 0,
@@ -170,7 +178,7 @@ export interface UpdateEbookData {
 
 async function updateEbook(
   id: string,
-  data: UpdateEbookData
+  data: UpdateEbookData,
 ): Promise<EbookDetail> {
   const response = await fetch(`/api/ebooks/${id}`, {
     method: "PATCH",
@@ -198,7 +206,7 @@ export function useUpdateEbook() {
       // Update the detail cache
       queryClient.setQueryData(
         queryKeys.ebooks.detail(updatedEbook.id),
-        updatedEbook
+        updatedEbook,
       );
       // Invalidate the list to reflect changes
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
@@ -251,7 +259,11 @@ interface UpdateEbookCoverParams {
   url?: string;
 }
 
-async function updateEbookCover({ ebookId, file, url }: UpdateEbookCoverParams): Promise<{ coverUrl: string }> {
+async function updateEbookCover({
+  ebookId,
+  file,
+  url,
+}: UpdateEbookCoverParams): Promise<{ coverUrl: string }> {
   const formData = new FormData();
 
   if (file) {
@@ -283,7 +295,9 @@ export function useUpdateEbookCover() {
       // Invalidate the list to refresh cover thumbnails
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
       // Invalidate the detail to refresh cover
-      queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(ebookId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.ebooks.detail(ebookId),
+      });
       // Invalidate lists/top-lists to refresh covers there too
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },

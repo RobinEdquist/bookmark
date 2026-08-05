@@ -33,10 +33,18 @@ vi.mock("../../settings/folder-picker-dialog", () => ({
 
 vi.mock("motion/react", () => ({
   motion: {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    div: ({ children, initial, animate, exit, whileHover, transition, ...htmlProps }: { children?: React.ReactNode; [key: string]: unknown }) => (
-      <div {...htmlProps}>{children}</div>
-    ),
+    div: ({
+      children,
+      initial,
+      animate,
+      exit,
+      whileHover,
+      transition,
+      ...htmlProps
+    }: {
+      children?: React.ReactNode;
+      [key: string]: unknown;
+    }) => <div {...htmlProps}>{children}</div>,
   },
   AnimatePresence: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>

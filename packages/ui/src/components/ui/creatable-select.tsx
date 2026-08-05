@@ -12,11 +12,7 @@ import {
   CommandItem,
   CommandList,
 } from "./command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 interface CreatableSelectProps {
   options: string[];
@@ -45,7 +41,7 @@ export function CreatableSelect({
   const [inputValue, setInputValue] = React.useState("");
 
   const filteredOptions = options.filter((option) =>
-    option.toLowerCase().includes(inputValue.toLowerCase())
+    option.toLowerCase().includes(inputValue.toLowerCase()),
   );
 
   const showCreateOption =
@@ -75,10 +71,7 @@ export function CreatableSelect({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className={cn(
-            "h-10 w-full justify-between font-normal",
-            className
-          )}
+          className={cn("h-10 w-full justify-between font-normal", className)}
         >
           {value ? (
             <div className="flex items-center gap-2">
@@ -109,7 +102,10 @@ export function CreatableSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}
@@ -128,7 +124,7 @@ export function CreatableSelect({
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === option ? "opacity-100" : "opacity-0"
+                      value === option ? "opacity-100" : "opacity-0",
                     )}
                   />
                   {option}

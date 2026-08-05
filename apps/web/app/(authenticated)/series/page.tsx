@@ -24,7 +24,8 @@ export default function SeriesPage() {
   // Get initial values from URL
   const initialSearch = searchParams.get("search") ?? "";
   const initialSortBy = (searchParams.get("sortBy") as SeriesSortBy) ?? "name";
-  const initialSortOrder = (searchParams.get("sortOrder") as SeriesSortOrder) ?? "asc";
+  const initialSortOrder =
+    (searchParams.get("sortOrder") as SeriesSortOrder) ?? "asc";
 
   // Local state
   const [searchInput, setSearchInput] = useState(initialSearch);
@@ -50,7 +51,9 @@ export default function SeriesPage() {
     if (sortBy !== "name") params.set("sortBy", sortBy);
     if (sortOrder !== "asc") params.set("sortOrder", sortOrder);
     const queryString = params.toString();
-    router.replace(queryString ? `?${queryString}` : "/series", { scroll: false });
+    router.replace(queryString ? `?${queryString}` : "/series", {
+      scroll: false,
+    });
   }, [debouncedSearch, sortBy, sortOrder, router]);
 
   // Handle sort change
@@ -59,34 +62,26 @@ export default function SeriesPage() {
       setSortBy(newSortBy);
       setSortOrder(newSortOrder);
     },
-    []
+    [],
   );
 
   // Handle search input change
-  const handleSearchChange = useCallback(
-    (value: string) => {
-      setSearchInput(value);
-    },
-    []
-  );
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchInput(value);
+  }, []);
 
   // Fetch series with current filters
-  const {
-    data,
-    isLoading,
-    isFetchingNextPage,
-    hasNextPage,
-    fetchNextPage,
-  } = useInfiniteSeries({
-    search: debouncedSearch || undefined,
-    sortBy,
-    sortOrder,
-  });
+  const { data, isLoading, isFetchingNextPage, hasNextPage, fetchNextPage } =
+    useInfiniteSeries({
+      search: debouncedSearch || undefined,
+      sortBy,
+      sortOrder,
+    });
 
   // Flatten pages
   const allSeries = useMemo(
     () => data?.pages.flatMap((page) => page.series) ?? [],
-    [data]
+    [data],
   );
 
   // Scroll position restoration (search and sort are both in the URL)

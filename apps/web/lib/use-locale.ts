@@ -63,7 +63,7 @@ export function useLocale() {
     (newLocale: Locale) => {
       mutation.mutate(newLocale);
     },
-    [mutation]
+    [mutation],
   );
 
   return {

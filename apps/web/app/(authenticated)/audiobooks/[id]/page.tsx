@@ -7,7 +7,27 @@ import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, Calendar, User, Mic, BookOpen, Pencil, ChevronDown, ChevronUp, FileAudio, ImageIcon, Play, Pause, CheckCircle2, Download, RotateCcw, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Calendar,
+  User,
+  Mic,
+  BookOpen,
+  Pencil,
+  ChevronDown,
+  ChevronUp,
+  FileAudio,
+  ImageIcon,
+  Play,
+  Pause,
+  CheckCircle2,
+  Download,
+  RotateCcw,
+  Sparkles,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -90,7 +110,13 @@ export default function AudiobookDetailPage({
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const { isConfigured: isGrFinderConfigured } = useGrFinderStatus();
-  const { audiobook: currentlyPlaying, isPlaying, play, pause, resume } = usePlayer();
+  const {
+    audiobook: currentlyPlaying,
+    isPlaying,
+    play,
+    pause,
+    resume,
+  } = usePlayer();
   const [editOpen, setEditOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [goodreadsSearchOpen, setGoodreadsSearchOpen] = useState(false);
@@ -110,7 +136,9 @@ export default function AudiobookDetailPage({
   const descriptionOverflows =
     descriptionFullHeight !== null &&
     descriptionFullHeight > COLLAPSED_DESCRIPTION_HEIGHT;
-  const [chaptersOpen, setChaptersOpen] = useState<string | undefined>(undefined);
+  const [chaptersOpen, setChaptersOpen] = useState<string | undefined>(
+    undefined,
+  );
   const [filesOpen, setFilesOpen] = useState<string | undefined>(undefined);
   const descriptionRef = useRef<HTMLDivElement>(null);
   // Read the field out first so the memo closes over the string itself. Reading
@@ -124,7 +152,11 @@ export default function AudiobookDetailPage({
   );
 
   const canEdit = permissions?.canEditMetadata ?? false;
-  const { removeGenre, removeTag, isPending: isMetadataPending } = useQuickAddMetadata("audiobook", id);
+  const {
+    removeGenre,
+    removeTag,
+    isPending: isMetadataPending,
+  } = useQuickAddMetadata("audiobook", id);
   const resetProgressMutation = useResetProgress();
   const isCurrentlyPlaying = currentlyPlaying?.id === id && isPlaying;
   const isThisAudiobookLoaded = currentlyPlaying?.id === id;
@@ -371,7 +403,9 @@ export default function AudiobookDetailPage({
                   ) : (
                     <span>
                       {t("progress.percentage", {
-                        percentage: Math.round((progress.position / audiobook.duration) * 100),
+                        percentage: Math.round(
+                          (progress.position / audiobook.duration) * 100,
+                        ),
                       })}
                     </span>
                   )}
@@ -388,13 +422,17 @@ export default function AudiobookDetailPage({
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>{t("progress.resetConfirmTitle")}</AlertDialogTitle>
+                      <AlertDialogTitle>
+                        {t("progress.resetConfirmTitle")}
+                      </AlertDialogTitle>
                       <AlertDialogDescription>
                         {t("progress.resetConfirmDescription")}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel>{t("progress.resetCancel")}</AlertDialogCancel>
+                      <AlertDialogCancel>
+                        {t("progress.resetCancel")}
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         onClick={handleResetProgress}
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -480,7 +518,9 @@ export default function AudiobookDetailPage({
                     <User className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("author")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("author")}
+                    </p>
                     <p className="font-medium">{authors}</p>
                   </div>
                 </div>
@@ -492,7 +532,9 @@ export default function AudiobookDetailPage({
                     <Mic className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("narrator")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("narrator")}
+                    </p>
                     <p className="font-medium">{narrators}</p>
                   </div>
                 </div>
@@ -504,7 +546,9 @@ export default function AudiobookDetailPage({
                     <BookOpen className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("series")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("series")}
+                    </p>
                     <p className="font-medium">
                       {audiobook.series.map((s, i) => (
                         <span key={s.id}>
@@ -528,8 +572,12 @@ export default function AudiobookDetailPage({
                   <Clock className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">{t("duration")}</p>
-                  <p className="font-medium">{formatDuration(audiobook.duration)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("duration")}
+                  </p>
+                  <p className="font-medium">
+                    {formatDuration(audiobook.duration)}
+                  </p>
                 </div>
               </div>
 
@@ -539,7 +587,9 @@ export default function AudiobookDetailPage({
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">{t("published")}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("published")}
+                    </p>
                     <p className="font-medium">
                       {new Date(audiobook.publishedDate).getFullYear()}
                     </p>
@@ -565,7 +615,9 @@ export default function AudiobookDetailPage({
                   />
                   <div
                     className={`pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent transition-opacity duration-200 ${
-                      descriptionOverflows && !descriptionExpanded ? "opacity-100" : "opacity-0"
+                      descriptionOverflows && !descriptionExpanded
+                        ? "opacity-100"
+                        : "opacity-0"
                     }`}
                   />
                 </div>
@@ -611,39 +663,42 @@ export default function AudiobookDetailPage({
                   {audiobook.chapters.length > 0 ? (
                     <div className="rounded-lg border border-border/50 mt-2 overflow-hidden">
                       <AnimatePresence mode="sync">
-                        {chaptersOpen === "chapters" && audiobook.chapters.map((chapter, index) => {
-                          // Calculate stagger delay - cap it to avoid too long delays for many chapters
-                          const staggerDelay = Math.min(index * 0.03, 0.5);
+                        {chaptersOpen === "chapters" &&
+                          audiobook.chapters.map((chapter, index) => {
+                            // Calculate stagger delay - cap it to avoid too long delays for many chapters
+                            const staggerDelay = Math.min(index * 0.03, 0.5);
 
-                          return (
-                            <motion.div
-                              key={chapter.id}
-                              initial={{ opacity: 0, x: -12 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -12 }}
-                              transition={{
-                                duration: 0.2,
-                                delay: staggerDelay,
-                                ease: [0.32, 0.72, 0, 1],
-                              }}
-                              className={`flex items-center justify-between px-4 py-3 ${
-                                index !== audiobook.chapters.length - 1
-                                  ? "border-b border-border/50"
-                                  : ""
-                              }`}
-                            >
-                              <div className="flex items-center gap-3">
-                                <span className="text-sm text-muted-foreground">
-                                  {index + 1}
+                            return (
+                              <motion.div
+                                key={chapter.id}
+                                initial={{ opacity: 0, x: -12 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -12 }}
+                                transition={{
+                                  duration: 0.2,
+                                  delay: staggerDelay,
+                                  ease: [0.32, 0.72, 0, 1],
+                                }}
+                                className={`flex items-center justify-between px-4 py-3 ${
+                                  index !== audiobook.chapters.length - 1
+                                    ? "border-b border-border/50"
+                                    : ""
+                                }`}
+                              >
+                                <div className="flex items-center gap-3">
+                                  <span className="text-sm text-muted-foreground">
+                                    {index + 1}
+                                  </span>
+                                  <span className="text-sm">
+                                    {chapter.title}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {formatChapterTime(chapter.startTime)}
                                 </span>
-                                <span className="text-sm">{chapter.title}</span>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {formatChapterTime(chapter.startTime)}
-                              </span>
-                            </motion.div>
-                          );
-                        })}
+                              </motion.div>
+                            );
+                          })}
                       </AnimatePresence>
                     </div>
                   ) : (
@@ -685,52 +740,67 @@ export default function AudiobookDetailPage({
                   {audiobook.files.length > 0 ? (
                     <div className="rounded-lg border border-border/50 mt-2 overflow-hidden">
                       <AnimatePresence mode="sync">
-                        {filesOpen === "files" && audiobook.files.map((file, index) => {
-                          const staggerDelay = Math.min(index * 0.03, 0.5);
+                        {filesOpen === "files" &&
+                          audiobook.files.map((file, index) => {
+                            const staggerDelay = Math.min(index * 0.03, 0.5);
 
-                          return (
-                            <motion.div
-                              key={file.id}
-                              initial={{ opacity: 0, x: -12 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -12 }}
-                              transition={{
-                                duration: 0.2,
-                                delay: staggerDelay,
-                                ease: [0.32, 0.72, 0, 1],
-                              }}
-                              className={`px-4 py-3 ${
-                                index !== audiobook.files.length - 1
-                                  ? "border-b border-border/50"
-                                  : ""
-                              }`}
-                            >
-                              <div className="flex items-start justify-between gap-4">
-                                <div className="min-w-0 flex-1">
-                                  <p className="truncate text-sm font-medium" title={file.filePath}>
-                                    {file.fileName}
-                                  </p>
-                                  <p className="truncate text-xs text-muted-foreground" title={file.filePath}>
-                                    {file.filePath}
-                                  </p>
+                            return (
+                              <motion.div
+                                key={file.id}
+                                initial={{ opacity: 0, x: -12 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -12 }}
+                                transition={{
+                                  duration: 0.2,
+                                  delay: staggerDelay,
+                                  ease: [0.32, 0.72, 0, 1],
+                                }}
+                                className={`px-4 py-3 ${
+                                  index !== audiobook.files.length - 1
+                                    ? "border-b border-border/50"
+                                    : ""
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-4">
+                                  <div className="min-w-0 flex-1">
+                                    <p
+                                      className="truncate text-sm font-medium"
+                                      title={file.filePath}
+                                    >
+                                      {file.fileName}
+                                    </p>
+                                    <p
+                                      className="truncate text-xs text-muted-foreground"
+                                      title={file.filePath}
+                                    >
+                                      {file.filePath}
+                                    </p>
+                                  </div>
+                                  <div className="shrink-0 text-right">
+                                    <p className="text-xs text-muted-foreground">
+                                      {formatDuration(file.duration)}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                      {formatFileSize(file.sizeBytes)}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="shrink-0 text-right">
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatDuration(file.duration)}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {formatFileSize(file.sizeBytes)}
-                                  </p>
+                                <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
+                                  <span>{file.format.toUpperCase()}</span>
+                                  {file.bitrate && (
+                                    <span>
+                                      {Math.round(file.bitrate / 1000)} kbps
+                                    </span>
+                                  )}
+                                  {file.sampleRate && (
+                                    <span>
+                                      {(file.sampleRate / 1000).toFixed(1)} kHz
+                                    </span>
+                                  )}
                                 </div>
-                              </div>
-                              <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
-                                <span>{file.format.toUpperCase()}</span>
-                                {file.bitrate && <span>{Math.round(file.bitrate / 1000)} kbps</span>}
-                                {file.sampleRate && <span>{(file.sampleRate / 1000).toFixed(1)} kHz</span>}
-                              </div>
-                            </motion.div>
-                          );
-                        })}
+                              </motion.div>
+                            );
+                          })}
                       </AnimatePresence>
                     </div>
                   ) : (

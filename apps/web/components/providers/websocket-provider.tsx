@@ -34,7 +34,7 @@ export function useWebSocketContext() {
   const context = useContext(WebSocketContext);
   if (!context) {
     throw new Error(
-      "useWebSocketContext must be used within WebSocketProvider"
+      "useWebSocketContext must be used within WebSocketProvider",
     );
   }
   return context;

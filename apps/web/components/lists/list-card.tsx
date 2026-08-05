@@ -3,7 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { MoreVertical, Lock, Globe, Pencil, Trash2, ListMusic } from "lucide-react";
+import {
+  MoreVertical,
+  Lock,
+  Globe,
+  Pencil,
+  Trash2,
+  ListMusic,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -32,14 +39,8 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
     >
-      <Link
-        href={`/lists/${list.id}`}
-        className="group/card block"
-      >
-        <motion.article
-          className="cursor-pointer"
-          whileHover="hover"
-        >
+      <Link href={`/lists/${list.id}`} className="group/card block">
+        <motion.article className="cursor-pointer" whileHover="hover">
           {/* Stacked covers - fan layout */}
           <motion.div
             className="relative aspect-square w-full"
@@ -55,7 +56,13 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
 
                   // Balanced fan configs for 1, 2, or 3 covers
                   // Front cover (index 0) is always on top and centered
-                  const configs: Record<number, { idle: { rotations: number[]; xOffsets: number[] }; hover: { rotations: number[]; xOffsets: number[] } }> = {
+                  const configs: Record<
+                    number,
+                    {
+                      idle: { rotations: number[]; xOffsets: number[] };
+                      hover: { rotations: number[]; xOffsets: number[] };
+                    }
+                  > = {
                     1: {
                       idle: { rotations: [0], xOffsets: [0] },
                       hover: { rotations: [0], xOffsets: [0] },
@@ -68,7 +75,10 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                     3: {
                       // Front centered, others fan left and right symmetrically
                       idle: { rotations: [0, -8, 8], xOffsets: [0, -14, 14] },
-                      hover: { rotations: [0, -14, 14], xOffsets: [0, -22, 22] },
+                      hover: {
+                        rotations: [0, -14, 14],
+                        xOffsets: [0, -22, 22],
+                      },
                     },
                   };
 
@@ -98,7 +108,11 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                           scale: index === 0 ? 1.02 : 1,
                         },
                       }}
-                      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 25,
+                      }}
                     >
                       <Image
                         src={coverUrl}
@@ -132,7 +146,8 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
                   <Lock className="h-3 w-3" />
                 )}
                 <span>
-                  {list.itemCount} {list.itemCount === 1 ? t("item") : t("items")}
+                  {list.itemCount}{" "}
+                  {list.itemCount === 1 ? t("item") : t("items")}
                 </span>
                 {list.ownerName && (
                   <>
@@ -145,7 +160,10 @@ export function ListCard({ list, onEdit, onDelete }: ListCardProps) {
 
             {(onEdit || onDelete) && (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                <DropdownMenuTrigger
+                  asChild
+                  onClick={(e) => e.preventDefault()}
+                >
                   <Button
                     variant="ghost"
                     size="icon"

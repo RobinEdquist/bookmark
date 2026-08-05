@@ -46,13 +46,11 @@ function RankedItemsList({
             acc[version.itemType] += 1;
             return acc;
           },
-          { audiobook: 0, ebook: 0 }
+          { audiobook: 0, ebook: 0 },
         );
         const seenVersionByType = { audiobook: 0, ebook: 0 };
         const sourceLabel =
-          item.ratingSource === "goodreads"
-            ? goodreadsLabel
-            : hardcoverLabel;
+          item.ratingSource === "goodreads" ? goodreadsLabel : hardcoverLabel;
 
         return (
           <li
@@ -77,19 +75,29 @@ function RankedItemsList({
             </Link>
 
             <div className="min-w-0 flex-1">
-              <Link href={itemHref} className="line-clamp-1 font-medium hover:underline">
+              <Link
+                href={itemHref}
+                className="line-clamp-1 font-medium hover:underline"
+              >
                 {item.title}
               </Link>
               <p className="line-clamp-1 text-xs text-muted-foreground">
-                {item.authors.length > 0 ? item.authors.join(", ") : unknownAuthor}
+                {item.authors.length > 0
+                  ? item.authors.join(", ")
+                  : unknownAuthor}
               </p>
               <p className="line-clamp-1 text-xs text-muted-foreground">
                 {hasMultipleVersions
                   ? versions
                       .map((version) =>
-                        version.itemType === "audiobook" ? audiobookLabel : ebookLabel
+                        version.itemType === "audiobook"
+                          ? audiobookLabel
+                          : ebookLabel,
                       )
-                      .filter((value, position, array) => array.indexOf(value) === position)
+                      .filter(
+                        (value, position, array) =>
+                          array.indexOf(value) === position,
+                      )
                       .join(" + ")
                   : item.itemType === "audiobook"
                     ? audiobookLabel
@@ -100,7 +108,9 @@ function RankedItemsList({
                   {versions.map((version) => {
                     seenVersionByType[version.itemType] += 1;
                     const baseLabel =
-                      version.itemType === "audiobook" ? audiobookLabel : ebookLabel;
+                      version.itemType === "audiobook"
+                        ? audiobookLabel
+                        : ebookLabel;
                     const sequenceLabel =
                       versionCountByType[version.itemType] > 1
                         ? ` ${seenVersionByType[version.itemType]}`
@@ -132,7 +142,8 @@ function RankedItemsList({
                 {item.rating.toFixed(2)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {sourceLabel} • {item.ratingsCount.toLocaleString()} {votesLabel}
+                {sourceLabel} • {item.ratingsCount.toLocaleString()}{" "}
+                {votesLabel}
               </p>
             </div>
           </li>

@@ -140,7 +140,7 @@ async function fetchList(id: string): Promise<ListDetail> {
 
 async function fetchListsForItem(
   itemType: "audiobook" | "ebook" | "comic_series",
-  itemId: string
+  itemId: string,
 ): Promise<ListForItem[]> {
   const params = new URLSearchParams({
     itemType,
@@ -158,7 +158,9 @@ async function fetchListsForItem(
   return response.json();
 }
 
-async function fetchRecentLists(limit: number = 12): Promise<RecentListsResponse> {
+async function fetchRecentLists(
+  limit: number = 12,
+): Promise<RecentListsResponse> {
   const response = await fetch(`/api/lists/recent?limit=${limit}`, {
     credentials: "include",
   });
@@ -202,7 +204,7 @@ async function createList(data: {
 
 async function updateList(
   id: string,
-  data: { name?: string; isPublic?: boolean }
+  data: { name?: string; isPublic?: boolean },
 ): Promise<List> {
   const response = await fetch(`/api/lists/${id}`, {
     method: "PATCH",
@@ -263,7 +265,7 @@ async function removeFromList(data: {
     {
       method: "DELETE",
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -305,7 +307,7 @@ export function useList(id: string) {
 
 export function useListsForItem(
   itemType: "audiobook" | "ebook" | "comic_series",
-  itemId: string
+  itemId: string,
 ) {
   return useQuery({
     queryKey: queryKeys.lists.forItem(itemType, itemId),
@@ -346,8 +348,14 @@ export function useUpdateList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, ...data }: { id: string; name?: string; isPublic?: boolean }) =>
-      updateList(id, data),
+    mutationFn: ({
+      id,
+      ...data
+    }: {
+      id: string;
+      name?: string;
+      isPublic?: boolean;
+    }) => updateList(id, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.list() });
@@ -387,7 +395,7 @@ export function useAddToList() {
 
       // Snapshot the previous value
       const previousLists = queryClient.getQueryData<ListForItem[]>(
-        queryKeys.lists.forItem(itemType, itemId)
+        queryKeys.lists.forItem(itemType, itemId),
       );
 
       // Optimistically update to show item as added
@@ -397,8 +405,8 @@ export function useAddToList() {
           previousLists.map((list) =>
             list.id === listId
               ? { ...list, containsItem: true, itemCount: list.itemCount + 1 }
-              : list
-          )
+              : list,
+          ),
         );
       }
 
@@ -409,12 +417,14 @@ export function useAddToList() {
       if (context?.previousLists) {
         queryClient.setQueryData(
           queryKeys.lists.forItem(itemType, itemId),
-          context.previousLists
+          context.previousLists,
         );
       }
     },
     onSettled: (_, __, { listId, itemType, itemId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(listId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lists.detail(listId),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.list() });
       queryClient.invalidateQueries({
         queryKey: queryKeys.lists.forItem(itemType, itemId),
@@ -427,13 +437,20 @@ export function useRemoveFromList() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ listId, itemId }: {
+    mutationFn: ({
+      listId,
+      itemId,
+    }: {
       listId: string;
       itemId: string;
       itemType?: "audiobook" | "ebook" | "comic_series";
       mediaItemId?: string;
     }) => removeFromList({ listId, itemId }),
-    onMutate: async ({ listId, itemType, mediaItemId }: {
+    onMutate: async ({
+      listId,
+      itemType,
+      mediaItemId,
+    }: {
       listId: string;
       itemId: string;
       itemType?: "audiobook" | "ebook" | "comic_series";
@@ -446,7 +463,7 @@ export function useRemoveFromList() {
         });
 
         const previousLists = queryClient.getQueryData<ListForItem[]>(
-          queryKeys.lists.forItem(itemType, mediaItemId)
+          queryKeys.lists.forItem(itemType, mediaItemId),
         );
 
         if (previousLists) {
@@ -454,17 +471,22 @@ export function useRemoveFromList() {
             queryKeys.lists.forItem(itemType, mediaItemId),
             previousLists.map((list) =>
               list.id === listId
-                ? { ...list, containsItem: false, listItemId: null, itemCount: Math.max(0, list.itemCount - 1) }
-                : list
-            )
+                ? {
+                    ...list,
+                    containsItem: false,
+                    listItemId: null,
+                    itemCount: Math.max(0, list.itemCount - 1),
+                  }
+                : list,
+            ),
           );
         }
 
         return {
-        previousLists,
-        itemType: itemType as "audiobook" | "ebook" | "comic_series",
-        mediaItemId,
-      };
+          previousLists,
+          itemType: itemType as "audiobook" | "ebook" | "comic_series",
+          mediaItemId,
+        };
       }
       return {};
     },
@@ -473,14 +495,16 @@ export function useRemoveFromList() {
         queryClient.setQueryData(
           queryKeys.lists.forItem(
             context.itemType as "audiobook" | "ebook" | "comic_series",
-            context.mediaItemId
+            context.mediaItemId,
           ),
-          context.previousLists
+          context.previousLists,
         );
       }
     },
     onSettled: (_, __, { listId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(listId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lists.detail(listId),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.list() });
       // Also invalidate all forItem queries
       queryClient.invalidateQueries({
@@ -498,11 +522,13 @@ export function useReorderListItems() {
     mutationFn: reorderListItems,
     onMutate: async ({ listId, itemIds }) => {
       // Cancel any outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.lists.detail(listId) });
+      await queryClient.cancelQueries({
+        queryKey: queryKeys.lists.detail(listId),
+      });
 
       // Snapshot the previous value
       const previousList = queryClient.getQueryData<ListDetail>(
-        queryKeys.lists.detail(listId)
+        queryKeys.lists.detail(listId),
       );
 
       // Optimistically update
@@ -527,12 +553,14 @@ export function useReorderListItems() {
       if (context?.previousList) {
         queryClient.setQueryData(
           queryKeys.lists.detail(listId),
-          context.previousList
+          context.previousList,
         );
       }
     },
     onSettled: (_, __, { listId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.lists.detail(listId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.lists.detail(listId),
+      });
     },
   });
 }

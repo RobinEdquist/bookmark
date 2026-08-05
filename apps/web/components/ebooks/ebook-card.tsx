@@ -5,7 +5,15 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, Download, ListPlus } from "lucide-react";
+import {
+  MoreVertical,
+  Pencil,
+  AlertTriangle,
+  Trash2,
+  ImageIcon,
+  Download,
+  ListPlus,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -17,8 +25,14 @@ import {
 import type { EbookListItem } from "../../lib/use-ebooks";
 import { useDeleteEbook } from "../../lib/use-ebooks";
 import { useMyPermissions } from "../../lib/use-users";
-import { useGrFinderStatus, useGoodreadsUnlinkMedia } from "../../lib/use-goodreads";
-import { useHardcoverStatus, useHardcoverUnlinkMedia } from "../../lib/use-hardcover";
+import {
+  useGrFinderStatus,
+  useGoodreadsUnlinkMedia,
+} from "../../lib/use-goodreads";
+import {
+  useHardcoverStatus,
+  useHardcoverUnlinkMedia,
+} from "../../lib/use-hardcover";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "../../lib/query-keys";
@@ -62,8 +76,10 @@ export function EbookCard({
   const { data: permissions } = useMyPermissions();
   const { isConfigured: isGoodreadsConfigured } = useGrFinderStatus();
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
-  const { unlinkMedia: unlinkGoodreads, isUnlinking: isUnlinkingGoodreads } = useGoodreadsUnlinkMedia();
-  const { unlinkMedia: unlinkHardcover, isUnlinking: isUnlinkingHardcover } = useHardcoverUnlinkMedia();
+  const { unlinkMedia: unlinkGoodreads, isUnlinking: isUnlinkingGoodreads } =
+    useGoodreadsUnlinkMedia();
+  const { unlinkMedia: unlinkHardcover, isUnlinking: isUnlinkingHardcover } =
+    useHardcoverUnlinkMedia();
   const { mutateAsync: deleteEbook, isPending: isDeleting } = useDeleteEbook();
   const queryClient = useQueryClient();
 
@@ -119,7 +135,10 @@ export function EbookCard({
 
   // Show series info if available, otherwise subtitle
   const secondaryText = primarySeries
-    ? t("bookInSeries", { series: primarySeries.name, order: formatSeriesOrder(primarySeries.order) })
+    ? t("bookInSeries", {
+        series: primarySeries.name,
+        order: formatSeriesOrder(primarySeries.order),
+      })
     : ebook.subtitle;
 
   return (
@@ -172,7 +191,11 @@ export function EbookCard({
 
         {/* Text Content with Menu */}
         <div className="mt-3 flex items-start gap-1">
-          <Link href={`/ebooks/${ebook.id}`} prefetch={false} className="min-w-0 flex-1">
+          <Link
+            href={`/ebooks/${ebook.id}`}
+            prefetch={false}
+            className="min-w-0 flex-1"
+          >
             <div className="space-y-1">
               {/* Rating and/or Hardcover/Goodreads badge - Goodreads takes priority */}
               {isLinkedToGoodreads && (
@@ -187,7 +210,9 @@ export function EbookCard({
                   {ebook.goodreadsRating !== null && (
                     <>
                       <span>{ebook.goodreadsRating.toFixed(2)}</span>
-                      <span>({ebook.goodreadsRatingsCount?.toLocaleString() ?? 0})</span>
+                      <span>
+                        ({ebook.goodreadsRatingsCount?.toLocaleString() ?? 0})
+                      </span>
                     </>
                   )}
                 </div>
@@ -204,7 +229,9 @@ export function EbookCard({
                   {ebook.hardcoverRating !== null && (
                     <>
                       <span>{ebook.hardcoverRating.toFixed(2)}</span>
-                      <span>({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
+                      <span>
+                        ({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})
+                      </span>
                     </>
                   )}
                 </div>
@@ -249,13 +276,15 @@ export function EbookCard({
                 {canEdit && (
                   <>
                     {!isMissing && <DropdownMenuSeparator />}
-                    <DropdownMenuItem onClick={() => {
-                      if (onEdit) {
-                        onEdit();
-                      } else {
-                        setEditOpen(true);
-                      }
-                    }}>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (onEdit) {
+                          onEdit();
+                        } else {
+                          setEditOpen(true);
+                        }
+                      }}
+                    >
                       <Pencil className="h-4 w-4" />
                       {t("edit")}
                     </DropdownMenuItem>
@@ -284,14 +313,19 @@ export function EbookCard({
                   </DropdownMenuItem>
                 )}
                 {isHardcoverConfigured && isLinkedToHardcover && (
-                  <DropdownMenuItem onClick={handleUnlinkHardcover} disabled={isUnlinkingHardcover}>
+                  <DropdownMenuItem
+                    onClick={handleUnlinkHardcover}
+                    disabled={isUnlinkingHardcover}
+                  >
                     <Image
                       src="/hardcover.svg"
                       alt="Hardcover"
                       width={16}
                       height={16}
                     />
-                    {isUnlinkingHardcover ? tHardcover("unlinking") : t("unlinkFromHardcover")}
+                    {isUnlinkingHardcover
+                      ? tHardcover("unlinking")
+                      : t("unlinkFromHardcover")}
                   </DropdownMenuItem>
                 )}
                 {isGoodreadsConfigured && <DropdownMenuSeparator />}
@@ -308,7 +342,10 @@ export function EbookCard({
                   </DropdownMenuItem>
                 )}
                 {isGoodreadsConfigured && isLinkedToGoodreads && (
-                  <DropdownMenuItem onClick={handleUnlinkGoodreads} disabled={isUnlinkingGoodreads}>
+                  <DropdownMenuItem
+                    onClick={handleUnlinkGoodreads}
+                    disabled={isUnlinkingGoodreads}
+                  >
                     <Image
                       src="/goodreads.svg"
                       alt="Goodreads"
@@ -316,7 +353,9 @@ export function EbookCard({
                       height={16}
                       className={isDark ? "invert" : ""}
                     />
-                    {isUnlinkingGoodreads ? tGoodreads("unlinking") : t("unlinkFromGoodreads")}
+                    {isUnlinkingGoodreads
+                      ? tGoodreads("unlinking")
+                      : t("unlinkFromGoodreads")}
                   </DropdownMenuItem>
                 )}
                 {canDelete && <DropdownMenuSeparator />}

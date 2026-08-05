@@ -35,34 +35,43 @@ export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const validateFile = useCallback((file: File): string | null => {
-    if (!file.name.toLowerCase().endsWith(".audiobookshelf")) {
-      return t("upload.errors.invalidFileType");
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return t("upload.errors.fileTooLarge", { maxSize: "500MB" });
-    }
-    return null;
-  }, [t]);
+  const validateFile = useCallback(
+    (file: File): string | null => {
+      if (!file.name.toLowerCase().endsWith(".audiobookshelf")) {
+        return t("upload.errors.invalidFileType");
+      }
+      if (file.size > MAX_FILE_SIZE) {
+        return t("upload.errors.fileTooLarge", { maxSize: "500MB" });
+      }
+      return null;
+    },
+    [t],
+  );
 
-  const handleFileSelect = useCallback((file: File) => {
-    const error = validateFile(file);
-    if (error) {
-      toast.error(error);
-      return;
-    }
-    setSelectedFile(file);
-  }, [validateFile]);
+  const handleFileSelect = useCallback(
+    (file: File) => {
+      const error = validateFile(file);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      setSelectedFile(file);
+    },
+    [validateFile],
+  );
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setIsDragging(false);
+  const handleDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragging(false);
 
-    const files = Array.from(e.dataTransfer.files);
-    if (files.length > 0 && files[0]) {
-      handleFileSelect(files[0]);
-    }
-  }, [handleFileSelect]);
+      const files = Array.from(e.dataTransfer.files);
+      if (files.length > 0 && files[0]) {
+        handleFileSelect(files[0]);
+      }
+    },
+    [handleFileSelect],
+  );
 
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -74,12 +83,15 @@ export default function UploadPage() {
     setIsDragging(false);
   }, []);
 
-  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0 && files[0]) {
-      handleFileSelect(files[0]);
-    }
-  }, [handleFileSelect]);
+  const handleFileInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = e.target.files;
+      if (files && files.length > 0 && files[0]) {
+        handleFileSelect(files[0]);
+      }
+    },
+    [handleFileSelect],
+  );
 
   const handleUpload = async () => {
     if (!selectedFile) return;
@@ -103,7 +115,9 @@ export default function UploadPage() {
       router.push(`/settings/restore/library?session=${result.session.id}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("upload.errors.uploadFailed")
+        error instanceof Error
+          ? error.message
+          : t("upload.errors.uploadFailed"),
       );
       setUploadProgress(0);
     }
@@ -169,7 +183,9 @@ export default function UploadPage() {
               >
                 <prereq.icon
                   className={`h-5 w-5 shrink-0 mt-0.5 ${
-                    prereq.important ? "text-amber-500" : "text-muted-foreground"
+                    prereq.important
+                      ? "text-amber-500"
+                      : "text-muted-foreground"
                   }`}
                 />
                 <div className="flex-1 min-w-0">
@@ -196,15 +212,24 @@ export default function UploadPage() {
             </p>
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" className="rounded border-muted-foreground" />
+                <input
+                  type="checkbox"
+                  className="rounded border-muted-foreground"
+                />
                 <span>{t("upload.prerequisites.checklist.item1")}</span>
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" className="rounded border-muted-foreground" />
+                <input
+                  type="checkbox"
+                  className="rounded border-muted-foreground"
+                />
                 <span>{t("upload.prerequisites.checklist.item2")}</span>
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" className="rounded border-muted-foreground" />
+                <input
+                  type="checkbox"
+                  className="rounded border-muted-foreground"
+                />
                 <span>{t("upload.prerequisites.checklist.item3")}</span>
               </label>
             </div>
@@ -220,86 +245,84 @@ export default function UploadPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* File Dropzone */}
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          className={`relative rounded-lg border-2 border-dashed transition-colors ${
-            isDragging
-              ? "border-primary bg-primary/5"
-              : "border-muted-foreground/25 hover:border-primary/50 hover:bg-accent/50"
-          } ${isUploading ? "pointer-events-none opacity-50" : ""}`}
-        >
-          <label
-            htmlFor="file-upload"
-            className="flex flex-col items-center justify-center gap-4 p-12 cursor-pointer"
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            className={`relative rounded-lg border-2 border-dashed transition-colors ${
+              isDragging
+                ? "border-primary bg-primary/5"
+                : "border-muted-foreground/25 hover:border-primary/50 hover:bg-accent/50"
+            } ${isUploading ? "pointer-events-none opacity-50" : ""}`}
           >
-            {selectedFile ? (
-              <>
-                <FileArchive className="h-12 w-12 text-primary" />
-                <div className="text-center space-y-1">
-                  <p className="font-medium">{selectedFile.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                  </p>
-                </div>
-                {!isUploading && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      handleClearFile();
-                    }}
-                  >
-                    {t("upload.clearFile")}
-                  </Button>
-                )}
-              </>
-            ) : (
-              <>
-                <Upload className="h-12 w-12 text-muted-foreground" />
-                <div className="text-center space-y-1">
-                  <p className="font-medium">
-                    {t("upload.dropzoneTitle")}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {t("upload.dropzoneDescription")}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {t("upload.maxFileSize", { maxSize: "500MB" })}
-                  </p>
-                </div>
-              </>
-            )}
-          </label>
-          <input
-            id="file-upload"
-            type="file"
-            accept=".audiobookshelf"
-            onChange={handleFileInputChange}
-            disabled={isUploading}
-            className="sr-only"
-          />
-        </div>
-
-        {/* Upload Progress */}
-        {isUploading && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
-                {t("upload.uploading")}
-              </span>
-              <span className="font-medium">{uploadProgress}%</span>
-            </div>
-            <div className="h-2 rounded-full bg-muted overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
+            <label
+              htmlFor="file-upload"
+              className="flex flex-col items-center justify-center gap-4 p-12 cursor-pointer"
+            >
+              {selectedFile ? (
+                <>
+                  <FileArchive className="h-12 w-12 text-primary" />
+                  <div className="text-center space-y-1">
+                    <p className="font-medium">{selectedFile.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                    </p>
+                  </div>
+                  {!isUploading && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleClearFile();
+                      }}
+                    >
+                      {t("upload.clearFile")}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Upload className="h-12 w-12 text-muted-foreground" />
+                  <div className="text-center space-y-1">
+                    <p className="font-medium">{t("upload.dropzoneTitle")}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("upload.dropzoneDescription")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {t("upload.maxFileSize", { maxSize: "500MB" })}
+                    </p>
+                  </div>
+                </>
+              )}
+            </label>
+            <input
+              id="file-upload"
+              type="file"
+              accept=".audiobookshelf"
+              onChange={handleFileInputChange}
+              disabled={isUploading}
+              className="sr-only"
+            />
           </div>
-        )}
+
+          {/* Upload Progress */}
+          {isUploading && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {t("upload.uploading")}
+                </span>
+                <span className="font-medium">{uploadProgress}%</span>
+              </div>
+              <div className="h-2 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Info Banner */}
           <div className="rounded-lg bg-muted/50 p-4 space-y-2">

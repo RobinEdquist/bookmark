@@ -37,7 +37,12 @@ interface GenreCardProps {
   index?: number;
 }
 
-export function GenreCard({ genre, contentType, onClick, index = 0 }: GenreCardProps) {
+export function GenreCard({
+  genre,
+  contentType,
+  onClick,
+  index = 0,
+}: GenreCardProps) {
   const t = useTranslations("common.genres");
   const [from, to] = getGradientForGenre(genre.name);
   const typeLabel = contentType === "audiobooks" ? "audiobooks" : "ebooks";
@@ -53,7 +58,7 @@ export function GenreCard({ genre, contentType, onClick, index = 0 }: GenreCardP
       className={cn(
         "relative aspect-square w-full overflow-hidden rounded-xl",
         "shadow-md transition-shadow hover:shadow-xl",
-        "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+        "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
       )}
       style={{
         background: `linear-gradient(135deg, ${from} 0%, ${to} 100%)`,

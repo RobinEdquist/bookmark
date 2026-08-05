@@ -27,21 +27,27 @@ interface GoodreadsLinkCardProps {
   mediaId: string;
 }
 
-export function GoodreadsLinkCard({ mediaType, mediaId }: GoodreadsLinkCardProps) {
+export function GoodreadsLinkCard({
+  mediaType,
+  mediaId,
+}: GoodreadsLinkCardProps) {
   const t = useTranslations("common.goodreadsLink");
   const { isDark } = useTheme();
   const { link, isLoading } = useGoodreadsLink(mediaType, mediaId);
   const { unlinkMedia, isUnlinking } = useGoodreadsUnlinkMedia();
-  const { addAsGenre, addAsTag, canEdit: canQuickAdd, isPending } = useQuickAddMetadata(mediaType, mediaId);
+  const {
+    addAsGenre,
+    addAsTag,
+    canEdit: canQuickAdd,
+    isPending,
+  } = useQuickAddMetadata(mediaType, mediaId);
 
   const handleUnlink = async () => {
     try {
       await unlinkMedia({ mediaType, mediaId });
       toast.success(t("toast.unlinked"));
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("toast.unlinkFailed")
-      );
+      toast.error(err instanceof Error ? err.message : t("toast.unlinkFailed"));
     }
   };
 

@@ -1,0 +1,12 @@
+# Commits that only reformat code. `git blame` skips these and reports the last
+# commit that actually changed a line, instead of pointing every line at the
+# reformat.
+#
+# GitHub's blame view honours this file automatically. Locally, opt in once:
+#
+#     git config blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# Only add commits here that are provably formatting-only.
+
+# style: apply Prettier across the repo (295 files, mechanical)
+9adbfa107303f0f7d2dce6c9906db680624e0304

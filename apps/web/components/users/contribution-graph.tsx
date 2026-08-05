@@ -11,7 +11,9 @@ interface ContributionGraphProps {
 
 /** Derive a short month name from the locale using the Intl API. */
 function getLocaleMonth(monthIndex: number, year: number = 2024): string {
-  return new Date(year, monthIndex).toLocaleString(undefined, { month: "short" });
+  return new Date(year, monthIndex).toLocaleString(undefined, {
+    month: "short",
+  });
 }
 
 /**
@@ -76,7 +78,7 @@ export function ContributionGraph({ days, isLoading }: ContributionGraphProps) {
 
     // Start 52 weeks ago, aligned to Sunday
     const startDate = new Date(today);
-    startDate.setDate(startDate.getDate() - (52 * 7) - todayDay);
+    startDate.setDate(startDate.getDate() - 52 * 7 - todayDay);
     startDate.setHours(0, 0, 0, 0);
 
     let max = 0;
@@ -111,9 +113,13 @@ export function ContributionGraph({ days, isLoading }: ContributionGraphProps) {
           // Skip labels too close to the previous one to avoid overlapping text
           const month = current.getMonth();
           if (month !== lastMonth) {
-            const lastCol = labels.length > 0 ? labels[labels.length - 1]!.col : -4;
+            const lastCol =
+              labels.length > 0 ? labels[labels.length - 1]!.col : -4;
             if (weekIndex - lastCol >= 3) {
-              labels.push({ label: getLocaleMonth(month, current.getFullYear()), col: weekIndex });
+              labels.push({
+                label: getLocaleMonth(month, current.getFullYear()),
+                col: weekIndex,
+              });
             }
             lastMonth = month;
           }
@@ -189,7 +195,12 @@ export function ContributionGraph({ days, isLoading }: ContributionGraphProps) {
                   return (
                     <div
                       key={`${wi}-${di}`}
-                      style={{ gridColumn: wi + 2, gridRow: di + 1, width: 12, height: 12 }}
+                      style={{
+                        gridColumn: wi + 2,
+                        gridRow: di + 1,
+                        width: 12,
+                        height: 12,
+                      }}
                     />
                   );
                 }
@@ -207,11 +218,16 @@ export function ContributionGraph({ days, isLoading }: ContributionGraphProps) {
                   <div
                     key={`${wi}-${di}`}
                     className={`rounded-sm ${INTENSITY_CLASSES[intensity]}`}
-                    style={{ gridColumn: wi + 2, gridRow: di + 1, width: 12, height: 12 }}
+                    style={{
+                      gridColumn: wi + 2,
+                      gridRow: di + 1,
+                      width: 12,
+                      height: 12,
+                    }}
                     title={tooltipText}
                   />
                 );
-              })
+              }),
             )}
           </div>
 

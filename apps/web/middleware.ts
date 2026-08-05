@@ -7,7 +7,7 @@ export function middleware(req: NextRequest) {
   // Use better-auth's official utility to get session cookie
   // This handles the __Secure- prefix automatically in production (HTTPS)
   const sessionCookie = getSessionCookie(req);
-  const allCookies = req.cookies.getAll().map(c => c.name);
+  const allCookies = req.cookies.getAll().map((c) => c.name);
 
   const isAuthenticated = !!sessionCookie;
 
@@ -29,7 +29,9 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  console.log("[Middleware] Allowing authenticated request to proceed", { pathname });
+  console.log("[Middleware] Allowing authenticated request to proceed", {
+    pathname,
+  });
   return NextResponse.next();
 }
 

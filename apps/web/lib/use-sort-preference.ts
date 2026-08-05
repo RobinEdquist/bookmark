@@ -2,7 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-export type SortField = "title" | "createdAt" | "author" | "rating" | "series" | "recentlyAdded" | "startYear";
+export type SortField =
+  | "title"
+  | "createdAt"
+  | "author"
+  | "rating"
+  | "series"
+  | "recentlyAdded"
+  | "startYear";
 export type SortOrder = "asc" | "desc";
 
 export interface SortPreference {
@@ -31,7 +38,9 @@ const DEFAULT_DIRECTIONS: Record<SortField, SortOrder> = {
   startYear: "asc",
 };
 
-function getStorageKey(libraryType: "audiobooks" | "ebooks" | "comics"): string {
+function getStorageKey(
+  libraryType: "audiobooks" | "ebooks" | "comics",
+): string {
   return `bookmark-${libraryType}-sort`;
 }
 
@@ -48,7 +57,15 @@ function loadFromStorage(key: string): SortPreference | null {
       parsed &&
       typeof parsed.sortBy === "string" &&
       typeof parsed.sortOrder === "string" &&
-      ["title", "createdAt", "author", "rating", "series", "recentlyAdded", "startYear"].includes(parsed.sortBy) &&
+      [
+        "title",
+        "createdAt",
+        "author",
+        "rating",
+        "series",
+        "recentlyAdded",
+        "startYear",
+      ].includes(parsed.sortBy) &&
       ["asc", "desc"].includes(parsed.sortOrder)
     ) {
       return parsed as SortPreference;
@@ -64,14 +81,16 @@ function saveToStorage(key: string, preference: SortPreference): void {
   localStorage.setItem(key, JSON.stringify(preference));
 }
 
-export function useSortPreference(libraryType: "audiobooks" | "ebooks" | "comics") {
+export function useSortPreference(
+  libraryType: "audiobooks" | "ebooks" | "comics",
+) {
   // Synchronous init keeps the first render's sort stable — scroll restoration
   // keys on it, and it avoids a default-sort fetch immediately superseded by
   // the stored sort. Safe: these pages never SSR (auth-gated client layout).
   const [preference, setPreference] = useState<SortPreference>(
     () =>
       loadFromStorage(getStorageKey(libraryType)) ??
-      (libraryType === "comics" ? DEFAULT_SORT_COMICS : DEFAULT_SORT)
+      (libraryType === "comics" ? DEFAULT_SORT_COMICS : DEFAULT_SORT),
   );
 
   useEffect(() => {

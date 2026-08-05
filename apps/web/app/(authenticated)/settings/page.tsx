@@ -3,7 +3,12 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { LibrariesSettings } from "../../../components/settings/libraries-settings";
 import { UsersSettings } from "../../../components/settings/users-settings";
@@ -30,7 +35,11 @@ export default function SettingsPage() {
   const t = useTranslations("settings");
   const { data: session, isPending, error } = authClient.useSession();
 
-  const [activeTab, setActiveTab] = useUrlTab<TabValue>("tab", "libraries", VALID_TABS);
+  const [activeTab, setActiveTab] = useUrlTab<TabValue>(
+    "tab",
+    "libraries",
+    VALID_TABS,
+  );
   const isAdmin = session?.user?.role === "admin";
 
   // Log settings page auth state
@@ -70,17 +79,22 @@ export default function SettingsPage() {
       <div className="mx-auto max-w-7xl space-y-6 overflow-hidden">
         <header>
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-          <p className="text-muted-foreground">
-            {t("description")}
-          </p>
+          <p className="text-muted-foreground">{t("description")}</p>
         </header>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabValue)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(value) => setActiveTab(value as TabValue)}
+        >
           <TabsList>
             <TabsTrigger value="libraries">{t("tabs.libraries")}</TabsTrigger>
             <TabsTrigger value="users">{t("tabs.users")}</TabsTrigger>
-            <TabsTrigger value="integrations">{t("tabs.integrations")}</TabsTrigger>
-            <TabsTrigger value="announcements">{t("tabs.announcements")}</TabsTrigger>
+            <TabsTrigger value="integrations">
+              {t("tabs.integrations")}
+            </TabsTrigger>
+            <TabsTrigger value="announcements">
+              {t("tabs.announcements")}
+            </TabsTrigger>
             <TabsTrigger value="genres">{t("tabs.genres")}</TabsTrigger>
             <TabsTrigger value="authors">{t("tabs.authors")}</TabsTrigger>
             <TabsTrigger value="narrators">{t("tabs.narrators")}</TabsTrigger>

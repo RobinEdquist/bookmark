@@ -143,9 +143,7 @@ export function PdfReader({
     const width = containerSize.width;
     const height = containerSize.height;
     if (!pageAspect) return { width };
-    return width / height > pageAspect
-      ? { height }
-      : { width };
+    return width / height > pageAspect ? { height } : { width };
   }, [containerSize, pageAspect]);
 
   return (

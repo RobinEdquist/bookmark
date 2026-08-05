@@ -243,6 +243,9 @@ export const Magnifier = (p: SVGProps<SVGSVGElement>) => (
 export const SortArrows = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <circle cx="12" cy="12" r="9.5" />
-    <path d="M9 16V8m0 8-2.5-2.5M9 16l2.5-2.5M15 8v8m0-8-2.5 2.5M15 8l2.5 2.5" strokeWidth="1.7" />
+    <path
+      d="M9 16V8m0 8-2.5-2.5M9 16l2.5-2.5M15 8v8m0-8-2.5 2.5M15 8l2.5 2.5"
+      strokeWidth="1.7"
+    />
   </svg>
 );

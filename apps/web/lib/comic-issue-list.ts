@@ -9,7 +9,9 @@ export interface ParsedCollects {
 
 const MAX_RANGE = 5000;
 
-export function parseCollects(input: string | null | undefined): ParsedCollects {
+export function parseCollects(
+  input: string | null | undefined,
+): ParsedCollects {
   const presentSet = new Set<number>();
   const unrecognized: string[] = [];
 

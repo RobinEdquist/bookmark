@@ -36,7 +36,11 @@ interface RequestSearchResultsProps {
 function formatDate(dateString: string): string {
   try {
     const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    return date.toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
   } catch {
     return dateString;
   }
@@ -59,9 +63,10 @@ export function RequestSearchResults({
   const [selectedItemId, setSelectedItemId] = useState<number | null>(null);
 
   // Derive selected item from results to get latest state
-  const selectedItem = selectedItemId !== null
-    ? results.find((r) => r.id === selectedItemId) ?? null
-    : null;
+  const selectedItem =
+    selectedItemId !== null
+      ? (results.find((r) => r.id === selectedItemId) ?? null)
+      : null;
 
   if (isLoading) {
     return (
@@ -202,7 +207,10 @@ export function RequestSearchResults({
                         <Tag className="h-3 w-3 text-muted-foreground" />
                         <div className="flex flex-wrap gap-1">
                           {item.tags.slice(0, 5).map((tag, idx) => (
-                            <span key={idx} className="text-xs text-muted-foreground">
+                            <span
+                              key={idx}
+                              className="text-xs text-muted-foreground"
+                            >
                               {tag}
                               {idx < Math.min(item.tags.length, 5) - 1 && ","}
                             </span>
@@ -226,7 +234,11 @@ export function RequestSearchResults({
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                          transition={{
+                            type: "spring",
+                            duration: 0.3,
+                            bounce: 0.2,
+                          }}
                         >
                           <Button variant="outline" disabled size="sm">
                             {t("button.inLibrary")}
@@ -239,7 +251,11 @@ export function RequestSearchResults({
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                            transition={{
+                              type: "spring",
+                              duration: 0.3,
+                              bounce: 0.2,
+                            }}
                           >
                             <Button
                               variant="outline"
@@ -252,7 +268,11 @@ export function RequestSearchResults({
                               className="gap-1.5"
                             >
                               <Check className="h-3.5 w-3.5 text-emerald-500" />
-                              {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
+                              {isSupporting ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                t("button.support")
+                              )}
                             </Button>
                           </motion.div>
                         ) : (
@@ -261,9 +281,18 @@ export function RequestSearchResults({
                             initial={{ opacity: 0, scale: 0.9 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                            transition={{
+                              type: "spring",
+                              duration: 0.3,
+                              bounce: 0.2,
+                            }}
                           >
-                            <Button variant="outline" disabled size="sm" className="gap-1.5">
+                            <Button
+                              variant="outline"
+                              disabled
+                              size="sm"
+                              className="gap-1.5"
+                            >
                               <Check className="h-3.5 w-3.5 text-emerald-500" />
                               {t(`status.${item.existingRequestStatus}`)}
                             </Button>
@@ -275,7 +304,11 @@ export function RequestSearchResults({
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
-                          transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                          transition={{
+                            type: "spring",
+                            duration: 0.3,
+                            bounce: 0.2,
+                          }}
                         >
                           <Button
                             size="sm"
@@ -285,7 +318,11 @@ export function RequestSearchResults({
                             }}
                             disabled={isRequesting}
                           >
-                            {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
+                            {isRequesting ? (
+                              <LoadingSpinner size="sm" />
+                            ) : (
+                              t("button.request")
+                            )}
                           </Button>
                         </motion.div>
                       )}
@@ -318,7 +355,9 @@ export function RequestSearchResults({
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start gap-2">
-                          <h3 className="font-semibold leading-tight line-clamp-2">{item.title}</h3>
+                          <h3 className="font-semibold leading-tight line-clamp-2">
+                            {item.title}
+                          </h3>
                           <span
                             className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${typeStyle.badge}`}
                           >
@@ -381,29 +420,80 @@ export function RequestSearchResults({
                     <div className="flex items-center justify-between pt-2 border-t border-border/50">
                       <AnimatePresence mode="wait">
                         {item.inLibrary ? (
-                          <motion.div key={`m-lib-${item.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <Button variant="outline" disabled size="sm">{t("button.inLibrary")}</Button>
+                          <motion.div
+                            key={`m-lib-${item.id}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <Button variant="outline" disabled size="sm">
+                              {t("button.inLibrary")}
+                            </Button>
                           </motion.div>
                         ) : item.existingRequestId ? (
                           item.existingRequestStatus === "pending" ? (
-                            <motion.div key={`m-sup-${item.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                              <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); onSupport(item.existingRequestId!); }} disabled={isSupporting} className="gap-1.5">
+                            <motion.div
+                              key={`m-sup-${item.id}`}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onSupport(item.existingRequestId!);
+                                }}
+                                disabled={isSupporting}
+                                className="gap-1.5"
+                              >
                                 <Check className="h-3.5 w-3.5 text-emerald-500" />
-                                {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
+                                {isSupporting ? (
+                                  <LoadingSpinner size="sm" />
+                                ) : (
+                                  t("button.support")
+                                )}
                               </Button>
                             </motion.div>
                           ) : (
-                            <motion.div key={`m-stat-${item.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                              <Button variant="outline" disabled size="sm" className="gap-1.5">
+                            <motion.div
+                              key={`m-stat-${item.id}`}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                            >
+                              <Button
+                                variant="outline"
+                                disabled
+                                size="sm"
+                                className="gap-1.5"
+                              >
                                 <Check className="h-3.5 w-3.5 text-emerald-500" />
                                 {t(`status.${item.existingRequestStatus}`)}
                               </Button>
                             </motion.div>
                           )
                         ) : (
-                          <motion.div key={`m-req-${item.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                            <Button size="sm" onClick={(e) => { e.stopPropagation(); handleRequest(item); }} disabled={isRequesting}>
-                              {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
+                          <motion.div
+                            key={`m-req-${item.id}`}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                          >
+                            <Button
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRequest(item);
+                              }}
+                              disabled={isRequesting}
+                            >
+                              {isRequesting ? (
+                                <LoadingSpinner size="sm" />
+                              ) : (
+                                t("button.request")
+                              )}
                             </Button>
                           </motion.div>
                         )}

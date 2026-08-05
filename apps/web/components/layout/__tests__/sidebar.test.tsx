@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import {
-  render,
-  screen,
-  userEvent,
-} from "../../../__test-utils__/render";
+import { render, screen, userEvent } from "../../../__test-utils__/render";
 import { Sidebar } from "../sidebar";
 
 // --- Hoisted mocks ---
@@ -36,7 +32,12 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ children, href, onClick, className }: {
+  default: ({
+    children,
+    href,
+    onClick,
+    className,
+  }: {
     children: React.ReactNode;
     href: string;
     onClick?: () => void;

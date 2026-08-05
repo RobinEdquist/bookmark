@@ -5,7 +5,14 @@ import { useTranslations } from "next-intl";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "motion/react";
-import { MoreVertical, Pencil, AlertTriangle, Trash2, ImageIcon, ListPlus } from "lucide-react";
+import {
+  MoreVertical,
+  Pencil,
+  AlertTriangle,
+  Trash2,
+  ImageIcon,
+  ListPlus,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -17,8 +24,14 @@ import {
 import type { AudiobookListItem } from "../../lib/use-audiobooks";
 import { useDeleteAudiobook } from "../../lib/use-audiobooks";
 import { useMyPermissions } from "../../lib/use-users";
-import { useHardcoverStatus, useHardcoverUnlinkAudiobook } from "../../lib/use-hardcover";
-import { useGrFinderStatus, useGoodreadsUnlinkMedia } from "../../lib/use-goodreads";
+import {
+  useHardcoverStatus,
+  useHardcoverUnlinkAudiobook,
+} from "../../lib/use-hardcover";
+import {
+  useGrFinderStatus,
+  useGoodreadsUnlinkMedia,
+} from "../../lib/use-goodreads";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "../../lib/query-keys";
@@ -63,8 +76,10 @@ export function AudiobookCard({
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const { isConfigured: isGoodreadsConfigured } = useGrFinderStatus();
   const { unlinkAudiobook, isUnlinking } = useHardcoverUnlinkAudiobook();
-  const { unlinkMedia: unlinkGoodreads, isUnlinking: isUnlinkingGoodreads } = useGoodreadsUnlinkMedia();
-  const { mutateAsync: deleteAudiobook, isPending: isDeleting } = useDeleteAudiobook();
+  const { unlinkMedia: unlinkGoodreads, isUnlinking: isUnlinkingGoodreads } =
+    useGoodreadsUnlinkMedia();
+  const { mutateAsync: deleteAudiobook, isPending: isDeleting } =
+    useDeleteAudiobook();
   const queryClient = useQueryClient();
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -114,7 +129,10 @@ export function AudiobookCard({
 
   // Show series info if available, otherwise subtitle
   const secondaryText = primarySeries
-    ? t("bookInSeries", { series: primarySeries.name, order: formatSeriesOrder(primarySeries.order) })
+    ? t("bookInSeries", {
+        series: primarySeries.name,
+        order: formatSeriesOrder(primarySeries.order),
+      })
     : audiobook.subtitle;
 
   return (
@@ -167,7 +185,11 @@ export function AudiobookCard({
 
         {/* Text Content with Menu */}
         <div className="mt-3 flex items-start gap-1">
-          <Link href={`/audiobooks/${audiobook.id}`} prefetch={false} className="min-w-0 flex-1">
+          <Link
+            href={`/audiobooks/${audiobook.id}`}
+            prefetch={false}
+            className="min-w-0 flex-1"
+          >
             <div className="space-y-1">
               {/* Rating and/or Hardcover/Goodreads badge - Goodreads takes priority */}
               {isLinkedToGoodreads && (
@@ -182,7 +204,11 @@ export function AudiobookCard({
                   {audiobook.goodreadsRating !== null && (
                     <>
                       <span>{audiobook.goodreadsRating.toFixed(2)}</span>
-                      <span>({audiobook.goodreadsRatingsCount?.toLocaleString() ?? 0})</span>
+                      <span>
+                        (
+                        {audiobook.goodreadsRatingsCount?.toLocaleString() ?? 0}
+                        )
+                      </span>
                     </>
                   )}
                 </div>
@@ -199,7 +225,11 @@ export function AudiobookCard({
                   {audiobook.hardcoverRating !== null && (
                     <>
                       <span>{audiobook.hardcoverRating.toFixed(2)}</span>
-                      <span>({audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0})</span>
+                      <span>
+                        (
+                        {audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0}
+                        )
+                      </span>
                     </>
                   )}
                 </div>
@@ -236,13 +266,15 @@ export function AudiobookCard({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 {canEdit && (
-                  <DropdownMenuItem onClick={() => {
-                    if (onEdit) {
-                      onEdit();
-                    } else {
-                      setEditOpen(true);
-                    }
-                  }}>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      if (onEdit) {
+                        onEdit();
+                      } else {
+                        setEditOpen(true);
+                      }
+                    }}
+                  >
                     <Pencil className="h-4 w-4" />
                     {t("edit")}
                   </DropdownMenuItem>
@@ -270,14 +302,19 @@ export function AudiobookCard({
                   </DropdownMenuItem>
                 )}
                 {isHardcoverConfigured && isLinkedToHardcover && (
-                  <DropdownMenuItem onClick={handleUnlink} disabled={isUnlinking}>
+                  <DropdownMenuItem
+                    onClick={handleUnlink}
+                    disabled={isUnlinking}
+                  >
                     <Image
                       src="/hardcover.svg"
                       alt="Hardcover"
                       width={16}
                       height={16}
                     />
-                    {isUnlinking ? tLink("unlinking") : t("unlinkFromHardcover")}
+                    {isUnlinking
+                      ? tLink("unlinking")
+                      : t("unlinkFromHardcover")}
                   </DropdownMenuItem>
                 )}
                 {isGoodreadsConfigured && !isLinkedToGoodreads && (
@@ -293,7 +330,10 @@ export function AudiobookCard({
                   </DropdownMenuItem>
                 )}
                 {isGoodreadsConfigured && isLinkedToGoodreads && (
-                  <DropdownMenuItem onClick={handleUnlinkGoodreads} disabled={isUnlinkingGoodreads}>
+                  <DropdownMenuItem
+                    onClick={handleUnlinkGoodreads}
+                    disabled={isUnlinkingGoodreads}
+                  >
                     <Image
                       src="/goodreads.svg"
                       alt="Goodreads"
@@ -301,10 +341,15 @@ export function AudiobookCard({
                       height={16}
                       className={isDark ? "invert" : ""}
                     />
-                    {isUnlinkingGoodreads ? tGoodreads("unlinking") : t("unlinkFromGoodreads")}
+                    {isUnlinkingGoodreads
+                      ? tGoodreads("unlinking")
+                      : t("unlinkFromGoodreads")}
                   </DropdownMenuItem>
                 )}
-                {canDelete && (canEdit || isHardcoverConfigured || isGoodreadsConfigured) && <DropdownMenuSeparator />}
+                {canDelete &&
+                  (canEdit ||
+                    isHardcoverConfigured ||
+                    isGoodreadsConfigured) && <DropdownMenuSeparator />}
                 {canDelete && (
                   <DropdownMenuItem
                     onClick={handleDelete}

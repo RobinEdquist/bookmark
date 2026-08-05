@@ -114,7 +114,9 @@ export function SessionLog({ userId }: SessionLogProps) {
                   <div className="hidden shrink-0 text-right sm:block">
                     <p className="text-xs font-medium">
                       {t("duration", {
-                        duration: formatSessionDuration(session.durationSeconds),
+                        duration: formatSessionDuration(
+                          session.durationSeconds,
+                        ),
                       })}
                     </p>
                     <p className="text-xs text-muted-foreground">

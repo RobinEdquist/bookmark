@@ -99,7 +99,7 @@ export function ChangeCoverDialog({
       }
       onOpenChange(newOpen);
     },
-    [actions, onOpenChange]
+    [actions, onOpenChange],
   );
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -108,14 +108,18 @@ export function ChangeCoverDialog({
 
     const result = actions.handleFileSelect(file);
     if (!result.success && result.error) {
-      toast.error(t.errors[result.error as keyof typeof t.errors] || t.errors.failed);
+      toast.error(
+        t.errors[result.error as keyof typeof t.errors] || t.errors.failed,
+      );
     }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     const result = actions.handleDrop(e);
     if (!result.success && result.error) {
-      toast.error(t.errors[result.error as keyof typeof t.errors] || t.errors.failed);
+      toast.error(
+        t.errors[result.error as keyof typeof t.errors] || t.errors.failed,
+      );
     }
   };
 
@@ -138,7 +142,8 @@ export function ChangeCoverDialog({
   };
 
   // Different aspect ratios for audiobooks vs ebooks/comics
-  const previewClass = mediaType === "ebook" || mediaType === "comic" ? "w-32 h-48" : "w-32 h-32";
+  const previewClass =
+    mediaType === "ebook" || mediaType === "comic" ? "w-32 h-48" : "w-32 h-32";
   const inputId = `${mediaType}-cover-file-input`;
   const urlInputId = `${mediaType}-cover-url`;
 
@@ -193,7 +198,9 @@ export function ChangeCoverDialog({
                 <div className="space-y-2">
                   <Upload className="h-10 w-10 mx-auto text-muted-foreground" />
                   <p className="text-sm font-medium">{t.upload.dropzone}</p>
-                  <p className="text-xs text-muted-foreground">{t.upload.formats}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t.upload.formats}
+                  </p>
                 </div>
               )}
               <input
@@ -232,7 +239,8 @@ export function ChangeCoverDialog({
               </div>
               {state.urlError && (
                 <p className="text-sm text-destructive">
-                  {t.errors[state.urlError as keyof typeof t.errors] || t.errors.invalidUrl}
+                  {t.errors[state.urlError as keyof typeof t.errors] ||
+                    t.errors.invalidUrl}
                 </p>
               )}
             </div>

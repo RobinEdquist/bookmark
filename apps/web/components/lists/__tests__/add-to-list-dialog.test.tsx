@@ -1,20 +1,28 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, userEvent, waitFor } from "../../../__test-utils__/render";
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "../../../__test-utils__/render";
 import { AddToListDialog } from "../add-to-list-dialog";
 
 // --- Hoisted mocks ---
 
-const { mockUseListsForItem, mockUseAddToList, mockUseRemoveFromList } = vi.hoisted(() => ({
-  mockUseListsForItem: vi.fn(),
-  mockUseAddToList: vi.fn(),
-  mockUseRemoveFromList: vi.fn(),
-}));
+const { mockUseListsForItem, mockUseAddToList, mockUseRemoveFromList } =
+  vi.hoisted(() => ({
+    mockUseListsForItem: vi.fn(),
+    mockUseAddToList: vi.fn(),
+    mockUseRemoveFromList: vi.fn(),
+  }));
 
 vi.mock("../../../lib/use-lists", () => ({
   useListsForItem: mockUseListsForItem,
   useAddToList: mockUseAddToList,
   useRemoveFromList: mockUseRemoveFromList,
-  useCreateList: vi.fn().mockReturnValue({ mutateAsync: vi.fn(), isPending: false }),
+  useCreateList: vi
+    .fn()
+    .mockReturnValue({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 // Mock CreateListDialog to avoid nested dialog complexity
@@ -43,7 +51,10 @@ beforeEach(() => {
 
   class Pointer extends MouseEvent {
     pointerId: number;
-    constructor(type: string, init?: PointerEventInit & { pointerId?: number }) {
+    constructor(
+      type: string,
+      init?: PointerEventInit & { pointerId?: number },
+    ) {
       super(type, init);
       this.pointerId = init?.pointerId ?? 0;
     }
@@ -59,9 +70,30 @@ beforeEach(() => {
 // --- Test data ---
 
 const mockLists = [
-  { id: "list-1", name: "Favorites", isPublic: false, itemCount: 5, containsItem: true, listItemId: "li-1" },
-  { id: "list-2", name: "To Read", isPublic: true, itemCount: 3, containsItem: false, listItemId: null },
-  { id: "list-3", name: "Sci-Fi", isPublic: false, itemCount: 10, containsItem: false, listItemId: null },
+  {
+    id: "list-1",
+    name: "Favorites",
+    isPublic: false,
+    itemCount: 5,
+    containsItem: true,
+    listItemId: "li-1",
+  },
+  {
+    id: "list-2",
+    name: "To Read",
+    isPublic: true,
+    itemCount: 3,
+    containsItem: false,
+    listItemId: null,
+  },
+  {
+    id: "list-3",
+    name: "Sci-Fi",
+    isPublic: false,
+    itemCount: 10,
+    containsItem: false,
+    listItemId: null,
+  },
 ];
 
 function renderDialog(open = true) {
@@ -72,7 +104,7 @@ function renderDialog(open = true) {
       itemId="ab-1"
       open={open}
       onOpenChange={onOpenChange}
-    />
+    />,
   );
   return { ...result, onOpenChange };
 }
@@ -83,8 +115,12 @@ describe("AddToListDialog", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseListsForItem.mockReturnValue({ data: mockLists, isLoading: false });
-    mockUseAddToList.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue({}) });
-    mockUseRemoveFromList.mockReturnValue({ mutateAsync: vi.fn().mockResolvedValue(undefined) });
+    mockUseAddToList.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue({}),
+    });
+    mockUseRemoveFromList.mockReturnValue({
+      mutateAsync: vi.fn().mockResolvedValue(undefined),
+    });
   });
 
   it("renders the dialog title when open", () => {

@@ -4,7 +4,10 @@ import { use } from "react";
 import { useTranslations } from "next-intl";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 
-import { useUserStats, useUserActivity } from "../../../../lib/use-user-profile";
+import {
+  useUserStats,
+  useUserActivity,
+} from "../../../../lib/use-user-profile";
 import { UserProfileHeader } from "../../../../components/users/user-profile-header";
 import { StatCards } from "../../../../components/users/stat-cards";
 import { ContributionGraph } from "../../../../components/users/contribution-graph";

@@ -20,7 +20,7 @@ import { useCallback, useMemo } from "react";
 export function useUrlTab<T extends string>(
   paramName: string,
   defaultValue: T,
-  validValues?: readonly T[]
+  validValues?: readonly T[],
 ): [T, (value: T) => void] {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -44,7 +44,7 @@ export function useUrlTab<T extends string>(
       const query = params.toString();
       router.replace(query ? `${pathname}?${query}` : pathname);
     },
-    [searchParams, router, pathname, paramName, defaultValue]
+    [searchParams, router, pathname, paramName, defaultValue],
   );
 
   return [value, setValue];

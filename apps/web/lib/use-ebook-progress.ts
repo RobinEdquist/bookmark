@@ -47,7 +47,7 @@ async function fetchAllEbookProgress(): Promise<EbookProgressWithEbook[]> {
 async function updateEbookProgress(
   ebookId: string,
   cfi: string | null,
-  progressPercent: number
+  progressPercent: number,
 ): Promise<EbookProgress> {
   const response = await fetch(`/api/ebook-progress/${ebookId}`, {
     method: "PATCH",
@@ -118,7 +118,7 @@ export function useUpdateEbookProgress() {
       // Update the specific progress cache
       queryClient.setQueryData(
         queryKeys.ebookProgress.detail(variables.ebookId),
-        data
+        data,
       );
       // Invalidate the list to ensure consistency
       queryClient.invalidateQueries({

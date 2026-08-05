@@ -82,13 +82,13 @@ async function fetchUserStats(id: string): Promise<UserStatsResponse> {
 
 async function fetchUserActivity(
   id: string,
-  year: number
+  year: number,
 ): Promise<UserActivityResponse> {
   const response = await fetch(
     `/api/user-profile/${id}/activity?year=${year}`,
     {
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -108,14 +108,15 @@ export interface LibraryProgressFilters {
 
 async function fetchLibraryProgress(
   id: string,
-  filters: LibraryProgressFilters = {}
+  filters: LibraryProgressFilters = {},
 ): Promise<LibraryProgressResponse> {
   const params = new URLSearchParams();
 
   if (filters.type) params.set("type", filters.type);
   if (filters.status) params.set("status", filters.status);
   if (filters.sort) params.set("sort", filters.sort);
-  if (filters.limit !== undefined) params.set("limit", filters.limit.toString());
+  if (filters.limit !== undefined)
+    params.set("limit", filters.limit.toString());
   if (filters.offset !== undefined)
     params.set("offset", filters.offset.toString());
 
@@ -123,7 +124,7 @@ async function fetchLibraryProgress(
     `/api/user-profile/${id}/library-progress?${params}`,
     {
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -136,7 +137,7 @@ async function fetchLibraryProgress(
 async function fetchListeningHistory(
   id: string,
   limit?: number,
-  offset?: number
+  offset?: number,
 ): Promise<ListeningHistoryResponse> {
   const params = new URLSearchParams();
 
@@ -147,7 +148,7 @@ async function fetchListeningHistory(
     `/api/user-profile/${id}/listening-history?${params}`,
     {
       credentials: "include",
-    }
+    },
   );
 
   if (!response.ok) {
@@ -177,7 +178,7 @@ export function useUserActivity(id: string, year: number) {
 
 export function useLibraryProgress(
   id: string,
-  filters: LibraryProgressFilters = {}
+  filters: LibraryProgressFilters = {},
 ) {
   return useQuery({
     queryKey: queryKeys.userProfile.libraryProgress(id, filters),
@@ -189,7 +190,7 @@ export function useLibraryProgress(
 export function useListeningHistory(
   id: string,
   limit?: number,
-  offset?: number
+  offset?: number,
 ) {
   return useQuery({
     queryKey: queryKeys.userProfile.listeningHistory(id, offset),

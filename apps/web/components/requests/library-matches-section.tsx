@@ -97,7 +97,7 @@ function ScrollableRow({
                 <div
                   className={cn(
                     "absolute right-1 top-1 rounded-full p-1",
-                    type === "audiobook" ? "bg-orange-500" : "bg-blue-500"
+                    type === "audiobook" ? "bg-orange-500" : "bg-blue-500",
                   )}
                 >
                   <Icon className="h-3 w-3 text-white" />

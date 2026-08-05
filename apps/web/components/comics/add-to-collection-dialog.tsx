@@ -35,7 +35,9 @@ export function AddToCollectionDialog({
   const [query, setQuery] = useState("");
   const debounced = useDebouncedValue(query, 300);
 
-  const { data } = useInfiniteComicCollections({ search: debounced || undefined });
+  const { data } = useInfiniteComicCollections({
+    search: debounced || undefined,
+  });
   const createCollection = useCreateComicCollection();
   const addSeries = useAddSeriesToCollection();
 

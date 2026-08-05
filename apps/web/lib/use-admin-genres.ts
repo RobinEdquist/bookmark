@@ -40,7 +40,7 @@ async function fetchAdminGenres(): Promise<{ genres: AdminGenre[] }> {
 
 async function renameGenre(
   id: string,
-  name: string
+  name: string,
 ): Promise<AdminGenre | RenameConflict> {
   const response = await fetch(`/api/admin/genres/${id}`, {
     method: "PATCH",
@@ -56,12 +56,15 @@ async function renameGenre(
 
 async function mergeGenres(
   sourceId: string,
-  targetId: string
+  targetId: string,
 ): Promise<MergeResult> {
-  const response = await fetch(`/api/admin/genres/${sourceId}/merge/${targetId}`, {
-    method: "POST",
-    credentials: "include",
-  });
+  const response = await fetch(
+    `/api/admin/genres/${sourceId}/merge/${targetId}`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
   if (!response.ok) {
     throw new Error("Failed to merge genres");
   }
@@ -96,7 +99,9 @@ export function useRenameGenre() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.adminGenres.all });
       // Also invalidate public genre lists
-      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.genres() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.audiobooks.genres(),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.genres() });
       queryClient.invalidateQueries({ queryKey: queryKeys.comics.genres() });
     },
@@ -107,11 +112,18 @@ export function useMergeGenres() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sourceId, targetId }: { sourceId: string; targetId: string }) =>
-      mergeGenres(sourceId, targetId),
+    mutationFn: ({
+      sourceId,
+      targetId,
+    }: {
+      sourceId: string;
+      targetId: string;
+    }) => mergeGenres(sourceId, targetId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.adminGenres.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.genres() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.audiobooks.genres(),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.genres() });
       queryClient.invalidateQueries({ queryKey: queryKeys.comics.genres() });
     },
@@ -125,7 +137,9 @@ export function useDeleteGenre() {
     mutationFn: deleteGenre,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.adminGenres.all });
-      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.genres() });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.audiobooks.genres(),
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.genres() });
       queryClient.invalidateQueries({ queryKey: queryKeys.comics.genres() });
     },

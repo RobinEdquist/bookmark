@@ -37,7 +37,10 @@ export function SeriesSortSelect({
   const currentValue: SortOption = `${sortBy}-${sortOrder}`;
 
   const handleChange = (value: string) => {
-    const [newSortBy, newSortOrder] = value.split("-") as [SeriesSortBy, SeriesSortOrder];
+    const [newSortBy, newSortOrder] = value.split("-") as [
+      SeriesSortBy,
+      SeriesSortOrder,
+    ];
     onSortChange(newSortBy, newSortOrder);
   };
 

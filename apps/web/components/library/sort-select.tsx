@@ -18,10 +18,25 @@ interface SortSelectProps {
   options?: SortField[];
 }
 
-const DEFAULT_SORT_OPTIONS: SortField[] = ["title", "createdAt", "author", "rating", "series"];
-export const COMICS_SORT_OPTIONS: SortField[] = ["title", "recentlyAdded", "startYear"];
+const DEFAULT_SORT_OPTIONS: SortField[] = [
+  "title",
+  "createdAt",
+  "author",
+  "rating",
+  "series",
+];
+export const COMICS_SORT_OPTIONS: SortField[] = [
+  "title",
+  "recentlyAdded",
+  "startYear",
+];
 
-export function SortSelect({ sortBy, sortOrder, onSortChange, options = DEFAULT_SORT_OPTIONS }: SortSelectProps) {
+export function SortSelect({
+  sortBy,
+  sortOrder,
+  onSortChange,
+  options = DEFAULT_SORT_OPTIONS,
+}: SortSelectProps) {
   const t = useTranslations("common.sort");
 
   const getLabel = (field: SortField): string => {

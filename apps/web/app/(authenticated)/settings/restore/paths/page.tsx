@@ -16,7 +16,10 @@ import {
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
-import { useRestoreSession, useSetPathMappings } from "../../../../../lib/use-restore";
+import {
+  useRestoreSession,
+  useSetPathMappings,
+} from "../../../../../lib/use-restore";
 import type { PathMapping } from "../../../../../lib/types/restore";
 
 export default function PathsPage() {
@@ -44,8 +47,7 @@ export default function PathsPage() {
   // Draft wins once the user touches the control; until then the value comes
   // straight from the restore session. This replaces an effect that copied the
   // session value into state and needed a guard to avoid overwriting edits.
-  const savPath =
-    savPathDraft ?? session?.pathMappings?.[0]?.savPath ?? "";
+  const savPath = savPathDraft ?? session?.pathMappings?.[0]?.savPath ?? "";
 
   const handleNext = async () => {
     if (!sessionId || !savPath) return;
@@ -64,7 +66,7 @@ export default function PathsPage() {
       router.push(`/settings/restore/users?session=${sessionId}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("paths.errors.saveFailed")
+        error instanceof Error ? error.message : t("paths.errors.saveFailed"),
       );
     }
   };
@@ -91,9 +93,7 @@ export default function PathsPage() {
     return (
       <Card className="border-destructive">
         <CardContent className="p-6">
-          <p className="text-destructive">
-            {t("paths.errors.loadFailed")}
-          </p>
+          <p className="text-destructive">{t("paths.errors.loadFailed")}</p>
           <Button
             variant="outline"
             onClick={() => router.push("/settings/restore/upload")}
@@ -116,10 +116,7 @@ export default function PathsPage() {
           <p className="text-sm text-muted-foreground">
             {t("paths.errors.noLibrarySelectedDescription")}
           </p>
-          <Button
-            variant="outline"
-            onClick={handleBack}
-          >
+          <Button variant="outline" onClick={handleBack}>
             {t("paths.back")}
           </Button>
         </CardContent>
@@ -185,9 +182,7 @@ export default function PathsPage() {
 
         {/* Info Banner */}
         <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-          <p className="text-sm font-medium">
-            {t("paths.infoTitle")}
-          </p>
+          <p className="text-sm font-medium">{t("paths.infoTitle")}</p>
           <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
             <li>{t("paths.infoPoint1")}</li>
             <li>{t("paths.infoPoint2")}</li>

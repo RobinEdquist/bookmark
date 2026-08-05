@@ -35,21 +35,24 @@ export default function RestoreUsersPage() {
   const sessionId = searchParams.get("session");
   const t = useTranslations("settings.restore.users");
 
-  const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
+  const { data: session, isLoading: sessionLoading } =
+    useRestoreSession(sessionId);
   const { data: savUsers, isLoading: usersLoading } = useBookmarkUsers();
   const setUserMappingsMutation = useSetUserMappings();
 
   // Draft wins once the user touches the control; until then the value comes
   // straight from the restore session. This replaces an effect that copied the
   // session value into state and needed a guard to avoid overwriting edits.
-  const [mappingsDraft, setMappingsDraft] = useState<UserMapping[] | null>(null);
+  const [mappingsDraft, setMappingsDraft] = useState<UserMapping[] | null>(
+    null,
+  );
   const userMappings = mappingsDraft ?? session?.userMappings ?? [];
 
   const handleMappingChange = (absUserId: string, savUserId: string | null) => {
     setMappingsDraft(
       userMappings.map((mapping) =>
-        mapping.absUserId === absUserId ? { ...mapping, savUserId } : mapping
-      )
+        mapping.absUserId === absUserId ? { ...mapping, savUserId } : mapping,
+      ),
     );
   };
 
@@ -67,7 +70,7 @@ export default function RestoreUsersPage() {
       router.push(`/settings/restore/options?session=${sessionId}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       );
     }
   };
@@ -103,7 +106,7 @@ export default function RestoreUsersPage() {
   }
 
   const hasUnmappedUsers = userMappings.some(
-    (mapping) => mapping.savUserId === null && mapping.progressCount > 0
+    (mapping) => mapping.savUserId === null && mapping.progressCount > 0,
   );
 
   return (
@@ -114,16 +117,12 @@ export default function RestoreUsersPage() {
             <Users className="h-5 w-5 text-primary" />
             <CardTitle>{t("title")}</CardTitle>
           </div>
-          <CardDescription>
-            {t("description")}
-          </CardDescription>
+          <CardDescription>{t("description")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {userMappings.length === 0 ? (
             <div className="flex items-center justify-center p-8">
-              <p className="text-muted-foreground">
-                {t("noUsersFound")}
-              </p>
+              <p className="text-muted-foreground">{t("noUsersFound")}</p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -140,7 +139,9 @@ export default function RestoreUsersPage() {
                           {t("progressInfo", { count: mapping.progressCount })}
                         </span>
                         <span>
-                          {t("inProgressInfo", { count: mapping.inProgressCount })}
+                          {t("inProgressInfo", {
+                            count: mapping.inProgressCount,
+                          })}
                         </span>
                         <span>
                           {t("finishedInfo", { count: mapping.finishedCount })}
@@ -158,7 +159,7 @@ export default function RestoreUsersPage() {
                       onValueChange={(value) =>
                         handleMappingChange(
                           mapping.absUserId,
-                          value === "skip" ? null : value
+                          value === "skip" ? null : value,
                         )
                       }
                     >
@@ -181,11 +182,12 @@ export default function RestoreUsersPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    {mapping.savUserId === null && mapping.progressCount > 0 && (
-                      <p className="text-xs text-muted-foreground">
-                        {t("skipWarning")}
-                      </p>
-                    )}
+                    {mapping.savUserId === null &&
+                      mapping.progressCount > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {t("skipWarning")}
+                        </p>
+                      )}
                   </div>
                 </div>
               ))}

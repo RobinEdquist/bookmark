@@ -13,7 +13,10 @@ beforeEach(() => {
   // jsdom doesn't support PointerEvent, so we polyfill it
   class Pointer extends MouseEvent {
     pointerId: number;
-    constructor(type: string, init?: PointerEventInit & { pointerId?: number }) {
+    constructor(
+      type: string,
+      init?: PointerEventInit & { pointerId?: number },
+    ) {
       super(type, init);
       this.pointerId = init?.pointerId ?? 0;
     }
@@ -28,11 +31,13 @@ beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
 });
 
-function renderSortSelect(overrides: Partial<{
-  sortBy: SortField;
-  sortOrder: SortOrder;
-  onSortChange: (field: SortField) => void;
-}> = {}) {
+function renderSortSelect(
+  overrides: Partial<{
+    sortBy: SortField;
+    sortOrder: SortOrder;
+    onSortChange: (field: SortField) => void;
+  }> = {},
+) {
   const props = {
     sortBy: "title" as SortField,
     sortOrder: "asc" as SortOrder,

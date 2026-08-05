@@ -1,4 +1,7 @@
-import type { AudibleSearchResult, AudnexusBookDetail } from "../../lib/use-audnexus";
+import type {
+  AudibleSearchResult,
+  AudnexusBookDetail,
+} from "../../lib/use-audnexus";
 import type { ItunesSearchResult } from "../../lib/use-itunes";
 import type { SeriesEntry } from "../shared/series-entry-editor";
 
@@ -95,7 +98,7 @@ export function mapAudnexusBook(detail: AudnexusBookDetail): MatchedMetadata {
  * not index every regional ASIN).
  */
 export function mapAudibleSearchResult(
-  result: AudibleSearchResult
+  result: AudibleSearchResult,
 ): MatchedMetadata {
   return {
     title: result.title || undefined,
@@ -117,7 +120,7 @@ export function mapAudibleSearchResult(
  */
 export function resolveAudibleReviewMetadata(
   detail: AudnexusBookDetail | undefined,
-  fallback: AudibleSearchResult | null
+  fallback: AudibleSearchResult | null,
 ): MatchedMetadata | null {
   if (detail) return mapAudnexusBook(detail);
   if (fallback) return mapAudibleSearchResult(fallback);

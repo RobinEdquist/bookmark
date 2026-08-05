@@ -70,7 +70,7 @@ function setAvailability(
     comics: boolean;
     opds: boolean;
   } | null,
-  isLoading = false
+  isLoading = false,
 ) {
   mockUseLibraryAvailability.mockReturnValue({ data: value, isLoading });
 }
@@ -146,7 +146,7 @@ describe("HomeScreen", () => {
     // Dismissed → straight to the resume banner, not the full wizard.
     expect(await screen.findByText("action")).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.queryByTestId("wizard")).not.toBeInTheDocument()
+      expect(screen.queryByTestId("wizard")).not.toBeInTheDocument(),
     );
   });
 });

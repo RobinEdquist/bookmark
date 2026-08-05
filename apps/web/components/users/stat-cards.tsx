@@ -21,10 +21,8 @@ function formatListeningTime(
 export function StatCards({ stats }: StatCardsProps) {
   const t = useTranslations("userProfile.stats");
 
-  const booksCompleted =
-    stats.audiobooksCompleted + stats.ebooksCompleted;
-  const booksInProgress =
-    stats.audiobooksInProgress + stats.ebooksInProgress;
+  const booksCompleted = stats.audiobooksCompleted + stats.ebooksCompleted;
+  const booksInProgress = stats.audiobooksInProgress + stats.ebooksInProgress;
 
   const cards = [
     {
@@ -52,10 +50,7 @@ export function StatCards({ stats }: StatCardsProps) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {cards.map((card) => (
-        <div
-          key={card.label}
-          className="rounded-xl border bg-card p-4"
-        >
+        <div key={card.label} className="rounded-xl border bg-card p-4">
           <div className="flex items-center gap-2 text-muted-foreground">
             <card.icon className="h-4 w-4" />
             <span className="text-xs">{card.label}</span>

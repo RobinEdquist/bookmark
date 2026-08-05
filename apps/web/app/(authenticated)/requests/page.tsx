@@ -7,11 +7,29 @@ import { Search } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@repo/ui/components/ui/input";
 import { Button } from "@repo/ui/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
-import { Tabs as ContentTypeTabs, TabsList as ContentTypeTabsList, TabsTrigger as ContentTypeTabsTrigger } from "@repo/ui/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui/components/ui/tabs";
+import {
+  Tabs as ContentTypeTabs,
+  TabsList as ContentTypeTabsList,
+  TabsTrigger as ContentTypeTabsTrigger,
+} from "@repo/ui/components/ui/tabs";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { cn } from "@repo/ui/lib/utils";
-import { useTrackerSearch, useMyRequests, useCreateRequest, useSupportRequest, useLibrarySearch, type SearchFilters, type TrackerSearchResult, type RequestResponse } from "../../../lib/use-requests";
+import {
+  useTrackerSearch,
+  useMyRequests,
+  useCreateRequest,
+  useSupportRequest,
+  useLibrarySearch,
+  type SearchFilters,
+  type TrackerSearchResult,
+  type RequestResponse,
+} from "../../../lib/use-requests";
 import { LibraryMatchesSection } from "../../../components/requests/library-matches-section";
 import { useAutoApproveBudget } from "../../../lib/use-auto-approve-budget";
 import { RequestSearchResults } from "../../../components/requests/request-search-results";
@@ -34,8 +52,16 @@ export default function RequestsPage() {
   const { data: budget } = useAutoApproveBudget();
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useUrlTab<ViewTab>("tab", "search", VIEW_TABS);
-  const [contentType, setContentType] = useUrlTab<ContentType>("type", "all", CONTENT_TYPES);
+  const [activeTab, setActiveTab] = useUrlTab<ViewTab>(
+    "tab",
+    "search",
+    VIEW_TABS,
+  );
+  const [contentType, setContentType] = useUrlTab<ContentType>(
+    "type",
+    "all",
+    CONTENT_TYPES,
+  );
   // contentType lives in the URL (useUrlTab above), so it is spread in here
   // rather than mirrored into filters by an effect — that effect re-rendered the
   // page a second time on every tab change just to restate what the URL said.
@@ -60,10 +86,8 @@ export default function RequestsPage() {
   const { data: myRequests, isLoading: requestsLoading } = useMyRequests();
   const { createRequest, isCreating } = useCreateRequest();
   const { supportRequest, isSupporting } = useSupportRequest();
-  const { data: libraryResults, isLoading: librarySearching } = useLibrarySearch(
-    librarySearchQuery,
-    contentType
-  );
+  const { data: libraryResults, isLoading: librarySearching } =
+    useLibrarySearch(librarySearchQuery, contentType);
 
   const localSearchResults = patchedResults ?? searchResults?.results ?? [];
 
@@ -83,16 +107,20 @@ export default function RequestsPage() {
     // Optimistically update my requests cache for instant tab count
     queryClient.setQueryData<RequestResponse[]>(
       queryKeys.requests.list(),
-      (old) => (old ? [...old, newRequest] : [newRequest])
+      (old) => (old ? [...old, newRequest] : [newRequest]),
     );
 
     // Update local search results to show "requested" status (no external API call)
     setPatchedResults(
       localSearchResults.map((result) =>
         result.id === item.torrentId
-          ? { ...result, existingRequestId: newRequest.id, existingRequestStatus: "pending" as const }
-          : result
-      )
+          ? {
+              ...result,
+              existingRequestId: newRequest.id,
+              existingRequestStatus: "pending" as const,
+            }
+          : result,
+      ),
     );
 
     // Show success toast instead of navigating away
@@ -121,11 +149,18 @@ export default function RequestsPage() {
 
         {/* Auto-Approve Budget Counter */}
         {budget && budget.limit > 0 && (
-          <p className={cn(
-            "text-sm",
-            budget.remaining === 0 ? "text-muted-foreground" : "text-foreground"
-          )}>
-            {t('autoApprove.budget', { remaining: budget.remaining, limit: budget.limit })}
+          <p
+            className={cn(
+              "text-sm",
+              budget.remaining === 0
+                ? "text-muted-foreground"
+                : "text-foreground",
+            )}
+          >
+            {t("autoApprove.budget", {
+              remaining: budget.remaining,
+              limit: budget.limit,
+            })}
           </p>
         )}
 
@@ -135,10 +170,18 @@ export default function RequestsPage() {
           onValueChange={(value) => setContentType(value as ContentType)}
         >
           <ContentTypeTabsList>
-            <ContentTypeTabsTrigger value="all">{t("filters.contentType.all")}</ContentTypeTabsTrigger>
-            <ContentTypeTabsTrigger value="audiobooks">{t("filters.contentType.audiobooks")}</ContentTypeTabsTrigger>
-            <ContentTypeTabsTrigger value="ebooks">{t("filters.contentType.ebooks")}</ContentTypeTabsTrigger>
-            <ContentTypeTabsTrigger value="comics">{t("filters.contentType.comics")}</ContentTypeTabsTrigger>
+            <ContentTypeTabsTrigger value="all">
+              {t("filters.contentType.all")}
+            </ContentTypeTabsTrigger>
+            <ContentTypeTabsTrigger value="audiobooks">
+              {t("filters.contentType.audiobooks")}
+            </ContentTypeTabsTrigger>
+            <ContentTypeTabsTrigger value="ebooks">
+              {t("filters.contentType.ebooks")}
+            </ContentTypeTabsTrigger>
+            <ContentTypeTabsTrigger value="comics">
+              {t("filters.contentType.comics")}
+            </ContentTypeTabsTrigger>
           </ContentTypeTabsList>
         </ContentTypeTabs>
 
@@ -171,11 +214,15 @@ export default function RequestsPage() {
           />
         )}
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ViewTab)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as ViewTab)}
+        >
           <TabsList>
             <TabsTrigger value="search">{t("tabs.searchResults")}</TabsTrigger>
             <TabsTrigger value="my-requests">
-              {t("tabs.myRequests")} {myRequests?.length ? `(${myRequests.length})` : ""}
+              {t("tabs.myRequests")}{" "}
+              {myRequests?.length ? `(${myRequests.length})` : ""}
             </TabsTrigger>
           </TabsList>
 

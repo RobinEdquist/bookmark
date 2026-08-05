@@ -78,7 +78,9 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
       <div className="flex flex-col items-center justify-center p-8">
         <p className="text-muted-foreground">{t("detail.notFound")}</p>
         <Button asChild variant="link" className="mt-4">
-          <Link href="/series" scroll={false}>{t("detail.backToSeries")}</Link>
+          <Link href="/series" scroll={false}>
+            {t("detail.backToSeries")}
+          </Link>
         </Button>
       </div>
     );
@@ -177,7 +179,9 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
                   <div className="mt-2">
                     <p className="line-clamp-2 text-sm font-medium group-hover:text-primary">
                       {audiobook.order && (
-                        <span className="mr-1 text-muted-foreground">#{formatSeriesOrder(audiobook.order)}</span>
+                        <span className="mr-1 text-muted-foreground">
+                          #{formatSeriesOrder(audiobook.order)}
+                        </span>
                       )}
                       {audiobook.title}
                     </p>
@@ -240,7 +244,9 @@ export default function SeriesDetailPage({ params }: SeriesDetailPageProps) {
                   <div className="mt-2">
                     <p className="line-clamp-2 text-sm font-medium group-hover:text-primary">
                       {ebook.order && (
-                        <span className="mr-1 text-muted-foreground">#{formatSeriesOrder(ebook.order)}</span>
+                        <span className="mr-1 text-muted-foreground">
+                          #{formatSeriesOrder(ebook.order)}
+                        </span>
                       )}
                       {ebook.title}
                     </p>

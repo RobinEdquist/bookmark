@@ -13,11 +13,7 @@ import {
   CommandItem,
   CommandList,
 } from "./command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./popover";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 
 export interface ComboboxOption {
   value: string;
@@ -55,14 +51,12 @@ export function CreatableCombobox({
   const filteredOptions = options.filter(
     (option) =>
       option.label.toLowerCase().includes(inputValue.toLowerCase()) &&
-      !value.includes(option.value)
+      !value.includes(option.value),
   );
 
   const showCreateOption =
     inputValue.trim() !== "" &&
-    !options.some(
-      (o) => o.label.toLowerCase() === inputValue.toLowerCase()
-    ) &&
+    !options.some((o) => o.label.toLowerCase() === inputValue.toLowerCase()) &&
     !value.some((v) => v.toLowerCase() === inputValue.toLowerCase());
 
   const handleSelect = (selectedValue: string) => {
@@ -100,7 +94,7 @@ export function CreatableCombobox({
           disabled={disabled}
           className={cn(
             "min-h-10 h-auto w-full justify-between font-normal",
-            className
+            className,
           )}
         >
           <div className="flex flex-wrap gap-1">
@@ -109,11 +103,7 @@ export function CreatableCombobox({
                 const option = options.find((o) => o.value === v);
                 const label = option?.label ?? v;
                 return (
-                  <Badge
-                    key={v}
-                    variant="secondary"
-                    className="mr-1"
-                  >
+                  <Badge key={v} variant="secondary" className="mr-1">
                     {label}
                     <span
                       role="button"
@@ -144,7 +134,10 @@ export function CreatableCombobox({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] p-0"
+        align="start"
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder={searchPlaceholder}
@@ -166,7 +159,7 @@ export function CreatableCombobox({
                       "mr-2 h-4 w-4",
                       value.includes(option.value)
                         ? "opacity-100"
-                        : "opacity-0"
+                        : "opacity-0",
                     )}
                   />
                   {option.label}

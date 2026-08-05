@@ -28,9 +28,7 @@ import { useSettings, type UpdateSettingsDto } from "../../lib/use-settings";
 
 type MediaTypeId = "audiobooks" | "ebooks" | "comics";
 type LibraryPathKey =
-  | "audiobookLibraryPath"
-  | "ebookLibraryPath"
-  | "comicLibraryPath";
+  "audiobookLibraryPath" | "ebookLibraryPath" | "comicLibraryPath";
 
 interface MediaType {
   id: MediaTypeId;

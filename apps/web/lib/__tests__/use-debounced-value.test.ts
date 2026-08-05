@@ -19,7 +19,7 @@ describe("useDebouncedValue", () => {
   it("does not update before the delay", () => {
     const { result, rerender } = renderHook(
       ({ value, delay }) => useDebouncedValue(value, delay),
-      { initialProps: { value: "hello", delay: 300 } }
+      { initialProps: { value: "hello", delay: 300 } },
     );
 
     rerender({ value: "world", delay: 300 });
@@ -34,7 +34,7 @@ describe("useDebouncedValue", () => {
   it("updates after the delay", () => {
     const { result, rerender } = renderHook(
       ({ value, delay }) => useDebouncedValue(value, delay),
-      { initialProps: { value: "hello", delay: 300 } }
+      { initialProps: { value: "hello", delay: 300 } },
     );
 
     rerender({ value: "world", delay: 300 });
@@ -49,7 +49,7 @@ describe("useDebouncedValue", () => {
   it("resets the timer on rapid value changes", () => {
     const { result, rerender } = renderHook(
       ({ value, delay }) => useDebouncedValue(value, delay),
-      { initialProps: { value: "a", delay: 300 } }
+      { initialProps: { value: "a", delay: 300 } },
     );
 
     rerender({ value: "b", delay: 300 });
@@ -76,7 +76,7 @@ describe("useDebouncedValue", () => {
   it("works with numeric values", () => {
     const { result, rerender } = renderHook(
       ({ value, delay }) => useDebouncedValue(value, delay),
-      { initialProps: { value: 0, delay: 100 } }
+      { initialProps: { value: 0, delay: 100 } },
     );
 
     rerender({ value: 42, delay: 100 });

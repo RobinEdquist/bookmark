@@ -14,7 +14,10 @@ interface MyRequestsListProps {
   isLoading: boolean;
 }
 
-const statusVariants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+const statusVariants: Record<
+  string,
+  "default" | "secondary" | "destructive" | "outline"
+> = {
   pending: "secondary",
   approved: "default",
   downloading: "default",
@@ -46,64 +49,73 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
       {requests.map((request) => {
         const TypeIcon = CONTENT_TYPE_STYLES[request.contentType].icon;
         return (
-        <Card key={request.id}>
-          <CardContent className="p-4">
-            <div className="flex gap-4">
-              {/* Content Type Icon */}
-              <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-muted shrink-0">
-                <TypeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 min-w-0 space-y-1">
-                <div className="flex flex-wrap items-start gap-2">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold line-clamp-2 sm:line-clamp-1">{request.title}</h3>
-                    {request.author && (
-                      <p className="text-sm text-muted-foreground truncate">
-                        {t("card.by", { author: request.author })}
-                      </p>
-                    )}
-                  </div>
-                  <Badge variant={statusVariants[request.status]} className="shrink-0">
-                    {request.status === 'approved' && request.autoApprovedByUserId ? (
-                      request.autoApprovedByUserId === request.userId
-                        ? t('autoApprove.autoApproved')
-                        : t('autoApprove.autoApprovedBy', { email: request.autoApprovedByEmail ?? 'Unknown' })
-                    ) : (
-                      t(`status.${request.status}`)
-                    )}
-                  </Badge>
+          <Card key={request.id}>
+            <CardContent className="p-4">
+              <div className="flex gap-4">
+                {/* Content Type Icon */}
+                <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-lg bg-muted shrink-0">
+                  <TypeIcon className="h-6 w-6 sm:h-8 sm:w-8 text-muted-foreground" />
                 </div>
 
-                {request.status === "rejected" && request.rejectionReason && (
-                  <p className="text-sm text-destructive line-clamp-2">
-                    {t("rejectionReason")}: {request.rejectionReason}
+                {/* Info */}
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-start gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold line-clamp-2 sm:line-clamp-1">
+                        {request.title}
+                      </h3>
+                      {request.author && (
+                        <p className="text-sm text-muted-foreground truncate">
+                          {t("card.by", { author: request.author })}
+                        </p>
+                      )}
+                    </div>
+                    <Badge
+                      variant={statusVariants[request.status]}
+                      className="shrink-0"
+                    >
+                      {request.status === "approved" &&
+                      request.autoApprovedByUserId
+                        ? request.autoApprovedByUserId === request.userId
+                          ? t("autoApprove.autoApproved")
+                          : t("autoApprove.autoApprovedBy", {
+                              email: request.autoApprovedByEmail ?? "Unknown",
+                            })
+                        : t(`status.${request.status}`)}
+                    </Badge>
+                  </div>
+
+                  {request.status === "rejected" && request.rejectionReason && (
+                    <p className="text-sm text-destructive line-clamp-2">
+                      {t("rejectionReason")}: {request.rejectionReason}
+                    </p>
+                  )}
+
+                  <p className="text-xs text-muted-foreground">
+                    {t("requestedAt", {
+                      date: new Date(request.createdAt).toLocaleDateString(),
+                    })}
                   </p>
-                )}
 
-                <p className="text-xs text-muted-foreground">
-                  {t("requestedAt", {
-                    date: new Date(request.createdAt).toLocaleDateString(),
-                  })}
-                </p>
-
-                {/* Link to library item if complete */}
-                {request.status === "complete" &&
-                  request.libraryItemId &&
-                  request.libraryItemType && (
-                  <Link
-                    href={libraryItemHref(request.libraryItemType, request.libraryItemId)}
-                    className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-                  >
-                    {t("viewInLibrary")}
-                    <ExternalLink className="h-3 w-3" />
-                  </Link>
-                )}
+                  {/* Link to library item if complete */}
+                  {request.status === "complete" &&
+                    request.libraryItemId &&
+                    request.libraryItemType && (
+                      <Link
+                        href={libraryItemHref(
+                          request.libraryItemType,
+                          request.libraryItemId,
+                        )}
+                        className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                      >
+                        {t("viewInLibrary")}
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
         );
       })}
     </div>

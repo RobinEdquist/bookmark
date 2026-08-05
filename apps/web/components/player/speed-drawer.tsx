@@ -52,7 +52,8 @@ export function SpeedDrawer({
                   className={cn(
                     "flex h-12 items-center justify-center rounded-lg text-sm font-medium transition-colors",
                     "hover:bg-accent focus:bg-accent focus:outline-none",
-                    isSelected && "bg-primary text-primary-foreground hover:bg-primary/90"
+                    isSelected &&
+                      "bg-primary text-primary-foreground hover:bg-primary/90",
                   )}
                 >
                   {rate}x

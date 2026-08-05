@@ -53,14 +53,17 @@ async function selectLibraryApi(
   sessionId: string,
   libraryId: string,
 ): Promise<ApiSuccessResponse> {
-  const response = await fetch(`/api/admin/restore/sessions/${sessionId}/library`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `/api/admin/restore/sessions/${sessionId}/library`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ libraryId }),
     },
-    credentials: "include",
-    body: JSON.stringify({ libraryId }),
-  });
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -74,14 +77,17 @@ async function setPathMappingsApi(
   sessionId: string,
   pathMappings: PathMapping[],
 ): Promise<ApiSuccessResponse> {
-  const response = await fetch(`/api/admin/restore/sessions/${sessionId}/path-mappings`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `/api/admin/restore/sessions/${sessionId}/path-mappings`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ pathMappings }),
     },
-    credentials: "include",
-    body: JSON.stringify({ pathMappings }),
-  });
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -101,14 +107,17 @@ async function setUserMappingsApi(
     savUserId,
   }));
 
-  const response = await fetch(`/api/admin/restore/sessions/${sessionId}/user-mappings`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `/api/admin/restore/sessions/${sessionId}/user-mappings`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ userMappings: mappingsToSend }),
     },
-    credentials: "include",
-    body: JSON.stringify({ userMappings: mappingsToSend }),
-  });
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -122,14 +131,17 @@ async function setRestoreOptionsApi(
   sessionId: string,
   options: Partial<RestoreOptions>,
 ): Promise<ApiSuccessResponse> {
-  const response = await fetch(`/api/admin/restore/sessions/${sessionId}/options`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
+  const response = await fetch(
+    `/api/admin/restore/sessions/${sessionId}/options`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(options),
     },
-    credentials: "include",
-    body: JSON.stringify(options),
-  });
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -140,9 +152,12 @@ async function setRestoreOptionsApi(
 }
 
 async function fetchPreview(sessionId: string): Promise<ImportPreview> {
-  const response = await fetch(`/api/admin/restore/sessions/${sessionId}/preview`, {
-    credentials: "include",
-  });
+  const response = await fetch(
+    `/api/admin/restore/sessions/${sessionId}/preview`,
+    {
+      credentials: "include",
+    },
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -152,11 +167,16 @@ async function fetchPreview(sessionId: string): Promise<ImportPreview> {
   return response.json();
 }
 
-async function executeImportApi(sessionId: string): Promise<ApiSuccessResponse> {
-  const response = await fetch(`/api/admin/restore/sessions/${sessionId}/execute`, {
-    method: "POST",
-    credentials: "include",
-  });
+async function executeImportApi(
+  sessionId: string,
+): Promise<ApiSuccessResponse> {
+  const response = await fetch(
+    `/api/admin/restore/sessions/${sessionId}/execute`,
+    {
+      method: "POST",
+      credentials: "include",
+    },
+  );
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
@@ -213,7 +233,11 @@ export function useRestoreSession(sessionId: string | null) {
     refetchInterval: (query) => {
       const state = query.state.data?.state;
       // Poll while in active states
-      if (state === "uploading" || state === "parsing" || state === "importing") {
+      if (
+        state === "uploading" ||
+        state === "parsing" ||
+        state === "importing"
+      ) {
         return 2000; // Poll every 2 seconds
       }
       return false; // Don't poll in other states
@@ -228,8 +252,13 @@ export function useSelectLibrary() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ sessionId, libraryId }: { sessionId: string; libraryId: string }) =>
-      selectLibraryApi(sessionId, libraryId),
+    mutationFn: ({
+      sessionId,
+      libraryId,
+    }: {
+      sessionId: string;
+      libraryId: string;
+    }) => selectLibraryApi(sessionId, libraryId),
     onSuccess: (_, variables) => {
       // Invalidate session to refetch updated state
       queryClient.invalidateQueries({
@@ -312,7 +341,10 @@ export function useSetRestoreOptions() {
  * Generate a preview of what will be imported
  * This is a query with manual triggering via enabled flag
  */
-export function useGeneratePreview(sessionId: string | null, enabled: boolean = false) {
+export function useGeneratePreview(
+  sessionId: string | null,
+  enabled: boolean = false,
+) {
   return useQuery({
     queryKey: sessionId ? queryKeys.restore.preview(sessionId) : [],
     queryFn: () => fetchPreview(sessionId!),
@@ -380,7 +412,11 @@ export function useRestoreProgress(sessionId: string | null) {
 
   const connect = useCallback(() => {
     // Don't connect if no session or already connected
-    if (!sessionId || socketRef.current?.connected || typeof window === "undefined") {
+    if (
+      !sessionId ||
+      socketRef.current?.connected ||
+      typeof window === "undefined"
+    ) {
       return;
     }
 
@@ -436,13 +472,16 @@ export function useRestoreProgress(sessionId: string | null) {
     });
 
     // Listen for restore errors (matches backend 'restore.failed')
-    socket.on("restore.failed", (data: { sessionId: string; error: string }) => {
-      console.error(`[Restore WS] Restore failed:`, data.error);
-      // Invalidate session to get updated error state
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.restore.session(data.sessionId),
-      });
-    });
+    socket.on(
+      "restore.failed",
+      (data: { sessionId: string; error: string }) => {
+        console.error(`[Restore WS] Restore failed:`, data.error);
+        // Invalidate session to get updated error state
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.restore.session(data.sessionId),
+        });
+      },
+    );
 
     socketRef.current = socket;
   }, [sessionId, queryClient]);

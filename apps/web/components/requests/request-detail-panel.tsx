@@ -3,7 +3,15 @@
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
-import { Calendar, Tag, FileText, Globe, HardDrive, X, Check } from "lucide-react";
+import {
+  Calendar,
+  Tag,
+  FileText,
+  Globe,
+  HardDrive,
+  X,
+  Check,
+} from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
 import { Button } from "@repo/ui/components/ui/button";
@@ -63,7 +71,9 @@ export function RequestDetailPanel({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [isOpen, onClose]);
 
-  const sanitizedDescription = item?.description ? sanitizeHtml(item.description) : null;
+  const sanitizedDescription = item?.description
+    ? sanitizeHtml(item.description)
+    : null;
 
   return (
     <>
@@ -109,8 +119,11 @@ export function RequestDetailPanel({
                 ) : (
                   <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-lg bg-muted">
                     {(() => {
-                      const TypeIcon = CONTENT_TYPE_STYLES[item.contentType].icon;
-                      return <TypeIcon className="h-8 w-8 text-muted-foreground" />;
+                      const TypeIcon =
+                        CONTENT_TYPE_STYLES[item.contentType].icon;
+                      return (
+                        <TypeIcon className="h-8 w-8 text-muted-foreground" />
+                      );
                     })()}
                   </div>
                 )}
@@ -118,14 +131,24 @@ export function RequestDetailPanel({
                 <div className="min-w-0 space-y-2">
                   {/* Content Type Badge */}
                   <div className="flex gap-2">
-                    <Badge variant={item.contentType === "audiobook" ? "default" : "secondary"}>
-                      {t(`badge.${CONTENT_TYPE_STYLES[item.contentType].badgeKey}`)}
+                    <Badge
+                      variant={
+                        item.contentType === "audiobook"
+                          ? "default"
+                          : "secondary"
+                      }
+                    >
+                      {t(
+                        `badge.${CONTENT_TYPE_STYLES[item.contentType].badgeKey}`,
+                      )}
                     </Badge>
                     {(() => {
                       const categoryName = formatCategoryName(item.category);
                       const colors = getCategoryColor(categoryName);
                       return (
-                        <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colors.bg} ${colors.text}`}>
+                        <span
+                          className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${colors.bg} ${colors.text}`}
+                        >
                           {categoryName}
                         </span>
                       );
@@ -245,7 +268,11 @@ export function RequestDetailPanel({
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                      transition={{
+                        type: "spring",
+                        duration: 0.3,
+                        bounce: 0.2,
+                      }}
                     >
                       <Button
                         variant="outline"
@@ -254,7 +281,11 @@ export function RequestDetailPanel({
                         disabled={isSupporting}
                       >
                         <Check className="h-4 w-4 text-emerald-500" />
-                        {isSupporting ? <LoadingSpinner size="sm" /> : t("button.support")}
+                        {isSupporting ? (
+                          <LoadingSpinner size="sm" />
+                        ) : (
+                          t("button.support")
+                        )}
                       </Button>
                     </motion.div>
                   ) : (
@@ -263,9 +294,17 @@ export function RequestDetailPanel({
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+                      transition={{
+                        type: "spring",
+                        duration: 0.3,
+                        bounce: 0.2,
+                      }}
                     >
-                      <Button variant="outline" disabled className="w-full gap-2">
+                      <Button
+                        variant="outline"
+                        disabled
+                        className="w-full gap-2"
+                      >
                         <Check className="h-4 w-4 text-emerald-500" />
                         {t(`status.${item.existingRequestStatus}`)}
                       </Button>
@@ -279,8 +318,16 @@ export function RequestDetailPanel({
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
                   >
-                    <Button className="w-full" onClick={() => onRequest(item)} disabled={isRequesting}>
-                      {isRequesting ? <LoadingSpinner size="sm" /> : t("button.request")}
+                    <Button
+                      className="w-full"
+                      onClick={() => onRequest(item)}
+                      disabled={isRequesting}
+                    >
+                      {isRequesting ? (
+                        <LoadingSpinner size="sm" />
+                      ) : (
+                        t("button.request")
+                      )}
                     </Button>
                   </motion.div>
                 )}

@@ -4,11 +4,7 @@ import { apiKeyClient } from "@better-auth/api-key/client";
 
 export const authClient = createAuthClient({
   basePath: "/api/auth",
-  plugins: [
-    adminClient(),
-    apiKeyClient(),
-    genericOAuthClient(),
-  ],
+  plugins: [adminClient(), apiKeyClient(), genericOAuthClient()],
 });
 
 export type Session = typeof authClient.$Infer.Session;
