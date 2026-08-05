@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -67,9 +67,46 @@ export function ChapterImportDialog({
   onSuccess,
 }: ChapterImportDialogProps) {
   const t = useTranslations("audiobooks.chapterImport");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{t("title")}</DialogTitle>
+          <DialogDescription>{t("description")}</DialogDescription>
+        </DialogHeader>
+        <ChapterImportBody
+          audiobookId={audiobookId}
+          audiobookTitle={audiobookTitle}
+          audiobookAuthor={audiobookAuthor}
+          currentChapters={currentChapters}
+          onOpenChange={onOpenChange}
+          onSuccess={onSuccess}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Everything stateful lives below DialogContent, which Radix unmounts while
+ * closed. So the search fields seed from the audiobook and the selection starts
+ * empty because the component is new on each open — replacing an effect that
+ * reset six pieces of state, and a handleClose that had to repeat most of the
+ * same resets on the way out.
+ */
+function ChapterImportBody({
+  audiobookId,
+  audiobookTitle,
+  audiobookAuthor,
+  currentChapters,
+  onOpenChange,
+  onSuccess,
+}: Omit<ChapterImportDialogProps, "open">) {
+  const t = useTranslations("audiobooks.chapterImport");
   const [tab, setTab] = useState<"search" | "manual">("search");
-  const [searchTitle, setSearchTitle] = useState("");
-  const [searchAuthor, setSearchAuthor] = useState("");
+  const [searchTitle, setSearchTitle] = useState(audiobookTitle);
+  const [searchAuthor, setSearchAuthor] = useState(audiobookAuthor || "");
   const [manualAsin, setManualAsin] = useState("");
   const [selectedResult, setSelectedResult] = useState<AudibleSearchResult | null>(null);
   const [activeAsin, setActiveAsin] = useState<string | null>(null);
@@ -77,20 +114,9 @@ export function ChapterImportDialog({
   const debouncedTitle = useDebouncedValue(searchTitle, 500);
   const debouncedAuthor = useDebouncedValue(searchAuthor, 500);
 
-  // Initialize search fields when dialog opens
-  useEffect(() => {
-    if (open) {
-      setSearchTitle(audiobookTitle);
-      setSearchAuthor(audiobookAuthor || "");
-      setSelectedResult(null);
-      setActiveAsin(null);
-      setManualAsin("");
-    }
-  }, [open, audiobookTitle, audiobookAuthor]);
-
-  // Search query
+  // Search query. No `open` in the guard: this only exists while the dialog is.
   const searchQuery = useAudibleSearch(debouncedTitle, debouncedAuthor || undefined, {
-    enabled: open && tab === "search" && debouncedTitle.length >= 2,
+    enabled: tab === "search" && debouncedTitle.length >= 2,
   });
 
   // Chapters query - fetch when we have an ASIN
@@ -130,24 +156,10 @@ export function ChapterImportDialog({
     }
   };
 
-  const handleClose = () => {
-    setSelectedResult(null);
-    setActiveAsin(null);
-    setManualAsin("");
-    setTab("search");
-    onOpenChange(false);
-  };
-
   const fetchedChapters = chaptersQuery.data?.chapters || [];
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
-          <DialogDescription>{t("description")}</DialogDescription>
-        </DialogHeader>
-
+    <>
         <Tabs value={tab} onValueChange={(v) => setTab(v as "search" | "manual")} className="flex-1 flex flex-col min-h-0">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="search">{t("searchTab")}</TabsTrigger>
@@ -356,7 +368,7 @@ export function ChapterImportDialog({
 
         {/* Footer */}
         <div className="flex justify-end gap-2 pt-4 border-t">
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>
           <Button
@@ -373,7 +385,6 @@ export function ChapterImportDialog({
             )}
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+    </>
   );
 }
