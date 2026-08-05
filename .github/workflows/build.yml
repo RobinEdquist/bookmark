@@ -17,7 +17,7 @@ env:
 
 jobs:
   # ==========================================================================
-  # Lint, Type Check, and Unit Tests
+  # Format, Lint, Type Check, and Unit Tests
   # ==========================================================================
   lint:
     runs-on: ubuntu-latest
@@ -36,6 +36,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # Cheapest check in the job, so it runs first. Fix locally with
+      # `pnpm format`. Scope and exclusions live in .prettierrc/.prettierignore.
+      - name: Check formatting
+        run: pnpm format:check
 
       - name: Lint
         run: pnpm lint
