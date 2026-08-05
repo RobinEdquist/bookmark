@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -106,20 +106,11 @@ export function HomeScreen() {
     useMyPermissions();
   const [dismissed, setDismissed] = useOnboardingDismissed();
 
-  // null = undecided (still loading); true/false = latched wizard visibility.
-  const [wizardOpen, setWizardOpen] = useState<boolean | null>(null);
-
   const loading = availabilityLoading || permissionsLoading;
   const isAdmin = permissions?.isAdmin ?? false;
   const configured =
     !!availability &&
     (availability.audiobooks || availability.ebooks || availability.comics);
-
-  useEffect(() => {
-    if (wizardOpen === null && !loading && isAdmin && availability) {
-      setWizardOpen(!configured && !dismissed);
-    }
-  }, [wizardOpen, loading, isAdmin, availability, configured, dismissed]);
 
   if (loading) {
     return <HomeLoading />;
@@ -132,10 +123,41 @@ export function HomeScreen() {
     return configured ? <HomeFeed /> : <WaitingForSetup />;
   }
 
-  // Admin, but the entry decision hasn't resolved for a tick yet.
-  if (wizardOpen === null) {
+  // Admin whose availability never resolved: keep waiting rather than guessing
+  // at the wizard decision from incomplete data.
+  if (!availability) {
     return <HomeLoading />;
   }
+
+  return (
+    <AdminHome
+      configured={configured}
+      dismissed={dismissed}
+      setDismissed={setDismissed}
+    />
+  );
+}
+
+/**
+ * Mounted only once availability and permissions have loaded, which is what lets
+ * the wizard decision be a useState initialiser rather than an effect.
+ *
+ * That decision has to latch: configuring a library mid-wizard flips
+ * `configured`, and re-deriving from it would yank the wizard away before the
+ * admin reached the final step. The effect this replaces encoded the latch as a
+ * third `null` state meaning "undecided", which cost an extra render and an
+ * extra spinner frame on every admin load.
+ */
+function AdminHome({
+  configured,
+  dismissed,
+  setDismissed,
+}: {
+  configured: boolean;
+  dismissed: boolean;
+  setDismissed: (dismissed: boolean) => void;
+}) {
+  const [wizardOpen, setWizardOpen] = useState(() => !configured && !dismissed);
 
   if (wizardOpen) {
     return (
