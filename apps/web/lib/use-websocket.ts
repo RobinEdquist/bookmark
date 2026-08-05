@@ -276,9 +276,13 @@ export function useWebSocket(options: UseWebSocketOptions = {}) {
     };
   }, [enabled, connect, disconnect]);
 
+  // `socket` is deliberately not returned. Exposing socketRef.current made the
+  // hook's result depend on a ref read during render, so consumers latched the
+  // value from whichever render they happened to run on — usually `null`, since
+  // the socket is created in an effect — and never re-rendered when it changed.
+  // Nothing read it; use `emit`/`isConnected`, which do track the connection.
   return {
     isConnected,
-    socket: socketRef.current,
     disconnect,
     reconnect: () => {
       disconnect();

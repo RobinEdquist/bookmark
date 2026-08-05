@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Copy, Check, AlertTriangle } from "lucide-react";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@repo/ui/components/ui/dialog";
 import { Button } from "@repo/ui/components/ui/button";
 import type { ApiKeyCreated } from "../../lib/use-api-keys";
+import { useOrigin } from "../../lib/use-origin";
 
 interface ApiKeyCreatedDialogProps {
   apiKey: ApiKeyCreated | null;
@@ -27,11 +28,7 @@ export function ApiKeyCreatedDialog({
   const tKeys = useTranslations("preferences.apiKeys");
   const [copied, setCopied] = useState(false);
   const [urlCopied, setUrlCopied] = useState(false);
-  const [serverUrl, setServerUrl] = useState("");
-
-  useEffect(() => {
-    setServerUrl(window.location.origin);
-  }, []);
+  const serverUrl = useOrigin();
 
   const handleCopy = async () => {
     if (!apiKey) return;

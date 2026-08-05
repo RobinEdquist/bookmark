@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -22,6 +22,14 @@ import {
 } from "../../../../../lib/use-restore";
 import type { RestoreOptions } from "../../../../../lib/types/restore";
 
+const DEFAULT_RESTORE_OPTIONS: RestoreOptions = {
+  importProgress: true,
+  importCovers: true,
+  importAuthorImages: true,
+  overwriteExisting: false,
+  lockMetadata: false,
+};
+
 export default function RestoreOptionsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,27 +39,19 @@ export default function RestoreOptionsPage() {
   const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
   const setRestoreOptions = useSetRestoreOptions();
 
-  // Local state for options
-  const [options, setOptions] = useState<RestoreOptions>({
-    importProgress: true,
-    importCovers: true,
-    importAuthorImages: true,
-    overwriteExisting: false,
-    lockMetadata: false,
-  });
-
-  // Initialize options from session
-  useEffect(() => {
-    if (session?.options) {
-      setOptions(session.options);
-    }
-  }, [session]);
+  // Draft wins once the user toggles anything; until then the options come from
+  // the restore session, falling back to these defaults while it loads. This
+  // replaces an effect that copied session.options into state — which also meant
+  // a late-arriving session response could wipe toggles the user had just set.
+  const [optionsDraft, setOptionsDraft] = useState<RestoreOptions | null>(null);
+  const options: RestoreOptions =
+    optionsDraft ?? session?.options ?? DEFAULT_RESTORE_OPTIONS;
 
   const handleOptionChange = (key: keyof RestoreOptions, value: boolean) => {
-    setOptions((prev) => ({
-      ...prev,
+    setOptionsDraft({
+      ...options,
       [key]: value,
-    }));
+    });
   };
 
   const handleNext = async () => {

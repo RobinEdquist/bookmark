@@ -22,8 +22,14 @@ export function MobileLibraryHeader({
   isAdmin,
 }: MobileLibraryHeaderProps) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchExpanded, setSearchExpanded] = useState(false);
+  const [searchToggled, setSearchToggled] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // An active search always counts as expanded, so this is derived rather than a
+  // second source of truth kept in step by an effect. The effect it replaces
+  // (`if (searchValue && !searchExpanded) setSearchExpanded(true)`) reopened the
+  // field one render *after* the value arrived.
+  const searchExpanded = searchToggled || !!searchValue;
 
   // Focus input when search expands
   useEffect(() => {
@@ -32,21 +38,14 @@ export function MobileLibraryHeader({
     }
   }, [searchExpanded]);
 
-  // If there's a search value, show expanded search
-  useEffect(() => {
-    if (searchValue && !searchExpanded) {
-      setSearchExpanded(true);
-    }
-  }, [searchValue, searchExpanded]);
-
   const handleClearSearch = () => {
     onSearchChange("");
-    setSearchExpanded(false);
+    setSearchToggled(false);
   };
 
   const handleCollapseSearch = () => {
     if (!searchValue) {
-      setSearchExpanded(false);
+      setSearchToggled(false);
     }
   };
 
@@ -103,7 +102,7 @@ export function MobileLibraryHeader({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setSearchExpanded(true)}
+                onClick={() => setSearchToggled(true)}
                 className="shrink-0"
               >
                 <Search className="h-5 w-5" />

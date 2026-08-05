@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Megaphone, Pencil, Trash2 } from "lucide-react";
@@ -346,25 +346,46 @@ function EditAnnouncementDialog({
   onOpenChange,
 }: EditAnnouncementDialogProps) {
   const t = useTranslations("settings.announcements");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("editDialog.title")}</DialogTitle>
+          <DialogDescription>{t("editDialog.description")}</DialogDescription>
+        </DialogHeader>
+        {announcement && (
+          <EditAnnouncementForm
+            announcement={announcement}
+            onOpenChange={onOpenChange}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Split out so opening the dialog creates the form's state instead of an effect
+ * re-syncing it. DialogContent unmounts while closed, so this mounts fresh each
+ * time and useState seeds from the announcement being edited.
+ */
+function EditAnnouncementForm({
+  announcement,
+  onOpenChange,
+}: {
+  announcement: AdminAnnouncement;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const t = useTranslations("settings.announcements");
   const updateAnnouncement = useUpdateAnnouncement();
 
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
-  const [isActive, setIsActive] = useState(true);
-
-  // Populate form when dialog opens with announcement data
-  useEffect(() => {
-    if (open && announcement) {
-      setTitle(announcement.title);
-      setMessage(announcement.message);
-      setIsActive(announcement.isActive);
-    }
-  }, [open, announcement]);
+  const [title, setTitle] = useState(announcement.title);
+  const [message, setMessage] = useState(announcement.message);
+  const [isActive, setIsActive] = useState(announcement.isActive);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!announcement) return;
 
     try {
       await updateAnnouncement.mutateAsync({
@@ -381,67 +402,59 @@ function EditAnnouncementDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("editDialog.title")}</DialogTitle>
-          <DialogDescription>{t("editDialog.description")}</DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit-title">{t("createDialog.titleLabel")}</Label>
-            <Input
-              id="edit-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={t("createDialog.titlePlaceholder")}
-              required
-            />
-          </div>
+<form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="edit-title">{t("createDialog.titleLabel")}</Label>
+        <Input
+          id="edit-title"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={t("createDialog.titlePlaceholder")}
+          required
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-message">{t("createDialog.messageLabel")}</Label>
-            <Textarea
-              id="edit-message"
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={t("createDialog.messagePlaceholder")}
-              rows={3}
-              required
-            />
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="edit-message">{t("createDialog.messageLabel")}</Label>
+        <Textarea
+          id="edit-message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          placeholder={t("createDialog.messagePlaceholder")}
+          rows={3}
+          required
+        />
+      </div>
 
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div>
-              <Label htmlFor="edit-active">{t("createDialog.isActiveLabel")}</Label>
-              <p className="text-xs text-muted-foreground">
-                {t("createDialog.isActiveDescription")}
-              </p>
-            </div>
-            <Switch
-              id="edit-active"
-              checked={isActive}
-              onCheckedChange={setIsActive}
-            />
-          </div>
+      <div className="flex items-center justify-between rounded-lg border p-3">
+        <div>
+          <Label htmlFor="edit-active">{t("createDialog.isActiveLabel")}</Label>
+          <p className="text-xs text-muted-foreground">
+            {t("createDialog.isActiveDescription")}
+          </p>
+        </div>
+        <Switch
+          id="edit-active"
+          checked={isActive}
+          onCheckedChange={setIsActive}
+        />
+      </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={updateAnnouncement.isPending}>
-              {updateAnnouncement.isPending
-                ? t("editDialog.saving")
-                : t("editDialog.save")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={updateAnnouncement.isPending}>
+          {updateAnnouncement.isPending
+            ? t("editDialog.saving")
+            : t("editDialog.save")}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
 

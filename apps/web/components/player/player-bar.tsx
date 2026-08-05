@@ -125,13 +125,18 @@ export function PlayerBar() {
   // Progress mode: 'book' shows total book progress, 'chapter' shows current chapter progress
   const [progressMode, setProgressMode] = useState<"book" | "chapter">("book");
 
+  // Read the chapter list out before the memo. Mixing `audiobook?.chapters`
+  // with `audiobook.chapters` inside the callback widened the compiler's
+  // inferred dependency past the declared deps, skipping the optimisation.
+  const chapters = audiobook?.chapters;
+
   // Calculate chapter-relative progress values
   const chapterProgress = useMemo(() => {
-    if (!currentChapter || !audiobook?.chapters) {
+    if (!currentChapter || !chapters) {
       return { position: 0, duration: 0 };
     }
 
-    const sortedChapters = [...audiobook.chapters].sort(
+    const sortedChapters = [...chapters].sort(
       (a, b) => a.startTime - b.startTime
     );
     const chapterIndex = sortedChapters.findIndex(
@@ -148,7 +153,7 @@ export function PlayerBar() {
       position: Math.max(0, chapterPosition),
       duration: Math.max(0, chapterDuration),
     };
-  }, [currentChapter, currentPosition, duration, audiobook?.chapters]);
+  }, [currentChapter, currentPosition, duration, chapters]);
 
   // Determine which values to use for the slider based on progress mode
   const hasChapters = (audiobook?.chapters?.length ?? 0) > 0;

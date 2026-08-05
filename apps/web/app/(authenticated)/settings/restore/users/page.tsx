@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -39,22 +39,16 @@ export default function RestoreUsersPage() {
   const { data: savUsers, isLoading: usersLoading } = useBookmarkUsers();
   const setUserMappingsMutation = useSetUserMappings();
 
-  // Local state for user mappings
-  const [userMappings, setUserMappings] = useState<UserMapping[]>([]);
-
-  // Initialize user mappings from session
-  useEffect(() => {
-    if (session?.userMappings) {
-      setUserMappings(session.userMappings);
-    }
-  }, [session?.userMappings]);
+  // Draft wins once the user touches the control; until then the value comes
+  // straight from the restore session. This replaces an effect that copied the
+  // session value into state and needed a guard to avoid overwriting edits.
+  const [mappingsDraft, setMappingsDraft] = useState<UserMapping[] | null>(null);
+  const userMappings = mappingsDraft ?? session?.userMappings ?? [];
 
   const handleMappingChange = (absUserId: string, savUserId: string | null) => {
-    setUserMappings((prev) =>
-      prev.map((mapping) =>
-        mapping.absUserId === absUserId
-          ? { ...mapping, savUserId }
-          : mapping
+    setMappingsDraft(
+      userMappings.map((mapping) =>
+        mapping.absUserId === absUserId ? { ...mapping, savUserId } : mapping
       )
     );
   };

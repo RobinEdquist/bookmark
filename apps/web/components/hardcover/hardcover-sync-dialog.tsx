@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -44,7 +44,7 @@ export function HardcoverSyncDialog({
   const t = useTranslations("common.hardcoverSync");
   const [page, setPage] = useState(1);
   const [selectedBook, setSelectedBook] = useState<HardcoverBookDocument | null>(null);
-  const [searchInput, setSearchInput] = useState("");
+  const [searchDraft, setSearchDraft] = useState<string | null>(null);
   const [customQuery, setCustomQuery] = useState<string | undefined>(undefined);
 
   const { data, isLoading, error } = useHardcoverSearchPaginated(
@@ -56,12 +56,11 @@ export function HardcoverSyncDialog({
     customQuery
   );
 
-  // Update search input when we get the default query from the API
-  useEffect(() => {
-    if (data?.query && !customQuery) {
-      setSearchInput(data.query);
-    }
-  }, [data?.query, customQuery]);
+  // Until the user edits the box it mirrors the default query the API derived
+  // from the title; once they type, the draft wins. This replaces an effect that
+  // copied data.query into state, which spent an extra render on every search
+  // response and leaned on a `!customQuery` guard to avoid clobbering typing.
+  const searchInput = searchDraft ?? data?.query ?? "";
 
   const { linkMedia, isLinking } = useHardcoverLinkMedia();
 
@@ -92,7 +91,7 @@ export function HardcoverSyncDialog({
   const handleClose = () => {
     setSelectedBook(null);
     setPage(1);
-    setSearchInput("");
+    setSearchDraft(null);
     setCustomQuery(undefined);
     onOpenChange(false);
   };
@@ -126,7 +125,7 @@ export function HardcoverSyncDialog({
             <Input
               type="text"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
+              onChange={(e) => setSearchDraft(e.target.value)}
               placeholder={t("searchPlaceholder")}
               className="pl-9"
             />

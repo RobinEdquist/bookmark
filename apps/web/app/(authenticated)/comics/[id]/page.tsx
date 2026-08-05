@@ -53,6 +53,7 @@ import { ComicvineMatchDialog } from "../../../../components/comicvine/comicvine
 import { ComicvineLinkCard } from "../../../../components/comicvine/comicvine-link-card";
 import { DetailHeaderActions } from "../../../../components/layout/detail-header-actions";
 import type { ComicCreatorRole, ComicBookListItem } from "../../../../lib/use-comics";
+import { COLLAPSED_DESCRIPTION_HEIGHT } from "../../../../lib/constants/description";
 
 export default function ComicSeriesDetailPage({
   params,
@@ -79,7 +80,12 @@ export default function ComicSeriesDetailPage({
   const [editBookId, setEditBookId] = useState<string | null>(null);
   const [coverBookId, setCoverBookId] = useState<string | null>(null);
   const [deleteBookId, setDeleteBookId] = useState<string | null>(null);
-  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  // Full rendered height of the description, measured after commit — see the
+  // audiobook detail page for why this is state rather than a render-time read
+  // of descriptionRef.current.scrollHeight.
+  const [descriptionFullHeight, setDescriptionFullHeight] = useState<
+    number | null
+  >(null);
 
   // Batch selection state
   const [selectionMode, setSelectionMode] = useState(false);
@@ -95,31 +101,40 @@ export default function ComicSeriesDetailPage({
   const { isConfigured: isComicvineConfigured } = useComicvineStatus(isAdmin);
   const [comicvineMatchOpen, setComicvineMatchOpen] = useState(false);
 
+  // Read out of `series` before the memos: mixing `series?.x` with `series.x`
+  // inside one callback widens the compiler's inferred dependency to `series`
+  // itself, which stops matching the declared deps and drops the optimisation.
+  const description = series?.description;
+  const creators = series?.creators;
+
   const sanitizedDescription = useMemo(
-    () =>
-      series?.description ? DOMPurify.sanitize(series.description) : "",
-    [series?.description],
+    () => (description ? DOMPurify.sanitize(description) : ""),
+    [description],
   );
 
+  const descriptionOverflows =
+    descriptionFullHeight !== null &&
+    descriptionFullHeight > COLLAPSED_DESCRIPTION_HEIGHT;
+
   useEffect(() => {
-    if (descriptionRef.current) {
-      setDescriptionOverflows(descriptionRef.current.scrollHeight > 200);
-    }
-  }, [series?.description]);
+    const el = descriptionRef.current;
+    if (!el) return;
+    setDescriptionFullHeight(el.scrollHeight);
+  }, [sanitizedDescription]);
 
   // Group creators by role for the aggregated creators block
   const creatorsByRole = useMemo(() => {
-    if (!series?.creators || series.creators.length === 0) {
+    if (!creators || creators.length === 0) {
       return new Map<ComicCreatorRole, string[]>();
     }
     const map = new Map<ComicCreatorRole, string[]>();
-    for (const creator of series.creators) {
+    for (const creator of creators) {
       const existing = map.get(creator.role) ?? [];
       existing.push(creator.name);
       map.set(creator.role, existing);
     }
     return map;
-  }, [series?.creators]);
+  }, [creators]);
 
   // Split books into the numbered run, side material (specials/annuals), and
   // collected editions so the series view mirrors how the backend treats them.
@@ -522,8 +537,8 @@ export default function ComicSeriesDetailPage({
                     className="overflow-hidden text-sm leading-relaxed text-muted-foreground transition-[max-height] duration-300 ease-in-out [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_em]:italic [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4"
                     style={{
                       maxHeight: descriptionExpanded
-                        ? (descriptionRef.current?.scrollHeight ?? 9999)
-                        : 200,
+                        ? (descriptionFullHeight ?? 9999)
+                        : COLLAPSED_DESCRIPTION_HEIGHT,
                     }}
                     dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                   />

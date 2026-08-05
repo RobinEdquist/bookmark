@@ -23,7 +23,7 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { useSettings } from "../../lib/use-settings";
 import { useAuthConfig } from "../../lib/use-auth-config";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export function AuthenticationSettings() {
   const t = useTranslations("settings.authentication");
@@ -31,13 +31,15 @@ export function AuthenticationSettings() {
     useSettings();
   const { data: authConfig } = useAuthConfig();
 
-  const [oidcButtonText, setOidcButtonText] = useState("");
+  // Draft wins once the user types; until then the field shows the saved value.
+  // Deriving it also makes the dirty check below (`!== settings?.oidcButtonText`)
+  // honest: with the old effect, a settings refetch pushed the server value into
+  // state and silently marked the field clean again mid-edit.
+  const [oidcButtonTextDraft, setOidcButtonTextDraft] = useState<string | null>(
+    null,
+  );
 
-  useEffect(() => {
-    if (settings?.oidcButtonText) {
-      setOidcButtonText(settings.oidcButtonText);
-    }
-  }, [settings?.oidcButtonText]);
+  const oidcButtonText = oidcButtonTextDraft ?? settings?.oidcButtonText ?? "";
 
   const handleSignupsToggle = async (enabled: boolean) => {
     try {
@@ -206,7 +208,7 @@ export function AuthenticationSettings() {
                   <Input
                     id="oidc-button-text"
                     value={oidcButtonText}
-                    onChange={(e) => setOidcButtonText(e.target.value)}
+                    onChange={(e) => setOidcButtonTextDraft(e.target.value)}
                     placeholder={t("oidc.buttonText.placeholder")}
                     maxLength={50}
                     disabled={isUpdating}

@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+
+import { useSessionStorageValue } from "./use-session-storage-value";
 
 type LibraryPath = "/audiobooks" | "/ebooks" | "/comics";
 
@@ -27,14 +29,8 @@ export function useSaveLibraryUrl(libraryPath: LibraryPath) {
  * Returns the saved URL with search params, or falls back to the base library path.
  */
 export function useLibraryReturnUrl(libraryPath: LibraryPath): string {
-  const [returnUrl, setReturnUrl] = useState<string>(libraryPath);
-
-  useEffect(() => {
-    const saved = sessionStorage.getItem(`${libraryPath}-return-url`);
-    if (saved) {
-      setReturnUrl(saved);
-    }
-  }, [libraryPath]);
-
-  return returnUrl;
+  // Read during render rather than syncing into state from an effect, so the
+  // back link points at the saved URL on the first paint instead of pointing at
+  // the bare library path for a frame.
+  return useSessionStorageValue(`${libraryPath}-return-url`) ?? libraryPath;
 }

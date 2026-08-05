@@ -12,6 +12,7 @@ import {
   useUpdateEbookProgress,
 } from "../../../lib/use-ebook-progress";
 import { useReaderSettings } from "../../../lib/use-reader-settings";
+import { useLatestRef } from "../../../lib/use-latest-ref";
 import { readerThemes } from "../../../lib/reader-themes";
 import { useTheme } from "../../../lib/use-theme";
 import { FoliateReader } from "./foliate-reader";
@@ -60,8 +61,8 @@ export default function ReaderShell({ ebookId }: ReaderShellProps) {
     null,
   );
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const updateProgressRef = useRef(updateProgress);
-  updateProgressRef.current = updateProgress;
+  // Assigned in an effect rather than during render — see useLatestRef.
+  const updateProgressRef = useLatestRef(updateProgress);
 
   const close = useCallback(() => {
     router.push(`/ebooks/${ebookId}`);
@@ -80,7 +81,7 @@ export default function ReaderShell({ ebookId }: ReaderShellProps) {
       cfi: pending.locator,
       progressPercent: pending.percent,
     });
-  }, [ebookId]);
+  }, [ebookId, updateProgressRef]);
 
   const handleRelocate = useCallback(
     (info: ReaderRelocateInfo) => {

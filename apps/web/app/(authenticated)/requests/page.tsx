@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
@@ -36,19 +36,24 @@ export default function RequestsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useUrlTab<ViewTab>("tab", "search", VIEW_TABS);
   const [contentType, setContentType] = useUrlTab<ContentType>("type", "all", CONTENT_TYPES);
-  const [filters, setFilters] = useState<SearchFilters>({
-    contentType: "all",
+  // contentType lives in the URL (useUrlTab above), so it is spread in here
+  // rather than mirrored into filters by an effect — that effect re-rendered the
+  // page a second time on every tab change just to restate what the URL said.
+  const [filterOverrides, setFilterOverrides] = useState<SearchFilters>({
     searchIn: ["title", "author"],
     perPage: 25,
   });
+  // contentType is spread in last, so the URL always wins over anything the
+  // filters panel reports for it.
+  const filters: SearchFilters = { ...filterOverrides, contentType };
 
-  // Sync contentType URL param to filters
-  useEffect(() => {
-    setFilters((prev) => ({ ...prev, contentType }));
-  }, [contentType]);
-
-  // Local state for search results (to update without re-fetching from external API)
-  const [localSearchResults, setLocalSearchResults] = useState<TrackerSearchResult[]>([]);
+  // Locally patched search results, so marking an item "requested" doesn't need
+  // another round trip to the tracker. Null means "show the response as-is";
+  // starting a new search resets to null so a stale patch can't leak across
+  // searches (the effect this replaces did that by overwriting on every response).
+  const [patchedResults, setPatchedResults] = useState<
+    TrackerSearchResult[] | null
+  >(null);
   const [librarySearchQuery, setLibrarySearchQuery] = useState("");
 
   const { search, isSearching, data: searchResults } = useTrackerSearch();
@@ -60,17 +65,13 @@ export default function RequestsPage() {
     contentType
   );
 
-  // Sync local state with search mutation data
-  useEffect(() => {
-    if (searchResults?.results) {
-      setLocalSearchResults(searchResults.results);
-    }
-  }, [searchResults]);
+  const localSearchResults = patchedResults ?? searchResults?.results ?? [];
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       // Trigger both searches in parallel
+      setPatchedResults(null);
       setLibrarySearchQuery(searchQuery.trim());
       await search(searchQuery.trim(), filters);
     }
@@ -86,8 +87,8 @@ export default function RequestsPage() {
     );
 
     // Update local search results to show "requested" status (no external API call)
-    setLocalSearchResults((prev) =>
-      prev.map((result) =>
+    setPatchedResults(
+      localSearchResults.map((result) =>
         result.id === item.torrentId
           ? { ...result, existingRequestId: newRequest.id, existingRequestStatus: "pending" as const }
           : result
@@ -157,7 +158,7 @@ export default function RequestsPage() {
           </Button>
         </form>
 
-        <SearchFiltersPanel filters={filters} onChange={setFilters} />
+        <SearchFiltersPanel filters={filters} onChange={setFilterOverrides} />
 
         {/* Library search has no comics support yet, so the matches section
             is hidden for that filter */}

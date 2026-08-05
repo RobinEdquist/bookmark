@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Key, Plus, Trash2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ import {
   type ApiKeyCreated,
   type ApiKeyInfo,
 } from "../../lib/use-api-keys";
+import { useOrigin } from "../../lib/use-origin";
 import { ApiKeyCreatedDialog } from "./api-key-created-dialog";
 import { CreateApiKeyDialog } from "./create-api-key-dialog";
 import { RevokeApiKeyDialog } from "./revoke-api-key-dialog";
@@ -34,14 +35,10 @@ export function ApiKeysSettings() {
   const [createdKey, setCreatedKey] = useState<ApiKeyCreated | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [revokeTarget, setRevokeTarget] = useState<ApiKeyInfo | null>(null);
-  const [serverUrl, setServerUrl] = useState("");
   const [urlCopied, setUrlCopied] = useState(false);
+  const serverUrl = useOrigin();
 
   const atLimit = apiKeys.length >= MAX_API_KEYS;
-
-  useEffect(() => {
-    setServerUrl(window.location.origin);
-  }, []);
 
   const handleCopyUrl = async () => {
     try {
