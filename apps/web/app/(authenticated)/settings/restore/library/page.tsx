@@ -25,7 +25,7 @@ export default function LibraryPage() {
   const t = useTranslations("settings.restore");
   const sessionId = searchParams.get("session");
 
-  const [selectedLibraryId, setSelectedLibraryId] = useState<string>("");
+  const [libraryPick, setLibraryPick] = useState<string | null>(null);
 
   const { data: session, isLoading, error } = useRestoreSession(sessionId);
   const selectLibrary = useSelectLibrary();
@@ -45,12 +45,10 @@ export default function LibraryPage() {
     }
   }, [sessionId, router, t]);
 
-  // Pre-select library if already selected in session
-  useEffect(() => {
-    if (session?.selectedLibraryId && !selectedLibraryId) {
-      setSelectedLibraryId(session.selectedLibraryId);
-    }
-  }, [session?.selectedLibraryId, selectedLibraryId]);
+  // Draft wins once the user touches the control; until then the value comes
+  // straight from the restore session. This replaces an effect that copied the
+  // session value into state and needed a guard to avoid overwriting edits.
+  const selectedLibraryId = libraryPick ?? session?.selectedLibraryId ?? "";
 
   const handleNext = async () => {
     if (!sessionId || !selectedLibraryId) return;
@@ -130,7 +128,7 @@ export default function LibraryPage() {
           </Label>
           <RadioGroup
             value={selectedLibraryId}
-            onValueChange={setSelectedLibraryId}
+            onValueChange={setLibraryPick}
             className="space-y-3"
           >
             {availableLibraries.map((library) => (

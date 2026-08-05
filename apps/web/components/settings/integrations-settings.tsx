@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
@@ -104,11 +104,11 @@ export function IntegrationsSettings() {
   const { voices: savedTtsVoices } = useTtsVoices(
     !!ttsStatus?.configured && !!ttsStatus?.enabled,
   );
-  const [ttsBaseUrl, setTtsBaseUrl] = useState("");
+  const [ttsBaseUrlDraft, setTtsBaseUrlDraft] = useState<string | null>(null);
   const [ttsApiKey, setTtsApiKey] = useState("");
-  const [ttsVoice, setTtsVoice] = useState("af_heart");
-  const [ttsSpeed, setTtsSpeed] = useState("1");
-  const [ttsModel, setTtsModel] = useState("kokoro");
+  const [ttsVoiceDraft, setTtsVoiceDraft] = useState<string | null>(null);
+  const [ttsSpeedDraft, setTtsSpeedDraft] = useState<string | null>(null);
+  const [ttsModelDraft, setTtsModelDraft] = useState<string | null>(null);
   const [ttsTestResult, setTtsTestResult] = useState<TtsValidateResult | null>(
     null,
   );
@@ -120,33 +120,40 @@ export function IntegrationsSettings() {
   );
 
   // Category configuration state
-  const [audiobookCategory, setAudiobookCategory] = useState("");
-  const [ebookCategory, setEbookCategory] = useState("");
-  const [comicsCategory, setComicsCategory] = useState("");
+  const [audiobookCategoryDraft, setAudiobookCategoryDraft] = useState<
+    string | null
+  >(null);
+  const [ebookCategoryDraft, setEbookCategoryDraft] = useState<string | null>(
+    null,
+  );
+  const [comicsCategoryDraft, setComicsCategoryDraft] = useState<string | null>(
+    null,
+  );
   const [isSavingCategories, setIsSavingCategories] = useState(false);
 
   // Auto-approve limit state
-  const [autoApproveLimit, setAutoApproveLimit] = useState(0);
+  const [autoApproveLimitDraft, setAutoApproveLimitDraft] = useState<
+    number | null
+  >(null);
 
-  // Sync category state when settings load
-  useEffect(() => {
-    if (settings) {
-      setAudiobookCategory(settings.requestsAudiobookCategory);
-      setEbookCategory(settings.requestsEbookCategory);
-      setComicsCategory(settings.requestsComicsCategory);
-      setAutoApproveLimit(settings.autoApproveRequestsPerWeek ?? 0);
-    }
-  }, [settings]);
+  // Every field below shows the saved value until the admin edits it, then their
+  // draft. These were two effects that copied the query results into state; each
+  // cost an extra render, and a background refetch landing mid-edit would quietly
+  // replace whatever had been typed but not yet saved.
+  const audiobookCategory =
+    audiobookCategoryDraft ?? settings?.requestsAudiobookCategory ?? "";
+  const ebookCategory =
+    ebookCategoryDraft ?? settings?.requestsEbookCategory ?? "";
+  const comicsCategory =
+    comicsCategoryDraft ?? settings?.requestsComicsCategory ?? "";
+  const autoApproveLimit =
+    autoApproveLimitDraft ?? settings?.autoApproveRequestsPerWeek ?? 0;
 
-  // Sync TTS form state when the saved config loads
-  useEffect(() => {
-    if (ttsStatus) {
-      setTtsBaseUrl(ttsStatus.baseUrl ?? "");
-      setTtsVoice(ttsStatus.voice);
-      setTtsSpeed(String(ttsStatus.speed));
-      setTtsModel(ttsStatus.model);
-    }
-  }, [ttsStatus]);
+  const ttsBaseUrl = ttsBaseUrlDraft ?? ttsStatus?.baseUrl ?? "";
+  const ttsVoice = ttsVoiceDraft ?? ttsStatus?.voice ?? "af_heart";
+  const ttsSpeed =
+    ttsSpeedDraft ?? (ttsStatus ? String(ttsStatus.speed) : "1");
+  const ttsModel = ttsModelDraft ?? ttsStatus?.model ?? "kokoro";
 
   const handleTtsEnabledToggle = async (enabled: boolean) => {
     try {
@@ -392,7 +399,7 @@ export function IntegrationsSettings() {
 
   const handleAutoApproveLimitChange = async (value: number) => {
     const newValue = Math.max(0, value);
-    setAutoApproveLimit(newValue);
+    setAutoApproveLimitDraft(newValue);
     try {
       await updateSettings({
         autoApproveRequestsPerWeek: newValue,
@@ -502,7 +509,7 @@ export function IntegrationsSettings() {
                   <Input
                     id="audiobook-category"
                     value={audiobookCategory}
-                    onChange={(e) => setAudiobookCategory(e.target.value)}
+                    onChange={(e) => setAudiobookCategoryDraft(e.target.value)}
                     placeholder="audiobooks"
                   />
                 </div>
@@ -514,7 +521,7 @@ export function IntegrationsSettings() {
                   <Input
                     id="ebook-category"
                     value={ebookCategory}
-                    onChange={(e) => setEbookCategory(e.target.value)}
+                    onChange={(e) => setEbookCategoryDraft(e.target.value)}
                     placeholder="books"
                   />
                 </div>
@@ -526,7 +533,7 @@ export function IntegrationsSettings() {
                   <Input
                     id="comics-category"
                     value={comicsCategory}
-                    onChange={(e) => setComicsCategory(e.target.value)}
+                    onChange={(e) => setComicsCategoryDraft(e.target.value)}
                     placeholder="comics"
                   />
                 </div>
@@ -1014,7 +1021,7 @@ export function IntegrationsSettings() {
                 id="tts-base-url"
                 placeholder="http://tts:8880"
                 value={ttsBaseUrl}
-                onChange={(e) => setTtsBaseUrl(e.target.value)}
+                onChange={(e) => setTtsBaseUrlDraft(e.target.value)}
                 disabled={isTtsSaving}
               />
               <p className="text-sm text-muted-foreground">
@@ -1042,7 +1049,7 @@ export function IntegrationsSettings() {
               <div className="space-y-2">
                 <Label htmlFor="tts-voice">{t("tts.voiceLabel")}</Label>
                 {(ttsTestResult?.voices ?? savedTtsVoices) ? (
-                  <Select value={ttsVoice} onValueChange={setTtsVoice}>
+                  <Select value={ttsVoice} onValueChange={setTtsVoiceDraft}>
                     <SelectTrigger id="tts-voice">
                       <SelectValue />
                     </SelectTrigger>
@@ -1067,7 +1074,7 @@ export function IntegrationsSettings() {
                   <Input
                     id="tts-voice"
                     value={ttsVoice}
-                    onChange={(e) => setTtsVoice(e.target.value)}
+                    onChange={(e) => setTtsVoiceDraft(e.target.value)}
                     disabled={isTtsSaving}
                   />
                 )}
@@ -1075,7 +1082,7 @@ export function IntegrationsSettings() {
 
               <div className="space-y-2">
                 <Label htmlFor="tts-speed">{t("tts.speedLabel")}</Label>
-                <Select value={ttsSpeed} onValueChange={setTtsSpeed}>
+                <Select value={ttsSpeed} onValueChange={setTtsSpeedDraft}>
                   <SelectTrigger id="tts-speed">
                     <SelectValue />
                   </SelectTrigger>
@@ -1094,7 +1101,7 @@ export function IntegrationsSettings() {
                 <Input
                   id="tts-model"
                   value={ttsModel}
-                  onChange={(e) => setTtsModel(e.target.value)}
+                  onChange={(e) => setTtsModelDraft(e.target.value)}
                   disabled={isTtsSaving}
                 />
               </div>

@@ -25,7 +25,7 @@ export default function PathsPage() {
   const t = useTranslations("settings.restore");
   const sessionId = searchParams.get("session");
 
-  const [savPath, setSavPath] = useState<string>("");
+  const [savPathDraft, setSavPathDraft] = useState<string | null>(null);
 
   const { data: session, isLoading, error } = useRestoreSession(sessionId);
   const setPathMappings = useSetPathMappings();
@@ -41,12 +41,11 @@ export default function PathsPage() {
     }
   }, [sessionId, router, t]);
 
-  // Pre-fill SAV path if already set in session
-  useEffect(() => {
-    if (session?.pathMappings?.[0]?.savPath && !savPath) {
-      setSavPath(session.pathMappings[0].savPath);
-    }
-  }, [session?.pathMappings, savPath]);
+  // Draft wins once the user touches the control; until then the value comes
+  // straight from the restore session. This replaces an effect that copied the
+  // session value into state and needed a guard to avoid overwriting edits.
+  const savPath =
+    savPathDraft ?? session?.pathMappings?.[0]?.savPath ?? "";
 
   const handleNext = async () => {
     if (!sessionId || !savPath) return;
@@ -171,7 +170,7 @@ export default function PathsPage() {
                 id="sav-path"
                 type="text"
                 value={savPath}
-                onChange={(e) => setSavPath(e.target.value)}
+                onChange={(e) => setSavPathDraft(e.target.value)}
                 placeholder="/media/audiobooks"
                 className="flex-1 font-mono"
               />
