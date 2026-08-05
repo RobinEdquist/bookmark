@@ -5,7 +5,7 @@ NestJS REST API for the Bookmark audiobook management platform.
 ## Prerequisites
 
 - **Node.js** 20.x or later
-- **PostgreSQL** 16.x
+- **PostgreSQL** 18.x
 - **pnpm** 9.x
 - **FFmpeg** (required for M4B chapter extraction)
 

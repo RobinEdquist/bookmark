@@ -360,9 +360,8 @@ export default function GetStarted() {
             <code className="ui-path">bookmark</code> environment and the
             built-in database never starts &mdash; Bookmark connects to yours
             instead. Create an empty database and a user that owns it; the
-            schema is applied on first start. Needs PostgreSQL 16 or newer, and
-            permission to create extensions. Everything else in this guide is
-            unchanged.
+            schema is applied on first start. The user needs permission to
+            create extensions. Everything else in this guide is unchanged.
           </div>
           <div className="note">
             <strong>Backups.</strong> Everything Bookmark writes lives in the{" "}

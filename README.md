@@ -22,14 +22,14 @@ Beyond the media itself:
 - **Multiple users** — everyone gets their own progress, lists, and preferences, with per-user permissions for editing metadata, uploading, or issuing API keys. Tag-based filters can keep certain content out of certain accounts.
 - **SSO** — optional OpenID Connect, so it slots into an existing Authentik / Keycloak / Authelia setup.
 - **Live updates** — scans and imports report progress over WebSocket instead of making you refresh.
-- **A REST API** — documented with Swagger, intended to keep the door open for native mobile apps later.
+- **A REST API** — documented with an OpenAPI spec, intended to keep the door open for native mobile apps later.
 - **Yours to make your own** — light and dark themes, custom accent colors, and currently shipping in English and Swedish (more translations very welcome).
 
 It's honest about where it is, too. The AudiobookShelf importer wants more real-world mileage before anyone calls it stable, and the API — fully documented, but young — can still change shape between releases. The [roadmap](#roadmap) is the source of truth.
 
 ## Tech stack
 
-It's a TypeScript monorepo (Turborepo + pnpm) with two apps.
+It's a TypeScript monorepo (Turborepo + pnpm). Bookmark itself is two apps — the web app and the API, which is what the table below describes — alongside a third, the static marketing site, which is never part of a deployment.
 
 | Area           | Built with                                                          |
 | -------------- | ------------------------------------------------------------------- |
@@ -44,7 +44,7 @@ The frontend talks to the API over a Next.js proxy, which keeps the same setup w
 
 ## Running it
 
-The quickest path is Docker. Bookmark ships as a single image — web app, API, and database together — so it's one container and one command, with no database to set up. If you'd rather use a Postgres server you already run, [point it at one](#using-your-own-postgres). You'll need Docker and Docker Compose; for local development you'll also want Node.js 20+, PostgreSQL 16+, pnpm 9+, and FFmpeg.
+The quickest path is Docker. Bookmark ships as a single image — web app, API, and database together — so it's one container and one command, with no database to set up. If you'd rather use a Postgres server you already run, [point it at one](#using-your-own-postgres). You'll need Docker and Docker Compose; for local development you'll also want Node.js 20+, PostgreSQL 18, pnpm 9+, and FFmpeg.
 
 ```bash
 git clone https://github.com/RobinEdquist/bookmark.git
@@ -181,7 +181,7 @@ Set `DATABASE_URL` and the built-in server never starts — Bookmark connects ou
 DATABASE_URL=postgresql://bookmark:password@db.example.com:5432/bookmark
 ```
 
-Create an empty database and a user that owns it; Bookmark applies its own schema on first start. It needs **PostgreSQL 16 or newer**, and the user needs permission to create extensions (search uses `pg_trgm`).
+Create an empty database and a user that owns it; Bookmark applies its own schema on first start. The user needs permission to create extensions (search uses `pg_trgm`).
 
 Running one in Compose alongside Bookmark:
 
@@ -247,7 +247,7 @@ What's actually next, and what's honestly unfinished. Roughly in the order it's 
 **In progress**
 
 - **AudiobookShelf import** — brings a library across from AudiobookShelf, including per-user progress. It works; what it hasn't had yet is mileage on libraries other than the ones it was built against. Calling it stable needs that feedback first, so if you migrate, reports of what did and didn't survive are genuinely useful.
-- **The REST API** — The api is documented with Swagger. It just isn't being called stable yet: names and shapes can still change between releases, and some aren't truly correct at the moment, therefore work in progress.
+- **The REST API** — The api has an OpenAPI spec, browsable through Swagger UI. It just isn't being called stable yet: names and shapes can still change between releases, and some aren't truly correct at the moment, therefore work in progress.
 
 **Later**
 
@@ -284,7 +284,7 @@ pnpm test             # unit tests
 pnpm test:e2e         # end-to-end tests
 ```
 
-API docs (Swagger) live at `http://localhost:3000/api/docs` once the backend is up. The repo is laid out as `apps/web` (Next.js), `apps/backend` (NestJS), and `apps/website` (the static marketing site, dev server on :3002), with shared code under `packages/`.
+Swagger UI lives at `http://localhost:3000/api/docs` once the backend is up, and the raw OpenAPI document at `http://localhost:3000/api/docs-json` (or `pnpm --filter backend openapi:export` to write it to a file). The repo is laid out as `apps/web` (Next.js), `apps/backend` (NestJS), and `apps/website` (the static marketing site, dev server on :3002), with shared code under `packages/`.
 
 ## Thanks to
 
