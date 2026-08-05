@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +76,24 @@ interface InitialFormState {
   tags: string[];
 }
 
+/** The form's values as they exist on the server, for seeding and diffing. */
+function toFormState(series: ComicSeriesDetail): InitialFormState {
+  return {
+    title: series.title || "",
+    sortTitle: series.sortTitle || "",
+    description: series.description || "",
+    publisher: series.publisher || "",
+    imprint: series.imprint || "",
+    startYear: series.startYear != null ? String(series.startYear) : "",
+    totalIssueCount:
+      series.totalIssueCount != null ? String(series.totalIssueCount) : "",
+    language: series.language || "",
+    ageRating: series.ageRating || "",
+    genres: series.genres.map((g) => g.name),
+    tags: series.tags.map((t) => t.name),
+  };
+}
+
 interface EditComicSeriesDialogProps {
   series: ComicSeriesListItem | ComicSeriesDetail | null;
   open: boolean;
@@ -93,12 +111,6 @@ export function EditComicSeriesDialog({
   seriesIds,
   onNavigate,
 }: EditComicSeriesDialogProps) {
-  const t = useTranslations("comics.edit");
-  const updateSeries = useUpdateComicSeries();
-  const { data: existingPublishers = [] } = useComicPublishers();
-  const { data: existingGenres = [] } = useComicGenres();
-  const { data: existingTags = [] } = useTags();
-
   // For list items, fetch full details only when dialog is open
   const isListItem = series && !("description" in series);
   const { data: fullSeries } = useComicSeriesDetail(
@@ -107,21 +119,71 @@ export function EditComicSeriesDialog({
 
   const seriesData = isListItem ? fullSeries : (series as ComicSeriesDetail);
 
-  // Form state
-  const [title, setTitle] = useState("");
-  const [sortTitle, setSortTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [publisher, setPublisher] = useState("");
-  const [imprint, setImprint] = useState("");
-  const [startYear, setStartYear] = useState("");
-  const [totalIssueCount, setTotalIssueCount] = useState("");
-  const [language, setLanguage] = useState("");
-  const [ageRating, setAgeRating] = useState("");
-  const [genres, setGenres] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-2xl">
+        {seriesData ? (
+          <EditComicSeriesForm
+            key={seriesData.id}
+            seriesData={seriesData}
+            onOpenChange={onOpenChange}
+            seriesIds={seriesIds}
+            onNavigate={onNavigate}
+          />
+        ) : (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
 
-  // Track initial values to detect which fields actually changed
-  const [initialState, setInitialState] = useState<InitialFormState | null>(null);
+/**
+ * The form mounts only once the series' details are loaded, so every field seeds
+ * from them instead of being pushed in by an effect afterwards. `key` on the id
+ * re-mounts it when the arrows move to another series, which is the other case
+ * the old effect existed to cover. See edit-audiobook-dialog for the same shape.
+ */
+function EditComicSeriesForm({
+  seriesData,
+  onOpenChange,
+  seriesIds,
+  onNavigate,
+}: {
+  seriesData: ComicSeriesDetail;
+  onOpenChange: (open: boolean) => void;
+  seriesIds?: string[];
+  onNavigate?: (seriesId: string) => void;
+}) {
+  const t = useTranslations("comics.edit");
+  const updateSeries = useUpdateComicSeries();
+  const { data: existingPublishers = [] } = useComicPublishers();
+  const { data: existingGenres = [] } = useComicGenres();
+  const { data: existingTags = [] } = useTags();
+
+  // What the server currently holds: the seed for every field below, and the
+  // baseline handleSave diffs against so only changed fields are sent.
+  const initialState: InitialFormState = useMemo(
+    () => toFormState(seriesData),
+    [seriesData],
+  );
+
+  // Form state
+  const [title, setTitle] = useState(initialState.title);
+  const [sortTitle, setSortTitle] = useState(initialState.sortTitle);
+  const [description, setDescription] = useState(initialState.description);
+  const [publisher, setPublisher] = useState(initialState.publisher);
+  const [imprint, setImprint] = useState(initialState.imprint);
+  const [startYear, setStartYear] = useState(initialState.startYear);
+  const [totalIssueCount, setTotalIssueCount] = useState(
+    initialState.totalIssueCount,
+  );
+  const [language, setLanguage] = useState(initialState.language);
+  const [ageRating, setAgeRating] = useState(initialState.ageRating);
+  const [genres, setGenres] = useState<string[]>(initialState.genres);
+  const [tags, setTags] = useState<string[]>(initialState.tags);
 
   // Convert existing data to combobox options
   const genreOptions = existingGenres.map((g) => ({
@@ -137,9 +199,7 @@ export function EditComicSeriesDialog({
   }));
 
   // Navigation logic
-  const currentIndex = series && seriesIds
-    ? seriesIds.indexOf(series.id)
-    : -1;
+  const currentIndex = seriesIds ? seriesIds.indexOf(seriesData.id) : -1;
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < (seriesIds?.length ?? 0) - 1;
 
@@ -158,8 +218,8 @@ export function EditComicSeriesDialog({
   }, [hasNext, seriesIds, currentIndex, onNavigate]);
 
   // Keyboard navigation
+  // No `open` guard: this only exists while the dialog does.
   useEffect(() => {
-    if (!open) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle if not focused on an input element
@@ -181,56 +241,10 @@ export function EditComicSeriesDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, hasPrevious, hasNext, handlePrevious, handleNext]);
+  }, [hasPrevious, hasNext, handlePrevious, handleNext]);
 
-  // Reset form when series changes
-  useEffect(() => {
-    if (seriesData) {
-      const titleVal = seriesData.title || "";
-      const sortTitleVal = seriesData.sortTitle || "";
-      const descriptionVal = seriesData.description || "";
-      const publisherVal = seriesData.publisher || "";
-      const imprintVal = seriesData.imprint || "";
-      const startYearVal = seriesData.startYear != null ? String(seriesData.startYear) : "";
-      const totalIssueCountVal = seriesData.totalIssueCount != null ? String(seriesData.totalIssueCount) : "";
-      const languageVal = seriesData.language || "";
-      const ageRatingVal = seriesData.ageRating || "";
-      const genresVal = seriesData.genres.map((g) => g.name);
-      const tagsVal = seriesData.tags.map((t) => t.name);
-
-      // Set form values
-      setTitle(titleVal);
-      setSortTitle(sortTitleVal);
-      setDescription(descriptionVal);
-      setPublisher(publisherVal);
-      setImprint(imprintVal);
-      setStartYear(startYearVal);
-      setTotalIssueCount(totalIssueCountVal);
-      setLanguage(languageVal);
-      setAgeRating(ageRatingVal);
-      setGenres(genresVal);
-      setTags(tagsVal);
-
-      // Store initial state for change detection
-      setInitialState({
-        title: titleVal,
-        sortTitle: sortTitleVal,
-        description: descriptionVal,
-        publisher: publisherVal,
-        imprint: imprintVal,
-        startYear: startYearVal,
-        totalIssueCount: totalIssueCountVal,
-        language: languageVal,
-        ageRating: ageRatingVal,
-        genres: genresVal,
-        tags: tagsVal,
-      });
-    }
-  }, [seriesData]);
 
   const handleSave = async (closeAfterSave: boolean) => {
-    if (!seriesData || !initialState) return;
-
     // Build update data with only fields that actually changed
     const data: Record<string, unknown> = {};
 
@@ -318,242 +332,240 @@ export function EditComicSeriesDialog({
     await handleSave(true);
   };
 
-  const isLoading = updateSeries.isPending || Boolean(isListItem && !fullSeries);
+  const isLoading = updateSeries.isPending;
 
   const showNavigation = seriesIds && seriesIds.length > 1 && onNavigate;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-2xl">
-        <DialogHeader className="shrink-0 border-b px-6 py-4">
-          <div className="flex items-center gap-2">
-            <DialogTitle className="flex-1">
-              {t("seriesTitle")}
-              {showNavigation && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({currentIndex + 1} / {seriesIds.length})
-                </span>
-              )}
-            </DialogTitle>
+    <>
+    <DialogHeader className="shrink-0 border-b px-6 py-4">
+      <div className="flex items-center gap-2">
+        <DialogTitle className="flex-1">
+          {t("seriesTitle")}
+          {showNavigation && (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({currentIndex + 1} / {seriesIds.length})
+            </span>
+          )}
+        </DialogTitle>
 
-            {/* Navigation buttons after title */}
-            {showNavigation && (
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handlePrevious}
-                  disabled={!hasPrevious || isLoading}
-                  title={t("previous")}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handleNext}
-                  disabled={!hasNext || isLoading}
-                  title={t("next")}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
-          </div>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-            {/* Title and Sort Title */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="title">{t("fields.title")}</Label>
-                <Input
-                  id="title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={t("fields.titlePlaceholder")}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sortTitle">{t("fields.sortTitle")}</Label>
-                <Input
-                  id="sortTitle"
-                  value={sortTitle}
-                  onChange={(e) => setSortTitle(e.target.value)}
-                  placeholder={t("fields.sortTitlePlaceholder")}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            {/* Genres and Tags */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t("fields.genres")}</Label>
-                <CreatableCombobox
-                  options={genreOptions}
-                  value={genres}
-                  onChange={setGenres}
-                  placeholder={t("fields.genresPlaceholder")}
-                  searchPlaceholder={t("fields.searchGenres")}
-                  emptyText={t("fields.noGenresFound")}
-                  createText={t("fields.createGenre")}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t("fields.tags")}</Label>
-                <CreatableCombobox
-                  options={tagOptions}
-                  value={tags}
-                  onChange={setTags}
-                  placeholder={t("fields.tagsPlaceholder")}
-                  searchPlaceholder={t("fields.searchTags")}
-                  emptyText={t("fields.noTagsFound")}
-                  createText={t("fields.createTag")}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <div className="space-y-2">
-              <Label>{t("fields.description")}</Label>
-              <RichTextEditor
-                value={description}
-                onChange={setDescription}
-                placeholder={t("fields.descriptionPlaceholder")}
-                disabled={isLoading}
-              />
-            </div>
-
-            {/* Publisher and Imprint */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t("fields.publisher")}</Label>
-                <CreatableSelect
-                  options={existingPublishers}
-                  value={publisher}
-                  onChange={setPublisher}
-                  placeholder={t("fields.publisherPlaceholder")}
-                  searchPlaceholder={t("fields.searchPublisher")}
-                  emptyText={t("fields.noPublishersFound")}
-                  createText={t("fields.createPublisher")}
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="imprint">{t("fields.imprint")}</Label>
-                <Input
-                  id="imprint"
-                  value={imprint}
-                  onChange={(e) => setImprint(e.target.value)}
-                  placeholder={t("fields.imprintPlaceholder")}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            {/* Start Year and Total Issue Count */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="startYear">{t("fields.startYear")}</Label>
-                <Input
-                  id="startYear"
-                  type="number"
-                  value={startYear}
-                  onChange={(e) => setStartYear(e.target.value)}
-                  placeholder={t("fields.startYearPlaceholder")}
-                  disabled={isLoading}
-                  min={1800}
-                  max={9999}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="totalIssueCount">{t("fields.totalIssueCount")}</Label>
-                <Input
-                  id="totalIssueCount"
-                  type="number"
-                  value={totalIssueCount}
-                  onChange={(e) => setTotalIssueCount(e.target.value)}
-                  placeholder={t("fields.totalIssueCountPlaceholder")}
-                  disabled={isLoading}
-                  min={1}
-                />
-              </div>
-            </div>
-
-            {/* Language and Age Rating */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>{t("fields.language")}</Label>
-                <Select
-                  value={language}
-                  onValueChange={setLanguage}
-                  disabled={isLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("fields.languagePlaceholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">
-                      <span className="text-muted-foreground">{t("fields.noLanguage")}</span>
-                    </SelectItem>
-                    {LANGUAGE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="ageRating">{t("fields.ageRating")}</Label>
-                <Input
-                  id="ageRating"
-                  value={ageRating}
-                  onChange={(e) => setAgeRating(e.target.value)}
-                  placeholder={t("fields.ageRatingPlaceholder")}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter className="shrink-0 border-t px-6 py-4">
+        {/* Navigation buttons after title */}
+        {showNavigation && (
+          <div className="flex items-center gap-1">
             <Button
               type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={handlePrevious}
+              disabled={!hasPrevious || isLoading}
+              title={t("previous")}
             >
-              {t("cancel")}
+              <ChevronLeft className="h-5 w-5" />
             </Button>
             <Button
               type="button"
-              variant="secondary"
-              onClick={() => handleSave(false)}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={handleNext}
+              disabled={!hasNext || isLoading}
+              title={t("next")}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
+      </div>
+    </DialogHeader>
+
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+        {/* Title and Sort Title */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="title">{t("fields.title")}</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder={t("fields.titlePlaceholder")}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="sortTitle">{t("fields.sortTitle")}</Label>
+            <Input
+              id="sortTitle"
+              value={sortTitle}
+              onChange={(e) => setSortTitle(e.target.value)}
+              placeholder={t("fields.sortTitlePlaceholder")}
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+
+        {/* Genres and Tags */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>{t("fields.genres")}</Label>
+            <CreatableCombobox
+              options={genreOptions}
+              value={genres}
+              onChange={setGenres}
+              placeholder={t("fields.genresPlaceholder")}
+              searchPlaceholder={t("fields.searchGenres")}
+              emptyText={t("fields.noGenresFound")}
+              createText={t("fields.createGenre")}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>{t("fields.tags")}</Label>
+            <CreatableCombobox
+              options={tagOptions}
+              value={tags}
+              onChange={setTags}
+              placeholder={t("fields.tagsPlaceholder")}
+              searchPlaceholder={t("fields.searchTags")}
+              emptyText={t("fields.noTagsFound")}
+              createText={t("fields.createTag")}
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+
+        {/* Description */}
+        <div className="space-y-2">
+          <Label>{t("fields.description")}</Label>
+          <RichTextEditor
+            value={description}
+            onChange={setDescription}
+            placeholder={t("fields.descriptionPlaceholder")}
+            disabled={isLoading}
+          />
+        </div>
+
+        {/* Publisher and Imprint */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>{t("fields.publisher")}</Label>
+            <CreatableSelect
+              options={existingPublishers}
+              value={publisher}
+              onChange={setPublisher}
+              placeholder={t("fields.publisherPlaceholder")}
+              searchPlaceholder={t("fields.searchPublisher")}
+              emptyText={t("fields.noPublishersFound")}
+              createText={t("fields.createPublisher")}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="imprint">{t("fields.imprint")}</Label>
+            <Input
+              id="imprint"
+              value={imprint}
+              onChange={(e) => setImprint(e.target.value)}
+              placeholder={t("fields.imprintPlaceholder")}
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+
+        {/* Start Year and Total Issue Count */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="startYear">{t("fields.startYear")}</Label>
+            <Input
+              id="startYear"
+              type="number"
+              value={startYear}
+              onChange={(e) => setStartYear(e.target.value)}
+              placeholder={t("fields.startYearPlaceholder")}
+              disabled={isLoading}
+              min={1800}
+              max={9999}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="totalIssueCount">{t("fields.totalIssueCount")}</Label>
+            <Input
+              id="totalIssueCount"
+              type="number"
+              value={totalIssueCount}
+              onChange={(e) => setTotalIssueCount(e.target.value)}
+              placeholder={t("fields.totalIssueCountPlaceholder")}
+              disabled={isLoading}
+              min={1}
+            />
+          </div>
+        </div>
+
+        {/* Language and Age Rating */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>{t("fields.language")}</Label>
+            <Select
+              value={language}
+              onValueChange={setLanguage}
               disabled={isLoading}
             >
-              {isLoading ? t("saving") : t("save")}
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? t("saving") : t("saveAndClose")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+              <SelectTrigger>
+                <SelectValue placeholder={t("fields.languagePlaceholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-muted-foreground">{t("fields.noLanguage")}</span>
+                </SelectItem>
+                {LANGUAGE_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="ageRating">{t("fields.ageRating")}</Label>
+            <Input
+              id="ageRating"
+              value={ageRating}
+              onChange={(e) => setAgeRating(e.target.value)}
+              placeholder={t("fields.ageRatingPlaceholder")}
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+      </div>
+
+      <DialogFooter className="shrink-0 border-t px-6 py-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={isLoading}
+        >
+          {t("cancel")}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => handleSave(false)}
+          disabled={isLoading}
+        >
+          {isLoading ? t("saving") : t("save")}
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? t("saving") : t("saveAndClose")}
+        </Button>
+      </DialogFooter>
+    </form>
+    </>
   );
 }
