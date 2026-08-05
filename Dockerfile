@@ -128,15 +128,89 @@ RUN turbo run build --filter=web
 FROM node:26-slim AS runner
 
 # Install runtime dependencies (curl for health checks, openssl for secret
-# generation). ffmpeg comes as static binaries below — Debian's ffmpeg package
-# drags in ~400MB of X11/Mesa/LLVM libraries the backend never uses.
+# generation, ca-certificates so curl can fetch over HTTPS — the base image
+# ships no CA bundle, and Node uses its own). ffmpeg comes as static binaries
+# below — Debian's ffmpeg package drags in ~400MB of X11/Mesa/LLVM libraries
+# the backend never uses.
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
     curl \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=mwader/static-ffmpeg:7.1.1 /ffmpeg /usr/local/bin/ffmpeg
 COPY --from=mwader/static-ffmpeg:7.1.1 /ffprobe /usr/local/bin/ffprobe
+
+# =============================================================================
+# Bundled PostgreSQL
+#
+# Bookmark runs its own Postgres when DATABASE_URL is unset, so a hoster needs
+# one container instead of two (see docker-entrypoint.sh). Pointing
+# DATABASE_URL at an external server skips all of this and none of it is used.
+#
+# Same engine either way — one SQL dialect, one set of migrations. That is the
+# whole reason for bundling a real server rather than embedding a second engine
+# like SQLite, which would mean maintaining every migration and raw query twice.
+# =============================================================================
+ENV PG_MAJOR=18
+ENV PATH="$PATH:/usr/lib/postgresql/18/bin"
+ENV LANG=en_US.utf8
+
+# Fixed uid/gid matching the official postgres image, so a data directory stays
+# readable if it is ever moved between the two.
+RUN set -eux; \
+    groupadd -r postgres --gid=999; \
+    useradd -r -g postgres --uid=999 --home-dir=/var/lib/postgresql --shell=/bin/bash postgres
+
+# Generate en_US.UTF-8 and initdb against it (see the LANG default below).
+# Collation is not cosmetic here: the app leaves every ORDER BY on text columns
+# to the database and searches through pg_trgm indexes, and Postgres 18 made
+# full-text search and pg_trgm follow the cluster's collation provider instead
+# of always using libc. Matching the official image's libc en_US.UTF-8 keeps
+# sorting and search identical between bundled and external deployments.
+#
+# Debian's -slim images exclude /usr/share/locale via dpkg config, so that
+# exclusion has to go before the locale can be built.
+RUN set -eux; \
+    if [ -f /etc/dpkg/dpkg.cfg.d/docker ]; then \
+        sed -ri '/\/usr\/share\/locale/d' /etc/dpkg/dpkg.cfg.d/docker; \
+    fi; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends locales; \
+    rm -rf /var/lib/apt/lists/*; \
+    echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen; \
+    locale-gen; \
+    locale -a | grep -q 'en_US.utf8'
+
+# PGDG rather than Debian's own postgresql package: it pins the major version
+# independently of the base image, so a future node:NN bump to a new Debian
+# release cannot silently change the major version sitting under someone's
+# existing data directory.
+#
+# postgresql-common is installed first so the auto-created "main" cluster can be
+# switched off — the entrypoint runs initdb/postgres directly against its own
+# PGDATA under /data and never uses pg_ctlcluster.
+#
+# postgresql-$PG_MAJOR-jit is deliberately not installed. JIT is a separate
+# package from 18 onwards, and skipping it drops the ~130MB libllvm dependency
+# that this workload would never exercise (jit is also turned off explicitly at
+# initdb time to keep it out of the logs). pg_trgm needs no extra package.
+# The repository key is fetched as an ASCII-armored file over HTTPS and used
+# directly via signed-by, which apt verifies with gpgv — no keyserver round-trip
+# and no need for the full gnupg suite in the image.
+RUN set -eux; \
+    mkdir -p /usr/local/share/keyrings; \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+        -o /usr/local/share/keyrings/postgres.gpg.asc; \
+    . /etc/os-release; \
+    echo "deb [signed-by=/usr/local/share/keyrings/postgres.gpg.asc] http://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main $PG_MAJOR" \
+        > /etc/apt/sources.list.d/pgdg.list; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends postgresql-common; \
+    sed -ri 's/#(create_main_cluster) .*$/\1 = false/' /etc/postgresql-common/createcluster.conf; \
+    apt-get install -y --no-install-recommends "postgresql-$PG_MAJOR"; \
+    rm -rf /var/lib/apt/lists/*; \
+    postgres --version
 
 # Backend: production node_modules (preserves pnpm symlinks) + built output.
 # drizzle.config.ts and the migrations folder are needed at startup for

@@ -44,7 +44,7 @@ The frontend talks to the API over a Next.js proxy, which keeps the same setup w
 
 ## Running it
 
-The quickest path is Docker. Bookmark ships as a single image (web app + API together) plus a Postgres database — two containers, one command. You'll need Docker and Docker Compose; for local development you'll also want Node.js 20+, PostgreSQL 16+, pnpm 9+, and FFmpeg.
+The quickest path is Docker. Bookmark ships as a single image — web app, API, and database together — so it's one container and one command, with no database to set up. If you'd rather use a Postgres server you already run, [point it at one](#using-your-own-postgres). You'll need Docker and Docker Compose; for local development you'll also want Node.js 20+, PostgreSQL 16+, pnpm 9+, and FFmpeg.
 
 ```bash
 git clone https://github.com/RobinEdquist/bookmark.git
@@ -65,7 +65,6 @@ cp example.env .env
 
 ```env
 PUBLIC_URL=https://bookmark.yourdomain.com
-POSTGRES_PASSWORD=pick-something-strong
 
 # Your timezone, so dates and times match your clock (defaults to UTC in Docker)
 TZ=Europe/Stockholm
@@ -90,16 +89,14 @@ Everything is set through environment variables in your `.env` file. With Docker
 
 **Core**
 
-| Variable             | Required          | Default                 | Description                                                                                     |
-| -------------------- | ----------------- | ----------------------- | ----------------------------------------------------------------------------------------------- |
-| `PUBLIC_URL`         | For remote access | `http://localhost:3001` | Full URL where Bookmark is reachable; used for auth and CORS                                    |
-| `BETTER_AUTH_SECRET` | No                | auto-generated          | Secret for signing sessions; generated and persisted in the data volume on first start if unset |
-| `POSTGRES_PASSWORD`  | No                | `postgres`              | Database password — change it before exposing anything                                          |
-| `POSTGRES_USER`      | No                | `postgres`              | Database user                                                                                   |
-| `POSTGRES_DB`        | No                | `bookmark`              | Database name                                                                                   |
-| `PORT`               | No                | `3001`                  | Host port the web app is published on                                                           |
-| `LOG_LEVEL`          | No                | `info`                  | Backend log verbosity (`debug`, `info`, `warn`, `error`)                                        |
-| `TZ`                 | No                | `UTC`                   | Timezone for displayed dates and times, as an IANA zone name (e.g. `Europe/Stockholm`)          |
+| Variable             | Required          | Default                 | Description                                                                                           |
+| -------------------- | ----------------- | ----------------------- | ----------------------------------------------------------------------------------------------------- |
+| `PUBLIC_URL`         | For remote access | `http://localhost:3001` | Full URL where Bookmark is reachable; used for auth and CORS                                          |
+| `BETTER_AUTH_SECRET` | No                | auto-generated          | Secret for signing sessions; generated and persisted in the data volume on first start if unset       |
+| `DATABASE_URL`       | No                | built-in database       | Postgres connection string. Unset means Bookmark runs its own — see [below](#using-your-own-postgres) |
+| `PORT`               | No                | `3001`                  | Host port the web app is published on                                                                 |
+| `LOG_LEVEL`          | No                | `info`                  | Backend log verbosity (`debug`, `info`, `warn`, `error`)                                              |
+| `TZ`                 | No                | `UTC`                   | Timezone for displayed dates and times, as an IANA zone name (e.g. `Europe/Stockholm`)                |
 
 **Media and storage**
 
@@ -150,18 +147,86 @@ Then enter `http://tts:8880` as the server URL under **Settings → Integrations
 | `UPDATE_CHECK_ENABLED` | No       | `true`                  | Set to `false` to never contact GitHub                 |
 | `UPDATE_CHECK_REPO`    | No       | `RobinEdquist/bookmark` | Repository to check releases against; useful for forks |
 
+### The database
+
+Bookmark runs its own PostgreSQL inside the container and keeps it in the app data volume at `/data/db`. You don't configure it, and there's no password: the server listens on a Unix socket that only exists inside the container, with no network port at all. To poke around:
+
+```bash
+docker exec -it bookmark psql -U bookmark bookmark
+```
+
+One constraint: **the app data volume has to be on local disk.** Postgres needs file locking and fsync guarantees that SMB shares don't provide, so Bookmark refuses to start if `DATA_PATH` lands on one. Your media mounts can live on a NAS — this can't. (NFS gets a warning rather than a refusal; it can work with the right mount options, but local disk is the safe choice.)
+
+#### Backups
+
+**Copying `data/app` while Bookmark is running does not give you a restorable database.** A file-level copy of a live Postgres cluster can catch it mid-write. Take a real dump instead:
+
+```bash
+docker exec bookmark pg_dump -U bookmark bookmark > bookmark-$(date +%F).sql
+```
+
+To restore into a fresh instance:
+
+```bash
+docker exec -i bookmark psql -U bookmark bookmark < bookmark-2026-08-05.sql
+```
+
+Covers and cache under `data/app` are plain files and copy fine at any time. Stopping the container first also makes a whole-folder copy safe.
+
+#### Using your own Postgres
+
+Set `DATABASE_URL` and the built-in server never starts — Bookmark connects out instead, exactly as it always has:
+
+```env
+DATABASE_URL=postgresql://bookmark:password@db.example.com:5432/bookmark
+```
+
+Create an empty database and a user that owns it; Bookmark applies its own schema on first start. It needs **PostgreSQL 16 or newer**, and the user needs permission to create extensions (search uses `pg_trgm`).
+
+Running one in Compose alongside Bookmark:
+
+```yaml
+services:
+  postgres:
+    image: postgres:18-trixie
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bookmark
+      POSTGRES_PASSWORD: pick-something-strong
+      POSTGRES_DB: bookmark
+    volumes:
+      # Postgres 18 moved this up from /var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookmark -d bookmark"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bookmark:
+    depends_on:
+      postgres:
+        condition: service_healthy
+```
+
+with `DATABASE_URL=postgresql://bookmark:pick-something-strong@postgres:5432/bookmark` in your `.env`.
+
+**Moving between the two:** `pg_dump` from wherever the data is now, then restore into the other. Going from your own server to the built-in one, unset `DATABASE_URL`, start Bookmark so it creates the database, then pipe the dump into `docker exec -i bookmark psql -U bookmark bookmark`.
+
 #### Running without Docker
 
-If you start the apps directly (see [Development](#development)), the Docker-derived values aren't set for you — point the services at each other with these:
+If you start the apps directly (see [Development](#development)), the Docker-derived values aren't set for you — point the services at each other with these. Note that the built-in database lives inside the container, so running outside Docker means `DATABASE_URL` is **required** and you supply the Postgres yourself:
 
-| Variable              | Service | Description                                                       |
-| --------------------- | ------- | ----------------------------------------------------------------- |
-| `DATABASE_URL`        | API     | Postgres connection string                                        |
-| `BETTER_AUTH_URL`     | API     | The API's own base URL (e.g. `http://localhost:3000`)             |
-| `UI_URL`              | API     | Frontend origin, for CORS (e.g. `http://localhost:3001`)          |
-| `APP_DATA_PATH`       | API     | Where covers and cache are written (required in production)       |
-| `API_URL`             | Web     | Backend URL the web app proxies to (e.g. `http://localhost:3000`) |
-| `NEXT_PUBLIC_API_URL` | Web     | Backend URL exposed to the browser                                |
+| Variable              | Service | Description                                                           |
+| --------------------- | ------- | --------------------------------------------------------------------- |
+| `DATABASE_URL`        | API     | Postgres connection string (required outside Docker)                  |
+| `BETTER_AUTH_URL`     | API     | Base URL auth callbacks are built from (e.g. `http://localhost:3000`) |
+| `UI_URL`              | API     | Frontend origin, for CORS (e.g. `http://localhost:3001`)              |
+| `APP_DATA_PATH`       | API     | Where covers and cache are written (required in production)           |
+| `API_URL`             | Web     | Backend URL the web app proxies to (e.g. `http://localhost:3000`)     |
+| `NEXT_PUBLIC_API_URL` | Web     | Backend URL exposed to the browser                                    |
+
+Both `BETTER_AUTH_URL` and `UI_URL` are addresses a **browser** uses, never the port the API happens to bind to. In Docker that makes them the same value — the web app proxies `/api` through to the backend, so port 3000 is never reached directly and `docker-compose.yml` sets both from `PUBLIC_URL`. Running the apps directly is the one setup where they differ, because the API is then reachable on its own port.
 
 `NODE_ENV` follows the usual Node convention and is set for you in Docker; `DEBUG` only adds verbose output to the end-to-end tests.
 
@@ -196,13 +261,18 @@ Nothing here has a date attached. It's a spare-time project, and the list reflec
 
 ```bash
 pnpm install
-cp example.env .env          # point it at a local Postgres
+cp example.env .env
+
+# a Postgres to develop against, on :55432 to avoid clashing with a local one
+docker compose -f docker-compose.dev.yml up -d
 
 # apply the schema
 cd apps/backend && pnpm db:migrate && cd ../..
 
 pnpm dev                     # web on :3001, API on :3000
 ```
+
+The dev database matches `DATABASE_URL` in `apps/backend/.env`. It's a separate file rather than `docker-compose.override.yml` because Compose auto-loads that name, which would attach a database to every `docker compose up -d` — including a hoster's.
 
 Useful scripts:
 

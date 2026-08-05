@@ -1,0 +1,41 @@
+# Development database for running the apps on the host with `pnpm dev`.
+#
+# The published image runs its own PostgreSQL inside the container, so the main
+# compose file has no database service. Host-run development still needs one:
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# The settings below match the DATABASE_URL in apps/backend/.env, and the port
+# is deliberately not 5432 so it cannot collide with a Postgres installed on
+# the host. This file is NOT named docker-compose.override.yml on purpose -
+# Compose auto-loads that name, which would attach a database to every
+# `docker compose up -d`, including a hoster's.
+
+services:
+  postgres:
+    # Same major version AND same libc as the server bundled in the Bookmark
+    # image, so sorting and pg_trgm search behave identically in development.
+    # Not -alpine: musl collates differently from glibc, which would make
+    # ORDER BY results diverge from production.
+    image: postgres:18-trixie
+    container_name: bookmark-dev-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: audiobook_vault
+    ports:
+      - "55432:5432"
+    volumes:
+      # Postgres 18 moved its volume from /var/lib/postgresql/data up to
+      # /var/lib/postgresql - mounting the old path silently gets you a
+      # database that does not survive a restart.
+      - bookmark-dev-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d audiobook_vault"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  bookmark-dev-db:

@@ -12,42 +12,23 @@
 
 services:
   # ==========================================================================
-  # PostgreSQL Database
-  # ==========================================================================
-  postgres:
-    image: postgres:16-alpine
-    container_name: bookmark-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-bookmark}
-    volumes:
-      - ${DATA_PATH:-./data}/postgres:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-bookmark}",
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ==========================================================================
-  # Bookmark (web app + API in a single container)
+  # Bookmark (web app + API + database in a single container)
   # ==========================================================================
   bookmark:
     image: ${BOOKMARK_IMAGE:-ghcr.io/robinedquist/bookmark:latest}
     container_name: bookmark
     restart: unless-stopped
     init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # Docker's default is 10s, after which it SIGKILLs. Bookmark stops the apps
+    # and then shuts the built-in database down cleanly, and a large database
+    # can take a while to checkpoint - being killed midway forces WAL recovery
+    # on the next start. The full time is only used if it is actually needed.
+    stop_grace_period: 2m
     environment:
-      # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-bookmark}
+      # Database - left unset, so Bookmark runs its own PostgreSQL and stores it
+      # in the app data volume below. To use a Postgres server you already run,
+      # set DATABASE_URL in .env; nothing else changes.
+      DATABASE_URL: ${DATABASE_URL:-}
 
       # Public URL - used for auth callbacks, CORS, etc.
       # Defaults to localhost for local try-outs; set PUBLIC_URL for any real deployment
@@ -79,7 +60,13 @@ services:
       UPDATE_CHECK_ENABLED: ${UPDATE_CHECK_ENABLED:-true}
       UPDATE_CHECK_REPO: ${UPDATE_CHECK_REPO:-}
     volumes:
-      # Application data (covers, cache, auto-generated auth secret, etc.)
+      # Application data: the built-in database, covers, cache, and the
+      # auto-generated auth secret. Back this up (see README - a file copy of a
+      # running database is not a valid backup; use pg_dump).
+      #
+      # This has to be local disk. The built-in database cannot run on an SMB
+      # share and Bookmark will refuse to start if you point it at one; your
+      # media below can live anywhere.
       - ${DATA_PATH:-./data}/app:/data
       # Audiobook library - mount your media folder here
       - ${AUDIOBOOK_LIBRARY_PATH:-./media/audiobooks}:/library/audiobooks:ro

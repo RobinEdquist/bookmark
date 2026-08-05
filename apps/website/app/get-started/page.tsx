@@ -6,49 +6,32 @@ import { Terminal } from "../../components/terminal";
 export const metadata: Metadata = {
   title: "Get started with Bookmark",
   description:
-    "Self-host Bookmark in about five minutes: two containers, one compose file, and your audiobook folder. This guide walks through the first run, adding your library, and pairing the mobile apps.",
+    "Self-host Bookmark in about five minutes: one container, one compose file, and your audiobook folder. This guide walks through the first run, adding your library, and pairing the mobile apps.",
 };
 
 /**
  * The whole deployment, in one file. Kept deliberately minimal: anything the
- * image already defaults to (the auth secret, which is generated and persisted
- * on first start, plus every optional integration) is left out rather than
- * pasted in as noise.
+ * image already defaults to (the database and the auth secret, both created and
+ * persisted on first start, plus every optional integration) is left out rather
+ * than pasted in as noise.
  */
 const COMPOSE = `services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: bookmark-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_DB: bookmark
-      POSTGRES_PASSWORD: pick-something-strong # change this
-    volumes:
-      - ./data/postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d bookmark"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   bookmark:
     image: ghcr.io/robinedquist/bookmark:latest
     container_name: bookmark
     restart: unless-stopped
     init: true
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # Give the database time to shut down cleanly on stop. Docker's 10s
+    # default can cut a large one off mid-write.
+    stop_grace_period: 2m
     environment:
-      # The same password you set above.
-      DATABASE_URL: postgresql://postgres:pick-something-strong@postgres:5432/bookmark
       # Where you reach Bookmark. Both need your real address or logins break.
       BETTER_AUTH_URL: http://localhost:3001
       UI_URL: http://localhost:3001
       # Your timezone, so dates and times match your clock. Defaults to UTC.
       TZ: Europe/Stockholm # change this
     volumes:
+      # Database, covers and cache. Keep this on local disk, not a NAS share.
       - ./data/app:/data
       # Your audiobooks. Read-only: Bookmark never writes here.
       - /path/to/your/audiobooks:/library/audiobooks:ro
@@ -107,9 +90,9 @@ export default function GetStarted() {
           From zero to listening
         </h1>
         <p className="section-lede">
-          Bookmark ships as a single container (web app and API together) plus a
-          Postgres database. Two containers, one file to paste, and about five
-          minutes if your audiobooks are already in a folder.
+          Bookmark ships as a single container &mdash; web app, API, and
+          database together. One file to paste, no database to set up, and about
+          five minutes if your audiobooks are already in a folder.
         </p>
         <p
           className="section-lede prose-muted"
@@ -154,19 +137,9 @@ export default function GetStarted() {
               <h3>Change the lines that matter</h3>
               <p>
                 Bookmark will start on the defaults, but you would be running an
-                empty library on a placeholder database password. Four edits,
-                all marked in the file:
+                empty library. Three edits, all marked in the file:
               </p>
               <ul className="prose-list">
-                <li>
-                  <strong>The database password</strong>, in{" "}
-                  <strong style={{ color: "var(--ink)" }}>both places</strong>:
-                  once under <code className="ui-path">POSTGRES_PASSWORD</code>{" "}
-                  and again inside <code className="ui-path">DATABASE_URL</code>
-                  . They have to match, and Postgres keeps whatever password it
-                  was first initialized with, so changing it later means
-                  recreating <code className="ui-path">./data/postgres</code>.
-                </li>
                 <li>
                   <strong>Your audiobook folder</strong>: replace{" "}
                   <code className="ui-path">/path/to/your/audiobooks</code> with
@@ -257,8 +230,11 @@ export default function GetStarted() {
                 </pre>
               </div>
               <p style={{ marginTop: "1rem" }}>
-                These are used for auth callbacks and CORS, so logins break if
-                they do not match the address in your browser. Re-run{" "}
+                Both take the address your browser uses, not a container port
+                &mdash; the API is never reached directly, so neither of these
+                is ever <code className="ui-path">:3000</code>. They are used
+                for auth callbacks and CORS, so logins break if they do not
+                match what is in your address bar. Re-run{" "}
                 <code className="ui-path">docker compose up -d</code> after
                 changing them.
               </p>
@@ -379,6 +355,16 @@ export default function GetStarted() {
             lists the exact names.
           </div>
           <div className="note">
+            <strong>Already run a Postgres server?</strong> Add{" "}
+            <code className="ui-path">DATABASE_URL</code> to the{" "}
+            <code className="ui-path">bookmark</code> environment and the
+            built-in database never starts &mdash; Bookmark connects to yours
+            instead. Create an empty database and a user that owns it; the
+            schema is applied on first start. Needs PostgreSQL 16 or newer, and
+            permission to create extensions. Everything else in this guide is
+            unchanged.
+          </div>
+          <div className="note">
             <strong>Backups.</strong> Everything Bookmark writes lives in the{" "}
             <code className="ui-path">./data</code> folder next to your compose
             file: the database, covers, the generated auth secret, and any
@@ -387,9 +373,9 @@ export default function GetStarted() {
             <br />
             <br />
             One catch worth knowing: copying{" "}
-            <code className="ui-path">./data</code> while the stack is running
-            is not a safe database backup. Postgres is writing as you copy, so
-            you can capture a half-written state that refuses to start when
+            <code className="ui-path">./data</code> while Bookmark is running is
+            not a safe database backup. Postgres is writing as you copy, so you
+            can capture a half-written state that refuses to start when
             restored. Stop it first, and the copy is sound:
             <br />
             <br />
@@ -404,17 +390,16 @@ export default function GetStarted() {
             <br />
             <br />
             <code className="ui-path">
-              docker compose exec -T postgres pg_dump -U postgres bookmark &gt;
+              docker compose exec -T bookmark pg_dump -U bookmark bookmark &gt;
               bookmark.sql
             </code>
             <br />
-            <br />A restored <code className="ui-path">
-              ./data/postgres
-            </code>{" "}
-            folder also expects the same Postgres major version it came from,
-            which is why the compose file pins{" "}
-            <code className="ui-path">postgres:16-alpine</code> rather than
-            tracking the latest.{" "}
+            <br />
+            That dump restores into any Bookmark instance. The database folder
+            itself, <code className="ui-path">./data/app/db</code>, is only
+            readable by the Postgres major version that created it &mdash; which
+            is why the image pins one rather than tracking the latest, and why
+            the dump is the portable copy.{" "}
             <strong style={{ color: "var(--ink)" }}>
               Scheduled backups from inside Bookmark are coming
             </strong>
@@ -438,9 +423,8 @@ export default function GetStarted() {
             <code className="ui-path">docker compose logs -f bookmark</code>{" "}
             tells you most of the story. Login loops usually mean{" "}
             <code className="ui-path">BETTER_AUTH_URL</code> does not match the
-            address in your browser, and a database connection error on first
-            start usually means the two passwords do not match. The full
-            configuration reference lives in the{" "}
+            address in your browser. The full configuration reference lives in
+            the{" "}
             <a
               href={`${GITHUB_URL}#configuration`}
               className="link-arrow"
