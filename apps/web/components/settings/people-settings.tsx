@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
@@ -251,21 +251,53 @@ function RenamePersonDialog({
   const t = useTranslations(
     role === "authors" ? "settings.authors.rename" : "settings.narrators.rename",
   );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("title")}</DialogTitle>
+        </DialogHeader>
+        {person && (
+          <RenamePersonForm
+            person={person}
+            onOpenChange={onOpenChange}
+            onConflict={onConflict}
+            role={role}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Split out so opening the dialog creates the form's state rather than an effect
+ * re-syncing it. DialogContent unmounts while closed, so this mounts fresh each
+ * time and useState seeds from the person being renamed.
+ */
+function RenamePersonForm({
+  person,
+  onOpenChange,
+  onConflict,
+  role,
+}: {
+  person: AdminPerson;
+  onOpenChange: (open: boolean) => void;
+  onConflict: (conflict: RenameConflict) => void;
+  role: PeopleRole;
+}) {
+  const t = useTranslations(
+    role === "authors" ? "settings.authors.rename" : "settings.narrators.rename",
+  );
   const tToast = useTranslations(
     role === "authors" ? "settings.authors.toast" : "settings.narrators.toast",
   );
   const renamePerson = useRenamePerson();
-  const [name, setName] = useState("");
-
-  useEffect(() => {
-    if (open && person) {
-      setName(person.name);
-    }
-  }, [open, person]);
+  const [name, setName] = useState(person.name);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!person) return;
 
     try {
       const result = await renamePerson.mutateAsync({ id: person.id, name });
@@ -281,36 +313,29 @@ function RenamePersonDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="person-name">{t("label")}</Label>
-            <Input
-              id="person-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("cancel")}
-            </Button>
-            <Button type="submit" disabled={renamePerson.isPending}>
-              {renamePerson.isPending ? t("saving") : t("save")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="person-name">{t("label")}</Label>
+        <Input
+          id="person-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+        >
+          {t("cancel")}
+        </Button>
+        <Button type="submit" disabled={renamePerson.isPending}>
+          {renamePerson.isPending ? t("saving") : t("save")}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
 
@@ -429,30 +454,58 @@ function SplitPersonDialog({
   const t = useTranslations(
     role === "authors" ? "settings.authors.split" : "settings.narrators.split",
   );
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>{t("title")}</DialogTitle>
+        </DialogHeader>
+        {person && (
+          <SplitPersonForm
+            person={person}
+            onOpenChange={onOpenChange}
+            role={role}
+            names={names}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * Split out so the selection starts empty because the form is new, not because
+ * an effect cleared it. DialogContent unmounts while closed, so every open gets
+ * a fresh mount — the effect this replaces set `[]` in both of its branches,
+ * i.e. it existed only to undo state that outlived the dialog.
+ */
+function SplitPersonForm({
+  person,
+  onOpenChange,
+  role,
+  names,
+}: {
+  person: AdminPerson;
+  onOpenChange: (open: boolean) => void;
+  role: PeopleRole;
+  names: string[];
+}) {
+  const t = useTranslations(
+    role === "authors" ? "settings.authors.split" : "settings.narrators.split",
+  );
   const tToast = useTranslations(
     role === "authors" ? "settings.authors.toast" : "settings.narrators.toast",
   );
   const splitPerson = useSplitPersonMutation();
   const [replacementNames, setReplacementNames] = useState<string[]>([]);
 
-  useEffect(() => {
-    if (!open) {
-      setReplacementNames([]);
-      return;
-    }
-
-    if (person) {
-      setReplacementNames([]);
-    }
-  }, [open, person]);
-
   const options = names
-    .filter((name) => name !== person?.name)
+    .filter((name) => name !== person.name)
     .map((name) => ({ value: name, label: name }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!person) return;
 
     try {
       await splitPerson.mutateAsync({
@@ -467,39 +520,35 @@ function SplitPersonDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-sm text-muted-foreground">{t("description")}</p>
-          <div className="space-y-2">
-            <Label>{t("label")}</Label>
-            <CreatableCombobox
-              options={options}
-              value={replacementNames}
-              onChange={setReplacementNames}
-              placeholder={t("placeholder")}
-              searchPlaceholder={t("searchPlaceholder")}
-              emptyText={t("empty")}
-              createText={t("create")}
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("cancel")}
-            </Button>
-            <Button type="submit" disabled={splitPerson.isPending || replacementNames.length < 2}>
-              {splitPerson.isPending ? t("splitting") : t("confirm")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <p className="text-sm text-muted-foreground">{t("description")}</p>
+      <div className="space-y-2">
+        <Label>{t("label")}</Label>
+        <CreatableCombobox
+          options={options}
+          value={replacementNames}
+          onChange={setReplacementNames}
+          placeholder={t("placeholder")}
+          searchPlaceholder={t("searchPlaceholder")}
+          emptyText={t("empty")}
+          createText={t("create")}
+        />
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+        >
+          {t("cancel")}
+        </Button>
+        <Button
+          type="submit"
+          disabled={splitPerson.isPending || replacementNames.length < 2}
+        >
+          {splitPerson.isPending ? t("splitting") : t("confirm")}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }

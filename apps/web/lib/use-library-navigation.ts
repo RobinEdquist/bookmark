@@ -1,10 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
+
+import { useSessionStorageValue } from "./use-session-storage-value";
 
 type LibraryPath = "/audiobooks" | "/ebooks" | "/comics";
 
 const STORAGE_KEY_SUFFIX = "-navigation-ids";
+
+// Shared so the "no browsing context" result keeps a stable identity across
+// renders, letting consumers memoise on it.
+const NO_NAVIGATION = { previousId: null, nextId: null } as const;
 
 /**
  * Call on list pages to save the current ordered item IDs to sessionStorage,
@@ -29,33 +35,30 @@ export function useLibraryNavigation(
   libraryPath: LibraryPath,
   currentId: string,
 ): { previousId: string | null; nextId: string | null } {
-  const [nav, setNav] = useState<{
-    previousId: string | null;
-    nextId: string | null;
-  }>({ previousId: null, nextId: null });
+  // Read during render rather than syncing into state from an effect, so the
+  // arrows are correct on the first paint instead of appearing a frame later.
+  // The stored value is the raw JSON string, which keeps the external-store
+  // snapshot referentially stable; parsing happens in the memo below.
+  const stored = useSessionStorageValue(`${libraryPath}${STORAGE_KEY_SUFFIX}`);
 
-  useEffect(() => {
-    const stored = sessionStorage.getItem(
-      `${libraryPath}${STORAGE_KEY_SUFFIX}`,
-    );
-    if (!stored) return;
+  return useMemo(() => {
+    if (!stored) return NO_NAVIGATION;
 
     try {
       const ids: string[] = JSON.parse(stored);
       const currentIndex = ids.indexOf(currentId);
-      if (currentIndex === -1) return;
+      if (currentIndex === -1) return NO_NAVIGATION;
 
-      setNav({
+      return {
         previousId: currentIndex > 0 ? (ids[currentIndex - 1] ?? null) : null,
         nextId:
           currentIndex < ids.length - 1
             ? (ids[currentIndex + 1] ?? null)
             : null,
-      });
+      };
     } catch {
       // Corrupted data, ignore
+      return NO_NAVIGATION;
     }
-  }, [libraryPath, currentId]);
-
-  return nav;
+  }, [stored, currentId]);
 }
