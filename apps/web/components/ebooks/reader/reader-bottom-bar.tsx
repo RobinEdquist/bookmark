@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Slider } from "@repo/ui/components/ui/slider";
@@ -26,13 +26,12 @@ export function ReaderBottomBar({
   onSeek,
 }: ReaderBottomBarProps) {
   const t = useTranslations("ebooks");
-  const [sliderValue, setSliderValue] = useState(percent);
-  const [isDragging, setIsDragging] = useState(false);
-
-  // Follow reading position unless the user is dragging the slider
-  useEffect(() => {
-    if (!isDragging) setSliderValue(percent);
-  }, [percent, isDragging]);
+  // While a drag is in progress the thumb follows the finger; otherwise it
+  // follows the reading position. This replaces an `isDragging` flag plus an
+  // effect that copied `percent` into state, which re-rendered the whole bar
+  // again after every relocate event the reader emitted.
+  const [dragValue, setDragValue] = useState<number | null>(null);
+  const sliderValue = dragValue ?? percent;
 
   return (
     <footer className="z-20 border-t bg-background/95 px-4 py-2 backdrop-blur">
@@ -52,11 +51,10 @@ export function ReaderBottomBar({
           step={0.1}
           disabled={disabled}
           onValueChange={(value) => {
-            setIsDragging(true);
-            if (value[0] !== undefined) setSliderValue(value[0]);
+            if (value[0] !== undefined) setDragValue(value[0]);
           }}
           onValueCommit={(value) => {
-            setIsDragging(false);
+            setDragValue(null);
             if (value[0] !== undefined) onSeek(value[0]);
           }}
         />

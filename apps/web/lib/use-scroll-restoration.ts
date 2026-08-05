@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 /**
@@ -48,11 +48,14 @@ export function useScrollRestoration({
 
   // Captured once at first render: what (if anything) to restore for this
   // mount. Reading the map later would see the values our own mount-time
-  // writes (zero-pin, restore write-through) put there.
-  const stashRef = useRef<{ key: string; pos: number | null } | null>(null);
-  const stash =
-    stashRef.current ??
-    (stashRef.current = { key, pos: positions.get(key) ?? null });
+  // writes (zero-pin, restore write-through) put there. A useState initialiser
+  // is the honest way to say "compute once per mount, then never again" — the
+  // lazy `stashRef.current ??= ...` this replaces both wrote to and read from a
+  // ref during render, and fed the read into the return value.
+  const [stash] = useState(() => ({
+    key,
+    pos: positions.get(key) ?? null,
+  }));
 
   // Live key for the save path, so filter changes via router.replace re-key
   // subsequent saves without remounting. Synced before the restore effect runs.
@@ -94,9 +97,9 @@ export function useScrollRestoration({
       return;
     }
     restoredRef.current = true;
-    const { key: mountKey, pos } = stashRef.current!;
+    const { key: mountKey, pos } = stash;
     container.scrollTop = keyRef.current === mountKey && pos !== null ? pos : 0;
-  }, [ready]);
+  }, [ready, stash]);
 
   return { hasSavedPosition: stash.pos !== null };
 }

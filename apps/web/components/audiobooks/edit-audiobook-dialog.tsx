@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Sparkles, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Sparkles, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -96,6 +96,30 @@ interface InitialFormState {
   seriesEntries: SeriesEntry[];
 }
 
+/** The form's values as they exist on the server, for seeding and diffing. */
+function toFormState(audiobook: AudiobookDetail): InitialFormState {
+  return {
+    title: audiobook.title || "",
+    subtitle: audiobook.subtitle || "",
+    description: audiobook.description || "",
+    authors: audiobook.authors.map((a) => a.name),
+    narrators: audiobook.narrators.map((n) => n.name),
+    publisher: audiobook.publisher || "",
+    language: audiobook.language || "",
+    publishedYear: audiobook.publishedDate
+      ? new Date(audiobook.publishedDate).getFullYear().toString()
+      : "",
+    isbn: audiobook.isbn || "",
+    asin: audiobook.asin || "",
+    genres: audiobook.genres.map((g) => g.name),
+    tags: audiobook.tags.map((t) => t.name),
+    seriesEntries: audiobook.series.map((s) => ({
+      seriesName: s.name,
+      order: s.order ? String(parseFloat(s.order)) : "",
+    })),
+  };
+}
+
 interface EditAudiobookDialogProps {
   audiobook: AudiobookListItem | AudiobookDetail | null;
   open: boolean;
@@ -113,6 +137,56 @@ export function EditAudiobookDialog({
   audiobookIds,
   onNavigate,
 }: EditAudiobookDialogProps) {
+  // For list items, fetch full details only when dialog is open
+  const isListItem = audiobook && !("description" in audiobook);
+  const { data: fullAudiobook } = useAudiobook(
+    isListItem && audiobook && open ? audiobook.id : ""
+  );
+
+  const audiobookData = isListItem ? fullAudiobook : (audiobook as AudiobookDetail);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-2xl">
+        {audiobookData ? (
+          <EditAudiobookForm
+            key={audiobookData.id}
+            audiobookData={audiobookData}
+            onOpenChange={onOpenChange}
+            audiobookIds={audiobookIds}
+            onNavigate={onNavigate}
+          />
+        ) : (
+          <div className="flex items-center justify-center p-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * The form mounts only once the audiobook's details are loaded, so every field
+ * seeds from them directly instead of being pushed in by an effect afterwards.
+ * `key` on the id re-mounts it when the arrows move to another audiobook, which
+ * is the other case the old effect existed to cover.
+ *
+ * The server's values also serve as the diff baseline, and deriving that rather
+ * than snapshotting it into state removes the hazard handleSave used to work
+ * around: a refetch mid-save no longer rewrites the form under the user.
+ */
+function EditAudiobookForm({
+  audiobookData,
+  onOpenChange,
+  audiobookIds,
+  onNavigate,
+}: {
+  audiobookData: AudiobookDetail;
+  onOpenChange: (open: boolean) => void;
+  audiobookIds?: string[];
+  onNavigate?: (audiobookId: string) => void;
+}) {
   const t = useTranslations("audiobooks.edit");
   const updateAudiobook = useUpdateAudiobook();
   const updateCover = useUpdateCover();
@@ -122,31 +196,29 @@ export function EditAudiobookDialog({
   const { data: existingGenres = [] } = useGenres();
   const { data: existingTags = [] } = useTags();
 
-  // For list items, fetch full details only when dialog is open
-  const isListItem = audiobook && !("description" in audiobook);
-  const { data: fullAudiobook } = useAudiobook(
-    isListItem && audiobook && open ? audiobook.id : ""
+  // What the server currently holds: the seed for every field below, and the
+  // baseline handleSave diffs against so only changed fields are sent.
+  const initialState: InitialFormState = useMemo(
+    () => toFormState(audiobookData),
+    [audiobookData],
   );
 
-  const audiobookData = isListItem ? fullAudiobook : (audiobook as AudiobookDetail);
-
   // Form state
-  const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [authors, setAuthors] = useState<string[]>([]);
-  const [narrators, setNarrators] = useState<string[]>([]);
-  const [publisher, setPublisher] = useState("");
-  const [language, setLanguage] = useState("");
-  const [publishedYear, setPublishedYear] = useState("");
-  const [isbn, setIsbn] = useState("");
-  const [asin, setAsin] = useState("");
-  const [genres, setGenres] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [seriesEntries, setSeriesEntries] = useState<SeriesEntry[]>([]);
-
-  // Track initial values to detect which fields actually changed
-  const [initialState, setInitialState] = useState<InitialFormState | null>(null);
+  const [title, setTitle] = useState(initialState.title);
+  const [subtitle, setSubtitle] = useState(initialState.subtitle);
+  const [description, setDescription] = useState(initialState.description);
+  const [authors, setAuthors] = useState<string[]>(initialState.authors);
+  const [narrators, setNarrators] = useState<string[]>(initialState.narrators);
+  const [publisher, setPublisher] = useState(initialState.publisher);
+  const [language, setLanguage] = useState(initialState.language);
+  const [publishedYear, setPublishedYear] = useState(initialState.publishedYear);
+  const [isbn, setIsbn] = useState(initialState.isbn);
+  const [asin, setAsin] = useState(initialState.asin);
+  const [genres, setGenres] = useState<string[]>(initialState.genres);
+  const [tags, setTags] = useState<string[]>(initialState.tags);
+  const [seriesEntries, setSeriesEntries] = useState<SeriesEntry[]>(
+    initialState.seriesEntries,
+  );
 
   // External metadata match dialog
   const [matchOpen, setMatchOpen] = useState(false);
@@ -179,8 +251,8 @@ export function EditAudiobookDialog({
   }));
 
   // Navigation logic
-  const currentIndex = audiobook && audiobookIds
-    ? audiobookIds.indexOf(audiobook.id)
+  const currentIndex = audiobookIds
+    ? audiobookIds.indexOf(audiobookData.id)
     : -1;
   const hasPrevious = currentIndex > 0;
   const hasNext = currentIndex >= 0 && currentIndex < (audiobookIds?.length ?? 0) - 1;
@@ -199,10 +271,8 @@ export function EditAudiobookDialog({
     }
   }, [hasNext, audiobookIds, currentIndex, onNavigate]);
 
-  // Keyboard navigation
+  // Keyboard navigation. No `open` guard: this only exists while the dialog does.
   useEffect(() => {
-    if (!open) return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       // Only handle if not focused on an input element
       const target = e.target as HTMLElement;
@@ -223,66 +293,8 @@ export function EditAudiobookDialog({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [open, hasPrevious, hasNext, handlePrevious, handleNext]);
+  }, [hasPrevious, hasNext, handlePrevious, handleNext]);
 
-  // Reset form when audiobook changes
-  useEffect(() => {
-    if (audiobookData) {
-      const titleVal = audiobookData.title || "";
-      const subtitleVal = audiobookData.subtitle || "";
-      const descriptionVal = audiobookData.description || "";
-      const authorsVal = audiobookData.authors.map((a) => a.name);
-      const narratorsVal = audiobookData.narrators.map((n) => n.name);
-      const publisherVal = audiobookData.publisher || "";
-      const languageVal = audiobookData.language || "";
-      const publishedYearVal = audiobookData.publishedDate
-        ? new Date(audiobookData.publishedDate).getFullYear().toString()
-        : "";
-      const isbnVal = audiobookData.isbn || "";
-      const asinVal = audiobookData.asin || "";
-      const genresVal = audiobookData.genres.map((g) => g.name);
-      const tagsVal = audiobookData.tags.map((t) => t.name);
-      const seriesEntriesVal: SeriesEntry[] = audiobookData.series.map((s) => ({
-        seriesName: s.name,
-        order: s.order ? String(parseFloat(s.order)) : "",
-      }));
-
-      // Set form values
-      setTitle(titleVal);
-      setSubtitle(subtitleVal);
-      setDescription(descriptionVal);
-      setAuthors(authorsVal);
-      setNarrators(narratorsVal);
-      setPublisher(publisherVal);
-      setLanguage(languageVal);
-      setPublishedYear(publishedYearVal);
-      setIsbn(isbnVal);
-      setAsin(asinVal);
-      setGenres(genresVal);
-      setTags(tagsVal);
-      setSeriesEntries(seriesEntriesVal);
-
-      // Store initial state for change detection
-      setInitialState({
-        title: titleVal,
-        subtitle: subtitleVal,
-        description: descriptionVal,
-        authors: authorsVal,
-        narrators: narratorsVal,
-        publisher: publisherVal,
-        language: languageVal,
-        publishedYear: publishedYearVal,
-        isbn: isbnVal,
-        asin: asinVal,
-        genres: genresVal,
-        tags: tagsVal,
-        seriesEntries: seriesEntriesVal,
-      });
-
-      // Discard any unapplied matched cover when the audiobook (re)loads
-      setPendingCoverUrl(null);
-    }
-  }, [audiobookData]);
 
   // Apply checked fields from the metadata match dialog to the form state
   const handleMatchApply = (fields: MatchedMetadata) => {
@@ -304,10 +316,6 @@ export function EditAudiobookDialog({
   };
 
   const handleSave = async (closeAfterSave: boolean) => {
-    if (!audiobookData || !initialState) return;
-
-    // Capture before any await — the PUT response updates the detail cache,
-    // which re-runs the form-reset effect and clears pendingCoverUrl
     const coverUrl = pendingCoverUrl;
 
     // Build update data with only fields that actually changed
@@ -427,344 +435,339 @@ export function EditAudiobookDialog({
     await handleSave(true);
   };
 
-  const isLoading =
-    updateAudiobook.isPending ||
-    updateCover.isPending ||
-    Boolean(isListItem && !fullAudiobook);
+  const isLoading = updateAudiobook.isPending || updateCover.isPending;
 
   const showNavigation = audiobookIds && audiobookIds.length > 1 && onNavigate;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-2xl">
-        <DialogHeader className="shrink-0 border-b px-6 py-4">
-          <div className="flex items-center gap-2">
-            <DialogTitle className="flex-1">
-              {t("title")}
-              {showNavigation && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({currentIndex + 1} / {audiobookIds.length})
-                </span>
-              )}
-            </DialogTitle>
+    <>
+    <DialogHeader className="shrink-0 border-b px-6 py-4">
+      <div className="flex items-center gap-2">
+        <DialogTitle className="flex-1">
+          {t("title")}
+          {showNavigation && (
+            <span className="ml-2 text-sm font-normal text-muted-foreground">
+              ({currentIndex + 1} / {audiobookIds.length})
+            </span>
+          )}
+        </DialogTitle>
 
-            {/* External metadata match */}
+        {/* External metadata match */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0"
+          onClick={() => setMatchOpen(true)}
+          disabled={isLoading}
+        >
+          <Sparkles className="h-4 w-4 mr-1" />
+          {t("matchMetadata")}
+        </Button>
+
+        {/* Navigation buttons after title */}
+        {showNavigation && (
+          <div className="flex items-center gap-1">
             <Button
               type="button"
-              variant="outline"
-              size="sm"
-              className="shrink-0"
-              onClick={() => setMatchOpen(true)}
-              disabled={isLoading}
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={handlePrevious}
+              disabled={!hasPrevious || isLoading}
+              title={t("previous")}
             >
-              <Sparkles className="h-4 w-4 mr-1" />
-              {t("matchMetadata")}
+              <ChevronLeft className="h-5 w-5" />
             </Button>
-
-            {/* Navigation buttons after title */}
-            {showNavigation && (
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handlePrevious}
-                  disabled={!hasPrevious || isLoading}
-                  title={t("previous")}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  onClick={handleNext}
-                  disabled={!hasNext || isLoading}
-                  title={t("next")}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </div>
-            )}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 shrink-0"
+              onClick={handleNext}
+              disabled={!hasNext || isLoading}
+              title={t("next")}
+            >
+              <ChevronRight className="h-5 w-5" />
+            </Button>
           </div>
-        </DialogHeader>
+        )}
+      </div>
+    </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
-          {/* Title and Subtitle */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="title">{t("fields.title")}</Label>
-              <Input
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={t("fields.titlePlaceholder")}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="subtitle">{t("fields.subtitle")}</Label>
-              <Input
-                id="subtitle"
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder={t("fields.subtitlePlaceholder")}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Authors and Narrators */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t("fields.authors")}</Label>
-              <CreatableCombobox
-                options={authorOptions}
-                value={authors}
-                onChange={setAuthors}
-                placeholder={t("fields.authorsPlaceholder")}
-                searchPlaceholder={t("fields.searchAuthors")}
-                emptyText={t("fields.noAuthorsFound")}
-                createText={t("fields.createAuthor")}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t("fields.narrators")}</Label>
-              <CreatableCombobox
-                options={narratorOptions}
-                value={narrators}
-                onChange={setNarrators}
-                placeholder={t("fields.narratorsPlaceholder")}
-                searchPlaceholder={t("fields.searchNarrators")}
-                emptyText={t("fields.noNarratorsFound")}
-                createText={t("fields.createNarrator")}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Genres and Tags */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t("fields.genres")}</Label>
-              <CreatableCombobox
-                options={genreOptions}
-                value={genres}
-                onChange={setGenres}
-                placeholder={t("fields.genresPlaceholder")}
-                searchPlaceholder={t("fields.searchGenres")}
-                emptyText={t("fields.noGenresFound")}
-                createText={t("fields.createGenre")}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>{t("fields.tags")}</Label>
-              <CreatableCombobox
-                options={tagOptions}
-                value={tags}
-                onChange={setTags}
-                placeholder={t("fields.tagsPlaceholder")}
-                searchPlaceholder={t("fields.searchTags")}
-                emptyText={t("fields.noTagsFound")}
-                createText={t("fields.createTag")}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Series */}
-          <SeriesEntryEditor
-            value={seriesEntries}
-            onChange={setSeriesEntries}
+    <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+      <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+      {/* Title and Subtitle */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="title">{t("fields.title")}</Label>
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t("fields.titlePlaceholder")}
             disabled={isLoading}
-            labels={{
-              series: t("fields.series"),
-              addSeries: t("fields.addSeries"),
-              order: t("fields.seriesOrder"),
-              orderPlaceholder: t("fields.seriesOrderPlaceholder"),
-              searchSeries: t("fields.searchSeries"),
-              noSeriesFound: t("fields.noSeriesFound"),
-              createSeries: t("fields.createSeries"),
-              removeSeries: t("fields.removeSeries"),
-            }}
           />
+        </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label>{t("fields.description")}</Label>
-            <RichTextEditor
-              value={description}
-              onChange={setDescription}
-              placeholder={t("fields.descriptionPlaceholder")}
-              disabled={isLoading}
+        <div className="space-y-2">
+          <Label htmlFor="subtitle">{t("fields.subtitle")}</Label>
+          <Input
+            id="subtitle"
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+            placeholder={t("fields.subtitlePlaceholder")}
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* Authors and Narrators */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>{t("fields.authors")}</Label>
+          <CreatableCombobox
+            options={authorOptions}
+            value={authors}
+            onChange={setAuthors}
+            placeholder={t("fields.authorsPlaceholder")}
+            searchPlaceholder={t("fields.searchAuthors")}
+            emptyText={t("fields.noAuthorsFound")}
+            createText={t("fields.createAuthor")}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>{t("fields.narrators")}</Label>
+          <CreatableCombobox
+            options={narratorOptions}
+            value={narrators}
+            onChange={setNarrators}
+            placeholder={t("fields.narratorsPlaceholder")}
+            searchPlaceholder={t("fields.searchNarrators")}
+            emptyText={t("fields.noNarratorsFound")}
+            createText={t("fields.createNarrator")}
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* Genres and Tags */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>{t("fields.genres")}</Label>
+          <CreatableCombobox
+            options={genreOptions}
+            value={genres}
+            onChange={setGenres}
+            placeholder={t("fields.genresPlaceholder")}
+            searchPlaceholder={t("fields.searchGenres")}
+            emptyText={t("fields.noGenresFound")}
+            createText={t("fields.createGenre")}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>{t("fields.tags")}</Label>
+          <CreatableCombobox
+            options={tagOptions}
+            value={tags}
+            onChange={setTags}
+            placeholder={t("fields.tagsPlaceholder")}
+            searchPlaceholder={t("fields.searchTags")}
+            emptyText={t("fields.noTagsFound")}
+            createText={t("fields.createTag")}
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* Series */}
+      <SeriesEntryEditor
+        value={seriesEntries}
+        onChange={setSeriesEntries}
+        disabled={isLoading}
+        labels={{
+          series: t("fields.series"),
+          addSeries: t("fields.addSeries"),
+          order: t("fields.seriesOrder"),
+          orderPlaceholder: t("fields.seriesOrderPlaceholder"),
+          searchSeries: t("fields.searchSeries"),
+          noSeriesFound: t("fields.noSeriesFound"),
+          createSeries: t("fields.createSeries"),
+          removeSeries: t("fields.removeSeries"),
+        }}
+      />
+
+      {/* Description */}
+      <div className="space-y-2">
+        <Label>{t("fields.description")}</Label>
+        <RichTextEditor
+          value={description}
+          onChange={setDescription}
+          placeholder={t("fields.descriptionPlaceholder")}
+          disabled={isLoading}
+        />
+      </div>
+
+      {/* Publisher and Year */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label>{t("fields.publisher")}</Label>
+          <CreatableSelect
+            options={existingPublishers}
+            value={publisher}
+            onChange={setPublisher}
+            placeholder={t("fields.publisherPlaceholder")}
+            searchPlaceholder={t("fields.searchPublisher")}
+            emptyText={t("fields.noPublishersFound")}
+            createText={t("fields.createPublisher")}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="publishedYear">{t("fields.publishedYear")}</Label>
+          <Input
+            id="publishedYear"
+            type="number"
+            value={publishedYear}
+            onChange={(e) => setPublishedYear(e.target.value)}
+            placeholder={t("fields.publishedYearPlaceholder")}
+            disabled={isLoading}
+            min={1000}
+            max={9999}
+          />
+        </div>
+      </div>
+
+      {/* Language */}
+      <div className="space-y-2">
+        <Label>{t("fields.language")}</Label>
+        <Select
+          value={language}
+          onValueChange={setLanguage}
+          disabled={isLoading}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={t("fields.languagePlaceholder")} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">
+              <span className="text-muted-foreground">{t("fields.noLanguage")}</span>
+            </SelectItem>
+            {LANGUAGE_OPTIONS.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* ISBN and ASIN */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="isbn">{t("fields.isbn")}</Label>
+          <Input
+            id="isbn"
+            value={isbn}
+            onChange={(e) => setIsbn(e.target.value)}
+            placeholder={t("fields.isbnPlaceholder")}
+            disabled={isLoading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="asin">{t("fields.asin")}</Label>
+          <Input
+            id="asin"
+            value={asin}
+            onChange={(e) => setAsin(e.target.value)}
+            placeholder={t("fields.asinPlaceholder")}
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+
+      {/* Cover pulled in from a metadata match, uploaded on save */}
+      {pendingCoverUrl && (
+        <div className="flex items-center gap-3 rounded-lg border p-3">
+          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
+            <Image
+              src={pendingCoverUrl}
+              alt={t("pendingCover")}
+              fill
+              className="object-cover"
+              unoptimized
             />
           </div>
+          <p className="flex-1 text-sm text-muted-foreground">
+            {t("pendingCover")}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0"
+            onClick={() => setPendingCoverUrl(null)}
+            title={t("removePendingCover")}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+      </div>
 
-          {/* Publisher and Year */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label>{t("fields.publisher")}</Label>
-              <CreatableSelect
-                options={existingPublishers}
-                value={publisher}
-                onChange={setPublisher}
-                placeholder={t("fields.publisherPlaceholder")}
-                searchPlaceholder={t("fields.searchPublisher")}
-                emptyText={t("fields.noPublishersFound")}
-                createText={t("fields.createPublisher")}
-                disabled={isLoading}
-              />
-            </div>
+      <DialogFooter className="shrink-0 border-t px-6 py-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          disabled={isLoading}
+        >
+          {t("cancel")}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => handleSave(false)}
+          disabled={isLoading}
+        >
+          {isLoading ? t("saving") : t("save")}
+        </Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? t("saving") : t("saveAndClose")}
+        </Button>
+      </DialogFooter>
+    </form>
 
-            <div className="space-y-2">
-              <Label htmlFor="publishedYear">{t("fields.publishedYear")}</Label>
-              <Input
-                id="publishedYear"
-                type="number"
-                value={publishedYear}
-                onChange={(e) => setPublishedYear(e.target.value)}
-                placeholder={t("fields.publishedYearPlaceholder")}
-                disabled={isLoading}
-                min={1000}
-                max={9999}
-              />
-            </div>
-          </div>
-
-          {/* Language */}
-          <div className="space-y-2">
-            <Label>{t("fields.language")}</Label>
-            <Select
-              value={language}
-              onValueChange={setLanguage}
-              disabled={isLoading}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={t("fields.languagePlaceholder")} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">
-                  <span className="text-muted-foreground">{t("fields.noLanguage")}</span>
-                </SelectItem>
-                {LANGUAGE_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* ISBN and ASIN */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="isbn">{t("fields.isbn")}</Label>
-              <Input
-                id="isbn"
-                value={isbn}
-                onChange={(e) => setIsbn(e.target.value)}
-                placeholder={t("fields.isbnPlaceholder")}
-                disabled={isLoading}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="asin">{t("fields.asin")}</Label>
-              <Input
-                id="asin"
-                value={asin}
-                onChange={(e) => setAsin(e.target.value)}
-                placeholder={t("fields.asinPlaceholder")}
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          {/* Cover pulled in from a metadata match, uploaded on save */}
-          {pendingCoverUrl && (
-            <div className="flex items-center gap-3 rounded-lg border p-3">
-              <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded bg-muted">
-                <Image
-                  src={pendingCoverUrl}
-                  alt={t("pendingCover")}
-                  fill
-                  className="object-cover"
-                  unoptimized
-                />
-              </div>
-              <p className="flex-1 text-sm text-muted-foreground">
-                {t("pendingCover")}
-              </p>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8 shrink-0"
-                onClick={() => setPendingCoverUrl(null)}
-                title={t("removePendingCover")}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-          </div>
-
-          <DialogFooter className="shrink-0 border-t px-6 py-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => handleSave(false)}
-              disabled={isLoading}
-            >
-              {isLoading ? t("saving") : t("save")}
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? t("saving") : t("saveAndClose")}
-            </Button>
-          </DialogFooter>
-        </form>
-
-        {/* Rendered inside DialogContent so clicks in the nested dialog count
-            as inside the edit dialog's dismissable layer — as a sibling, the
-            click that closes the match dialog dismisses the edit dialog too */}
-        <MetadataMatchDialog
-          mediaType="audiobook"
-          open={matchOpen}
-          onOpenChange={setMatchOpen}
-          current={{
-            title,
-            subtitle,
-            description,
-            authors,
-            narrators,
-            publisher,
-            language,
-            publishedYear,
-            isbn,
-            asin,
-            genres,
-            tags,
-            series: seriesEntries,
-          }}
-          onApply={handleMatchApply}
-        />
-      </DialogContent>
-    </Dialog>
+    {/* Rendered inside DialogContent so clicks in the nested dialog count
+        as inside the edit dialog's dismissable layer — as a sibling, the
+        click that closes the match dialog dismisses the edit dialog too */}
+    <MetadataMatchDialog
+      mediaType="audiobook"
+      open={matchOpen}
+      onOpenChange={setMatchOpen}
+      current={{
+        title,
+        subtitle,
+        description,
+        authors,
+        narrators,
+        publisher,
+        language,
+        publishedYear,
+        isbn,
+        asin,
+        genres,
+        tags,
+        series: seriesEntries,
+      }}
+      onApply={handleMatchApply}
+    />
+    </>
   );
 }

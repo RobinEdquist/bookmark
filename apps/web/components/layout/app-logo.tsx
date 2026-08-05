@@ -1,6 +1,5 @@
 "use client";
 
-import { useMemo } from "react";
 import Link from "next/link";
 
 const NEON_COLORS = [
@@ -21,13 +20,18 @@ interface AppLogoProps {
 export function AppLogo({ onClick }: AppLogoProps) {
   const text = "bookmark";
 
-  // Generate random colors for each letter, memoized to prevent re-renders
-  const letterColors = useMemo(() => {
-    return text.split("").map((char) => {
-      if (char === " ") return null;
-      return NEON_COLORS[Math.floor(Math.random() * NEON_COLORS.length)];
-    });
-  }, []);
+  // Each letter gets its own neon colour, assigned by position. This used to
+  // call Math.random() during render, which made the component impure in two
+  // ways: the server and the client picked different colours, so the logo was a
+  // guaranteed hydration mismatch, and useMemo is a cache React is free to
+  // discard, so the colours could also change mid-session on a re-render.
+  // Cycling the palette by index is stable everywhere and, because "bookmark"
+  // is exactly as long as NEON_COLORS, still gives every letter a distinct hue.
+  const letterColors = text
+    .split("")
+    .map((char, index) =>
+      char === " " ? null : NEON_COLORS[index % NEON_COLORS.length],
+    );
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     // Only call onClick for regular clicks, not ctrl/cmd+click (new tab)

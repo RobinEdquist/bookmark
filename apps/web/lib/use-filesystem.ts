@@ -48,10 +48,16 @@ async function createDirectoryApi(path: string): Promise<DirectoryInfo> {
   return response.json();
 }
 
-export function useFilesystemBrowse(path?: string) {
+/**
+ * Browse a directory. `enabled: false` keeps the query mounted but idle, which
+ * lets a caller declare a conditional fallback browse in render instead of
+ * reacting to a failure by mutating the path it asked for.
+ */
+export function useFilesystemBrowse(path?: string, enabled = true) {
   return useQuery({
     queryKey: queryKeys.filesystem.browse(path || ""),
     queryFn: () => browseDirectory(path),
+    enabled,
   });
 }
 

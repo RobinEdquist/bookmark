@@ -51,6 +51,7 @@ import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
 import { ChapterImportDialog } from "../../../../components/chapters/chapter-import-dialog";
 import { formatFileSize } from "../../../../lib/format-file-size";
+import { COLLAPSED_DESCRIPTION_HEIGHT } from "../../../../lib/constants/description";
 
 function formatDuration(seconds: number | null): string {
   if (!seconds) return "—";
@@ -96,13 +97,30 @@ export default function AudiobookDetailPage({
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [chapterImportOpen, setChapterImportOpen] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const [descriptionOverflows, setDescriptionOverflows] = useState(false);
+  // Full rendered height of the description, measured after commit. The
+  // expanded max-height used to read descriptionRef.current.scrollHeight
+  // straight from the render body, which is a layout read during render: on the
+  // render where `descriptionExpanded` flips, the ref still points at the
+  // previous commit's node, and on the very first render it is null (the 9999
+  // fallback). Measuring once into state keeps render pure and lets a single
+  // number drive both the animation target and the overflow affordances.
+  const [descriptionFullHeight, setDescriptionFullHeight] = useState<
+    number | null
+  >(null);
+  const descriptionOverflows =
+    descriptionFullHeight !== null &&
+    descriptionFullHeight > COLLAPSED_DESCRIPTION_HEIGHT;
   const [chaptersOpen, setChaptersOpen] = useState<string | undefined>(undefined);
   const [filesOpen, setFilesOpen] = useState<string | undefined>(undefined);
   const descriptionRef = useRef<HTMLDivElement>(null);
+  // Read the field out first so the memo closes over the string itself. Reading
+  // `audiobook?.description` inside the callback made the compiler widen the
+  // inferred dependency to the whole `audiobook` object, which no longer matched
+  // the declared dep list and cost the component its optimisation.
+  const description = audiobook?.description;
   const sanitizedDescription = useMemo(
-    () => (audiobook?.description ? DOMPurify.sanitize(audiobook.description) : ""),
-    [audiobook?.description],
+    () => (description ? DOMPurify.sanitize(description) : ""),
+    [description],
   );
 
   const canEdit = permissions?.canEditMetadata ?? false;
@@ -144,10 +162,12 @@ export default function AudiobookDetailPage({
   };
 
   useEffect(() => {
-    if (descriptionRef.current) {
-      setDescriptionOverflows(descriptionRef.current.scrollHeight > 200);
-    }
-  }, [audiobook?.description]);
+    const el = descriptionRef.current;
+    if (!el) return;
+    // scrollHeight reports full content height even while clipped by
+    // max-height + overflow-hidden, so this is the expanded target.
+    setDescriptionFullHeight(el.scrollHeight);
+  }, [sanitizedDescription]);
 
   if (isLoading) {
     return (
@@ -538,8 +558,8 @@ export default function AudiobookDetailPage({
                     className="text-sm leading-relaxed text-muted-foreground [&_p]:my-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_strong]:font-semibold [&_em]:italic overflow-hidden transition-[max-height] duration-300 ease-in-out"
                     style={{
                       maxHeight: descriptionExpanded
-                        ? descriptionRef.current?.scrollHeight ?? 9999
-                        : 200,
+                        ? (descriptionFullHeight ?? 9999)
+                        : COLLAPSED_DESCRIPTION_HEIGHT,
                     }}
                     dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                   />

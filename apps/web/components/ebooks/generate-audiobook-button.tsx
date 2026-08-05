@@ -66,16 +66,15 @@ export function GenerateAudiobookButton({
   const { cancelJob, isCancelling } = useCancelTtsJob();
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [voice, setVoice] = useState("");
+  const [voiceChoice, setVoiceChoice] = useState<string | null>(null);
   // Only fetch the voice list while the dialog is open
   const { voices } = useTtsVoices(canGenerate && isConfigured && confirmOpen);
 
-  // Default the picker to the globally configured voice
-  useEffect(() => {
-    if (confirmOpen && !voice && status?.voice) {
-      setVoice(status.voice);
-    }
-  }, [confirmOpen, voice, status?.voice]);
+  // The picker defaults to the globally configured voice until the user picks
+  // one. This used to be an effect whose `!voice` guard meant the default could
+  // never be re-applied for a second dialog open, and whose extra render landed
+  // after the Select had already painted with an empty value.
+  const voice = voiceChoice ?? status?.voice ?? "";
 
   const [isPreviewing, setIsPreviewing] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -227,7 +226,7 @@ export function GenerateAudiobookButton({
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
               {voices ? (
-                <Select value={voice} onValueChange={setVoice}>
+                <Select value={voice} onValueChange={setVoiceChoice}>
                   <SelectTrigger id="generate-voice">
                     <SelectValue />
                   </SelectTrigger>
@@ -246,7 +245,7 @@ export function GenerateAudiobookButton({
                 <Input
                   id="generate-voice"
                   value={voice}
-                  onChange={(e) => setVoice(e.target.value)}
+                  onChange={(e) => setVoiceChoice(e.target.value)}
                 />
               )}
             </div>

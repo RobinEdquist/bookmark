@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Tags, Pencil, Trash2, MoreHorizontal } from "lucide-react";
@@ -202,20 +202,48 @@ function RenameGenreDialog({
   onConflict,
 }: RenameGenreDialogProps) {
   const t = useTranslations("settings.genres.rename");
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{t("title")}</DialogTitle>
+        </DialogHeader>
+        {genre && (
+          <RenameGenreForm
+            genre={genre}
+            onOpenChange={onOpenChange}
+            onConflict={onConflict}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/**
+ * The form is its own component so opening the dialog *creates* its state
+ * instead of an effect re-syncing it afterwards. DialogContent unmounts while
+ * closed, so this mounts fresh on every open and useState seeds from the genre
+ * being renamed.
+ */
+function RenameGenreForm({
+  genre,
+  onOpenChange,
+  onConflict,
+}: {
+  genre: AdminGenre;
+  onOpenChange: (open: boolean) => void;
+  onConflict: (conflict: RenameConflict) => void;
+}) {
+  const t = useTranslations("settings.genres.rename");
   const tToast = useTranslations("settings.genres.toast");
   const renameGenre = useRenameGenre();
 
-  const [name, setName] = useState("");
-
-  useEffect(() => {
-    if (open && genre) {
-      setName(genre.name);
-    }
-  }, [open, genre]);
+  const [name, setName] = useState(genre.name);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!genre) return;
 
     try {
       const result = await renameGenre.mutateAsync({ id: genre.id, name });
@@ -230,43 +258,36 @@ function RenameGenreDialog({
     }
   };
 
-  const isUnchanged = name.trim() === genre?.name;
+  const isUnchanged = name.trim() === genre.name;
   const isEmpty = name.trim() === "";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{t("title")}</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="genre-name">{t("label")}</Label>
-            <Input
-              id="genre-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              {t("cancel")}
-            </Button>
-            <Button
-              type="submit"
-              disabled={renameGenre.isPending || isUnchanged || isEmpty}
-            >
-              {renameGenre.isPending ? t("saving") : t("save")}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="genre-name">{t("label")}</Label>
+        <Input
+          id="genre-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+        >
+          {t("cancel")}
+        </Button>
+        <Button
+          type="submit"
+          disabled={renameGenre.isPending || isUnchanged || isEmpty}
+        >
+          {renameGenre.isPending ? t("saving") : t("save")}
+        </Button>
+      </DialogFooter>
+    </form>
   );
 }
 

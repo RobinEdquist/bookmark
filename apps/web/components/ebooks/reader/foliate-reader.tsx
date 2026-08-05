@@ -8,6 +8,7 @@ import type {
   FoliateDataDetail,
 } from "../../../lib/foliate-js/foliate-view";
 import { applyReaderStyles } from "../../../lib/reader-themes";
+import { useLatestRef } from "../../../lib/use-latest-ref";
 import type { ReaderSettings } from "../../../lib/use-reader-settings";
 import type {
   ReaderController,
@@ -73,17 +74,13 @@ export function FoliateReader({
 
   // Callbacks and settings are kept in refs so the open-once effect below
   // doesn't reopen the book when they change (same pattern as
-  // player-provider's playbackRateRef).
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-  const onRelocateRef = useRef(onRelocate);
-  onRelocateRef.current = onRelocate;
-  const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
-  const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
-  const onContentKeyDownRef = useRef(onContentKeyDown);
-  onContentKeyDownRef.current = onContentKeyDown;
+  // player-provider's playbackRateRef). useLatestRef does the assignment in an
+  // effect rather than during render — see its doc comment for why that matters.
+  const settingsRef = useLatestRef(settings);
+  const onRelocateRef = useLatestRef(onRelocate);
+  const onReadyRef = useLatestRef(onReady);
+  const onErrorRef = useLatestRef(onError);
+  const onContentKeyDownRef = useLatestRef(onContentKeyDown);
   const initialLocatorRef = useRef(initialLocator);
   const initialPercentRef = useRef(initialPercent);
 
@@ -190,7 +187,19 @@ export function FoliateReader({
       view?.remove();
       viewRef.current = null;
     };
-  }, [ebookId, fileName, controllerRef]);
+    // The *Ref entries are useLatestRef results. Ref objects are identity
+    // stable, so listing them cannot re-run this effect; they are here only
+    // because the lint rule can't see through a custom hook to the useRef.
+  }, [
+    ebookId,
+    fileName,
+    controllerRef,
+    settingsRef,
+    onRelocateRef,
+    onReadyRef,
+    onErrorRef,
+    onContentKeyDownRef,
+  ]);
 
   // Live-apply settings changes without reopening the book
   useEffect(() => {

@@ -11,6 +11,7 @@ import {
 import { Document, Page, pdfjs } from "react-pdf";
 
 import { readerThemes, type ReaderThemeName } from "../../../lib/reader-themes";
+import { useLatestRef } from "../../../lib/use-latest-ref";
 import type { ReaderController, ReaderRelocateInfo } from "./types";
 import type { ReaderTocItem } from "./types";
 
@@ -56,12 +57,10 @@ export function PdfReader({
   const [page, setPage] = useState(() => parsePdfLocator(initialLocator) ?? 1);
   const [pageAspect, setPageAspect] = useState<number | null>(null);
 
-  const onRelocateRef = useRef(onRelocate);
-  onRelocateRef.current = onRelocate;
-  const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
-  const onErrorRef = useRef(onError);
-  onErrorRef.current = onError;
+  // Assigned in an effect rather than during render — see useLatestRef.
+  const onRelocateRef = useLatestRef(onRelocate);
+  const onReadyRef = useLatestRef(onReady);
+  const onErrorRef = useLatestRef(onError);
 
   // Referentially stable file descriptor - react-pdf reloads the document
   // whenever this object identity changes. withCredentials lets pdf.js
@@ -112,7 +111,9 @@ export function PdfReader({
       fraction: page / numPages,
       pageLabel: `${page} / ${numPages}`,
     });
-  }, [page, numPages, goToPage, controllerRef]);
+    // onRelocateRef is a useLatestRef result — identity stable, listed only
+    // because the lint rule can't see through the custom hook.
+  }, [page, numPages, goToPage, controllerRef, onRelocateRef]);
 
   useEffect(() => {
     return () => {
@@ -126,12 +127,15 @@ export function PdfReader({
       setPage((current) => Math.min(Math.max(current, 1), total));
       onReadyRef.current([]);
     },
-    [],
+    [onReadyRef],
   );
 
-  const handleLoadError = useCallback((error: Error) => {
-    onErrorRef.current(error);
-  }, []);
+  const handleLoadError = useCallback(
+    (error: Error) => {
+      onErrorRef.current(error);
+    },
+    [onErrorRef],
+  );
 
   // Fit the page inside the container (contain), once we know its aspect
   const pageSize = useMemo(() => {

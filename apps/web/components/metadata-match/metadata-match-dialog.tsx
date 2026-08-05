@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { ArrowRight, Check, ChevronLeft, Search } from "lucide-react";
@@ -147,13 +147,35 @@ export function MetadataMatchDialog({
   onOpenChange,
   onApply,
 }: MetadataMatchDialogProps) {
+  return (
+    <MetadataMatchBody
+      // `current` tracks the live edit form, so the search inputs must seed from
+      // it once per open, not follow it. Remounting on open does that; the effect
+      // this replaces needed a lint suppression to hold `current` out of its deps.
+      key={open ? "open" : "closed"}
+      mediaType={mediaType}
+      current={current}
+      open={open}
+      onOpenChange={onOpenChange}
+      onApply={onApply}
+    />
+  );
+}
+
+function MetadataMatchBody({
+  mediaType,
+  current,
+  open,
+  onOpenChange,
+  onApply,
+}: MetadataMatchDialogProps) {
   const t = useTranslations("common.metadataMatch");
 
   const [step, setStep] = useState<Step>("search");
   const [provider, setProvider] = useState<Provider>("audible");
   const [region, setRegion] = useState("us");
-  const [titleInput, setTitleInput] = useState("");
-  const [authorInput, setAuthorInput] = useState("");
+  const [titleInput, setTitleInput] = useState(current.title);
+  const [authorInput, setAuthorInput] = useState(current.authors[0] ?? "");
   const [submitted, setSubmitted] = useState<{
     title: string;
     author: string;
@@ -164,17 +186,13 @@ export function MetadataMatchDialog({
     useState<AudibleSearchResult | null>(null);
   const [selectedItunes, setSelectedItunes] =
     useState<ItunesSearchResult | null>(null);
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
-
-  // Prefill search inputs from the form when the dialog opens
-  useEffect(() => {
-    if (open) {
-      setTitleInput(current.title);
-      setAuthorInput(current.authors[0] ?? "");
-    }
-    // Prefill only on open — `current` follows live form state
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  // Which rows the user has toggled away from the default. Every row of a fresh
+  // match starts checked, and that default is derived below rather than written
+  // into state by an effect — the effect it replaces also needed a lint
+  // suppression to keep `fieldRows` out of its deps.
+  const [checkedOverrides, setCheckedOverrides] = useState<
+    Record<string, boolean>
+  >({});
 
   const itunesCountry =
     REGION_OPTIONS.find((r) => r.value === (submitted?.region ?? region))
@@ -280,26 +298,37 @@ export function MetadataMatchDialog({
     }));
   }, [matched, current, mediaType]);
 
-  // Default-check every row (including the cover) whenever the match changes
-  useEffect(() => {
-    if (!matched) return;
-    const initial: Record<string, boolean> = {};
+  // Every row of a match starts checked; overrides are layered on top.
+  const checked: Record<string, boolean> = useMemo(() => {
+    if (!matched) return {};
+    const defaults: Record<string, boolean> = {};
     for (const row of fieldRows) {
-      initial[row.key] = true;
+      defaults[row.key] = true;
     }
     if (matched.coverUrl) {
-      initial.cover = true;
+      defaults.cover = true;
     }
-    setChecked(initial);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [matched]);
+    return { ...defaults, ...checkedOverrides };
+  }, [matched, fieldRows, checkedOverrides]);
 
   const resetAll = () => {
     setStep("search");
     setSubmitted(null);
     setSelectedAudible(null);
     setSelectedItunes(null);
-    setChecked({});
+    setCheckedOverrides({});
+  };
+
+  // Picking a different result is a different match, so its rows go back to all
+  // checked. The effect this replaces did it by rewriting the whole map.
+  const selectAudible = (result: AudibleSearchResult) => {
+    setSelectedAudible(result);
+    setCheckedOverrides({});
+  };
+
+  const selectItunes = (result: ItunesSearchResult) => {
+    setSelectedItunes(result);
+    setCheckedOverrides({});
   };
 
   const handleClose = () => {
@@ -485,7 +514,7 @@ export function MetadataMatchDialog({
                           <button
                             key={result.asin}
                             type="button"
-                            onClick={() => setSelectedAudible(result)}
+                            onClick={() => selectAudible(result)}
                             className={`w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
                               isSelected
                                 ? "border-primary bg-primary/5"
@@ -555,7 +584,7 @@ export function MetadataMatchDialog({
                         <button
                           key={result.id}
                           type="button"
-                          onClick={() => setSelectedItunes(result)}
+                          onClick={() => selectItunes(result)}
                           className={`w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
                             isSelected
                               ? "border-primary bg-primary/5"
@@ -660,7 +689,7 @@ export function MetadataMatchDialog({
                       <Checkbox
                         checked={checked[row.key] ?? false}
                         onCheckedChange={(value) =>
-                          setChecked((prev) => ({
+                          setCheckedOverrides((prev) => ({
                             ...prev,
                             [row.key]: value === true,
                           }))
@@ -683,7 +712,7 @@ export function MetadataMatchDialog({
                       <Checkbox
                         checked={checked.cover ?? false}
                         onCheckedChange={(value) =>
-                          setChecked((prev) => ({
+                          setCheckedOverrides((prev) => ({
                             ...prev,
                             cover: value === true,
                           }))

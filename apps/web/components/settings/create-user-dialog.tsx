@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
@@ -36,36 +36,38 @@ export function CreateUserDialog({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
-  const [canEditMetadata, setCanEditMetadata] = useState(false);
-  const [canUpload, setCanUploadAudiobooks] = useState(false);
-  const [canDelete, setCanDeleteAudiobooks] = useState(false);
-  const [canGenerateApiKeys, setCanGenerateApiKeys] = useState(false);
-  const [canGenerateAudiobooks, setCanGenerateAudiobooks] = useState(false);
-  const [blacklistedTags, setBlacklistedTags] = useState<string[]>([]);
+  // What the operator ticked, before the admin role is taken into account.
+  const [editMetadataChoice, setEditMetadataChoice] = useState(false);
+  const [uploadChoice, setUploadChoice] = useState(false);
+  const [deleteChoice, setDeleteChoice] = useState(false);
+  const [apiKeysChoice, setApiKeysChoice] = useState(false);
+  const [generateChoice, setGenerateChoice] = useState(false);
+  const [tagChoice, setTagChoice] = useState<string[]>([]);
 
-  // Admins have all permissions and no blacklisted tags
-  useEffect(() => {
-    if (isAdmin) {
-      setCanEditMetadata(true);
-      setCanUploadAudiobooks(true);
-      setCanDeleteAudiobooks(true);
-      setCanGenerateApiKeys(true);
-      setCanGenerateAudiobooks(true);
-      setBlacklistedTags([]);
-    }
-  }, [isAdmin]);
+  // Admins implicitly hold every permission and have no tag blacklist, and the
+  // individual controls are disabled while the role is admin. Deriving that,
+  // rather than forcing each flag true from an effect, fixes a real bug: the
+  // effect only fired when isAdmin *became* true, so switching the role back to
+  // "user" left every permission stuck on instead of restoring what had been
+  // ticked before.
+  const canEditMetadata = isAdmin || editMetadataChoice;
+  const canUpload = isAdmin || uploadChoice;
+  const canDelete = isAdmin || deleteChoice;
+  const canGenerateApiKeys = isAdmin || apiKeysChoice;
+  const canGenerateAudiobooks = isAdmin || generateChoice;
+  const blacklistedTags = isAdmin ? [] : tagChoice;
 
   const resetForm = () => {
     setName("");
     setEmail("");
     setPassword("");
     setIsAdmin(false);
-    setCanEditMetadata(false);
-    setCanUploadAudiobooks(false);
-    setCanDeleteAudiobooks(false);
-    setCanGenerateApiKeys(false);
-    setCanGenerateAudiobooks(false);
-    setBlacklistedTags([]);
+    setEditMetadataChoice(false);
+    setUploadChoice(false);
+    setDeleteChoice(false);
+    setApiKeysChoice(false);
+    setGenerateChoice(false);
+    setTagChoice([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -172,7 +174,7 @@ export function CreateUserDialog({
                 <Switch
                   id="canEditMetadata"
                   checked={canEditMetadata}
-                  onCheckedChange={setCanEditMetadata}
+                  onCheckedChange={setEditMetadataChoice}
                   disabled={isAdmin}
                 />
               </div>
@@ -183,7 +185,7 @@ export function CreateUserDialog({
                 <Switch
                   id="canUpload"
                   checked={canUpload}
-                  onCheckedChange={setCanUploadAudiobooks}
+                  onCheckedChange={setUploadChoice}
                   disabled={isAdmin}
                 />
               </div>
@@ -194,7 +196,7 @@ export function CreateUserDialog({
                 <Switch
                   id="canDelete"
                   checked={canDelete}
-                  onCheckedChange={setCanDeleteAudiobooks}
+                  onCheckedChange={setDeleteChoice}
                   disabled={isAdmin}
                 />
               </div>
@@ -205,7 +207,7 @@ export function CreateUserDialog({
                 <Switch
                   id="canGenerateApiKeys"
                   checked={canGenerateApiKeys}
-                  onCheckedChange={setCanGenerateApiKeys}
+                  onCheckedChange={setApiKeysChoice}
                   disabled={isAdmin}
                 />
               </div>
@@ -216,7 +218,7 @@ export function CreateUserDialog({
                 <Switch
                   id="canGenerateAudiobooks"
                   checked={canGenerateAudiobooks}
-                  onCheckedChange={setCanGenerateAudiobooks}
+                  onCheckedChange={setGenerateChoice}
                   disabled={isAdmin}
                 />
               </div>
@@ -229,7 +231,7 @@ export function CreateUserDialog({
               <MultiSelect
                 options={availableTags}
                 selected={blacklistedTags}
-                onChange={setBlacklistedTags}
+                onChange={setTagChoice}
                 placeholder={t("createDialog.blacklistedTagsPlaceholder")}
                 searchPlaceholder={t("createDialog.searchTags")}
                 emptyText={t("createDialog.noTagsAvailable")}
