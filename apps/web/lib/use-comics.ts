@@ -186,11 +186,11 @@ function buildSeriesParams(filters: ComicSeriesFilters): URLSearchParams {
 }
 
 async function fetchComicSeries(
-  filters: ComicSeriesFilters = {}
+  filters: ComicSeriesFilters = {},
 ): Promise<{ series: ComicSeriesListItem[]; total: number }> {
   const response = await fetch(
     `/api/comics/series?${buildSeriesParams(filters)}`,
-    { credentials: "include" }
+    { credentials: "include" },
   );
   if (!response.ok) {
     throw new Error("Failed to fetch comic series");
@@ -207,14 +207,21 @@ export function useComicSeries(filters: ComicSeriesFilters = {}) {
 }
 
 export function useInfiniteComicSeries(
-  filters: Omit<ComicSeriesFilters, "limit" | "offset"> = {}
+  filters: Omit<ComicSeriesFilters, "limit" | "offset"> = {},
 ) {
   return useInfiniteQuery({
     queryKey: queryKeys.comics.infinite(filters),
     queryFn: ({ pageParam = 0 }) =>
-      fetchComicSeries({ ...filters, limit: ITEMS_PER_PAGE, offset: pageParam }),
+      fetchComicSeries({
+        ...filters,
+        limit: ITEMS_PER_PAGE,
+        offset: pageParam,
+      }),
     getNextPageParam: (lastPage, allPages) => {
-      const loaded = allPages.reduce((acc, page) => acc + page.series.length, 0);
+      const loaded = allPages.reduce(
+        (acc, page) => acc + page.series.length,
+        0,
+      );
       return loaded < lastPage.total ? loaded : undefined;
     },
     initialPageParam: 0,
@@ -263,7 +270,7 @@ export function useComicBook(id: string) {
 
 async function updateComicSeries(
   id: string,
-  data: UpdateComicSeriesInput
+  data: UpdateComicSeriesInput,
 ): Promise<{ success: boolean }> {
   const response = await fetch(`/api/comics/series/${id}`, {
     method: "PATCH",
@@ -296,7 +303,7 @@ export function useUpdateComicSeries() {
 
 async function updateComicBook(
   id: string,
-  data: UpdateComicBookInput
+  data: UpdateComicBookInput,
 ): Promise<{ success: boolean }> {
   const response = await fetch(`/api/comics/books/${id}`, {
     method: "PATCH",
@@ -334,7 +341,7 @@ export interface UpdateComicBooksBatchInput {
 }
 
 async function updateComicBooksBatch(
-  input: UpdateComicBooksBatchInput
+  input: UpdateComicBooksBatchInput,
 ): Promise<{ updated: number }> {
   const response = await fetch("/api/comics/books/batch", {
     method: "PATCH",
@@ -365,7 +372,7 @@ export function useUpdateComicBooksBatch(seriesId: string) {
 
 async function deleteComicSeries(
   id: string,
-  deleteFiles: boolean
+  deleteFiles: boolean,
 ): Promise<void> {
   const params = new URLSearchParams();
   params.set("deleteFiles", String(deleteFiles));
@@ -398,7 +405,7 @@ export function useDeleteComicSeries() {
 
 async function deleteComicBook(
   id: string,
-  deleteFiles: boolean
+  deleteFiles: boolean,
 ): Promise<void> {
   const params = new URLSearchParams();
   params.set("deleteFiles", String(deleteFiles));
@@ -429,19 +436,16 @@ async function triggerComicRescanApi(): Promise<{
   success: boolean;
   result: { total: number; succeeded: number; failed: number };
 }> {
-  const response = await fetch(
-    "/api/admin/library-watcher/rescan-comics",
-    {
-      method: "POST",
-      credentials: "include",
-    }
-  );
+  const response = await fetch("/api/admin/library-watcher/rescan-comics", {
+    method: "POST",
+    credentials: "include",
+  });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
     throw new Error(
       (errorData as { message?: string }).message ||
-        "Failed to trigger comic metadata rescan"
+        "Failed to trigger comic metadata rescan",
     );
   }
 

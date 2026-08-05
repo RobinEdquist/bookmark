@@ -169,8 +169,14 @@
     "seriesTitle": "Delete series?",
     "bookTitle": "Delete book?",
     "description": "This removes \"{title}\" from your library.",
-    "keepFiles": { "label": "Keep files", "description": "Remove from library only" },
-    "deleteFiles": { "label": "Delete files", "description": "Also delete files from disk" },
+    "keepFiles": {
+      "label": "Keep files",
+      "description": "Remove from library only"
+    },
+    "deleteFiles": {
+      "label": "Delete files",
+      "description": "Also delete files from disk"
+    },
     "confirm": "Delete",
     "cancel": "Cancel",
     "deleting": "Deleting...",

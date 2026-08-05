@@ -19,7 +19,11 @@ interface DeleteUserDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function DeleteUserDialog({ user, open, onOpenChange }: DeleteUserDialogProps) {
+export function DeleteUserDialog({
+  user,
+  open,
+  onOpenChange,
+}: DeleteUserDialogProps) {
   const t = useTranslations("settings.users");
   const deleteUser = useDeleteUser();
 
@@ -32,7 +36,7 @@ export function DeleteUserDialog({ user, open, onOpenChange }: DeleteUserDialogP
       onOpenChange(false);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("toast.deleteError")
+        error instanceof Error ? error.message : t("toast.deleteError"),
       );
     }
   };

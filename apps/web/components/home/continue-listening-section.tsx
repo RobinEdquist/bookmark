@@ -4,7 +4,15 @@ import { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { Play, Pause, MoreVertical, EyeOff, Settings, Clock, Star } from "lucide-react";
+import {
+  Play,
+  Pause,
+  MoreVertical,
+  EyeOff,
+  Settings,
+  Clock,
+  Star,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
@@ -15,7 +23,11 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import { toast } from "sonner";
-import { useAllProgress, useHideProgress, type ProgressWithAudiobook } from "../../lib/use-progress";
+import {
+  useAllProgress,
+  useHideProgress,
+  type ProgressWithAudiobook,
+} from "../../lib/use-progress";
 import { useAudiobook } from "../../lib/use-audiobooks";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
 import { useMyPermissions } from "../../lib/use-users";
@@ -24,14 +36,25 @@ import { usePlayer } from "../providers/player-provider";
 import { HorizontalScrollRow } from "./horizontal-scroll-row";
 import { GeneratedCover } from "../common/generated-cover";
 
-function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }) {
+function ContinueListeningCard({
+  progress,
+}: {
+  progress: ProgressWithAudiobook;
+}) {
   const t = useTranslations("home.continueListening");
-  const { audiobook: playerAudiobook, isPlaying, play, pause, resume } = usePlayer();
+  const {
+    audiobook: playerAudiobook,
+    isPlaying,
+    play,
+    pause,
+    resume,
+  } = usePlayer();
   const { data: audiobookDetail } = useAudiobook(progress.audiobook.id);
   const { mutate: hideProgress, isPending: isHiding } = useHideProgress();
   const { isDark } = useTheme();
 
-  const isThisPlaying = playerAudiobook?.id === progress.audiobook.id && isPlaying;
+  const isThisPlaying =
+    playerAudiobook?.id === progress.audiobook.id && isPlaying;
   const isThisLoaded = playerAudiobook?.id === progress.audiobook.id;
 
   const percentage = progress.audiobook.duration
@@ -73,7 +96,11 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
         transition={{ duration: 0.3 }}
       >
         {/* Cover with progress bar and play button */}
-        <Link href={`/audiobooks/${progress.audiobook.id}`} prefetch={false} className="block">
+        <Link
+          href={`/audiobooks/${progress.audiobook.id}`}
+          prefetch={false}
+          className="block"
+        >
           <div className="relative aspect-square overflow-hidden rounded-xl border border-border/50 bg-muted">
             <Image
               src={`/api/audiobooks/${progress.audiobook.id}/cover`}
@@ -83,7 +110,7 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
               unoptimized
               onError={(e) => {
                 // Hide broken image and show fallback
-                e.currentTarget.style.display = 'none';
+                e.currentTarget.style.display = "none";
               }}
             />
             {/* Fallback shown behind image or when image fails */}
@@ -119,10 +146,15 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
 
         {/* Title and menu */}
         <div className="flex items-start gap-1">
-          <Link href={`/audiobooks/${progress.audiobook.id}`} prefetch={false} className="min-w-0 flex-1">
+          <Link
+            href={`/audiobooks/${progress.audiobook.id}`}
+            prefetch={false}
+            className="min-w-0 flex-1"
+          >
             <div className="space-y-0.5 px-0.5">
               {/* Rating - Goodreads takes priority over Hardcover */}
-              {audiobookDetail?.goodreads?.rating !== null && audiobookDetail?.goodreads?.rating !== undefined ? (
+              {audiobookDetail?.goodreads?.rating !== null &&
+              audiobookDetail?.goodreads?.rating !== undefined ? (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Image
                     src="/goodreads.svg"
@@ -133,9 +165,15 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
                   />
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
                   <span>{audiobookDetail.goodreads.rating.toFixed(2)}</span>
-                  <span>({audiobookDetail.goodreads.ratingsCount?.toLocaleString() ?? 0})</span>
+                  <span>
+                    (
+                    {audiobookDetail.goodreads.ratingsCount?.toLocaleString() ??
+                      0}
+                    )
+                  </span>
                 </div>
-              ) : audiobookDetail?.hardcover?.rating !== null && audiobookDetail?.hardcover?.rating !== undefined ? (
+              ) : audiobookDetail?.hardcover?.rating !== null &&
+                audiobookDetail?.hardcover?.rating !== undefined ? (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Image
                     src="/hardcover.svg"
@@ -146,7 +184,12 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
                   />
                   <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
                   <span>{audiobookDetail.hardcover.rating.toFixed(2)}</span>
-                  <span>({audiobookDetail.hardcover.ratingsCount?.toLocaleString() ?? 0})</span>
+                  <span>
+                    (
+                    {audiobookDetail.hardcover.ratingsCount?.toLocaleString() ??
+                      0}
+                    )
+                  </span>
                 </div>
               ) : null}
 
@@ -187,15 +230,20 @@ function ContinueListeningCard({ progress }: { progress: ProgressWithAudiobook }
 export function ContinueListeningSection() {
   const t = useTranslations("home.continueListening");
   const { data: allProgress, isLoading } = useAllProgress();
-  const { data: availability, isLoading: isLoadingAvailability } = useLibraryAvailability();
-  const { data: permissions, isLoading: isLoadingPermissions } = useMyPermissions();
+  const { data: availability, isLoading: isLoadingAvailability } =
+    useLibraryAvailability();
+  const { data: permissions, isLoading: isLoadingPermissions } =
+    useMyPermissions();
 
   // Filter to only show incomplete audiobooks, sorted by most recently updated
   const inProgressAudiobooks = useMemo(() => {
     if (!allProgress) return [];
     return allProgress
       .filter((p) => !p.completed && p.position > 0)
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+      );
   }, [allProgress]);
 
   if (isLoading || isLoadingAvailability || isLoadingPermissions) {

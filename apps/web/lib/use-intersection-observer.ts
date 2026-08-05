@@ -10,7 +10,7 @@ interface UseIntersectionObserverOptions {
 
 export function useIntersectionObserver(
   callback: () => void,
-  options: UseIntersectionObserverOptions = {}
+  options: UseIntersectionObserverOptions = {},
 ) {
   const { threshold = 0, rootMargin = "100px", enabled = true } = options;
   const ref = useRef<HTMLDivElement>(null);
@@ -33,7 +33,7 @@ export function useIntersectionObserver(
           callbackRef.current();
         }
       },
-      { threshold, rootMargin }
+      { threshold, rootMargin },
     );
 
     observer.observe(element);

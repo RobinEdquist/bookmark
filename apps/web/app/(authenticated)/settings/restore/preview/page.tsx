@@ -46,8 +46,12 @@ export default function RestorePreviewPage() {
   const sessionId = searchParams.get("session");
   const t = useTranslations("settings.restore.preview");
 
-  const { data: session, isLoading: sessionLoading } = useRestoreSession(sessionId);
-  const { data: preview, isLoading: previewLoading } = useGeneratePreview(sessionId, true);
+  const { data: session, isLoading: sessionLoading } =
+    useRestoreSession(sessionId);
+  const { data: preview, isLoading: previewLoading } = useGeneratePreview(
+    sessionId,
+    true,
+  );
   const executeImport = useExecuteImport();
 
   const handleStartImport = async () => {
@@ -61,7 +65,7 @@ export default function RestorePreviewPage() {
       router.push(`/settings/restore/import?session=${sessionId}`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : t("errors.startFailed")
+        error instanceof Error ? error.message : t("errors.startFailed"),
       );
     }
   };
@@ -143,22 +147,29 @@ export default function RestorePreviewPage() {
       labelKey: "progress",
       count: preview.progressRecordsToImport,
       enabled: options?.importProgress,
-      skippedReason: !options?.importProgress ? t("disabledInOptions") :
-        preview.usersToMap.skipped > 0 ? `${preview.usersToMap.skipped} user(s) not mapped` : undefined,
+      skippedReason: !options?.importProgress
+        ? t("disabledInOptions")
+        : preview.usersToMap.skipped > 0
+          ? `${preview.usersToMap.skipped} user(s) not mapped`
+          : undefined,
     },
     {
       icon: Image,
       labelKey: "covers",
       count: preview.coversToImport,
       enabled: options?.importCovers,
-      skippedReason: !options?.importCovers ? t("disabledInOptions") : undefined,
+      skippedReason: !options?.importCovers
+        ? t("disabledInOptions")
+        : undefined,
     },
     {
       icon: UserCircle,
       labelKey: "authorImages",
       count: preview.authorImagesToImport,
       enabled: options?.importAuthorImages,
-      skippedReason: !options?.importAuthorImages ? t("disabledInOptions") : undefined,
+      skippedReason: !options?.importAuthorImages
+        ? t("disabledInOptions")
+        : undefined,
     },
   ];
 
@@ -178,7 +189,9 @@ export default function RestorePreviewPage() {
       ? t("importNotes.overwriteEnabled")
       : t("importNotes.overwriteDisabled"),
     preview.audiobooksToSkip.count > 0
-      ? t("importNotes.audiobooksSkipped", { count: preview.audiobooksToSkip.count })
+      ? t("importNotes.audiobooksSkipped", {
+          count: preview.audiobooksToSkip.count,
+        })
       : null,
     preview.usersToMap.skipped > 0 && options?.importProgress
       ? t("importNotes.usersSkipped", { count: preview.usersToMap.skipped })
@@ -194,9 +207,7 @@ export default function RestorePreviewPage() {
             <CheckCircle2 className="h-5 w-5 text-green-500" />
             <CardTitle>{t("willBeImported.title")}</CardTitle>
           </div>
-          <CardDescription>
-            {t("willBeImported.description")}
-          </CardDescription>
+          <CardDescription>{t("willBeImported.description")}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -208,15 +219,21 @@ export default function RestorePreviewPage() {
                 <div
                   key={item.labelKey}
                   className={`flex items-start gap-3 rounded-lg border p-3 ${
-                    isEnabled ? "bg-green-500/5 border-green-500/30" : "bg-muted/50 border-muted"
+                    isEnabled
+                      ? "bg-green-500/5 border-green-500/30"
+                      : "bg-muted/50 border-muted"
                   }`}
                 >
-                  <item.icon className={`h-5 w-5 shrink-0 mt-0.5 ${
-                    isEnabled ? "text-green-500" : "text-muted-foreground"
-                  }`} />
+                  <item.icon
+                    className={`h-5 w-5 shrink-0 mt-0.5 ${
+                      isEnabled ? "text-green-500" : "text-muted-foreground"
+                    }`}
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className={`font-medium ${!isEnabled && "text-muted-foreground"}`}>
+                      <p
+                        className={`font-medium ${!isEnabled && "text-muted-foreground"}`}
+                      >
                         {t(`items.${item.labelKey}.label`)}
                       </p>
                       {showCount && (
@@ -251,7 +268,9 @@ export default function RestorePreviewPage() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <XCircle className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-muted-foreground">{t("willNotBeImported.title")}</CardTitle>
+            <CardTitle className="text-muted-foreground">
+              {t("willNotBeImported.title")}
+            </CardTitle>
           </div>
           <CardDescription>
             {t("willNotBeImported.description")}
@@ -266,7 +285,9 @@ export default function RestorePreviewPage() {
               >
                 <XCircle className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-muted-foreground">{t(`notImported.${key}.label`)}</p>
+                  <p className="font-medium text-muted-foreground">
+                    {t(`notImported.${key}.label`)}
+                  </p>
                   <p className="text-sm text-muted-foreground/80 mt-0.5">
                     {t(`notImported.${key}.reason`)}
                   </p>
@@ -283,7 +304,9 @@ export default function RestorePreviewPage() {
           <CardHeader>
             <div className="flex items-center gap-2">
               <Info className="h-5 w-5 text-blue-500" />
-              <CardTitle className="text-blue-700 dark:text-blue-400">{t("importNotes.title")}</CardTitle>
+              <CardTitle className="text-blue-700 dark:text-blue-400">
+                {t("importNotes.title")}
+              </CardTitle>
             </div>
           </CardHeader>
           <CardContent>
@@ -341,8 +364,12 @@ export default function RestorePreviewPage() {
                     <span className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
                       {t("sampleAudiobooks.toImport", {
-                        total: preview.audiobooksToImport.count.toLocaleString(),
-                        showing: Math.min(preview.audiobooksToImport.sample.length, 10),
+                        total:
+                          preview.audiobooksToImport.count.toLocaleString(),
+                        showing: Math.min(
+                          preview.audiobooksToImport.sample.length,
+                          10,
+                        ),
                       })}
                     </span>
                   </AccordionTrigger>
@@ -359,7 +386,9 @@ export default function RestorePreviewPage() {
                             <div className="flex-1 min-w-0">
                               <p className="font-medium">{book.title}</p>
                               <p className="text-muted-foreground">
-                                {t("sampleAudiobooks.by", { author: book.author })}
+                                {t("sampleAudiobooks.by", {
+                                  author: book.author,
+                                })}
                               </p>
                               <p className="text-xs text-muted-foreground mt-1 font-mono">
                                 {book.savPath}
@@ -379,7 +408,10 @@ export default function RestorePreviewPage() {
                       <AlertTriangle className="h-4 w-4 text-amber-500" />
                       {t("sampleAudiobooks.toSkip", {
                         total: preview.audiobooksToSkip.count.toLocaleString(),
-                        showing: Math.min(preview.audiobooksToSkip.sample.length, 10),
+                        showing: Math.min(
+                          preview.audiobooksToSkip.sample.length,
+                          10,
+                        ),
                       })}
                     </span>
                   </AccordionTrigger>
@@ -396,15 +428,21 @@ export default function RestorePreviewPage() {
                             <div className="flex-1 min-w-0">
                               <p className="font-medium">{book.title}</p>
                               <p className="text-muted-foreground">
-                                {t("sampleAudiobooks.by", { author: book.author })}
+                                {t("sampleAudiobooks.by", {
+                                  author: book.author,
+                                })}
                               </p>
                               {book.reason && (
                                 <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                                  {t("sampleAudiobooks.reason", { reason: book.reason })}
+                                  {t("sampleAudiobooks.reason", {
+                                    reason: book.reason,
+                                  })}
                                 </p>
                               )}
                               <p className="text-xs text-muted-foreground mt-1 font-mono">
-                                {t("sampleAudiobooks.expected", { path: book.savPath })}
+                                {t("sampleAudiobooks.expected", {
+                                  path: book.savPath,
+                                })}
                               </p>
                             </div>
                           </div>

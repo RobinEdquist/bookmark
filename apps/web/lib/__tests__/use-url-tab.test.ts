@@ -37,7 +37,7 @@ describe("useUrlTab", () => {
 
   it("returns default value when param is not in URL", () => {
     const { result } = renderHook(() =>
-      useUrlTab("tab", "all", ["all", "completed", "in-progress"] as const)
+      useUrlTab("tab", "all", ["all", "completed", "in-progress"] as const),
     );
     expect(result.current[0]).toBe("all");
   });
@@ -46,7 +46,7 @@ describe("useUrlTab", () => {
     mockGet.mockReturnValue({ tab: "completed" });
 
     const { result } = renderHook(() =>
-      useUrlTab("tab", "all", ["all", "completed", "in-progress"] as const)
+      useUrlTab("tab", "all", ["all", "completed", "in-progress"] as const),
     );
     expect(result.current[0]).toBe("completed");
   });
@@ -55,14 +55,14 @@ describe("useUrlTab", () => {
     mockGet.mockReturnValue({ tab: "invalid" });
 
     const { result } = renderHook(() =>
-      useUrlTab("tab", "all", ["all", "completed", "in-progress"] as const)
+      useUrlTab("tab", "all", ["all", "completed", "in-progress"] as const),
     );
     expect(result.current[0]).toBe("all");
   });
 
   it("calls router.replace when value changes", () => {
     const { result } = renderHook(() =>
-      useUrlTab("tab", "all", ["all", "completed"] as const)
+      useUrlTab("tab", "all", ["all", "completed"] as const),
     );
 
     act(() => {
@@ -76,7 +76,7 @@ describe("useUrlTab", () => {
     mockGet.mockReturnValue({ tab: "completed" });
 
     const { result } = renderHook(() =>
-      useUrlTab("tab", "all", ["all", "completed"] as const)
+      useUrlTab("tab", "all", ["all", "completed"] as const),
     );
 
     act(() => {

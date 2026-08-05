@@ -43,7 +43,6 @@ vi.mock("../../providers/player-provider", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   default: ({ fill, unoptimized, ...rest }: Record<string, unknown>) => {
     // eslint-disable-next-line @next/next/no-img-element
     return <img {...rest} />;
@@ -51,25 +50,46 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-    <a {...props}>{children}</a>
-  ),
+  default: ({
+    children,
+    ...props
+  }: {
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => <a {...props}>{children}</a>,
 }));
 
 // Mock motion components to render plain elements
 vi.mock("motion/react", () => ({
   motion: {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    div: ({ children, initial, animate, whileHover, transition, ...htmlProps }: { children?: React.ReactNode; [key: string]: unknown }) => {
+    div: ({
+      children,
+      initial,
+      animate,
+      whileHover,
+      transition,
+      ...htmlProps
+    }: {
+      children?: React.ReactNode;
+      [key: string]: unknown;
+    }) => {
       return <div {...htmlProps}>{children}</div>;
     },
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // Mock HorizontalScrollRow to simplify rendering
 vi.mock("../horizontal-scroll-row", () => ({
-  HorizontalScrollRow: ({ title, children }: { title: string; children: React.ReactNode }) => (
+  HorizontalScrollRow: ({
+    title,
+    children,
+  }: {
+    title: string;
+    children: React.ReactNode;
+  }) => (
     <section>
       <h2>{title}</h2>
       <div data-testid="scroll-row">{children}</div>
@@ -86,7 +106,10 @@ vi.mock("sonner", () => ({
 beforeEach(() => {
   class Pointer extends MouseEvent {
     pointerId: number;
-    constructor(type: string, init?: PointerEventInit & { pointerId?: number }) {
+    constructor(
+      type: string,
+      init?: PointerEventInit & { pointerId?: number },
+    ) {
       super(type, init);
       this.pointerId = init?.pointerId ?? 0;
     }
@@ -101,7 +124,9 @@ beforeEach(() => {
 
 // --- Test data ---
 
-function createProgress(overrides: Partial<ProgressWithAudiobook> = {}): ProgressWithAudiobook {
+function createProgress(
+  overrides: Partial<ProgressWithAudiobook> = {},
+): ProgressWithAudiobook {
   return {
     audiobookId: "ab-1",
     position: 1800,
@@ -133,7 +158,12 @@ describe("ContinueListeningSection", () => {
           audiobookId: "ab-2",
           position: 3600,
           updatedAt: "2025-06-02T12:00:00Z",
-          audiobook: { id: "ab-2", title: "1984", coverUrl: null, duration: 10800 },
+          audiobook: {
+            id: "ab-2",
+            title: "1984",
+            coverUrl: null,
+            duration: 10800,
+          },
         }),
       ],
       isLoading: false,
@@ -200,7 +230,12 @@ describe("ContinueListeningSection", () => {
           audiobookId: "ab-2",
           position: 100,
           completed: false,
-          audiobook: { id: "ab-2", title: "1984", coverUrl: null, duration: 10800 },
+          audiobook: {
+            id: "ab-2",
+            title: "1984",
+            coverUrl: null,
+            duration: 10800,
+          },
         }),
       ],
       isLoading: false,

@@ -47,8 +47,12 @@ export function ComicvineMatchDialog({
 }: ComicvineMatchDialogProps) {
   const t = useTranslations("comicvine.matchDialog");
   const [page, setPage] = useState(1);
-  const [selectedVolume, setSelectedVolume] = useState<ComicvineVolume | null>(null);
-  const [selectedIssue, setSelectedIssue] = useState<ComicvineBookLink | null>(null);
+  const [selectedVolume, setSelectedVolume] = useState<ComicvineVolume | null>(
+    null,
+  );
+  const [selectedIssue, setSelectedIssue] = useState<ComicvineBookLink | null>(
+    null,
+  );
   const [searchDraft, setSearchDraft] = useState<string | null>(null);
   const [customQuery, setCustomQuery] = useState<string | undefined>(undefined);
 
@@ -66,7 +70,7 @@ export function ComicvineMatchDialog({
   } = useComicvineSearchVolumes(
     customQuery ?? "",
     page,
-    open && level === "series" && !!customQuery
+    open && level === "series" && !!customQuery,
   );
 
   // Until the user edits the box it mirrors the default query the API derived
@@ -75,7 +79,7 @@ export function ComicvineMatchDialog({
   // response and leaned on a `!customQuery` guard to avoid clobbering typing.
   // Only the series level has an API-suggested query to fall back on.
   const searchInput =
-    searchDraft ?? (level === "series" ? defaultData?.query ?? "" : "");
+    searchDraft ?? (level === "series" ? (defaultData?.query ?? "") : "");
 
   // Book-level query
   const {
@@ -144,7 +148,8 @@ export function ComicvineMatchDialog({
   const isLoading = level === "series" ? isSeriesLoading : isBookLoading;
   const error = level === "series" ? seriesError : bookError;
   const totalPages = level === "series" ? seriesTotalPages : bookTotalPages;
-  const totalResults = level === "series" ? seriesTotalResults : bookTotalResults;
+  const totalResults =
+    level === "series" ? seriesTotalResults : bookTotalResults;
   const hasSelection = level === "series" ? !!selectedVolume : !!selectedIssue;
 
   return (
@@ -159,11 +164,13 @@ export function ComicvineMatchDialog({
               ? t("descriptionSeries", { title: entityTitle })
               : t("descriptionBook", { title: entityTitle })}
           </DialogDescription>
-          {level === "book" && bookData?.linkedVolume && bookTotalResults > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {t("issuesCount", { count: bookTotalResults })}
-            </p>
-          )}
+          {level === "book" &&
+            bookData?.linkedVolume &&
+            bookTotalResults > 0 && (
+              <p className="text-xs text-muted-foreground">
+                {t("issuesCount", { count: bookTotalResults })}
+              </p>
+            )}
         </DialogHeader>
 
         {/* Search input — series level only */}
@@ -220,7 +227,9 @@ export function ComicvineMatchDialog({
                   ? seriesResults.map((volume) => {
                       const isSelected = selectedVolume?.id === volume.id;
                       const coverUrl =
-                        volume.image?.medium_url ?? volume.image?.original_url ?? null;
+                        volume.image?.medium_url ??
+                        volume.image?.original_url ??
+                        null;
 
                       return (
                         <button
@@ -265,7 +274,9 @@ export function ComicvineMatchDialog({
                             <div className="flex flex-wrap items-center gap-2 mt-1">
                               {volume.count_of_issues != null && (
                                 <span className="text-xs font-medium text-foreground">
-                                  {t("issuesCount", { count: volume.count_of_issues })}
+                                  {t("issuesCount", {
+                                    count: volume.count_of_issues,
+                                  })}
                                 </span>
                               )}
                               {volume.start_year != null && (
@@ -307,7 +318,12 @@ export function ComicvineMatchDialog({
                             {issue.imageUrl ? (
                               <Image
                                 src={issue.imageUrl}
-                                alt={issue.name ?? t("issueNumber", { number: issue.issueNumber ?? "?" })}
+                                alt={
+                                  issue.name ??
+                                  t("issueNumber", {
+                                    number: issue.issueNumber ?? "?",
+                                  })
+                                }
                                 fill
                                 className="object-cover"
                                 unoptimized
@@ -325,7 +341,9 @@ export function ComicvineMatchDialog({
                             <div className="flex items-start justify-between gap-2">
                               <h3 className="font-medium text-sm line-clamp-2">
                                 {issue.issueNumber != null
-                                  ? t("issueNumber", { number: issue.issueNumber })
+                                  ? t("issueNumber", {
+                                      number: issue.issueNumber,
+                                    })
                                   : ""}
                                 {issue.name ? ` — ${issue.name}` : ""}
                               </h3>

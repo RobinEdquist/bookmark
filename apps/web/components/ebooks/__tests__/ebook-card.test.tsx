@@ -5,7 +5,13 @@ import type { EbookListItem } from "../../../lib/use-ebooks";
 
 // --- Hoisted mocks ---
 
-const { mockUseMyPermissions, mockUseGrFinderStatus, mockUseGoodreadsUnlinkMedia, mockUseDeleteEbook, mockUseTheme } = vi.hoisted(() => ({
+const {
+  mockUseMyPermissions,
+  mockUseGrFinderStatus,
+  mockUseGoodreadsUnlinkMedia,
+  mockUseDeleteEbook,
+  mockUseTheme,
+} = vi.hoisted(() => ({
   mockUseMyPermissions: vi.fn(),
   mockUseGrFinderStatus: vi.fn(),
   mockUseGoodreadsUnlinkMedia: vi.fn(),
@@ -35,7 +41,6 @@ vi.mock("../../../lib/use-theme", () => ({
 }));
 
 vi.mock("next/image", () => ({
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   default: ({ fill, unoptimized, ...rest }: Record<string, unknown>) => (
     // eslint-disable-next-line @next/next/no-img-element
     <img {...rest} />
@@ -43,24 +48,42 @@ vi.mock("next/image", () => ({
 }));
 
 vi.mock("next/link", () => ({
-  default: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => (
-    <a {...props}>{children}</a>
-  ),
+  default: ({
+    children,
+    ...props
+  }: {
+    children: React.ReactNode;
+    [key: string]: unknown;
+  }) => <a {...props}>{children}</a>,
 }));
 
 // Mock motion components to render plain elements
 vi.mock("motion/react", () => ({
   motion: {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    article: ({ children, initial, animate, whileHover, transition, ...htmlProps }: Record<string, unknown>) => (
+    article: ({
+      children,
+      initial,
+      animate,
+      whileHover,
+      transition,
+      ...htmlProps
+    }: Record<string, unknown>) => (
       <article {...htmlProps}>{children as React.ReactNode}</article>
     ),
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    div: ({ children, initial, animate, whileHover, transition, ...htmlProps }: Record<string, unknown>) => (
+    div: ({
+      children,
+      initial,
+      animate,
+      whileHover,
+      transition,
+      ...htmlProps
+    }: Record<string, unknown>) => (
       <div {...htmlProps}>{children as React.ReactNode}</div>
     ),
   },
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
 }));
 
 // Mock dialog components
@@ -108,11 +131,23 @@ function createEbook(overrides: Partial<EbookListItem> = {}): EbookListItem {
 describe("EbookCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseMyPermissions.mockReturnValue({ data: { canEditMetadata: false, canDelete: false } });
+    mockUseMyPermissions.mockReturnValue({
+      data: { canEditMetadata: false, canDelete: false },
+    });
     mockUseGrFinderStatus.mockReturnValue({ isConfigured: false });
-    mockUseGoodreadsUnlinkMedia.mockReturnValue({ unlinkMedia: vi.fn(), isUnlinking: false });
-    mockUseDeleteEbook.mockReturnValue({ mutateAsync: vi.fn(), isPending: false });
-    mockUseTheme.mockReturnValue({ isDark: false, primaryColor: "orange", surfaceColor: "zinc" });
+    mockUseGoodreadsUnlinkMedia.mockReturnValue({
+      unlinkMedia: vi.fn(),
+      isUnlinking: false,
+    });
+    mockUseDeleteEbook.mockReturnValue({
+      mutateAsync: vi.fn(),
+      isPending: false,
+    });
+    mockUseTheme.mockReturnValue({
+      isDark: false,
+      primaryColor: "orange",
+      surfaceColor: "zinc",
+    });
   });
 
   it("renders the ebook title", () => {
@@ -141,7 +176,9 @@ describe("EbookCard", () => {
   it("links to the ebook detail page", () => {
     render(<EbookCard ebook={createEbook()} />);
     const links = screen.getAllByRole("link");
-    const detailLinks = links.filter((l) => l.getAttribute("href") === "/ebooks/eb-1");
+    const detailLinks = links.filter(
+      (l) => l.getAttribute("href") === "/ebooks/eb-1",
+    );
     expect(detailLinks.length).toBeGreaterThan(0);
   });
 
@@ -157,10 +194,10 @@ describe("EbookCard", () => {
           subtitle: "Should not appear",
           series: [{ id: "s-1", name: "Dune Saga", order: "1.0" }],
         })}
-      />
+      />,
     );
     expect(
-      screen.getByText('bookInSeries({"series":"Dune Saga","order":"1"})')
+      screen.getByText('bookInSeries({"series":"Dune Saga","order":"1"})'),
     ).toBeInTheDocument();
     expect(screen.queryByText("Should not appear")).not.toBeInTheDocument();
   });
@@ -181,7 +218,9 @@ describe("EbookCard", () => {
   });
 
   it("renders dropdown menu when user has edit permissions", () => {
-    mockUseMyPermissions.mockReturnValue({ data: { canEditMetadata: true, canDelete: false } });
+    mockUseMyPermissions.mockReturnValue({
+      data: { canEditMetadata: true, canDelete: false },
+    });
     render(<EbookCard ebook={createEbook()} />);
     expect(screen.getByRole("button")).toBeInTheDocument();
   });
@@ -194,7 +233,7 @@ describe("EbookCard", () => {
           goodreadsRating: 4.18,
           goodreadsRatingsCount: 900000,
         })}
-      />
+      />,
     );
     expect(screen.getByText("4.18")).toBeInTheDocument();
     expect(screen.getByText("(900,000)")).toBeInTheDocument();
@@ -209,7 +248,7 @@ describe("EbookCard", () => {
           hardcoverRating: 4.0,
           hardcoverRatingsCount: 350,
         })}
-      />
+      />,
     );
     expect(screen.getByText("4.00")).toBeInTheDocument();
     expect(screen.getByText("(350)")).toBeInTheDocument();

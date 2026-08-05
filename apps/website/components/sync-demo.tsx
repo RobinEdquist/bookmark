@@ -8,7 +8,11 @@ import { BOOKS, Cover } from "./covers";
 export function SyncDemo() {
   const book = BOOKS[4]!; // A Theory of Rain
   return (
-    <div className="sync-demo" role="img" aria-label="Playback position syncing from the phone app to the web player: both show the same timestamp">
+    <div
+      className="sync-demo"
+      role="img"
+      aria-label="Playback position syncing from the phone app to the web player: both show the same timestamp"
+    >
       <div className="sync-device sync-phone" aria-hidden>
         <div className="sync-device-label">
           <span className="dot" />

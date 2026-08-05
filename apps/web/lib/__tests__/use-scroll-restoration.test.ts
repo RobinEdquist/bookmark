@@ -63,7 +63,7 @@ describe("useScrollRestoration", () => {
 
     const { rerender } = renderHook(
       (props: { ready: boolean }) => useScrollRestoration(props),
-      { initialProps: { ready: false } }
+      { initialProps: { ready: false } },
     );
     expect(container.scrollTop).toBe(0);
 
@@ -80,7 +80,7 @@ describe("useScrollRestoration", () => {
 
     const second = renderHook(
       (props: { ready: boolean }) => useScrollRestoration(props),
-      { initialProps: { ready: true } }
+      { initialProps: { ready: true } },
     );
     expect(container.scrollTop).toBe(500);
 
@@ -93,13 +93,13 @@ describe("useScrollRestoration", () => {
 
   it("does not restore when extraKey differs", () => {
     const first = renderHook(() =>
-      useScrollRestoration({ ready: true, extraKey: "title:asc" })
+      useScrollRestoration({ ready: true, extraKey: "title:asc" }),
     );
     scrollTo(400);
     first.unmount();
 
     const second = renderHook(() =>
-      useScrollRestoration({ ready: true, extraKey: "createdAt:desc" })
+      useScrollRestoration({ ready: true, extraKey: "createdAt:desc" }),
     );
 
     expect(container.scrollTop).toBe(0);
@@ -148,7 +148,7 @@ describe("useScrollRestoration", () => {
 
     const view = renderHook(
       (props: { ready: boolean }) => useScrollRestoration(props),
-      { initialProps: { ready: false } }
+      { initialProps: { ready: false } },
     );
     expect(view.result.current.hasSavedPosition).toBe(false);
     view.rerender({ ready: true });

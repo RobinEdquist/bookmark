@@ -19,7 +19,8 @@
       height: 0;
     }
   }
-  --animate-collapsible-down: collapsible-down 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-collapsible-down: collapsible-down 0.25s
+    cubic-bezier(0.32, 0.72, 0, 1);
   --animate-collapsible-up: collapsible-up 0.2s cubic-bezier(0.32, 0.72, 0, 1);
 
   @keyframes collapsible-down {
@@ -62,8 +63,12 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui,
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:
+    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", monospace;
 }
 
 :root {

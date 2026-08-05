@@ -12,7 +12,10 @@ import {
   PopoverAnchor,
 } from "@repo/ui/components/ui/popover";
 import { useDebouncedValue } from "../../lib/use-debounced-value";
-import { useAudiobooks, type AudiobookListItem } from "../../lib/use-audiobooks";
+import {
+  useAudiobooks,
+  type AudiobookListItem,
+} from "../../lib/use-audiobooks";
 import { useEbooks, type EbookListItem } from "../../lib/use-ebooks";
 import { GeneratedCover } from "../common/generated-cover";
 
@@ -32,13 +35,13 @@ export function HeaderSearch({ mediaType }: HeaderSearchProps) {
   const audiobooksQuery = useAudiobooks(
     mediaType === "audiobook" && debouncedSearch.length >= 2
       ? { search: debouncedSearch, limit: 6 }
-      : { limit: 0 }
+      : { limit: 0 },
   );
 
   const ebooksQuery = useEbooks(
     mediaType === "ebook" && debouncedSearch.length >= 2
       ? { search: debouncedSearch, limit: 6 }
-      : { limit: 0 }
+      : { limit: 0 },
   );
 
   const isLoading =
@@ -48,8 +51,8 @@ export function HeaderSearch({ mediaType }: HeaderSearchProps) {
 
   const results =
     mediaType === "audiobook"
-      ? audiobooksQuery.data?.audiobooks ?? []
-      : ebooksQuery.data?.ebooks ?? [];
+      ? (audiobooksQuery.data?.audiobooks ?? [])
+      : (ebooksQuery.data?.ebooks ?? []);
 
   const handleSelect = (id: string) => {
     setOpen(false);
@@ -145,7 +148,11 @@ function SearchResultItem({ item, onSelect }: SearchResultItemProps) {
               unoptimized={item.coverUrl.startsWith("/api/")}
             />
           ) : (
-            <GeneratedCover title={item.title} author={authors || undefined} aria-hidden />
+            <GeneratedCover
+              title={item.title}
+              author={authors || undefined}
+              aria-hidden
+            />
           )}
         </div>
         <div className="min-w-0 flex-1">

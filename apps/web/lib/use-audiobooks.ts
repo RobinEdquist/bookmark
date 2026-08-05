@@ -1,6 +1,11 @@
 "use client";
 
-import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useInfiniteQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
 export interface AudiobookAuthor {
@@ -134,7 +139,7 @@ export interface AudiobookFilters {
 }
 
 async function fetchAudiobooks(
-  filters: AudiobookFilters = {}
+  filters: AudiobookFilters = {},
 ): Promise<{ audiobooks: AudiobookListItem[]; total: number }> {
   const params = new URLSearchParams();
 
@@ -169,14 +174,17 @@ export function useAudiobooks(filters: AudiobookFilters = {}) {
 const ITEMS_PER_PAGE = 50;
 
 export function useInfiniteAudiobooks(
-  filters: Omit<AudiobookFilters, "limit" | "offset"> = {}
+  filters: Omit<AudiobookFilters, "limit" | "offset"> = {},
 ) {
   return useInfiniteQuery({
     queryKey: queryKeys.audiobooks.infinite(filters),
     queryFn: ({ pageParam = 0 }) =>
       fetchAudiobooks({ ...filters, limit: ITEMS_PER_PAGE, offset: pageParam }),
     getNextPageParam: (lastPage, allPages) => {
-      const loaded = allPages.reduce((acc, page) => acc + page.audiobooks.length, 0);
+      const loaded = allPages.reduce(
+        (acc, page) => acc + page.audiobooks.length,
+        0,
+      );
       return loaded < lastPage.total ? loaded : undefined;
     },
     initialPageParam: 0,
@@ -226,7 +234,7 @@ export interface UpdateAudiobookData {
 
 async function updateAudiobook(
   id: string,
-  data: UpdateAudiobookData
+  data: UpdateAudiobookData,
 ): Promise<AudiobookDetail> {
   const response = await fetch(`/api/audiobooks/${id}`, {
     method: "PATCH",
@@ -254,7 +262,7 @@ export function useUpdateAudiobook() {
       // Update the detail cache
       queryClient.setQueryData(
         queryKeys.audiobooks.detail(updatedAudiobook.id),
-        updatedAudiobook
+        updatedAudiobook,
       );
       // Invalidate the list to reflect changes
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
@@ -288,7 +296,9 @@ export function useRefreshChapters() {
     mutationFn: (id: string) => refreshChapters(id),
     onSuccess: (_, id) => {
       // Invalidate the audiobook detail to refetch with new chapters
-      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.audiobooks.detail(id),
+      });
     },
   });
 }
@@ -367,7 +377,9 @@ export function usePublishers(search?: string) {
   });
 }
 
-async function fetchGenres(search?: string): Promise<{ id: string; name: string }[]> {
+async function fetchGenres(
+  search?: string,
+): Promise<{ id: string; name: string }[]> {
   const params = new URLSearchParams();
   if (search) params.set("search", search);
 
@@ -390,7 +402,10 @@ export function useGenres(search?: string) {
   });
 }
 
-async function deleteAudiobook(id: string, deleteFiles: boolean): Promise<void> {
+async function deleteAudiobook(
+  id: string,
+  deleteFiles: boolean,
+): Promise<void> {
   const params = new URLSearchParams();
   params.set("deleteFiles", String(deleteFiles));
 
@@ -429,7 +444,11 @@ interface UpdateCoverParams {
   url?: string;
 }
 
-async function updateCover({ audiobookId, file, url }: UpdateCoverParams): Promise<{ coverUrl: string }> {
+async function updateCover({
+  audiobookId,
+  file,
+  url,
+}: UpdateCoverParams): Promise<{ coverUrl: string }> {
   const formData = new FormData();
 
   if (file) {
@@ -461,7 +480,9 @@ export function useUpdateCover() {
       // Invalidate the list to refresh cover thumbnails
       queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
       // Invalidate the detail to refresh cover
-      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(audiobookId) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.audiobooks.detail(audiobookId),
+      });
       // Invalidate lists/top-lists to refresh covers there too
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },

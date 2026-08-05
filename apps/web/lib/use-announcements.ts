@@ -84,7 +84,7 @@ async function fetchAdminAnnouncements(): Promise<AdminAnnouncement[]> {
 }
 
 async function createAnnouncement(
-  params: CreateAnnouncementParams
+  params: CreateAnnouncementParams,
 ): Promise<AdminAnnouncement> {
   const response = await fetch("/api/admin/announcements", {
     method: "POST",
@@ -101,7 +101,7 @@ async function createAnnouncement(
 }
 
 async function updateAnnouncement(
-  params: UpdateAnnouncementParams
+  params: UpdateAnnouncementParams,
 ): Promise<AdminAnnouncement> {
   const { id, ...data } = params;
   const response = await fetch(`/api/admin/announcements/${id}`, {

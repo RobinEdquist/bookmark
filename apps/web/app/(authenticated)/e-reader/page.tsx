@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Copy, Check, TabletSmartphone, Smartphone, BookOpen, Key, ExternalLink } from "lucide-react";
+import {
+  Copy,
+  Check,
+  TabletSmartphone,
+  Smartphone,
+  BookOpen,
+  Key,
+  ExternalLink,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   Card,
@@ -17,8 +25,14 @@ export default function EReaderPage() {
   const t = useTranslations("eReader");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
 
-  const opdsUrl = typeof window !== "undefined" ? `${window.location.origin}/api/ebooks/opds` : "/api/ebooks/opds";
-  const comicsOpdsUrl = typeof window !== "undefined" ? `${window.location.origin}/api/comics/opds` : "/api/comics/opds";
+  const opdsUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/ebooks/opds`
+      : "/api/ebooks/opds";
+  const comicsOpdsUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/api/comics/opds`
+      : "/api/comics/opds";
 
   const handleCopy = async (url: string) => {
     await navigator.clipboard.writeText(url);
@@ -79,7 +93,11 @@ export default function EReaderPage() {
                 title={t("feedUrl.copy")}
                 className="shrink-0"
               >
-                {copiedUrl === opdsUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedUrl === opdsUrl ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </CardContent>
@@ -103,7 +121,11 @@ export default function EReaderPage() {
                 title={t("comicsFeedUrl.copy")}
                 className="shrink-0"
               >
-                {copiedUrl === comicsOpdsUrl ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedUrl === comicsOpdsUrl ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </CardContent>
@@ -140,9 +162,7 @@ export default function EReaderPage() {
               </div>
             </div>
             <Button variant="outline" asChild>
-              <a href="/preferences">
-                {t("auth.goToPreferences")}
-              </a>
+              <a href="/preferences">{t("auth.goToPreferences")}</a>
             </Button>
           </CardContent>
         </Card>
@@ -225,7 +245,6 @@ export default function EReaderPage() {
             </div>
           </CardContent>
         </Card>
-
       </div>
     </div>
   );

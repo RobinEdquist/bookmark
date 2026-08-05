@@ -76,13 +76,13 @@ export function EbookGrid({
         onLoadMore();
       }
     },
-    { enabled: hasNextPage && !isFetchingNextPage }
+    { enabled: hasNextPage && !isFetchingNextPage },
   );
 
   // Shared edit dialog state for navigation between ebooks
   const [editingEbookId, setEditingEbookId] = useState<string | null>(null);
   const editingEbook = editingEbookId
-    ? ebooks.find((e) => e.id === editingEbookId) ?? null
+    ? (ebooks.find((e) => e.id === editingEbookId) ?? null)
     : null;
   const ebookIds = ebooks.map((e) => e.id);
 

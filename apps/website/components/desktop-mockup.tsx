@@ -69,7 +69,11 @@ const CONTINUE = [
 
 /* Recently Added: the real AudiobookCard shows a Goodreads rating line
    above the title when a book is linked. */
-const RECENT: { book: (typeof BOOKS)[number]; rating: string; count: string }[] = [
+const RECENT: {
+  book: (typeof BOOKS)[number];
+  rating: string;
+  count: string;
+}[] = [
   { book: BOOKS[0]!, rating: "4.32", count: "12,410" },
   { book: BOOKS[1]!, rating: "3.98", count: "8,102" },
   { book: BOOKS[2]!, rating: "4.11", count: "23,867" },
@@ -80,7 +84,10 @@ const RECENT: { book: (typeof BOOKS)[number]; rating: string; count: string }[] 
 
 export function DesktopMockup() {
   return (
-    <div className="desktop-mockup" aria-label="The Bookmark web app: library home with the player bar at the bottom">
+    <div
+      className="desktop-mockup"
+      aria-label="The Bookmark web app: library home with the player bar at the bottom"
+    >
       <div className="dm-chrome" aria-hidden>
         <span className="dm-dot" />
         <span className="dm-dot" />
@@ -92,9 +99,14 @@ export function DesktopMockup() {
           <span className="dm-logo">Bookmark</span>
           {NAV_GROUPS.map((group, gi) => (
             <div key={group.title ?? gi} className="dm-nav-group">
-              {group.title && <span className="dm-nav-label">{group.title}</span>}
+              {group.title && (
+                <span className="dm-nav-label">{group.title}</span>
+              )}
               {group.items.map(({ label, icon: Icon, active }) => (
-                <span key={label} className={`dm-nav-item ${active ? "active" : ""}`}>
+                <span
+                  key={label}
+                  className={`dm-nav-item ${active ? "active" : ""}`}
+                >
                   <Icon />
                   {label}
                 </span>

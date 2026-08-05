@@ -169,8 +169,14 @@
     "seriesTitle": "Ta bort serie?",
     "bookTitle": "Ta bort bok?",
     "description": "Detta tar bort \"{title}\" från ditt bibliotek.",
-    "keepFiles": { "label": "Behåll filer", "description": "Ta bara bort från biblioteket" },
-    "deleteFiles": { "label": "Ta bort filer", "description": "Ta även bort filer från disk" },
+    "keepFiles": {
+      "label": "Behåll filer",
+      "description": "Ta bara bort från biblioteket"
+    },
+    "deleteFiles": {
+      "label": "Ta bort filer",
+      "description": "Ta även bort filer från disk"
+    },
     "confirm": "Ta bort",
     "cancel": "Avbryt",
     "deleting": "Tar bort...",

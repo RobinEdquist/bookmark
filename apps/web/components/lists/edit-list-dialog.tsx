@@ -23,7 +23,11 @@ interface EditListDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function EditListDialog({ list, open, onOpenChange }: EditListDialogProps) {
+export function EditListDialog({
+  list,
+  open,
+  onOpenChange,
+}: EditListDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -100,7 +104,11 @@ function EditListForm({
             disabled={isPending}
           >
             <div className="flex items-start space-x-3 rounded-lg border p-3">
-              <RadioGroupItem value="private" id="edit-private" className="mt-0.5" />
+              <RadioGroupItem
+                value="private"
+                id="edit-private"
+                className="mt-0.5"
+              />
               <div className="flex-1">
                 <Label
                   htmlFor="edit-private"
@@ -115,7 +123,11 @@ function EditListForm({
               </div>
             </div>
             <div className="flex items-start space-x-3 rounded-lg border p-3">
-              <RadioGroupItem value="public" id="edit-public" className="mt-0.5" />
+              <RadioGroupItem
+                value="public"
+                id="edit-public"
+                className="mt-0.5"
+              />
               <div className="flex-1">
                 <Label
                   htmlFor="edit-public"

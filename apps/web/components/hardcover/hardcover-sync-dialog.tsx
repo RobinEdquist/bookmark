@@ -43,7 +43,8 @@ export function HardcoverSyncDialog({
 }: HardcoverSyncDialogProps) {
   const t = useTranslations("common.hardcoverSync");
   const [page, setPage] = useState(1);
-  const [selectedBook, setSelectedBook] = useState<HardcoverBookDocument | null>(null);
+  const [selectedBook, setSelectedBook] =
+    useState<HardcoverBookDocument | null>(null);
   const [searchDraft, setSearchDraft] = useState<string | null>(null);
   const [customQuery, setCustomQuery] = useState<string | undefined>(undefined);
 
@@ -53,7 +54,7 @@ export function HardcoverSyncDialog({
     page,
     ITEMS_PER_PAGE,
     open,
-    customQuery
+    customQuery,
   );
 
   // Until the user edits the box it mirrors the default query the API derived
@@ -82,9 +83,7 @@ export function HardcoverSyncDialog({
       onOpenChange(false);
       onSuccess?.();
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : t("toast.linkFailed")
-      );
+      toast.error(err instanceof Error ? err.message : t("toast.linkFailed"));
     }
   };
 
@@ -130,7 +129,11 @@ export function HardcoverSyncDialog({
               className="pl-9"
             />
           </div>
-          <Button type="submit" variant="secondary" disabled={isLoading || !searchInput.trim()}>
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={isLoading || !searchInput.trim()}
+          >
             {t("search")}
           </Button>
         </form>
@@ -209,7 +212,8 @@ export function HardcoverSyncDialog({
                         {book.featured_series?.name && (
                           <p className="text-xs text-primary mt-0.5">
                             {book.featured_series.name}
-                            {book.featured_series.position && ` #${book.featured_series.position}`}
+                            {book.featured_series.position &&
+                              ` #${book.featured_series.position}`}
                           </p>
                         )}
 
@@ -275,10 +279,7 @@ export function HardcoverSyncDialog({
           <Button variant="outline" onClick={handleClose} disabled={isLinking}>
             {t("cancel")}
           </Button>
-          <Button
-            onClick={handleSelect}
-            disabled={!selectedBook || isLinking}
-          >
+          <Button onClick={handleSelect} disabled={!selectedBook || isLinking}>
             {isLinking ? t("linking") : t("link")}
           </Button>
         </div>

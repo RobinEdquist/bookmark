@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, userEvent, waitFor } from "../../../__test-utils__/render";
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from "../../../__test-utils__/render";
 import { EditAudiobookDialog } from "../edit-audiobook-dialog";
 import type { AudiobookDetail } from "../../../lib/use-audiobooks";
 
@@ -61,7 +66,7 @@ vi.mock("../../shared/series-entry-editor", () => ({
 }));
 
 function buildAudiobookDetail(
-  overrides: Partial<AudiobookDetail> = {}
+  overrides: Partial<AudiobookDetail> = {},
 ): AudiobookDetail {
   return {
     id: "ab-1",
@@ -102,7 +107,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={false}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     expect(screen.queryByLabelText("fields.title")).not.toBeInTheDocument();
@@ -114,7 +119,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     expect(screen.getByLabelText("fields.title")).toBeInTheDocument();
@@ -130,14 +135,12 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     expect(screen.getByLabelText("fields.title")).toHaveValue("Test Audiobook");
     expect(screen.getByLabelText("fields.subtitle")).toHaveValue("A Subtitle");
-    expect(screen.getByLabelText("fields.isbn")).toHaveValue(
-      "978-0000000000"
-    );
+    expect(screen.getByLabelText("fields.isbn")).toHaveValue("978-0000000000");
     expect(screen.getByLabelText("fields.asin")).toHaveValue("B000000000");
   });
 
@@ -147,7 +150,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     expect(screen.getByText("cancel")).toBeInTheDocument();
@@ -162,7 +165,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     await user.click(screen.getByText("cancel"));
@@ -176,7 +179,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     await user.click(screen.getByText("saveAndClose"));
@@ -192,7 +195,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     const titleInput = screen.getByLabelText("fields.title");
@@ -215,7 +218,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     const titleInput = screen.getByLabelText("fields.title");
@@ -237,7 +240,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     const titleInput = screen.getByLabelText("fields.title");
@@ -258,7 +261,7 @@ describe("EditAudiobookDialog", () => {
         onOpenChange={mockOnOpenChange}
         audiobookIds={["ab-0", "ab-1", "ab-2"]}
         onNavigate={vi.fn()}
-      />
+      />,
     );
 
     expect(screen.getByTitle("previous")).toBeInTheDocument();
@@ -275,7 +278,7 @@ describe("EditAudiobookDialog", () => {
         onOpenChange={mockOnOpenChange}
         audiobookIds={["ab-0", "ab-1", "ab-2"]}
         onNavigate={onNavigate}
-      />
+      />,
     );
 
     await user.click(screen.getByTitle("next"));
@@ -292,7 +295,7 @@ describe("EditAudiobookDialog", () => {
         audiobook={buildAudiobookDetail()}
         open={true}
         onOpenChange={mockOnOpenChange}
-      />
+      />,
     );
 
     const titleInput = screen.getByLabelText("fields.title");

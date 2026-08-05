@@ -36,13 +36,27 @@ export function UserTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b">
-            <th className="px-4 py-3 text-left font-medium">{t("table.name")}</th>
-            <th className="px-4 py-3 text-left font-medium">{t("table.email")}</th>
-            <th className="px-4 py-3 text-left font-medium">{t("table.role")}</th>
-            <th className="px-4 py-3 text-left font-medium">{t("table.status")}</th>
-            <th className="px-4 py-3 text-left font-medium">{t("table.created")}</th>
-            <th className="px-4 py-3 text-left font-medium">{t("table.apiKey")}</th>
-            <th className="px-4 py-3 text-right font-medium">{t("table.actions")}</th>
+            <th className="px-4 py-3 text-left font-medium">
+              {t("table.name")}
+            </th>
+            <th className="px-4 py-3 text-left font-medium">
+              {t("table.email")}
+            </th>
+            <th className="px-4 py-3 text-left font-medium">
+              {t("table.role")}
+            </th>
+            <th className="px-4 py-3 text-left font-medium">
+              {t("table.status")}
+            </th>
+            <th className="px-4 py-3 text-left font-medium">
+              {t("table.created")}
+            </th>
+            <th className="px-4 py-3 text-left font-medium">
+              {t("table.apiKey")}
+            </th>
+            <th className="px-4 py-3 text-right font-medium">
+              {t("table.actions")}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -101,7 +115,8 @@ export function UserTable({
                     </span>
                     {user.apiKey.lastUsed && (
                       <span className="mt-1 text-xs text-muted-foreground">
-                        {t("apiKey.lastUsed")}: {new Date(user.apiKey.lastUsed).toDateString()}
+                        {t("apiKey.lastUsed")}:{" "}
+                        {new Date(user.apiKey.lastUsed).toDateString()}
                       </span>
                     )}
                   </div>

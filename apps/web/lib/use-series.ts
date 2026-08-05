@@ -79,7 +79,7 @@ export interface SeriesFilters {
 }
 
 async function fetchRecentlyUpdatedSeries(
-  limit: number = 12
+  limit: number = 12,
 ): Promise<{ series: SeriesWithBooks[] }> {
   const params = new URLSearchParams();
   params.set("limit", limit.toString());
@@ -105,7 +105,7 @@ export function useRecentlyUpdatedSeries(limit?: number) {
 
 async function fetchAllSeries(
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
 ): Promise<{ series: SeriesWithBooks[]; total: number }> {
   const params = new URLSearchParams();
   params.set("limit", limit.toString());
@@ -135,9 +135,7 @@ export interface SeriesOption {
   name: string;
 }
 
-async function fetchSeriesOptions(
-  search?: string
-): Promise<SeriesOption[]> {
+async function fetchSeriesOptions(search?: string): Promise<SeriesOption[]> {
   const params = new URLSearchParams();
   if (search) {
     params.set("search", search);
@@ -186,7 +184,7 @@ export function useSeriesDetail(id: string) {
 
 async function updateSeries(
   id: string,
-  data: UpdateSeriesData
+  data: UpdateSeriesData,
 ): Promise<UpdatedSeries> {
   const response = await fetch(`/api/series/${id}`, {
     method: "PATCH",
@@ -220,7 +218,7 @@ export function useUpdateSeries() {
                 name: updatedSeries.name,
                 description: updatedSeries.description,
               }
-            : previous
+            : previous,
       );
 
       queryClient.invalidateQueries({ queryKey: queryKeys.series.all });
@@ -235,8 +233,12 @@ const PAGE_SIZE = 24;
 
 async function fetchSeriesPage(
   filters: SeriesFilters,
-  pageParam: number
-): Promise<{ series: SeriesWithBooks[]; total: number; nextOffset: number | null }> {
+  pageParam: number,
+): Promise<{
+  series: SeriesWithBooks[];
+  total: number;
+  nextOffset: number | null;
+}> {
   const params = new URLSearchParams();
   params.set("limit", PAGE_SIZE.toString());
   params.set("offset", pageParam.toString());
@@ -260,7 +262,8 @@ async function fetchSeriesPage(
   }
 
   const data = await response.json();
-  const nextOffset = pageParam + PAGE_SIZE < data.total ? pageParam + PAGE_SIZE : null;
+  const nextOffset =
+    pageParam + PAGE_SIZE < data.total ? pageParam + PAGE_SIZE : null;
 
   return {
     series: data.series,

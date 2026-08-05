@@ -10,7 +10,8 @@ export function SiteFooter() {
             Bookmark
           </span>
           <p style={{ marginTop: "0.6rem", maxWidth: "36ch" }}>
-            A self-hosted home for your audiobooks, ebooks, and comics. MIT licensed.
+            A self-hosted home for your audiobooks, ebooks, and comics. MIT
+            licensed.
           </p>
         </div>
         <nav className="footer-links" aria-label="Footer">
@@ -19,8 +20,8 @@ export function SiteFooter() {
           <a href={`${GITHUB_URL}#configuration`}>Configuration</a>
         </nav>
         <p style={{ maxWidth: "40ch", fontSize: "0.8125rem" }}>
-          Book and comic metadata thanks to Goodreads, Hardcover, Audnexus, and Comic Vine. The covers shown on this
-          page are fictional.
+          Book and comic metadata thanks to Goodreads, Hardcover, Audnexus, and
+          Comic Vine. The covers shown on this page are fictional.
         </p>
       </div>
     </footer>

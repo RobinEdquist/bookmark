@@ -12,14 +12,14 @@ export enum RestoreSessionState {
 }
 
 export type RestoreStep =
-  | 'upload'
-  | 'select-library'
-  | 'path-mapping'
-  | 'user-mapping'
-  | 'options'
-  | 'preview'
-  | 'import'
-  | 'complete';
+  | "upload"
+  | "select-library"
+  | "path-mapping"
+  | "user-mapping"
+  | "options"
+  | "preview"
+  | "import"
+  | "complete";
 
 export interface BackupInfo {
   version: string;
@@ -30,7 +30,7 @@ export interface BackupInfo {
 export interface ABSLibrary {
   id: string;
   name: string;
-  mediaType: 'book' | 'podcast';
+  mediaType: "book" | "podcast";
   bookCount: number;
 }
 
@@ -148,7 +148,7 @@ export interface PathValidation {
 }
 
 export interface RestoreLogEvent {
-  level: 'info' | 'warn' | 'error';
+  level: "info" | "warn" | "error";
   message: string;
   timestamp: string;
 }
@@ -169,9 +169,9 @@ export interface RestoreSummary {
 }
 
 export type RestoreProgressEvent =
-  | { type: 'progress'; data: RestoreProgress }
-  | { type: 'log'; data: RestoreLogEvent }
-  | { type: 'complete'; data: RestoreSummary };
+  | { type: "progress"; data: RestoreProgress }
+  | { type: "log"; data: RestoreLogEvent }
+  | { type: "complete"; data: RestoreSummary };
 
 export interface ApiSuccessResponse {
   success: boolean;

@@ -145,9 +145,12 @@ async function searchBooks(params: SearchParams): Promise<unknown> {
     searchParams.set("author", params.author);
   }
 
-  const response = await fetch(`/api/hardcover/search?${searchParams.toString()}`, {
-    credentials: "include",
-  });
+  const response = await fetch(
+    `/api/hardcover/search?${searchParams.toString()}`,
+    {
+      credentials: "include",
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -208,7 +211,9 @@ export function useHardcoverDisconnect() {
   };
 }
 
-async function setAutoSyncOnImport(enabled: boolean): Promise<{ success: boolean; autoSyncOnImport: boolean }> {
+async function setAutoSyncOnImport(
+  enabled: boolean,
+): Promise<{ success: boolean; autoSyncOnImport: boolean }> {
   const response = await fetch("/api/hardcover/auto-sync", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -261,11 +266,14 @@ export function useHardcoverSearch() {
 }
 
 async function searchByAudiobookId(
-  audiobookId: string
+  audiobookId: string,
 ): Promise<HardcoverAudiobookSearchResponse> {
-  const response = await fetch(`/api/hardcover/search/audiobook/${audiobookId}`, {
-    credentials: "include",
-  });
+  const response = await fetch(
+    `/api/hardcover/search/audiobook/${audiobookId}`,
+    {
+      credentials: "include",
+    },
+  );
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
@@ -323,7 +331,7 @@ interface HardcoverLinkResponse {
 
 async function fetchHardcoverLink(
   mediaType: MediaType,
-  mediaId: string
+  mediaId: string,
 ): Promise<HardcoverLinkResponse> {
   const endpoint =
     mediaType === "audiobook"
@@ -362,7 +370,7 @@ async function searchByMediaPaginated(
   mediaId: string,
   page: number,
   perPage: number,
-  customQuery?: string
+  customQuery?: string,
 ): Promise<HardcoverAudiobookSearchResponse> {
   const searchParams = new URLSearchParams();
   if (page) searchParams.set("page", String(page));
@@ -394,11 +402,12 @@ export function useHardcoverSearchPaginated(
   page: number = 1,
   perPage: number = 10,
   enabled: boolean = true,
-  customQuery?: string
+  customQuery?: string,
 ) {
   return useQuery({
     queryKey: queryKeys.hardcover.search(mediaType, mediaId, page, customQuery),
-    queryFn: () => searchByMediaPaginated(mediaType, mediaId, page, perPage, customQuery),
+    queryFn: () =>
+      searchByMediaPaginated(mediaType, mediaId, page, perPage, customQuery),
     enabled: !!mediaId && enabled,
   });
 }
@@ -410,7 +419,7 @@ interface LinkMediaParams {
 }
 
 async function linkMediaToHardcover(
-  params: LinkMediaParams
+  params: LinkMediaParams,
 ): Promise<{ success: boolean; link: HardcoverLink }> {
   const endpoint =
     params.mediaType === "audiobook"
@@ -440,15 +449,22 @@ export function useHardcoverLinkMedia() {
     onSuccess: (_, variables) => {
       // Invalidate the hardcover link query
       queryClient.invalidateQueries({
-        queryKey: queryKeys.hardcover.link(variables.mediaType, variables.mediaId),
+        queryKey: queryKeys.hardcover.link(
+          variables.mediaType,
+          variables.mediaId,
+        ),
       });
       // Invalidate the audiobook/ebook list and detail to reflect new hardcover data (rating, etc.)
       if (variables.mediaType === "audiobook") {
         queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(variables.mediaId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.audiobooks.detail(variables.mediaId),
+        });
       } else {
         queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(variables.mediaId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.ebooks.detail(variables.mediaId),
+        });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
@@ -466,7 +482,9 @@ interface UnlinkMediaParams {
   mediaId: string;
 }
 
-async function unlinkMediaFromHardcover(params: UnlinkMediaParams): Promise<void> {
+async function unlinkMediaFromHardcover(
+  params: UnlinkMediaParams,
+): Promise<void> {
   const endpoint =
     params.mediaType === "audiobook"
       ? `/api/hardcover/link/${params.mediaId}`
@@ -491,15 +509,22 @@ export function useHardcoverUnlinkMedia() {
     onSuccess: (_, variables) => {
       // Invalidate the hardcover link query
       queryClient.invalidateQueries({
-        queryKey: queryKeys.hardcover.link(variables.mediaType, variables.mediaId),
+        queryKey: queryKeys.hardcover.link(
+          variables.mediaType,
+          variables.mediaId,
+        ),
       });
       // Invalidate the audiobook/ebook list and detail to reflect removed hardcover data
       if (variables.mediaType === "audiobook") {
         queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.detail(variables.mediaId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.audiobooks.detail(variables.mediaId),
+        });
       } else {
         queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });
-        queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.detail(variables.mediaId) });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.ebooks.detail(variables.mediaId),
+        });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.lists.all });
     },
@@ -516,8 +541,15 @@ export function useHardcoverUnlinkMedia() {
 export function useHardcoverLinkAudiobook() {
   const { linkMedia, isLinking, error } = useHardcoverLinkMedia();
   return {
-    linkAudiobook: (params: { audiobookId: string; hardcoverBook: HardcoverBookDocument }) =>
-      linkMedia({ mediaType: "audiobook", mediaId: params.audiobookId, hardcoverBook: params.hardcoverBook }),
+    linkAudiobook: (params: {
+      audiobookId: string;
+      hardcoverBook: HardcoverBookDocument;
+    }) =>
+      linkMedia({
+        mediaType: "audiobook",
+        mediaId: params.audiobookId,
+        hardcoverBook: params.hardcoverBook,
+      }),
     isLinking,
     error,
   };
@@ -603,7 +635,7 @@ interface QueueAllUnlinkedResponse {
 }
 
 async function queueAllUnlinked(
-  mediaType: MediaType
+  mediaType: MediaType,
 ): Promise<QueueAllUnlinkedResponse> {
   const endpoint = `/api/hardcover/queue-all-unlinked/${mediaType}s`;
 
@@ -615,7 +647,10 @@ async function queueAllUnlinked(
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
     // Check if it's a "not configured" error (BadRequestException from backend)
-    if (error.message && error.message.includes("Hardcover API key not configured")) {
+    if (
+      error.message &&
+      error.message.includes("Hardcover API key not configured")
+    ) {
       throw new Error("HARDCOVER_NOT_CONFIGURED");
     }
     throw new Error(error.message || "Failed to queue items");

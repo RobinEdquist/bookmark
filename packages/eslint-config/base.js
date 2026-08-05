@@ -22,6 +22,21 @@ export const config = [
     },
   },
   {
+    rules: {
+      // Naming a property purely to keep it out of a rest spread is the point of
+      // the pattern, not dead code: `({ fill, ...rest }) => <img {...rest} />`.
+      // ESLint's default (`ignoreRestSiblings: false`) reports those names, so
+      // every such site needed an `eslint-disable-next-line` — and those
+      // comments silently stopped covering the bindings the moment Prettier
+      // reflowed the destructure onto several lines, which is exactly what
+      // happened when formatting was applied across the repo.
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { ignoreRestSiblings: true },
+      ],
+    },
+  },
+  {
     plugins: {
       onlyWarn,
     },

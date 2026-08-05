@@ -88,7 +88,10 @@ export default function ComicCollectionDetailPage({
 
   const handleRemoveSeries = async (seriesId: string) => {
     try {
-      await removeSeriesFromCollection.mutateAsync({ collectionId: id, seriesId });
+      await removeSeriesFromCollection.mutateAsync({
+        collectionId: id,
+        seriesId,
+      });
       toast.success(t("collections.removeSeries"));
     } catch {
       toast.error(t("collections.error"));
@@ -123,7 +126,11 @@ export default function ComicCollectionDetailPage({
       <header className="sticky top-0 z-10 border-b border-border/50 bg-background/80 backdrop-blur-sm">
         <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href="/comics?view=collections" scroll={false} aria-label={t("detail.back")}>
+            <Link
+              href="/comics?view=collections"
+              scroll={false}
+              aria-label={t("detail.back")}
+            >
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
@@ -166,12 +173,18 @@ export default function ComicCollectionDetailPage({
         >
           {/* Collection title + description */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold tracking-tight">{collection.name}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">
+              {collection.name}
+            </h1>
             {collection.description && (
-              <p className="mt-2 text-muted-foreground">{collection.description}</p>
+              <p className="mt-2 text-muted-foreground">
+                {collection.description}
+              </p>
             )}
             <p className="mt-1 text-sm text-muted-foreground">
-              {t("collections.seriesCount", { count: collection.series.length })}
+              {t("collections.seriesCount", {
+                count: collection.series.length,
+              })}
             </p>
           </div>
 
@@ -211,7 +224,9 @@ export default function ComicCollectionDetailPage({
             <DialogTitle>{t("collections.edit")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-2 py-2">
-            <Label htmlFor="collection-name">{t("collections.namePlaceholder")}</Label>
+            <Label htmlFor="collection-name">
+              {t("collections.namePlaceholder")}
+            </Label>
             <Input
               id="collection-name"
               value={renameValue}

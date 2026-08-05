@@ -31,7 +31,7 @@ describe("useReaderSettings", () => {
         fontSize: 120,
         theme: "sepia",
         flow: "scrolled",
-      })
+      }),
     );
 
     const { result } = renderHook(() => useReaderSettings());
@@ -75,7 +75,7 @@ describe("useReaderSettings", () => {
   it("sanitizes invalid stored values", () => {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ theme: "hotdog", fontSize: "big", flow: 42 })
+      JSON.stringify({ theme: "hotdog", fontSize: "big", flow: 42 }),
     );
     expect(getInitialReaderSettings()).toEqual(DEFAULT_READER_SETTINGS);
   });

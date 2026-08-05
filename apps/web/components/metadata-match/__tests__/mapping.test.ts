@@ -15,7 +15,7 @@ describe("resolveAudibleReviewMetadata", () => {
     };
 
     expect(resolveAudibleReviewMetadata(undefined, fallback)).toEqual(
-      mapAudibleSearchResult(fallback)
+      mapAudibleSearchResult(fallback),
     );
   });
 
@@ -38,7 +38,7 @@ describe("resolveAudibleReviewMetadata", () => {
     };
 
     expect(resolveAudibleReviewMetadata(detail, fallback)).toEqual(
-      mapAudnexusBook(detail)
+      mapAudnexusBook(detail),
     );
   });
 });

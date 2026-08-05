@@ -43,7 +43,10 @@ export interface SplitResult {
 
 type PeopleRole = "authors" | "narrators";
 
-async function fetchPeople(role: PeopleRole, search?: string): Promise<{ people: AdminPerson[] }> {
+async function fetchPeople(
+  role: PeopleRole,
+  search?: string,
+): Promise<{ people: AdminPerson[] }> {
   const query = search ? `?search=${encodeURIComponent(search)}` : "";
   const response = await fetch(`/api/admin/people/${role}${query}`, {
     credentials: "include",
@@ -100,7 +103,9 @@ async function splitPerson(id: string, names: string[]): Promise<SplitResult> {
   return response.json();
 }
 
-function invalidatePeopleQueries(queryClient: ReturnType<typeof useQueryClient>) {
+function invalidatePeopleQueries(
+  queryClient: ReturnType<typeof useQueryClient>,
+) {
   queryClient.invalidateQueries({ queryKey: queryKeys.adminPeople.all });
   queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
   queryClient.invalidateQueries({ queryKey: queryKeys.ebooks.all });

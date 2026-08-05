@@ -40,19 +40,28 @@ import { DeleteComicSeriesDialog } from "../../../../components/comics/delete-co
 import { EditComicBookDialog } from "../../../../components/comics/edit-comic-book-dialog";
 import { ChangeComicBookCoverDialog } from "../../../../components/comics/change-comic-book-cover-dialog";
 import { DeleteComicBookDialog } from "../../../../components/comics/delete-comic-book-dialog";
-import { ComicBookList, formatDesignation } from "../../../../components/comics/comic-book-list";
+import {
+  ComicBookList,
+  formatDesignation,
+} from "../../../../components/comics/comic-book-list";
 import { GeneratedCover } from "../../../../components/common/generated-cover";
 import { BatchEditComicBooksDialog } from "../../../../components/comics/batch-edit-comic-books-dialog";
 import { SeriesPickerDialog } from "../../../../components/comics/series-picker-dialog";
 import { useMoveComicBooks } from "../../../../lib/use-comics";
-import { isCollectedEdition, isSpecialEdition } from "../../../../lib/comic-format";
+import {
+  isCollectedEdition,
+  isSpecialEdition,
+} from "../../../../lib/comic-format";
 import { formatIssueList } from "../../../../lib/comic-issue-list";
 import { toast } from "sonner";
 import { useComicvineStatus } from "../../../../lib/use-comicvine";
 import { ComicvineMatchDialog } from "../../../../components/comicvine/comicvine-match-dialog";
 import { ComicvineLinkCard } from "../../../../components/comicvine/comicvine-link-card";
 import { DetailHeaderActions } from "../../../../components/layout/detail-header-actions";
-import type { ComicCreatorRole, ComicBookListItem } from "../../../../lib/use-comics";
+import type {
+  ComicCreatorRole,
+  ComicBookListItem,
+} from "../../../../lib/use-comics";
 import { COLLAPSED_DESCRIPTION_HEIGHT } from "../../../../lib/constants/description";
 
 export default function ComicSeriesDetailPage({
@@ -89,7 +98,9 @@ export default function ComicSeriesDetailPage({
 
   // Batch selection state
   const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(new Set());
+  const [selectedBookIds, setSelectedBookIds] = useState<Set<string>>(
+    new Set(),
+  );
   const [batchEditOpen, setBatchEditOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const moveBooks = useMoveComicBooks();
@@ -305,7 +316,10 @@ export default function ComicSeriesDetailPage({
                   sizes="(max-width: 1024px) 100vw, 280px"
                 />
               ) : (
-                <GeneratedCover title={series.title} author={series.publisher} />
+                <GeneratedCover
+                  title={series.title}
+                  author={series.publisher}
+                />
               )}
             </div>
 
@@ -439,7 +453,9 @@ export default function ComicSeriesDetailPage({
                 <p className="rounded-md border border-border/50 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
                   {t("detail.publishedTail", {
                     total: series.publishedTotal,
-                    issues: formatIssueList(series.unownedPublished.map(Number)),
+                    issues: formatIssueList(
+                      series.unownedPublished.map(Number),
+                    ),
                   })}
                 </p>
               )}
@@ -555,9 +571,7 @@ export default function ComicSeriesDetailPage({
                     variant="ghost"
                     size="sm"
                     className="mt-2 h-auto px-0 py-1 text-primary hover:bg-transparent hover:text-primary/80"
-                    onClick={() =>
-                      setDescriptionExpanded(!descriptionExpanded)
-                    }
+                    onClick={() => setDescriptionExpanded(!descriptionExpanded)}
                   >
                     {descriptionExpanded ? (
                       <>
@@ -595,26 +609,31 @@ export default function ComicSeriesDetailPage({
                   setSelectedBookIds(new Set());
                 }}
               >
-                {selectionMode ? t("batchEdit.cancelSelect") : t("batchEdit.selectMode")}
+                {selectionMode
+                  ? t("batchEdit.cancelSelect")
+                  : t("batchEdit.selectMode")}
               </Button>
               {selectionMode && selectedBookIds.size > 0 && (
-                <Button
-                  size="sm"
-                  onClick={() => setBatchEditOpen(true)}
-                >
+                <Button size="sm" onClick={() => setBatchEditOpen(true)}>
                   <Edit3 className="mr-1 h-4 w-4" />
                   {t("batchEdit.editSelected", { count: selectedBookIds.size })}
                 </Button>
               )}
               {selectionMode && selectedBookIds.size > 0 && (
-                <Button size="sm" variant="outline" onClick={() => setMoveOpen(true)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setMoveOpen(true)}
+                >
                   <FolderInput className="mr-1 h-4 w-4" />
                   {t("grouping.moveSelected")}
                 </Button>
               )}
               {selectionMode && (
                 <span className="text-sm text-muted-foreground">
-                  {t("batchEdit.selectedCount", { count: selectedBookIds.size })}
+                  {t("batchEdit.selectedCount", {
+                    count: selectedBookIds.size,
+                  })}
                 </span>
               )}
             </div>
@@ -628,9 +647,15 @@ export default function ComicSeriesDetailPage({
                 books={issueBooks}
                 seriesId={id}
                 seriesTitle={series.title}
-                onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
-                onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
-                onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
+                onEditBook={
+                  canEdit ? (bookId) => setEditBookId(bookId) : undefined
+                }
+                onChangeBookCover={
+                  canEdit ? (bookId) => setCoverBookId(bookId) : undefined
+                }
+                onDeleteBook={
+                  canDelete ? (bookId) => setDeleteBookId(bookId) : undefined
+                }
                 selectionMode={selectionMode}
                 selectedIds={selectedBookIds}
                 onToggleSelect={toggleBookSelect}
@@ -646,9 +671,15 @@ export default function ComicSeriesDetailPage({
                 books={specialBooks}
                 seriesId={id}
                 seriesTitle={series.title}
-                onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
-                onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
-                onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
+                onEditBook={
+                  canEdit ? (bookId) => setEditBookId(bookId) : undefined
+                }
+                onChangeBookCover={
+                  canEdit ? (bookId) => setCoverBookId(bookId) : undefined
+                }
+                onDeleteBook={
+                  canDelete ? (bookId) => setDeleteBookId(bookId) : undefined
+                }
                 selectionMode={selectionMode}
                 selectedIds={selectedBookIds}
                 onToggleSelect={toggleBookSelect}
@@ -664,9 +695,15 @@ export default function ComicSeriesDetailPage({
                 books={collectedEditions}
                 seriesId={id}
                 seriesTitle={series.title}
-                onEditBook={canEdit ? (bookId) => setEditBookId(bookId) : undefined}
-                onChangeBookCover={canEdit ? (bookId) => setCoverBookId(bookId) : undefined}
-                onDeleteBook={canDelete ? (bookId) => setDeleteBookId(bookId) : undefined}
+                onEditBook={
+                  canEdit ? (bookId) => setEditBookId(bookId) : undefined
+                }
+                onChangeBookCover={
+                  canEdit ? (bookId) => setCoverBookId(bookId) : undefined
+                }
+                onDeleteBook={
+                  canDelete ? (bookId) => setDeleteBookId(bookId) : undefined
+                }
                 selectionMode={selectionMode}
                 selectedIds={selectedBookIds}
                 onToggleSelect={toggleBookSelect}
@@ -676,10 +713,10 @@ export default function ComicSeriesDetailPage({
           {issueBooks.length === 0 &&
             specialBooks.length === 0 &&
             collectedEditions.length === 0 && (
-            <p className="py-8 text-center text-sm text-muted-foreground">
-              {t("detail.noBooks")}
-            </p>
-          )}
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {t("detail.noBooks")}
+              </p>
+            )}
         </div>
       </div>
 
@@ -727,7 +764,9 @@ export default function ComicSeriesDetailPage({
         <EditComicBookDialog
           bookId={editBookId}
           open={true}
-          onOpenChange={(open) => { if (!open) setEditBookId(null); }}
+          onOpenChange={(open) => {
+            if (!open) setEditBookId(null);
+          }}
         />
       )}
 
@@ -738,9 +777,13 @@ export default function ComicSeriesDetailPage({
             const b = series.books.find((x) => x.id === coverBookId);
             return b ? (b.title ?? formatDesignation(b, t)) : "";
           })()}
-          currentCoverUrl={series.books.find((b) => b.id === coverBookId)?.coverUrl ?? null}
+          currentCoverUrl={
+            series.books.find((b) => b.id === coverBookId)?.coverUrl ?? null
+          }
           open={true}
-          onOpenChange={(open) => { if (!open) setCoverBookId(null); }}
+          onOpenChange={(open) => {
+            if (!open) setCoverBookId(null);
+          }}
         />
       )}
 
@@ -752,7 +795,9 @@ export default function ComicSeriesDetailPage({
             return b ? (b.title ?? formatDesignation(b, t)) : "";
           })()}
           open={true}
-          onOpenChange={(open) => { if (!open) setDeleteBookId(null); }}
+          onOpenChange={(open) => {
+            if (!open) setDeleteBookId(null);
+          }}
         />
       )}
 

@@ -25,8 +25,23 @@ function StatusBar() {
     <div className="pm-statusbar" aria-hidden>
       <span>21:47</span>
       <span className="pm-island" />
-      <svg viewBox="0 0 24 12" width="2.2em" height="1.1em" fill="currentColor" aria-hidden>
-        <rect x="0" y="1" width="19" height="10" rx="3" fill="none" stroke="currentColor" opacity="0.5" />
+      <svg
+        viewBox="0 0 24 12"
+        width="2.2em"
+        height="1.1em"
+        fill="currentColor"
+        aria-hidden
+      >
+        <rect
+          x="0"
+          y="1"
+          width="19"
+          height="10"
+          rx="3"
+          fill="none"
+          stroke="currentColor"
+          opacity="0.5"
+        />
         <rect x="2" y="3" width="13" height="6" rx="1.5" />
         <rect x="20.5" y="4" width="2" height="4" rx="1" opacity="0.5" />
       </svg>
@@ -44,7 +59,13 @@ export function PhonePlayer({ className }: { className?: string }) {
     >
       <div
         className="pm-screen"
-        style={{ "--pc1": "oklch(42% 0.13 300 / 0.6)", "--pc2": "oklch(40% 0.1 250 / 0.45)", "--pc3": "oklch(35% 0.12 340 / 0.3)" } as CSSProperties}
+        style={
+          {
+            "--pc1": "oklch(42% 0.13 300 / 0.6)",
+            "--pc2": "oklch(40% 0.1 250 / 0.45)",
+            "--pc3": "oklch(35% 0.12 340 / 0.3)",
+          } as CSSProperties
+        }
         aria-hidden
       >
         <StatusBar />
@@ -136,7 +157,13 @@ export function PhoneLibrary({ className }: { className?: string }) {
     >
       <div
         className="pm-screen"
-        style={{ "--pc1": "oklch(35% 0.1 340 / 0.45)", "--pc2": "oklch(33% 0.09 250 / 0.35)", "--pc3": "oklch(30% 0.08 300 / 0.3)" } as CSSProperties}
+        style={
+          {
+            "--pc1": "oklch(35% 0.1 340 / 0.45)",
+            "--pc2": "oklch(33% 0.09 250 / 0.35)",
+            "--pc3": "oklch(30% 0.08 300 / 0.3)",
+          } as CSSProperties
+        }
         aria-hidden
       >
         <StatusBar />

@@ -3,7 +3,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { MoreVertical, Pencil, Trash2, ImageIcon, Download, Eye, AlertTriangle, CheckSquare, Square } from "lucide-react";
+import {
+  MoreVertical,
+  Pencil,
+  Trash2,
+  ImageIcon,
+  Download,
+  Eye,
+  AlertTriangle,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -22,18 +32,22 @@ import { GeneratedCover } from "../common/generated-cover";
 // -----------------------------------------------------------------------
 export function formatDesignation(
   book: Pick<ComicBookListItem, "format" | "number">,
-  t: ReturnType<typeof useTranslations<"comics">>
+  t: ReturnType<typeof useTranslations<"comics">>,
 ): string {
   const num = book.number;
   const format: ComicBookFormat = book.format;
 
   switch (format) {
     case "single_issue":
-      return num != null ? t("book.issue", { number: num }) : t("book.untitled");
+      return num != null
+        ? t("book.issue", { number: num })
+        : t("book.untitled");
     case "tpb":
       return num != null ? t("book.volume", { number: num }) : t("format.tpb");
     case "annual":
-      return num != null ? t("book.annual", { number: num }) : t("format.annual");
+      return num != null
+        ? t("book.annual", { number: num })
+        : t("format.annual");
     case "omnibus":
       return num != null
         ? t("book.omnibus", { number: num })
@@ -141,9 +155,7 @@ function BookRow({
   const designation = formatDesignation(book, t);
 
   const coverYear =
-    book.coverDate != null
-      ? new Date(book.coverDate).getFullYear()
-      : null;
+    book.coverDate != null ? new Date(book.coverDate).getFullYear() : null;
 
   const handleDownload = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -160,8 +172,13 @@ function BookRow({
         <button
           type="button"
           className="shrink-0 text-muted-foreground hover:text-foreground"
-          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(book.id); }}
-          aria-label={isSelected ? t("batchEdit.deselect") : t("batchEdit.select")}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect?.(book.id);
+          }}
+          aria-label={
+            isSelected ? t("batchEdit.deselect") : t("batchEdit.select")
+          }
         >
           {isSelected ? (
             <CheckSquare className="h-5 w-5 text-primary" />
@@ -226,7 +243,9 @@ function BookRow({
             {[
               coverYear != null ? String(coverYear) : null,
               formatFileSize(book.sizeBytes),
-              book.collects ? t("detail.collects", { range: book.collects }) : null,
+              book.collects
+                ? t("detail.collects", { range: book.collects })
+                : null,
             ]
               .filter(Boolean)
               .join(" · ")}

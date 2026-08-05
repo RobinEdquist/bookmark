@@ -29,7 +29,8 @@ export function HorizontalScrollRow({
     if (container) {
       setCanScrollLeft(container.scrollLeft > 0);
       setCanScrollRight(
-        container.scrollLeft < container.scrollWidth - container.clientWidth - 1
+        container.scrollLeft <
+          container.scrollWidth - container.clientWidth - 1,
       );
     }
   }, []);
@@ -83,7 +84,9 @@ export function HorizontalScrollRow({
           size="icon"
           className={cn(
             "absolute -left-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full shadow-lg transition-opacity",
-            isHovering && canScrollLeft ? "opacity-100" : "opacity-0 pointer-events-none"
+            isHovering && canScrollLeft
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none",
           )}
           onClick={() => scroll("left")}
         >
@@ -105,7 +108,9 @@ export function HorizontalScrollRow({
           size="icon"
           className={cn(
             "absolute -right-4 top-1/2 z-10 h-10 w-10 -translate-y-1/2 rounded-full shadow-lg transition-opacity",
-            isHovering && canScrollRight ? "opacity-100" : "opacity-0 pointer-events-none"
+            isHovering && canScrollRight
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none",
           )}
           onClick={() => scroll("right")}
         >

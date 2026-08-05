@@ -25,7 +25,11 @@ export function ComicCollectionCard({
       <Link href={`/comics/collections/${collection.id}`} prefetch={false}>
         <motion.div
           className="relative aspect-[2/3] overflow-hidden rounded-xl shadow-sm"
-          whileHover={{ scale: 1.05, y: -4, boxShadow: "0 12px 24px rgba(0,0,0,0.15)" }}
+          whileHover={{
+            scale: 1.05,
+            y: -4,
+            boxShadow: "0 12px 24px rgba(0,0,0,0.15)",
+          }}
           transition={{ type: "spring", stiffness: 400, damping: 25 }}
         >
           {collection.coverUrl ? (
@@ -42,9 +46,17 @@ export function ComicCollectionCard({
           )}
         </motion.div>
       </Link>
-      <Link href={`/comics/collections/${collection.id}`} prefetch={false} className="mt-3 min-w-0">
-        <div className="text-xs text-muted-foreground">{t("collections.seriesCount", { count: collection.seriesCount })}</div>
-        <h3 className="line-clamp-2 text-sm font-medium leading-tight">{collection.name}</h3>
+      <Link
+        href={`/comics/collections/${collection.id}`}
+        prefetch={false}
+        className="mt-3 min-w-0"
+      >
+        <div className="text-xs text-muted-foreground">
+          {t("collections.seriesCount", { count: collection.seriesCount })}
+        </div>
+        <h3 className="line-clamp-2 text-sm font-medium leading-tight">
+          {collection.name}
+        </h3>
       </Link>
     </motion.article>
   );

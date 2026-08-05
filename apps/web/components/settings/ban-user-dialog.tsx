@@ -22,7 +22,11 @@ interface BanUserDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function BanUserDialog({ user, open, onOpenChange }: BanUserDialogProps) {
+export function BanUserDialog({
+  user,
+  open,
+  onOpenChange,
+}: BanUserDialogProps) {
   const t = useTranslations("settings.users");
   const banUser = useBanUser();
 
@@ -50,9 +54,7 @@ export function BanUserDialog({ user, open, onOpenChange }: BanUserDialogProps) 
       resetForm();
       onOpenChange(false);
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : t("toast.banError")
-      );
+      toast.error(error instanceof Error ? error.message : t("toast.banError"));
     }
   };
 

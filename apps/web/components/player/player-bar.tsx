@@ -137,10 +137,10 @@ export function PlayerBar() {
     }
 
     const sortedChapters = [...chapters].sort(
-      (a, b) => a.startTime - b.startTime
+      (a, b) => a.startTime - b.startTime,
     );
     const chapterIndex = sortedChapters.findIndex(
-      (c) => c.id === currentChapter.id
+      (c) => c.id === currentChapter.id,
     );
     const nextChapterItem = sortedChapters[chapterIndex + 1];
     const chapterEndTime =
@@ -157,8 +157,11 @@ export function PlayerBar() {
 
   // Determine which values to use for the slider based on progress mode
   const hasChapters = (audiobook?.chapters?.length ?? 0) > 0;
-  const isChapterMode = progressMode === "chapter" && hasChapters && currentChapter;
-  const sliderPosition = isChapterMode ? chapterProgress.position : currentPosition;
+  const isChapterMode =
+    progressMode === "chapter" && hasChapters && currentChapter;
+  const sliderPosition = isChapterMode
+    ? chapterProgress.position
+    : currentPosition;
   const sliderMax = isChapterMode ? chapterProgress.duration : duration;
 
   // Called when user starts dragging - prevents timeupdate from overriding position
@@ -174,7 +177,7 @@ export function PlayerBar() {
       }
       return sliderValue;
     },
-    [isChapterMode, currentChapter]
+    [isChapterMode, currentChapter],
   );
 
   // Called during dragging - updates audio position without syncing to server
@@ -185,7 +188,7 @@ export function PlayerBar() {
         seekPreview(toAbsolutePosition(position));
       }
     },
-    [seekPreview, toAbsolutePosition]
+    [seekPreview, toAbsolutePosition],
   );
 
   // Called when user releases the slider - syncs progress to server
@@ -197,7 +200,7 @@ export function PlayerBar() {
         seek(toAbsolutePosition(position));
       }
     },
-    [seek, seekEnd, toAbsolutePosition]
+    [seek, seekEnd, toAbsolutePosition],
   );
 
   // Handle chapter selection from drawer
@@ -205,7 +208,7 @@ export function PlayerBar() {
     (chapter: { startTime: number }) => {
       seek(chapter.startTime);
     },
-    [seek]
+    [seek],
   );
 
   // Toggle progress mode
@@ -220,7 +223,7 @@ export function PlayerBar() {
         setVolume(vol);
       }
     },
-    [setVolume]
+    [setVolume],
   );
 
   const toggleMute = useCallback(() => {
@@ -228,9 +231,12 @@ export function PlayerBar() {
   }, [volume, setVolume]);
 
   // Sleep timer handlers
-  const handleSelectSleepDuration = useCallback((minutes: number) => {
-    startSleepTimer("duration", minutes);
-  }, [startSleepTimer]);
+  const handleSelectSleepDuration = useCallback(
+    (minutes: number) => {
+      startSleepTimer("duration", minutes);
+    },
+    [startSleepTimer],
+  );
 
   const handleSelectEndOfChapter = useCallback(() => {
     startSleepTimer("endOfChapter");
@@ -266,7 +272,7 @@ export function PlayerBar() {
       const ratio = (clientX - rect.left) / rect.width;
       return Math.min(Math.max(ratio, 0), 1) * duration;
     },
-    [duration]
+    [duration],
   );
 
   const handleProgressPointerDown = useCallback(
@@ -281,7 +287,7 @@ export function PlayerBar() {
       seekStart();
       seekPreview(position);
     },
-    [isSeekDisabled, positionFromClientX, seekPreview, seekStart]
+    [isSeekDisabled, positionFromClientX, seekPreview, seekStart],
   );
 
   const handleProgressPointerMove = useCallback(
@@ -292,7 +298,7 @@ export function PlayerBar() {
       const position = positionFromClientX(event.clientX);
       if (position !== null) seekPreview(position);
     },
-    [positionFromClientX, seekPreview]
+    [positionFromClientX, seekPreview],
   );
 
   const handleProgressPointerUp = useCallback(
@@ -304,7 +310,7 @@ export function PlayerBar() {
       const position = positionFromClientX(event.clientX);
       if (position !== null) seek(position);
     },
-    [positionFromClientX, seek, seekEnd]
+    [positionFromClientX, seek, seekEnd],
   );
 
   // Safety net: if a drag is interrupted (window loses focus, pointer released
@@ -345,7 +351,7 @@ export function PlayerBar() {
       event.preventDefault();
       seek(Math.min(Math.max(next, 0), duration));
     },
-    [currentPosition, duration, isSeekDisabled, seek]
+    [currentPosition, duration, isSeekDisabled, seek],
   );
 
   // Don't render if no audiobook is loaded
@@ -366,201 +372,401 @@ export function PlayerBar() {
           transition={{ type: "spring", damping: 25, stiffness: 300 }}
           className="shrink-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 overflow-hidden"
         >
-        {/* Global book progress at top - click or drag anywhere to seek */}
-        <div
-          ref={progressBarRef}
-          role="slider"
-          tabIndex={isSeekDisabled ? -1 : 0}
-          aria-label={t("bookSeek")}
-          aria-valuemin={0}
-          aria-valuemax={Math.round(duration)}
-          aria-valuenow={Math.round(currentPosition)}
-          aria-valuetext={t("currentTime", {
-            current: formatTime(currentPosition),
-            total: formatTime(duration),
-          })}
-          aria-disabled={isSeekDisabled || undefined}
-          onPointerDown={handleProgressPointerDown}
-          onPointerMove={handleProgressPointerMove}
-          onPointerUp={handleProgressPointerUp}
-          onPointerCancel={handleProgressPointerUp}
-          onLostPointerCapture={handleProgressLostCapture}
-          onKeyDown={handleProgressKeyDown}
-          className={cn(
-            "group relative z-10 h-1 w-full touch-none",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
-            isSeekDisabled ? "cursor-default" : "cursor-pointer"
-          )}
-        >
-          {/* Invisible grab area - makes the 4px bar comfortable to hit without
+          {/* Global book progress at top - click or drag anywhere to seek */}
+          <div
+            ref={progressBarRef}
+            role="slider"
+            tabIndex={isSeekDisabled ? -1 : 0}
+            aria-label={t("bookSeek")}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(duration)}
+            aria-valuenow={Math.round(currentPosition)}
+            aria-valuetext={t("currentTime", {
+              current: formatTime(currentPosition),
+              total: formatTime(duration),
+            })}
+            aria-disabled={isSeekDisabled || undefined}
+            onPointerDown={handleProgressPointerDown}
+            onPointerMove={handleProgressPointerMove}
+            onPointerUp={handleProgressPointerUp}
+            onPointerCancel={handleProgressPointerUp}
+            onLostPointerCapture={handleProgressLostCapture}
+            onKeyDown={handleProgressKeyDown}
+            className={cn(
+              "group relative z-10 h-1 w-full touch-none",
+              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring",
+              isSeekDisabled ? "cursor-default" : "cursor-pointer",
+            )}
+          >
+            {/* Invisible grab area - makes the 4px bar comfortable to hit without
               changing the player's layout height. Kept at 6px: the 48px cover
               art below leaves only 8px of dead space at the sm+ breakpoint, so
               a taller band would start swallowing clicks on the cover link. */}
-          <span className="absolute inset-x-0 -bottom-1.5 top-0" aria-hidden="true" />
+            <span
+              className="absolute inset-x-0 -bottom-1.5 top-0"
+              aria-hidden="true"
+            />
 
-          {/* Track grows on hover/scrub as a scrub affordance. Absolutely
+            {/* Track grows on hover/scrub as a scrub affordance. Absolutely
               positioned so the growth never shifts the controls below. */}
-          <span
-            className={cn(
-              "absolute inset-x-0 top-0 h-1 overflow-hidden bg-muted transition-[height] duration-150 motion-reduce:transition-none",
-              !isSeekDisabled && "group-hover:h-2 group-focus-visible:h-2",
-              isScrubbing && "h-2"
-            )}
-          >
             <span
               className={cn(
-                "block h-full bg-primary",
-                // No width transition while scrubbing - the fill must track the
-                // pointer instantly rather than easing behind it
-                !isScrubbing &&
-                  "transition-[width] duration-150 motion-reduce:transition-none"
+                "absolute inset-x-0 top-0 h-1 overflow-hidden bg-muted transition-[height] duration-150 motion-reduce:transition-none",
+                !isSeekDisabled && "group-hover:h-2 group-focus-visible:h-2",
+                isScrubbing && "h-2",
               )}
-              style={{ width: `${progress}%` }}
-            />
-          </span>
-        </div>
-
-        <div className="flex h-16 items-center gap-2 px-3 sm:gap-4 sm:px-4 lg:px-6">
-          {/* Book info - left side */}
-          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-            {/* Cover */}
-            <Link
-              href={`/audiobooks/${audiobook.id}`}
-              className="shrink-0 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              aria-label={t("viewAudiobook", { title: audiobook.title })}
             >
-              {audiobook.coverUrl ? (
-                <Image
-                  src={audiobook.coverUrl}
-                  alt=""
-                  width={48}
-                  height={48}
-                  className="h-10 w-10 sm:h-12 sm:w-12 object-cover"
-                  unoptimized={audiobook.coverUrl.startsWith("/api/")}
-                />
-              ) : (
-                <GeneratedCover
-                  title={audiobook.title}
-                  className="h-10 w-10 sm:h-12 sm:w-12"
-                  aria-hidden
-                />
-              )}
-            </Link>
+              <span
+                className={cn(
+                  "block h-full bg-primary",
+                  // No width transition while scrubbing - the fill must track the
+                  // pointer instantly rather than easing behind it
+                  !isScrubbing &&
+                    "transition-[width] duration-150 motion-reduce:transition-none",
+                )}
+                style={{ width: `${progress}%` }}
+              />
+            </span>
+          </div>
 
-            {/* Title and chapter */}
-            <div className="min-w-0 flex-1">
+          <div className="flex h-16 items-center gap-2 px-3 sm:gap-4 sm:px-4 lg:px-6">
+            {/* Book info - left side */}
+            <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+              {/* Cover */}
               <Link
                 href={`/audiobooks/${audiobook.id}`}
-                className="block text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                className="shrink-0 overflow-hidden rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                aria-label={t("viewAudiobook", { title: audiobook.title })}
               >
-                <Marquee speed={25} pauseDuration={2500} gap={50}>
-                  {audiobook.title}
-                </Marquee>
+                {audiobook.coverUrl ? (
+                  <Image
+                    src={audiobook.coverUrl}
+                    alt=""
+                    width={48}
+                    height={48}
+                    className="h-10 w-10 sm:h-12 sm:w-12 object-cover"
+                    unoptimized={audiobook.coverUrl.startsWith("/api/")}
+                  />
+                ) : (
+                  <GeneratedCover
+                    title={audiobook.title}
+                    className="h-10 w-10 sm:h-12 sm:w-12"
+                    aria-hidden
+                  />
+                )}
               </Link>
-              {currentChapter && hasChapters && (
-                <ControlTooltip label={t("openChapterList")}>
-                  <button
-                    type="button"
-                    onClick={() => setIsChapterDrawerOpen(true)}
-                    className="flex max-w-full cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm transition-colors"
-                    aria-label={t("openChapterList")}
-                    aria-haspopup="dialog"
+
+              {/* Title and chapter */}
+              <div className="min-w-0 flex-1">
+                <Link
+                  href={`/audiobooks/${audiobook.id}`}
+                  className="block text-sm font-medium hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm"
+                >
+                  <Marquee speed={25} pauseDuration={2500} gap={50}>
+                    {audiobook.title}
+                  </Marquee>
+                </Link>
+                {currentChapter && hasChapters && (
+                  <ControlTooltip label={t("openChapterList")}>
+                    <button
+                      type="button"
+                      onClick={() => setIsChapterDrawerOpen(true)}
+                      className="flex max-w-full cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-sm transition-colors"
+                      aria-label={t("openChapterList")}
+                      aria-haspopup="dialog"
+                    >
+                      <List className="h-3 w-3 shrink-0" aria-hidden="true" />
+                      <Marquee
+                        speed={20}
+                        pauseDuration={2000}
+                        gap={40}
+                        className="flex-1"
+                      >
+                        {currentChapter.title}
+                      </Marquee>
+                    </button>
+                  </ControlTooltip>
+                )}
+              </div>
+            </div>
+
+            {/* Controls - simplified on mobile, full on desktop */}
+            <div
+              className="flex items-center gap-1 sm:gap-2"
+              role="group"
+              aria-label={t("playbackControls")}
+            >
+              {/* Previous chapter - hidden on mobile */}
+              <ControlTooltip label={t("previousChapter")}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden h-8 w-8 sm:flex"
+                  onClick={prevChapter}
+                  disabled={isLoading}
+                  aria-label={t("previousChapter")}
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </ControlTooltip>
+
+              {/* Skip backward */}
+              <ControlTooltip
+                label={t("skipBackward", { seconds: SKIP_BACKWARD_SECONDS })}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => seekRelative(-SKIP_BACKWARD_SECONDS)}
+                  disabled={isLoading}
+                  aria-label={t("skipBackward", {
+                    seconds: SKIP_BACKWARD_SECONDS,
+                  })}
+                >
+                  <SkipBack className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </ControlTooltip>
+
+              {/* Play/Pause */}
+              <ControlTooltip label={isPlaying ? t("pause") : t("play")}>
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="mx-3 h-9 w-9 sm:mx-2 sm:h-10 sm:w-10"
+                  onClick={isPlaying ? pause : resume}
+                  disabled={isLoading}
+                  aria-label={isPlaying ? t("pause") : t("play")}
+                >
+                  {isLoading ? (
+                    <div
+                      className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+                      role="status"
+                      aria-label={t("loading")}
+                    />
+                  ) : isPlaying ? (
+                    <Pause
+                      className="h-4 w-4 sm:h-5 sm:w-5"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <Play
+                      className="h-4 w-4 sm:h-5 sm:w-5 pl-0.5"
+                      aria-hidden="true"
+                    />
+                  )}
+                </Button>
+              </ControlTooltip>
+
+              {/* Skip forward */}
+              <ControlTooltip
+                label={t("skipForward", { seconds: SKIP_FORWARD_SECONDS })}
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => seekRelative(SKIP_FORWARD_SECONDS)}
+                  disabled={isLoading}
+                  aria-label={t("skipForward", {
+                    seconds: SKIP_FORWARD_SECONDS,
+                  })}
+                >
+                  <SkipForward className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </ControlTooltip>
+
+              {/* Next chapter - hidden on mobile */}
+              <ControlTooltip label={t("nextChapter")}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="hidden h-8 w-8 sm:flex"
+                  onClick={nextChapter}
+                  disabled={isLoading}
+                  aria-label={t("nextChapter")}
+                >
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </ControlTooltip>
+            </div>
+
+            {/* Seek bar and time - desktop only */}
+            <div className="hidden flex-1 items-center gap-2 md:flex">
+              {/* Progress mode toggle */}
+              {hasChapters && (
+                <ControlTooltip
+                  label={isChapterMode ? t("bookMode") : t("chapterMode")}
+                >
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={toggleProgressMode}
+                    aria-label={
+                      isChapterMode ? t("bookMode") : t("chapterMode")
+                    }
                   >
-                    <List className="h-3 w-3 shrink-0" aria-hidden="true" />
-                    <Marquee speed={20} pauseDuration={2000} gap={40} className="flex-1">
-                      {currentChapter.title}
-                    </Marquee>
-                  </button>
+                    {isChapterMode ? (
+                      <List className="h-3.5 w-3.5" aria-hidden="true" />
+                    ) : (
+                      <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                  </Button>
                 </ControlTooltip>
               )}
+              <span
+                className="w-12 text-right text-xs text-muted-foreground"
+                aria-hidden="true"
+              >
+                {formatTime(sliderPosition)}
+              </span>
+              <Slider
+                value={[sliderPosition]}
+                max={sliderMax || 1}
+                step={1}
+                onPointerDown={handleSeekStart}
+                onValueChange={handleSeekPreview}
+                onValueCommit={handleSeekCommit}
+                className="flex-1"
+                disabled={isLoading}
+                aria-label={isChapterMode ? t("chapterSeek") : t("bookSeek")}
+                aria-valuetext={t("currentTime", {
+                  current: formatTime(sliderPosition),
+                  total: formatTime(sliderMax),
+                })}
+              />
+              <span
+                className="w-12 text-xs text-muted-foreground"
+                aria-hidden="true"
+              >
+                {formatTime(sliderMax)}
+              </span>
+            </div>
+
+            {/* Right side controls */}
+            <div className="flex items-center gap-1">
+              {/* Sleep timer button - desktop only */}
+              <ControlTooltip
+                label={
+                  sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")
+                }
+              >
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "hidden h-8 w-8 relative sm:flex",
+                    sleepTimer.active && "text-primary",
+                  )}
+                  onClick={() => setIsSleepTimerDrawerOpen(true)}
+                  aria-label={
+                    sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")
+                  }
+                  aria-haspopup="dialog"
+                >
+                  <Moon className="h-4 w-4" aria-hidden="true" />
+                  {sleepTimerDisplay && (
+                    <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-medium tabular-nums">
+                      {sleepTimerDisplay}
+                    </span>
+                  )}
+                </Button>
+              </ControlTooltip>
+
+              {/* Playback speed - desktop (dropdown) */}
+              <DropdownMenu>
+                <ControlTooltip label={t("speedValue", { rate: playbackRate })}>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hidden h-8 px-2 text-xs font-medium sm:flex"
+                      aria-label={t("speedValue", { rate: playbackRate })}
+                    >
+                      {playbackRate}x
+                    </Button>
+                  </DropdownMenuTrigger>
+                </ControlTooltip>
+                <DropdownMenuContent align="end">
+                  {PLAYBACK_RATES.map((rate) => (
+                    <DropdownMenuItem
+                      key={rate}
+                      onClick={() => setPlaybackRate(rate)}
+                      className={cn(rate === playbackRate && "bg-accent")}
+                    >
+                      {rate}x
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Volume - desktop only */}
+              <div
+                className="hidden items-center gap-1 lg:flex"
+                role="group"
+                aria-label={t("volumeControls")}
+              >
+                <ControlTooltip label={volume > 0 ? t("mute") : t("unmute")}>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={toggleMute}
+                    aria-label={volume > 0 ? t("mute") : t("unmute")}
+                    aria-pressed={volume === 0}
+                  >
+                    {volume > 0 ? (
+                      <Volume2 className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <VolumeX className="h-4 w-4" aria-hidden="true" />
+                    )}
+                  </Button>
+                </ControlTooltip>
+                <Slider
+                  value={[volume]}
+                  max={1}
+                  step={0.01}
+                  onValueChange={handleVolumeChange}
+                  className="w-20"
+                  aria-label={t("volume")}
+                  aria-valuetext={`${Math.round(volume * 100)}%`}
+                />
+              </div>
+
+              {/* Close button */}
+              <ControlTooltip label={t("close")}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={stop}
+                  aria-label={t("close")}
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </ControlTooltip>
             </div>
           </div>
 
-          {/* Controls - simplified on mobile, full on desktop */}
-          <div className="flex items-center gap-1 sm:gap-2" role="group" aria-label={t("playbackControls")}>
-            {/* Previous chapter - hidden on mobile */}
-            <ControlTooltip label={t("previousChapter")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden h-8 w-8 sm:flex"
-                onClick={prevChapter}
-                disabled={isLoading}
-                aria-label={t("previousChapter")}
-              >
-                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </ControlTooltip>
+          {/* Mobile progress bar with chapter nav - shown on small screens */}
+          <div className="flex items-center gap-1.5 px-3 pb-1 sm:hidden">
+            {/* Previous chapter */}
+            {hasChapters && (
+              <ControlTooltip label={t("previousChapter")}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0"
+                  onClick={prevChapter}
+                  disabled={isLoading}
+                  aria-label={t("previousChapter")}
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              </ControlTooltip>
+            )}
 
-            {/* Skip backward */}
-            <ControlTooltip
-              label={t("skipBackward", { seconds: SKIP_BACKWARD_SECONDS })}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => seekRelative(-SKIP_BACKWARD_SECONDS)}
-                disabled={isLoading}
-                aria-label={t("skipBackward", { seconds: SKIP_BACKWARD_SECONDS })}
-              >
-                <SkipBack className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </ControlTooltip>
-
-            {/* Play/Pause */}
-            <ControlTooltip label={isPlaying ? t("pause") : t("play")}>
-              <Button
-                variant="default"
-                size="icon"
-                className="mx-3 h-9 w-9 sm:mx-2 sm:h-10 sm:w-10"
-                onClick={isPlaying ? pause : resume}
-                disabled={isLoading}
-                aria-label={isPlaying ? t("pause") : t("play")}
-              >
-                {isLoading ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" role="status" aria-label={t("loading")} />
-                ) : isPlaying ? (
-                  <Pause className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-                ) : (
-                  <Play className="h-4 w-4 sm:h-5 sm:w-5 pl-0.5" aria-hidden="true" />
-                )}
-              </Button>
-            </ControlTooltip>
-
-            {/* Skip forward */}
-            <ControlTooltip
-              label={t("skipForward", { seconds: SKIP_FORWARD_SECONDS })}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                onClick={() => seekRelative(SKIP_FORWARD_SECONDS)}
-                disabled={isLoading}
-                aria-label={t("skipForward", { seconds: SKIP_FORWARD_SECONDS })}
-              >
-                <SkipForward className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </ControlTooltip>
-
-            {/* Next chapter - hidden on mobile */}
-            <ControlTooltip label={t("nextChapter")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hidden h-8 w-8 sm:flex"
-                onClick={nextChapter}
-                disabled={isLoading}
-                aria-label={t("nextChapter")}
-              >
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </ControlTooltip>
-          </div>
-
-          {/* Seek bar and time - desktop only */}
-          <div className="hidden flex-1 items-center gap-2 md:flex">
             {/* Progress mode toggle */}
             {hasChapters && (
               <ControlTooltip
@@ -569,7 +775,7 @@ export function PlayerBar() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 shrink-0"
+                  className="h-7 w-7 shrink-0"
                   onClick={toggleProgressMode}
                   aria-label={isChapterMode ? t("bookMode") : t("chapterMode")}
                 >
@@ -581,7 +787,11 @@ export function PlayerBar() {
                 </Button>
               </ControlTooltip>
             )}
-            <span className="w-12 text-right text-xs text-muted-foreground" aria-hidden="true">
+
+            <span
+              className="shrink-0 text-right text-[11px] tabular-nums text-muted-foreground"
+              aria-hidden="true"
+            >
               {formatTime(sliderPosition)}
             </span>
             <Slider
@@ -591,226 +801,82 @@ export function PlayerBar() {
               onPointerDown={handleSeekStart}
               onValueChange={handleSeekPreview}
               onValueCommit={handleSeekCommit}
-              className="flex-1"
+              className="min-w-0 flex-1"
               disabled={isLoading}
               aria-label={isChapterMode ? t("chapterSeek") : t("bookSeek")}
-              aria-valuetext={t("currentTime", { current: formatTime(sliderPosition), total: formatTime(sliderMax) })}
+              aria-valuetext={t("currentTime", {
+                current: formatTime(sliderPosition),
+                total: formatTime(sliderMax),
+              })}
             />
-            <span className="w-12 text-xs text-muted-foreground" aria-hidden="true">
+            <span
+              className="shrink-0 text-[11px] tabular-nums text-muted-foreground"
+              aria-hidden="true"
+            >
               {formatTime(sliderMax)}
             </span>
-          </div>
 
-          {/* Right side controls */}
-          <div className="flex items-center gap-1">
-            {/* Sleep timer button - desktop only */}
-            <ControlTooltip
-              label={sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn(
-                  "hidden h-8 w-8 relative sm:flex",
-                  sleepTimer.active && "text-primary"
-                )}
-                onClick={() => setIsSleepTimerDrawerOpen(true)}
-                aria-label={sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")}
-                aria-haspopup="dialog"
-              >
-                <Moon className="h-4 w-4" aria-hidden="true" />
-                {sleepTimerDisplay && (
-                  <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 text-[9px] font-medium tabular-nums">
-                    {sleepTimerDisplay}
-                  </span>
-                )}
-              </Button>
-            </ControlTooltip>
-
-            {/* Playback speed - desktop (dropdown) */}
-            <DropdownMenu>
-              <ControlTooltip label={t("speedValue", { rate: playbackRate })}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="hidden h-8 px-2 text-xs font-medium sm:flex"
-                    aria-label={t("speedValue", { rate: playbackRate })}
-                  >
-                    {playbackRate}x
-                  </Button>
-                </DropdownMenuTrigger>
-              </ControlTooltip>
-              <DropdownMenuContent align="end">
-                {PLAYBACK_RATES.map((rate) => (
-                  <DropdownMenuItem
-                    key={rate}
-                    onClick={() => setPlaybackRate(rate)}
-                    className={cn(rate === playbackRate && "bg-accent")}
-                  >
-                    {rate}x
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Volume - desktop only */}
-            <div className="hidden items-center gap-1 lg:flex" role="group" aria-label={t("volumeControls")}>
-              <ControlTooltip label={volume > 0 ? t("mute") : t("unmute")}>
+            {/* Next chapter */}
+            {hasChapters && (
+              <ControlTooltip label={t("nextChapter")}>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
-                  onClick={toggleMute}
-                  aria-label={volume > 0 ? t("mute") : t("unmute")}
-                  aria-pressed={volume === 0}
+                  className="h-7 w-7 shrink-0"
+                  onClick={nextChapter}
+                  disabled={isLoading}
+                  aria-label={t("nextChapter")}
                 >
-                  {volume > 0 ? (
-                    <Volume2 className="h-4 w-4" aria-hidden="true" />
-                  ) : (
-                    <VolumeX className="h-4 w-4" aria-hidden="true" />
-                  )}
+                  <ChevronRight className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </ControlTooltip>
-              <Slider
-                value={[volume]}
-                max={1}
-                step={0.01}
-                onValueChange={handleVolumeChange}
-                className="w-20"
-                aria-label={t("volume")}
-                aria-valuetext={`${Math.round(volume * 100)}%`}
-              />
-            </div>
+            )}
+          </div>
 
-            {/* Close button */}
-            <ControlTooltip label={t("close")}>
+          {/* Mobile extra controls row - sleep timer and speed */}
+          <div className="flex items-center justify-center gap-4 px-3 pb-2 sm:hidden">
+            {/* Sleep timer - mobile */}
+            <ControlTooltip
+              label={
+                sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")
+              }
+            >
               <Button
                 variant="ghost"
-                size="icon"
-                className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                onClick={stop}
-                aria-label={t("close")}
+                size="sm"
+                className={cn(
+                  "h-8 gap-1.5 px-3",
+                  sleepTimer.active && "text-primary",
+                )}
+                onClick={() => setIsSleepTimerDrawerOpen(true)}
+                aria-label={
+                  sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")
+                }
+                aria-haspopup="dialog"
               >
-                <X className="h-4 w-4" aria-hidden="true" />
+                <Moon className="h-4 w-4" aria-hidden="true" />
+                <span className="text-xs font-medium">
+                  {sleepTimerDisplay || t("sleepTimer")}
+                </span>
+              </Button>
+            </ControlTooltip>
+
+            {/* Playback speed - mobile */}
+            <ControlTooltip label={t("speedValue", { rate: playbackRate })}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 px-3"
+                onClick={() => setIsSpeedDrawerOpen(true)}
+                aria-label={t("speedValue", { rate: playbackRate })}
+                aria-haspopup="dialog"
+              >
+                <span className="text-xs font-medium">
+                  {playbackRate}x {t("speed")}
+                </span>
               </Button>
             </ControlTooltip>
           </div>
-        </div>
-
-        {/* Mobile progress bar with chapter nav - shown on small screens */}
-        <div className="flex items-center gap-1.5 px-3 pb-1 sm:hidden">
-          {/* Previous chapter */}
-          {hasChapters && (
-            <ControlTooltip label={t("previousChapter")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0"
-                onClick={prevChapter}
-                disabled={isLoading}
-                aria-label={t("previousChapter")}
-              >
-                <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </ControlTooltip>
-          )}
-
-          {/* Progress mode toggle */}
-          {hasChapters && (
-            <ControlTooltip
-              label={isChapterMode ? t("bookMode") : t("chapterMode")}
-            >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0"
-                onClick={toggleProgressMode}
-                aria-label={isChapterMode ? t("bookMode") : t("chapterMode")}
-              >
-                {isChapterMode ? (
-                  <List className="h-3.5 w-3.5" aria-hidden="true" />
-                ) : (
-                  <BookOpen className="h-3.5 w-3.5" aria-hidden="true" />
-                )}
-              </Button>
-            </ControlTooltip>
-          )}
-
-          <span className="shrink-0 text-right text-[11px] tabular-nums text-muted-foreground" aria-hidden="true">
-            {formatTime(sliderPosition)}
-          </span>
-          <Slider
-            value={[sliderPosition]}
-            max={sliderMax || 1}
-            step={1}
-            onPointerDown={handleSeekStart}
-            onValueChange={handleSeekPreview}
-            onValueCommit={handleSeekCommit}
-            className="min-w-0 flex-1"
-            disabled={isLoading}
-            aria-label={isChapterMode ? t("chapterSeek") : t("bookSeek")}
-            aria-valuetext={t("currentTime", { current: formatTime(sliderPosition), total: formatTime(sliderMax) })}
-          />
-          <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground" aria-hidden="true">
-            {formatTime(sliderMax)}
-          </span>
-
-          {/* Next chapter */}
-          {hasChapters && (
-            <ControlTooltip label={t("nextChapter")}>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7 shrink-0"
-                onClick={nextChapter}
-                disabled={isLoading}
-                aria-label={t("nextChapter")}
-              >
-                <ChevronRight className="h-4 w-4" aria-hidden="true" />
-              </Button>
-            </ControlTooltip>
-          )}
-        </div>
-
-        {/* Mobile extra controls row - sleep timer and speed */}
-        <div className="flex items-center justify-center gap-4 px-3 pb-2 sm:hidden">
-          {/* Sleep timer - mobile */}
-          <ControlTooltip
-            label={sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")}
-          >
-            <Button
-              variant="ghost"
-              size="sm"
-              className={cn(
-                "h-8 gap-1.5 px-3",
-                sleepTimer.active && "text-primary"
-              )}
-              onClick={() => setIsSleepTimerDrawerOpen(true)}
-              aria-label={sleepTimer.active ? t("sleepTimerActive") : t("sleepTimer")}
-              aria-haspopup="dialog"
-            >
-              <Moon className="h-4 w-4" aria-hidden="true" />
-              <span className="text-xs font-medium">
-                {sleepTimerDisplay || t("sleepTimer")}
-              </span>
-            </Button>
-          </ControlTooltip>
-
-          {/* Playback speed - mobile */}
-          <ControlTooltip label={t("speedValue", { rate: playbackRate })}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 gap-1.5 px-3"
-              onClick={() => setIsSpeedDrawerOpen(true)}
-              aria-label={t("speedValue", { rate: playbackRate })}
-              aria-haspopup="dialog"
-            >
-              <span className="text-xs font-medium">{playbackRate}x {t("speed")}</span>
-            </Button>
-          </ControlTooltip>
-        </div>
         </motion.div>
       </AnimatePresence>
 

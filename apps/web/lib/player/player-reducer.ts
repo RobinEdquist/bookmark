@@ -38,7 +38,10 @@ export interface PlayerActions {
   setVolume: (volume: number) => void;
   nextChapter: () => void;
   prevChapter: () => void;
-  startSleepTimer: (type: "duration" | "endOfChapter", minutes?: number) => void;
+  startSleepTimer: (
+    type: "duration" | "endOfChapter",
+    minutes?: number,
+  ) => void;
   cancelSleepTimer: () => void;
 }
 
@@ -63,7 +66,14 @@ export type PlayerAction =
   | { type: "SET_VOLUME"; payload: number }
   | { type: "SET_ERROR"; payload: string | null }
   | { type: "STOP" }
-  | { type: "START_SLEEP_TIMER"; payload: { type: "duration" | "endOfChapter"; seconds: number | null; originalVolume: number } }
+  | {
+      type: "START_SLEEP_TIMER";
+      payload: {
+        type: "duration" | "endOfChapter";
+        seconds: number | null;
+        originalVolume: number;
+      };
+    }
   | { type: "TICK_SLEEP_TIMER" }
   | { type: "START_SLEEP_FADE" }
   | { type: "CANCEL_SLEEP_TIMER" };
@@ -89,7 +99,10 @@ export const initialState: PlayerState = {
   sleepTimer: initialSleepTimerState,
 };
 
-export function playerReducer(state: PlayerState, action: PlayerAction): PlayerState {
+export function playerReducer(
+  state: PlayerState,
+  action: PlayerAction,
+): PlayerState {
   switch (action.type) {
     case "SET_AUDIOBOOK":
       return {
@@ -132,7 +145,10 @@ export function playerReducer(state: PlayerState, action: PlayerAction): PlayerS
         },
       };
     case "TICK_SLEEP_TIMER":
-      if (!state.sleepTimer.active || state.sleepTimer.remainingSeconds === null) {
+      if (
+        !state.sleepTimer.active ||
+        state.sleepTimer.remainingSeconds === null
+      ) {
         return state;
       }
       return {
@@ -163,7 +179,7 @@ export function playerReducer(state: PlayerState, action: PlayerAction): PlayerS
 // Find the current chapter based on position
 export function findCurrentChapter(
   position: number,
-  chapters: AudiobookChapter[]
+  chapters: AudiobookChapter[],
 ): AudiobookChapter | null {
   if (!chapters.length) return null;
 
