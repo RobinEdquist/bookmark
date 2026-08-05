@@ -151,8 +151,7 @@ export function IntegrationsSettings() {
 
   const ttsBaseUrl = ttsBaseUrlDraft ?? ttsStatus?.baseUrl ?? "";
   const ttsVoice = ttsVoiceDraft ?? ttsStatus?.voice ?? "af_heart";
-  const ttsSpeed =
-    ttsSpeedDraft ?? (ttsStatus ? String(ttsStatus.speed) : "1");
+  const ttsSpeed = ttsSpeedDraft ?? (ttsStatus ? String(ttsStatus.speed) : "1");
   const ttsModel = ttsModelDraft ?? ttsStatus?.model ?? "kokoro";
 
   const handleTtsEnabledToggle = async (enabled: boolean) => {
