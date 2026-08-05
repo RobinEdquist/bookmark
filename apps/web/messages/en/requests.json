@@ -83,7 +83,8 @@
     "supported": "Added your support to this request",
     "alreadyInLibrary": "This item is already in your library",
     "approved": "Request approved",
-    "rejected": "Request rejected"
+    "rejected": "Request rejected",
+    "failed": "Something went wrong"
   },
   "autoApprove": {
     "budget": "Auto-approvals: {remaining}/{limit} this week",

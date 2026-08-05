@@ -6,7 +6,8 @@
       "pending": "Pending",
       "approved": "Approved",
       "downloading": "Downloading",
-      "all": "All"
+      "all": "All",
+      "missing": "Missing"
     },
     "status": {
       "pending": "Pending",
@@ -33,6 +34,21 @@
       "cancel": "Cancel",
       "confirm": "Reject"
     },
-    "empty": "No requests found"
+    "empty": "No requests found",
+    "torrentMissing": {
+      "badge": "Download missing",
+      "description": "The download client no longer has this download (since {date}), so this request cannot complete. Delete it or ask the requester to try again."
+    },
+    "delete": "Delete",
+    "deleteDialog": {
+      "title": "Delete request",
+      "description": "Permanently delete the request for \"{title}\"? This removes it from the requester’s list and cannot be undone. Anything already in the download client is left untouched.",
+      "cancel": "Cancel",
+      "confirm": "Delete"
+    },
+    "toast": {
+      "deleted": "Request deleted",
+      "failed": "Something went wrong"
+    }
   }
 }

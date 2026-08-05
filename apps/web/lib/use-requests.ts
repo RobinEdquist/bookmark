@@ -27,6 +27,9 @@ export interface RequestResponse {
   coverUrl: string | null;
   contentType: ContentType;
   rejectionReason: string | null;
+  // Set once the download client stops reporting the torrent; such a request can
+  // never complete on its own and needs an admin to delete or re-request it.
+  torrentMissingSince: string | null;
   libraryItemId: string | null;
   libraryItemType: ContentType | null;
   supporterCount: number;
@@ -55,6 +58,8 @@ export interface TrackerSearchResult {
   addedDate: string;
   existingRequestId: string | null;
   existingRequestStatus: RequestStatus | null;
+  // The existing request is the current user's own, so it can't be supported.
+  existingRequestIsMine: boolean;
   inLibrary: boolean;
   libraryItemId: string | null;
 }
@@ -223,10 +228,14 @@ async function searchLibrary(
 // Admin API functions
 async function fetchAdminRequests(
   status?: RequestStatus,
+  missingOnly?: boolean,
 ): Promise<RequestResponse[]> {
-  const url = status
-    ? `/api/admin/requests?status=${status}`
-    : "/api/admin/requests";
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  if (missingOnly) params.set("missing", "true");
+
+  const query = params.toString();
+  const url = query ? `/api/admin/requests?${query}` : "/api/admin/requests";
 
   const response = await fetch(url, {
     credentials: "include",
@@ -271,6 +280,18 @@ async function rejectRequest(
   }
 
   return response.json();
+}
+
+async function deleteRequest(requestId: string): Promise<void> {
+  const response = await fetch(`/api/admin/requests/${requestId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.message || "Failed to delete request");
+  }
 }
 
 // Hooks
@@ -366,10 +387,13 @@ export function useLibrarySearch(
 }
 
 // Admin hooks
-export function useAdminRequests(status?: RequestStatus) {
+export function useAdminRequests(
+  status?: RequestStatus,
+  missingOnly?: boolean,
+) {
   return useQuery({
-    queryKey: queryKeys.adminRequests.list(status),
-    queryFn: () => fetchAdminRequests(status),
+    queryKey: queryKeys.adminRequests.list(status, missingOnly),
+    queryFn: () => fetchAdminRequests(status, missingOnly),
   });
 }
 
@@ -409,6 +433,25 @@ export function useRejectRequest() {
   return {
     rejectRequest: mutation.mutateAsync,
     isRejecting: mutation.isPending,
+    error: mutation.error,
+  };
+}
+
+export function useDeleteRequest() {
+  const queryClient = useQueryClient();
+
+  const mutation = useMutation({
+    mutationFn: deleteRequest,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminRequests.all });
+      // The owner's "My requests" list holds the same row
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+    },
+  });
+
+  return {
+    deleteRequest: mutation.mutateAsync,
+    isDeleting: mutation.isPending,
     error: mutation.error,
   };
 }

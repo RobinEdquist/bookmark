@@ -6,7 +6,18 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, and, or, inArray, isNull, gte, sql, desc } from 'drizzle-orm';
+import {
+  eq,
+  and,
+  or,
+  inArray,
+  isNull,
+  isNotNull,
+  gte,
+  sql,
+  desc,
+  type SQL,
+} from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { getLastMondayUTC } from '../common/utils/date.utils';
 import * as requestsSchema from './schema';
@@ -45,7 +56,7 @@ export class RequestsService {
     query: string,
     perPage: number,
     offset: number,
-    _userId: string,
+    userId: string,
     contentType: 'all' | 'audiobooks' | 'ebooks' | 'comics' = 'all',
     searchIn?: string[],
     languages?: number[],
@@ -88,6 +99,7 @@ export class RequestsService {
               torrentId: requestsSchema.requests.torrentId,
               id: requestsSchema.requests.id,
               status: requestsSchema.requests.status,
+              userId: requestsSchema.requests.userId,
             })
             .from(requestsSchema.requests)
             .where(
@@ -102,7 +114,18 @@ export class RequestsService {
             )
         : [];
 
-    const requestMap = new Map(existingRequests.map((r) => [r.torrentId, r]));
+    // A torrent can carry more than one active request; the caller's own always
+    // wins so the UI offers "Requested" rather than "Support your own request".
+    const requestMap = new Map<string, (typeof existingRequests)[number]>();
+    for (const existing of existingRequests) {
+      const current = requestMap.get(existing.torrentId);
+      if (
+        !current ||
+        (existing.userId === userId && current.userId !== userId)
+      ) {
+        requestMap.set(existing.torrentId, existing);
+      }
+    }
 
     // Map results (already parsed and cleaned by the tracker client)
     const results: TrackerSearchResultDto[] = torrents.map((torrent) => {
@@ -130,6 +153,7 @@ export class RequestsService {
         addedDate: torrent.addedDate ?? '',
         existingRequestId: existing?.id ?? null,
         existingRequestStatus: existing?.status ?? null,
+        existingRequestIsMine: existing?.userId === userId,
         inLibrary: false, // TODO: Check if in library by title/author matching
         libraryItemId: null,
       };
@@ -231,6 +255,14 @@ export class RequestsService {
   }
 
   async addSupporter(requestId: string, userId: string): Promise<void> {
+    const request = await this.getRequestByIdInternal(requestId);
+
+    // The requester already backs their own request — supporting it would only
+    // inflate the supporter count and spend their own auto-approve budget twice.
+    if (request.userId === userId) {
+      throw new BadRequestException('You cannot support your own request');
+    }
+
     // Check if already a supporter
     const existing = await this.db
       .select()
@@ -251,13 +283,7 @@ export class RequestsService {
     }
 
     // Check if request is still pending and supporter has budget
-    const [request] = await this.db
-      .select()
-      .from(requestsSchema.requests)
-      .where(eq(requestsSchema.requests.id, requestId))
-      .limit(1);
-
-    if (request && request.status === 'pending') {
+    if (request.status === 'pending') {
       const { used, limit } = await this.getUserAutoApproveUsage(userId);
       if (limit > 0 && used < limit) {
         try {
@@ -310,15 +336,25 @@ export class RequestsService {
     return Promise.all(requests.map((r) => this.mapToResponseDto(r, userId)));
   }
 
-  async getAllRequests(status?: RequestStatus): Promise<RequestResponseDto[]> {
-    const baseQuery = this.db
+  async getAllRequests(
+    status?: RequestStatus,
+    missingTorrentOnly = false,
+  ): Promise<RequestResponseDto[]> {
+    const conditions: SQL[] = [];
+
+    if (status) {
+      conditions.push(eq(requestsSchema.requests.status, status));
+    }
+
+    if (missingTorrentOnly) {
+      conditions.push(isNotNull(requestsSchema.requests.torrentMissingSince));
+    }
+
+    const requests = await this.db
       .select()
       .from(requestsSchema.requests)
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(requestsSchema.requests.createdAt));
-
-    const requests = status
-      ? await baseQuery.where(eq(requestsSchema.requests.status, status))
-      : await baseQuery;
 
     return Promise.all(requests.map((r) => this.mapToResponseDto(r, null)));
   }
@@ -442,40 +478,88 @@ export class RequestsService {
 
     try {
       const statuses = await this.tracker.getBulkTorrentStatus(hashes);
+      const byHash = new Map(
+        statuses.torrents.map((t) => [t.hash.toLowerCase(), t]),
+      );
 
-      for (const torrentStatus of statuses.torrents) {
-        const request = activeRequests.find(
-          (r) => r.torrentHash === torrentStatus.hash,
-        );
-        if (!request) continue;
+      for (const request of activeRequests) {
+        if (!request.torrentHash) continue;
 
-        let newStatus: RequestStatus | null = null;
+        const torrentStatus = byHash.get(request.torrentHash.toLowerCase());
 
-        // The download client has many states (downloading, stalledDL, uploading, stalledUP, etc.)
-        // We only care about 'not_found' - all other states mean the torrent exists
-        // Transition to 'complete' happens via import matcher when file is imported
-        const state = torrentStatus.state;
-
-        if (state === 'not_found') {
-          this.logger.warn(
-            `Torrent ${torrentStatus.hash} not found for request ${request.id}`,
-          );
+        // A hash the client reports as 'not_found' — or doesn't report at all —
+        // no longer exists there, so the request can never progress on its own.
+        if (!torrentStatus || torrentStatus.state === 'not_found') {
+          await this.flagTorrentMissing(request);
           continue;
         }
 
-        // Keep as 'downloading' until import matcher links it to library
-        newStatus = 'downloading';
+        // The download client has many states (downloading, stalledDL, uploading, stalledUP, etc.)
+        // All of them mean the torrent exists; transition to 'complete' happens
+        // via the import matcher when the file is imported, so keep the request
+        // as 'downloading' until then.
+        const updates: Partial<typeof requestsSchema.requests.$inferInsert> =
+          {};
 
-        if (newStatus && newStatus !== request.status) {
+        if (request.status !== 'downloading') {
+          updates.status = 'downloading';
+        }
+
+        // The torrent is back (re-added, or the client had just restarted).
+        if (request.torrentMissingSince) {
+          updates.torrentMissingSince = null;
+          this.logger.log(
+            `Torrent ${request.torrentHash} reappeared for request ${request.id}`,
+          );
+        }
+
+        if (Object.keys(updates).length > 0) {
           await this.db
             .update(requestsSchema.requests)
-            .set({ status: newStatus })
+            .set(updates)
             .where(eq(requestsSchema.requests.id, request.id));
         }
       }
     } catch (error) {
       this.logger.error(`Failed to update downloading statuses: ${error}`);
     }
+  }
+
+  /**
+   * Records that a request's torrent is gone from the download client. Logged at
+   * warn level once, on the poll that first notices — the flag then keeps the
+   * following 30-second polls quiet while the request waits for an admin.
+   */
+  private async flagTorrentMissing(
+    request: typeof requestsSchema.requests.$inferSelect,
+  ): Promise<void> {
+    if (request.torrentMissingSince) {
+      this.logger.debug(
+        `Torrent ${request.torrentHash} still missing for request ${request.id} (since ${request.torrentMissingSince.toISOString()})`,
+      );
+      return;
+    }
+
+    await this.db
+      .update(requestsSchema.requests)
+      .set({ torrentMissingSince: new Date() })
+      .where(eq(requestsSchema.requests.id, request.id));
+
+    this.logger.warn(
+      `Torrent ${request.torrentHash} not found for request ${request.id} ("${request.title}") - flagged for admin review`,
+    );
+  }
+
+  async deleteRequest(id: string): Promise<void> {
+    const request = await this.getRequestByIdInternal(id);
+
+    // Supporter rows cascade. The torrent, if it still exists in the download
+    // client, is left alone — deleting here only drops Bookmark's record.
+    await this.db
+      .delete(requestsSchema.requests)
+      .where(eq(requestsSchema.requests.id, id));
+
+    this.logger.log(`Deleted request ${id} ("${request.title}")`);
   }
 
   async tryMatchImport(
@@ -580,6 +664,7 @@ export class RequestsService {
       coverUrl: request.coverUrl,
       contentType: request.contentType,
       rejectionReason: request.rejectionReason,
+      torrentMissingSince: request.torrentMissingSince?.toISOString() ?? null,
       libraryItemId: request.libraryItemId,
       libraryItemType: request.libraryItemType,
       supporterCount: supporters.length,

@@ -102,7 +102,14 @@ export default function RequestsPage() {
   };
 
   const handleRequest = async (item: Parameters<typeof createRequest>[0]) => {
-    const newRequest = await createRequest(item);
+    let newRequest: RequestResponse;
+    try {
+      newRequest = await createRequest(item);
+    } catch (error) {
+      // e.g. the item was requested from another tab since this search ran
+      toast.error(error instanceof Error ? error.message : t("toast.failed"));
+      return;
+    }
 
     // Optimistically update my requests cache for instant tab count
     queryClient.setQueryData<RequestResponse[]>(
@@ -118,6 +125,7 @@ export default function RequestsPage() {
               ...result,
               existingRequestId: newRequest.id,
               existingRequestStatus: "pending" as const,
+              existingRequestIsMine: true,
             }
           : result,
       ),
@@ -128,7 +136,13 @@ export default function RequestsPage() {
   };
 
   const handleSupport = async (requestId: string) => {
-    await supportRequest(requestId);
+    try {
+      await supportRequest(requestId);
+      toast.success(t("toast.supported"));
+    } catch (error) {
+      // The backend refuses self-support, which a stale search result can offer
+      toast.error(error instanceof Error ? error.message : t("toast.failed"));
+    }
   };
 
   if (sessionPending) {

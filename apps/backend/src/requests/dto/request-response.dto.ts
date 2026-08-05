@@ -20,10 +20,10 @@ export class ContentRequestDto {
   userEmail!: string;
 
   @ApiProperty({
-    enum: ['pending', 'approved', 'rejected', 'fulfilled'],
+    enum: ['pending', 'approved', 'downloading', 'complete', 'rejected'],
     example: 'pending',
   })
-  status!: 'pending' | 'approved' | 'rejected' | 'fulfilled';
+  status!: RequestStatus;
 
   @ApiProperty({ example: '12345' })
   torrentId!: string;
@@ -75,6 +75,15 @@ export class ContentRequestDto {
     nullable: true,
   })
   rejectionReason?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '2024-01-15T12:00:00.000Z',
+    nullable: true,
+    description:
+      'When the download client first reported this torrent as unknown. Null while the torrent is present.',
+  })
+  torrentMissingSince?: string | null;
 
   @ApiPropertyOptional({
     type: String,
@@ -190,11 +199,17 @@ export class TrackerSearchResultItemDto {
   existingRequestId?: string | null;
 
   @ApiPropertyOptional({
-    enum: ['pending', 'approved', 'rejected', 'fulfilled'],
+    enum: ['pending', 'approved', 'downloading', 'complete', 'rejected'],
     nullable: true,
   })
-  existingRequestStatus?:
-    'pending' | 'approved' | 'rejected' | 'fulfilled' | null;
+  existingRequestStatus?: RequestStatus | null;
+
+  @ApiProperty({
+    example: false,
+    description:
+      'True when the existing request was made by the caller, who therefore cannot support it',
+  })
+  existingRequestIsMine!: boolean;
 
   @ApiProperty({ example: false })
   inLibrary!: boolean;
@@ -283,6 +298,7 @@ export interface RequestResponseDto {
   coverUrl: string | null;
   contentType: ContentType;
   rejectionReason: string | null;
+  torrentMissingSince: string | null;
   libraryItemId: string | null;
   libraryItemType: ContentType | null;
   supporterCount: number;
@@ -311,6 +327,7 @@ export interface TrackerSearchResultDto {
   addedDate: string;
   existingRequestId: string | null;
   existingRequestStatus: RequestStatus | null;
+  existingRequestIsMine: boolean;
   inLibrary: boolean;
   libraryItemId: string | null;
 }

@@ -83,7 +83,8 @@
     "supported": "Lade till ditt stöd för denna förfrågan",
     "alreadyInLibrary": "Detta objekt finns redan i ditt bibliotek",
     "approved": "Förfrågan godkänd",
-    "rejected": "Förfrågan avvisad"
+    "rejected": "Förfrågan avvisad",
+    "failed": "Något gick fel"
   },
   "autoApprove": {
     "budget": "Auto-godkännanden: {remaining}/{limit} denna vecka",

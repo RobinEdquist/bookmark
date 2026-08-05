@@ -57,6 +57,7 @@ function buildRequest(overrides: Partial<Record<string, any>> = {}) {
     contentType: 'audiobook' as const,
     categoryId: 13,
     rejectionReason: null,
+    torrentMissingSince: null,
     libraryItemId: null,
     libraryItemType: null,
     autoApprovedByUserId: null,
@@ -275,15 +276,15 @@ describe('RequestsService', () => {
 
       // Sequential selects:
       // 1) existing active request -> found (different user)
-      // 2) addSupporter: check existing supporter -> none
-      // 3) addSupporter: select request for auto-approve check
+      // 2) addSupporter: load the request (owner check + auto-approve check)
+      // 3) addSupporter: check existing supporter -> none
       // getUserAutoApproveUsage: limit=0, returns immediately (no DB count query)
       // Then getRequestById: 4) select request, 5) select user, 6) select supporters
       const db = createSequentialSelectDb(
         [
           [existing],
+          [existing], // request loaded by addSupporter
           [], // no existing supporter
-          [existing], // request for auto-approve check
           [existing], // getRequestById
           [{ email: 'other@test.com' }], // user email
           [{ userId: 'user-1' }], // supporters
@@ -312,6 +313,202 @@ describe('RequestsService', () => {
       // insert should have been called for the supporter entry
       expect(db.insert).toHaveBeenCalledWith(requestsSchema.requestSupporters);
       expect(result.id).toBe('req-existing');
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // addSupporter
+  // -----------------------------------------------------------------------
+  describe('addSupporter', () => {
+    it('throws BadRequestException when supporting your own request', async () => {
+      const request = buildRequest({ userId: 'user-1' });
+      const db = createSequentialSelectDb([[request]], {
+        insert: jest.fn().mockReturnValue(chainMock([])),
+      });
+      const service = new RequestsService(
+        db,
+        createMockTracker(),
+        createMockAppSettings(),
+      );
+
+      await expect(
+        service.addSupporter('req-1', 'user-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(db.insert).not.toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when the request does not exist', async () => {
+      const db = createSequentialSelectDb([[]]);
+      const service = new RequestsService(
+        db,
+        createMockTracker(),
+        createMockAppSettings(),
+      );
+
+      await expect(
+        service.addSupporter('missing', 'user-1'),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('adds another user as supporter', async () => {
+      const request = buildRequest({ userId: 'user-other' });
+      const insertChain = chainMock([]);
+      const db = createSequentialSelectDb(
+        [
+          [request], // load request
+          [], // not a supporter yet
+        ],
+        { insert: jest.fn().mockReturnValue(insertChain) },
+      );
+      const service = new RequestsService(
+        db,
+        createMockTracker(),
+        createMockAppSettings(),
+      );
+
+      await service.addSupporter('req-1', 'user-1');
+
+      expect(db.insert).toHaveBeenCalledWith(requestsSchema.requestSupporters);
+      expect(insertChain.values).toHaveBeenCalledWith({
+        requestId: 'req-1',
+        userId: 'user-1',
+      });
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // deleteRequest
+  // -----------------------------------------------------------------------
+  describe('deleteRequest', () => {
+    it('deletes an existing request', async () => {
+      const deleteChain = chainMock([]);
+      const db = createSequentialSelectDb([[buildRequest()]], {
+        delete: jest.fn().mockReturnValue(deleteChain),
+      });
+      const service = new RequestsService(
+        db,
+        createMockTracker(),
+        createMockAppSettings(),
+      );
+
+      await service.deleteRequest('req-1');
+
+      expect(db.delete).toHaveBeenCalledWith(requestsSchema.requests);
+      expect(deleteChain.where).toHaveBeenCalled();
+    });
+
+    it('throws NotFoundException when the request does not exist', async () => {
+      const deleteChain = chainMock([]);
+      const db = createSequentialSelectDb([[]], {
+        delete: jest.fn().mockReturnValue(deleteChain),
+      });
+      const service = new RequestsService(
+        db,
+        createMockTracker(),
+        createMockAppSettings(),
+      );
+
+      await expect(service.deleteRequest('missing')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(db.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // updateDownloadingStatuses
+  // -----------------------------------------------------------------------
+  describe('updateDownloadingStatuses', () => {
+    function setup(
+      requests: any[],
+      torrents: any[],
+    ): { db: any; service: RequestsService; updateChain: any } {
+      const updateChain = chainMock([]);
+      const tracker = createMockTracker();
+      tracker.getBulkTorrentStatus.mockResolvedValue({ torrents });
+      const db = createSequentialSelectDb([requests], {
+        update: jest.fn().mockReturnValue(updateChain),
+      });
+      return {
+        db,
+        service: new RequestsService(db, tracker, createMockAppSettings()),
+        updateChain,
+      };
+    }
+
+    it('flags the request when the download client reports not_found', async () => {
+      const { db, service, updateChain } = setup(
+        [buildRequest({ status: 'approved', torrentHash: 'abc123' })],
+        [{ hash: 'abc123', state: 'not_found', progress: 0 }],
+      );
+
+      await service.updateDownloadingStatuses();
+
+      expect(db.update).toHaveBeenCalledWith(requestsSchema.requests);
+      expect(updateChain.set).toHaveBeenCalledWith({
+        torrentMissingSince: expect.any(Date),
+      });
+    });
+
+    it('flags the request when the client omits the hash entirely', async () => {
+      const { service, updateChain } = setup(
+        [buildRequest({ status: 'downloading', torrentHash: 'abc123' })],
+        [],
+      );
+
+      await service.updateDownloadingStatuses();
+
+      expect(updateChain.set).toHaveBeenCalledWith({
+        torrentMissingSince: expect.any(Date),
+      });
+    });
+
+    it('does not write again while the torrent stays missing', async () => {
+      const { db, service } = setup(
+        [
+          buildRequest({
+            status: 'downloading',
+            torrentHash: 'abc123',
+            torrentMissingSince: NOW,
+          }),
+        ],
+        [{ hash: 'abc123', state: 'not_found', progress: 0 }],
+      );
+
+      await service.updateDownloadingStatuses();
+
+      expect(db.update).not.toHaveBeenCalled();
+    });
+
+    it('clears the flag and sets downloading when the torrent reappears', async () => {
+      const { service, updateChain } = setup(
+        [
+          buildRequest({
+            status: 'approved',
+            torrentHash: 'ABC123',
+            torrentMissingSince: NOW,
+          }),
+        ],
+        [{ hash: 'abc123', state: 'stalledDL', progress: 0.1 }],
+      );
+
+      await service.updateDownloadingStatuses();
+
+      expect(updateChain.set).toHaveBeenCalledWith({
+        status: 'downloading',
+        torrentMissingSince: null,
+      });
+    });
+
+    it('leaves an untouched downloading request alone', async () => {
+      const { db, service } = setup(
+        [buildRequest({ status: 'downloading', torrentHash: 'abc123' })],
+        [{ hash: 'abc123', state: 'downloading', progress: 0.5 }],
+      );
+
+      await service.updateDownloadingStatuses();
+
+      expect(db.update).not.toHaveBeenCalled();
     });
   });
 
@@ -827,6 +1024,79 @@ describe('RequestsService', () => {
           categories: ['audiobook', 'ebook', 'comics'],
         }),
       );
+    });
+
+    it('marks an existing request as the caller’s own', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [buildTrackerResult({ id: 42 })],
+        total: 1,
+      });
+
+      const db = createSequentialSelectDb([
+        [{ torrentId: '42', id: 'req-1', status: 'pending', userId: 'user-1' }],
+      ]);
+      const service = new RequestsService(db, tracker, createMockAppSettings());
+
+      const result = await service.search('Book', 25, 0, 'user-1');
+
+      expect(result.results[0].existingRequestId).toBe('req-1');
+      expect(result.results[0].existingRequestIsMine).toBe(true);
+    });
+
+    it('marks another user’s request as supportable', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [buildTrackerResult({ id: 42 })],
+        total: 1,
+      });
+
+      const db = createSequentialSelectDb([
+        [
+          {
+            torrentId: '42',
+            id: 'req-1',
+            status: 'pending',
+            userId: 'user-other',
+          },
+        ],
+      ]);
+      const service = new RequestsService(db, tracker, createMockAppSettings());
+
+      const result = await service.search('Book', 25, 0, 'user-1');
+
+      expect(result.results[0].existingRequestIsMine).toBe(false);
+    });
+
+    it('prefers the caller’s own request when a torrent has several', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [buildTrackerResult({ id: 42 })],
+        total: 1,
+      });
+
+      const db = createSequentialSelectDb([
+        [
+          {
+            torrentId: '42',
+            id: 'req-other',
+            status: 'pending',
+            userId: 'user-other',
+          },
+          {
+            torrentId: '42',
+            id: 'req-mine',
+            status: 'pending',
+            userId: 'user-1',
+          },
+        ],
+      ]);
+      const service = new RequestsService(db, tracker, createMockAppSettings());
+
+      const result = await service.search('Book', 25, 0, 'user-1');
+
+      expect(result.results[0].existingRequestId).toBe('req-mine');
+      expect(result.results[0].existingRequestIsMine).toBe(true);
     });
 
     it('sends categories [comics] for comics content type', async () => {

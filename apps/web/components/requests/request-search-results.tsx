@@ -245,7 +245,8 @@ export function RequestSearchResults({
                           </Button>
                         </motion.div>
                       ) : item.existingRequestId ? (
-                        item.existingRequestStatus === "pending" ? (
+                        item.existingRequestStatus === "pending" &&
+                        !item.existingRequestIsMine ? (
                           <motion.div
                             key={`support-${item.id}`}
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -431,7 +432,8 @@ export function RequestSearchResults({
                             </Button>
                           </motion.div>
                         ) : item.existingRequestId ? (
-                          item.existingRequestStatus === "pending" ? (
+                          item.existingRequestStatus === "pending" &&
+                          !item.existingRequestIsMine ? (
                             <motion.div
                               key={`m-sup-${item.id}`}
                               initial={{ opacity: 0 }}

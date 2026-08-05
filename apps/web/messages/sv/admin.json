@@ -6,7 +6,8 @@
       "pending": "Väntande",
       "approved": "Godkända",
       "downloading": "Laddar ner",
-      "all": "Alla"
+      "all": "Alla",
+      "missing": "Saknade"
     },
     "status": {
       "pending": "Väntande",
@@ -33,6 +34,21 @@
       "cancel": "Avbryt",
       "confirm": "Avvisa"
     },
-    "empty": "Inga förfrågningar hittades"
+    "empty": "Inga förfrågningar hittades",
+    "torrentMissing": {
+      "badge": "Nedladdning saknas",
+      "description": "Nedladdningsklienten har inte längre den här nedladdningen (sedan {date}), så förfrågan kan inte slutföras. Ta bort den eller be användaren försöka igen."
+    },
+    "delete": "Ta bort",
+    "deleteDialog": {
+      "title": "Ta bort förfrågan",
+      "description": "Ta bort förfrågan om \"{title}\" permanent? Den försvinner från användarens lista och det går inte att ångra. Det som redan finns i nedladdningsklienten påverkas inte.",
+      "cancel": "Avbryt",
+      "confirm": "Ta bort"
+    },
+    "toast": {
+      "deleted": "Förfrågan borttagen",
+      "failed": "Något gick fel"
+    }
   }
 }

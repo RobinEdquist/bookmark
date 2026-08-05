@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ChevronDown } from "lucide-react";
+import { AlertTriangle, ChevronDown, Trash2 } from "lucide-react";
 import { CONTENT_TYPE_STYLES } from "./content-type-styles";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
@@ -30,8 +30,10 @@ interface AdminRequestsListProps {
   isLoading: boolean;
   onApprove: (id: string) => Promise<unknown>;
   onReject: (id: string, reason?: string) => Promise<unknown>;
+  onDelete: (id: string) => Promise<unknown>;
   isApproving: boolean;
   isRejecting: boolean;
+  isDeleting: boolean;
 }
 
 const statusVariants: Record<
@@ -50,8 +52,10 @@ export function AdminRequestsList({
   isLoading,
   onApprove,
   onReject,
+  onDelete,
   isApproving,
   isRejecting,
+  isDeleting,
 }: AdminRequestsListProps) {
   const t = useTranslations("admin.requests");
   const tRequests = useTranslations("requests");
@@ -60,6 +64,8 @@ export function AdminRequestsList({
     null,
   );
   const [rejectReason, setRejectReason] = useState("");
+  const [requestToDelete, setRequestToDelete] =
+    useState<RequestResponse | null>(null);
 
   if (isLoading) {
     return (
@@ -90,6 +96,16 @@ export function AdminRequestsList({
       setSelectedRequestId(null);
     }
   };
+
+  const handleDeleteConfirm = async () => {
+    if (requestToDelete) {
+      await onDelete(requestToDelete.id);
+      setRequestToDelete(null);
+    }
+  };
+
+  const formatDateTime = (dateString: string) =>
+    new Date(dateString).toLocaleString();
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -126,19 +142,25 @@ export function AdminRequestsList({
                           {request.author && ` - ${request.author}`}
                         </span>
                       </h3>
-                      <Badge
-                        variant={statusVariants[request.status]}
-                        className="shrink-0"
-                      >
-                        {request.status === "approved" &&
-                        request.autoApprovedByUserId
-                          ? request.autoApprovedByUserId === request.userId
-                            ? tRequests("autoApprove.autoApproved")
-                            : tRequests("autoApprove.autoApprovedBy", {
-                                email: request.autoApprovedByEmail ?? "Unknown",
-                              })
-                          : t(`status.${request.status}`)}
-                      </Badge>
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {request.torrentMissingSince && (
+                          <Badge variant="destructive" className="gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            {t("torrentMissing.badge")}
+                          </Badge>
+                        )}
+                        <Badge variant={statusVariants[request.status]}>
+                          {request.status === "approved" &&
+                          request.autoApprovedByUserId
+                            ? request.autoApprovedByUserId === request.userId
+                              ? tRequests("autoApprove.autoApproved")
+                              : tRequests("autoApprove.autoApprovedBy", {
+                                  email:
+                                    request.autoApprovedByEmail ?? "Unknown",
+                                })
+                            : t(`status.${request.status}`)}
+                        </Badge>
+                      </div>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">
                       {t("requestedBy", { email: request.userEmail })}
@@ -151,49 +173,73 @@ export function AdminRequestsList({
                     <p className="text-xs text-muted-foreground">
                       {formatTimeAgo(request.createdAt)}
                     </p>
+
+                    {request.torrentMissingSince && (
+                      <p className="text-sm text-destructive">
+                        {t("torrentMissing.description", {
+                          date: formatDateTime(request.torrentMissingSince),
+                        })}
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 {/* Actions - separate row on mobile */}
-                {request.status === "pending" && (
-                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
-                    <Button
-                      onClick={() => onApprove(request.id)}
-                      disabled={isApproving}
-                      size="sm"
-                      className="flex-1 sm:flex-none"
-                    >
-                      {isApproving ? (
-                        <LoadingSpinner size="sm" />
-                      ) : (
-                        t("approve")
-                      )}
-                    </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={isRejecting}
-                          className="flex-1 sm:flex-none"
-                        >
-                          {t("reject")}
-                          <ChevronDown className="ml-1 h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onReject(request.id)}>
-                          {t("rejectWithoutReason")}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleRejectClick(request.id)}
-                        >
-                          {t("rejectWithReason")}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                )}
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+                  {request.status === "pending" && (
+                    <>
+                      <Button
+                        onClick={() => onApprove(request.id)}
+                        disabled={isApproving}
+                        size="sm"
+                        className="flex-1 sm:flex-none"
+                      >
+                        {isApproving ? (
+                          <LoadingSpinner size="sm" />
+                        ) : (
+                          t("approve")
+                        )}
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={isRejecting}
+                            className="flex-1 sm:flex-none"
+                          >
+                            {t("reject")}
+                            <ChevronDown className="ml-1 h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => onReject(request.id)}
+                          >
+                            {t("rejectWithoutReason")}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleRejectClick(request.id)}
+                          >
+                            {t("rejectWithReason")}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setRequestToDelete(request)}
+                    disabled={isDeleting}
+                    aria-label={t("delete")}
+                    className="ml-auto gap-1.5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {/* Label folds away on mobile so it fits next to approve/reject */}
+                    <span className="hidden sm:inline">{t("delete")}</span>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           );
@@ -232,6 +278,39 @@ export function AdminRequestsList({
                 <LoadingSpinner size="sm" />
               ) : (
                 t("rejectDialog.confirm")
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={requestToDelete !== null}
+        onOpenChange={(open: boolean) => !open && setRequestToDelete(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("deleteDialog.title")}</DialogTitle>
+            <DialogDescription>
+              {t("deleteDialog.description", {
+                title: requestToDelete?.title ?? "",
+              })}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRequestToDelete(null)}>
+              {t("deleteDialog.cancel")}
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <LoadingSpinner size="sm" />
+              ) : (
+                t("deleteDialog.confirm")
               )}
             </Button>
           </DialogFooter>

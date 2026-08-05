@@ -262,7 +262,8 @@ export function RequestDetailPanel({
                     </Button>
                   </motion.div>
                 ) : item.existingRequestId ? (
-                  item.existingRequestStatus === "pending" ? (
+                  item.existingRequestStatus === "pending" &&
+                  !item.existingRequestIsMine ? (
                     <motion.div
                       key={`panel-support-${item.id}`}
                       initial={{ opacity: 0, y: 10 }}

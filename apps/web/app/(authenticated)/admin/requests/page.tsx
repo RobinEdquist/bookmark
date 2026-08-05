@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import {
   Tabs,
   TabsContent,
@@ -13,12 +14,19 @@ import {
   useAdminRequests,
   useApproveRequest,
   useRejectRequest,
+  useDeleteRequest,
 } from "../../../../lib/use-requests";
 import { AdminRequestsList } from "../../../../components/requests/admin-requests-list";
 import { authClient } from "../../../../lib/auth-client";
 import { useUrlTab } from "../../../../lib/use-url-tab";
 
-const STATUS_TABS = ["pending", "approved", "downloading", "all"] as const;
+const STATUS_TABS = [
+  "pending",
+  "approved",
+  "downloading",
+  "missing",
+  "all",
+] as const;
 type StatusTab = (typeof STATUS_TABS)[number];
 
 export default function AdminRequestsPage() {
@@ -32,10 +40,19 @@ export default function AdminRequestsPage() {
     STATUS_TABS,
   );
 
-  const status = activeTab === "all" ? undefined : activeTab;
-  const { data: requests, isLoading } = useAdminRequests(status);
+  // "missing" cuts across statuses, so it filters on the missing flag instead
+  const missingOnly = activeTab === "missing";
+  const status =
+    activeTab === "all" || missingOnly
+      ? undefined
+      : (activeTab as Exclude<StatusTab, "all" | "missing">);
+  const { data: requests, isLoading } = useAdminRequests(status, missingOnly);
+  // Own query so the tab count is there before the tab is opened; React Query
+  // dedupes it against the list query while the Missing tab is active.
+  const { data: missingRequests } = useAdminRequests(undefined, true);
   const { approveRequest, isApproving } = useApproveRequest();
   const { rejectRequest, isRejecting } = useRejectRequest();
+  const { deleteRequest, isDeleting } = useDeleteRequest();
 
   const isAdmin = session?.user?.role === "admin";
 
@@ -54,6 +71,16 @@ export default function AdminRequestsPage() {
 
   const pendingCount =
     requests?.filter((r) => r.status === "pending").length ?? 0;
+  const missingCount = missingRequests?.length ?? 0;
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteRequest(id);
+      toast.success(t("toast.deleted"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("toast.failed"));
+    }
+  };
 
   return (
     <div className="p-8">
@@ -75,6 +102,9 @@ export default function AdminRequestsPage() {
             <TabsTrigger value="downloading">
               {t("tabs.downloading")}
             </TabsTrigger>
+            <TabsTrigger value="missing">
+              {t("tabs.missing")} {missingCount > 0 && `(${missingCount})`}
+            </TabsTrigger>
             <TabsTrigger value="all">{t("tabs.all")}</TabsTrigger>
           </TabsList>
 
@@ -86,8 +116,10 @@ export default function AdminRequestsPage() {
               onReject={(id, reason) =>
                 rejectRequest({ requestId: id, reason })
               }
+              onDelete={handleDelete}
               isApproving={isApproving}
               isRejecting={isRejecting}
+              isDeleting={isDeleting}
             />
           </TabsContent>
         </Tabs>

@@ -259,8 +259,8 @@ export const queryKeys = {
   },
   adminRequests: {
     all: ["admin-requests"] as const,
-    list: (status?: string) =>
-      [...queryKeys.adminRequests.all, "list", status] as const,
+    list: (status?: string, missingOnly?: boolean) =>
+      [...queryKeys.adminRequests.all, "list", status, missingOnly] as const,
   },
   adminPeople: {
     all: ["admin-people"] as const,

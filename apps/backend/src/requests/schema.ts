@@ -44,6 +44,9 @@ export const requests = pgTable(
     contentType: text('content_type').$type<ContentType>().notNull(),
     categoryId: integer('category_id').notNull(),
     rejectionReason: text('rejection_reason'),
+    // Set the first time the download client reports the torrent as unknown, so
+    // admins can find requests whose download vanished. Cleared if it reappears.
+    torrentMissingSince: timestamp('torrent_missing_since'),
     libraryItemId: uuid('library_item_id'),
     libraryItemType: text('library_item_type').$type<ContentType>(),
     autoApprovedByUserId: text('auto_approved_by_user_id').references(
