@@ -241,11 +241,17 @@ export function LibrariesSettings() {
     toast.success(t("opds.toast.copied"));
   };
 
+  // Read the field out before the callback: mixing `settings?.metadataPriority`
+  // with `settings.metadataPriority` inside it made the compiler infer the whole
+  // `settings` object as the dependency, which no longer matched the declared
+  // deps and cost this component its optimisation.
+  const metadataPriority = settings?.metadataPriority;
+
   const handleMoveSource = useCallback(
     async (field: keyof MetadataFieldPriority, sourceIndex: number, direction: "up" | "down") => {
-      if (!settings?.metadataPriority) return;
+      if (!metadataPriority) return;
 
-      const newPriority = { ...settings.metadataPriority };
+      const newPriority = { ...metadataPriority };
       const allSources = [...newPriority[field]];
 
       // Filter out 'manual' to work with the same array as the UI
@@ -271,7 +277,7 @@ export function LibrariesSettings() {
         );
       }
     },
-    [settings?.metadataPriority, updateSettings, t]
+    [metadataPriority, updateSettings, t]
   );
 
   const handleQueueAllAudiobooks = async () => {

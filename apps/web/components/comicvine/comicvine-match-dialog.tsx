@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -49,7 +49,7 @@ export function ComicvineMatchDialog({
   const [page, setPage] = useState(1);
   const [selectedVolume, setSelectedVolume] = useState<ComicvineVolume | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<ComicvineBookLink | null>(null);
-  const [searchInput, setSearchInput] = useState("");
+  const [searchDraft, setSearchDraft] = useState<string | null>(null);
   const [customQuery, setCustomQuery] = useState<string | undefined>(undefined);
 
   // Series-level queries
@@ -69,6 +69,14 @@ export function ComicvineMatchDialog({
     open && level === "series" && !!customQuery
   );
 
+  // Until the user edits the box it mirrors the default query the API derived
+  // from the title; once they type, the draft wins. This replaces an effect that
+  // copied data.query into state, which spent an extra render on every search
+  // response and leaned on a `!customQuery` guard to avoid clobbering typing.
+  // Only the series level has an API-suggested query to fall back on.
+  const searchInput =
+    searchDraft ?? (level === "series" ? defaultData?.query ?? "" : "");
+
   // Book-level query
   const {
     data: bookData,
@@ -81,13 +89,6 @@ export function ComicvineMatchDialog({
   const { linkBook, isLinking: isLinkingBook } = useLinkBookToIssue();
 
   const isLinking = isLinkingSeries || isLinkingBook;
-
-  // Prefill search input from API-suggested query (series level, no custom query yet)
-  useEffect(() => {
-    if (level === "series" && defaultData?.query && !customQuery) {
-      setSearchInput(defaultData.query);
-    }
-  }, [defaultData?.query, customQuery, level]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +121,7 @@ export function ComicvineMatchDialog({
     setSelectedVolume(null);
     setSelectedIssue(null);
     setPage(1);
-    setSearchInput("");
+    setSearchDraft(null);
     setCustomQuery(undefined);
     onOpenChange(false);
   };
@@ -173,7 +174,7 @@ export function ComicvineMatchDialog({
               <Input
                 type="text"
                 value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
+                onChange={(e) => setSearchDraft(e.target.value)}
                 placeholder={t("searchPlaceholder")}
                 className="pl-9"
               />
