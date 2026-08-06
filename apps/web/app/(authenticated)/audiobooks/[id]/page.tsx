@@ -58,6 +58,7 @@ import { useScrollRestoration } from "../../../../lib/use-scroll-restoration";
 import { useLibraryNavigation } from "../../../../lib/use-library-navigation";
 import { usePlayer } from "../../../../components/providers/player-provider";
 import { EditAudiobookDialog } from "../../../../components/audiobooks/edit-audiobook-dialog";
+import { BookmarksSection } from "../../../../components/audiobooks/bookmarks-section";
 import { HardcoverSyncDialog } from "../../../../components/hardcover/hardcover-sync-dialog";
 import { HardcoverLinkCard } from "../../../../components/hardcover/hardcover-link-card";
 import { GoodreadsSearchDialog } from "../../../../components/goodreads/goodreads-search-dialog";
@@ -643,6 +644,9 @@ export default function AudiobookDetailPage({
                 )}
               </div>
             )}
+
+            {/* Bookmarks - personal, renders nothing when the user has none */}
+            <BookmarksSection audiobook={audiobook} progress={progress} />
 
             {/* Chapters */}
             <Accordion

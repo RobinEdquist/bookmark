@@ -120,6 +120,10 @@ There are no rate limits for self-hosted instances. Be mindful of your server re
       'basic',
     )
     .addTag('Audiobooks', 'Manage your audiobook library')
+    .addTag(
+      'Audiobook Bookmarks',
+      'Personal named timestamps saved inside audiobooks',
+    )
     .addTag('Ebooks', 'Manage your ebook library')
     .addTag('Progress', 'Track reading/listening progress')
     .addTag('Hardcover', 'Hardcover.app integration')

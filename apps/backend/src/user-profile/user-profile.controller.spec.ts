@@ -14,6 +14,7 @@ function createController() {
     getListeningHistory: jest
       .fn()
       .mockResolvedValue({ sessions: [], total: 0 }),
+    getBookmarks: jest.fn().mockResolvedValue({ items: [], total: 0 }),
   };
 
   return {
@@ -115,5 +116,31 @@ describe('UserProfileController', () => {
     await controller.getListeningHistory('me', '0', '-1', user);
 
     expect(service.getListeningHistory).toHaveBeenCalledWith('user-1', 20, 0);
+  });
+
+  it('resolves "me" and normalizes pagination for bookmarks', async () => {
+    const { controller, service } = createController();
+
+    await expect(
+      controller.getBookmarks('me', '500', '-10', user),
+    ).resolves.toEqual({ items: [], total: 0 });
+
+    expect(service.getBookmarks).toHaveBeenCalledWith('user-1', 100, 0);
+  });
+
+  it("allows admins to view another user's bookmarks", async () => {
+    const { controller, service } = createController();
+
+    await controller.getBookmarks('target-user', undefined, undefined, admin);
+
+    expect(service.getBookmarks).toHaveBeenCalledWith('target-user', 20, 0);
+  });
+
+  it("rejects non-admin access to another user's bookmarks", async () => {
+    const { controller } = createController();
+
+    await expect(
+      controller.getBookmarks('other-user', undefined, undefined, user),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

@@ -23,6 +23,7 @@ import {
   UserProfileActivityDto,
   LibraryProgressResponseDto,
   ListeningHistoryResponseDto,
+  UserBookmarksResponseDto,
 } from './dto/user-profile-response.dto';
 
 @ApiTags('User Profile')
@@ -232,5 +233,42 @@ export class UserProfileController {
     );
     const offset = Math.max(parseInt(offsetParam as string, 10) || 0, 0);
     return this.userProfileService.getListeningHistory(userId, limit, offset);
+  }
+
+  @Get(':id/bookmarks')
+  @ApiOperation({
+    summary: 'Get audiobook bookmarks',
+    description:
+      'Returns a paginated, newest-first list of the user\'s audiobook bookmarks with audiobook context. Use "me" for the current user.',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'User ID or "me" for the current user',
+  })
+  @ApiQuery({ name: 'limit', required: false, example: 20 })
+  @ApiQuery({ name: 'offset', required: false, example: 0 })
+  @ApiResponse({
+    status: 200,
+    description: 'Audiobook bookmarks',
+    type: UserBookmarksResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - admin required to view other users',
+  })
+  async getBookmarks(
+    @Param('id') id: string,
+    @Query('limit') limitParam: string | undefined,
+    @Query('offset') offsetParam: string | undefined,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<UserBookmarksResponseDto> {
+    const userId = this.resolveUserId(id, currentUser);
+    const limit = Math.min(
+      Math.max(parseInt(limitParam as string, 10) || 20, 1),
+      100,
+    );
+    const offset = Math.max(parseInt(offsetParam as string, 10) || 0, 0);
+    return this.userProfileService.getBookmarks(userId, limit, offset);
   }
 }

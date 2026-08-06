@@ -48,6 +48,10 @@ import { GeneratedCover } from "../common/generated-cover";
 import { ChapterDrawer } from "./chapter-drawer";
 import { SpeedDrawer } from "./speed-drawer";
 import { SleepTimerDrawer } from "./sleep-timer-drawer";
+import {
+  AddBookmarkButtonDesktop,
+  AddBookmarkButtonMobile,
+} from "./add-bookmark-button";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SKIP_BACKWARD_SECONDS = 15;
@@ -646,6 +650,9 @@ export function PlayerBar() {
 
             {/* Right side controls */}
             <div className="flex items-center gap-1">
+              {/* Add bookmark - desktop (popover) */}
+              <AddBookmarkButtonDesktop />
+
               {/* Sleep timer button - desktop only */}
               <ControlTooltip
                 label={
@@ -833,8 +840,11 @@ export function PlayerBar() {
             )}
           </div>
 
-          {/* Mobile extra controls row - sleep timer and speed */}
+          {/* Mobile extra controls row - bookmark, sleep timer and speed */}
           <div className="flex items-center justify-center gap-4 px-3 pb-2 sm:hidden">
+            {/* Add bookmark - mobile (drawer) */}
+            <AddBookmarkButtonMobile />
+
             {/* Sleep timer - mobile */}
             <ControlTooltip
               label={

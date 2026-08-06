@@ -111,6 +111,23 @@
     "aiNarrated": {
       "badge": "AI-uppläst",
       "generatedFromEbook": "Skapad från den här e-boken"
+    },
+    "bookmarks": {
+      "title": "Bokmärken",
+      "playFrom": "Spela upp från {time}",
+      "edit": "Redigera bokmärke",
+      "editTitle": "Redigera bokmärke",
+      "note": "Anteckning",
+      "notePlaceholder": "Lägg till en valfri anteckning",
+      "updated": "Bokmärket uppdaterades",
+      "updateError": "Det gick inte att uppdatera bokmärket",
+      "deleted": "Bokmärket togs bort",
+      "deleteError": "Det gick inte att ta bort bokmärket",
+      "playConfirmTitle": "Spela upp från bokmärket?",
+      "playConfirmDescription": "Din lyssningsposition flyttas till {time}.",
+      "playConfirmAction": "Spela upp",
+      "playConfirmCancel": "Avbryt",
+      "playConfirmDontAskAgain": "Fråga inte igen"
     }
   },
   "changeCover": {

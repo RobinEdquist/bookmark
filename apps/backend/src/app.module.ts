@@ -12,6 +12,7 @@ import { UsersModule } from './users/users.module';
 import { AppSettingsModule } from './app-settings/app-settings.module';
 import { FilesystemModule } from './filesystem/filesystem.module';
 import { AudiobooksModule } from './audiobooks/audiobooks.module';
+import { AudiobookBookmarksModule } from './audiobook-bookmarks/audiobook-bookmarks.module';
 import { EbooksModule } from './ebooks/ebooks.module';
 import { ComicsModule } from './comics/comics.module';
 import { ImportErrorsModule } from './import-errors/import-errors.module';
@@ -176,6 +177,7 @@ import { CommonModule } from './common/common.module';
     AppSettingsModule,
     FilesystemModule,
     AudiobooksModule,
+    AudiobookBookmarksModule,
     EbooksModule,
     ComicsModule,
     ImportErrorsModule,

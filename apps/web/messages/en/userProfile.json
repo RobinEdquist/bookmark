@@ -51,8 +51,15 @@
     "title": "Listening Sessions",
     "empty": "No listening sessions yet",
     "duration": "{duration}",
-    "position": "{start} \u2192 {end}",
+    "position": "{start} → {end}",
     "loadMore": "Load More",
+    "showing": "Showing {count} of {total}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "bookmarks": {
+    "title": "Bookmarks",
+    "empty": "No bookmarks yet",
     "showing": "Showing {count} of {total}",
     "previous": "Previous",
     "next": "Next"

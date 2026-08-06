@@ -51,8 +51,15 @@
     "title": "Lyssningssessioner",
     "empty": "Inga lyssningssessioner ännu",
     "duration": "{duration}",
-    "position": "{start} \u2192 {end}",
+    "position": "{start} → {end}",
     "loadMore": "Ladda fler",
+    "showing": "Visar {count} av {total}",
+    "previous": "Föregående",
+    "next": "Nästa"
+  },
+  "bookmarks": {
+    "title": "Bokmärken",
+    "empty": "Inga bokmärken ännu",
     "showing": "Visar {count} av {total}",
     "previous": "Föregående",
     "next": "Nästa"

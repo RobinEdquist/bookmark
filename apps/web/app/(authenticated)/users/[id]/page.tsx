@@ -12,6 +12,7 @@ import { UserProfileHeader } from "../../../../components/users/user-profile-hea
 import { StatCards } from "../../../../components/users/stat-cards";
 import { ContributionGraph } from "../../../../components/users/contribution-graph";
 import { LibraryProgressList } from "../../../../components/users/library-progress-list";
+import { BookmarksList } from "../../../../components/users/bookmarks-list";
 import { SessionLog } from "../../../../components/users/session-log";
 
 export default function UserProfilePage({
@@ -54,6 +55,7 @@ export default function UserProfilePage({
         isLoading={isActivityLoading}
       />
       <LibraryProgressList userId={id} />
+      <BookmarksList userId={id} />
       <SessionLog userId={id} />
     </div>
   );

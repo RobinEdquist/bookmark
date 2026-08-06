@@ -180,3 +180,52 @@ export class ListeningHistoryResponseDto {
   @ApiProperty({ example: 150 })
   total!: number;
 }
+
+export class UserBookmarkListItemDto {
+  @ApiProperty({ example: '7d5a1c8e-3f42-4b9a-9c60-2f1e8a54d7b3' })
+  id!: string;
+
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  audiobookId!: string;
+
+  @ApiProperty({ example: 'Project Hail Mary' })
+  audiobookTitle!: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Andy Weir', nullable: true })
+  authorName?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '/api/audiobooks/550e8400-e29b-41d4-a716-446655440000/cover',
+    nullable: true,
+  })
+  coverUrl?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: 'The scene at the lighthouse',
+    nullable: true,
+  })
+  note?: string | null;
+
+  @ApiProperty({
+    type: 'integer',
+    example: 4523,
+    description: 'Position in seconds from the start of the audiobook',
+  })
+  position!: number;
+
+  @ApiProperty({ example: '2026-08-07T09:00:00.000Z' })
+  createdAt!: string;
+
+  @ApiProperty({ example: '2026-08-07T09:00:00.000Z' })
+  updatedAt!: string;
+}
+
+export class UserBookmarksResponseDto {
+  @ApiProperty({ type: [UserBookmarkListItemDto] })
+  items!: UserBookmarkListItemDto[];
+
+  @ApiProperty({ example: 42 })
+  total!: number;
+}

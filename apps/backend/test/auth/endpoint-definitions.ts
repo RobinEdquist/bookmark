@@ -21,6 +21,43 @@ export interface ControllerEndpoints {
  */
 export const authGuardEndpoints: ControllerEndpoints[] = [
   {
+    controller: 'Audiobook Bookmarks',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/audiobooks/:audiobookId/bookmarks',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/audiobooks/:audiobookId/bookmarks',
+        expectedStatus: 401,
+        body: { position: 0 },
+      },
+      {
+        method: 'PATCH',
+        path: '/audiobooks/:audiobookId/bookmarks/:bookmarkId',
+        expectedStatus: 401,
+        body: { position: 0 },
+      },
+      {
+        method: 'DELETE',
+        path: '/audiobooks/:audiobookId/bookmarks/:bookmarkId',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'User Profile',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/user-profile/:id/bookmarks',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
     controller: 'Progress',
     endpoints: [
       { method: 'GET', path: '/progress', expectedStatus: 401 },

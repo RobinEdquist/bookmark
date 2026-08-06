@@ -95,6 +95,13 @@ export const queryKeys = {
     genres: (search?: string) =>
       [...queryKeys.audiobooks.all, "genres", search] as const,
   },
+  bookmarks: {
+    all: ["bookmarks"] as const,
+    list: (audiobookId: string) =>
+      [...queryKeys.bookmarks.all, "list", audiobookId] as const,
+    user: (userId: string, offset?: number) =>
+      [...queryKeys.bookmarks.all, "user", userId, offset] as const,
+  },
   ebooks: {
     all: ["ebooks"] as const,
     list: (filters?: {

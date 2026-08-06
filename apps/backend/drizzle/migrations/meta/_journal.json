@@ -239,6 +239,13 @@
       "when": 1785923159289,
       "tag": "0033_add_request_torrent_missing_since",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1786056155307,
+      "tag": "0034_add_audiobook_bookmarks",
+      "breakpoints": true
     }
   ]
 }
