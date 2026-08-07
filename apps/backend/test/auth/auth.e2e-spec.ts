@@ -17,6 +17,81 @@ import {
 } from './endpoint-definitions';
 
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000/api';
+const OPENAPI_HTTP_METHODS: ReadonlySet<string> = new Set([
+  'get',
+  'post',
+  'put',
+  'patch',
+  'delete',
+  'options',
+  'head',
+  'trace',
+]);
+
+interface OpenApiOperation {
+  security?: Record<string, unknown>[];
+}
+
+interface OpenApiDocument {
+  paths: Record<string, Record<string, unknown>>;
+}
+
+function endpointKey(method: string, path: string): string {
+  return `${method.toUpperCase()} ${path}`;
+}
+
+function normalizeOpenApiPath(path: string): string {
+  const withoutGlobalPrefix = path.replace(/^\/api(?=\/|$)/, '') || '/';
+  return withoutGlobalPrefix.replace(/\{([^}]+)\}/g, ':$1');
+}
+
+function isBasicAuthOnly(operation: OpenApiOperation): boolean {
+  const securitySchemeNames = (operation.security ?? []).flatMap(
+    (requirement) => Object.keys(requirement),
+  );
+
+  return (
+    securitySchemeNames.length > 0 &&
+    securitySchemeNames.every((name) => name === 'basic')
+  );
+}
+
+function getOpenApiEndpointKeys(document: OpenApiDocument): {
+  protectedEndpointKeys: string[];
+  basicAuthEndpointKeys: string[];
+} {
+  const publicEndpointKeys = new Set(
+    publicEndpoints.map((endpoint) =>
+      endpointKey(endpoint.method, endpoint.path),
+    ),
+  );
+  const protectedEndpointKeys: string[] = [];
+  const basicAuthEndpointKeys: string[] = [];
+
+  for (const [openApiPath, pathItem] of Object.entries(document.paths)) {
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (!OPENAPI_HTTP_METHODS.has(method)) {
+        continue;
+      }
+
+      const key = endpointKey(method, normalizeOpenApiPath(openApiPath));
+      if (publicEndpointKeys.has(key)) {
+        continue;
+      }
+
+      if (isBasicAuthOnly(operation as OpenApiOperation)) {
+        basicAuthEndpointKeys.push(key);
+      } else {
+        protectedEndpointKeys.push(key);
+      }
+    }
+  }
+
+  return {
+    protectedEndpointKeys: protectedEndpointKeys.sort(),
+    basicAuthEndpointKeys: basicAuthEndpointKeys.sort(),
+  };
+}
 
 /**
  * Check if the backend server is running before tests
@@ -66,6 +141,92 @@ async function makeRequest(endpoint: EndpointDefinition): Promise<Response> {
 }
 
 describe('Authentication Verification (e2e)', () => {
+  /**
+   * Keep the opt-in request registry synchronized with the app's route table.
+   * CombinedAuthGuard protects every route by default, so an OpenAPI operation
+   * is protected unless it is explicitly registered as public or uses only
+   * OPDS Basic authentication. Both protected registries are checked here.
+   */
+  describe('Endpoint Registry Coverage', () => {
+    it('registers every protected OpenAPI operation exactly once', async () => {
+      const response = await fetch(`${BASE_URL}/docs-json`);
+      expect(response.ok).toBe(true);
+
+      const document = (await response.json()) as OpenApiDocument;
+      const {
+        protectedEndpointKeys: documentedProtectedEndpointKeys,
+        basicAuthEndpointKeys: documentedBasicAuthEndpointKeys,
+      } = getOpenApiEndpointKeys(document);
+      const registeredEndpointKeys = allProtectedEndpoints.flatMap(
+        ({ endpoints }) =>
+          endpoints.map((endpoint) =>
+            endpointKey(endpoint.method, endpoint.path),
+          ),
+      );
+      const registeredBasicAuthEndpointKeys = opdsEndpoints.flatMap(
+        ({ endpoints }) =>
+          endpoints.map((endpoint) =>
+            endpointKey(endpoint.method, endpoint.path),
+          ),
+      );
+      const allRegisteredEndpointKeys = [
+        ...registeredEndpointKeys,
+        ...registeredBasicAuthEndpointKeys,
+        ...publicEndpoints.map((endpoint) =>
+          endpointKey(endpoint.method, endpoint.path),
+        ),
+      ];
+      const registeredEndpointKeySet = new Set(registeredEndpointKeys);
+      const registeredBasicAuthEndpointKeySet = new Set(
+        registeredBasicAuthEndpointKeys,
+      );
+      const documentedProtectedEndpointKeySet = new Set(
+        documentedProtectedEndpointKeys,
+      );
+      const documentedBasicAuthEndpointKeySet = new Set(
+        documentedBasicAuthEndpointKeys,
+      );
+      const duplicateRegistrations = allRegisteredEndpointKeys
+        .filter(
+          (key, index) => allRegisteredEndpointKeys.indexOf(key) !== index,
+        )
+        .filter((key, index, keys) => keys.indexOf(key) === index)
+        .sort();
+      const unregisteredProtectedEndpoints =
+        documentedProtectedEndpointKeys.filter(
+          (key) => !registeredEndpointKeySet.has(key),
+        );
+      const unregisteredBasicAuthEndpoints =
+        documentedBasicAuthEndpointKeys.filter(
+          (key) => !registeredBasicAuthEndpointKeySet.has(key),
+        );
+      const registeredButUndocumentedProtectedEndpoints = [
+        ...registeredEndpointKeySet,
+      ]
+        .filter((key) => !documentedProtectedEndpointKeySet.has(key))
+        .sort();
+      const registeredButUndocumentedBasicAuthEndpoints = [
+        ...registeredBasicAuthEndpointKeySet,
+      ]
+        .filter((key) => !documentedBasicAuthEndpointKeySet.has(key))
+        .sort();
+
+      expect({
+        duplicateRegistrations,
+        unregisteredProtectedEndpoints,
+        unregisteredBasicAuthEndpoints,
+        registeredButUndocumentedProtectedEndpoints,
+        registeredButUndocumentedBasicAuthEndpoints,
+      }).toEqual({
+        duplicateRegistrations: [],
+        unregisteredProtectedEndpoints: [],
+        unregisteredBasicAuthEndpoints: [],
+        registeredButUndocumentedProtectedEndpoints: [],
+        registeredButUndocumentedBasicAuthEndpoints: [],
+      });
+    });
+  });
+
   /**
    * Test all protected endpoints
    */

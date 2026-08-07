@@ -52,6 +52,26 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
     endpoints: [
       {
         method: 'GET',
+        path: '/user-profile/:id/stats',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/user-profile/:id/activity',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/user-profile/:id/library-progress',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/user-profile/:id/listening-history',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
         path: '/user-profile/:id/bookmarks',
         expectedStatus: 401,
       },
@@ -62,6 +82,11 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
     endpoints: [
       { method: 'GET', path: '/progress', expectedStatus: 401 },
       { method: 'GET', path: '/progress/stats', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/progress/listening-stats',
+        expectedStatus: 401,
+      },
       {
         method: 'GET',
         path: '/progress/:audiobookId',
@@ -80,6 +105,11 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
         body: { startedAt: '', endedAt: '', durationSeconds: 0 },
       },
       {
+        method: 'DELETE',
+        path: '/progress/:audiobookId',
+        expectedStatus: 401,
+      },
+      {
         method: 'POST',
         path: '/progress/:audiobookId/hide',
         expectedStatus: 401,
@@ -90,6 +120,7 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
     controller: 'Audnexus',
     endpoints: [
       { method: 'GET', path: '/audnexus/search', expectedStatus: 401 },
+      { method: 'GET', path: '/audnexus/book/:asin', expectedStatus: 401 },
       { method: 'GET', path: '/audnexus/chapters/:asin', expectedStatus: 401 },
     ],
   },
@@ -128,6 +159,11 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
         expectedStatus: 401,
         body: { asin: 'test', chapters: [] },
       },
+      {
+        method: 'POST',
+        path: '/audiobooks/:id/cover',
+        expectedStatus: 401,
+      },
       { method: 'DELETE', path: '/audiobooks/:id', expectedStatus: 401 },
     ],
   },
@@ -138,10 +174,13 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
       { method: 'GET', path: '/ebooks/authors', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/publishers', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/series', expectedStatus: 401 },
+      { method: 'GET', path: '/ebooks/genres', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/:id', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/:id/cover', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/:id/download', expectedStatus: 401 },
+      { method: 'GET', path: '/ebooks/:id/stream', expectedStatus: 401 },
       { method: 'PATCH', path: '/ebooks/:id', expectedStatus: 401, body: {} },
+      { method: 'POST', path: '/ebooks/:id/cover', expectedStatus: 401 },
       { method: 'DELETE', path: '/ebooks/:id', expectedStatus: 401 },
     ],
   },
@@ -150,6 +189,8 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
     endpoints: [
       { method: 'GET', path: '/series', expectedStatus: 401 },
       { method: 'GET', path: '/series/recently-updated', expectedStatus: 401 },
+      { method: 'GET', path: '/series/:id', expectedStatus: 401 },
+      { method: 'PATCH', path: '/series/:id', expectedStatus: 401 },
     ],
   },
   {
@@ -157,6 +198,7 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
     endpoints: [
       { method: 'GET', path: '/library/stats', expectedStatus: 401 },
       { method: 'GET', path: '/library/availability', expectedStatus: 401 },
+      { method: 'GET', path: '/library/search', expectedStatus: 401 },
     ],
   },
   {
@@ -172,6 +214,200 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
       { method: 'POST', path: '/api-keys', expectedStatus: 401, body: {} },
       { method: 'DELETE', path: '/api-keys/:id', expectedStatus: 401 },
     ],
+  },
+  {
+    controller: 'iTunes',
+    endpoints: [{ method: 'GET', path: '/itunes/search', expectedStatus: 401 }],
+  },
+  {
+    controller: 'Ebook Progress',
+    endpoints: [
+      { method: 'GET', path: '/ebook-progress', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/ebook-progress/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'PATCH',
+        path: '/ebook-progress/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/ebook-progress/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/ebook-progress/:ebookId/hide',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Comic Progress',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/comic-progress/on-deck',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comic-progress/:bookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'PATCH',
+        path: '/comic-progress/:bookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/comic-progress/:bookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/comic-progress/:bookId/hide',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Comics',
+    endpoints: [
+      { method: 'GET', path: '/comics/series', expectedStatus: 401 },
+      { method: 'POST', path: '/comics/series', expectedStatus: 401 },
+      { method: 'POST', path: '/comics/series/merge', expectedStatus: 401 },
+      { method: 'GET', path: '/comics/collections', expectedStatus: 401 },
+      { method: 'POST', path: '/comics/collections', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/comics/collections/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'PATCH',
+        path: '/comics/collections/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/comics/collections/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/comics/collections/:id/series',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/comics/collections/:id/series/:seriesId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'PATCH',
+        path: '/comics/collections/:id/order',
+        expectedStatus: 401,
+      },
+      { method: 'GET', path: '/comics/publishers', expectedStatus: 401 },
+      { method: 'GET', path: '/comics/genres', expectedStatus: 401 },
+      { method: 'GET', path: '/comics/series/:id', expectedStatus: 401 },
+      { method: 'PATCH', path: '/comics/series/:id', expectedStatus: 401 },
+      { method: 'DELETE', path: '/comics/series/:id', expectedStatus: 401 },
+      {
+        method: 'POST',
+        path: '/comics/series/:id/cover',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/series/:id/cover',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/series/:id/download',
+        expectedStatus: 401,
+      },
+      { method: 'GET', path: '/comics/books/:id', expectedStatus: 401 },
+      { method: 'PATCH', path: '/comics/books/:id', expectedStatus: 401 },
+      { method: 'DELETE', path: '/comics/books/:id', expectedStatus: 401 },
+      { method: 'PATCH', path: '/comics/books/batch', expectedStatus: 401 },
+      { method: 'POST', path: '/comics/books/move', expectedStatus: 401 },
+      {
+        method: 'POST',
+        path: '/comics/books/:id/cover',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/books/:id/cover',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/books/:id/download',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Lists',
+    endpoints: [
+      { method: 'GET', path: '/lists', expectedStatus: 401 },
+      { method: 'POST', path: '/lists', expectedStatus: 401 },
+      { method: 'GET', path: '/lists/for-item', expectedStatus: 401 },
+      { method: 'GET', path: '/lists/recent', expectedStatus: 401 },
+      { method: 'GET', path: '/lists/top', expectedStatus: 401 },
+      { method: 'GET', path: '/lists/:id', expectedStatus: 401 },
+      { method: 'PATCH', path: '/lists/:id', expectedStatus: 401 },
+      { method: 'DELETE', path: '/lists/:id', expectedStatus: 401 },
+      { method: 'POST', path: '/lists/:id/items', expectedStatus: 401 },
+      {
+        method: 'DELETE',
+        path: '/lists/:id/items/:itemId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'PATCH',
+        path: '/lists/:id/items/reorder',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Announcements',
+    endpoints: [
+      { method: 'GET', path: '/announcements/active', expectedStatus: 401 },
+      {
+        method: 'POST',
+        path: '/announcements/:id/dismiss',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'TTS',
+    endpoints: [
+      { method: 'GET', path: '/tts/status', expectedStatus: 401 },
+      { method: 'POST', path: '/tts/config', expectedStatus: 401 },
+      { method: 'POST', path: '/tts/validate', expectedStatus: 401 },
+      { method: 'GET', path: '/tts/voices', expectedStatus: 401 },
+      { method: 'POST', path: '/tts/preview', expectedStatus: 401 },
+      { method: 'POST', path: '/tts/jobs', expectedStatus: 401 },
+      { method: 'GET', path: '/tts/jobs', expectedStatus: 401 },
+      { method: 'POST', path: '/tts/jobs/:id/cancel', expectedStatus: 401 },
+      { method: 'POST', path: '/tts/jobs/:id/retry', expectedStatus: 401 },
+      { method: 'DELETE', path: '/tts/jobs/:id', expectedStatus: 401 },
+    ],
+  },
+  {
+    controller: 'Version',
+    endpoints: [{ method: 'GET', path: '/version', expectedStatus: 401 }],
   },
 ];
 
@@ -202,6 +438,11 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
     controller: 'ApiKeys (admin)',
     endpoints: [
       { method: 'GET', path: '/api-keys/user/:userId', expectedStatus: 401 },
+      {
+        method: 'DELETE',
+        path: '/api-keys/user/:userId/:keyId',
+        expectedStatus: 401,
+      },
       {
         method: 'DELETE',
         path: '/api-keys/user/:userId',
@@ -251,7 +492,17 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
       },
       {
         method: 'POST',
+        path: '/admin/library-watcher/scan-comics',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
         path: '/admin/library-watcher/rescan',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/library-watcher/rescan-comics',
         expectedStatus: 401,
       },
       {
@@ -265,6 +516,11 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
     controller: 'Restore',
     endpoints: [
       {
+        method: 'POST',
+        path: '/admin/restore/upload',
+        expectedStatus: 401,
+      },
+      {
         method: 'GET',
         path: '/admin/restore/sessions/:id',
         expectedStatus: 401,
@@ -272,6 +528,36 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
       {
         method: 'DELETE',
         path: '/admin/restore/sessions/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/restore/sessions/:id/library',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/restore/sessions/:id/path-mappings',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/restore/sessions/:id/user-mappings',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/restore/sessions/:id/options',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/admin/restore/sessions/:id/preview',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/restore/sessions/:id/execute',
         expectedStatus: 401,
       },
       {
@@ -296,7 +582,64 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
         expectedStatus: 401,
         body: {},
       },
+      {
+        method: 'DELETE',
+        path: '/admin/requests/:id',
+        expectedStatus: 401,
+      },
     ],
+  },
+  {
+    controller: 'People Admin',
+    endpoints: [
+      { method: 'GET', path: '/admin/people/authors', expectedStatus: 401 },
+      { method: 'GET', path: '/admin/people/narrators', expectedStatus: 401 },
+      { method: 'PATCH', path: '/admin/people/:id', expectedStatus: 401 },
+      {
+        method: 'POST',
+        path: '/admin/people/:id/merge/:targetId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/people/:id/split',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Announcements Admin',
+    endpoints: [
+      { method: 'GET', path: '/admin/announcements', expectedStatus: 401 },
+      { method: 'POST', path: '/admin/announcements', expectedStatus: 401 },
+      {
+        method: 'PATCH',
+        path: '/admin/announcements/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/admin/announcements/:id',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Genres Admin',
+    endpoints: [
+      { method: 'GET', path: '/admin/genres', expectedStatus: 401 },
+      { method: 'PATCH', path: '/admin/genres/:id', expectedStatus: 401 },
+      { method: 'DELETE', path: '/admin/genres/:id', expectedStatus: 401 },
+      {
+        method: 'POST',
+        path: '/admin/genres/:id/merge/:targetId',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Stats',
+    endpoints: [{ method: 'GET', path: '/stats', expectedStatus: 401 }],
   },
 ];
 
@@ -319,6 +662,66 @@ export const rolesGuardAdminEndpoints: ControllerEndpoints[] = [
       },
       { method: 'POST', path: '/hardcover/disconnect', expectedStatus: 401 },
       { method: 'GET', path: '/hardcover/search', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/hardcover/search/audiobook/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/hardcover/link/:audiobookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/hardcover/link/:audiobookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/hardcover/link/:audiobookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/hardcover/search/ebook/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/hardcover/ebook-link/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/hardcover/ebook-link/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/hardcover/ebook-link/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/hardcover/queue/status',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/hardcover/queue/failed/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/hardcover/queue-all-unlinked/audiobooks',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/hardcover/queue-all-unlinked/ebooks',
+        expectedStatus: 401,
+      },
     ],
   },
   {
@@ -339,6 +742,146 @@ export const rolesGuardAdminEndpoints: ControllerEndpoints[] = [
       { method: 'PATCH', path: '/settings', expectedStatus: 401, body: {} },
     ],
   },
+  {
+    controller: 'ComicVine',
+    endpoints: [
+      { method: 'GET', path: '/comicvine/status', expectedStatus: 401 },
+      { method: 'POST', path: '/comicvine/validate', expectedStatus: 401 },
+      {
+        method: 'POST',
+        path: '/comicvine/disconnect',
+        expectedStatus: 401,
+      },
+      { method: 'POST', path: '/comicvine/auto-sync', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/comicvine/search/volumes',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comicvine/search/volume-for-series/:seriesId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comicvine/volume/:cvVolumeId/issues',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comicvine/link/series/:seriesId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/comicvine/link/series/:seriesId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/comicvine/link/series/:seriesId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comicvine/link/book/:bookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/comicvine/link/book/:bookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/comicvine/link/book/:bookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comicvine/search/issue-for-book/:bookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comicvine/queue/status',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/comicvine/queue/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/comicvine/queue-all-unlinked/series',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Goodreads Finder',
+    endpoints: [
+      { method: 'GET', path: '/gr-finder/status', expectedStatus: 401 },
+      { method: 'GET', path: '/gr-finder/search', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/gr-finder/search/audiobook/:audiobookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/gr-finder/search/ebook/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/gr-finder/book/:goodreadsId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/gr-finder/link/:audiobookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/gr-finder/link/:audiobookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/gr-finder/link/:audiobookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/gr-finder/link-jobs',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/gr-finder/link-jobs/failed',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/gr-finder/ebook-link/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/gr-finder/ebook-link/:ebookId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/gr-finder/ebook-link/:ebookId',
+        expectedStatus: 401,
+      },
+    ],
+  },
 ];
 
 /**
@@ -350,6 +893,8 @@ export const canRequestGuardEndpoints: ControllerEndpoints[] = [
   {
     controller: 'Requests',
     endpoints: [
+      { method: 'GET', path: '/requests/cover/:id', expectedStatus: 401 },
+      { method: 'GET', path: '/requests/languages', expectedStatus: 401 },
       {
         method: 'POST',
         path: '/requests/search',
@@ -364,6 +909,11 @@ export const canRequestGuardEndpoints: ControllerEndpoints[] = [
         body: { bookId: 'test' },
       },
       { method: 'POST', path: '/requests/:id/support', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/requests/auto-approve-budget',
+        expectedStatus: 401,
+      },
     ],
   },
 ];
@@ -374,12 +924,61 @@ export const canRequestGuardEndpoints: ControllerEndpoints[] = [
  */
 export const opdsEndpoints: ControllerEndpoints[] = [
   {
-    controller: 'OPDS',
+    controller: 'Ebooks OPDS',
     endpoints: [
       { method: 'GET', path: '/ebooks/opds', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/opds/all', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/opds/authors', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/ebooks/opds/authors/:id',
+        expectedStatus: 401,
+      },
       { method: 'GET', path: '/ebooks/opds/series', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/ebooks/opds/series/:id',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
+    controller: 'Comics OPDS',
+    endpoints: [
+      { method: 'GET', path: '/comics/opds', expectedStatus: 401 },
+      { method: 'GET', path: '/comics/opds/series', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/comics/opds/series/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/opds/publishers',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/opds/publishers/:publisher',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/opds/collections',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/opds/collections/:id',
+        expectedStatus: 401,
+      },
+      { method: 'GET', path: '/comics/opds/on-deck', expectedStatus: 401 },
+      { method: 'GET', path: '/comics/opds/recent', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/comics/opds/books/:id/pages/:page',
+        expectedStatus: 401,
+      },
     ],
   },
 ];
@@ -391,6 +990,7 @@ export const userSelfEndpoints: ControllerEndpoints[] = [
   {
     controller: 'Users (self)',
     endpoints: [
+      { method: 'GET', path: '/users/me', expectedStatus: 401 },
       { method: 'GET', path: '/users/session', expectedStatus: 401 },
       { method: 'GET', path: '/users/me/permissions', expectedStatus: 401 },
       { method: 'GET', path: '/users/me/language', expectedStatus: 401 },
