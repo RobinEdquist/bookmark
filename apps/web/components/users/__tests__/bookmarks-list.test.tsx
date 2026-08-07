@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, userEvent } from "../../../__test-utils__/render";
-import { BookmarksList } from "../bookmarks-list";
+import { BookmarksList, AllBookmarksList } from "../bookmarks-list";
 
 // --- Hoisted mocks ---
 
@@ -47,7 +47,7 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("BookmarksList", () => {
+describe("BookmarksList (profile section)", () => {
   it("shows the empty state when no book has bookmarks", () => {
     mockUseBookmarkedAudiobooks.mockReturnValue({
       data: { items: [], total: 0 },
@@ -57,6 +57,17 @@ describe("BookmarksList", () => {
     render(<BookmarksList userId="me" />);
 
     expect(screen.getByText("empty")).toBeInTheDocument();
+  });
+
+  it("requests only the 5 most recent books", () => {
+    mockUseBookmarkedAudiobooks.mockReturnValue({
+      data: { items: [makeItem()], total: 1 },
+      isLoading: false,
+    });
+
+    render(<BookmarksList userId="me" />);
+
+    expect(mockUseBookmarkedAudiobooks).toHaveBeenCalledWith("me", 0, 5);
   });
 
   it("renders one row per book with its bookmark count, linking to the book", () => {
@@ -78,6 +89,34 @@ describe("BookmarksList", () => {
     );
   });
 
+  it("links to the full bookmarks page when there are more than 5 books", () => {
+    mockUseBookmarkedAudiobooks.mockReturnValue({
+      data: {
+        items: Array.from({ length: 5 }, (_, i) =>
+          makeItem({ audiobookId: `book-${i}` }),
+        ),
+        total: 12,
+      },
+      isLoading: false,
+    });
+
+    render(<BookmarksList userId="me" />);
+
+    const seeAll = screen.getByText('seeAll({"total":12}) →');
+    expect(seeAll).toHaveAttribute("href", "/users/me/bookmarks");
+  });
+
+  it("hides the see-all link when 5 or fewer books have bookmarks", () => {
+    mockUseBookmarkedAudiobooks.mockReturnValue({
+      data: { items: [makeItem()], total: 5 },
+      isLoading: false,
+    });
+
+    render(<BookmarksList userId="me" />);
+
+    expect(screen.queryByText(/seeAll/)).not.toBeInTheDocument();
+  });
+
   it("omits the author line when the book has no author", () => {
     mockUseBookmarkedAudiobooks.mockReturnValue({
       data: { items: [makeItem({ authorName: null })], total: 1 },
@@ -89,14 +128,16 @@ describe("BookmarksList", () => {
     expect(screen.getByText("Project Hail Mary")).toBeInTheDocument();
     expect(screen.queryByText("Andy Weir")).not.toBeInTheDocument();
   });
+});
 
+describe("AllBookmarksList (dedicated page)", () => {
   it("pages through results with the next button", async () => {
     mockUseBookmarkedAudiobooks.mockReturnValue({
       data: { items: [makeItem()], total: 45 },
       isLoading: false,
     });
 
-    render(<BookmarksList userId="me" />);
+    render(<AllBookmarksList userId="me" />);
 
     expect(mockUseBookmarkedAudiobooks).toHaveBeenLastCalledWith("me", 0, 20);
 
@@ -111,9 +152,20 @@ describe("BookmarksList", () => {
       isLoading: false,
     });
 
-    render(<BookmarksList userId="me" />);
+    render(<AllBookmarksList userId="me" />);
 
     expect(screen.getByRole("button", { name: "previous" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "next" })).toBeEnabled();
+  });
+
+  it("shows the empty state when there is nothing to list", () => {
+    mockUseBookmarkedAudiobooks.mockReturnValue({
+      data: { items: [], total: 0 },
+      isLoading: false,
+    });
+
+    render(<AllBookmarksList userId="me" />);
+
+    expect(screen.getByText("empty")).toBeInTheDocument();
   });
 });

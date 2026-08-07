@@ -63,6 +63,8 @@
     "showing": "Showing {count} of {total}",
     "previous": "Previous",
     "next": "Next",
-    "bookmarkCount": "{count, plural, =1 {1 bookmark} other {# bookmarks}}"
+    "bookmarkCount": "{count, plural, =1 {1 bookmark} other {# bookmarks}}",
+    "seeAll": "See all ({total})",
+    "backToProfile": "Back to profile"
   }
 }

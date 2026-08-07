@@ -63,6 +63,8 @@
     "showing": "Visar {count} av {total}",
     "previous": "Föregående",
     "next": "Nästa",
-    "bookmarkCount": "{count, plural, =1 {1 bokmärke} other {# bokmärken}}"
+    "bookmarkCount": "{count, plural, =1 {1 bokmärke} other {# bokmärken}}",
+    "seeAll": "Visa alla ({total})",
+    "backToProfile": "Tillbaka till profilen"
   }
 }

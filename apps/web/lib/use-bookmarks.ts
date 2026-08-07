@@ -145,7 +145,9 @@ export function useBookmarkedAudiobooks(
   limit = 20,
 ) {
   return useQuery<BookmarkedAudiobooksResponse>({
-    queryKey: queryKeys.bookmarks.userBooks(userId, offset),
+    // Limit is part of the key: the profile card (5) and the full page (20)
+    // both start at offset 0 and must not share a cache entry.
+    queryKey: queryKeys.bookmarks.userBooks(userId, offset, limit),
     queryFn: () => fetchBookmarkedAudiobooks(userId, limit, offset),
     staleTime: 60 * 1000,
   });
