@@ -245,8 +245,8 @@ export class UserProfileController {
     name: 'id',
     description: 'User ID or "me" for the current user',
   })
-  @ApiQuery({ name: 'limit', required: false, example: 20 })
-  @ApiQuery({ name: 'offset', required: false, example: 0 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 20 })
+  @ApiQuery({ name: 'offset', required: false, type: Number, example: 0 })
   @ApiResponse({
     status: 200,
     description: 'Audiobook bookmarks',
