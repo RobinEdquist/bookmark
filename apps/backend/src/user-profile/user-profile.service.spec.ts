@@ -1,5 +1,4 @@
 import { NotFoundException } from '@nestjs/common';
-import { sql } from 'drizzle-orm';
 import { UserProfileService } from './user-profile.service';
 
 /**
@@ -1073,16 +1072,6 @@ describe('UserProfileService', () => {
   // getBookmarkedAudiobooks
   // -----------------------------------------------------------------------
   describe('getBookmarkedAudiobooks', () => {
-    /**
-     * The aggregate builds a grouped subquery first (`.as('bookmarked')`),
-     * then runs the page + count queries. The subquery's fields are only
-     * referenced while CONSTRUCTING the outer query, so a proxy handing out
-     * raw sql fragments keeps drizzle's eq()/desc() happy.
-     */
-    function subqueryColumns() {
-      return new Proxy({}, { get: (_target, prop) => sql.raw(String(prop)) });
-    }
-
     function setupBookmarkedAudiobooksMocks(
       db: any,
       rows: any[],
@@ -1092,16 +1081,10 @@ describe('UserProfileService', () => {
       db.select.mockImplementation(() => {
         callCount++;
         if (callCount === 1) {
-          // Grouped subquery construction, terminated by .as()
-          const sub = chainMock([]);
-          (sub as any).as = jest.fn().mockReturnValue(subqueryColumns());
-          return sub;
-        }
-        if (callCount === 2) {
-          // Page query
+          // Grouped page query
           return chainMock(rows);
         }
-        if (callCount === 3) {
+        if (callCount === 2) {
           // Distinct-count query
           return chainMock([{ count: totalCount }]);
         }

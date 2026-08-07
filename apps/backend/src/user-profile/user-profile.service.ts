@@ -7,6 +7,7 @@ import {
   desc,
   eq,
   gte,
+  max,
   sql,
   sum,
 } from 'drizzle-orm';
@@ -612,35 +613,33 @@ export class UserProfileService {
     limit: number,
     offset: number,
   ): Promise<UserBookmarkedAudiobooksResponseDto> {
-    const grouped = this.db
-      .select({
-        audiobookId: bookmarksSchema.audiobookBookmarks.audiobookId,
-        bookmarkCount: count().as('bookmark_count'),
-        latestBookmarkAt:
-          sql<Date>`max(${bookmarksSchema.audiobookBookmarks.createdAt})`.as(
-            'latest_bookmark_at',
-          ),
-      })
-      .from(bookmarksSchema.audiobookBookmarks)
-      .where(eq(bookmarksSchema.audiobookBookmarks.userId, userId))
-      .groupBy(bookmarksSchema.audiobookBookmarks.audiobookId)
-      .as('bookmarked');
+    // Aggregates use drizzle's max()/countDistinct() helpers, NOT raw
+    // sql`max(...)` fragments: drizzle receives timestamps from the driver
+    // as strings and only column-attached decoders turn them into Dates.
+    // A raw fragment (especially through a subquery) skips that decoding
+    // and `latestBookmarkAt.toISOString()` blows up at runtime.
+    const latestBookmarkAt = max(bookmarksSchema.audiobookBookmarks.createdAt);
 
     const [results, totalResult] = await Promise.all([
       this.db
         .select({
-          audiobookId: grouped.audiobookId,
-          bookmarkCount: grouped.bookmarkCount,
-          latestBookmarkAt: grouped.latestBookmarkAt,
+          audiobookId: bookmarksSchema.audiobookBookmarks.audiobookId,
+          // Distinct so a hypothetical duplicate order-0 author join row
+          // can't inflate the count.
+          bookmarkCount: countDistinct(bookmarksSchema.audiobookBookmarks.id),
+          latestBookmarkAt,
           audiobookTitle: audiobookSchema.audiobooks.title,
           coverUrl: audiobookSchema.audiobooks.coverUrl,
           coverSource: audiobookSchema.audiobooks.coverSource,
           authorName: audiobookSchema.people.name,
         })
-        .from(grouped)
+        .from(bookmarksSchema.audiobookBookmarks)
         .innerJoin(
           audiobookSchema.audiobooks,
-          eq(grouped.audiobookId, audiobookSchema.audiobooks.id),
+          eq(
+            bookmarksSchema.audiobookBookmarks.audiobookId,
+            audiobookSchema.audiobooks.id,
+          ),
         )
         .leftJoin(
           audiobookSchema.audiobookAuthors,
@@ -659,7 +658,16 @@ export class UserProfileService {
             audiobookSchema.people.id,
           ),
         )
-        .orderBy(desc(grouped.latestBookmarkAt), grouped.audiobookId)
+        .where(eq(bookmarksSchema.audiobookBookmarks.userId, userId))
+        .groupBy(
+          bookmarksSchema.audiobookBookmarks.audiobookId,
+          audiobookSchema.audiobooks.id,
+          audiobookSchema.people.name,
+        )
+        .orderBy(
+          desc(max(bookmarksSchema.audiobookBookmarks.createdAt)),
+          bookmarksSchema.audiobookBookmarks.audiobookId,
+        )
         .limit(limit)
         .offset(offset),
 
@@ -690,7 +698,9 @@ export class UserProfileService {
           'audiobooks',
         ),
         bookmarkCount: Number(row.bookmarkCount),
-        latestBookmarkAt: row.latestBookmarkAt.toISOString(),
+        // Every group aggregates at least one bookmark, so max() is never
+        // null in practice — the fallback only satisfies strict null checks.
+        latestBookmarkAt: (row.latestBookmarkAt ?? new Date(0)).toISOString(),
       };
     });
 
