@@ -30,5 +30,12 @@
   "sleepTimerActive": "Sovtimer aktiv",
   "sleepTimerMinutes": "{minutes} min",
   "sleepTimerEndOfChapter": "Slut på kapitlet",
-  "sleepTimerCancel": "Avbryt timer"
+  "sleepTimerCancel": "Avbryt timer",
+  "addBookmark": "Lägg till bokmärke",
+  "bookmark": "Bokmärke",
+  "bookmarkNote": "Anteckning",
+  "bookmarkNotePlaceholder": "Lägg till en valfri anteckning",
+  "bookmarkSave": "Spara bokmärke",
+  "bookmarkSaved": "Bokmärket sparades",
+  "bookmarkSaveError": "Det gick inte att spara bokmärket"
 }

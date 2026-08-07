@@ -956,6 +956,119 @@ describe('UserProfileService', () => {
   });
 
   // -----------------------------------------------------------------------
+  // getBookmarks
+  // -----------------------------------------------------------------------
+  describe('getBookmarks', () => {
+    function setupBookmarksMocks(db: any, rows: any[], totalCount: number) {
+      let callCount = 0;
+      db.select.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // Bookmarks page query
+          return chainMock(rows);
+        }
+        if (callCount === 2) {
+          // Count query
+          return chainMock([{ count: totalCount }]);
+        }
+        // Metadata queries
+        return chainMock([]);
+      });
+    }
+
+    it('returns empty result when the user has no bookmarks', async () => {
+      const db = createMockDb();
+      setupBookmarksMocks(db, [], 0);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
+
+      const result = await service.getBookmarks(USER_ID, 20, 0);
+
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(0);
+    });
+
+    it('returns bookmarks with audiobook context and API cover URLs', async () => {
+      const createdAt = new Date('2026-08-01T10:00:00.000Z');
+      const rows = [
+        {
+          id: 'bm-1',
+          audiobookId: 'ab-1',
+          note: 'A great scene',
+          position: 4523,
+          createdAt,
+          updatedAt: createdAt,
+          audiobookTitle: 'Test Book',
+          coverUrl: 'cover.jpg',
+          coverSource: 'embedded',
+          authorName: 'Author A',
+        },
+      ];
+
+      const db = createMockDb();
+      setupBookmarksMocks(db, rows, 1);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
+
+      const result = await service.getBookmarks(USER_ID, 20, 0);
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual({
+        id: 'bm-1',
+        audiobookId: 'ab-1',
+        audiobookTitle: 'Test Book',
+        authorName: 'Author A',
+        coverUrl: '/api/audiobooks/ab-1/cover',
+        note: 'A great scene',
+        position: 4523,
+        createdAt: '2026-08-01T10:00:00.000Z',
+        updatedAt: '2026-08-01T10:00:00.000Z',
+      });
+      expect(result.total).toBe(1);
+    });
+
+    it('prefers resolved metadata titles over stored row values', async () => {
+      const createdAt = new Date('2026-08-01T10:00:00.000Z');
+      const rows = [
+        {
+          id: 'bm-1',
+          audiobookId: 'ab-1',
+          note: null,
+          position: 60,
+          createdAt,
+          updatedAt: createdAt,
+          audiobookTitle: 'Embedded Title',
+          coverUrl: null,
+          coverSource: null,
+          authorName: 'Embedded Author',
+        },
+      ];
+
+      const db = createMockDb();
+      setupBookmarksMocks(db, rows, 1);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver({
+          'ab-1': { title: 'Resolved Title', authorNames: ['Resolved Author'] },
+        }),
+      );
+
+      const result = await service.getBookmarks(USER_ID, 20, 0);
+
+      expect(result.items[0].audiobookTitle).toBe('Resolved Title');
+      expect(result.items[0].authorName).toBe('Resolved Author');
+      expect(result.items[0].note).toBeNull();
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // Fallback when the resolver has no entry for a row
   // -----------------------------------------------------------------------
   describe('metadata fallback (via getLibraryProgress)', () => {

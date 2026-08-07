@@ -235,5 +235,12 @@
     "remove": "Ta bort",
     "removed": "\"{name}\" borttagen från {type}s",
     "removeFailed": "Kunde inte ta bort \"{name}\""
+  },
+  "timestampField": {
+    "label": "Tid",
+    "subtractSeconds": "Minska med {seconds} sekunder",
+    "addSeconds": "Öka med {seconds} sekunder",
+    "invalid": "Ange en tid som 1:23:45",
+    "beyondEnd": "Efter ljudbokens slut"
   }
 }

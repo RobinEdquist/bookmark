@@ -9,12 +9,14 @@ import * as ebookProgressSchema from '../ebook-progress/schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as authSchema from '../auth/schema';
+import * as bookmarksSchema from '../audiobook-bookmarks/schema';
 import type {
   UserProfileStatsDto,
   UserProfileActivityDto,
   LibraryProgressResponseDto,
   LibraryProgressItemDto,
   ListeningHistoryResponseDto,
+  UserBookmarksResponseDto,
 } from './dto/user-profile-response.dto';
 
 @Injectable()
@@ -26,7 +28,8 @@ export class UserProfileService {
         typeof ebookProgressSchema &
         typeof audiobookSchema &
         typeof ebooksSchema &
-        typeof authSchema
+        typeof authSchema &
+        typeof bookmarksSchema
     >,
     private readonly coverService: CoverService,
     private readonly metadataResolver: MetadataResolverService,
@@ -495,6 +498,93 @@ export class UserProfileService {
         endPosition: row.endPosition,
         startedAt: row.startedAt.toISOString(),
         endedAt: row.endedAt.toISOString(),
+      };
+    });
+
+    return { items, total: totalResult[0]?.count ?? 0 };
+  }
+
+  /**
+   * Get paginated audiobook bookmarks (newest first) with audiobook context.
+   */
+  async getBookmarks(
+    userId: string,
+    limit: number,
+    offset: number,
+  ): Promise<UserBookmarksResponseDto> {
+    const [results, totalResult] = await Promise.all([
+      this.db
+        .select({
+          id: bookmarksSchema.audiobookBookmarks.id,
+          audiobookId: bookmarksSchema.audiobookBookmarks.audiobookId,
+          note: bookmarksSchema.audiobookBookmarks.note,
+          position: bookmarksSchema.audiobookBookmarks.position,
+          createdAt: bookmarksSchema.audiobookBookmarks.createdAt,
+          updatedAt: bookmarksSchema.audiobookBookmarks.updatedAt,
+          audiobookTitle: audiobookSchema.audiobooks.title,
+          coverUrl: audiobookSchema.audiobooks.coverUrl,
+          coverSource: audiobookSchema.audiobooks.coverSource,
+          authorName: audiobookSchema.people.name,
+        })
+        .from(bookmarksSchema.audiobookBookmarks)
+        .innerJoin(
+          audiobookSchema.audiobooks,
+          eq(
+            bookmarksSchema.audiobookBookmarks.audiobookId,
+            audiobookSchema.audiobooks.id,
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.audiobookAuthors,
+          and(
+            eq(
+              audiobookSchema.audiobooks.id,
+              audiobookSchema.audiobookAuthors.audiobookId,
+            ),
+            eq(audiobookSchema.audiobookAuthors.order, 0),
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.people,
+          eq(
+            audiobookSchema.audiobookAuthors.personId,
+            audiobookSchema.people.id,
+          ),
+        )
+        .where(eq(bookmarksSchema.audiobookBookmarks.userId, userId))
+        .orderBy(desc(bookmarksSchema.audiobookBookmarks.createdAt))
+        .limit(limit)
+        .offset(offset),
+
+      this.db
+        .select({ count: count() })
+        .from(bookmarksSchema.audiobookBookmarks)
+        .where(eq(bookmarksSchema.audiobookBookmarks.userId, userId)),
+    ]);
+
+    // Resolve titles/authors the same way the audiobook detail page does
+    const metadata = await this.metadataResolver.forAudiobooks(
+      results.map((r) => r.audiobookId),
+    );
+
+    const items = results.map((row) => {
+      const resolved = metadata.get(row.audiobookId);
+
+      return {
+        id: row.id,
+        audiobookId: row.audiobookId,
+        audiobookTitle: resolved?.title ?? row.audiobookTitle,
+        authorName: resolved?.authorNames[0] ?? row.authorName ?? null,
+        coverUrl: this.coverService.getCoverUrl(
+          row.audiobookId,
+          row.coverUrl,
+          row.coverSource,
+          'audiobooks',
+        ),
+        note: row.note ?? null,
+        position: row.position,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
       };
     });
 

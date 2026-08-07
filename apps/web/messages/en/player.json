@@ -30,5 +30,12 @@
   "sleepTimerActive": "Sleep timer active",
   "sleepTimerMinutes": "{minutes} min",
   "sleepTimerEndOfChapter": "End of chapter",
-  "sleepTimerCancel": "Cancel timer"
+  "sleepTimerCancel": "Cancel timer",
+  "addBookmark": "Add bookmark",
+  "bookmark": "Bookmark",
+  "bookmarkNote": "Note",
+  "bookmarkNotePlaceholder": "Add an optional note",
+  "bookmarkSave": "Save bookmark",
+  "bookmarkSaved": "Bookmark saved",
+  "bookmarkSaveError": "Failed to save bookmark"
 }

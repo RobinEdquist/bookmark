@@ -111,6 +111,23 @@
     "aiNarrated": {
       "badge": "AI narrated",
       "generatedFromEbook": "Generated from this ebook"
+    },
+    "bookmarks": {
+      "title": "Bookmarks",
+      "playFrom": "Play from {time}",
+      "edit": "Edit bookmark",
+      "editTitle": "Edit bookmark",
+      "note": "Note",
+      "notePlaceholder": "Add an optional note",
+      "updated": "Bookmark updated",
+      "updateError": "Failed to update bookmark",
+      "deleted": "Bookmark deleted",
+      "deleteError": "Failed to delete bookmark",
+      "playConfirmTitle": "Play from bookmark?",
+      "playConfirmDescription": "Your listening progress will move to {time}.",
+      "playConfirmAction": "Play",
+      "playConfirmCancel": "Cancel",
+      "playConfirmDontAskAgain": "Don't ask again"
     }
   },
   "changeCover": {

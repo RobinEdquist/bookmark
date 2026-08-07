@@ -235,5 +235,12 @@
     "remove": "Remove",
     "removed": "Removed \"{name}\" from {type}s",
     "removeFailed": "Failed to remove \"{name}\""
+  },
+  "timestampField": {
+    "label": "Time",
+    "subtractSeconds": "Subtract {seconds} seconds",
+    "addSeconds": "Add {seconds} seconds",
+    "invalid": "Enter a time like 1:23:45",
+    "beyondEnd": "Past the end of the audiobook"
   }
 }
