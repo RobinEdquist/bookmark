@@ -99,8 +99,8 @@ export const queryKeys = {
     all: ["bookmarks"] as const,
     list: (audiobookId: string) =>
       [...queryKeys.bookmarks.all, "list", audiobookId] as const,
-    user: (userId: string, offset?: number) =>
-      [...queryKeys.bookmarks.all, "user", userId, offset] as const,
+    userBooks: (userId: string, offset?: number) =>
+      [...queryKeys.bookmarks.all, "user-books", userId, offset] as const,
   },
   ebooks: {
     all: ["ebooks"] as const,

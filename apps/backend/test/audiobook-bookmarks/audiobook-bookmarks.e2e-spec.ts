@@ -140,4 +140,23 @@ describe('Audiobook Bookmarks (e2e)', () => {
       expect(status).toBe(401);
     });
   });
+
+  describe('GET /user-profile/:id/bookmarked-audiobooks', () => {
+    it('should return empty items for the current user', async () => {
+      const { status, data } = await api.get(
+        '/user-profile/me/bookmarked-audiobooks',
+        admin.cookie,
+      );
+
+      expect(status).toBe(200);
+      expect(data).toEqual({ items: [], total: 0 });
+    });
+
+    it('should return 401 without auth', async () => {
+      const { status } = await api.get(
+        '/user-profile/me/bookmarked-audiobooks',
+      );
+      expect(status).toBe(401);
+    });
+  });
 });

@@ -4,12 +4,12 @@ import { BookmarksList } from "../bookmarks-list";
 
 // --- Hoisted mocks ---
 
-const { mockUseUserBookmarks } = vi.hoisted(() => ({
-  mockUseUserBookmarks: vi.fn(),
+const { mockUseBookmarkedAudiobooks } = vi.hoisted(() => ({
+  mockUseBookmarkedAudiobooks: vi.fn(),
 }));
 
 vi.mock("../../../lib/use-bookmarks", () => ({
-  useUserBookmarks: mockUseUserBookmarks,
+  useBookmarkedAudiobooks: mockUseBookmarkedAudiobooks,
 }));
 
 vi.mock("next/image", () => ({
@@ -33,15 +33,12 @@ vi.mock("next/link", () => ({
 
 function makeItem(overrides: Record<string, unknown> = {}) {
   return {
-    id: "bm-1",
     audiobookId: "book-1",
     audiobookTitle: "Project Hail Mary",
     authorName: "Andy Weir",
     coverUrl: "/api/audiobooks/book-1/cover",
-    note: "The lighthouse scene",
-    position: 4523,
-    createdAt: "2026-08-01T10:00:00.000Z",
-    updatedAt: "2026-08-01T10:00:00.000Z",
+    bookmarkCount: 5,
+    latestBookmarkAt: "2026-08-01T10:00:00.000Z",
     ...overrides,
   };
 }
@@ -51,8 +48,8 @@ beforeEach(() => {
 });
 
 describe("BookmarksList", () => {
-  it("shows the empty state when there are no bookmarks", () => {
-    mockUseUserBookmarks.mockReturnValue({
+  it("shows the empty state when no book has bookmarks", () => {
+    mockUseBookmarkedAudiobooks.mockReturnValue({
       data: { items: [], total: 0 },
       isLoading: false,
     });
@@ -62,26 +59,9 @@ describe("BookmarksList", () => {
     expect(screen.getByText("empty")).toBeInTheDocument();
   });
 
-  it("renders note as title with the audiobook as subtitle", () => {
-    mockUseUserBookmarks.mockReturnValue({
+  it("renders one row per book with its bookmark count, linking to the book", () => {
+    mockUseBookmarkedAudiobooks.mockReturnValue({
       data: { items: [makeItem()], total: 1 },
-      isLoading: false,
-    });
-
-    render(<BookmarksList userId="me" />);
-
-    expect(screen.getByText("The lighthouse scene")).toBeInTheDocument();
-    expect(screen.getByText("Project Hail Mary")).toBeInTheDocument();
-    expect(screen.getByText("1:15:23")).toBeInTheDocument();
-    expect(screen.getByRole("link")).toHaveAttribute(
-      "href",
-      "/audiobooks/book-1",
-    );
-  });
-
-  it("promotes the audiobook title when a bookmark has no note", () => {
-    mockUseUserBookmarks.mockReturnValue({
-      data: { items: [makeItem({ note: null })], total: 1 },
       isLoading: false,
     });
 
@@ -89,25 +69,44 @@ describe("BookmarksList", () => {
 
     expect(screen.getByText("Project Hail Mary")).toBeInTheDocument();
     expect(screen.getByText("Andy Weir")).toBeInTheDocument();
+    // next-intl is mocked to echo the key plus its values, so the count
+    // being passed through is visible in the rendered label.
+    expect(screen.getByText('bookmarkCount({"count":5})')).toBeInTheDocument();
+    expect(screen.getByRole("link")).toHaveAttribute(
+      "href",
+      "/audiobooks/book-1",
+    );
+  });
+
+  it("omits the author line when the book has no author", () => {
+    mockUseBookmarkedAudiobooks.mockReturnValue({
+      data: { items: [makeItem({ authorName: null })], total: 1 },
+      isLoading: false,
+    });
+
+    render(<BookmarksList userId="me" />);
+
+    expect(screen.getByText("Project Hail Mary")).toBeInTheDocument();
+    expect(screen.queryByText("Andy Weir")).not.toBeInTheDocument();
   });
 
   it("pages through results with the next button", async () => {
-    mockUseUserBookmarks.mockReturnValue({
+    mockUseBookmarkedAudiobooks.mockReturnValue({
       data: { items: [makeItem()], total: 45 },
       isLoading: false,
     });
 
     render(<BookmarksList userId="me" />);
 
-    expect(mockUseUserBookmarks).toHaveBeenLastCalledWith("me", 0, 20);
+    expect(mockUseBookmarkedAudiobooks).toHaveBeenLastCalledWith("me", 0, 20);
 
     await userEvent.click(screen.getByRole("button", { name: "next" }));
 
-    expect(mockUseUserBookmarks).toHaveBeenLastCalledWith("me", 20, 20);
+    expect(mockUseBookmarkedAudiobooks).toHaveBeenLastCalledWith("me", 20, 20);
   });
 
   it("disables the previous button on the first page", () => {
-    mockUseUserBookmarks.mockReturnValue({
+    mockUseBookmarkedAudiobooks.mockReturnValue({
       data: { items: [makeItem()], total: 45 },
       isLoading: false,
     });

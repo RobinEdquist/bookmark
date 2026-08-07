@@ -75,6 +75,11 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
         path: '/user-profile/:id/bookmarks',
         expectedStatus: 401,
       },
+      {
+        method: 'GET',
+        path: '/user-profile/:id/bookmarked-audiobooks',
+        expectedStatus: 401,
+      },
     ],
   },
   {

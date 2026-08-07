@@ -8,8 +8,7 @@ import { Bookmark } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
-import { useUserBookmarks } from "../../lib/use-bookmarks";
-import { formatTimestamp } from "../../lib/format-timestamp";
+import { useBookmarkedAudiobooks } from "../../lib/use-bookmarks";
 
 const PAGE_SIZE = 20;
 
@@ -18,14 +17,21 @@ interface BookmarksListProps {
 }
 
 /**
- * All of a user's audiobook bookmarks, newest first. Rows link to the
- * audiobook detail page where bookmarks can be played and edited.
+ * The audiobooks a user has bookmarks in, one row per book with a count,
+ * ordered by most recent bookmark activity. Listing books instead of
+ * individual bookmarks keeps this section bounded no matter how heavily the
+ * user annotates — the bookmarks themselves live on the audiobook detail
+ * page each row links to.
  */
 export function BookmarksList({ userId }: BookmarksListProps) {
   const t = useTranslations("userProfile.bookmarks");
   const [offset, setOffset] = useState(0);
 
-  const { data, isLoading } = useUserBookmarks(userId, offset, PAGE_SIZE);
+  const { data, isLoading } = useBookmarkedAudiobooks(
+    userId,
+    offset,
+    PAGE_SIZE,
+  );
 
   const total = data?.total ?? 0;
   const currentPage = Math.floor(offset / PAGE_SIZE) + 1;
@@ -48,32 +54,27 @@ export function BookmarksList({ userId }: BookmarksListProps) {
       ) : (
         <>
           <div className="space-y-2">
-            {data.items.map((bookmark) => {
-              const createdDate = new Date(
-                bookmark.createdAt,
+            {data.items.map((book) => {
+              const latestDate = new Date(
+                book.latestBookmarkAt,
               ).toLocaleDateString(undefined, {
                 month: "short",
                 day: "numeric",
                 year: "numeric",
               });
-              // Without a note, the audiobook title carries the row
-              const title = bookmark.note ?? bookmark.audiobookTitle;
-              const subtitle = bookmark.note
-                ? bookmark.audiobookTitle
-                : bookmark.authorName;
 
               return (
                 <Link
-                  key={bookmark.id}
-                  href={`/audiobooks/${bookmark.audiobookId}`}
+                  key={book.audiobookId}
+                  href={`/audiobooks/${book.audiobookId}`}
                   className="flex items-center gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent"
                 >
                   {/* Cover */}
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded bg-muted">
-                    {bookmark.coverUrl && (
+                    {book.coverUrl && (
                       <Image
-                        src={bookmark.coverUrl}
-                        alt={bookmark.audiobookTitle}
+                        src={book.coverUrl}
+                        alt={book.audiobookTitle}
                         fill
                         className="object-cover"
                         sizes="40px"
@@ -90,21 +91,23 @@ export function BookmarksList({ userId }: BookmarksListProps) {
 
                   {/* Info */}
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{title}</p>
-                    {subtitle && (
+                    <p className="truncate text-sm font-medium">
+                      {book.audiobookTitle}
+                    </p>
+                    {book.authorName && (
                       <p className="truncate text-xs text-muted-foreground">
-                        {subtitle}
+                        {book.authorName}
                       </p>
                     )}
                   </div>
 
-                  {/* Position & created date */}
+                  {/* Count & latest activity */}
                   <div className="shrink-0 text-right">
                     <p className="text-xs font-medium tabular-nums">
-                      {formatTimestamp(bookmark.position)}
+                      {t("bookmarkCount", { count: book.bookmarkCount })}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {createdDate}
+                      {latestDate}
                     </p>
                   </div>
                 </Link>

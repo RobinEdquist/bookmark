@@ -10,14 +10,17 @@ export interface AudiobookBookmark {
   updatedAt: string;
 }
 
-export interface UserBookmark extends AudiobookBookmark {
+export interface BookmarkedAudiobook {
+  audiobookId: string;
   audiobookTitle: string;
   authorName: string | null;
   coverUrl: string | null;
+  bookmarkCount: number;
+  latestBookmarkAt: string;
 }
 
-export interface UserBookmarksResponse {
-  items: UserBookmark[];
+export interface BookmarkedAudiobooksResponse {
+  items: BookmarkedAudiobook[];
   total: number;
 }
 
@@ -52,16 +55,16 @@ async function fetchBookmarks(
   return response.json();
 }
 
-async function fetchUserBookmarks(
+async function fetchBookmarkedAudiobooks(
   userId: string,
   limit: number,
   offset: number,
-): Promise<UserBookmarksResponse> {
+): Promise<BookmarkedAudiobooksResponse> {
   const response = await fetch(
-    `/api/user-profile/${userId}/bookmarks?limit=${limit}&offset=${offset}`,
+    `/api/user-profile/${userId}/bookmarked-audiobooks?limit=${limit}&offset=${offset}`,
     { credentials: "include" },
   );
-  if (!response.ok) throw new Error("Failed to fetch bookmarks");
+  if (!response.ok) throw new Error("Failed to fetch bookmarked audiobooks");
   return response.json();
 }
 
@@ -131,10 +134,19 @@ export function useAudiobookBookmarks(audiobookId: string) {
   });
 }
 
-export function useUserBookmarks(userId: string, offset: number, limit = 20) {
-  return useQuery<UserBookmarksResponse>({
-    queryKey: queryKeys.bookmarks.user(userId, offset),
-    queryFn: () => fetchUserBookmarks(userId, limit, offset),
+/**
+ * The audiobooks a user has bookmarks in, with per-book counts, most recent
+ * bookmark activity first. The profile page links each row to the book's
+ * detail page, where the individual bookmarks live.
+ */
+export function useBookmarkedAudiobooks(
+  userId: string,
+  offset: number,
+  limit = 20,
+) {
+  return useQuery<BookmarkedAudiobooksResponse>({
+    queryKey: queryKeys.bookmarks.userBooks(userId, offset),
+    queryFn: () => fetchBookmarkedAudiobooks(userId, limit, offset),
     staleTime: 60 * 1000,
   });
 }

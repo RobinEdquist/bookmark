@@ -1,6 +1,15 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, count, desc, eq, gte, sql, sum } from 'drizzle-orm';
+import {
+  and,
+  count,
+  countDistinct,
+  desc,
+  eq,
+  gte,
+  sql,
+  sum,
+} from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
@@ -17,6 +26,7 @@ import type {
   LibraryProgressItemDto,
   ListeningHistoryResponseDto,
   UserBookmarksResponseDto,
+  UserBookmarkedAudiobooksResponseDto,
 } from './dto/user-profile-response.dto';
 
 @Injectable()
@@ -585,6 +595,102 @@ export class UserProfileService {
         position: row.position,
         createdAt: row.createdAt.toISOString(),
         updatedAt: row.updatedAt.toISOString(),
+      };
+    });
+
+    return { items, total: totalResult[0]?.count ?? 0 };
+  }
+
+  /**
+   * The user's bookmarks grouped per audiobook — one row per book with a
+   * count and the latest bookmark's creation time, most recently
+   * bookmarked-in first. Powers the profile page, which links to the book
+   * detail page where the individual bookmarks live.
+   */
+  async getBookmarkedAudiobooks(
+    userId: string,
+    limit: number,
+    offset: number,
+  ): Promise<UserBookmarkedAudiobooksResponseDto> {
+    const grouped = this.db
+      .select({
+        audiobookId: bookmarksSchema.audiobookBookmarks.audiobookId,
+        bookmarkCount: count().as('bookmark_count'),
+        latestBookmarkAt:
+          sql<Date>`max(${bookmarksSchema.audiobookBookmarks.createdAt})`.as(
+            'latest_bookmark_at',
+          ),
+      })
+      .from(bookmarksSchema.audiobookBookmarks)
+      .where(eq(bookmarksSchema.audiobookBookmarks.userId, userId))
+      .groupBy(bookmarksSchema.audiobookBookmarks.audiobookId)
+      .as('bookmarked');
+
+    const [results, totalResult] = await Promise.all([
+      this.db
+        .select({
+          audiobookId: grouped.audiobookId,
+          bookmarkCount: grouped.bookmarkCount,
+          latestBookmarkAt: grouped.latestBookmarkAt,
+          audiobookTitle: audiobookSchema.audiobooks.title,
+          coverUrl: audiobookSchema.audiobooks.coverUrl,
+          coverSource: audiobookSchema.audiobooks.coverSource,
+          authorName: audiobookSchema.people.name,
+        })
+        .from(grouped)
+        .innerJoin(
+          audiobookSchema.audiobooks,
+          eq(grouped.audiobookId, audiobookSchema.audiobooks.id),
+        )
+        .leftJoin(
+          audiobookSchema.audiobookAuthors,
+          and(
+            eq(
+              audiobookSchema.audiobooks.id,
+              audiobookSchema.audiobookAuthors.audiobookId,
+            ),
+            eq(audiobookSchema.audiobookAuthors.order, 0),
+          ),
+        )
+        .leftJoin(
+          audiobookSchema.people,
+          eq(
+            audiobookSchema.audiobookAuthors.personId,
+            audiobookSchema.people.id,
+          ),
+        )
+        .orderBy(desc(grouped.latestBookmarkAt), grouped.audiobookId)
+        .limit(limit)
+        .offset(offset),
+
+      this.db
+        .select({
+          count: countDistinct(bookmarksSchema.audiobookBookmarks.audiobookId),
+        })
+        .from(bookmarksSchema.audiobookBookmarks)
+        .where(eq(bookmarksSchema.audiobookBookmarks.userId, userId)),
+    ]);
+
+    // Resolve titles/authors the same way the audiobook detail page does
+    const metadata = await this.metadataResolver.forAudiobooks(
+      results.map((r) => r.audiobookId),
+    );
+
+    const items = results.map((row) => {
+      const resolved = metadata.get(row.audiobookId);
+
+      return {
+        audiobookId: row.audiobookId,
+        audiobookTitle: resolved?.title ?? row.audiobookTitle,
+        authorName: resolved?.authorNames[0] ?? row.authorName ?? null,
+        coverUrl: this.coverService.getCoverUrl(
+          row.audiobookId,
+          row.coverUrl,
+          row.coverSource,
+          'audiobooks',
+        ),
+        bookmarkCount: Number(row.bookmarkCount),
+        latestBookmarkAt: row.latestBookmarkAt.toISOString(),
       };
     });
 

@@ -1,4 +1,5 @@
 import { NotFoundException } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import { UserProfileService } from './user-profile.service';
 
 /**
@@ -1065,6 +1066,130 @@ describe('UserProfileService', () => {
       expect(result.items[0].audiobookTitle).toBe('Resolved Title');
       expect(result.items[0].authorName).toBe('Resolved Author');
       expect(result.items[0].note).toBeNull();
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // getBookmarkedAudiobooks
+  // -----------------------------------------------------------------------
+  describe('getBookmarkedAudiobooks', () => {
+    /**
+     * The aggregate builds a grouped subquery first (`.as('bookmarked')`),
+     * then runs the page + count queries. The subquery's fields are only
+     * referenced while CONSTRUCTING the outer query, so a proxy handing out
+     * raw sql fragments keeps drizzle's eq()/desc() happy.
+     */
+    function subqueryColumns() {
+      return new Proxy({}, { get: (_target, prop) => sql.raw(String(prop)) });
+    }
+
+    function setupBookmarkedAudiobooksMocks(
+      db: any,
+      rows: any[],
+      totalCount: number,
+    ) {
+      let callCount = 0;
+      db.select.mockImplementation(() => {
+        callCount++;
+        if (callCount === 1) {
+          // Grouped subquery construction, terminated by .as()
+          const sub = chainMock([]);
+          (sub as any).as = jest.fn().mockReturnValue(subqueryColumns());
+          return sub;
+        }
+        if (callCount === 2) {
+          // Page query
+          return chainMock(rows);
+        }
+        if (callCount === 3) {
+          // Distinct-count query
+          return chainMock([{ count: totalCount }]);
+        }
+        return chainMock([]);
+      });
+    }
+
+    it('returns empty result when the user has no bookmarks', async () => {
+      const db = createMockDb();
+      setupBookmarkedAudiobooksMocks(db, [], 0);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
+
+      const result = await service.getBookmarkedAudiobooks(USER_ID, 20, 0);
+
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(0);
+    });
+
+    it('returns per-book counts with audiobook context and API cover URLs', async () => {
+      const latest = new Date('2026-08-05T18:30:00.000Z');
+      const rows = [
+        {
+          audiobookId: 'ab-1',
+          bookmarkCount: 5,
+          latestBookmarkAt: latest,
+          audiobookTitle: 'Test Book',
+          coverUrl: 'cover.jpg',
+          coverSource: 'embedded',
+          authorName: 'Author A',
+        },
+      ];
+
+      const db = createMockDb();
+      setupBookmarkedAudiobooksMocks(db, rows, 1);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver(),
+      );
+
+      const result = await service.getBookmarkedAudiobooks(USER_ID, 20, 0);
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toEqual({
+        audiobookId: 'ab-1',
+        audiobookTitle: 'Test Book',
+        authorName: 'Author A',
+        coverUrl: '/api/audiobooks/ab-1/cover',
+        bookmarkCount: 5,
+        latestBookmarkAt: '2026-08-05T18:30:00.000Z',
+      });
+      expect(result.total).toBe(1);
+    });
+
+    it('prefers resolved metadata titles and coerces string counts', async () => {
+      const latest = new Date('2026-08-05T18:30:00.000Z');
+      const rows = [
+        {
+          audiobookId: 'ab-1',
+          // node-postgres returns bigint aggregates as strings
+          bookmarkCount: '3',
+          latestBookmarkAt: latest,
+          audiobookTitle: 'Embedded Title',
+          coverUrl: null,
+          coverSource: null,
+          authorName: null,
+        },
+      ];
+
+      const db = createMockDb();
+      setupBookmarkedAudiobooksMocks(db, rows, 1);
+      const service = new UserProfileService(
+        db,
+        coverService,
+        createMetadataResolver({
+          'ab-1': { title: 'Resolved Title', authorNames: ['Resolved Author'] },
+        }),
+      );
+
+      const result = await service.getBookmarkedAudiobooks(USER_ID, 20, 0);
+
+      expect(result.items[0].audiobookTitle).toBe('Resolved Title');
+      expect(result.items[0].authorName).toBe('Resolved Author');
+      expect(result.items[0].bookmarkCount).toBe(3);
     });
   });
 

@@ -15,6 +15,9 @@ function createController() {
       .fn()
       .mockResolvedValue({ sessions: [], total: 0 }),
     getBookmarks: jest.fn().mockResolvedValue({ items: [], total: 0 }),
+    getBookmarkedAudiobooks: jest
+      .fn()
+      .mockResolvedValue({ items: [], total: 0 }),
   };
 
   return {
@@ -141,6 +144,50 @@ describe('UserProfileController', () => {
 
     await expect(
       controller.getBookmarks('other-user', undefined, undefined, user),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('resolves "me" and normalizes pagination for bookmarked audiobooks', async () => {
+    const { controller, service } = createController();
+
+    await expect(
+      controller.getBookmarkedAudiobooks('me', '500', '-10', user),
+    ).resolves.toEqual({ items: [], total: 0 });
+
+    expect(service.getBookmarkedAudiobooks).toHaveBeenCalledWith(
+      'user-1',
+      100,
+      0,
+    );
+  });
+
+  it("allows admins to view another user's bookmarked audiobooks", async () => {
+    const { controller, service } = createController();
+
+    await controller.getBookmarkedAudiobooks(
+      'target-user',
+      undefined,
+      undefined,
+      admin,
+    );
+
+    expect(service.getBookmarkedAudiobooks).toHaveBeenCalledWith(
+      'target-user',
+      20,
+      0,
+    );
+  });
+
+  it("rejects non-admin access to another user's bookmarked audiobooks", async () => {
+    const { controller } = createController();
+
+    await expect(
+      controller.getBookmarkedAudiobooks(
+        'other-user',
+        undefined,
+        undefined,
+        user,
+      ),
     ).rejects.toThrow(ForbiddenException);
   });
 });

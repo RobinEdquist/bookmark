@@ -229,3 +229,45 @@ export class UserBookmarksResponseDto {
   @ApiProperty({ example: 42 })
   total!: number;
 }
+
+export class UserBookmarkedAudiobookDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  audiobookId!: string;
+
+  @ApiProperty({ example: 'Project Hail Mary' })
+  audiobookTitle!: string;
+
+  @ApiPropertyOptional({ type: String, example: 'Andy Weir', nullable: true })
+  authorName?: string | null;
+
+  @ApiPropertyOptional({
+    type: String,
+    example: '/api/audiobooks/550e8400-e29b-41d4-a716-446655440000/cover',
+    nullable: true,
+  })
+  coverUrl?: string | null;
+
+  @ApiProperty({
+    type: 'integer',
+    example: 5,
+    description: 'How many bookmarks the user holds in this audiobook',
+  })
+  bookmarkCount!: number;
+
+  @ApiProperty({
+    example: '2026-08-07T09:00:00.000Z',
+    description: 'When the most recent bookmark in this audiobook was created',
+  })
+  latestBookmarkAt!: string;
+}
+
+export class UserBookmarkedAudiobooksResponseDto {
+  @ApiProperty({ type: [UserBookmarkedAudiobookDto] })
+  items!: UserBookmarkedAudiobookDto[];
+
+  @ApiProperty({
+    example: 7,
+    description: 'Number of audiobooks with bookmarks',
+  })
+  total!: number;
+}
