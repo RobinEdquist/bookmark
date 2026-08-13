@@ -30,8 +30,7 @@ const nextConfig = {
           // TLS-terminating reverse proxy, which knows whether HTTPS is on.
           {
             key: "Content-Security-Policy",
-            value:
-              "object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
+            value: "object-src 'none'; base-uri 'self'; frame-ancestors 'self'",
           },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },

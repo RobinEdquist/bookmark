@@ -16,7 +16,9 @@ describe("sanitizeBookContent", () => {
   describe("active content is removed", () => {
     it("removes script elements", () => {
       const result = sanitizeBookContent(
-        xhtml("<p>hi</p><script>window.top.location='https://evil.test'</script>"),
+        xhtml(
+          "<p>hi</p><script>window.top.location='https://evil.test'</script>",
+        ),
         XHTML_TYPE,
       );
       expect(result).not.toContain("<script");
