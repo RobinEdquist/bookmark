@@ -86,7 +86,7 @@ export default function GetStarted() {
           className="section-title"
           style={{ fontSize: "clamp(2.4rem, 5.5vw, 3.75rem)" }}
         >
-          From zero to listening
+          Install Bookmark
         </h1>
         <p className="section-lede">
           One container, one file to paste, about five minutes. Nothing to
@@ -302,7 +302,7 @@ export default function GetStarted() {
 
       <section className="shell section-tight" style={{ textAlign: "center" }}>
         <p className="section-lede" style={{ margin: "0 auto" }}>
-          That is the whole setup. Tonight&apos;s chapter is waiting.
+          That is the whole setup.
         </p>
         <div className="hero-ctas">
           <Link href="/" className="btn btn-quiet">

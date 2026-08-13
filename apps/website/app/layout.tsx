@@ -27,7 +27,7 @@ const neonderthaw = localFont({
 
 const SITE_URL = "https://getbookmark.app";
 const DESCRIPTION =
-  "Audiobooks first, with ebooks and comics on the same shelf. Metadata and ratings that fill themselves in, progress that follows you everywhere, and native apps for iPhone and Android. Self-hosted, open source, yours.";
+  "A self-hosted server for audiobooks, ebooks, and comics. Streams to the browser and native mobile apps, syncs progress across devices, and matches metadata and ratings from Goodreads, Hardcover, and more. Open source, MIT licensed.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

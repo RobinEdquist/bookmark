@@ -19,14 +19,14 @@ export default function Home() {
       <section className="shell hero">
         <NeonSign />
         <h1>
-          Press play on
-          <span className="hero-script">your own server</span>
+          A home for
+          <span className="hero-script">your audiobooks</span>
         </h1>
         <p className="hero-lede">
-          Bookmark is a self-hosted home for your audiobooks, with room on the
-          same shelf for ebooks and comics. It fills in covers, metadata, and
-          ratings on its own, the player is built around how people actually
-          listen, and your progress follows you everywhere.
+          Bookmark is a self-hosted server for your audiobooks, with room on the
+          same shelf for ebooks and comics. It streams to the browser and native
+          mobile apps, keeps your progress in sync across devices, and never
+          modifies your files.
         </p>
         <div className="hero-ctas">
           <Link href="/get-started/" className="btn btn-neon">
@@ -37,7 +37,7 @@ export default function Home() {
           </a>
         </div>
         <p className="hero-fineprint">
-          docker compose up -d · MIT licensed · your files stay yours
+          docker compose up -d · MIT licensed · open source
         </p>
 
         <div className="hero-stage">
@@ -50,29 +50,30 @@ export default function Home() {
       <section className="shell section" id="library">
         <div className="fold">
           <Reveal>
-            <p className="kicker kicker-magenta">Metadata</p>
-            <h2 className="section-title">A library that fills itself in</h2>
+            <p className="kicker kicker-magenta">The library</p>
+            <h2 className="section-title">Covers, chapters, and metadata</h2>
             <p className="section-lede">
-              Point Bookmark at the folders you already have. Covers and
-              chapters come out of your files; the rest syncs from Goodreads,
-              Hardcover, Audnexus, and Comic Vine. Your originals are mounted
-              read-only and never rewritten.
+              Point Bookmark at the folders you already have. It scans covers,
+              chapters, and embedded tags from your files; descriptions,
+              ratings, and series info can be matched from Goodreads, Hardcover,
+              Audible, and Comic Vine. Libraries are mounted read-only and never
+              modified.
             </p>
             <ul className="feature-list">
               <li>
-                <strong>Kept in sync, not fetched once.</strong> A background
-                sync fills in descriptions, narrators, genres, and series order
-                as your library grows.
+                <strong>Audible and iTunes search.</strong> Look up a book from
+                the edit dialog to fill in the description, narrators, genres,
+                and series order.
               </li>
               <li>
-                <strong>Ratings from Goodreads and Hardcover.</strong> Community
-                ratings sync along with the rest of the metadata. Sort the
-                library by them, or browse the top list.
+                <strong>Goodreads and Hardcover ratings.</strong> Community
+                ratings show on each book. Sort the library by rating, or browse
+                the top list.
               </li>
               <li>
-                <strong>Fix anything by hand.</strong> Every field is editable,
-                and a match dialog pulls better candidates when the automatic
-                guess is wrong.
+                <strong>Metadata priority.</strong> When sources disagree, a
+                configurable order decides which wins: manual edits, embedded
+                tags, or matched data.
               </li>
             </ul>
           </Reveal>
@@ -104,9 +105,7 @@ export default function Home() {
         <div className="fold-reverse fold">
           <Reveal>
             <p className="kicker kicker-cyan">The player</p>
-            <h2 className="section-title">
-              Built around how people actually listen
-            </h2>
+            <h2 className="section-title">A player built for audiobooks</h2>
             <ul className="feature-list">
               <li>
                 <strong>Playback speed.</strong> Anywhere from 0.5× to 2× on the
@@ -131,13 +130,13 @@ export default function Home() {
       {/* ------------------------------------------------------------ sync */}
       <section className="shell section-tight">
         <Reveal>
-          <p className="kicker kicker-magenta">Progress sync</p>
-          <h2 className="section-title">Pick up exactly where you left off</h2>
+          <p className="kicker kicker-magenta">Sync</p>
+          <h2 className="section-title">Progress syncs across devices</h2>
           <p className="section-lede">
             Your position saves to your server every few seconds while you
-            listen. Pause on your phone in the checkout line, press play at your
-            desk, and the same sentence is waiting. Live updates arrive over
-            WebSocket; no refresh required.
+            listen. Pause on your phone, press play at your desk, and continue
+            from the same sentence. Live updates arrive over WebSocket; no
+            refresh required.
           </p>
         </Reveal>
         <Reveal delay={120}>
@@ -151,30 +150,29 @@ export default function Home() {
       <section className="shell section" id="apps">
         <div className="fold">
           <Reveal>
-            <p className="kicker kicker-cyan">iPhone &amp; Android</p>
+            <p className="kicker kicker-cyan">Mobile apps</p>
             <h2 className="section-title">
-              Native apps, made for the way out the door
+              Native apps for iPhone and Android
             </h2>
             <p className="section-lede">
-              Not a wrapped website: real native apps that keep the whole
-              library in your pocket.
+              Real native apps, not a wrapped website, with the whole library
+              available offline.
             </p>
             <p className="badge-soon">Public beta coming soon</p>
             <ul className="feature-list">
               <li>
-                <strong>Offline first.</strong> Download books to the phone,
-                listen in airplane mode, and progress reconciles the moment you
-                are back.
+                <strong>Offline downloads.</strong> Download books to the phone
+                and listen in airplane mode. Progress reconciles once you are
+                back online.
               </li>
               <li>
-                <strong>Paired in seconds.</strong> Scan the QR code from the
-                web app and you are in, with no passwords retyped on a phone
-                keyboard. Or just enter your server address and sign in with
-                your account, including single sign-on if your server uses it.
+                <strong>Pairing.</strong> Scan a QR code from the web app to
+                sign in, or enter your server address and use your account,
+                including single sign-on.
               </li>
               <li>
-                <strong>Made for iPad too.</strong> A sidebar layout that
-                actually uses the screen.
+                <strong>iPad support.</strong> A sidebar layout that uses the
+                full screen.
               </li>
             </ul>
           </Reveal>
@@ -190,10 +188,8 @@ export default function Home() {
       {/* --------------------------------------------------------- formats */}
       <section className="shell section-tight" id="formats">
         <Reveal>
-          <p className="kicker kicker-magenta">One shelf, three formats</p>
-          <h2 className="section-title">
-            Audiobooks first. Not audiobooks only.
-          </h2>
+          <p className="kicker kicker-magenta">Formats</p>
+          <h2 className="section-title">Audiobooks, ebooks, and comics</h2>
         </Reveal>
         <div className="format-cols">
           <Reveal>
@@ -204,9 +200,9 @@ export default function Home() {
               </div>
               <h3>Ebooks</h3>
               <p>
-                EPUBs are scanned, enriched, and readable right in the browser.
-                They are also served over OPDS, so you can keep using the
-                reading app you already love.
+                EPUBs are scanned and readable right in the browser. They are
+                also served over OPDS, so you can keep using the reader app you
+                already prefer.
               </p>
               <div className="format-tags">
                 <span className="format-tag">EPUB</span>
@@ -227,9 +223,9 @@ export default function Home() {
               </div>
               <h3>Comics</h3>
               <p>
-                Series and issues organized the way collectors expect: TPBs,
-                omnibuses, one-shots. Browse, organize, and download your
-                archives, or read them in your favorite comic app over OPDS.
+                Series and issues, including TPBs, omnibuses, and one-shots.
+                Browse, organize, and download your archives, or read them in a
+                comic app over OPDS.
               </p>
               <div className="format-tags">
                 <span className="format-tag">CBZ</span>
@@ -253,10 +249,9 @@ export default function Home() {
               </div>
               <h3>AI narration</h3>
               <p>
-                No audiobook edition? Bookmark can narrate an ebook into a real
-                M4B, chapters included, using any OpenAI-compatible
-                text-to-speech server. A ready-to-run engine ships in the
-                compose file.
+                Bookmark can narrate an ebook into an M4B audiobook, chapters
+                included, using any OpenAI-compatible text-to-speech server. A
+                ready-to-run engine ships in the compose file.
               </p>
               <div className="format-tags">
                 <span className="format-tag">EPUB in</span>
@@ -271,26 +266,27 @@ export default function Home() {
       <section className="shell section" id="yours">
         <div className="fold-reverse fold">
           <Reveal>
-            <p className="kicker kicker-cyan">Your household, your rules</p>
-            <h2 className="section-title">Make it yours, and theirs</h2>
+            <p className="kicker kicker-cyan">Accounts</p>
+            <h2 className="section-title">Multiple users and permissions</h2>
             <ul className="feature-list">
               <li>
-                <strong>Every listener gets their own shelf.</strong> Separate
-                progress, lists, stats, and preferences per account; nobody
-                loses your spot.
+                <strong>Per-user progress.</strong> Every account has its own
+                progress, lists, stats, and preferences.
               </li>
               <li>
-                <strong>Permissions and tag filters.</strong> Decide who can
-                edit metadata or upload, and keep certain shelves out of certain
-                accounts.
+                <strong>Permissions and tag filters.</strong> Control who can
+                edit metadata or upload, and use tag filters to hide certain
+                content from certain accounts.
               </li>
               <li>
-                <strong>Slots into your stack.</strong> Optional OpenID Connect
-                SSO, per-user API keys, and a REST API documented with Swagger.
+                <strong>OIDC, API keys, and a REST API.</strong> Optional OpenID
+                Connect single sign-on, per-user API keys, and a REST API
+                documented with Swagger.
               </li>
               <li>
-                <strong>Sixteen accents, thirteen surfaces.</strong> From
-                pure-black Pitch to light Silver, in English and Swedish.
+                <strong>Themes.</strong> Sixteen accent colors and thirteen
+                themes, from pure-black Pitch to light Silver, in English and
+                Swedish.
               </li>
             </ul>
           </Reveal>
@@ -305,7 +301,7 @@ export default function Home() {
         <div className="fold">
           <Reveal>
             <p className="kicker kicker-magenta">Self-hosting</p>
-            <h2 className="section-title">From zero to listening tonight</h2>
+            <h2 className="section-title">Install with Docker Compose</h2>
             <p className="section-lede">
               One image, database included. Copy the config template, point it
               at your media folders, and start it with a single command. The
