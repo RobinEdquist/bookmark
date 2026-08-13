@@ -10,6 +10,7 @@ import type {
 import { applyReaderStyles } from "../../../lib/reader-themes";
 import { useLatestRef } from "../../../lib/use-latest-ref";
 import type { ReaderSettings } from "../../../lib/use-reader-settings";
+import { sanitizeBookContent } from "./sanitize-book-content";
 import type {
   ReaderController,
   ReaderRelocateInfo,
@@ -27,34 +28,6 @@ interface FoliateReaderProps {
   onReady: (toc: ReaderTocItem[]) => void;
   onError: (error: Error) => void;
   onContentKeyDown?: (event: KeyboardEvent) => void;
-}
-
-/**
- * Remove <script> elements and inline event handlers from book content
- * before foliate-js turns it into a blob URL. Belt-and-braces on top of
- * blocking script resources: foliate's iframes need `allow-scripts` for a
- * WebKit event bug, so scripted EPUB content must not reach them.
- */
-function stripScripts(data: string, type: string): string {
-  try {
-    const doc = new DOMParser().parseFromString(
-      data,
-      type as DOMParserSupportedType,
-    );
-    for (const script of doc.querySelectorAll("script")) {
-      script.remove();
-    }
-    for (const el of doc.querySelectorAll("*")) {
-      for (const attr of [...el.attributes]) {
-        if (attr.name.toLowerCase().startsWith("on")) {
-          el.removeAttribute(attr.name);
-        }
-      }
-    }
-    return new XMLSerializer().serializeToString(doc);
-  } catch {
-    return data;
-  }
 }
 
 export function FoliateReader({
@@ -128,7 +101,9 @@ export function FoliateReader({
       await view.open(new File([blob], fileName));
       if (cancelled) return;
 
-      // Block scripted EPUB content (resources and inline)
+      // Block scripted EPUB content (resources and inline), and run every
+      // markup document through the strict allowlist sanitizer — see
+      // sanitize-book-content.ts for the threat model.
       view.book.transformTarget?.addEventListener("load", (event) => {
         const detail = (event as CustomEvent<FoliateLoadDetail>).detail;
         if (detail.isScript) detail.allow = false;
@@ -139,7 +114,7 @@ export function FoliateReader({
           typeof detail.data === "string" &&
           /x?html|xml/i.test(detail.type)
         ) {
-          detail.data = stripScripts(detail.data, detail.type);
+          detail.data = sanitizeBookContent(detail.data, detail.type);
         }
       });
 

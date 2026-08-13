@@ -62,7 +62,11 @@ export class RestoreController {
   ) {}
 
   @Post('upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 500 * 1024 * 1024, files: 1 },
+    }),
+  )
   @ApiOperation({
     summary: 'Upload backup file (Admin)',
     description:

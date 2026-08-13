@@ -7,10 +7,9 @@ import {
   Param,
   Query,
   Body,
-  Header,
+  Headers,
   Res,
   NotFoundException,
-  StreamableFile,
   HttpCode,
   HttpStatus,
   UseInterceptors,
@@ -33,6 +32,10 @@ import * as express from 'express';
 import * as fs from 'fs';
 import archiver from 'archiver';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  createContentETag,
+  matchesIfNoneMatch,
+} from '../common/http-cache.utils';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
@@ -350,7 +353,11 @@ export class ComicsController {
 
   @Post('series/:id/cover')
   @UseGuards(CanEditMetadataGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    }),
+  )
   @ApiOperation({
     summary: 'Update comic series cover',
     description:
@@ -428,14 +435,14 @@ export class ComicsController {
   }
 
   @Get('series/:id/cover')
-  @Header('Cache-Control', 'public, max-age=86400')
   @ApiOperation({
     summary: 'Get comic series cover image',
     description:
-      'Returns the cover image for a comic series. Cached for 24 hours.',
+      'Returns the cover image for a comic series. The response is authorized per user, so it is only privately cacheable and clients must revalidate before reuse.',
   })
   @ApiParam({ name: 'id', description: 'Comic series UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiResponse({ status: 304, description: 'Cover image not modified' })
   @ApiResponse({
     status: 403,
     description: 'Access denied - series has blacklisted tags',
@@ -443,17 +450,55 @@ export class ComicsController {
   @ApiResponse({ status: 404, description: 'Cover not found' })
   async getSeriesCover(
     @Param('id') id: string,
+    @Headers('if-none-match') ifNoneMatch: string | undefined,
+    @Res() res: express.Response,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.comicsService.verifySeriesNotBlacklisted(id, user.id);
+
+    // Any missing-cover response from this endpoint must not be cached.
+    res.setHeader('Cache-Control', 'no-store');
+
     const coverPath = await this.comicsService.getSeriesCoverFilePath(id);
 
     if (!coverPath) {
       throw new NotFoundException('Cover not found');
     }
 
-    const stream = fs.createReadStream(coverPath);
-    return new StreamableFile(stream, { type: 'image/jpeg' });
+    let data: Buffer;
+    try {
+      data = await fs.promises.readFile(coverPath);
+    } catch {
+      throw new NotFoundException('Cover not found');
+    }
+
+    this.sendPrivateCover(res, data, ifNoneMatch);
+  }
+
+  /**
+   * Send a cover image with per-user cache semantics. Cover responses are
+   * authorized per user (tag blacklists), so shared caches must never reuse
+   * them for another client; the ETag keeps client-side revalidation cheap.
+   */
+  private sendPrivateCover(
+    res: express.Response,
+    data: Buffer,
+    ifNoneMatch: string | undefined,
+  ): void {
+    const etag = createContentETag(data);
+
+    res.setHeader('Cache-Control', 'private, no-cache');
+    res.setHeader('ETag', etag);
+
+    if (matchesIfNoneMatch(ifNoneMatch, etag)) {
+      res.status(HttpStatus.NOT_MODIFIED).end();
+      return;
+    }
+
+    res.status(HttpStatus.OK);
+    res.setHeader('Content-Type', 'image/jpeg');
+    res.setHeader('Content-Length', data.length.toString());
+    res.end(data);
   }
 
   @Get('series/:id/download')
@@ -625,7 +670,11 @@ export class ComicsController {
 
   @Post('books/:id/cover')
   @UseGuards(CanEditMetadataGuard)
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    }),
+  )
   @ApiOperation({
     summary: 'Update comic book cover',
     description:
@@ -680,14 +729,14 @@ export class ComicsController {
   }
 
   @Get('books/:id/cover')
-  @Header('Cache-Control', 'public, max-age=86400')
   @ApiOperation({
     summary: 'Get comic book cover image',
     description:
-      'Returns the cover image for a comic book. Lazily extracts from the comic file if not cached. Cached for 24 hours.',
+      'Returns the cover image for a comic book. Lazily extracts from the comic file if not cached. The response is authorized per user, so it is only privately cacheable and clients must revalidate before reuse.',
   })
   @ApiParam({ name: 'id', description: 'Comic book UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiResponse({ status: 304, description: 'Cover image not modified' })
   @ApiResponse({
     status: 403,
     description: 'Access denied - series has blacklisted tags',
@@ -695,17 +744,29 @@ export class ComicsController {
   @ApiResponse({ status: 404, description: 'Cover not found' })
   async getBookCover(
     @Param('id') id: string,
+    @Headers('if-none-match') ifNoneMatch: string | undefined,
+    @Res() res: express.Response,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.comicsService.verifyBookNotBlacklisted(id, user.id);
+
+    // Any missing-cover response from this endpoint must not be cached.
+    res.setHeader('Cache-Control', 'no-store');
+
     const coverPath = await this.comicsService.getBookCoverFilePath(id);
 
     if (!coverPath) {
       throw new NotFoundException('Cover not found');
     }
 
-    const stream = fs.createReadStream(coverPath);
-    return new StreamableFile(stream, { type: 'image/jpeg' });
+    let data: Buffer;
+    try {
+      data = await fs.promises.readFile(coverPath);
+    } catch {
+      throw new NotFoundException('Cover not found');
+    }
+
+    this.sendPrivateCover(res, data, ifNoneMatch);
   }
 
   // ===== BOOK DOWNLOAD =====

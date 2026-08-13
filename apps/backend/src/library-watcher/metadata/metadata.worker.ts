@@ -6,10 +6,12 @@ import MediaInfoFactory, {
 } from 'mediainfo.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
 
-const execAsync = promisify(exec);
+// execFile (never exec): media file names are untrusted input and must be
+// passed as argv entries, not interpolated into a shell command line.
+const execFileAsync = promisify(execFile);
 
 interface ExtractedMetadata {
   title?: string;
@@ -252,8 +254,18 @@ async function extractChaptersWithFfprobe(
   filePath: string,
 ): Promise<Chapter[]> {
   try {
-    const { stdout } = await execAsync(
-      `ffprobe -v quiet -print_format json -show_chapters "${filePath.replace(/"/g, '\\"')}"`,
+    // -i keeps a file name starting with "-" from being read as an option
+    const { stdout } = await execFileAsync(
+      'ffprobe',
+      [
+        '-v',
+        'quiet',
+        '-print_format',
+        'json',
+        '-show_chapters',
+        '-i',
+        filePath,
+      ],
       { maxBuffer: 10 * 1024 * 1024 },
     );
 
@@ -345,8 +357,19 @@ async function extractCoverWithFfmpeg(
 ): Promise<{ data: number[]; mimeType: string } | null> {
   try {
     // First check if there's an attached picture stream
-    const { stdout: probeOutput } = await execAsync(
-      `ffprobe -v quiet -print_format json -show_streams -select_streams v "${filePath.replace(/"/g, '\\"')}"`,
+    const { stdout: probeOutput } = await execFileAsync(
+      'ffprobe',
+      [
+        '-v',
+        'quiet',
+        '-print_format',
+        'json',
+        '-show_streams',
+        '-select_streams',
+        'v',
+        '-i',
+        filePath,
+      ],
       { maxBuffer: 10 * 1024 * 1024 },
     );
 
@@ -365,8 +388,9 @@ async function extractCoverWithFfmpeg(
     const tempFile = path.join(tempDir, 'cover.jpg');
 
     try {
-      await execAsync(
-        `ffmpeg -v quiet -i "${filePath.replace(/"/g, '\\"')}" -an -vcodec copy "${tempFile}"`,
+      await execFileAsync(
+        'ffmpeg',
+        ['-v', 'quiet', '-i', filePath, '-an', '-vcodec', 'copy', tempFile],
         { maxBuffer: 10 * 1024 * 1024 },
       );
 

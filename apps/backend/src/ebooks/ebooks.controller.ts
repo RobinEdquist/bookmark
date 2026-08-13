@@ -7,11 +7,10 @@ import {
   Param,
   Query,
   Body,
-  Header,
+  Headers,
   Req,
   Res,
   NotFoundException,
-  StreamableFile,
   HttpCode,
   HttpStatus,
   UseInterceptors,
@@ -33,6 +32,10 @@ import {
 import * as express from 'express';
 import * as fs from 'fs';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import {
+  createContentETag,
+  matchesIfNoneMatch,
+} from '../common/http-cache.utils';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { EbooksService, EbookFilters } from './ebooks.service';
 import { UpdateEbookDto } from './dto/update-ebook.dto';
@@ -45,6 +48,8 @@ import {
   EbookSeriesDto,
 } from './dto/ebook-response.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
+import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
+import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 import { parseRangeHeader } from './http-range';
 
 /** Formats the in-browser reader can open (foliate-js: epub/mobi/azw3, react-pdf: pdf). */
@@ -294,10 +299,11 @@ export class EbooksController {
   }
 
   @Patch(':id')
+  @UseGuards(CanEditMetadataGuard)
   @ApiOperation({
     summary: 'Update ebook metadata',
     description:
-      'Update ebook metadata including title, authors, genres, and series',
+      'Update ebook metadata including title, authors, genres, and series. Requires edit metadata permission.',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({
@@ -306,17 +312,26 @@ export class EbooksController {
     type: EbookDetailDto,
   })
   @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires edit metadata permission',
+  })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateEbookDto) {
     return this.ebooksService.update(id, dto);
   }
 
   @Post(':id/cover')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(CanEditMetadataGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    }),
+  )
   @ApiOperation({
     summary: 'Update ebook cover',
     description:
-      'Upload a new cover image via file upload or URL. Supports JPG, PNG, and WebP formats. Max file size: 2 MB.',
+      'Upload a new cover image via file upload or URL. Supports JPG, PNG, and WebP formats. Max file size: 2 MB. Requires edit metadata permission.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
@@ -346,6 +361,10 @@ export class EbooksController {
     status: 400,
     description:
       'Invalid file type, file too large, or neither file nor URL provided',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires edit metadata permission',
   })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
   async updateCover(
@@ -383,14 +402,14 @@ export class EbooksController {
   }
 
   @Get(':id/cover')
-  @Header('Cache-Control', 'public, max-age=86400')
   @ApiOperation({
     summary: 'Get ebook cover image',
     description:
-      'Returns the cover image for an ebook. Cached for 24 hours. Access denied if ebook has tags blacklisted by the user.',
+      'Returns the cover image for an ebook. The response is authorized per user, so it is only privately cacheable and clients must revalidate before reuse. Access denied if ebook has tags blacklisted by the user.',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Cover image binary data' })
+  @ApiResponse({ status: 304, description: 'Cover image not modified' })
   @ApiResponse({
     status: 403,
     description: 'Access denied - ebook has blacklisted tags',
@@ -398,18 +417,37 @@ export class EbooksController {
   @ApiResponse({ status: 404, description: 'Cover not found' })
   async getCover(
     @Param('id') id: string,
+    @Headers('if-none-match') ifNoneMatch: string | undefined,
+    @Res() res: express.Response,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.ebooksService.verifyNotBlacklisted(id, user.id);
+
+    // Any missing-cover response from this endpoint must not be cached.
+    res.setHeader('Cache-Control', 'no-store');
+
     const cover = await this.ebooksService.getCover(id);
 
     if (!cover) {
       throw new NotFoundException('Cover not found');
     }
 
-    return new StreamableFile(cover.data, {
-      type: cover.mimeType,
-    });
+    const etag = createContentETag(cover.data);
+
+    // Authorization is per user (tag blacklists), so shared caches must never
+    // reuse this response for another client.
+    res.setHeader('Cache-Control', 'private, no-cache');
+    res.setHeader('ETag', etag);
+
+    if (matchesIfNoneMatch(ifNoneMatch, etag)) {
+      res.status(HttpStatus.NOT_MODIFIED).end();
+      return;
+    }
+
+    res.status(HttpStatus.OK);
+    res.setHeader('Content-Type', cover.mimeType);
+    res.setHeader('Content-Length', cover.data.length.toString());
+    res.end(cover.data);
   }
 
   @Get(':id/download')
@@ -513,11 +551,12 @@ export class EbooksController {
   }
 
   @Delete(':id')
+  @UseGuards(CanDeleteGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete ebook',
     description:
-      'Delete an ebook from the library. Optionally delete the source file from disk.',
+      'Delete an ebook from the library. Optionally delete the source file from disk. Requires delete permission.',
   })
   @ApiParam({ name: 'id', description: 'Ebook UUID', format: 'uuid' })
   @ApiQuery({
@@ -526,6 +565,10 @@ export class EbooksController {
     description: 'Set to "true" to also delete files from disk',
   })
   @ApiResponse({ status: 204, description: 'Ebook deleted successfully' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires delete permission',
+  })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
   async delete(
     @Param('id') id: string,

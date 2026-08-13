@@ -4,7 +4,7 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin, genericOAuth } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
-import { createAuthMiddleware } from 'better-auth/api';
+import { createAuthMiddleware, APIError } from 'better-auth/api';
 import { count, eq } from 'drizzle-orm';
 import * as schema from './schema';
 import { userPermissions } from '../users/schema';
@@ -83,24 +83,13 @@ export function createAuthInstance(
         },
         // Rate limiting not needed for this application
         rateLimit: { enabled: false },
-        // Support x-api-key header, Authorization: Bearer/Basic, and query param token
+        // Support x-api-key header and Authorization: Bearer/Basic.
+        // Query-string tokens are deliberately NOT supported: URLs end up in
+        // application logs, proxy logs, and browser history, which would leak
+        // the long-lived credential (see SECURITY-REVIEW SAV-07).
         customAPIKeyGetter: (ctx) => {
           const headers = ctx.request?.headers as
             Record<string, string> | undefined;
-
-          // Check query parameter first (useful for image URLs in mobile apps)
-          const url = ctx.request?.url;
-          if (url) {
-            try {
-              const urlObj = new URL(url, 'http://localhost');
-              const tokenParam = urlObj.searchParams.get('token');
-              if (tokenParam?.startsWith('bkmrk_')) {
-                return tokenParam;
-              }
-            } catch {
-              // Invalid URL, continue to header checks
-            }
-          }
 
           if (!headers) return null;
 
@@ -153,14 +142,39 @@ export function createAuthInstance(
         : []),
     ],
     hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        // Enforce the "email/password authentication" admin setting at the
+        // API itself — hiding the form in the UI is presentation, not policy.
+        if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
+          const [settings] = await database
+            .select({
+              emailPasswordEnabled: appSettings.emailPasswordEnabled,
+            })
+            .from(appSettings)
+            .where(eq(appSettings.id, 'app_settings'))
+            .limit(1);
+
+          if (settings && !settings.emailPasswordEnabled) {
+            // Safety valve: never lock an empty instance out of first-user
+            // setup (mirrors SignupGuard).
+            const [existing] = await database
+              .select({ count: count() })
+              .from(schema.user);
+            if (existing.count > 0) {
+              throw new APIError('FORBIDDEN', {
+                message: 'Email/password authentication is disabled',
+              });
+            }
+          }
+        }
+      }),
       after: createAuthMiddleware(async (ctx) => {
         // Handle new user setup for both sign-up and OAuth callback
         // Note: genericOAuth uses /oauth2/callback/:providerId, not /callback/:providerId
-        if (
-          ctx.path.startsWith('/sign-up') ||
+        const isOauthCallback =
           ctx.path.startsWith('/callback') ||
-          ctx.path.startsWith('/oauth2/callback')
-        ) {
+          ctx.path.startsWith('/oauth2/callback');
+        if (ctx.path.startsWith('/sign-up') || isOauthCallback) {
           const newSession = ctx.context.newSession;
           if (newSession) {
             const userId = newSession.user.id;
@@ -198,7 +212,7 @@ export function createAuthInstance(
 
               if (existingPerms.length === 0) {
                 // Get default permissions from app settings
-                const settings = await database
+                const [settings] = await database
                   .select({
                     defaultCanEditMetadata: appSettings.defaultCanEditMetadata,
                     defaultCanUpload: appSettings.defaultCanUpload,
@@ -209,12 +223,27 @@ export function createAuthInstance(
                       appSettings.defaultCanRequestContent,
                     defaultCanGenerateAudiobooks:
                       appSettings.defaultCanGenerateAudiobooks,
+                    oidcAutoCreateUsers: appSettings.oidcAutoCreateUsers,
                   })
                   .from(appSettings)
                   .where(eq(appSettings.id, 'app_settings'))
                   .limit(1);
 
-                const defaults = settings[0] || {
+                // Enforce the OIDC account-creation policy server-side. This
+                // branch only runs for identities that did not exist before
+                // this callback (no permissions row yet).
+                const oidcMode = settings?.oidcAutoCreateUsers ?? 'auto';
+                if (isOauthCallback && oidcMode === 'disabled') {
+                  // Unknown identities may not get an account: remove the
+                  // just-created user — sessions and linked accounts cascade,
+                  // so the cookie issued by this callback is dead on arrival.
+                  await database
+                    .delete(schema.user)
+                    .where(eq(schema.user.id, userId));
+                  return;
+                }
+
+                const defaults = settings || {
                   defaultCanEditMetadata: false,
                   defaultCanUpload: false,
                   defaultCanDelete: false,
@@ -233,6 +262,23 @@ export function createAuthInstance(
                   canRequestContent: defaults.defaultCanRequestContent,
                   canGenerateAudiobooks: defaults.defaultCanGenerateAudiobooks,
                 });
+
+                if (isOauthCallback && oidcMode === 'pending') {
+                  // The account exists but must be approved by an admin
+                  // before it is usable: ban it (the admin plugin blocks
+                  // banned users from signing in) and revoke the session
+                  // issued by this callback. Unbanning approves the account.
+                  await database
+                    .update(schema.user)
+                    .set({
+                      banned: true,
+                      banReason: 'Pending admin approval',
+                    })
+                    .where(eq(schema.user.id, userId));
+                  await database
+                    .delete(schema.session)
+                    .where(eq(schema.session.userId, userId));
+                }
               }
             }
           }

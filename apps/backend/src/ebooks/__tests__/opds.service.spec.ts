@@ -17,6 +17,7 @@ function createMetadataResolver(ebooks: Record<string, unknown> = {}) {
 // ---------------------------------------------------------------------------
 
 const BASE_URL = 'http://localhost:3000/api/ebooks/opds';
+const USER_ID = 'user-1';
 
 function makeEbook(overrides: Record<string, any> = {}) {
   return buildEbook({
@@ -94,7 +95,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).not.toContain('<summary>');
     });
@@ -132,7 +133,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('<summary>Hello world</summary>');
       expect(result).not.toContain('<p>');
@@ -171,7 +172,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       // Should have 500 A's + '...'
       expect(result).toContain('A'.repeat(500) + '...');
@@ -209,7 +210,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('<summary>Short description</summary>');
       expect(result).not.toContain('...');
@@ -290,7 +291,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('<title>All Ebooks</title>');
       expect(result).toContain('<title>Test Ebook</title>');
@@ -328,7 +329,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('rel="next"');
       expect(result).toContain('page=2');
@@ -365,7 +366,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 2, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 2, 20);
 
       expect(result).not.toContain('rel="next"');
     });
@@ -401,7 +402,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).not.toContain('rel="previous"');
     });
@@ -429,7 +430,10 @@ describe('OpdsService', () => {
 
       db.select.mockReturnValueOnce(authorsNavChain);
 
-      const result = await service.buildAuthorsNavigationFeed(BASE_URL);
+      const result = await service.buildAuthorsNavigationFeed(
+        BASE_URL,
+        USER_ID,
+      );
 
       expect(result).toContain('<title>Authors</title>');
       expect(result).toContain('<title>Jane Austen</title>');
@@ -455,7 +459,7 @@ describe('OpdsService', () => {
       db.select.mockReturnValueOnce(authorChain);
 
       await expect(
-        service.buildAuthorFeed(BASE_URL, 'nonexistent-author'),
+        service.buildAuthorFeed(BASE_URL, 'nonexistent-author', USER_ID),
       ).rejects.toThrow('Author not found');
     });
 
@@ -505,7 +509,11 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(allEbooksChain)
         .mockReturnValueOnce(entryAuthorsChain);
 
-      const result = await service.buildAuthorFeed(BASE_URL, 'author-1');
+      const result = await service.buildAuthorFeed(
+        BASE_URL,
+        'author-1',
+        USER_ID,
+      );
 
       expect(result).toContain('<title>Jane Austen</title>');
       expect(result).toContain('<title>Test Ebook</title>');
@@ -535,7 +543,7 @@ describe('OpdsService', () => {
 
       db.select.mockReturnValueOnce(seriesNavChain);
 
-      const result = await service.buildSeriesNavigationFeed(BASE_URL);
+      const result = await service.buildSeriesNavigationFeed(BASE_URL, USER_ID);
 
       expect(result).toContain('<title>Series</title>');
       expect(result).toContain('<title>Dune</title>');
@@ -560,7 +568,7 @@ describe('OpdsService', () => {
       db.select.mockReturnValueOnce(seriesChain);
 
       await expect(
-        service.buildSeriesFeed(BASE_URL, 'nonexistent-series'),
+        service.buildSeriesFeed(BASE_URL, 'nonexistent-series', USER_ID),
       ).rejects.toThrow('Series not found');
     });
 
@@ -612,7 +620,11 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(authors1Chain)
         .mockReturnValueOnce(authors2Chain);
 
-      const result = await service.buildSeriesFeed(BASE_URL, 'series-1');
+      const result = await service.buildSeriesFeed(
+        BASE_URL,
+        'series-1',
+        USER_ID,
+      );
 
       expect(result).toContain('<title>Dune</title>');
       expect(result).toContain('<title>Book One</title>');
@@ -670,7 +682,11 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksInSeriesChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildSeriesFeed(BASE_URL, 'series-1');
+      const result = await service.buildSeriesFeed(
+        BASE_URL,
+        'series-1',
+        USER_ID,
+      );
 
       expect(result).toContain('Available Book');
       expect(result).not.toContain('Missing Book');
@@ -724,7 +740,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('<author><name>Author A</name></author>');
       expect(result).toContain('<author><name>Author B</name></author>');
@@ -761,7 +777,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('rel="http://opds-spec.org/image"');
       expect(result).toContain(`/${ebook.id}/cover`);
@@ -799,7 +815,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('urn:isbn:978-0-123456-78-9');
     });
@@ -835,7 +851,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('<dc:language');
       expect(result).toContain('sv</dc:language>');
@@ -872,7 +888,7 @@ describe('OpdsService', () => {
         .mockReturnValueOnce(ebooksChain)
         .mockReturnValueOnce(authorsChain);
 
-      const result = await service.buildAllEbooksFeed(BASE_URL, 1, 20);
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
 
       expect(result).toContain('rel="http://opds-spec.org/acquisition"');
       expect(result).toContain(`/${ebook.id}/download`);

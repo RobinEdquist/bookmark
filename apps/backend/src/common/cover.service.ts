@@ -5,6 +5,46 @@ import {
 } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import { ImageProcessingService } from './image-processing.service';
+import {
+  BlockedUrlError,
+  ResponseTooLargeError,
+  safeFetchUrl,
+} from './safe-fetch.util';
+
+const MAX_COVER_BYTES = 2 * 1024 * 1024;
+const COVER_FETCH_TIMEOUT_MS = 15_000;
+
+/**
+ * Magic-byte sniff for the image formats the cover pipeline accepts. Keeps
+ * arbitrary fetched content (HTML error pages, archives, ...) away from the
+ * image decoder.
+ */
+function looksLikeImage(buffer: Buffer): boolean {
+  if (buffer.length < 12) return false;
+  // JPEG
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return true;
+  }
+  // PNG
+  if (
+    buffer.subarray(0, 8).equals(Buffer.from('\x89PNG\r\n\x1a\n', 'binary'))
+  ) {
+    return true;
+  }
+  // GIF87a / GIF89a
+  const gifHeader = buffer.subarray(0, 6).toString('latin1');
+  if (gifHeader === 'GIF87a' || gifHeader === 'GIF89a') {
+    return true;
+  }
+  // WebP: RIFF....WEBP
+  if (
+    buffer.subarray(0, 4).toString('latin1') === 'RIFF' &&
+    buffer.subarray(8, 12).toString('latin1') === 'WEBP'
+  ) {
+    return true;
+  }
+  return false;
+}
 
 /**
  * Configuration for cover operations.
@@ -50,53 +90,48 @@ export class CoverService {
     url: string,
     config: CoverOperationConfig,
   ): Promise<{ coverUrl: string }> {
-    // Fetch the image from URL
-    let response: Response;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    // Fetch the image through the SSRF-hardened helper: http(s) only, no
+    // private/loopback/metadata destinations (revalidated per redirect hop and
+    // at connect time), body streamed with a hard byte cap and one deadline
+    // covering the whole download.
+    let response;
     try {
-      response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'Bookmark/1.0',
-        },
+      response = await safeFetchUrl(url, {
+        maxBytes: MAX_COVER_BYTES,
+        timeoutMs: COVER_FETCH_TIMEOUT_MS,
+        headers: { 'User-Agent': 'Bookmark/1.0' },
       });
     } catch (error) {
+      if (error instanceof BlockedUrlError) {
+        throw new BadRequestException(error.message);
+      }
+      if (error instanceof ResponseTooLargeError) {
+        throw new BadRequestException('Image size exceeds 2 MB limit');
+      }
       throw new UnprocessableEntityException(
         `Failed to fetch image from URL: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
-    } finally {
-      clearTimeout(timeout);
     }
 
-    if (!response.ok) {
+    if (response.status < 200 || response.status >= 300) {
       throw new UnprocessableEntityException(
         `Failed to fetch image: HTTP ${response.status}`,
       );
     }
 
     // Validate content type
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.startsWith('image/')) {
+    if (!response.contentType || !response.contentType.startsWith('image/')) {
       throw new BadRequestException('URL does not point to an image');
     }
 
-    // Check content length if available
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > 2 * 1024 * 1024) {
-      throw new BadRequestException('Image size exceeds 2 MB limit');
+    // Verify magic bytes before handing the data to the image decoder
+    if (!looksLikeImage(response.body)) {
+      throw new BadRequestException(
+        'URL does not point to a supported image (JPG, PNG, WebP, GIF)',
+      );
     }
 
-    // Read the response body
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Double-check size after download
-    if (buffer.length > 2 * 1024 * 1024) {
-      throw new BadRequestException('Image size exceeds 2 MB limit');
-    }
-
-    return this.processAndSaveCover(buffer, config);
+    return this.processAndSaveCover(response.body, config);
   }
 
   /**

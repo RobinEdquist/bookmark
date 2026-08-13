@@ -235,6 +235,10 @@ COPY --from=web-installer /app/apps/web/.next/standalone /web
 COPY --from=web-installer /app/apps/web/.next/static /web/apps/web/.next/static
 COPY --from=web-installer /app/apps/web/public /web/apps/web/public
 
+# The apps run as the unprivileged node user (dropped in docker-entrypoint.sh,
+# never as root); the web app needs to write its Next.js cache directory.
+RUN mkdir -p /web/apps/web/.next/cache && chown -R node:node /web/apps/web/.next
+
 # Create data directory (will be owned by root, but mount will override)
 RUN mkdir -p /data
 

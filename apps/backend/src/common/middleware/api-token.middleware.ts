@@ -12,16 +12,20 @@ type Schema = typeof authSchema;
 /**
  * Middleware that enables API token authentication for all endpoints.
  *
- * Supports three token formats:
+ * Supports two token formats:
  * 1. Bearer token: `Authorization: Bearer bkmrk_xxx`
  * 2. Basic Auth: `Authorization: Basic base64(any:bkmrk_xxx)`
- * 3. Query parameter: `?token=bkmrk_xxx`
+ *
+ * Query-string tokens (`?token=`) are deliberately not accepted: URLs are
+ * written to application and proxy logs, browser history, and monitoring
+ * systems, which would disclose the long-lived credential.
  *
  * When a valid API token is found, this middleware populates `request.apiTokenUser`
  * with user data. Guards use `getAuthenticatedUser()` to check both session and
  * apiTokenUser, making API token authentication work transparently.
  *
- * Debug logging is available when log level is set to 'debug'.
+ * Debug logging is available when log level is set to 'debug'. Log lines must
+ * never contain the token or Authorization header, not even a prefix.
  */
 @Injectable()
 export class ApiTokenMiddleware implements NestMiddleware {
@@ -36,9 +40,6 @@ export class ApiTokenMiddleware implements NestMiddleware {
 
   async use(req: Request, _res: Response, next: NextFunction): Promise<void> {
     this.logger.debug(`[1] Middleware called for ${req.method} ${req.path}`);
-    this.logger.debug(
-      `[2] Authorization header: ${req.headers.authorization?.substring(0, 30)}...`,
-    );
 
     // Skip if already has session (cookie auth takes precedence)
     if ((req as any).session?.user) {
@@ -46,16 +47,14 @@ export class ApiTokenMiddleware implements NestMiddleware {
       return next();
     }
 
-    // Extract API token from Authorization header or query parameter
-    const apiToken =
-      this.extractApiToken(req.headers.authorization) ||
-      this.extractApiTokenFromQuery(req.query.token);
+    // Extract API token from Authorization header
+    const apiToken = this.extractApiToken(req.headers.authorization);
     if (!apiToken) {
-      this.logger.debug('[4] No API token found in header or query');
+      this.logger.debug('[4] No API token found in header');
       return next();
     }
 
-    this.logger.debug(`[5] Extracted token: ${apiToken.substring(0, 15)}...`);
+    this.logger.debug('[5] API token present');
 
     try {
       // Validate using Better Auth
@@ -183,19 +182,6 @@ export class ApiTokenMiddleware implements NestMiddleware {
       }
     }
 
-    return null;
-  }
-
-  /**
-   * Extracts API token from query parameter.
-   * Format: ?token=bkmrk_xxx
-   */
-  private extractApiTokenFromQuery(token: unknown): string | null {
-    // Handle array case (multiple query params with same name)
-    const tokenValue = Array.isArray(token) ? token[0] : token;
-    if (typeof tokenValue === 'string' && tokenValue.startsWith('bkmrk_')) {
-      return tokenValue;
-    }
     return null;
   }
 }

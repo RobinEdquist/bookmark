@@ -3,11 +3,31 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { CoverService, type CoverOperationConfig } from '../cover.service';
+import {
+  BlockedUrlError,
+  ResponseTooLargeError,
+  safeFetchUrl,
+} from '../safe-fetch.util';
 
 jest.mock('fs/promises', () => ({
   writeFile: jest.fn().mockResolvedValue(undefined),
   mkdir: jest.fn().mockResolvedValue(undefined),
 }));
+
+jest.mock('../safe-fetch.util', () => {
+  const actual = jest.requireActual('../safe-fetch.util');
+  return { ...actual, safeFetchUrl: jest.fn() };
+});
+
+const mockSafeFetchUrl = safeFetchUrl as jest.MockedFunction<
+  typeof safeFetchUrl
+>;
+
+// Minimal valid JPEG header so the magic-byte sniff passes
+const jpegBytes = Buffer.concat([
+  Buffer.from([0xff, 0xd8, 0xff, 0xe0]),
+  Buffer.alloc(16),
+]);
 
 describe('CoverService', () => {
   let service: CoverService;
@@ -128,72 +148,92 @@ describe('CoverService', () => {
       };
     });
 
+    afterEach(() => {
+      mockSafeFetchUrl.mockReset();
+    });
+
+    it('downloads, processes, and saves a valid image', async () => {
+      mockSafeFetchUrl.mockResolvedValue({
+        status: 200,
+        contentType: 'image/jpeg',
+        body: jpegBytes,
+      });
+
+      const result = await service.updateCoverFromUrl(
+        'https://example.com/cover.jpg',
+        config,
+      );
+
+      expect(result).toEqual({ coverUrl: '/api/audiobooks/test-id/cover' });
+      expect(mockSafeFetchUrl).toHaveBeenCalledWith(
+        'https://example.com/cover.jpg',
+        expect.objectContaining({ maxBytes: 2 * 1024 * 1024 }),
+      );
+      expect(mockImageProcessing.processCover).toHaveBeenCalledWith(jpegBytes);
+    });
+
     it('throws UnprocessableEntityException when fetch fails', async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = jest
-        .fn()
-        .mockRejectedValue(new Error('Network error'));
+      mockSafeFetchUrl.mockRejectedValue(new Error('Network error'));
 
       await expect(
         service.updateCoverFromUrl('https://example.com/cover.jpg', config),
       ).rejects.toThrow(UnprocessableEntityException);
+    });
 
-      globalThis.fetch = originalFetch;
+    it('throws BadRequestException for a blocked (SSRF) destination', async () => {
+      mockSafeFetchUrl.mockRejectedValue(
+        new BlockedUrlError('URL resolves to a disallowed address'),
+      );
+
+      await expect(
+        service.updateCoverFromUrl('http://169.254.169.254/x.jpg', config),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when the body exceeds the size budget', async () => {
+      mockSafeFetchUrl.mockRejectedValue(
+        new ResponseTooLargeError('Response exceeded 2097152 bytes'),
+      );
+
+      await expect(
+        service.updateCoverFromUrl('https://example.com/huge.jpg', config),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('throws UnprocessableEntityException for non-OK response', async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = jest.fn().mockResolvedValue({
-        ok: false,
+      mockSafeFetchUrl.mockResolvedValue({
         status: 404,
+        contentType: null,
+        body: Buffer.alloc(0),
       });
 
       await expect(
         service.updateCoverFromUrl('https://example.com/cover.jpg', config),
       ).rejects.toThrow(UnprocessableEntityException);
-
-      globalThis.fetch = originalFetch;
     });
 
     it('throws BadRequestException for non-image content type', async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        headers: new Map([['content-type', 'text/html']]) as any,
-      });
-      // Patch get method
-      (globalThis.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        headers: {
-          get: (h: string) => (h === 'content-type' ? 'text/html' : null),
-        },
+      mockSafeFetchUrl.mockResolvedValue({
+        status: 200,
+        contentType: 'text/html',
+        body: Buffer.from('<html></html>'),
       });
 
       await expect(
         service.updateCoverFromUrl('https://example.com/page.html', config),
       ).rejects.toThrow(BadRequestException);
-
-      globalThis.fetch = originalFetch;
     });
 
-    it('throws BadRequestException when content-length exceeds 2MB', async () => {
-      const originalFetch = globalThis.fetch;
-      globalThis.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        headers: {
-          get: (h: string) => {
-            if (h === 'content-type') return 'image/jpeg';
-            if (h === 'content-length') return String(3 * 1024 * 1024); // 3MB
-            return null;
-          },
-        },
+    it('throws BadRequestException when the body is not really an image', async () => {
+      mockSafeFetchUrl.mockResolvedValue({
+        status: 200,
+        contentType: 'image/jpeg',
+        body: Buffer.from('<html>this is not an image at all</html>'),
       });
 
       await expect(
-        service.updateCoverFromUrl('https://example.com/huge.jpg', config),
+        service.updateCoverFromUrl('https://example.com/fake.jpg', config),
       ).rejects.toThrow(BadRequestException);
-
-      globalThis.fetch = originalFetch;
     });
   });
 });

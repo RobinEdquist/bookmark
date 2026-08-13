@@ -20,6 +20,8 @@ import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import * as express from 'express';
 import { OpdsService } from './opds.service';
 import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import type { AuthenticatedUser } from '../common/guards/auth.guard';
 
 @ApiTags('OPDS')
 @ApiBasicAuth()
@@ -85,11 +87,16 @@ export class OpdsController {
   async getAllEbooks(
     @Req() req: express.Request,
     @Res() res: express.Response,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('page') page?: string,
   ) {
     const baseUrl = this.getBaseUrl(req);
     const pageNum = page ? parseInt(page, 10) : 1;
-    const xml = await this.opdsService.buildAllEbooksFeed(baseUrl, pageNum);
+    const xml = await this.opdsService.buildAllEbooksFeed(
+      baseUrl,
+      user.id,
+      pageNum,
+    );
     this.sendXml(res, xml);
   }
 
@@ -106,9 +113,16 @@ export class OpdsController {
     status: 401,
     description: 'Unauthorized - requires HTTP Basic auth',
   })
-  async getAuthors(@Req() req: express.Request, @Res() res: express.Response) {
+  async getAuthors(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     const baseUrl = this.getBaseUrl(req);
-    const xml = await this.opdsService.buildAuthorsNavigationFeed(baseUrl);
+    const xml = await this.opdsService.buildAuthorsNavigationFeed(
+      baseUrl,
+      user.id,
+    );
     this.sendXml(res, xml);
   }
 
@@ -132,10 +146,11 @@ export class OpdsController {
     @Req() req: express.Request,
     @Res() res: express.Response,
     @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     const baseUrl = this.getBaseUrl(req);
     try {
-      const xml = await this.opdsService.buildAuthorFeed(baseUrl, id);
+      const xml = await this.opdsService.buildAuthorFeed(baseUrl, id, user.id);
       this.sendXml(res, xml);
     } catch {
       throw new NotFoundException('Author not found');
@@ -155,9 +170,16 @@ export class OpdsController {
     status: 401,
     description: 'Unauthorized - requires HTTP Basic auth',
   })
-  async getSeries(@Req() req: express.Request, @Res() res: express.Response) {
+  async getSeries(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     const baseUrl = this.getBaseUrl(req);
-    const xml = await this.opdsService.buildSeriesNavigationFeed(baseUrl);
+    const xml = await this.opdsService.buildSeriesNavigationFeed(
+      baseUrl,
+      user.id,
+    );
     this.sendXml(res, xml);
   }
 
@@ -181,10 +203,11 @@ export class OpdsController {
     @Req() req: express.Request,
     @Res() res: express.Response,
     @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
     const baseUrl = this.getBaseUrl(req);
     try {
-      const xml = await this.opdsService.buildSeriesFeed(baseUrl, id);
+      const xml = await this.opdsService.buildSeriesFeed(baseUrl, id, user.id);
       this.sendXml(res, xml);
     } catch {
       throw new NotFoundException('Series not found');

@@ -4,6 +4,7 @@ import { SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { MetricsService } from './metrics/metrics.service';
+import { securityHeaders } from './common/security-headers.middleware';
 import { buildSwaggerConfig } from './swagger';
 
 async function bootstrap() {
@@ -19,6 +20,9 @@ async function bootstrap() {
   // before Nest mounts its routers so every request is timed; a no-op
   // pass-through when disabled.
   app.use(app.get(MetricsService).middleware());
+
+  // Baseline security headers on every response (SECURITY-REVIEW SAV-10)
+  app.use(securityHeaders);
 
   // Validate APP_DATA_PATH in production
   const isProduction = process.env.NODE_ENV === 'production';

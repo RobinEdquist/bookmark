@@ -121,6 +121,21 @@ else
   PG_PRIV=()
 fi
 
+# The backend and web app must never run as root: a compromise of either (for
+# example through a malicious media file) would otherwise own the whole
+# container, including the database files. Root is used only for the one-time
+# ownership fixes below; both node processes drop to the unprivileged "node"
+# user shipped in the base image. HOME is set because setpriv does not change
+# it and Chromium (Goodreads scraper) needs a writable home directory.
+#
+# Same inline-array pattern as PG_PRIV: setpriv and env both exec, so `$!`
+# remains the pid of the actual node process.
+if [ "$(id -u)" = "0" ]; then
+  APP_PRIV=(setpriv --reuid=node --regid=node --clear-groups env HOME=/home/node)
+else
+  APP_PRIV=()
+fi
+
 # Postgres needs POSIX file locking and durable fsync semantics that network
 # filesystems do not reliably provide. SMB is the common self-hosting mistake
 # (an app data folder pointed at a NAS share) and simply does not work, so it is
@@ -194,8 +209,9 @@ start_bundled_postgres() {
 
     # --auth-local=trust with no TCP listener means there is no password to
     # generate, store or rotate: the only way in is a socket that exists inside
-    # this container. trust rather than peer because the app runs as root while
-    # the server must not, so the OS and database users never match.
+    # this container. trust rather than peer because the app runs as the node
+    # user while the server runs as postgres, so the OS and database users
+    # never match.
     #
     # en_US.UTF-8 matches the official postgres image, which keeps ORDER BY and
     # pg_trgm search behaving identically in bundled and external deployments.
@@ -260,8 +276,17 @@ echo "Running database migrations..."
 cd /app/apps/backend
 npx drizzle-kit migrate
 
+# Hand the app data directory to the node user. Volumes start out root-owned,
+# and data written by pre-hardening releases (covers, secrets) is root-owned
+# too. The database directory stays with the postgres user.
+if [ "$(id -u)" = "0" ]; then
+  find "$APP_DATA_PATH" -mindepth 1 -maxdepth 1 ! -name db \
+    -exec chown -R node:node {} +
+  chown node:node "$APP_DATA_PATH"
+fi
+
 echo "Starting backend API on port 3000..."
-PORT=3000 node dist/src/main.js &
+PORT=3000 "${APP_PRIV[@]}" node dist/src/main.js &
 BACKEND_PID=$!
 
 echo "Waiting for backend to become healthy..."
@@ -275,7 +300,7 @@ done
 
 echo "Starting web app on port 3001..."
 cd /web
-PORT=3001 HOSTNAME=0.0.0.0 node apps/web/server.js &
+PORT=3001 HOSTNAME=0.0.0.0 "${APP_PRIV[@]}" node apps/web/server.js &
 WEB_PID=$!
 
 # Wait for any managed process to exit, then bring the rest down with it

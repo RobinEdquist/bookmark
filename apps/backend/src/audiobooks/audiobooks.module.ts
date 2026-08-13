@@ -5,11 +5,12 @@ import { DatabaseModule } from '../database/database.module';
 import { LibraryWatcherModule } from '../library-watcher/library-watcher.module';
 import { AppSettingsModule } from '../app-settings/app-settings.module';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
+import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 
 @Module({
   imports: [DatabaseModule, LibraryWatcherModule, AppSettingsModule],
   controllers: [AudiobooksController],
-  providers: [AudiobooksService, CanEditMetadataGuard],
+  providers: [AudiobooksService, CanEditMetadataGuard, CanDeleteGuard],
   exports: [AudiobooksService],
 })
 export class AudiobooksModule {}

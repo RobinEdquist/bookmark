@@ -9,6 +9,8 @@ import { AppSettingsModule } from '../app-settings/app-settings.module';
 import { EventsModule } from '../events/events.module';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
 import { LibraryWatcherModule } from '../library-watcher/library-watcher.module';
+import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
+import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 
 @Module({
   imports: [
@@ -20,7 +22,7 @@ import { LibraryWatcherModule } from '../library-watcher/library-watcher.module'
     forwardRef(() => LibraryWatcherModule),
   ],
   controllers: [OpdsController, EbooksController],
-  providers: [EbooksService, OpdsService],
+  providers: [EbooksService, OpdsService, CanEditMetadataGuard, CanDeleteGuard],
   exports: [EbooksService],
 })
 export class EbooksModule {}

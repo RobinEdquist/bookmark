@@ -48,6 +48,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { redactUrl } from './common/log-redaction.util';
 import { createAuthInstance } from './auth/auth.provider';
 import { CommonModule } from './common/common.module';
 
@@ -95,7 +96,8 @@ import { CommonModule } from './common/common.module';
             },
             // The default serializers dump every request/response header —
             // including session cookies — into each log line. Keep only
-            // what's needed to identify the request.
+            // what's needed to identify the request, and strip credential
+            // query params (tokens, OAuth codes) from the URL.
             serializers: {
               req: (req: {
                 id?: unknown;
@@ -105,7 +107,7 @@ import { CommonModule } from './common/common.module';
               }) => ({
                 id: req.id,
                 method: req.method,
-                url: req.url,
+                url: redactUrl(req.url),
                 remoteAddress: req.remoteAddress,
               }),
               res: (res: { statusCode?: number }) => ({
@@ -139,11 +141,11 @@ import { CommonModule } from './common/common.module';
               res: { statusCode?: number },
               responseTime: number,
             ) =>
-              `${req.method} ${req.url} → ${res.statusCode} (${responseTime}ms)`,
+              `${req.method} ${redactUrl(req.url)} → ${res.statusCode} (${responseTime}ms)`,
             customErrorMessage: (
               req: { method?: string; url?: string },
               res: { statusCode?: number },
-            ) => `${req.method} ${req.url} → ${res.statusCode}`,
+            ) => `${req.method} ${redactUrl(req.url)} → ${res.statusCode}`,
             customLogLevel: (
               _req: unknown,
               res: { statusCode: number },

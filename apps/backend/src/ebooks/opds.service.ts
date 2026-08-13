@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, asc, count } from 'drizzle-orm';
+import { eq, asc, count, and, sql, type SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
+import * as usersSchema from '../users/schema';
 
 @Injectable()
 export class OpdsService {
@@ -13,6 +14,21 @@ export class OpdsService {
     private db: NodePgDatabase<typeof schema>,
     private readonly metadataResolver: MetadataResolverService,
   ) {}
+
+  /**
+   * Predicate matching only ebooks visible to the given user — i.e. ebooks
+   * carrying no tag the user has blacklisted (same rule as EbooksService).
+   * Every OPDS query must apply this so catalog visibility matches the
+   * normal ebook API routes.
+   */
+  private visibleToUser(userId: string): SQL {
+    return sql`NOT EXISTS (
+      SELECT 1 FROM ${schema.ebookTags} et
+      INNER JOIN ${usersSchema.userBlacklistedTags} bt
+        ON et.tag_id = bt.tag_id AND bt.user_id = ${userId}
+      WHERE et.ebook_id = ${schema.ebooks.id}
+    )`;
+  }
 
   private escapeXml(str: string): string {
     return str
@@ -74,22 +90,27 @@ export class OpdsService {
 
   async buildAllEbooksFeed(
     baseUrl: string,
+    userId: string,
     page: number = 1,
     perPage: number = 20,
   ): Promise<string> {
     const offset = (page - 1) * perPage;
+    const visibility = and(
+      eq(schema.ebooks.status, 'available'),
+      this.visibleToUser(userId),
+    );
 
     // Get total count
     const [{ total }] = await this.db
       .select({ total: count() })
       .from(schema.ebooks)
-      .where(eq(schema.ebooks.status, 'available'));
+      .where(visibility);
 
     // Get ebooks
     const ebooks = await this.db
       .select()
       .from(schema.ebooks)
-      .where(eq(schema.ebooks.status, 'available'))
+      .where(visibility)
       .orderBy(asc(schema.ebooks.title))
       .limit(perPage)
       .offset(offset);
@@ -108,8 +129,11 @@ export class OpdsService {
     });
   }
 
-  async buildAuthorsNavigationFeed(baseUrl: string): Promise<string> {
-    // Get authors with ebook counts
+  async buildAuthorsNavigationFeed(
+    baseUrl: string,
+    userId: string,
+  ): Promise<string> {
+    // Get authors with ebook counts (only ebooks visible to this user)
     const authors = await this.db
       .select({
         id: audiobookSchema.people.id,
@@ -125,7 +149,9 @@ export class OpdsService {
         schema.ebooks,
         eq(schema.ebookAuthors.ebookId, schema.ebooks.id),
       )
-      .where(eq(schema.ebooks.status, 'available'))
+      .where(
+        and(eq(schema.ebooks.status, 'available'), this.visibleToUser(userId)),
+      )
       .groupBy(audiobookSchema.people.id, audiobookSchema.people.name)
       .orderBy(asc(audiobookSchema.people.name));
 
@@ -156,7 +182,11 @@ export class OpdsService {
 </feed>`;
   }
 
-  async buildAuthorFeed(baseUrl: string, authorId: string): Promise<string> {
+  async buildAuthorFeed(
+    baseUrl: string,
+    authorId: string,
+    userId: string,
+  ): Promise<string> {
     // Get author info
     const [author] = await this.db
       .select()
@@ -177,7 +207,9 @@ export class OpdsService {
     const ebooks = await this.db
       .select()
       .from(schema.ebooks)
-      .where(eq(schema.ebooks.status, 'available'))
+      .where(
+        and(eq(schema.ebooks.status, 'available'), this.visibleToUser(userId)),
+      )
       .orderBy(asc(schema.ebooks.title));
 
     // Filter to only include ebooks by this author
@@ -196,8 +228,11 @@ export class OpdsService {
     });
   }
 
-  async buildSeriesNavigationFeed(baseUrl: string): Promise<string> {
-    // Get series with ebook counts
+  async buildSeriesNavigationFeed(
+    baseUrl: string,
+    userId: string,
+  ): Promise<string> {
+    // Get series with ebook counts (only ebooks visible to this user)
     const seriesList = await this.db
       .select({
         id: audiobookSchema.series.id,
@@ -213,7 +248,9 @@ export class OpdsService {
         schema.ebooks,
         eq(schema.ebookSeries.ebookId, schema.ebooks.id),
       )
-      .where(eq(schema.ebooks.status, 'available'))
+      .where(
+        and(eq(schema.ebooks.status, 'available'), this.visibleToUser(userId)),
+      )
       .groupBy(audiobookSchema.series.id, audiobookSchema.series.name)
       .orderBy(asc(audiobookSchema.series.name));
 
@@ -244,7 +281,11 @@ export class OpdsService {
 </feed>`;
   }
 
-  async buildSeriesFeed(baseUrl: string, seriesId: string): Promise<string> {
+  async buildSeriesFeed(
+    baseUrl: string,
+    seriesId: string,
+    userId: string,
+  ): Promise<string> {
     // Get series info
     const [seriesInfo] = await this.db
       .select()
@@ -267,7 +308,12 @@ export class OpdsService {
         schema.ebooks,
         eq(schema.ebookSeries.ebookId, schema.ebooks.id),
       )
-      .where(eq(schema.ebookSeries.seriesId, seriesId))
+      .where(
+        and(
+          eq(schema.ebookSeries.seriesId, seriesId),
+          this.visibleToUser(userId),
+        ),
+      )
       .orderBy(asc(schema.ebookSeries.order));
 
     const ebooks = ebooksInSeries

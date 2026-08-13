@@ -58,6 +58,7 @@ import {
 } from './dto/audiobook-response.dto';
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
+import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 
 @ApiTags('Audiobooks')
 @ApiSecurity('better-auth.session_token')
@@ -360,10 +361,11 @@ export class AudiobooksController {
   }
 
   @Patch(':id')
+  @UseGuards(CanEditMetadataGuard)
   @ApiOperation({
     summary: 'Update audiobook metadata',
     description:
-      'Update audiobook metadata including title, authors, narrators, genres, tags, and series',
+      'Update audiobook metadata including title, authors, narrators, genres, tags, and series. Requires edit metadata permission.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiResponse({
@@ -372,22 +374,31 @@ export class AudiobooksController {
     type: AudiobookDetailDto,
   })
   @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires edit metadata permission',
+  })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async update(@Param('id') id: string, @Body() dto: UpdateAudiobookDto) {
     return this.audiobooksService.update(id, dto);
   }
 
   @Post(':id/refresh-chapters')
+  @UseGuards(CanEditMetadataGuard)
   @ApiOperation({
     summary: 'Refresh chapters from audio files',
     description:
-      'Re-extract chapter information from the embedded metadata in audio files',
+      'Re-extract chapter information from the embedded metadata in audio files. Requires edit metadata permission.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiResponse({
     status: 200,
     description: 'Chapters refreshed successfully',
     type: RefreshChaptersResponseDto,
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires edit metadata permission',
   })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async refreshChapters(@Param('id') id: string) {
@@ -429,11 +440,16 @@ export class AudiobooksController {
   }
 
   @Post(':id/cover')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseGuards(CanEditMetadataGuard)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 2 * 1024 * 1024, files: 1 },
+    }),
+  )
   @ApiOperation({
     summary: 'Update audiobook cover',
     description:
-      'Upload a new cover image via file upload or URL. Supports JPG, PNG, and WebP formats. Max file size: 2 MB.',
+      'Upload a new cover image via file upload or URL. Supports JPG, PNG, and WebP formats. Max file size: 2 MB. Requires edit metadata permission.',
   })
   @ApiConsumes('multipart/form-data')
   @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
@@ -463,6 +479,10 @@ export class AudiobooksController {
     status: 400,
     description:
       'Invalid file type, file too large, or neither file nor URL provided',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires edit metadata permission',
   })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async updateCover(
@@ -825,11 +845,12 @@ export class AudiobooksController {
   }
 
   @Delete(':id')
+  @UseGuards(CanDeleteGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete audiobook',
     description:
-      'Delete an audiobook from the library. Optionally delete the source files from disk.',
+      'Delete an audiobook from the library. Optionally delete the source files from disk. Requires delete permission.',
   })
   @ApiParam({ name: 'id', description: 'Audiobook UUID', format: 'uuid' })
   @ApiQuery({
@@ -838,6 +859,10 @@ export class AudiobooksController {
     description: 'Set to "true" to also delete files from disk',
   })
   @ApiResponse({ status: 204, description: 'Audiobook deleted successfully' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - requires delete permission',
+  })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async delete(
     @Param('id') id: string,

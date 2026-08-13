@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { redactUrl } from '../log-redaction.util';
 
 /**
  * Global catch-all exception filter.
@@ -61,17 +62,19 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     if (status >= 500 || !isHttpException) {
       const user = request.session?.user || request.apiTokenUser;
+      // Redacted: URLs may carry credential query params (tokens, OAuth codes)
+      const url = redactUrl(request.url);
       this.logger.error(
         {
           err: exception,
           method: request.method,
-          url: request.url,
+          url,
           statusCode: status,
           actor: user
             ? { id: user.id, email: user.email }
             : { id: 'system', email: null },
         },
-        `${request.method} ${request.url} failed with ${status}`,
+        `${request.method} ${url} failed with ${status}`,
       );
     }
 
