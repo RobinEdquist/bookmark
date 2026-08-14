@@ -8,31 +8,13 @@ import { Headphones } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Skeleton } from "@repo/ui/components/ui/skeleton";
 
+import { formatTimestamp } from "../../lib/format-timestamp";
 import { useListeningHistory } from "../../lib/use-user-profile";
 
 const PAGE_SIZE = 20;
 
 interface SessionLogProps {
   userId: string;
-}
-
-function formatPosition(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) {
-    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  }
-  return `${m}:${s.toString().padStart(2, "0")}`;
-}
-
-function formatSessionDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) {
-    return `${h}h ${m}m`;
-  }
-  return `${m}m`;
 }
 
 export function SessionLog({ userId }: SessionLogProps) {
@@ -114,15 +96,13 @@ export function SessionLog({ userId }: SessionLogProps) {
                   <div className="hidden shrink-0 text-right sm:block">
                     <p className="text-xs font-medium">
                       {t("duration", {
-                        duration: formatSessionDuration(
-                          session.durationSeconds,
-                        ),
+                        duration: formatTimestamp(session.durationSeconds),
                       })}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {t("position", {
-                        start: formatPosition(session.startPosition),
-                        end: formatPosition(session.endPosition),
+                        start: formatTimestamp(session.startPosition),
+                        end: formatTimestamp(session.endPosition),
                       })}
                     </p>
                   </div>

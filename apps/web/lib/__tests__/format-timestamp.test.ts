@@ -26,6 +26,7 @@ describe("formatTimestamp", () => {
   it("falls back to 0:00 for invalid input", () => {
     expect(formatTimestamp(NaN)).toBe("0:00");
     expect(formatTimestamp(Infinity)).toBe("0:00");
+    expect(formatTimestamp(-Infinity)).toBe("0:00");
     expect(formatTimestamp(-5)).toBe("0:00");
   });
 });
