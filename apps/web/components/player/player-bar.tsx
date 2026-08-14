@@ -52,6 +52,7 @@ import {
   AddBookmarkButtonDesktop,
   AddBookmarkButtonMobile,
 } from "./add-bookmark-button";
+import { formatTimestamp } from "../../lib/format-timestamp";
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const SKIP_BACKWARD_SECONDS = 15;
@@ -78,19 +79,6 @@ function ControlTooltip({
       <TooltipContent side="top">{label}</TooltipContent>
     </Tooltip>
   );
-}
-
-function formatTime(seconds: number): string {
-  if (!seconds || !isFinite(seconds)) return "0:00";
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
 export function PlayerBar() {
@@ -386,8 +374,8 @@ export function PlayerBar() {
             aria-valuemax={Math.round(duration)}
             aria-valuenow={Math.round(currentPosition)}
             aria-valuetext={t("currentTime", {
-              current: formatTime(currentPosition),
-              total: formatTime(duration),
+              current: formatTimestamp(currentPosition),
+              total: formatTimestamp(duration),
             })}
             aria-disabled={isSeekDisabled || undefined}
             onPointerDown={handleProgressPointerDown}
@@ -623,7 +611,7 @@ export function PlayerBar() {
                 className="w-12 text-right text-xs text-muted-foreground"
                 aria-hidden="true"
               >
-                {formatTime(sliderPosition)}
+                {formatTimestamp(sliderPosition)}
               </span>
               <Slider
                 value={[sliderPosition]}
@@ -636,15 +624,15 @@ export function PlayerBar() {
                 disabled={isLoading}
                 aria-label={isChapterMode ? t("chapterSeek") : t("bookSeek")}
                 aria-valuetext={t("currentTime", {
-                  current: formatTime(sliderPosition),
-                  total: formatTime(sliderMax),
+                  current: formatTimestamp(sliderPosition),
+                  total: formatTimestamp(sliderMax),
                 })}
               />
               <span
                 className="w-12 text-xs text-muted-foreground"
                 aria-hidden="true"
               >
-                {formatTime(sliderMax)}
+                {formatTimestamp(sliderMax)}
               </span>
             </div>
 
@@ -799,7 +787,7 @@ export function PlayerBar() {
               className="shrink-0 text-right text-[11px] tabular-nums text-muted-foreground"
               aria-hidden="true"
             >
-              {formatTime(sliderPosition)}
+              {formatTimestamp(sliderPosition)}
             </span>
             <Slider
               value={[sliderPosition]}
@@ -812,15 +800,15 @@ export function PlayerBar() {
               disabled={isLoading}
               aria-label={isChapterMode ? t("chapterSeek") : t("bookSeek")}
               aria-valuetext={t("currentTime", {
-                current: formatTime(sliderPosition),
-                total: formatTime(sliderMax),
+                current: formatTimestamp(sliderPosition),
+                total: formatTimestamp(sliderMax),
               })}
             />
             <span
               className="shrink-0 text-[11px] tabular-nums text-muted-foreground"
               aria-hidden="true"
             >
-              {formatTime(sliderMax)}
+              {formatTimestamp(sliderMax)}
             </span>
 
             {/* Next chapter */}

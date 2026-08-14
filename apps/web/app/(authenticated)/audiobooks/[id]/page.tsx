@@ -72,6 +72,7 @@ import { useQuickAddMetadata } from "../../../../lib/use-quick-add-metadata";
 import { useTheme } from "../../../../lib/use-theme";
 import { ChapterImportDialog } from "../../../../components/chapters/chapter-import-dialog";
 import { formatFileSize } from "../../../../lib/format-file-size";
+import { formatTimestamp } from "../../../../lib/format-timestamp";
 import { COLLAPSED_DESCRIPTION_HEIGHT } from "../../../../lib/constants/description";
 
 function formatDuration(seconds: number | null): string {
@@ -82,16 +83,6 @@ function formatDuration(seconds: number | null): string {
     return `${hours}h ${minutes}m`;
   }
   return `${minutes}m`;
-}
-
-function formatChapterTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
 
 export default function AudiobookDetailPage({
@@ -698,7 +689,7 @@ export default function AudiobookDetailPage({
                                   </span>
                                 </div>
                                 <span className="text-xs text-muted-foreground">
-                                  {formatChapterTime(chapter.startTime)}
+                                  {formatTimestamp(chapter.startTime)}
                                 </span>
                               </motion.div>
                             );

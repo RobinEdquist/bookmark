@@ -28,6 +28,7 @@ import {
   type AudibleSearchResult,
 } from "../../lib/use-audnexus";
 import { useDebouncedValue } from "../../lib/use-debounced-value";
+import { formatTimestamp } from "../../lib/format-timestamp";
 
 interface CurrentChapter {
   id: string;
@@ -45,16 +46,6 @@ interface ChapterImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
-}
-
-function formatTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-  if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  }
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 export function ChapterImportDialog({
@@ -334,7 +325,7 @@ function ChapterImportBody({
                             {idx + 1}. {chapter.title}
                           </span>
                           <span className="text-muted-foreground ml-2 font-mono text-xs">
-                            {formatTime(chapter.startTime)}
+                            {formatTimestamp(chapter.startTime)}
                           </span>
                         </div>
                       ))}
@@ -363,7 +354,7 @@ function ChapterImportBody({
                             {idx + 1}. {chapter.title}
                           </span>
                           <span className="text-muted-foreground ml-2 font-mono text-xs">
-                            {formatTime(chapter.startTime)}
+                            {formatTimestamp(chapter.startTime)}
                           </span>
                         </div>
                       ))}
@@ -376,7 +367,7 @@ function ChapterImportBody({
               {chaptersQuery.data && (
                 <div className="mt-3 text-sm text-muted-foreground">
                   {t("totalDuration")}:{" "}
-                  {formatTime(chaptersQuery.data.totalDuration)}
+                  {formatTimestamp(chaptersQuery.data.totalDuration)}
                   {!chaptersQuery.data.isAccurate && (
                     <span className="ml-2 text-amber-500">
                       ({t("timingApproximate")})
