@@ -11,8 +11,8 @@ jest.mock('better-auth/crypto', () => ({
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const cryptoModule = require('crypto');
-cryptoModule.randomUUID = jest
-  .fn()
+const randomUUIDMock = jest
+  .spyOn(cryptoModule, 'randomUUID')
   .mockReturnValueOnce('generated-user-id')
   .mockReturnValueOnce('generated-account-id');
 
@@ -162,10 +162,14 @@ describe('UsersService', () => {
     service = new UsersService(db);
 
     // Reset randomUUID mock
-    cryptoModule.randomUUID
+    randomUUIDMock
       .mockReset()
       .mockReturnValueOnce('generated-user-id')
       .mockReturnValueOnce('generated-account-id');
+  });
+
+  afterAll(() => {
+    randomUUIDMock.mockRestore();
   });
 
   describe('findAll', () => {
