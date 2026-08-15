@@ -20,8 +20,14 @@ import { pipeline } from 'stream/promises';
 import * as unzipper from 'unzipper';
 import { AppDataService } from '../app-data/app-data.service';
 import { AppSettingsService } from '../app-settings/app-settings.service';
-import { BackupConfigDto, BackupEntryDto } from './dto/backup-response.dto';
+import {
+  BackupConfigDto,
+  BackupEntryDto,
+  BackupOverviewDto,
+} from './dto/backup-response.dto';
 import { UpdateBackupConfigDto } from './dto/update-backup-config.dto';
+
+type AppSettings = Awaited<ReturnType<AppSettingsService['getSettings']>>;
 
 const BACKUP_EXTENSION = '.bookmark';
 const BACKUP_FORMAT_VERSION = 1;
@@ -91,12 +97,41 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   async getConfig(): Promise<BackupConfigDto> {
     const settings = await this.appSettings.getSettings();
     const backupPath = this.resolveBackupPath(settings.backupPath);
-    let pathError: string | null = null;
-    try {
-      await this.validateWritableDirectory(backupPath);
-    } catch (error) {
-      pathError = this.errorMessage(error);
+    return this.buildConfig(
+      settings,
+      backupPath,
+      await this.checkBackupPath(backupPath),
+    );
+  }
+
+  /**
+   * Config and archive list in one pass: settings are read and the backup
+   * directory prepared once, instead of twice via getConfig + listBackups
+   * (this endpoint is polled every 5s while a backup runs).
+   */
+  async getOverview(): Promise<BackupOverviewDto> {
+    const settings = await this.appSettings.getSettings();
+    const backupPath = this.resolveBackupPath(settings.backupPath);
+    const pathError = await this.checkBackupPath(backupPath);
+    let backups: BackupEntryDto[] = [];
+    if (!pathError) {
+      try {
+        backups = await this.readBackupEntries(backupPath);
+      } catch (error) {
+        this.logger.warn(`Could not list backups: ${this.errorMessage(error)}`);
+      }
     }
+    return {
+      config: this.buildConfig(settings, backupPath, pathError),
+      backups,
+    };
+  }
+
+  private buildConfig(
+    settings: AppSettings,
+    backupPath: string,
+    pathError: string | null,
+  ): BackupConfigDto {
     return {
       enabled: settings.backupEnabled,
       path: backupPath,
@@ -113,10 +148,23 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  async updateConfig(dto: UpdateBackupConfigDto): Promise<BackupConfigDto> {
+  private async checkBackupPath(backupPath: string): Promise<string | null> {
+    try {
+      await this.validateWritableDirectory(backupPath);
+      return null;
+    } catch (error) {
+      return this.errorMessage(error);
+    }
+  }
+
+  private assertNotBusy(): void {
     if (this.running || this.restoring) {
       throw new ConflictException('A backup operation is already running');
     }
+  }
+
+  async updateConfig(dto: UpdateBackupConfigDto): Promise<BackupConfigDto> {
+    this.assertNotBusy();
     if (Object.keys(dto).length === 0) {
       throw new BadRequestException('No backup settings provided');
     }
@@ -157,9 +205,9 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async listBackups(): Promise<BackupEntryDto[]> {
-    let backupPath: string;
     try {
-      backupPath = await this.getBackupPath();
+      const backupPath = await this.getBackupPath();
+      return await this.readBackupEntries(backupPath);
     } catch (error) {
       // Keep the settings screen loadable with a bad location; getConfig
       // surfaces the reason as pathError.
@@ -168,7 +216,11 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
       );
       return [];
     }
+  }
 
+  private async readBackupEntries(
+    backupPath: string,
+  ): Promise<BackupEntryDto[]> {
     const filenames = await fs.readdir(backupPath);
     const backups: BackupEntryDto[] = [];
 
@@ -196,9 +248,7 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async createBackup(): Promise<BackupEntryDto> {
-    if (this.running || this.restoring) {
-      throw new ConflictException('A backup operation is already running');
-    }
+    this.assertNotBusy();
 
     this.running = true;
     const workPath = path.join(
@@ -267,9 +317,7 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async importBackup(uploadPath: string): Promise<BackupEntryDto> {
-    if (this.running || this.restoring) {
-      throw new ConflictException('A backup operation is already running');
-    }
+    this.assertNotBusy();
 
     this.running = true;
     let partialPath: string | null = null;
@@ -277,10 +325,8 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
       let manifest: BackupManifest;
       let directory: Awaited<ReturnType<typeof unzipper.Open.file>>;
       try {
-        [manifest, directory] = await Promise.all([
-          this.readManifest(uploadPath),
-          unzipper.Open.file(uploadPath),
-        ]);
+        directory = await unzipper.Open.file(uploadPath);
+        manifest = await this.readManifestFromDirectory(directory);
       } catch (error) {
         if (error instanceof BadRequestException) throw error;
         throw new BadRequestException(
@@ -300,14 +346,18 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
       );
 
       const baseId = `bookmark-${createdAt.toISOString().replace(/[-:.]/g, '')}`;
+      const exists = (candidate: string): Promise<boolean> =>
+        fs
+          .access(candidate)
+          .then(() => true)
+          .catch(() => false);
       let id = baseId;
       let finalPath = path.join(backupPath, `${id}${BACKUP_EXTENSION}`);
-      try {
-        await fs.access(finalPath);
+      // Probe the .partial too: a stale one from an unclean shutdown would
+      // make the COPYFILE_EXCL copy below fail on every retry of this upload.
+      if ((await exists(finalPath)) || (await exists(`${finalPath}.partial`))) {
         id = `${baseId}-${randomUUID().slice(0, 8)}`;
         finalPath = path.join(backupPath, `${id}${BACKUP_EXTENSION}`);
-      } catch {
-        // The preferred filename is available.
       }
 
       partialPath = `${finalPath}.partial`;
@@ -330,9 +380,7 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async deleteBackup(id: string): Promise<void> {
-    if (this.running || this.restoring) {
-      throw new ConflictException('A backup operation is already running');
-    }
+    this.assertNotBusy();
     const backup = await this.findBackup(id);
     await fs.unlink(backup.fullPath);
   }
@@ -345,9 +393,7 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async restoreBackup(id: string): Promise<void> {
-    if (this.running || this.restoring) {
-      throw new ConflictException('A backup operation is already running');
-    }
+    this.assertNotBusy();
 
     this.restoring = true;
     const stagePath = path.join(
@@ -375,13 +421,15 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
         rollbackDatabasePath,
         DATABASE_URL_ARG,
       ]);
-      await this.restoreDatabase(databasePath);
-
       try {
+        // restoreDatabase resets the schemas first, so a failure inside it
+        // is destructive and needs the database rollback just as much as a
+        // managed-data failure does.
+        await this.restoreDatabase(databasePath);
         await this.replaceManagedData(stagePath);
       } catch (error) {
         this.logger.error(
-          `Managed data restore failed; rolling the database back: ${this.errorMessage(error)}`,
+          `Restore failed; rolling the database back: ${this.errorMessage(error)}`,
         );
         try {
           await this.restoreDatabase(rollbackDatabasePath);
@@ -625,7 +673,14 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async readManifest(archivePath: string): Promise<BackupManifest> {
-    const directory = await unzipper.Open.file(archivePath);
+    return this.readManifestFromDirectory(
+      await unzipper.Open.file(archivePath),
+    );
+  }
+
+  private async readManifestFromDirectory(
+    directory: Awaited<ReturnType<typeof unzipper.Open.file>>,
+  ): Promise<BackupManifest> {
     const manifestEntry = directory.files.find(
       (entry) => entry.path === 'manifest.json',
     );
@@ -814,8 +869,11 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
           .catch((error: NodeJS.ErrnoException) => {
             if (error.code !== 'ENOENT') throw error;
           });
-        await fs.rename(staged, current);
+        // Register for rollback BEFORE the staged rename: if that rename
+        // fails, `current` already sits inside rollbackPath and would
+        // otherwise be deleted with the stage directory instead of restored.
         replaced.push(directory);
+        await fs.rename(staged, current);
       }
 
       const stagedSecret = path.join(stagePath, 'data', '.better-auth-secret');
@@ -889,6 +947,22 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async restoreDatabase(databasePath: string): Promise<void> {
+    // pg_restore --clean only drops objects that exist in the dump. Restoring
+    // an OLDER backup on a newer binary would leave tables from newer
+    // migrations in place while the restored migration journal forgets they
+    // ran — the post-restore restart then re-runs those migrations against
+    // the leftovers and crash-loops on "already exists". Reset the schemas
+    // wholesale instead; the rollback dump taken before any restore covers
+    // the failure paths.
+    await this.runPostgresCommand('psql', [
+      '--no-psqlrc',
+      '--set',
+      'ON_ERROR_STOP=1',
+      '--command',
+      'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public; DROP SCHEMA IF EXISTS drizzle CASCADE;',
+      '--dbname',
+      DATABASE_URL_ARG,
+    ]);
     await this.runPostgresCommand('pg_restore', [
       '--clean',
       '--if-exists',
@@ -988,16 +1062,27 @@ export class BackupsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async runPostgresCommand(
-    command: 'pg_dump' | 'pg_restore',
+    command: 'pg_dump' | 'pg_restore' | 'psql',
     args: string[],
   ): Promise<void> {
     const connection = this.databaseConnection();
     const argv = args.map((arg) =>
       arg === DATABASE_URL_ARG ? connection.url : arg,
     );
+    // Restore-side commands take ACCESS EXCLUSIVE locks; fail fast when the
+    // app's own traffic holds them instead of stalling restoring=true for the
+    // full command timeout.
+    const env =
+      command === 'pg_dump'
+        ? connection.env
+        : {
+            ...connection.env,
+            PGOPTIONS:
+              `${connection.env.PGOPTIONS ?? ''} -c lock_timeout=30s`.trim(),
+          };
     await new Promise<void>((resolve, reject) => {
       const child = spawn(command, argv, {
-        env: connection.env,
+        env,
         stdio: ['ignore', 'ignore', 'pipe'],
         timeout: POSTGRES_COMMAND_TIMEOUT_MS,
         killSignal: 'SIGKILL',

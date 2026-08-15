@@ -125,8 +125,32 @@ export class MetadataWorkerPoolService implements OnModuleDestroy {
           if (index > -1) {
             this.workers.splice(index, 1);
           }
-          if (this.workers.length === 0) {
-            this.initialized = false;
+          // A worker can exit without a preceding 'error' event (thread OOM,
+          // process.exit in a dependency). Recompute like handleWorkerError
+          // does, so the next executeTask's initializePool() tops the pool
+          // back up instead of early-returning on a permanently smaller one.
+          this.initialized = this.workers.length === this.poolSize;
+          if (workerState.terminating || this.destroying) return;
+
+          if (workerState.currentTaskId) {
+            const pending = this.pendingTasks.get(workerState.currentTaskId);
+            if (pending) {
+              this.pendingTasks.delete(workerState.currentTaskId);
+              pending.reject(
+                new Error(`Metadata worker exited with code ${code}`),
+              );
+            }
+            workerState.currentTaskId = null;
+          }
+
+          if (this.taskQueue.length > 0) {
+            void this.initializePool()
+              .then(() => this.processNextTask())
+              .catch((workerError: unknown) => {
+                this.logger.error(
+                  `Failed to replace metadata worker: ${workerError}`,
+                );
+              });
           }
         });
 

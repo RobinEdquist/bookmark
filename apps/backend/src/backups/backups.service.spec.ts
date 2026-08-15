@@ -66,7 +66,7 @@ describe('BackupsService', () => {
       .spyOn(
         target as unknown as {
           runPostgresCommand: (
-            command: 'pg_dump' | 'pg_restore',
+            command: 'pg_dump' | 'pg_restore' | 'psql',
             args: string[],
           ) => Promise<void>;
         },
@@ -290,6 +290,53 @@ describe('BackupsService', () => {
       'pg_restore',
       expect.arrayContaining(['--single-transaction', '--exit-on-error']),
     );
+
+    // The schemas must be reset immediately before pg_restore: --clean only
+    // drops objects present in the dump, so leftovers from newer migrations
+    // would otherwise crash-loop the post-restore migration run.
+    const commands = postgresCommands.mock.calls.map(([command]) => command);
+    const resetIndex = commands.indexOf('psql');
+    const restoreIndex = commands.indexOf('pg_restore');
+    expect(resetIndex).toBeGreaterThan(-1);
+    expect(resetIndex).toBeLessThan(restoreIndex);
+    const resetArgs = postgresCommands.mock.calls[resetIndex]?.[1] ?? [];
+    expect(resetArgs.join(' ')).toContain('DROP SCHEMA IF EXISTS public');
+  });
+
+  it('imports past a stale partial file left by an unclean shutdown', async () => {
+    const backupPath = path.join(dataPath, 'backups');
+    await fs.mkdir(backupPath, { recursive: true });
+
+    const createdAt = '2024-05-05T00:00:00.000Z';
+    const baseId = `bookmark-${createdAt.replace(/[-:.]/g, '')}`;
+    await fs.writeFile(
+      path.join(backupPath, `${baseId}.bookmark.partial`),
+      'half-written',
+    );
+
+    const uploadPath = path.join(rootPath, 'reupload.bookmark');
+    await writeTestArchive(uploadPath, { createdAt });
+
+    const imported = await service.importBackup(uploadPath);
+    expect(imported.id).not.toBe(baseId);
+    await expect(
+      fs.access(path.join(backupPath, imported.filename)),
+    ).resolves.toBeUndefined();
+  });
+
+  it('returns config and archives in one overview pass', async () => {
+    await fs.mkdir(path.join(dataPath, 'audiobook-covers'), {
+      recursive: true,
+    });
+    mockPostgresCommands();
+    const created = await service.createBackup();
+
+    const overview = await service.getOverview();
+    expect(overview.config).toMatchObject({
+      enabled: false,
+      pathError: null,
+    });
+    expect(overview.backups.map((backup) => backup.id)).toEqual([created.id]);
   });
 
   it('refuses to restore a backup created by a newer Bookmark version', async () => {

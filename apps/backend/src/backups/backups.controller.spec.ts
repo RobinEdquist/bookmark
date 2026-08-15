@@ -4,6 +4,7 @@ import { BackupsController } from './backups.controller';
 
 describe('BackupsController', () => {
   const backupsService = {
+    getOverview: jest.fn(),
     getConfig: jest.fn(),
     listBackups: jest.fn(),
     updateConfig: jest.fn(),
@@ -26,15 +27,13 @@ describe('BackupsController', () => {
   });
 
   it('returns configuration and archives together', async () => {
-    const config = { enabled: false };
-    const backups = [{ id: 'backup-1' }];
-    backupsService.getConfig.mockResolvedValue(config);
-    backupsService.listBackups.mockResolvedValue(backups);
+    const overview = {
+      config: { enabled: false },
+      backups: [{ id: 'backup-1' }],
+    };
+    backupsService.getOverview.mockResolvedValue(overview);
 
-    await expect(controller.getBackups()).resolves.toEqual({
-      config,
-      backups,
-    });
+    await expect(controller.getBackups()).resolves.toEqual(overview);
   });
 
   it('delegates configuration changes and archive creation', async () => {

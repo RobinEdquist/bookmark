@@ -6,6 +6,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Param,
   Patch,
   Post,
@@ -41,17 +42,15 @@ import { UpdateBackupConfigDto } from './dto/update-backup-config.dto';
 @Controller('admin/backups')
 @UseGuards(AdminGuard)
 export class BackupsController {
+  private readonly logger = new Logger(BackupsController.name);
+
   constructor(private readonly backupsService: BackupsService) {}
 
   @Get()
   @ApiOperation({ summary: 'List backups and backup configuration (Admin)' })
   @ApiResponse({ status: 200, type: BackupOverviewDto })
-  async getBackups(): Promise<BackupOverviewDto> {
-    const [config, backups] = await Promise.all([
-      this.backupsService.getConfig(),
-      this.backupsService.listBackups(),
-    ]);
-    return { config, backups };
+  getBackups(): Promise<BackupOverviewDto> {
+    return this.backupsService.getOverview();
   }
 
   @Patch('config')
@@ -115,7 +114,27 @@ export class BackupsController {
     @Res() response: Response,
   ): Promise<void> {
     const backup = await this.backupsService.getBackupFile(id);
-    response.download(backup.fullPath, backup.filename);
+    response.download(backup.fullPath, backup.filename, (error) => {
+      if (!error) return;
+      // Without this callback, sendfile errors (e.g. the archive was pruned
+      // by retention between listing and streaming) bypass the exception
+      // filter and surface as Express's default HTML 500.
+      this.logger.warn(`Backup download failed: ${error.message}`);
+      if (response.headersSent) {
+        response.destroy();
+        return;
+      }
+      const missing = (error as NodeJS.ErrnoException).code === 'ENOENT';
+      response.status(missing ? 404 : 500).json(
+        missing
+          ? {
+              message: 'Backup not found',
+              error: 'Not Found',
+              statusCode: 404,
+            }
+          : { message: 'Internal server error', statusCode: 500 },
+      );
+    });
   }
 
   @Delete(':id')
