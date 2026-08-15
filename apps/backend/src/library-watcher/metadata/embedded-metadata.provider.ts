@@ -3,6 +3,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { MetadataWorkerPoolService } from './metadata-worker-pool.service';
+import { bytesToBuffer } from '../../common/utils/worker-bytes.util';
 
 export interface ExtractedMetadata {
   title?: string;
@@ -108,7 +109,7 @@ export class EmbeddedMetadataProvider {
         return null;
       }
       return {
-        data: Buffer.from(result.data),
+        data: bytesToBuffer(result.data),
         mimeType: result.mimeType,
       };
     } catch (error) {

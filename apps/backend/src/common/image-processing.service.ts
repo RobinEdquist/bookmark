@@ -1,6 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { WorkerPoolService } from './worker-pool.service';
 import * as path from 'path';
+import {
+  bytesToBuffer,
+  copyToTransferableBytes,
+} from './utils/worker-bytes.util';
 
 export interface ProcessImageOptions {
   maxWidth?: number;
@@ -51,21 +55,29 @@ export class ImageProcessingService implements OnModuleInit {
     } = options;
 
     try {
+      // Copy into a dedicated backing store so transferring it cannot detach
+      // the caller's Buffer (which may share Node's pooled allocation slab).
+      const imageData = copyToTransferableBytes(imageBuffer);
       const result = await this.workerPool.executeTask<{
-        data: number[];
+        data: Uint8Array;
         mimeType: string;
-      }>(POOL_NAME, 'processImage', {
-        imageData: Array.from(imageBuffer),
-        options: {
-          maxWidth,
-          maxHeight,
-          quality,
-          format,
+      }>(
+        POOL_NAME,
+        'processImage',
+        {
+          imageData,
+          options: {
+            maxWidth,
+            maxHeight,
+            quality,
+            format,
+          },
         },
-      });
+        [imageData.buffer],
+      );
 
       return {
-        data: Buffer.from(result.data),
+        data: bytesToBuffer(result.data),
         mimeType: result.mimeType,
       };
     } catch (error) {
