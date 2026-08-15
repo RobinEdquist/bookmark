@@ -12,6 +12,9 @@ declare global {
 }
 
 export default async function globalSetup() {
+  const port = process.env.TEST_PORT || '3000';
+  const serverBaseUrl = `http://localhost:${port}`;
+
   console.log('\n🐘 Starting PostgreSQL container...');
 
   const container = await new PostgreSqlContainer('postgres:18')
@@ -29,8 +32,10 @@ export default async function globalSetup() {
   // Set environment variables
   process.env.DATABASE_URL = connectionUri;
   process.env.NODE_ENV = 'test';
+  process.env.PORT = port;
+  process.env.TEST_BASE_URL = serverBaseUrl;
   process.env.BETTER_AUTH_SECRET = 'test-secret-for-ci-only';
-  process.env.BETTER_AUTH_URL = 'http://localhost:3000';
+  process.env.BETTER_AUTH_URL = serverBaseUrl;
   process.env.UI_URL = 'http://localhost:3001';
 
   const backendDir = resolve(__dirname, '../..');
@@ -114,7 +119,7 @@ export default async function globalSetup() {
     }
 
     try {
-      const response = await fetch('http://localhost:3000/api/health');
+      const response = await fetch(`${serverBaseUrl}/api/health`);
       if (response.ok) {
         console.log('✅ Backend server is ready\n');
         return;

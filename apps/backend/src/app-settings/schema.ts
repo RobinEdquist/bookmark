@@ -144,6 +144,12 @@ export const appSettings = pgTable(
     defaultCanGenerateAudiobooks: boolean('default_can_generate_audiobooks')
       .notNull()
       .default(false),
+    // Automatic application backups. The archive location can be overridden
+    // at runtime with BACKUP_PATH without changing the stored preference.
+    backupEnabled: boolean('backup_enabled').notNull().default(false),
+    backupPath: text('backup_path'),
+    backupSchedule: text('backup_schedule').notNull().default('0 2 * * *'),
+    backupsToKeep: integer('backups_to_keep').notNull().default(7),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

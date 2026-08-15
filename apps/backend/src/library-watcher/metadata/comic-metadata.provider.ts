@@ -5,6 +5,7 @@ import {
   getWorkerPath,
 } from '../../common/worker-pool.service';
 import { ParsedComicInfo } from '../utils/comicinfo.parser';
+import { bytesToBuffer } from '../../common/utils/worker-bytes.util';
 
 export interface ComicFileMetadata {
   comicInfo: ParsedComicInfo | null;
@@ -15,7 +16,7 @@ export interface ComicFileMetadata {
 interface WorkerComicFileMetadata {
   comicInfo: ParsedComicInfo | null;
   pageCount: number;
-  cover: { data: number[]; mimeType: string } | null;
+  cover: { data: Uint8Array; mimeType: string } | null;
 }
 
 const POOL_NAME = 'comic-metadata';
@@ -52,7 +53,7 @@ export class ComicMetadataProvider implements OnModuleInit {
       pageCount: result.pageCount,
       cover: result.cover
         ? {
-            data: Buffer.from(result.cover.data),
+            data: bytesToBuffer(result.cover.data),
             mimeType: result.cover.mimeType,
           }
         : null,
@@ -64,12 +65,12 @@ export class ComicMetadataProvider implements OnModuleInit {
   ): Promise<{ data: Buffer; mimeType: string } | null> {
     try {
       const result = await this.workerPool.executeTask<{
-        data: number[];
+        data: Uint8Array;
         mimeType: string;
       } | null>(POOL_NAME, 'extractCover', { filePath });
 
       if (!result) return null;
-      return { data: Buffer.from(result.data), mimeType: result.mimeType };
+      return { data: bytesToBuffer(result.data), mimeType: result.mimeType };
     } catch (error) {
       this.logger.warn(
         `Cover extraction failed for ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
@@ -92,7 +93,7 @@ export class ComicMetadataProvider implements OnModuleInit {
     );
     try {
       const result = await this.workerPool.executeTask<{
-        data: number[];
+        data: Uint8Array;
         mimeType: string;
       } | null>(POOL_NAME, 'extractPage', { filePath, pageIndex });
       if (!result) {
@@ -104,7 +105,7 @@ export class ComicMetadataProvider implements OnModuleInit {
       this.logger.log(
         `[comic-extract] extractPage success filePath=${filePath} pageIndex=${pageIndex} mimeType=${result.mimeType} bytes=${result.data.length}`,
       );
-      return { data: Buffer.from(result.data), mimeType: result.mimeType };
+      return { data: bytesToBuffer(result.data), mimeType: result.mimeType };
     } catch (error) {
       this.logger.warn(
         `[comic-extract] extractPage failed filePath=${filePath} pageIndex=${pageIndex}: ${

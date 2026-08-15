@@ -1,6 +1,10 @@
 // Worker thread for image processing - runs in separate thread to avoid blocking main event loop
 import { parentPort } from 'worker_threads';
 import sharp from 'sharp';
+import {
+  copyToTransferableBytes,
+  transferListFor,
+} from '../../common/utils/worker-bytes.util';
 
 interface ProcessImageOptions {
   maxWidth: number;
@@ -11,7 +15,7 @@ interface ProcessImageOptions {
 
 interface WorkerTask {
   type: 'processImage';
-  imageData: number[]; // Array of bytes
+  imageData: Uint8Array;
   options: ProcessImageOptions;
   taskId: string;
 }
@@ -20,19 +24,17 @@ interface WorkerResponse {
   taskId: string;
   success: boolean;
   result?: {
-    data: number[];
+    data: Uint8Array;
     mimeType: string;
   };
   error?: string;
 }
 
 async function processImage(
-  imageData: number[],
+  imageData: Uint8Array,
   options: ProcessImageOptions,
-): Promise<{ data: number[]; mimeType: string }> {
-  const buffer = Buffer.from(imageData);
-
-  let sharpInstance = sharp(buffer).resize(
+): Promise<{ data: Uint8Array; mimeType: string }> {
+  let sharpInstance = sharp(imageData).resize(
     options.maxWidth,
     options.maxHeight,
     {
@@ -63,14 +65,14 @@ async function processImage(
   const processedBuffer = await sharpInstance.toBuffer();
 
   return {
-    data: Array.from(processedBuffer),
+    data: copyToTransferableBytes(processedBuffer),
     mimeType,
   };
 }
 
 async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
   try {
-    let result: { data: number[]; mimeType: string };
+    let result: { data: Uint8Array; mimeType: string };
 
     switch (task.type) {
       case 'processImage':
@@ -94,6 +96,6 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
 if (parentPort) {
   parentPort.on('message', async (task: WorkerTask) => {
     const response = await handleTask(task);
-    parentPort!.postMessage(response);
+    parentPort!.postMessage(response, transferListFor(response.result?.data));
   });
 }

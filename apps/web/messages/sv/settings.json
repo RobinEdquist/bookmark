@@ -11,7 +11,8 @@
     "announcements": "Meddelanden",
     "genres": "Genrer",
     "authors": "Författare",
-    "narrators": "Inläsare"
+    "narrators": "Inläsare",
+    "backups": "Säkerhetskopior"
   },
   "libraries": {
     "title": "Bibliotek",
@@ -765,6 +766,85 @@
       "merged": "Inläsare ihopslagna",
       "split": "Inläsare delad",
       "error": "Ett fel uppstod"
+    }
+  },
+  "backups": {
+    "title": "Säkerhetskopior",
+    "loadError": "Det gick inte att läsa in inställningarna för säkerhetskopiering.",
+    "retry": "Försök igen",
+    "save": "Spara inställningar",
+    "saving": "Sparar...",
+    "cancel": "Avbryt",
+    "automatic": {
+      "title": "Automatiska säkerhetskopior",
+      "description": "Säkerhetskopiera Bookmarks databas och hanterade bilder. Biblioteksmedia, genererade ljudböcker, cache och tillfälliga filer inkluderas inte.",
+      "enabled": "Aktivera automatiska säkerhetskopior",
+      "enabledDescription": "Skapa säkerhetskopior enligt schemat nedan och ta automatiskt bort äldre arkiv.",
+      "location": "Plats för säkerhetskopior",
+      "locationHint": "Använd en beständig plats utanför containern. Befintliga säkerhetskopior flyttas inte när platsen ändras.",
+      "locationLocked": "Platsen är inställd med miljövariabeln BACKUP_PATH.",
+      "pathInvalid": "Den här platsen för säkerhetskopior kan inte användas:",
+      "frequency": "Återkommande",
+      "time": "Tid",
+      "weekday": "Veckodag",
+      "monthDay": "Dag i månaden",
+      "retention": "Säkerhetskopior att behålla",
+      "retentionHint": "Äldre Bookmark-arkiv tas bort efter en lyckad säkerhetskopiering.",
+      "nextBackup": "Nästa säkerhetskopiering: {date} ({timezone})",
+      "noNextBackup": "Automatiska säkerhetskopior är inaktiverade."
+    },
+    "frequency": {
+      "daily": "Dagligen",
+      "weekly": "Varje vecka",
+      "monthly": "Varje månad"
+    },
+    "weekdays": {
+      "0": "Söndag",
+      "1": "Måndag",
+      "2": "Tisdag",
+      "3": "Onsdag",
+      "4": "Torsdag",
+      "5": "Fredag",
+      "6": "Lördag"
+    },
+    "archives": {
+      "title": "Säkerhetskopior",
+      "description": "Arkiven innehåller all Bookmark-data förutom biblioteksmedia.",
+      "create": "Skapa säkerhetskopia",
+      "creating": "Skapar säkerhetskopia...",
+      "upload": "Ladda upp arkiv",
+      "uploading": "Laddar upp...",
+      "empty": "Inga säkerhetskopior ännu",
+      "emptyDescription": "Skapa en nu eller aktivera automatiska säkerhetskopior ovan.",
+      "download": "Ladda ner {name}",
+      "restore": "Återställ {name}",
+      "delete": "Ta bort {name}"
+    },
+    "deleteDialog": {
+      "title": "Ta bort säkerhetskopian?",
+      "description": "{name} tas permanent bort från platsen för säkerhetskopior.",
+      "confirm": "Ta bort säkerhetskopia"
+    },
+    "restoreDialog": {
+      "title": "Återställ den här säkerhetskopian?",
+      "description": "Om {name} återställs ersätts Bookmarks nuvarande databas och hanterade bilder. Biblioteksmedia ändras inte. Bookmark startas om och aktiva sessioner kan loggas ut.",
+      "confirm": "Återställ och starta om",
+      "restoring": "Återställer..."
+    },
+    "toasts": {
+      "saved": "Inställningarna för säkerhetskopiering har sparats",
+      "saveFailed": "Kunde inte spara inställningarna för säkerhetskopiering",
+      "invalidRetention": "Behåll mellan 1 och 99 säkerhetskopior",
+      "invalidSchedule": "Välj en giltig tid för säkerhetskopiering",
+      "created": "Säkerhetskopian har skapats",
+      "createFailed": "Kunde inte skapa säkerhetskopian",
+      "uploaded": "Säkerhetskopian har laddats upp",
+      "uploadFailed": "Kunde inte ladda upp säkerhetskopian",
+      "deleted": "Säkerhetskopian har tagits bort",
+      "deleteFailed": "Kunde inte ta bort säkerhetskopian",
+      "restoring": "Säkerhetskopian har återställts. Bookmark startas om...",
+      "restartTimeout": "Säkerhetskopian har återställts, men Bookmark har inte startat om ännu. Kontrollera servern och ladda om sidan.",
+      "restoreFailed": "Kunde inte återställa säkerhetskopian"
     }
   },
   "restore": {

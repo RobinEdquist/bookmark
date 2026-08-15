@@ -7,6 +7,13 @@ const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 const nextConfig = {
   // Enable standalone output for Docker deployment
   output: "standalone",
+  experimental: {
+    // Backup create/restore requests stream a pg_dump plus image archive
+    // through the rewrite proxy below; the default 30s proxy timeout would
+    // kill them mid-flight on any non-trivial library while the backend
+    // finishes successfully.
+    proxyTimeout: 30 * 60 * 1000,
+  },
   rewrites() {
     return [
       {

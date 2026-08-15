@@ -134,7 +134,13 @@ docker exec -it bookmark psql -U bookmark bookmark
 
 ### Backups
 
-A file-level copy of `data/app` while Bookmark is running can catch Postgres mid-write and is not a restorable backup. Take a dump instead:
+Admins can configure automatic backups under **Settings → Backups**. Bookmark creates a `.bookmark` archive containing a consistent PostgreSQL dump, cover and people images managed by Bookmark, and the persisted authentication secret. Library media, generated audiobooks, caches, temporary files, and other backup archives are not included.
+
+The default location is `/data/backups`, inside the app data volume. You can select another writable container path in settings, set `BACKUP_PATH` to lock the path at startup, or mount a separate volume if backups should live on another disk. Scheduled backups use the timezone from `TZ`; retention cleanup runs only after a new backup succeeds.
+
+The same page can create, upload, download, delete, and restore archives. Restoring replaces the current database and managed images, then restarts Bookmark. It never changes files in the configured library folders.
+
+For a manual database-only backup, use `pg_dump`. A file-level copy of `data/app` while Bookmark is running can catch Postgres mid-write and is not a restorable database backup:
 
 ```bash
 docker exec bookmark pg_dump -U bookmark bookmark > bookmark-$(date +%F).sql

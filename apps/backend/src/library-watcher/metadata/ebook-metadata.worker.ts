@@ -7,6 +7,10 @@ import {
   firstHeadingText,
 } from '../../tts/utils/html-to-text';
 import { planChapters } from '../../tts/utils/chapter-filter';
+import {
+  copyToTransferableBytes,
+  transferListFor,
+} from '../../common/utils/worker-bytes.util';
 
 interface EbookMetadata {
   title: string;
@@ -19,7 +23,7 @@ interface EbookMetadata {
   isbn?: string;
   pageCount?: number;
   cover?: {
-    data: number[]; // Array instead of Buffer for worker transfer
+    data: Uint8Array;
     mimeType: string;
   };
 }
@@ -47,7 +51,7 @@ interface WorkerResponse {
   result?:
     | EbookMetadata
     | ExtractedChapters
-    | { data: number[]; mimeType: string }
+    | { data: Uint8Array; mimeType: string }
     | null;
   error?: string;
 }
@@ -73,7 +77,7 @@ function cleanDescription(description?: string): string | undefined {
 
 async function extractCoverFromEpub(
   epub: EPub,
-): Promise<{ data: number[]; mimeType: string } | null> {
+): Promise<{ data: Uint8Array; mimeType: string } | null> {
   return new Promise((resolve) => {
     // Try to get cover from manifest
     const coverId = epub.metadata.cover;
@@ -120,7 +124,10 @@ async function extractCoverFromEpub(
           resolve(null);
           return;
         }
-        resolve({ data: Array.from(data), mimeType: mimeType || 'image/jpeg' });
+        resolve({
+          data: copyToTransferableBytes(data),
+          mimeType: mimeType || 'image/jpeg',
+        });
       });
     } else {
       epub.getImage(coverId, (error, data, mimeType) => {
@@ -128,7 +135,10 @@ async function extractCoverFromEpub(
           resolve(null);
           return;
         }
-        resolve({ data: Array.from(data), mimeType: mimeType || 'image/jpeg' });
+        resolve({
+          data: copyToTransferableBytes(data),
+          mimeType: mimeType || 'image/jpeg',
+        });
       });
     }
   });
@@ -169,7 +179,7 @@ async function extractMetadata(filePath: string): Promise<EbookMetadata> {
     }
 
     // Extract cover
-    let cover: { data: number[]; mimeType: string } | undefined;
+    let cover: { data: Uint8Array; mimeType: string } | undefined;
     try {
       const coverResult = await extractCoverFromEpub(epub);
       if (coverResult) {
@@ -217,7 +227,7 @@ async function extractMetadata(filePath: string): Promise<EbookMetadata> {
 
 async function extractCover(
   filePath: string,
-): Promise<{ data: number[]; mimeType: string } | null> {
+): Promise<{ data: Uint8Array; mimeType: string } | null> {
   try {
     const epub = await EPub.createAsync(filePath);
     return await extractCoverFromEpub(epub);
@@ -262,7 +272,7 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
     let result:
       | EbookMetadata
       | ExtractedChapters
-      | { data: number[]; mimeType: string }
+      | { data: Uint8Array; mimeType: string }
       | null;
 
     switch (task.type) {
@@ -293,6 +303,18 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
 if (parentPort) {
   parentPort.on('message', async (task: WorkerTask) => {
     const response = await handleTask(task);
-    parentPort!.postMessage(response);
+    const result = response.result;
+    let data: Uint8Array | undefined;
+    if (result && typeof result === 'object') {
+      if ('data' in result && result.data instanceof Uint8Array) {
+        data = result.data;
+      } else if (
+        'cover' in result &&
+        result.cover?.data instanceof Uint8Array
+      ) {
+        data = result.cover.data;
+      }
+    }
+    parentPort!.postMessage(response, transferListFor(data));
   });
 }

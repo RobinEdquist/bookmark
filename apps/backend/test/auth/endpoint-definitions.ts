@@ -573,6 +573,39 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
     ],
   },
   {
+    controller: 'Backups',
+    endpoints: [
+      { method: 'GET', path: '/admin/backups', expectedStatus: 401 },
+      {
+        method: 'PATCH',
+        path: '/admin/backups/config',
+        expectedStatus: 401,
+        body: {},
+      },
+      { method: 'POST', path: '/admin/backups', expectedStatus: 401 },
+      {
+        method: 'POST',
+        path: '/admin/backups/upload',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/admin/backups/:id/download',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/admin/backups/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/backups/:id/restore',
+        expectedStatus: 401,
+      },
+    ],
+  },
+  {
     controller: 'RequestsAdmin',
     endpoints: [
       { method: 'GET', path: '/admin/requests', expectedStatus: 401 },

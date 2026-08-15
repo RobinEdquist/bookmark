@@ -5,7 +5,7 @@
  * HTTP status code (401 or 403) when accessed without authentication.
  *
  * IMPORTANT: These tests require the backend server to be running.
- * Run with: TEST_BASE_URL=http://localhost:3000 pnpm test:e2e -- auth.e2e-spec.ts
+ * Run with: TEST_PORT=3000 pnpm test:e2e -- auth.e2e-spec.ts
  */
 
 import {
@@ -16,7 +16,8 @@ import {
   ControllerEndpoints,
 } from './endpoint-definitions';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000/api';
+const SERVER_BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
+const BASE_URL = `${SERVER_BASE_URL}/api`;
 const OPENAPI_HTTP_METHODS: ReadonlySet<string> = new Set([
   'get',
   'post',
@@ -113,7 +114,7 @@ beforeAll(async () => {
         `\nPlease start the backend server before running these tests:\n` +
         `  cd apps/backend && pnpm dev\n` +
         `\nOr specify a different URL:\n` +
-        `  TEST_BASE_URL=http://localhost:3000 pnpm test:e2e -- auth.e2e-spec.ts\n`,
+        `  TEST_PORT=3000 pnpm test:e2e -- auth.e2e-spec.ts\n`,
     );
     throw new Error(`Backend server not running at ${BASE_URL}`);
   }

@@ -11,7 +11,8 @@
     "announcements": "Announcements",
     "genres": "Genres",
     "authors": "Authors",
-    "narrators": "Narrators"
+    "narrators": "Narrators",
+    "backups": "Backups"
   },
   "libraries": {
     "title": "Libraries",
@@ -765,6 +766,85 @@
       "merged": "Narrators merged successfully",
       "split": "Narrator split successfully",
       "error": "An error occurred"
+    }
+  },
+  "backups": {
+    "title": "Backups",
+    "loadError": "Backup settings could not be loaded.",
+    "retry": "Try again",
+    "save": "Save settings",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "automatic": {
+      "title": "Automatic backups",
+      "description": "Back up Bookmark's database and managed images. Library media, generated audiobooks, caches, and temporary files are not included.",
+      "enabled": "Enable automatic backups",
+      "enabledDescription": "Create backups on the schedule below and remove older archives automatically.",
+      "location": "Backup location",
+      "locationHint": "Use a durable location outside the container. Existing backups are not moved when this changes.",
+      "locationLocked": "This location is set with the BACKUP_PATH environment variable.",
+      "pathInvalid": "This backup location cannot be used:",
+      "frequency": "Recurrence",
+      "time": "Time",
+      "weekday": "Day of week",
+      "monthDay": "Day of month",
+      "retention": "Backups to keep",
+      "retentionHint": "Older Bookmark backup archives are removed after a successful backup.",
+      "nextBackup": "Next backup: {date} ({timezone})",
+      "noNextBackup": "Automatic backups are disabled."
+    },
+    "frequency": {
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly"
+    },
+    "weekdays": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    },
+    "archives": {
+      "title": "Backup archives",
+      "description": "Archives contain all Bookmark data except your library media.",
+      "create": "Create backup",
+      "creating": "Creating backup...",
+      "upload": "Upload archive",
+      "uploading": "Uploading...",
+      "empty": "No backups yet",
+      "emptyDescription": "Create one now or enable automatic backups above.",
+      "download": "Download {name}",
+      "restore": "Restore {name}",
+      "delete": "Delete {name}"
+    },
+    "deleteDialog": {
+      "title": "Delete backup?",
+      "description": "{name} will be permanently removed from the backup location.",
+      "confirm": "Delete backup"
+    },
+    "restoreDialog": {
+      "title": "Restore this backup?",
+      "description": "Restoring {name} replaces the current Bookmark database and managed images. Library media is not changed. Bookmark will restart and active sessions may be signed out.",
+      "confirm": "Restore and restart",
+      "restoring": "Restoring..."
+    },
+    "toasts": {
+      "saved": "Backup settings saved",
+      "saveFailed": "Failed to save backup settings",
+      "invalidRetention": "Keep between 1 and 99 backups",
+      "invalidSchedule": "Choose a valid backup time",
+      "created": "Backup created",
+      "createFailed": "Failed to create backup",
+      "uploaded": "Backup archive uploaded",
+      "uploadFailed": "Failed to upload backup archive",
+      "deleted": "Backup deleted",
+      "deleteFailed": "Failed to delete backup",
+      "restoring": "Backup restored. Bookmark is restarting...",
+      "restartTimeout": "The backup was restored, but Bookmark has not come back up yet. Check the server and reload this page.",
+      "restoreFailed": "Failed to restore backup"
     }
   },
   "restore": {

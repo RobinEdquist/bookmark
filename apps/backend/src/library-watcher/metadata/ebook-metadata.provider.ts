@@ -5,6 +5,7 @@ import {
   WorkerPoolService,
   getWorkerPath,
 } from '../../common/worker-pool.service';
+import { bytesToBuffer } from '../../common/utils/worker-bytes.util';
 
 export interface EbookMetadata {
   title: string;
@@ -33,7 +34,7 @@ interface WorkerEbookMetadata {
   isbn?: string;
   pageCount?: number;
   cover?: {
-    data: number[];
+    data: Uint8Array;
     mimeType: string;
   };
 }
@@ -74,12 +75,12 @@ export class EbookMetadataProvider implements OnModuleInit {
         { filePath },
       );
 
-      // Convert cover data array back to Buffer
+      // Wrap the transferred cover bytes in a Buffer without another copy.
       if (result.cover) {
         return {
           ...result,
           cover: {
-            data: Buffer.from(result.cover.data),
+            data: bytesToBuffer(result.cover.data),
             mimeType: result.cover.mimeType,
           },
         };
@@ -117,14 +118,14 @@ export class EbookMetadataProvider implements OnModuleInit {
   ): Promise<{ data: Buffer; mimeType: string } | null> {
     try {
       const result = await this.workerPool.executeTask<{
-        data: number[];
+        data: Uint8Array;
         mimeType: string;
       } | null>(POOL_NAME, 'extractCover', { filePath });
 
       if (!result) return null;
 
       return {
-        data: Buffer.from(result.data),
+        data: bytesToBuffer(result.data),
         mimeType: result.mimeType,
       };
     } catch {

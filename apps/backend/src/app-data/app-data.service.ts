@@ -53,6 +53,23 @@ export class AppDataService implements OnModuleInit {
     return this.basePath;
   }
 
+  /**
+   * Directory names under the base path holding durable managed state that
+   * belongs in backups. Caches (comic-page-cache), temp, and the bundled
+   * database directory are deliberately excluded. A new directory added to
+   * ensureDirectories() that holds durable data must be added here too, or
+   * backups will silently miss it.
+   */
+  getBackedUpDirectoryNames(): readonly string[] {
+    return [
+      'audiobook-covers',
+      'ebook-covers',
+      'comic-series-covers',
+      'comic-book-covers',
+      'people-images',
+    ];
+  }
+
   getAudiobookCoversPath(): string {
     return path.join(this.basePath, 'audiobook-covers');
   }

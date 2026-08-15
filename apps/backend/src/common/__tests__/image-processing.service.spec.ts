@@ -7,9 +7,10 @@ import { ImageProcessingService } from '../image-processing.service';
 function createMockWorkerPool(overrides: Record<string, jest.Mock> = {}) {
   return {
     initializePool: jest.fn().mockResolvedValue(undefined),
-    executeTask: jest
-      .fn()
-      .mockResolvedValue({ data: [1, 2, 3], mimeType: 'image/jpeg' }),
+    executeTask: jest.fn().mockResolvedValue({
+      data: Uint8Array.from([1, 2, 3]),
+      mimeType: 'image/jpeg',
+    }),
     ...overrides,
   };
 }
@@ -61,7 +62,7 @@ describe('ImageProcessingService', () => {
         'image-processing',
         'processImage',
         {
-          imageData: [10, 20, 30],
+          imageData: Uint8Array.from([10, 20, 30]),
           options: {
             maxWidth: 500,
             maxHeight: 500,
@@ -69,12 +70,13 @@ describe('ImageProcessingService', () => {
             format: 'png',
           },
         },
+        [expect.any(ArrayBuffer)],
       );
     });
 
-    it('converts number array result back to Buffer', async () => {
+    it('wraps transferred bytes as a Buffer', async () => {
       mockWorkerPool.executeTask.mockResolvedValue({
-        data: [65, 66, 67],
+        data: Uint8Array.from([65, 66, 67]),
         mimeType: 'image/jpeg',
       });
 
@@ -94,7 +96,7 @@ describe('ImageProcessingService', () => {
         'image-processing',
         'processImage',
         {
-          imageData: [1, 2],
+          imageData: Uint8Array.from([1, 2]),
           options: {
             maxWidth: 1000,
             maxHeight: 1000,
@@ -102,6 +104,7 @@ describe('ImageProcessingService', () => {
             format: 'jpeg',
           },
         },
+        [expect.any(ArrayBuffer)],
       );
     });
 
@@ -119,7 +122,7 @@ describe('ImageProcessingService', () => {
         'image-processing',
         'processImage',
         {
-          imageData: [1],
+          imageData: Uint8Array.from([1]),
           options: {
             maxWidth: 200,
             maxHeight: 300,
@@ -127,6 +130,7 @@ describe('ImageProcessingService', () => {
             format: 'webp',
           },
         },
+        [expect.any(ArrayBuffer)],
       );
     });
   });
@@ -137,7 +141,7 @@ describe('ImageProcessingService', () => {
   describe('processCover', () => {
     it('delegates to processImage with standard cover settings', async () => {
       mockWorkerPool.executeTask.mockResolvedValue({
-        data: [99, 100],
+        data: Uint8Array.from([99, 100]),
         mimeType: 'image/jpeg',
       });
 
@@ -151,7 +155,7 @@ describe('ImageProcessingService', () => {
         'image-processing',
         'processImage',
         {
-          imageData: [5, 6, 7],
+          imageData: Uint8Array.from([5, 6, 7]),
           options: {
             maxWidth: 1000,
             maxHeight: 1000,
@@ -159,6 +163,7 @@ describe('ImageProcessingService', () => {
             format: 'jpeg',
           },
         },
+        [expect.any(ArrayBuffer)],
       );
     });
   });

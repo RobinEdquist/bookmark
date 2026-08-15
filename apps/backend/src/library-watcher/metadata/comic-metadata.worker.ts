@@ -9,11 +9,15 @@ import {
 } from '../utils/comic-archive.utils';
 import { readComicPdf, readComicPdfPage } from '../utils/comic-pdf.utils';
 import { parseComicInfoXml, ParsedComicInfo } from '../utils/comicinfo.parser';
+import {
+  copyToTransferableBytes,
+  transferListFor,
+} from '../../common/utils/worker-bytes.util';
 
 export interface WorkerComicFileMetadata {
   comicInfo: ParsedComicInfo | null;
   pageCount: number;
-  cover: { data: number[]; mimeType: string } | null;
+  cover: { data: Uint8Array; mimeType: string } | null;
 }
 
 interface WorkerTask {
@@ -27,7 +31,7 @@ interface WorkerResponse {
   taskId: string;
   success: boolean;
   result?:
-    WorkerComicFileMetadata | { data: number[]; mimeType: string } | null;
+    WorkerComicFileMetadata | { data: Uint8Array; mimeType: string } | null;
   error?: string;
 }
 
@@ -59,7 +63,7 @@ async function extractMetadata(
       pageCount: pdf.pageCount,
       cover: pdf.coverImage
         ? {
-            data: Array.from(pdf.coverImage.data),
+            data: copyToTransferableBytes(pdf.coverImage.data),
             mimeType:
               MIME_BY_EXTENSION[pdf.coverImage.extension] ?? 'image/png',
           }
@@ -90,7 +94,7 @@ async function extractMetadata(
     pageCount: comicInfo?.pageCount ?? archive.pageCount,
     cover: cover
       ? {
-          data: Array.from(cover.data),
+          data: copyToTransferableBytes(cover.data),
           mimeType: MIME_BY_EXTENSION[cover.extension] ?? 'image/jpeg',
         }
       : null,
@@ -99,7 +103,7 @@ async function extractMetadata(
 
 async function extractCover(
   filePath: string,
-): Promise<{ data: number[]; mimeType: string } | null> {
+): Promise<{ data: Uint8Array; mimeType: string } | null> {
   const metadata = await extractMetadata(filePath);
   return metadata.cover;
 }
@@ -107,7 +111,7 @@ async function extractCover(
 async function extractPage(
   filePath: string,
   pageIndex: number,
-): Promise<{ data: number[]; mimeType: string } | null> {
+): Promise<{ data: Uint8Array; mimeType: string } | null> {
   console.log(
     `[comic-worker] extractPage filePath=${filePath} pageIndex=${pageIndex}`,
   );
@@ -122,7 +126,10 @@ async function extractPage(
     console.log(
       `[comic-worker] extractPage done (pdf) filePath=${filePath} pageIndex=${pageIndex} bytes=${page.data.length}`,
     );
-    return { data: Array.from(page.data), mimeType: 'image/png' };
+    return {
+      data: copyToTransferableBytes(page.data),
+      mimeType: 'image/png',
+    };
   }
   const page = await readComicArchivePage(filePath, pageIndex);
   if (!page) {
@@ -135,7 +142,7 @@ async function extractPage(
     `[comic-worker] extractPage done (archive) filePath=${filePath} pageIndex=${pageIndex} bytes=${page.data.length} mimeType=${MIME_BY_EXTENSION[page.extension] ?? 'image/jpeg'}`,
   );
   return {
-    data: Array.from(page.data),
+    data: copyToTransferableBytes(page.data),
     mimeType: MIME_BY_EXTENSION[page.extension] ?? 'image/jpeg',
   };
 }
@@ -143,7 +150,7 @@ async function extractPage(
 async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
   try {
     let result:
-      WorkerComicFileMetadata | { data: number[]; mimeType: string } | null;
+      WorkerComicFileMetadata | { data: Uint8Array; mimeType: string } | null;
 
     switch (task.type) {
       case 'extractMetadata':
@@ -179,6 +186,18 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
 if (parentPort) {
   parentPort.on('message', async (task: WorkerTask) => {
     const response = await handleTask(task);
-    parentPort!.postMessage(response);
+    const result = response.result;
+    let data: Uint8Array | undefined;
+    if (result && typeof result === 'object') {
+      if ('data' in result && result.data instanceof Uint8Array) {
+        data = result.data;
+      } else if (
+        'cover' in result &&
+        result.cover?.data instanceof Uint8Array
+      ) {
+        data = result.cover.data;
+      }
+    }
+    parentPort!.postMessage(response, transferListFor(data));
   });
 }

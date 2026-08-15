@@ -18,6 +18,7 @@ interface WorkerResponse {
 
 interface PendingTask {
   task: WorkerTask;
+  transferList: readonly ArrayBuffer[];
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
 }
@@ -26,6 +27,7 @@ interface WorkerState {
   worker: Worker;
   busy: boolean;
   currentTaskId: string | null;
+  terminating: boolean;
 }
 
 interface PoolConfig {
@@ -33,6 +35,16 @@ interface PoolConfig {
   workerScript: string;
   minWorkers?: number;
   maxWorkers?: number;
+}
+
+interface PoolState {
+  workers: WorkerState[];
+  taskQueue: PendingTask[];
+  pendingTasks: Map<string, PendingTask>;
+  taskIdCounter: number;
+  workerIdCounter: number;
+  poolSize: number;
+  config: PoolConfig;
 }
 
 function toError(error: unknown): Error {
@@ -46,16 +58,8 @@ function toError(error: unknown): Error {
 @Injectable()
 export class WorkerPoolService implements OnModuleDestroy {
   private readonly logger = new Logger(WorkerPoolService.name);
-  private pools: Map<
-    string,
-    {
-      workers: WorkerState[];
-      taskQueue: PendingTask[];
-      pendingTasks: Map<string, PendingTask>;
-      taskIdCounter: number;
-      config: PoolConfig;
-    }
-  > = new Map();
+  private pools: Map<string, PoolState> = new Map();
+  private destroying = false;
 
   private readonly defaultPoolSize: number;
 
@@ -68,7 +72,13 @@ export class WorkerPoolService implements OnModuleDestroy {
   }
 
   /**
-   * Initialize a worker pool with the given configuration.
+   * Register a worker pool with the given configuration.
+   *
+   * Workers are deliberately created on the first task rather than during
+   * application bootstrap. Most of these pools are specialist tools (restore,
+   * comic/ebook metadata, image conversion) that an installation may never
+   * use during a given process lifetime.
+   *
    * Call this before using executeTask for a specific pool.
    */
   async initializePool(config: PoolConfig): Promise<void> {
@@ -87,46 +97,71 @@ export class WorkerPoolService implements OnModuleDestroy {
       taskQueue: [] as PendingTask[],
       pendingTasks: new Map<string, PendingTask>(),
       taskIdCounter: 0,
+      workerIdCounter: 0,
+      poolSize,
       config,
     };
 
+    this.pools.set(config.name, pool);
     this.logger.log(
-      `Initializing ${config.name} pool with ${poolSize} workers`,
+      `Registered lazy ${config.name} pool (${poolSize} workers)`,
     );
+  }
 
-    for (let i = 0; i < poolSize; i++) {
+  /** Create any missing workers once the pool receives its first task. */
+  private ensurePoolStarted(poolName: string, pool: PoolState): void {
+    if (this.destroying) {
+      throw new Error('Worker pool is shutting down');
+    }
+
+    const workersToCreate = pool.poolSize - pool.workers.length;
+    if (workersToCreate <= 0) return;
+
+    if (pool.workers.length === 0) {
+      this.logger.log(
+        `Starting ${poolName} pool with ${pool.poolSize} workers`,
+      );
+    }
+
+    for (let i = 0; i < workersToCreate; i++) {
+      const workerId = ++pool.workerIdCounter;
       try {
-        const worker = new Worker(config.workerScript);
+        const worker = new Worker(pool.config.workerScript);
 
         const workerState: WorkerState = {
           worker,
           busy: false,
           currentTaskId: null,
+          terminating: false,
         };
 
         worker.on('message', (response: WorkerResponse) => {
-          this.handleWorkerResponse(config.name, workerState, response);
+          this.handleWorkerResponse(poolName, workerState, response);
         });
 
         worker.on('error', (error: unknown) => {
           const workerError = toError(error);
           this.logger.error(
-            `${config.name} worker ${i} error: ${workerError.message}`,
+            `${poolName} worker ${workerId} error: ${workerError.message}`,
           );
-          this.handleWorkerError(config.name, workerState, workerError);
+          this.handleWorkerError(poolName, workerState, workerError);
         });
 
         worker.on('exit', (code) => {
-          if (code !== 0) {
+          if (code !== 0 && !workerState.terminating) {
             this.logger.warn(
-              `${config.name} worker ${i} exited with code ${code}`,
+              `${poolName} worker ${workerId} exited with code ${code}`,
             );
           }
-          const poolData = this.pools.get(config.name);
+          const poolData = this.pools.get(poolName);
           if (poolData) {
             const index = poolData.workers.indexOf(workerState);
             if (index > -1) {
               poolData.workers.splice(index, 1);
+            }
+            if (!this.destroying && poolData.taskQueue.length > 0) {
+              this.ensurePoolStarted(poolName, poolData);
+              this.processNextTask(poolName);
             }
           }
         });
@@ -134,14 +169,13 @@ export class WorkerPoolService implements OnModuleDestroy {
         pool.workers.push(workerState);
       } catch (error) {
         this.logger.error(
-          `Failed to create ${config.name} worker ${i}: ${error}`,
+          `Failed to create ${poolName} worker ${workerId}: ${error}`,
         );
       }
     }
 
-    this.pools.set(config.name, pool);
     this.logger.log(
-      `${config.name} pool initialized with ${pool.workers.length} workers`,
+      `${poolName} pool running with ${pool.workers.length} workers`,
     );
   }
 
@@ -187,6 +221,16 @@ export class WorkerPoolService implements OnModuleDestroy {
 
     workerState.busy = false;
     workerState.currentTaskId = null;
+
+    // Do not let a queued task get dispatched to a Worker that has already
+    // emitted an error. Its exit event will run shortly; remove it now and
+    // restore capacity immediately when work is waiting.
+    const index = pool.workers.indexOf(workerState);
+    if (index > -1) pool.workers.splice(index, 1);
+    if (!this.destroying && pool.taskQueue.length > 0) {
+      this.ensurePoolStarted(poolName, pool);
+      this.processNextTask(poolName);
+    }
   }
 
   private processNextTask(poolName: string): void {
@@ -203,7 +247,10 @@ export class WorkerPoolService implements OnModuleDestroy {
     availableWorker.currentTaskId = pendingTask.task.taskId;
     pool.pendingTasks.set(pendingTask.task.taskId, pendingTask);
 
-    availableWorker.worker.postMessage(pendingTask.task);
+    availableWorker.worker.postMessage(
+      pendingTask.task,
+      pendingTask.transferList,
+    );
   }
 
   /**
@@ -214,6 +261,7 @@ export class WorkerPoolService implements OnModuleDestroy {
     poolName: string,
     taskType: string,
     taskData: Record<string, unknown>,
+    transferList: readonly ArrayBuffer[] = [],
   ): Promise<T> {
     const pool = this.pools.get(poolName);
     if (!pool) {
@@ -222,12 +270,18 @@ export class WorkerPoolService implements OnModuleDestroy {
       );
     }
 
+    this.ensurePoolStarted(poolName, pool);
+    if (pool.workers.length === 0) {
+      throw new Error(`Pool ${poolName} could not start any workers`);
+    }
+
     const taskId = `${poolName}-${++pool.taskIdCounter}`;
     const task: WorkerTask = { type: taskType, taskId, ...taskData };
 
     return new Promise<T>((resolve, reject) => {
       const pendingTask: PendingTask = {
         task,
+        transferList,
         resolve: resolve as (value: unknown) => void,
         reject,
       };
@@ -238,7 +292,7 @@ export class WorkerPoolService implements OnModuleDestroy {
         availableWorker.busy = true;
         availableWorker.currentTaskId = taskId;
         pool.pendingTasks.set(taskId, pendingTask);
-        availableWorker.worker.postMessage(task);
+        availableWorker.worker.postMessage(task, transferList);
       } else {
         pool.taskQueue.push(pendingTask);
       }
@@ -283,6 +337,7 @@ export class WorkerPoolService implements OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.destroying = true;
     this.logger.log('Shutting down all worker pools...');
 
     for (const [name, pool] of this.pools) {
@@ -303,6 +358,7 @@ export class WorkerPoolService implements OnModuleDestroy {
       // Terminate all workers
       const terminationPromises = pool.workers.map(async (workerState) => {
         try {
+          workerState.terminating = true;
           await workerState.worker.terminate();
         } catch (error) {
           this.logger.warn(`Error terminating ${name} worker: ${error}`);

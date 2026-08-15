@@ -8,6 +8,10 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import {
+  copyToTransferableBytes,
+  transferListFor,
+} from '../../common/utils/worker-bytes.util';
 
 // execFile (never exec): media file names are untrusted input and must be
 // passed as argv entries, not interpolated into a shell command line.
@@ -67,19 +71,21 @@ interface WorkerResponse {
   result?:
     | FullMetadataResult
     | AudioFileInfo
-    | { data: number[]; mimeType: string }
+    | { data: Uint8Array; mimeType: string }
     | null;
   error?: string;
 }
 
-// Lazy-initialize MediaInfo instance (reusable across tasks)
+// Lazy-initialize a reusable metadata-only MediaInfo instance. Embedded cover
+// bytes are intentionally disabled: Base64 cover output grows the WASM heap
+// during normal imports even though those bytes are not consumed.
 let mediaInfoInstance: MediaInfo | null = null;
 
 async function getMediaInfo(): Promise<MediaInfo> {
   if (!mediaInfoInstance) {
     mediaInfoInstance = await MediaInfoFactory({
       format: 'object',
-      coverData: true,
+      coverData: false,
     });
   }
   return mediaInfoInstance;
@@ -88,8 +94,10 @@ async function getMediaInfo(): Promise<MediaInfo> {
 /**
  * Analyze a file using mediainfo.js
  */
-async function analyzeFile(filePath: string): Promise<MediaInfoResult> {
-  const mediaInfo = await getMediaInfo();
+async function analyzeFileWith(
+  mediaInfo: MediaInfo,
+  filePath: string,
+): Promise<MediaInfoResult> {
   const fileHandle = await fs.open(filePath, 'r');
   const fileSize = (await fileHandle.stat()).size;
 
@@ -108,6 +116,10 @@ async function analyzeFile(filePath: string): Promise<MediaInfoResult> {
   } finally {
     await fileHandle.close();
   }
+}
+
+async function analyzeFile(filePath: string): Promise<MediaInfoResult> {
+  return analyzeFileWith(await getMediaInfo(), filePath);
 }
 
 // Type definitions for mediainfo.js result structure
@@ -354,7 +366,7 @@ async function getFileInfo(filePath: string): Promise<AudioFileInfo> {
  */
 async function extractCoverWithFfmpeg(
   filePath: string,
-): Promise<{ data: number[]; mimeType: string } | null> {
+): Promise<{ data: Uint8Array; mimeType: string } | null> {
   try {
     // First check if there's an attached picture stream
     const { stdout: probeOutput } = await execFileAsync(
@@ -412,7 +424,7 @@ async function extractCoverWithFfmpeg(
       }
 
       return {
-        data: Array.from(coverData),
+        data: copyToTransferableBytes(coverData),
         mimeType,
       };
     } finally {
@@ -431,8 +443,20 @@ async function extractCoverWithFfmpeg(
 
 async function extractCover(
   filePath: string,
-): Promise<{ data: number[]; mimeType: string } | null> {
-  const mediaInfoResult = await analyzeFile(filePath);
+): Promise<{ data: Uint8Array; mimeType: string } | null> {
+  // Cover bytes are requested infrequently and cached by the caller. Use a
+  // short-lived cover-enabled instance so ordinary metadata workers never
+  // retain the much larger Base64/WASM high-water allocation.
+  const coverMediaInfo = await MediaInfoFactory({
+    format: 'object',
+    coverData: true,
+  });
+  let mediaInfoResult: MediaInfoResult;
+  try {
+    mediaInfoResult = await analyzeFileWith(coverMediaInfo, filePath);
+  } finally {
+    coverMediaInfo.close();
+  }
   const tracks = (mediaInfoResult.media?.track || []) as MediaInfoTrack[];
   const generalTrack = tracks.find((t) => t['@type'] === 'General');
 
@@ -441,7 +465,7 @@ async function extractCover(
     const mimeType = generalTrack.Cover_Mime || 'image/jpeg';
     const data = Buffer.from(generalTrack.Cover_Data, 'base64');
     return {
-      data: Array.from(data),
+      data: copyToTransferableBytes(data),
       mimeType,
     };
   }
@@ -468,7 +492,7 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
     let result:
       | FullMetadataResult
       | AudioFileInfo
-      | { data: number[]; mimeType: string }
+      | { data: Uint8Array; mimeType: string }
       | null;
 
     switch (task.type) {
@@ -499,7 +523,15 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
 if (parentPort) {
   parentPort.on('message', async (task: WorkerTask) => {
     const response = await handleTask(task);
-    parentPort!.postMessage(response);
+    const result = response.result;
+    const data =
+      result && typeof result === 'object' && 'data' in result
+        ? result.data
+        : undefined;
+    parentPort!.postMessage(
+      response,
+      transferListFor(data instanceof Uint8Array ? data : undefined),
+    );
   });
 }
 
@@ -507,7 +539,15 @@ if (parentPort) {
 if (workerData) {
   handleTask(workerData as WorkerTask).then((response) => {
     if (parentPort) {
-      parentPort.postMessage(response);
+      const result = response.result;
+      const data =
+        result && typeof result === 'object' && 'data' in result
+          ? result.data
+          : undefined;
+      parentPort.postMessage(
+        response,
+        transferListFor(data instanceof Uint8Array ? data : undefined),
+      );
     }
   });
 }

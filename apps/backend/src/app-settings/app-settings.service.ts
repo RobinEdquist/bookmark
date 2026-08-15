@@ -69,6 +69,10 @@ export class AppSettingsService {
     defaultCanGenerateApiKeys?: boolean;
     defaultCanRequestContent?: boolean;
     defaultCanGenerateAudiobooks?: boolean;
+    backupEnabled?: boolean;
+    backupPath?: string | null;
+    backupSchedule?: string;
+    backupsToKeep?: number;
   }) {
     const [updated] = await this.db
       .update(schema.appSettings)
