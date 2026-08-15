@@ -246,6 +246,13 @@
       "when": 1786056155307,
       "tag": "0034_add_audiobook_bookmarks",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1786718056255,
+      "tag": "0035_automatic_backups",
+      "breakpoints": true
     }
   ]
 }

@@ -44,6 +44,7 @@ import { GenresModule } from './genres/genres.module';
 import { UserProfileModule } from './user-profile/user-profile.module';
 import { StatsModule } from './stats/stats.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { BackupsModule } from './backups/backups.module';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { SignupGuard } from './auth/signup.guard';
 import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
@@ -211,6 +212,7 @@ import { CommonModule } from './common/common.module';
     UserProfileModule,
     StatsModule,
     MetricsModule,
+    BackupsModule,
   ],
   controllers: [],
   providers: [

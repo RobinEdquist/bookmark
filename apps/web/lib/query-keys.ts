@@ -13,6 +13,10 @@ export const queryKeys = {
     private: () => [...queryKeys.settings.all, "private"] as const,
     authConfig: () => [...queryKeys.settings.all, "auth-config"] as const,
   },
+  backups: {
+    all: ["backups"] as const,
+    overview: () => [...queryKeys.backups.all, "overview"] as const,
+  },
   users: {
     all: ["users"] as const,
     list: (filters?: { search?: string; role?: string }) =>

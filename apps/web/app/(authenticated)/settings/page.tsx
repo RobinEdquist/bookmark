@@ -16,6 +16,7 @@ import { IntegrationsSettings } from "../../../components/settings/integrations-
 import { AnnouncementsSettings } from "../../../components/settings/announcements-settings";
 import { GenresSettings } from "../../../components/settings/genres-settings";
 import { PeopleSettings } from "../../../components/settings/people-settings";
+import { BackupsSettings } from "../../../components/settings/backups-settings";
 import { authClient } from "../../../lib/auth-client";
 import { useUrlTab } from "../../../lib/use-url-tab";
 
@@ -27,6 +28,7 @@ const VALID_TABS = [
   "genres",
   "authors",
   "narrators",
+  "backups",
 ] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
@@ -86,7 +88,7 @@ export default function SettingsPage() {
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as TabValue)}
         >
-          <TabsList>
+          <TabsList className="h-auto flex-wrap justify-start">
             <TabsTrigger value="libraries">{t("tabs.libraries")}</TabsTrigger>
             <TabsTrigger value="users">{t("tabs.users")}</TabsTrigger>
             <TabsTrigger value="integrations">
@@ -98,6 +100,7 @@ export default function SettingsPage() {
             <TabsTrigger value="genres">{t("tabs.genres")}</TabsTrigger>
             <TabsTrigger value="authors">{t("tabs.authors")}</TabsTrigger>
             <TabsTrigger value="narrators">{t("tabs.narrators")}</TabsTrigger>
+            <TabsTrigger value="backups">{t("tabs.backups")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="libraries">
@@ -126,6 +129,10 @@ export default function SettingsPage() {
 
           <TabsContent value="narrators">
             <PeopleSettings role="narrators" />
+          </TabsContent>
+
+          <TabsContent value="backups">
+            <BackupsSettings />
           </TabsContent>
         </Tabs>
       </div>
