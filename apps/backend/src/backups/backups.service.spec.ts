@@ -16,6 +16,14 @@ interface TestSettings {
   backupsToKeep: number;
 }
 
+const MANAGED_DIRECTORIES = [
+  'audiobook-covers',
+  'ebook-covers',
+  'comic-series-covers',
+  'comic-book-covers',
+  'people-images',
+] as const;
+
 describe('BackupsService', () => {
   let rootPath: string;
   let dataPath: string;
@@ -23,11 +31,40 @@ describe('BackupsService', () => {
   let settings: TestSettings;
   let service: BackupsService;
   let updateSettings: jest.Mock;
+  let appData: {
+    getBasePath: () => string;
+    getTempPath: () => string;
+    getBackedUpDirectoryNames: () => readonly string[];
+  };
+  let appSettings: {
+    getSettings: jest.Mock;
+    updateSettings: jest.Mock;
+  };
 
-  const mockPostgresCommands = () =>
+  const makeConfig = (overrides: Record<string, string> = {}) => {
+    const values: Record<string, string> = {
+      DATABASE_URL: 'postgresql://bookmark:test@localhost/bookmark',
+      APP_VERSION: '1.2.3',
+      TZ: 'Europe/Stockholm',
+      ...overrides,
+    };
+    return {
+      get: jest.fn((key: string, fallback?: string) => values[key] ?? fallback),
+      getOrThrow: jest.fn(() => values.DATABASE_URL),
+    };
+  };
+
+  const makeService = (configOverrides: Record<string, string> = {}) =>
+    new BackupsService(
+      makeConfig(configOverrides) as unknown as ConfigService,
+      appData as unknown as AppDataService,
+      appSettings as unknown as AppSettingsService,
+    );
+
+  const mockPostgresCommands = (target: BackupsService = service) =>
     jest
       .spyOn(
-        service as unknown as {
+        target as unknown as {
           runPostgresCommand: (
             command: 'pg_dump' | 'pg_restore',
             args: string[],
@@ -40,6 +77,30 @@ describe('BackupsService', () => {
         const dumpPath = args[args.indexOf('--file') + 1];
         await fs.writeFile(dumpPath, 'postgres-dump');
       });
+
+  const writeTestArchive = async (
+    archivePath: string,
+    manifestOverrides: Record<string, unknown> = {},
+  ): Promise<void> => {
+    const manifest = {
+      formatVersion: 1,
+      application: 'bookmark',
+      appVersion: '1.2.3',
+      createdAt: new Date().toISOString(),
+      contents: ['database.dump'],
+      ...manifestOverrides,
+    };
+    const output = createWriteStream(archivePath);
+    const archive = archiver('zip');
+    archive.pipe(output);
+    archive.append(JSON.stringify(manifest), { name: 'manifest.json' });
+    archive.append('postgres-dump', { name: 'database.dump' });
+    await archive.finalize();
+    await new Promise<void>((resolve) => output.on('close', resolve));
+  };
+
+  const sleep = (ms: number) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
 
   beforeEach(async () => {
     rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'bookmark-backups-'));
@@ -58,33 +119,17 @@ describe('BackupsService', () => {
       return settings;
     });
 
-    const config = {
-      get: jest.fn((key: string, fallback?: string) => {
-        const values: Record<string, string> = {
-          DATABASE_URL: 'postgresql://bookmark:test@localhost/bookmark',
-          APP_VERSION: '1.2.3',
-          TZ: 'Europe/Stockholm',
-        };
-        return values[key] ?? fallback;
-      }),
-      getOrThrow: jest.fn(
-        () => 'postgresql://bookmark:test@localhost/bookmark',
-      ),
-    };
-    const appData = {
+    appData = {
       getBasePath: () => dataPath,
       getTempPath: () => tempPath,
+      getBackedUpDirectoryNames: () => MANAGED_DIRECTORIES,
     };
-    const appSettings = {
+    appSettings = {
       getSettings: jest.fn(async () => settings),
       updateSettings,
     };
 
-    service = new BackupsService(
-      config as unknown as ConfigService,
-      appData as unknown as AppDataService,
-      appSettings as unknown as AppSettingsService,
-    );
+    service = makeService();
   });
 
   afterEach(async () => {
@@ -101,6 +146,7 @@ describe('BackupsService', () => {
       retention: 2,
       timezone: 'Europe/Stockholm',
       nextBackupAt: null,
+      pathError: null,
     });
   });
 
@@ -137,14 +183,7 @@ describe('BackupsService', () => {
   });
 
   it('creates restorable archives without media or cache directories', async () => {
-    for (const directory of [
-      'audiobook-covers',
-      'ebook-covers',
-      'comic-series-covers',
-      'comic-book-covers',
-      'people-images',
-      'comic-page-cache',
-    ]) {
+    for (const directory of [...MANAGED_DIRECTORIES, 'comic-page-cache']) {
       await fs.mkdir(path.join(dataPath, directory), { recursive: true });
       await fs.writeFile(
         path.join(dataPath, directory, 'sample.jpg'),
@@ -181,10 +220,38 @@ describe('BackupsService', () => {
     mockPostgresCommands();
 
     await service.createBackup();
-    await new Promise((resolve) => setTimeout(resolve, 2));
+    await sleep(10);
     await service.createBackup();
 
     await expect(service.listBackups()).resolves.toHaveLength(1);
+  });
+
+  it('keeps recently added archives even when their manifest date is old', async () => {
+    settings.backupsToKeep = 2;
+    await fs.mkdir(path.join(dataPath, 'audiobook-covers'), {
+      recursive: true,
+    });
+    mockPostgresCommands();
+
+    const first = await service.createBackup();
+    await sleep(10);
+
+    // An admin uploads an archive from an old server to restore it later: it
+    // is the oldest by manifest date but the newest arrival in the directory.
+    const uploadPath = path.join(rootPath, 'old-server.bookmark');
+    await writeTestArchive(uploadPath, {
+      createdAt: '2020-01-01T00:00:00.000Z',
+    });
+    const imported = await service.importBackup(uploadPath);
+    await sleep(10);
+
+    await service.createBackup();
+
+    const remaining = await service.listBackups();
+    const ids = remaining.map((backup) => backup.id);
+    expect(remaining).toHaveLength(2);
+    expect(ids).toContain(imported.id);
+    expect(ids).not.toContain(first.id);
   });
 
   it('ignores archives with an invalid manifest', async () => {
@@ -223,5 +290,89 @@ describe('BackupsService', () => {
       'pg_restore',
       expect.arrayContaining(['--single-transaction', '--exit-on-error']),
     );
+  });
+
+  it('refuses to restore a backup created by a newer Bookmark version', async () => {
+    const backupPath = path.join(dataPath, 'backups');
+    await fs.mkdir(backupPath, { recursive: true });
+    await writeTestArchive(path.join(backupPath, 'bookmark-newer.bookmark'), {
+      appVersion: '9.9.9',
+    });
+
+    await expect(service.restoreBackup('bookmark-newer')).rejects.toThrow(
+      'newer than this instance',
+    );
+  });
+
+  it('rejects uploads that are not Bookmark backup archives', async () => {
+    const uploadPath = path.join(rootPath, 'not-a-zip.bookmark');
+    await fs.writeFile(uploadPath, 'plain text, not a zip');
+
+    await expect(service.importBackup(uploadPath)).rejects.toThrow(
+      'not a valid Bookmark backup',
+    );
+  });
+
+  it('accepts directory entries with trailing slashes and rejects unsafe paths', () => {
+    const validate = (files: { path: string; type: string }[]) =>
+      (
+        service as unknown as {
+          validateArchiveDirectory(directory: unknown): void;
+        }
+      ).validateArchiveDirectory({
+        files: files.map((file) => ({ ...file, uncompressedSize: 10 })),
+      });
+
+    // `zip -r` and Finder emit explicit directory entries with trailing
+    // slashes; a repacked but otherwise identical backup must stay valid.
+    expect(() =>
+      validate([
+        { path: 'manifest.json', type: 'File' },
+        { path: 'database.dump', type: 'File' },
+        { path: 'data/', type: 'Directory' },
+        { path: 'data/audiobook-covers/', type: 'Directory' },
+        { path: 'data/audiobook-covers/a.jpg', type: 'File' },
+      ]),
+    ).not.toThrow();
+
+    expect(() =>
+      validate([
+        { path: 'manifest.json', type: 'File' },
+        { path: 'database.dump', type: 'File' },
+        { path: '../evil.sh', type: 'File' },
+      ]),
+    ).toThrow('unsafe file path');
+
+    expect(() =>
+      validate([
+        { path: 'manifest.json', type: 'File' },
+        { path: 'database.dump', type: 'File' },
+        { path: 'data/db/PG_VERSION', type: 'File' },
+      ]),
+    ).toThrow('unsafe file path');
+  });
+
+  it('refuses to operate inside a managed image directory', async () => {
+    const unsafePath = path.join(dataPath, 'people-images');
+    await fs.mkdir(unsafePath, { recursive: true });
+    const unsafeService = makeService({ BACKUP_PATH: unsafePath });
+
+    await expect(unsafeService.createBackup()).rejects.toThrow(
+      'managed image directory',
+    );
+    await expect(unsafeService.listBackups()).resolves.toEqual([]);
+    const config = await unsafeService.getConfig();
+    expect(config.pathError).toContain('managed image directory');
+  });
+
+  it('sweeps stale partial files at startup without blocking boot', async () => {
+    const backupPath = path.join(dataPath, 'backups');
+    await fs.mkdir(backupPath, { recursive: true });
+    const stale = path.join(backupPath, 'bookmark-crashed.bookmark.partial');
+    await fs.writeFile(stale, 'half-written');
+
+    await service.onModuleInit();
+
+    await expect(fs.access(stale)).rejects.toThrow();
   });
 });

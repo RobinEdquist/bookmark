@@ -783,6 +783,7 @@
       "location": "Backup location",
       "locationHint": "Use a durable location outside the container. Existing backups are not moved when this changes.",
       "locationLocked": "This location is set with the BACKUP_PATH environment variable.",
+      "pathInvalid": "This backup location cannot be used:",
       "frequency": "Recurrence",
       "time": "Time",
       "weekday": "Day of week",
@@ -842,6 +843,7 @@
       "deleted": "Backup deleted",
       "deleteFailed": "Failed to delete backup",
       "restoring": "Backup restored. Bookmark is restarting...",
+      "restartTimeout": "The backup was restored, but Bookmark has not come back up yet. Check the server and reload this page.",
       "restoreFailed": "Failed to restore backup"
     }
   },

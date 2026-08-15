@@ -107,6 +107,32 @@ function parseSchedule(schedule: string): ScheduleFields {
   return { frequency: "daily", time: "02:00", weekday: "0", monthDay: "1" };
 }
 
+function formatNextBackup(
+  iso: string,
+  timeZone: string,
+): { date: string; timezone: string } {
+  const date = new Date(iso);
+  const options = { dateStyle: "medium", timeStyle: "short" } as const;
+  try {
+    return {
+      date: new Intl.DateTimeFormat(undefined, { ...options, timeZone }).format(
+        date,
+      ),
+      timezone: timeZone,
+    };
+  } catch {
+    // The server timezone comes from the TZ env var and is not always a name
+    // Intl accepts (e.g. "UTC+8"); fall back to the viewer's own timezone
+    // rather than crashing the whole tab.
+    return {
+      date: new Intl.DateTimeFormat(undefined, options).format(date),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    };
+  }
+}
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 function serializeSchedule(fields: ScheduleFields): string {
   const [hour, minute] = fields.time.split(":").map(Number);
   if (fields.frequency === "weekly") {
@@ -131,6 +157,7 @@ export function BackupsSettings() {
   const [draft, setDraft] = useState<BackupDraft | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BackupEntry | null>(null);
   const [restoreTarget, setRestoreTarget] = useState<BackupEntry | null>(null);
+  const [restarting, setRestarting] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
   const config = overview.data?.config;
@@ -151,11 +178,7 @@ export function BackupsSettings() {
           schedule: parseSchedule("0 2 * * *"),
         });
   const nextBackup = config?.nextBackupAt
-    ? new Intl.DateTimeFormat(undefined, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: config.timezone,
-      }).format(new Date(config.nextBackupAt))
+    ? formatNextBackup(config.nextBackupAt, config.timezone)
     : null;
 
   const updateDraft = (updates: Partial<BackupDraft>) => {
@@ -241,17 +264,58 @@ export function BackupsSettings() {
     }
   };
 
+  // After a restore the backend restarts itself. Wait for it to actually go
+  // down and come back before navigating, instead of redirecting blind into
+  // a dead (or not-yet-restarted) server.
+  const waitForRestart = async (): Promise<boolean> => {
+    const health = async (): Promise<boolean> => {
+      try {
+        const response = await fetch("/api/health", { cache: "no-store" });
+        return response.ok;
+      } catch {
+        return false;
+      }
+    };
+
+    const downDeadline = Date.now() + 60_000;
+    while (Date.now() < downDeadline) {
+      if (!(await health())) break;
+      await sleep(1000);
+    }
+
+    const upDeadline = Date.now() + 5 * 60_000;
+    while (Date.now() < upDeadline) {
+      if (await health()) return true;
+      await sleep(2000);
+    }
+    return false;
+  };
+
   const handleRestore = async () => {
     if (!restoreTarget) return;
     try {
       await restoreBackup.mutateAsync(restoreTarget.id);
-      toast.success(t("toasts.restoring"), { duration: 10000 });
-      setRestoreTarget(null);
-      window.setTimeout(() => window.location.assign("/home"), 8000);
     } catch (error) {
       toast.error(
         error instanceof Error ? error.message : t("toasts.restoreFailed"),
       );
+      return;
+    }
+
+    setRestoreTarget(null);
+    setRestarting(true);
+    toast.loading(t("toasts.restoring"), {
+      id: "backup-restart",
+      duration: Infinity,
+    });
+    if (await waitForRestart()) {
+      window.location.assign("/home");
+    } else {
+      toast.error(t("toasts.restartTimeout"), {
+        id: "backup-restart",
+        duration: 15000,
+      });
+      setRestarting(false);
     }
   };
 
@@ -270,7 +334,10 @@ export function BackupsSettings() {
           <CardTitle>{t("title")}</CardTitle>
           <CardDescription>{t("loadError")}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-3">
+          {overview.error instanceof Error && overview.error.message && (
+            <p className="text-sm text-destructive">{overview.error.message}</p>
+          )}
           <Button variant="outline" onClick={() => overview.refetch()}>
             {t("retry")}
           </Button>
@@ -281,9 +348,12 @@ export function BackupsSettings() {
 
   const busy =
     config.isRunning ||
+    updateConfig.isPending ||
     createBackup.isPending ||
     uploadBackup.isPending ||
-    restoreBackup.isPending;
+    deleteBackup.isPending ||
+    restoreBackup.isPending ||
+    restarting;
 
   return (
     <div className="space-y-6">
@@ -325,6 +395,11 @@ export function BackupsSettings() {
                   ? t("automatic.locationLocked")
                   : t("automatic.locationHint")}
               </p>
+              {config.pathError && (
+                <p className="text-sm text-destructive">
+                  {t("automatic.pathInvalid")} {config.pathError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -430,8 +505,8 @@ export function BackupsSettings() {
             <p className="text-sm text-muted-foreground">
               {form.enabled && nextBackup
                 ? t("automatic.nextBackup", {
-                    date: nextBackup,
-                    timezone: config.timezone,
+                    date: nextBackup.date,
+                    timezone: nextBackup.timezone,
                   })
                 : t("automatic.noNextBackup")}
             </p>
@@ -573,9 +648,17 @@ export function BackupsSettings() {
           <AlertDialogFooter>
             <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
+              onClick={(event) => {
+                // Keep the dialog open while the request runs; it closes on
+                // success and stays up (with the error toast) on failure.
+                event.preventDefault();
+                void handleDelete();
+              }}
               disabled={deleteBackup.isPending}
             >
+              {deleteBackup.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {t("deleteDialog.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -598,7 +681,12 @@ export function BackupsSettings() {
           <AlertDialogFooter>
             <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleRestore}
+              onClick={(event) => {
+                // Radix closes the dialog on Action click by default, which
+                // would make the "Restoring..." state unreachable.
+                event.preventDefault();
+                void handleRestore();
+              }}
               disabled={restoreBackup.isPending}
             >
               {restoreBackup.isPending && (
