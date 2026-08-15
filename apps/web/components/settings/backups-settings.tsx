@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   Archive,
+  Clock,
   Download,
   HardDriveDownload,
   Loader2,
@@ -41,6 +42,12 @@ import {
   SelectValue,
 } from "@repo/ui/components/ui/select";
 import { Switch } from "@repo/ui/components/ui/switch";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@repo/ui/components/ui/tooltip";
 import { formatFileSize } from "../../lib/format-file-size";
 import { BackupEntry, useBackups } from "../../lib/use-backups";
 
@@ -428,15 +435,22 @@ export function BackupsSettings() {
 
             <div className="space-y-2">
               <Label htmlFor="backup-time">{t("automatic.time")}</Label>
-              <Input
-                id="backup-time"
-                type="time"
-                value={form.schedule.time}
-                onChange={(event) =>
-                  updateSchedule({ time: event.target.value })
-                }
-                disabled={!form.enabled || updateConfig.isPending}
-              />
+              <div className="relative text-foreground">
+                <Input
+                  id="backup-time"
+                  type="time"
+                  value={form.schedule.time}
+                  onChange={(event) =>
+                    updateSchedule({ time: event.target.value })
+                  }
+                  disabled={!form.enabled || updateConfig.isPending}
+                  className="peer pr-10 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0"
+                />
+                <Clock
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 peer-disabled:opacity-50"
+                />
+              </div>
             </div>
 
             {form.schedule.frequency === "weekly" && (
@@ -591,40 +605,63 @@ export function BackupsSettings() {
                       {formatFileSize(backup.size)} · v{backup.appVersion}
                     </p>
                   </div>
-                  <div className="flex items-center gap-1 self-end sm:self-auto">
-                    <Button variant="ghost" size="icon" asChild>
-                      <a
-                        href={`/api/admin/backups/${encodeURIComponent(backup.id)}/download`}
-                        aria-label={t("archives.download", {
-                          name: backup.filename,
-                        })}
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setRestoreTarget(backup)}
-                      disabled={busy}
-                      aria-label={t("archives.restore", {
-                        name: backup.filename,
-                      })}
-                    >
-                      <RotateCcw className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeleteTarget(backup)}
-                      disabled={busy || deleteBackup.isPending}
-                      aria-label={t("archives.delete", {
-                        name: backup.filename,
-                      })}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  <TooltipProvider delayDuration={300}>
+                    <div className="flex items-center gap-1 self-end sm:self-auto">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" asChild>
+                            <a
+                              href={`/api/admin/backups/${encodeURIComponent(backup.id)}/download`}
+                              aria-label={t("archives.download", {
+                                name: backup.filename,
+                              })}
+                            >
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {t("archives.tooltips.download")}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setRestoreTarget(backup)}
+                            disabled={busy}
+                            aria-label={t("archives.restore", {
+                              name: backup.filename,
+                            })}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {t("archives.tooltips.restore")}
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteTarget(backup)}
+                            disabled={busy || deleteBackup.isPending}
+                            aria-label={t("archives.delete", {
+                              name: backup.filename,
+                            })}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {t("archives.tooltips.delete")}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  </TooltipProvider>
                 </div>
               ))}
             </div>

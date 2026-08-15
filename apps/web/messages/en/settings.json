@@ -818,7 +818,12 @@
       "emptyDescription": "Create one now or enable automatic backups above.",
       "download": "Download {name}",
       "restore": "Restore {name}",
-      "delete": "Delete {name}"
+      "delete": "Delete {name}",
+      "tooltips": {
+        "download": "Download backup",
+        "restore": "Restore backup",
+        "delete": "Delete backup"
+      }
     },
     "deleteDialog": {
       "title": "Delete backup?",

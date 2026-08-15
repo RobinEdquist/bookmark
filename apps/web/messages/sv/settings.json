@@ -818,7 +818,12 @@
       "emptyDescription": "Skapa en nu eller aktivera automatiska säkerhetskopior ovan.",
       "download": "Ladda ner {name}",
       "restore": "Återställ {name}",
-      "delete": "Ta bort {name}"
+      "delete": "Ta bort {name}",
+      "tooltips": {
+        "download": "Ladda ner säkerhetskopia",
+        "restore": "Återställ säkerhetskopia",
+        "delete": "Ta bort säkerhetskopia"
+      }
     },
     "deleteDialog": {
       "title": "Ta bort säkerhetskopian?",
