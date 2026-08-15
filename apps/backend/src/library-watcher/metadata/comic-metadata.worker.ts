@@ -11,7 +11,7 @@ import { readComicPdf, readComicPdfPage } from '../utils/comic-pdf.utils';
 import { parseComicInfoXml, ParsedComicInfo } from '../utils/comicinfo.parser';
 import {
   copyToTransferableBytes,
-  transferListFor,
+  responseTransferList,
 } from '../../common/utils/worker-bytes.util';
 
 export interface WorkerComicFileMetadata {
@@ -186,18 +186,6 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
 if (parentPort) {
   parentPort.on('message', async (task: WorkerTask) => {
     const response = await handleTask(task);
-    const result = response.result;
-    let data: Uint8Array | undefined;
-    if (result && typeof result === 'object') {
-      if ('data' in result && result.data instanceof Uint8Array) {
-        data = result.data;
-      } else if (
-        'cover' in result &&
-        result.cover?.data instanceof Uint8Array
-      ) {
-        data = result.cover.data;
-      }
-    }
-    parentPort!.postMessage(response, transferListFor(data));
+    parentPort!.postMessage(response, responseTransferList(response.result));
   });
 }

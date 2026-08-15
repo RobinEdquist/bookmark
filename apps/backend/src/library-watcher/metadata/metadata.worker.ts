@@ -10,7 +10,7 @@ import { execFile } from 'child_process';
 import { promisify } from 'util';
 import {
   copyToTransferableBytes,
-  transferListFor,
+  responseTransferList,
 } from '../../common/utils/worker-bytes.util';
 
 // execFile (never exec): media file names are untrusted input and must be
@@ -523,15 +523,7 @@ async function handleTask(task: WorkerTask): Promise<WorkerResponse> {
 if (parentPort) {
   parentPort.on('message', async (task: WorkerTask) => {
     const response = await handleTask(task);
-    const result = response.result;
-    const data =
-      result && typeof result === 'object' && 'data' in result
-        ? result.data
-        : undefined;
-    parentPort!.postMessage(
-      response,
-      transferListFor(data instanceof Uint8Array ? data : undefined),
-    );
+    parentPort!.postMessage(response, responseTransferList(response.result));
   });
 }
 
@@ -539,15 +531,7 @@ if (parentPort) {
 if (workerData) {
   handleTask(workerData as WorkerTask).then((response) => {
     if (parentPort) {
-      const result = response.result;
-      const data =
-        result && typeof result === 'object' && 'data' in result
-          ? result.data
-          : undefined;
-      parentPort.postMessage(
-        response,
-        transferListFor(data instanceof Uint8Array ? data : undefined),
-      );
+      parentPort.postMessage(response, responseTransferList(response.result));
     }
   });
 }

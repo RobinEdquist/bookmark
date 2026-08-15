@@ -219,10 +219,17 @@ export function BackupsSettings() {
       return;
     }
 
+    // Only send the path when the user actually changed it: the form is
+    // seeded with the server-resolved location, and echoing that back would
+    // pin the default path as an explicit stored preference.
+    const trimmedPath = form.path.trim();
     try {
       await updateConfig.mutateAsync({
         enabled: form.enabled,
-        path: config?.pathLocked ? undefined : form.path.trim() || null,
+        path:
+          config?.pathLocked || trimmedPath === config?.path
+            ? undefined
+            : trimmedPath || null,
         schedule: serializeSchedule(form.schedule),
         retention: retentionNumber,
       });
@@ -334,7 +341,11 @@ export function BackupsSettings() {
     );
   }
 
-  if (overview.error || !config) {
+  // Only fall back to the error card when there is no data at all: a failed
+  // background refetch (guaranteed during the restore restart window, since
+  // the busy poll keeps firing while the backend is down) sets query.error
+  // while the cached overview is still perfectly renderable.
+  if (!config) {
     return (
       <Card>
         <CardHeader>
@@ -591,21 +602,21 @@ export function BackupsSettings() {
               </div>
             </div>
           ) : (
-            <div className="divide-y rounded-md border">
-              {backups.map((backup) => (
-                <div
-                  key={backup.id}
-                  className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center"
-                >
-                  <Archive className="hidden h-5 w-5 text-muted-foreground sm:block" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-medium">{backup.filename}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(backup.createdAt).toLocaleString()} ·{" "}
-                      {formatFileSize(backup.size)} · v{backup.appVersion}
-                    </p>
-                  </div>
-                  <TooltipProvider delayDuration={300}>
+            <TooltipProvider delayDuration={300}>
+              <div className="divide-y rounded-md border">
+                {backups.map((backup) => (
+                  <div
+                    key={backup.id}
+                    className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center"
+                  >
+                    <Archive className="hidden h-5 w-5 text-muted-foreground sm:block" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{backup.filename}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(backup.createdAt).toLocaleString()} ·{" "}
+                        {formatFileSize(backup.size)} · v{backup.appVersion}
+                      </p>
+                    </div>
                     <div className="flex items-center gap-1 self-end sm:self-auto">
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -624,19 +635,25 @@ export function BackupsSettings() {
                           {t("archives.tooltips.download")}
                         </TooltipContent>
                       </Tooltip>
+                      {/* Disabled buttons get pointer-events-none, so the
+                          tooltip trigger must be a wrapping span for the
+                          hint to work exactly when users wonder why the
+                          button is off (Radix's documented pattern). */}
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setRestoreTarget(backup)}
-                            disabled={busy}
-                            aria-label={t("archives.restore", {
-                              name: backup.filename,
-                            })}
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                          </Button>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setRestoreTarget(backup)}
+                              disabled={busy}
+                              aria-label={t("archives.restore", {
+                                name: backup.filename,
+                              })}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          </span>
                         </TooltipTrigger>
                         <TooltipContent side="top">
                           {t("archives.tooltips.restore")}
@@ -644,27 +661,29 @@ export function BackupsSettings() {
                       </Tooltip>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setDeleteTarget(backup)}
-                            disabled={busy || deleteBackup.isPending}
-                            aria-label={t("archives.delete", {
-                              name: backup.filename,
-                            })}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <span className="inline-flex">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setDeleteTarget(backup)}
+                              disabled={busy}
+                              aria-label={t("archives.delete", {
+                                name: backup.filename,
+                              })}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </span>
                         </TooltipTrigger>
                         <TooltipContent side="top">
                           {t("archives.tooltips.delete")}
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                  </TooltipProvider>
-                </div>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </div>
+            </TooltipProvider>
           )}
         </CardContent>
       </Card>

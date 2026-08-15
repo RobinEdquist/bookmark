@@ -20,3 +20,19 @@ export function transferListFor(
 ): ArrayBuffer[] {
   return data?.buffer instanceof ArrayBuffer ? [data.buffer] : [];
 }
+
+/**
+ * Transfer list for a worker task response. The metadata workers return cover
+ * bytes either as `{ data }` or nested as `{ cover: { data } }`; this owns
+ * that shape-sniffing once instead of each worker hand-rolling it.
+ */
+export function responseTransferList(result: unknown): ArrayBuffer[] {
+  if (!result || typeof result !== 'object') return [];
+  const { data, cover } = result as { data?: unknown; cover?: unknown };
+  if (data instanceof Uint8Array) return transferListFor(data);
+  if (cover && typeof cover === 'object') {
+    const coverData = (cover as { data?: unknown }).data;
+    if (coverData instanceof Uint8Array) return transferListFor(coverData);
+  }
+  return [];
+}
