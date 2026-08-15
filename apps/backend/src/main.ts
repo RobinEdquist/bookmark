@@ -46,6 +46,11 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  // SIGTERM (container stop, restart-after-restore) runs module shutdown
+  // hooks — stopping the backup cron job and closing connections — instead of
+  // killing the process mid-flight.
+  app.enableShutdownHooks();
+
   // OpenAPI/Swagger setup — config shared with scripts/export-openapi.ts
   const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
 

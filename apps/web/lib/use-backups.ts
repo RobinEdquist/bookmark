@@ -12,6 +12,7 @@ export interface BackupConfig {
   timezone: string;
   nextBackupAt: string | null;
   isRunning: boolean;
+  pathError: string | null;
 }
 
 export interface BackupEntry {
@@ -49,6 +50,10 @@ export function useBackups() {
   const overview = useQuery({
     queryKey: queryKeys.backups.overview(),
     queryFn: () => request<BackupOverview>("/api/admin/backups"),
+    // While a backup or restore runs (possibly started by the scheduler or
+    // another admin), poll so the busy state clears without a window refocus.
+    refetchInterval: (query) =>
+      query.state.data?.config.isRunning ? 5000 : false,
   });
 
   const invalidate = () =>

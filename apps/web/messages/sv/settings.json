@@ -783,6 +783,7 @@
       "location": "Plats för säkerhetskopior",
       "locationHint": "Använd en beständig plats utanför containern. Befintliga säkerhetskopior flyttas inte när platsen ändras.",
       "locationLocked": "Platsen är inställd med miljövariabeln BACKUP_PATH.",
+      "pathInvalid": "Den här platsen för säkerhetskopior kan inte användas:",
       "frequency": "Återkommande",
       "time": "Tid",
       "weekday": "Veckodag",
@@ -842,6 +843,7 @@
       "deleted": "Säkerhetskopian har tagits bort",
       "deleteFailed": "Kunde inte ta bort säkerhetskopian",
       "restoring": "Säkerhetskopian har återställts. Bookmark startas om...",
+      "restartTimeout": "Säkerhetskopian har återställts, men Bookmark har inte startat om ännu. Kontrollera servern och ladda om sidan.",
       "restoreFailed": "Kunde inte återställa säkerhetskopian"
     }
   },

@@ -88,7 +88,7 @@ export default function SettingsPage() {
           value={activeTab}
           onValueChange={(value) => setActiveTab(value as TabValue)}
         >
-          <TabsList className="h-auto flex-wrap justify-start">
+          <TabsList className="h-auto flex-wrap justify-start sm:justify-start">
             <TabsTrigger value="libraries">{t("tabs.libraries")}</TabsTrigger>
             <TabsTrigger value="users">{t("tabs.users")}</TabsTrigger>
             <TabsTrigger value="integrations">
