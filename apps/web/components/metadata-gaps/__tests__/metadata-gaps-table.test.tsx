@@ -54,7 +54,9 @@ const ITEMS: MetadataGapItem[] = [
   },
 ];
 
-function renderTable(overrides: Partial<Parameters<typeof MetadataGapsTable>[0]> = {}) {
+function renderTable(
+  overrides: Partial<Parameters<typeof MetadataGapsTable>[0]> = {},
+) {
   const props = {
     items: ITEMS,
     gapCounts: GAP_COUNTS,

@@ -53,9 +53,7 @@ export interface MetadataGapFilters {
   offset?: number;
 }
 
-async function fetchSummary(
-  type: GapMediaType,
-): Promise<MetadataGapsSummary> {
+async function fetchSummary(type: GapMediaType): Promise<MetadataGapsSummary> {
   const response = await fetch(`/api/metadata-gaps/summary?type=${type}`, {
     credentials: "include",
   });
