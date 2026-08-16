@@ -80,14 +80,54 @@ jobs:
           TESTCONTAINERS_RYUK_DISABLED: "true"
 
   # ==========================================================================
+  # Which architectures this run publishes.
+  #
+  # Everything that publishes an image — release tags and main — builds amd64
+  # and arm64, so `edge` and `latest` are both multi-arch and arm64 breakage
+  # shows up on the commit that caused it rather than during a release. The
+  # arm64 runners are free for public repositories, so the second leg costs
+  # wall-clock time only, and it runs in parallel with amd64.
+  #
+  # Pull requests stay amd64-only: they publish nothing, and a single-arch
+  # build is enough to prove the image still builds.
+  # ==========================================================================
+  platforms:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      - name: Pick platforms
+        id: pick
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            MATRIX='[{"platform":"linux/amd64","runner":"ubuntu-latest"}]'
+          else
+            MATRIX='[{"platform":"linux/amd64","runner":"ubuntu-latest"},{"platform":"linux/arm64","runner":"ubuntu-24.04-arm"}]'
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "Building for: $MATRIX"
+
+  # ==========================================================================
   # Build Combined Docker Image (backend + web in one deployable)
+  #
+  # One job per architecture on a native runner of that architecture — the
+  # image builds Next.js, installs a Playwright Chromium and apt-installs
+  # PostgreSQL, all of which are far too slow to emulate under QEMU. Each leg
+  # pushes an untagged, digest-addressed image; the `publish` job below joins
+  # them into a single multi-arch tag.
   # ==========================================================================
   build:
-    runs-on: ubuntu-latest
-    needs: [lint, e2e-tests]
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    needs: [lint, e2e-tests, platforms]
     permissions:
       contents: read
       packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.platforms.outputs.matrix) }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -96,6 +136,18 @@ jobs:
           # shallow clone cannot see them — git describe would silently
           # degrade to a bare SHA.
           fetch-depth: 0
+
+      # GHCR rejects uppercase repository names, and the owner is mixed-case.
+      # metadata-action lowercases `images` on its own, but the digest build
+      # and the manifest merge address the repository directly.
+      - name: Normalise image reference
+        run: |
+          set -euo pipefail
+          IMAGE="${REGISTRY}/${IMAGE_NAME}"
+          echo "IMAGE=${IMAGE,,}" >> "$GITHUB_ENV"
+          echo "PLATFORM_SLUG=${PLATFORM//\//-}" >> "$GITHUB_ENV"
+        env:
+          PLATFORM: ${{ matrix.platform }}
 
       - name: Derive version
         id: version
@@ -125,6 +177,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
@@ -135,7 +188,106 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.IMAGE }}
+
+      # Pull requests only need to know the image still builds.
+      - name: Build (pull request check)
+        if: github.event_name == 'pull_request'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ matrix.platform }}
+          push: false
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+            GIT_SHA=${{ steps.version.outputs.git_sha }}
+            BUILD_TIME=${{ steps.version.outputs.build_time }}
+          # Scoped per architecture: one shared scope would have the two legs
+          # continually evicting each other's layers.
+          cache-from: type=gha,scope=bookmark-${{ env.PLATFORM_SLUG }}
+          cache-to: type=gha,scope=bookmark-${{ env.PLATFORM_SLUG }},mode=max
+
+      # Pushed without a tag and addressed only by digest — `publish` collects
+      # the digests and points the real tags at the resulting manifest list.
+      - name: Build and push by digest
+        id: build
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ matrix.platform }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_VERSION=${{ steps.version.outputs.version }}
+            GIT_SHA=${{ steps.version.outputs.git_sha }}
+            BUILD_TIME=${{ steps.version.outputs.build_time }}
+          outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=bookmark-${{ env.PLATFORM_SLUG }}
+          cache-to: type=gha,scope=bookmark-${{ env.PLATFORM_SLUG }},mode=max
+
+      - name: Export digest
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/digests
+          touch "/tmp/digests/${DIGEST#sha256:}"
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+
+      - name: Upload digest
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: digests-${{ env.PLATFORM_SLUG }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  # ==========================================================================
+  # Join the per-architecture images into one multi-arch tag.
+  #
+  # This runs for single-architecture builds too, so main and release builds
+  # take an identical path and the release path cannot rot unnoticed.
+  # ==========================================================================
+  publish:
+    name: Publish manifest
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Normalise image reference
+        run: |
+          set -euo pipefail
+          IMAGE="${REGISTRY}/${IMAGE_NAME}"
+          echo "IMAGE=${IMAGE,,}" >> "$GITHUB_ENV"
+
+      - name: Download digests
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.IMAGE }}
           # `latest` tracks the latest RELEASE (metadata-action's default
           # latest=auto does this for semver tags), while main publishes to
           # `edge`. Pointing `latest` at the tip of main would mean every
@@ -145,17 +297,21 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=edge,enable=${{ github.ref == 'refs/heads/main' }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            APP_VERSION=${{ steps.version.outputs.version }}
-            GIT_SHA=${{ steps.version.outputs.git_sha }}
-            BUILD_TIME=${{ steps.version.outputs.build_time }}
-          cache-from: type=gha,scope=bookmark
-          cache-to: type=gha,scope=bookmark,mode=max
+      - name: Create manifest list and push
+        working-directory: /tmp/digests
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC2046
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$DOCKER_METADATA_OUTPUT_JSON") \
+            $(printf "${IMAGE}@sha256:%s " *)
+
+      # Reads back what was actually published, so a run cannot report success
+      # having pushed an index that is missing an architecture. Inspecting the
+      # first tag from the metadata output rather than `steps.meta.outputs.version`
+      # keeps this correct on main, where the published tag is `edge`.
+      - name: Inspect published image
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect \
+            "$(jq -cr '.tags[0]' <<< "$DOCKER_METADATA_OUTPUT_JSON")"
