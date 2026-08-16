@@ -37,6 +37,7 @@
     "audiobookApp": "Ljudboksapp",
     "requests": "Förfrågningar",
     "manageRequests": "Hantera förfrågningar",
+    "fixMetadata": "Komplettera metadata",
     "lists": "Listor",
     "topList": "Topplista",
     "settings": "Inställningar",

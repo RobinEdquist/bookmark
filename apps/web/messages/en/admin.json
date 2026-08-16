@@ -50,5 +50,63 @@
       "deleted": "Request deleted",
       "failed": "Something went wrong"
     }
+  },
+  "metadata": {
+    "title": "Fix Metadata",
+    "description": "Find library items that are still missing metadata, and fill it in.",
+    "tabs": {
+      "audiobooks": "Audiobooks",
+      "ebooks": "Ebooks"
+    },
+    "summary": "{withGaps} of {total} items are missing metadata",
+    "fixMethods": {
+      "link": "Fixed by linking a source",
+      "manual": "Has to be filled in by hand",
+      "file": "Comes from the file"
+    },
+    "gaps": {
+      "cover": "Cover",
+      "description": "Description",
+      "authors": "Authors",
+      "narrator": "Narrator",
+      "genres": "Genres",
+      "series": "Series",
+      "chapters": "Chapters",
+      "publisher": "Publisher",
+      "publishedDate": "Published date",
+      "language": "Language",
+      "isbn": "ISBN",
+      "pageCount": "Page count",
+      "hardcoverLink": "Hardcover link",
+      "goodreadsLink": "Goodreads link"
+    },
+    "match": {
+      "any": "Any",
+      "all": "All"
+    },
+    "sort": {
+      "label": "Sort",
+      "newest": "Newest first",
+      "oldest": "Oldest first",
+      "mostGaps": "Most missing first",
+      "title": "Title"
+    },
+    "table": {
+      "item": "Item",
+      "missing": "Missing",
+      "actions": "Actions"
+    },
+    "actions": {
+      "edit": "Edit",
+      "linkHardcover": "Link Hardcover...",
+      "linkGoodreads": "Link Goodreads...",
+      "open": "Open item"
+    },
+    "searchPlaceholder": "Search by title",
+    "clearFilters": "Clear filters",
+    "empty": "Nothing is missing metadata here.",
+    "pagination": "Page {page} of {pageCount} - {total} items",
+    "previous": "Previous",
+    "next": "Next"
   }
 }

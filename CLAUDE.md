@@ -534,6 +534,40 @@ Rules:
 - Nested objects and arrays get their own DTO classes (`type: [ChildDto]`).
 - When TypeScript can't verify the shape (e.g. mapping DB rows), build the object with an explicit field list so extra columns can't slip through.
 
+### Endpoint Auth Registry
+
+**Every new endpoint that is not public MUST be registered in `apps/backend/test/auth/endpoint-definitions.ts`.** The file is both test configuration and security documentation: `auth.e2e-spec.ts` diffs it against the live `/api/docs-json` in *both* directions, so an unregistered operation **and** a registered path that no longer exists both fail the build.
+
+Add the endpoint to the array matching its guard, and make sure that array is spread into `allProtectedEndpoints`:
+
+| Guard on the controller/handler        | Array                            |
+| -------------------------------------- | -------------------------------- |
+| `AuthGuard` / `CombinedAuthGuard` only | `authGuardEndpoints`             |
+| `AdminGuard`                           | `adminGuardEndpoints`            |
+| `RolesGuard` + `@Roles('admin')`       | `rolesGuardAdminEndpoints`       |
+| `CanRequestGuard`                      | `canRequestGuardEndpoints`       |
+| `CanEditMetadataGuard`                 | `canEditMetadataGuardEndpoints`  |
+| Session-scoped `/users/me/*`           | `userSelfEndpoints`              |
+| `OpdsAuthGuard` (Basic auth)           | `opdsEndpoints`                  |
+| `@AllowAnonymous()`                    | `publicEndpoints`                |
+
+```typescript
+// Paths omit the `/api` global prefix and use `:param`, not `{param}`.
+{ method: 'GET', path: '/metadata-gaps/summary', expectedStatus: 401 },
+```
+
+`expectedStatus` is almost always `401`: the global auth middleware runs before the permission guards, so an unauthenticated request never reaches them. `403` is only what an *authenticated* user without the permission gets.
+
+**This check does not run under `pnpm test`.** Unit tests, `pnpm lint` and `pnpm check-types` all pass with the entry missing — it only fails in CI. Verify locally after adding endpoints:
+
+```bash
+cd apps/backend
+# TEST_PORT defaults to 3000; override it if something else holds that port.
+TEST_PORT=3100 npx jest --config ./test/jest-e2e.json auth.e2e-spec.ts
+```
+
+The harness starts its own PostgreSQL testcontainer and backend, so no local database is needed.
+
 ### Error Handling
 
 Use NestJS built-in exceptions with consistent error responses:
@@ -1195,6 +1229,7 @@ const AudioPlayer = dynamic(() => import('@/components/player/audio-player'), {
 
 - All authenticated routes require valid session
 - Use `@AllowAnonymous()` decorator for public endpoints
+- Register every non-public endpoint in `apps/backend/test/auth/endpoint-definitions.ts` — see [Endpoint Auth Registry](#endpoint-auth-registry)
 - Implement rate limiting for auth endpoints
 - Hash API keys before storing
 

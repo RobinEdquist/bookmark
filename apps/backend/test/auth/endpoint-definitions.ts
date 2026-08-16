@@ -957,6 +957,22 @@ export const canRequestGuardEndpoints: ControllerEndpoints[] = [
 ];
 
 /**
+ * Endpoints protected by CanEditMetadataGuard - expect 401 Unauthorized
+ * Note: Global auth middleware runs first, returning 401 if not authenticated.
+ * 403 would only be returned if authenticated but lacking the canEditMetadata
+ * permission. Admins pass the guard regardless of their permission row.
+ */
+export const canEditMetadataGuardEndpoints: ControllerEndpoints[] = [
+  {
+    controller: 'Metadata Gaps',
+    endpoints: [
+      { method: 'GET', path: '/metadata-gaps', expectedStatus: 401 },
+      { method: 'GET', path: '/metadata-gaps/summary', expectedStatus: 401 },
+    ],
+  },
+];
+
+/**
  * OPDS endpoints - expect 401 with WWW-Authenticate header
  * Note: OPDS may return 404 if disabled in settings
  */
@@ -1076,5 +1092,6 @@ export const allProtectedEndpoints: ControllerEndpoints[] = [
   ...adminGuardEndpoints,
   ...rolesGuardAdminEndpoints,
   ...canRequestGuardEndpoints,
+  ...canEditMetadataGuardEndpoints,
   ...userSelfEndpoints,
 ];

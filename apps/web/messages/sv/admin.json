@@ -50,5 +50,63 @@
       "deleted": "Förfrågan borttagen",
       "failed": "Något gick fel"
     }
+  },
+  "metadata": {
+    "title": "Komplettera metadata",
+    "description": "Hitta objekt i biblioteket som saknar metadata och fyll i den.",
+    "tabs": {
+      "audiobooks": "Ljudböcker",
+      "ebooks": "E-böcker"
+    },
+    "summary": "{withGaps} av {total} objekt saknar metadata",
+    "fixMethods": {
+      "link": "Löses genom att länka en källa",
+      "manual": "Måste fyllas i för hand",
+      "file": "Kommer från filen"
+    },
+    "gaps": {
+      "cover": "Omslag",
+      "description": "Beskrivning",
+      "authors": "Författare",
+      "narrator": "Uppläsare",
+      "genres": "Genrer",
+      "series": "Serie",
+      "chapters": "Kapitel",
+      "publisher": "Förlag",
+      "publishedDate": "Utgivningsdatum",
+      "language": "Språk",
+      "isbn": "ISBN",
+      "pageCount": "Antal sidor",
+      "hardcoverLink": "Hardcover-länk",
+      "goodreadsLink": "Goodreads-länk"
+    },
+    "match": {
+      "any": "Något",
+      "all": "Alla"
+    },
+    "sort": {
+      "label": "Sortera",
+      "newest": "Nyast först",
+      "oldest": "Äldst först",
+      "mostGaps": "Flest saknade först",
+      "title": "Titel"
+    },
+    "table": {
+      "item": "Objekt",
+      "missing": "Saknas",
+      "actions": "Åtgärder"
+    },
+    "actions": {
+      "edit": "Redigera",
+      "linkHardcover": "Länka Hardcover...",
+      "linkGoodreads": "Länka Goodreads...",
+      "open": "Öppna objekt"
+    },
+    "searchPlaceholder": "Sök på titel",
+    "clearFilters": "Rensa filter",
+    "empty": "Inget saknar metadata här.",
+    "pagination": "Sida {page} av {pageCount} - {total} objekt",
+    "previous": "Föregående",
+    "next": "Nästa"
   }
 }
