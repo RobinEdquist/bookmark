@@ -17,6 +17,7 @@ import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 import { splitPersonNames } from '../common/utils/name.utils';
 import { splitTitleSubtitle } from '../common/utils/title.utils';
+import { MetadataEntityService } from '../common/metadata-entity.service';
 
 type CombinedSchema = typeof appSettingsSchema &
   typeof audiobooksSchema &
@@ -161,6 +162,7 @@ export class HardcoverService {
     private db: NodePgDatabase<CombinedSchema>,
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
+    private metadataEntityService: MetadataEntityService,
   ) {}
 
   private createClient(apiKey: string): GraphQLClient {
@@ -369,7 +371,9 @@ export class HardcoverService {
           authorNames: normalizedAuthorNames,
           contentWarnings: hardcoverBook.content_warnings || [],
           featuredSeriesName:
-            hardcoverBook.featured_series?.series?.name || null,
+            hardcoverBook.featured_series?.series?.name ??
+            hardcoverBook.featured_series?.name ??
+            null,
           featuredSeriesPosition: hardcoverBook.featured_series?.position
             ? String(hardcoverBook.featured_series.position)
             : null,
@@ -404,7 +408,10 @@ export class HardcoverService {
         description: hardcoverBook.description || null,
         authorNames: normalizedAuthorNames,
         contentWarnings: hardcoverBook.content_warnings || [],
-        featuredSeriesName: hardcoverBook.featured_series?.name || null,
+        featuredSeriesName:
+          hardcoverBook.featured_series?.series?.name ??
+          hardcoverBook.featured_series?.name ??
+          null,
         featuredSeriesPosition: hardcoverBook.featured_series?.position
           ? String(hardcoverBook.featured_series.position)
           : null,
@@ -540,6 +547,19 @@ export class HardcoverService {
         hardcoverBookId: hcBook.id,
       });
 
+      await this.metadataEntityService.materializeExternalMetadata(
+        'audiobook',
+        mediaId,
+        'hardcover',
+        hcBook.authorNames,
+        hcBook.featuredSeriesName
+          ? {
+              name: hcBook.featuredSeriesName,
+              order: hcBook.featuredSeriesPosition,
+            }
+          : null,
+      );
+
       this.appEvents.hardcoverSyncCompleted(mediaId);
     } else {
       // Delete existing link if any
@@ -552,6 +572,19 @@ export class HardcoverService {
         ebookId: mediaId,
         hardcoverBookId: hcBook.id,
       });
+
+      await this.metadataEntityService.materializeExternalMetadata(
+        'ebook',
+        mediaId,
+        'hardcover',
+        hcBook.authorNames,
+        hcBook.featuredSeriesName
+          ? {
+              name: hcBook.featuredSeriesName,
+              order: hcBook.featuredSeriesPosition,
+            }
+          : null,
+      );
 
       this.appEvents.ebookUpdated(mediaId);
     }

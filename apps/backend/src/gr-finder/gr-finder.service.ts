@@ -18,6 +18,7 @@ import {
 import type { ScrapedBookDetails } from './goodreads-scraper.service';
 import { splitPersonNames } from '../common/utils/name.utils';
 import { splitTitleSubtitle } from '../common/utils/title.utils';
+import { MetadataEntityService } from '../common/metadata-entity.service';
 
 export type MediaType = 'audiobook' | 'ebook';
 
@@ -93,6 +94,7 @@ export class GrFinderService {
     @Inject(DATABASE_CONNECTION)
     private readonly db: NodePgDatabase,
     private readonly scraper: GoodreadsScraperService,
+    private readonly metadataEntityService: MetadataEntityService,
   ) {}
 
   async search(query: string): Promise<GrFinderSearchResponse> {
@@ -254,6 +256,13 @@ export class GrFinderService {
         goodreadsBookId: goodreadsBookRecord.id,
       });
     }
+
+    await this.metadataEntityService.materializeExternalMetadata(
+      mediaType,
+      mediaId,
+      'goodreads',
+      splitPersonNames(goodreadsBookRecord.author),
+    );
 
     this.logger.log(
       `Linked ${mediaType} ${mediaId} to Goodreads book ${goodreadsId}`,

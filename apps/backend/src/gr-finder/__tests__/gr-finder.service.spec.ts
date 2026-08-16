@@ -51,6 +51,9 @@ describe('GrFinderService', () => {
     Pick<GoodreadsScraperService, 'searchBooks' | 'getBookDetails'>
   >;
   let service: GrFinderService;
+  let metadataEntityService: {
+    materializeExternalMetadata: jest.Mock;
+  };
 
   beforeEach(() => {
     db = createMockDb();
@@ -58,9 +61,13 @@ describe('GrFinderService', () => {
       searchBooks: jest.fn(),
       getBookDetails: jest.fn(),
     };
+    metadataEntityService = {
+      materializeExternalMetadata: jest.fn().mockResolvedValue(undefined),
+    };
     service = new GrFinderService(
       db as any,
       scraper as unknown as GoodreadsScraperService,
+      metadataEntityService as any,
     );
   });
 
@@ -268,6 +275,11 @@ describe('GrFinderService', () => {
       expect(scraper.getBookDetails).toHaveBeenCalledWith(GOODREADS_ID);
       expect(db.delete).toHaveBeenCalled();
       expect(db.insert).toHaveBeenCalled();
+      expect(
+        metadataEntityService.materializeExternalMetadata,
+      ).toHaveBeenCalledWith('audiobook', AUDIOBOOK_ID, 'goodreads', [
+        'F. Scott Fitzgerald',
+      ]);
     });
 
     it('throws NotFoundException for missing audiobook', async () => {

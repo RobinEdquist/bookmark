@@ -19,6 +19,7 @@ describe('AudiobooksService', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any,
       );
 
       await (service as any).updateSeries('audiobook-1', []);
@@ -51,6 +52,7 @@ describe('AudiobooksService', () => {
         {} as any,
         {} as any,
         appEvents,
+        {} as any,
         {} as any,
         {} as any,
       );

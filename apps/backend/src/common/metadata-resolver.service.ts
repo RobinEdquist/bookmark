@@ -10,7 +10,10 @@ import * as comicSchema from '../comics/schema';
 import * as comicvineSchema from '../comicvine/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
-import { resolveFieldByPriority } from './utils/metadata-priority.utils';
+import {
+  resolveFieldByPriority,
+  resolveRelationByPriority,
+} from './utils/metadata-priority.utils';
 import { splitPersonNames } from './utils/name.utils';
 import { resolveExternalTitle } from './utils/title.utils';
 
@@ -454,18 +457,17 @@ export class MetadataResolverService {
       manualFields,
     );
 
-    const authorNames =
-      resolveFieldByPriority(
-        'author',
-        {
-          manual: embeddedAuthorNames,
-          embedded: embeddedAuthorNames,
-          hardcover: hardcover?.authorNames ?? [],
-          goodreads: splitPersonNames(goodreads?.author),
-        },
-        priority.author,
-        manualFields,
-      ) || embeddedAuthorNames;
+    const authorNames = resolveRelationByPriority(
+      'author',
+      {
+        manual: embeddedAuthorNames,
+        embedded: embeddedAuthorNames,
+        hardcover: hardcover?.authorNames ?? [],
+        goodreads: splitPersonNames(goodreads?.author),
+      },
+      priority.author,
+      manualFields,
+    );
 
     return { title, subtitle: subtitle ?? null, authorNames };
   }

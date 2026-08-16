@@ -390,9 +390,12 @@ function EditAudiobookForm({
     }
 
     // Compare series entries
-    const filteredSeriesEntries = seriesEntries.filter(
-      (entry) => entry.seriesName.trim() && entry.order.trim(),
-    );
+    const filteredSeriesEntries = seriesEntries
+      .filter((entry) => entry.seriesName.trim())
+      .map((entry) => ({
+        seriesName: entry.seriesName.trim(),
+        order: entry.order.trim() || "0",
+      }));
     if (
       !seriesEntriesEqual(filteredSeriesEntries, initialState.seriesEntries)
     ) {

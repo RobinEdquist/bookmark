@@ -62,7 +62,25 @@ vi.mock("@repo/ui/components/ui/rich-text-editor", () => ({
 }));
 
 vi.mock("../../shared/series-entry-editor", () => ({
-  SeriesEntryEditor: () => <div data-testid="series-entry-editor" />,
+  SeriesEntryEditor: ({
+    value,
+    onChange,
+  }: {
+    value: Array<{ seriesName: string; order: string }>;
+    onChange: (entries: Array<{ seriesName: string; order: string }>) => void;
+  }) => (
+    <button
+      type="button"
+      data-testid="series-entry-editor"
+      onClick={() =>
+        onChange(
+          value.length > 0 ? [] : [{ seriesName: "New Saga", order: "" }],
+        )
+      }
+    >
+      Set series
+    </button>
+  ),
 }));
 
 function buildAudiobookDetail(
@@ -207,6 +225,54 @@ describe("EditAudiobookDialog", () => {
       expect(mockUpdateAudiobook.mutateAsync).toHaveBeenCalledWith({
         id: "ab-1",
         data: expect.objectContaining({ title: "New Title" }),
+      });
+    });
+  });
+
+  it("saves a series override without requiring an order", async () => {
+    const user = userEvent.setup();
+    render(
+      <EditAudiobookDialog
+        audiobook={buildAudiobookDetail()}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+      />,
+    );
+
+    await user.click(screen.getByTestId("series-entry-editor"));
+    await user.click(screen.getByText("saveAndClose"));
+
+    await waitFor(() => {
+      expect(mockUpdateAudiobook.mutateAsync).toHaveBeenCalledWith({
+        id: "ab-1",
+        data: expect.objectContaining({
+          series: [{ seriesName: "New Saga", order: "0" }],
+        }),
+      });
+    });
+  });
+
+  it("saves removing an externally supplied series as a manual override", async () => {
+    const user = userEvent.setup();
+    render(
+      <EditAudiobookDialog
+        audiobook={buildAudiobookDetail({
+          series: [
+            { id: "canonical-series-id", name: "External Saga", order: "1" },
+          ],
+        })}
+        open={true}
+        onOpenChange={mockOnOpenChange}
+      />,
+    );
+
+    await user.click(screen.getByTestId("series-entry-editor"));
+    await user.click(screen.getByText("saveAndClose"));
+
+    await waitFor(() => {
+      expect(mockUpdateAudiobook.mutateAsync).toHaveBeenCalledWith({
+        id: "ab-1",
+        data: expect.objectContaining({ series: [] }),
       });
     });
   });

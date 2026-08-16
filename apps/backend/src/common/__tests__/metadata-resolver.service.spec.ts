@@ -155,6 +155,20 @@ describe('MetadataResolverService', () => {
       ]);
     });
 
+    it('preserves a manual author clear instead of restoring external authors', async () => {
+      const service = createService(
+        tables({
+          books: [{ ...audiobookRow, manualFields: ['author'] }],
+          authors: [],
+        }),
+        EXTERNAL_FIRST,
+      );
+
+      const result = await service.forAudiobooks(['audiobook-1']);
+
+      expect(result.get('audiobook-1')?.authorNames).toEqual([]);
+    });
+
     it('omits ids that have no matching row', async () => {
       const service = createService(tables());
 

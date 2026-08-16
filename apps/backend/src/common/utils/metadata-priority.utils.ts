@@ -65,3 +65,28 @@ export function resolveFieldByPriority<T>(
   // Fallback: return embedded (which is the original DB value)
   return sources.embedded ?? null;
 }
+
+/**
+ * Resolve a relationship field while preserving an explicit manual clear.
+ *
+ * Empty scalar values normally fall through to another provider, but an empty
+ * author/series array can be an intentional edit ("this book has no series").
+ * Once a relationship is manually locked, its canonical relation rows are the
+ * complete value, including when there are none.
+ */
+export function resolveRelationByPriority<T>(
+  manualFieldName: string,
+  sources: MetadataSources<T[]>,
+  priority: MetadataSource[],
+  manualFields: string[],
+): T[] {
+  if (manualFields.includes(manualFieldName)) {
+    return sources.manual ?? [];
+  }
+
+  return (
+    resolveFieldByPriority(manualFieldName, sources, priority, manualFields) ??
+    sources.embedded ??
+    []
+  );
+}

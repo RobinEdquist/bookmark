@@ -20,6 +20,7 @@ describe('EbooksService', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any,
       );
 
       await (service as any).updateSeries('ebook-1', []);
@@ -51,6 +52,7 @@ describe('EbooksService', () => {
         db,
         {} as any,
         appEvents,
+        {} as any,
         {} as any,
         {} as any,
         {} as any,

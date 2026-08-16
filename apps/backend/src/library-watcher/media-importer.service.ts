@@ -301,6 +301,13 @@ export class MediaImporterService {
           'narrator',
         );
       }
+      if (metadata.series) {
+        await this.createOrLinkAudiobookSeries(
+          audiobook.id,
+          metadata.series,
+          metadata.seriesOrder,
+        );
+      }
 
       // Clear any previous errors
       await this.importErrorsService.clearResolvedByPath(unit.path);
@@ -1255,6 +1262,20 @@ export class MediaImporterService {
         );
       }
 
+      // Series metadata used to be extracted and then discarded. Persist it
+      // as a normal relation so series links and the series index share the
+      // same canonical UUID.
+      if (!manualFields.includes('series') && metadata.series) {
+        await this.db
+          .delete(audiobooksSchema.audiobookSeries)
+          .where(eq(audiobooksSchema.audiobookSeries.audiobookId, audiobookId));
+        await this.createOrLinkAudiobookSeries(
+          audiobookId,
+          metadata.series,
+          metadata.seriesOrder,
+        );
+      }
+
       this.logger.log(
         `[RESCAN] Successfully rescanned audiobook: "${audiobook.title}" (id=${audiobookId})`,
       );
@@ -1444,6 +1465,48 @@ export class MediaImporterService {
   }
 
   // ===== PRIVATE HELPERS =====
+
+  private async createOrLinkAudiobookSeries(
+    audiobookId: string,
+    seriesName: string,
+    seriesOrder?: string,
+  ): Promise<void> {
+    const name = sanitizeText(seriesName)?.trim();
+    if (!name) return;
+
+    let [series] = await this.db
+      .select({
+        id: audiobooksSchema.series.id,
+        name: audiobooksSchema.series.name,
+      })
+      .from(audiobooksSchema.series)
+      .where(sql`LOWER(${audiobooksSchema.series.name}) = LOWER(${name})`)
+      .limit(1);
+
+    if (!series) {
+      [series] = await this.db
+        .insert(audiobooksSchema.series)
+        .values({ name })
+        .returning({
+          id: audiobooksSchema.series.id,
+          name: audiobooksSchema.series.name,
+        });
+    }
+
+    const parsedOrder = Number.parseFloat(seriesOrder ?? '');
+    const order = Number.isFinite(parsedOrder) ? String(parsedOrder) : '0';
+
+    await this.db
+      .insert(audiobooksSchema.audiobookSeries)
+      .values({ audiobookId, seriesId: series.id, order })
+      .onConflictDoUpdate({
+        target: [
+          audiobooksSchema.audiobookSeries.audiobookId,
+          audiobooksSchema.audiobookSeries.seriesId,
+        ],
+        set: { order },
+      });
+  }
 
   /**
    * Creates or links person(s) to an audiobook.

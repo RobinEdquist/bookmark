@@ -46,6 +46,12 @@ function createMockWsEvents() {
   };
 }
 
+function createMockMetadataEntityService() {
+  return {
+    materializeExternalMetadata: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
 function buildHardcoverBookDocument(
   overrides: Partial<HardcoverBookDocument> = {},
 ): HardcoverBookDocument {
@@ -99,6 +105,9 @@ describe('HardcoverService', () => {
   let db: MockDb;
   let mockAppEvents: ReturnType<typeof createMockAppEvents>;
   let mockWsEvents: ReturnType<typeof createMockWsEvents>;
+  let mockMetadataEntityService: ReturnType<
+    typeof createMockMetadataEntityService
+  >;
   let service: HardcoverService;
 
   beforeEach(() => {
@@ -106,10 +115,12 @@ describe('HardcoverService', () => {
     db = createMockDb();
     mockAppEvents = createMockAppEvents();
     mockWsEvents = createMockWsEvents();
+    mockMetadataEntityService = createMockMetadataEntityService();
     service = new HardcoverService(
       db as any,
       mockAppEvents as any,
       mockWsEvents as any,
+      mockMetadataEntityService as any,
     );
   });
 
@@ -408,7 +419,13 @@ describe('HardcoverService', () => {
 
       // insert: create new hardcover book
       const insertChain = createChainMock(['values', 'returning']);
-      const mockHcBook = { id: 'hcb-1', hardcoverId: 'hc-123' };
+      const mockHcBook = {
+        id: 'hcb-1',
+        hardcoverId: 'hc-123',
+        authorNames: ['Brandon Sanderson'],
+        featuredSeriesName: 'Cosmere',
+        featuredSeriesPosition: '1.0',
+      };
       insertChain.returning.mockResolvedValueOnce([mockHcBook]);
       db.insert.mockReturnValueOnce(insertChain);
 
@@ -429,6 +446,15 @@ describe('HardcoverService', () => {
       );
 
       expect(result).toEqual(mockHcBook);
+      expect(
+        mockMetadataEntityService.materializeExternalMetadata,
+      ).toHaveBeenCalledWith(
+        'audiobook',
+        'ab-1',
+        'hardcover',
+        ['Brandon Sanderson'],
+        { name: 'Cosmere', order: '1.0' },
+      );
       expect(mockAppEvents.hardcoverSyncCompleted).toHaveBeenCalledWith('ab-1');
     });
 
@@ -445,7 +471,13 @@ describe('HardcoverService', () => {
 
       // insert: create new hardcover book
       const insertChain = createChainMock(['values', 'returning']);
-      const mockHcBook = { id: 'hcb-1', hardcoverId: 'hc-123' };
+      const mockHcBook = {
+        id: 'hcb-1',
+        hardcoverId: 'hc-123',
+        authorNames: ['Brandon Sanderson'],
+        featuredSeriesName: 'Cosmere',
+        featuredSeriesPosition: '1.0',
+      };
       insertChain.returning.mockResolvedValueOnce([mockHcBook]);
       db.insert.mockReturnValueOnce(insertChain);
 
@@ -466,6 +498,15 @@ describe('HardcoverService', () => {
       );
 
       expect(result).toEqual(mockHcBook);
+      expect(
+        mockMetadataEntityService.materializeExternalMetadata,
+      ).toHaveBeenCalledWith(
+        'ebook',
+        'eb-1',
+        'hardcover',
+        ['Brandon Sanderson'],
+        { name: 'Cosmere', order: '1.0' },
+      );
       expect(mockAppEvents.ebookUpdated).toHaveBeenCalledWith('eb-1');
       expect(mockAppEvents.hardcoverSyncCompleted).not.toHaveBeenCalled();
     });

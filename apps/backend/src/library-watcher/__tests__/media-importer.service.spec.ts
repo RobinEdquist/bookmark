@@ -51,6 +51,7 @@ import {
   ComicSeriesUnit,
   EbookUnit,
 } from '../media-detector.service';
+import * as audiobooksSchema from '../../audiobooks/schema';
 
 // ---- Helper factories ----
 
@@ -347,6 +348,36 @@ describe('MediaImporterService', () => {
       // insert called for: audiobook, files, person upsert (author), author link,
       // person upsert (narrator), narrator link = at least 6 inserts
       expect(db.insert).toHaveBeenCalledTimes(6);
+    });
+
+    it('persists embedded series metadata as a canonical series relation', async () => {
+      deps.audioMetadataProvider.extractFullMetadata.mockResolvedValueOnce({
+        metadata: {
+          title: 'Series Book',
+          author: 'Test Author',
+          series: 'The Canonical Saga',
+          seriesOrder: '2.5',
+          hasEmbeddedCover: false,
+        },
+        fileInfo: {
+          filePath: '/library/TestBook/file.m4b',
+          fileName: 'file.m4b',
+          duration: 3600,
+          format: 'm4b',
+          sizeBytes: 50000000,
+        },
+        chapters: [],
+      });
+
+      await service.importAudiobook(makeSingleFileUnit(), '/library');
+
+      expect(db.insert).toHaveBeenCalledWith(audiobooksSchema.series);
+      expect(db.insert).toHaveBeenCalledWith(audiobooksSchema.audiobookSeries);
+      expect(db._chains.insert.values).toHaveBeenCalledWith({
+        audiobookId: 'new-id',
+        seriesId: 'new-id',
+        order: '2.5',
+      });
     });
 
     it('successfully imports multi-file audiobook and generates chapters from files', async () => {

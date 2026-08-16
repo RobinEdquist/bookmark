@@ -1,4 +1,8 @@
-import { hasValue, resolveFieldByPriority } from '../metadata-priority.utils';
+import {
+  hasValue,
+  resolveFieldByPriority,
+  resolveRelationByPriority,
+} from '../metadata-priority.utils';
 
 describe('hasValue', () => {
   it.each([
@@ -116,5 +120,37 @@ describe('resolveFieldByPriority', () => {
         ['title'],
       ),
     ).toBeNull();
+  });
+});
+
+describe('resolveRelationByPriority', () => {
+  it('preserves an intentional manual clear instead of restoring external metadata', () => {
+    expect(
+      resolveRelationByPriority(
+        'series',
+        {
+          manual: [],
+          embedded: [],
+          hardcover: ['External Saga'],
+        },
+        ['manual', 'embedded', 'hardcover'],
+        ['series'],
+      ),
+    ).toEqual([]);
+  });
+
+  it('uses external relationships when the canonical relation is empty and unlocked', () => {
+    expect(
+      resolveRelationByPriority(
+        'series',
+        {
+          manual: [],
+          embedded: [],
+          hardcover: ['External Saga'],
+        },
+        ['manual', 'embedded', 'hardcover'],
+        [],
+      ),
+    ).toEqual(['External Saga']);
   });
 });

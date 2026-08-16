@@ -32,12 +32,16 @@ import * as usersSchema from '../users/schema';
 import { UpdateEbookDto, EbookSeriesEntryDto } from './dto/update-ebook.dto';
 import { EbookDetailDto } from './dto/ebook-response.dto';
 import { AppSettingsService } from '../app-settings/app-settings.service';
-import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
+import {
+  resolveFieldByPriority,
+  resolveRelationByPriority,
+} from '../common/utils/metadata-priority.utils';
 import { AppEventsService } from '../events/app-events.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadata.provider';
 import { splitPersonNames } from '../common/utils/name.utils';
 import { resolveExternalTitle } from '../common/utils/title.utils';
+import { MetadataEntityService } from '../common/metadata-entity.service';
 
 export interface EbookListItem {
   id: string;
@@ -79,6 +83,7 @@ export class EbooksService {
     private appDataService: AppDataService,
     private ebookMetadataProvider: EbookMetadataProvider,
     private coverService: CoverService,
+    private metadataEntityService: MetadataEntityService,
   ) {}
 
   /**
@@ -439,6 +444,21 @@ export class EbooksService {
       ),
     );
 
+    const [canonicalExternalPeople, canonicalExternalSeries] =
+      await Promise.all([
+        this.metadataEntityService.findPeopleByNames([
+          ...hardcoverLinks.flatMap((link) => link.hardcoverBook.authorNames),
+          ...goodreadsLinks.flatMap((link) =>
+            splitPersonNames(link.goodreadsBook.author),
+          ),
+        ]),
+        this.metadataEntityService.findSeriesByNames(
+          hardcoverLinks
+            .map((link) => link.hardcoverBook.featuredSeriesName)
+            .filter((name): name is string => !!name),
+        ),
+      ]);
+
     // Group authors by ebook ID
     const authorsMap = new Map<string, { id: string; name: string }[]>();
     for (const author of allAuthors) {
@@ -513,31 +533,35 @@ export class EbooksService {
       const embeddedAuthorNames = authors.map((a) => a.name);
       const hardcoverAuthorNames = hc?.authorNames || [];
       const goodreadsAuthorNames = splitPersonNames(gr?.author);
-      const resolvedAuthorNames =
-        resolveFieldByPriority(
-          'author',
-          {
-            manual: embeddedAuthorNames,
-            embedded: embeddedAuthorNames,
-            hardcover: hardcoverAuthorNames,
-            goodreads: goodreadsAuthorNames,
-          },
-          metadataPriority.author,
-          manualFields,
-        ) || embeddedAuthorNames;
+      const resolvedAuthorNames = resolveRelationByPriority(
+        'author',
+        {
+          manual: embeddedAuthorNames,
+          embedded: embeddedAuthorNames,
+          hardcover: hardcoverAuthorNames,
+          goodreads: goodreadsAuthorNames,
+        },
+        metadataPriority.author,
+        manualFields,
+      );
 
-      // If hardcover or goodreads authors win, create virtual author objects
+      // External metadata is imported into the canonical people table, so
+      // relationship responses always contain routable UUIDs.
       const resolvedAuthors =
         resolvedAuthorNames === hardcoverAuthorNames && hc
-          ? hardcoverAuthorNames.map((name, idx) => ({
-              id: `hc-author-${idx}`,
-              name,
-            }))
+          ? hardcoverAuthorNames.flatMap((name) => {
+              const person = canonicalExternalPeople.get(
+                name.toLocaleLowerCase(),
+              );
+              return person ? [person] : [];
+            })
           : resolvedAuthorNames === goodreadsAuthorNames && gr
-            ? goodreadsAuthorNames.map((name, idx) => ({
-                id: `gr-author-${idx}`,
-                name,
-              }))
+            ? goodreadsAuthorNames.flatMap((name) => {
+                const person = canonicalExternalPeople.get(
+                  name.toLocaleLowerCase(),
+                );
+                return person ? [person] : [];
+              })
             : authors;
 
       // Apply priority-based resolution for series
@@ -546,29 +570,35 @@ export class EbooksService {
         ? [hc.featuredSeriesName]
         : [];
       // Goodreads doesn't have series info
-      const resolvedSeriesNames =
-        resolveFieldByPriority(
-          'series',
-          {
-            manual: embeddedSeriesNames,
-            embedded: embeddedSeriesNames,
-            hardcover: hardcoverSeriesName,
-            goodreads: [],
-          },
-          metadataPriority.series,
-          manualFields,
-        ) || embeddedSeriesNames;
+      const resolvedSeriesNames = resolveRelationByPriority(
+        'series',
+        {
+          manual: embeddedSeriesNames,
+          embedded: embeddedSeriesNames,
+          hardcover: hardcoverSeriesName,
+          goodreads: [],
+        },
+        metadataPriority.series,
+        manualFields,
+      );
 
-      // If hardcover series wins, create virtual series object
+      // Hardcover series are canonical library entities as well, not virtual
+      // response-only records.
       const resolvedSeries =
         resolvedSeriesNames === hardcoverSeriesName && hc?.featuredSeriesName
-          ? [
-              {
-                id: `hc-series-0`,
-                name: hc.featuredSeriesName,
-                order: hc.featuredSeriesPosition || '0',
-              },
-            ]
+          ? (() => {
+              const series = canonicalExternalSeries.get(
+                hc.featuredSeriesName.toLocaleLowerCase(),
+              );
+              return series
+                ? [
+                    {
+                      ...series,
+                      order: hc.featuredSeriesPosition || '0',
+                    },
+                  ]
+                : [];
+            })()
           : seriesData;
 
       return {
@@ -741,6 +771,16 @@ export class EbooksService {
     const hc = hardcoverData[0]?.hardcoverBook || null;
     const gr = goodreadsData[0]?.goodreadsBook || null;
     const manualFields = (eb.manualFields as string[]) || [];
+    const [canonicalExternalPeople, canonicalExternalSeries] =
+      await Promise.all([
+        this.metadataEntityService.findPeopleByNames([
+          ...(hc?.authorNames ?? []),
+          ...splitPersonNames(gr?.author),
+        ]),
+        this.metadataEntityService.findSeriesByNames(
+          hc?.featuredSeriesName ? [hc.featuredSeriesName] : [],
+        ),
+      ]);
 
     // Resolve scalar fields using configured metadata priority. Mirrors the
     // resolution done in `findAll` so the detail/edit view shows the same
@@ -828,37 +868,38 @@ export class EbooksService {
       manualFields,
     );
 
-    // Authors — resolve names array via priority, then materialize virtual
-    // author objects when an external source wins (matches list behavior).
+    // Authors resolve to canonical people UUIDs even when an external source
+    // wins (matches list behavior).
     const embeddedAuthorNames = authors.map((a) => a.name);
     const hardcoverAuthorNames = hc?.authorNames || [];
     const goodreadsAuthorNames = splitPersonNames(gr?.author);
-    const resolvedAuthorNames =
-      resolveFieldByPriority(
-        'author',
-        {
-          manual: embeddedAuthorNames,
-          embedded: embeddedAuthorNames,
-          hardcover: hardcoverAuthorNames,
-          goodreads: goodreadsAuthorNames,
-        },
-        metadataPriority.author,
-        manualFields,
-      ) || embeddedAuthorNames;
+    const resolvedAuthorNames = resolveRelationByPriority(
+      'author',
+      {
+        manual: embeddedAuthorNames,
+        embedded: embeddedAuthorNames,
+        hardcover: hardcoverAuthorNames,
+        goodreads: goodreadsAuthorNames,
+      },
+      metadataPriority.author,
+      manualFields,
+    );
 
     const resolvedAuthors =
       resolvedAuthorNames === hardcoverAuthorNames && hc
-        ? hardcoverAuthorNames.map((name, idx) => ({
-            id: `hc-author-${idx}`,
-            name,
-            imageUrl: null,
-          }))
+        ? hardcoverAuthorNames.flatMap((name) => {
+            const person = canonicalExternalPeople.get(
+              name.toLocaleLowerCase(),
+            );
+            return person ? [{ ...person, imageUrl: null }] : [];
+          })
         : resolvedAuthorNames === goodreadsAuthorNames && gr
-          ? goodreadsAuthorNames.map((name, idx) => ({
-              id: `gr-author-${idx}`,
-              name,
-              imageUrl: null,
-            }))
+          ? goodreadsAuthorNames.flatMap((name) => {
+              const person = canonicalExternalPeople.get(
+                name.toLocaleLowerCase(),
+              );
+              return person ? [{ ...person, imageUrl: null }] : [];
+            })
           : authors;
 
     // Series — Hardcover provides a featured series; Goodreads doesn't.
@@ -866,28 +907,33 @@ export class EbooksService {
     const hardcoverSeriesName = hc?.featuredSeriesName
       ? [hc.featuredSeriesName]
       : [];
-    const resolvedSeriesNames =
-      resolveFieldByPriority(
-        'series',
-        {
-          manual: embeddedSeriesNames,
-          embedded: embeddedSeriesNames,
-          hardcover: hardcoverSeriesName,
-          goodreads: [],
-        },
-        metadataPriority.series,
-        manualFields,
-      ) || embeddedSeriesNames;
+    const resolvedSeriesNames = resolveRelationByPriority(
+      'series',
+      {
+        manual: embeddedSeriesNames,
+        embedded: embeddedSeriesNames,
+        hardcover: hardcoverSeriesName,
+        goodreads: [],
+      },
+      metadataPriority.series,
+      manualFields,
+    );
 
     const resolvedSeries =
       resolvedSeriesNames === hardcoverSeriesName && hc?.featuredSeriesName
-        ? [
-            {
-              id: `hc-series-0`,
-              name: hc.featuredSeriesName,
-              order: hc.featuredSeriesPosition || '0',
-            },
-          ]
+        ? (() => {
+            const series = canonicalExternalSeries.get(
+              hc.featuredSeriesName.toLocaleLowerCase(),
+            );
+            return series
+              ? [
+                  {
+                    ...series,
+                    order: hc.featuredSeriesPosition || '0',
+                  },
+                ]
+              : [];
+          })()
         : seriesData;
 
     // Explicit field list — never spread the raw DB row into an API
@@ -1271,7 +1317,7 @@ export class EbooksService {
       let [seriesRecord] = await this.db
         .select()
         .from(audiobookSchema.series)
-        .where(eq(audiobookSchema.series.name, name))
+        .where(sql`LOWER(${audiobookSchema.series.name}) = LOWER(${name})`)
         .limit(1);
 
       if (!seriesRecord) {
@@ -1282,10 +1328,11 @@ export class EbooksService {
       }
 
       // Create relation with order
+      const parsedOrder = Number.parseFloat(entry.order);
       await this.db.insert(schema.ebookSeries).values({
         ebookId,
         seriesId: seriesRecord.id,
-        order: entry.order,
+        order: Number.isFinite(parsedOrder) ? String(parsedOrder) : '0',
       });
     }
 
