@@ -6,9 +6,9 @@ import {
   type MetadataFieldPriority,
 } from '../../app-settings/schema';
 import {
-  AUDIOBOOK_GAP_FIX_METHODS,
+  AUDIOBOOK_GAP_CATEGORIES,
   AUDIOBOOK_GAP_KEYS,
-  EBOOK_GAP_FIX_METHODS,
+  EBOOK_GAP_CATEGORIES,
   EBOOK_GAP_KEYS,
   buildAudiobookGapConditions,
   buildEbookGapConditions,
@@ -42,7 +42,7 @@ describe('gap definitions', () => {
       );
       for (const key of AUDIOBOOK_GAP_KEYS) {
         expect(conditions[key]).toBeDefined();
-        expect(AUDIOBOOK_GAP_FIX_METHODS[key]).toBeDefined();
+        expect(AUDIOBOOK_GAP_CATEGORIES[key]).toBeDefined();
       }
     });
 
@@ -116,19 +116,29 @@ describe('gap definitions', () => {
       expect(toSql(cover)).not.toContain('hardcover_books');
     });
 
-    it('files gaps no source can fill as manual work', () => {
-      // The chip grouping is a promise about effort: `link` means one action
-      // clears it. Mislabelling sends admins looking for a link that will
-      // never help.
-      expect(AUDIOBOOK_GAP_FIX_METHODS.genres).toBe('manual');
-      expect(AUDIOBOOK_GAP_FIX_METHODS.cover).toBe('manual');
-      expect(EBOOK_GAP_FIX_METHODS.genres).toBe('manual');
-      expect(EBOOK_GAP_FIX_METHODS.cover).toBe('manual');
+    it('groups gaps by what kind of data they are', () => {
+      expect(AUDIOBOOK_GAP_CATEGORIES.cover).toBe('essentials');
+      expect(AUDIOBOOK_GAP_CATEGORIES.genres).toBe('essentials');
+      expect(AUDIOBOOK_GAP_CATEGORIES.narrator).toBe('audio');
+      expect(AUDIOBOOK_GAP_CATEGORIES.chapters).toBe('audio');
+      expect(AUDIOBOOK_GAP_CATEGORIES.publisher).toBe('publication');
+      expect(AUDIOBOOK_GAP_CATEGORIES.hardcoverLink).toBe('matches');
+      expect(EBOOK_GAP_CATEGORIES.isbn).toBe('publication');
+      expect(EBOOK_GAP_CATEGORIES.goodreadsLink).toBe('matches');
+    });
 
-      // Still genuinely priority-resolved, so these stay `link`.
-      expect(AUDIOBOOK_GAP_FIX_METHODS.description).toBe('link');
-      expect(AUDIOBOOK_GAP_FIX_METHODS.authors).toBe('link');
-      expect(AUDIOBOOK_GAP_FIX_METHODS.series).toBe('link');
+    it('does not treat a standalone book as missing a series', () => {
+      // Most books are not in a series, so counting it made the worklist
+      // roughly library-sized and hid the gaps that are real work.
+      expect(AUDIOBOOK_GAP_KEYS).not.toContain('series');
+      expect(EBOOK_GAP_KEYS).not.toContain('series');
+    });
+
+    it('keeps a chip for each external match', () => {
+      expect(AUDIOBOOK_GAP_KEYS).toContain('hardcoverLink');
+      expect(AUDIOBOOK_GAP_KEYS).toContain('goodreadsLink');
+      expect(EBOOK_GAP_KEYS).toContain('hardcoverLink');
+      expect(EBOOK_GAP_KEYS).toContain('goodreadsLink');
     });
 
     it('treats whitespace-only text as empty, matching hasValue()', () => {
@@ -155,7 +165,7 @@ describe('gap definitions', () => {
       const conditions = buildEbookGapConditions(db, DEFAULT_METADATA_PRIORITY);
       for (const key of EBOOK_GAP_KEYS) {
         expect(conditions[key]).toBeDefined();
-        expect(EBOOK_GAP_FIX_METHODS[key]).toBeDefined();
+        expect(EBOOK_GAP_CATEGORIES[key]).toBeDefined();
       }
     });
 

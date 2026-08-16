@@ -59,10 +59,11 @@
       "ebooks": "E-böcker"
     },
     "summary": "{withGaps} av {total} objekt saknar metadata",
-    "fixMethods": {
-      "link": "Löses genom att länka en källa",
-      "manual": "Måste fyllas i för hand",
-      "file": "Kommer från filen"
+    "categories": {
+      "essentials": "Grundläggande",
+      "audio": "Ljud",
+      "publication": "Utgivningsdetaljer",
+      "matches": "Externa matchningar"
     },
     "gaps": {
       "cover": "Omslag",
@@ -70,15 +71,14 @@
       "authors": "Författare",
       "narrator": "Uppläsare",
       "genres": "Genrer",
-      "series": "Serie",
       "chapters": "Kapitel",
       "publisher": "Förlag",
       "publishedDate": "Utgivningsdatum",
       "language": "Språk",
       "isbn": "ISBN",
       "pageCount": "Antal sidor",
-      "hardcoverLink": "Hardcover-länk",
-      "goodreadsLink": "Goodreads-länk"
+      "hardcoverLink": "Hardcover-matchning",
+      "goodreadsLink": "Goodreads-matchning"
     },
     "match": {
       "any": "Något",
@@ -100,6 +100,7 @@
       "edit": "Redigera",
       "linkHardcover": "Länka Hardcover...",
       "linkGoodreads": "Länka Goodreads...",
+      "importChapters": "Importera kapitel från Audible...",
       "open": "Öppna objekt"
     },
     "searchPlaceholder": "Sök på titel",

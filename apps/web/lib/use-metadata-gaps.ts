@@ -6,10 +6,18 @@ import { queryKeys } from "./query-keys";
 export type GapMediaType = "audiobook" | "ebook";
 
 /**
- * How a gap can be closed. `link` gaps are the high-leverage ones — a single
- * external match often clears several at once — so the UI groups by this.
+ * What kind of data the gap is. The chips group by this — see the backend's
+ * `gap-definitions.ts` for why it is not grouped by how a gap gets fixed.
  */
-export type GapFixMethod = "link" | "manual" | "file";
+export type GapCategory = "essentials" | "audio" | "publication" | "matches";
+
+/** Display order for the chip groups; mirrors GAP_CATEGORY_ORDER server-side. */
+export const GAP_CATEGORY_ORDER: GapCategory[] = [
+  "essentials",
+  "audio",
+  "publication",
+  "matches",
+];
 
 export type GapSort = "newest" | "oldest" | "title" | "mostGaps";
 
@@ -33,7 +41,7 @@ export interface MetadataGapList {
 export interface MetadataGapCount {
   key: string;
   count: number;
-  fixableBy: GapFixMethod;
+  category: GapCategory;
 }
 
 export interface MetadataGapsSummary {
@@ -99,11 +107,17 @@ export function useMetadataGapsSummary(type: GapMediaType) {
   });
 }
 
-export function useMetadataGaps(filters: MetadataGapFilters) {
+export function useMetadataGaps(
+  filters: MetadataGapFilters,
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
     queryKey: queryKeys.metadataGaps.list(filters),
     queryFn: () => fetchGaps(filters),
     staleTime: 30_000,
+    // The caller holds this back until it knows which gap keys are real, so a
+    // filter restored from a hand-edited URL cannot 400 the whole list.
+    enabled: options.enabled ?? true,
     // Keeps the table on screen while a filter chip is toggled, so the page
     // does not collapse to a spinner on every click.
     placeholderData: (previous) => previous,

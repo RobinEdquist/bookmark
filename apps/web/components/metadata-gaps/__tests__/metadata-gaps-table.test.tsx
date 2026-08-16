@@ -24,9 +24,9 @@ vi.mock("next/image", () => ({
 }));
 
 const GAP_COUNTS: MetadataGapCount[] = [
-  { key: "description", count: 2, fixableBy: "link" },
-  { key: "narrator", count: 1, fixableBy: "manual" },
-  { key: "chapters", count: 1, fixableBy: "file" },
+  { key: "description", count: 2, category: "essentials" },
+  { key: "narrator", count: 1, category: "publication" },
+  { key: "chapters", count: 1, category: "audio" },
 ];
 
 const ITEMS: MetadataGapItem[] = [

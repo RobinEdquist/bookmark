@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { useQueryClient } from "@tanstack/react-query";
 import { Search } from "lucide-react";
@@ -8,12 +8,18 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@repo/ui/components/ui/dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/ui/select";
+import { ChapterImportDialog } from "../chapters/chapter-import-dialog";
 import { EditAudiobookDialog } from "../audiobooks/edit-audiobook-dialog";
 import { EditEbookDialog } from "../ebooks/edit-ebook-dialog";
 import { GoodreadsSearchDialog } from "../goodreads/goodreads-search-dialog";
@@ -21,6 +27,7 @@ import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
 import { GapFilterChips } from "./gap-filter-chips";
 import { MetadataGapsTable } from "./metadata-gaps-table";
 import { useDebouncedValue } from "../../lib/use-debounced-value";
+import { useUrlFilters } from "../../lib/use-url-filters";
 import { queryKeys } from "../../lib/query-keys";
 import {
   useMetadataGaps,
@@ -29,7 +36,7 @@ import {
   type GapSort,
   type MetadataGapItem,
 } from "../../lib/use-metadata-gaps";
-import type { AudiobookListItem } from "../../lib/use-audiobooks";
+import { useAudiobook, type AudiobookListItem } from "../../lib/use-audiobooks";
 import type { EbookListItem } from "../../lib/use-ebooks";
 
 const PAGE_SIZE = 50;
@@ -84,34 +91,129 @@ interface MetadataGapsPanelProps {
   type: GapMediaType;
 }
 
+/**
+ * Opens the same Audible chapter import the audiobook detail page offers.
+ *
+ * The dialog needs the audiobook's current chapters and author line, which a
+ * worklist row does not carry, so they are fetched on demand. It has to wait
+ * for that fetch rather than render with partial props: the dialog seeds its
+ * search fields with `useState(audiobookAuthor)` on mount, so an author
+ * arriving later would never reach the form. The placeholder keeps the click
+ * from feeling dead while that happens.
+ */
+function ChapterImportForItem({
+  item,
+  onClose,
+  onImported,
+}: {
+  item: MetadataGapItem;
+  onClose: () => void;
+  onImported: () => void;
+}) {
+  const t = useTranslations("admin.metadata");
+  const { data: audiobook } = useAudiobook(item.id);
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) onClose();
+  };
+
+  if (!audiobook) {
+    return (
+      <Dialog open onOpenChange={handleOpenChange}>
+        <DialogContent className="max-w-sm">
+          <DialogTitle className="sr-only">
+            {t("actions.importChapters")}
+          </DialogTitle>
+          <div className="flex justify-center py-8">
+            <LoadingSpinner size="lg" className="text-primary" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <ChapterImportDialog
+      audiobookId={item.id}
+      audiobookTitle={audiobook.title}
+      audiobookAuthor={audiobook.authors
+        .map((author) => author.name)
+        .join(", ")}
+      currentChapters={audiobook.chapters}
+      open
+      onOpenChange={handleOpenChange}
+      onSuccess={onImported}
+    />
+  );
+}
+
+/**
+ * Filter state lives in the URL, so leaving the worklist to fix an item and
+ * pressing Back returns to the same filter — and a filtered view is linkable.
+ * Module-level so the reference stays stable across renders.
+ */
+const FILTER_DEFAULTS = {
+  missing: [] as string[],
+  match: "any",
+  sort: "newest",
+  q: "",
+  page: 1,
+};
+
 export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
   const t = useTranslations("admin.metadata");
   const queryClient = useQueryClient();
 
-  const [selected, setSelected] = useState<string[]>([]);
-  const [match, setMatch] = useState<"any" | "all">("any");
-  const [sort, setSort] = useState<GapSort>("newest");
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(0);
-  const debouncedSearch = useDebouncedValue(search, 300);
+  const [filters, setFilters] = useUrlFilters(FILTER_DEFAULTS);
+
+  // Typing writes to the URL on a debounce rather than per keystroke: every
+  // write is a router navigation, and doing one per character is visibly slow.
+  // Seeded once from the URL, which is enough — `router.replace` creates no
+  // history entries, so the only way back to this panel is a remount.
+  const [searchInput, setSearchInput] = useState(() => filters.q);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
 
   const [editing, setEditing] = useState<MetadataGapItem | null>(null);
   const [linkingHardcover, setLinkingHardcover] =
     useState<MetadataGapItem | null>(null);
   const [linkingGoodreads, setLinkingGoodreads] =
     useState<MetadataGapItem | null>(null);
+  const [importingChapters, setImportingChapters] =
+    useState<MetadataGapItem | null>(null);
 
   const { data: summary, isLoading: summaryLoading } =
     useMetadataGapsSummary(type);
-  const { data, isLoading, isFetching } = useMetadataGaps({
-    type,
-    missing: selected,
-    match,
-    sort,
-    search: debouncedSearch,
-    limit: PAGE_SIZE,
-    offset: page * PAGE_SIZE,
-  });
+
+  // Anything can arrive in a URL, and an unknown gap key is a 400 that would
+  // break the whole list. The summary is the authority on which keys exist for
+  // this media type, so the request waits for it rather than trusting the URL
+  // or duplicating the backend's key list here.
+  const validGapKeys = useMemo(
+    () => new Set(summary?.gaps.map((gap) => gap.key) ?? []),
+    [summary],
+  );
+  const selected = useMemo(
+    () => filters.missing.filter((key) => validGapKeys.has(key)),
+    [filters.missing, validGapKeys],
+  );
+  const match = filters.match === "all" && selected.length > 1 ? "all" : "any";
+  const sort = SORTS.includes(filters.sort as GapSort)
+    ? (filters.sort as GapSort)
+    : "newest";
+  const page = Math.max(0, Math.floor(filters.page) - 1);
+
+  const { data, isLoading, isFetching } = useMetadataGaps(
+    {
+      type,
+      missing: selected,
+      match,
+      sort,
+      search: debouncedSearch,
+      limit: PAGE_SIZE,
+      offset: page * PAGE_SIZE,
+    },
+    { enabled: Boolean(summary) },
+  );
 
   const items = useMemo(() => data?.items ?? [], [data]);
   const total = data?.total ?? 0;
@@ -125,6 +227,14 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
   // back. Keeping it while `page > 0` means there is always a way out.
   const showPagination = total > PAGE_SIZE || page > 0;
 
+  // The debounced search term is a filter like any other, so it belongs in the
+  // URL — but only once it settles, and only when it actually changed.
+  useEffect(() => {
+    if (debouncedSearch !== filters.q) {
+      setFilters({ q: debouncedSearch, page: 1 });
+    }
+  }, [debouncedSearch, filters.q, setFilters]);
+
   const invalidateGaps = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.metadataGaps.all });
   };
@@ -136,35 +246,34 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
   // dropping below that has to reset `match` too. Otherwise a stale "all"
   // survives with no visible control to undo it.
   const toggleGap = (key: string) => {
-    setSelected((current) => {
-      const next = current.includes(key)
-        ? current.filter((entry) => entry !== key)
-        : [...current, key];
-      if (next.length < 2) setMatch("any");
-      return next;
+    const next = selected.includes(key)
+      ? selected.filter((entry) => entry !== key)
+      : [...selected, key];
+    setFilters({
+      missing: next,
+      match: next.length < 2 ? "any" : match,
+      page: 1,
     });
-    setPage(0);
   };
 
   const changeMatch = (mode: "any" | "all") => {
-    setMatch(mode);
-    setPage(0);
+    setFilters({ match: mode, page: 1 });
   };
 
   const changeSort = (value: GapSort) => {
-    setSort(value);
-    setPage(0);
+    setFilters({ sort: value, page: 1 });
   };
 
   const changeSearch = (value: string) => {
-    setSearch(value);
-    setPage(0);
+    setSearchInput(value);
   };
 
   const clearFilters = () => {
-    setSelected([]);
-    setMatch("any");
-    setPage(0);
+    setFilters({ missing: [], match: "any", page: 1 });
+  };
+
+  const setPage = (next: number) => {
+    setFilters({ page: next + 1 });
   };
 
   const navigateTo = (id: string) => {
@@ -203,7 +312,7 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
             aria-hidden
           />
           <Input
-            value={search}
+            value={searchInput}
             onChange={(event) => changeSearch(event.target.value)}
             placeholder={t("searchPlaceholder")}
             className="pl-8"
@@ -272,6 +381,9 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
               onEdit={setEditing}
               onLinkHardcover={setLinkingHardcover}
               onLinkGoodreads={setLinkingGoodreads}
+              onImportChapters={
+                type === "audiobook" ? setImportingChapters : undefined
+              }
             />
           </div>
         )}
@@ -287,7 +399,7 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
               variant="outline"
               size="sm"
               disabled={page === 0}
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
+              onClick={() => setPage(Math.max(0, page - 1))}
             >
               {t("previous")}
             </Button>
@@ -295,7 +407,7 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
               variant="outline"
               size="sm"
               disabled={page + 1 >= pageCount}
-              onClick={() => setPage((current) => current + 1)}
+              onClick={() => setPage(page + 1)}
             >
               {t("next")}
             </Button>
@@ -341,6 +453,14 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
             if (!open) setLinkingHardcover(null);
           }}
           onSuccess={invalidateGaps}
+        />
+      )}
+
+      {importingChapters && (
+        <ChapterImportForItem
+          item={importingChapters}
+          onClose={() => setImportingChapters(null)}
+          onImported={invalidateGaps}
         />
       )}
 

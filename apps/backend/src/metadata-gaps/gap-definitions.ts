@@ -42,13 +42,17 @@ import * as goodreadsSchema from '../gr-finder/schema';
  * `manual` and `embedded`).
  */
 
+/**
+ * `series` is deliberately absent. Plenty of books are standalone, so "no
+ * series" is the normal case rather than a gap, and counting it buried the
+ * real work under a number roughly the size of the library.
+ */
 export const AUDIOBOOK_GAP_KEYS = [
   'cover',
   'description',
   'authors',
-  'narrator',
   'genres',
-  'series',
+  'narrator',
   'chapters',
   'publisher',
   'publishedDate',
@@ -64,7 +68,6 @@ export const EBOOK_GAP_KEYS = [
   'description',
   'authors',
   'genres',
-  'series',
   'publisher',
   'publishedDate',
   'language',
@@ -79,26 +82,69 @@ export type EbookGapKey = (typeof EBOOK_GAP_KEYS)[number];
 export type GapKey = AudiobookGapKey | EbookGapKey;
 
 /**
- * How a gap can actually be closed. Drives the grouping in the admin UI —
- * a worklist that mixes "one click links this" with "someone has to type
- * this" is a worklist nobody finishes.
+ * What kind of data the gap is, which is how the worklist groups its chips.
  *
- * - `link`  — linking an external source fills it (often several at once)
- * - `manual`— no external source carries this field; it has to be typed
- * - `file`  — it comes from the media file itself (re-tag, or import chapters)
+ * An earlier cut grouped by *how* a gap gets fixed (link / by hand / from the
+ * file). That was wrong: it billed narrator, publisher and the rest as manual
+ * typing when the Audible and iTunes match dialogs fill them, so it told
+ * admins to do work the app already automates. What the field *is* holds still;
+ * how it gets filled depends on which integrations are configured.
+ *
+ * - `essentials`  — what a library page needs to look complete and be browsable
+ * - `audio`       — properties of the recording itself
+ * - `publication` — bibliographic detail
+ * - `matches`     — links to external metadata sources
  */
-export type GapFixMethod = 'link' | 'manual' | 'file';
+export type GapCategory = 'essentials' | 'audio' | 'publication' | 'matches';
+
+/** Display order for the chip groups: most-consequential work first. */
+export const GAP_CATEGORY_ORDER: GapCategory[] = [
+  'essentials',
+  'audio',
+  'publication',
+  'matches',
+];
+
+export const AUDIOBOOK_GAP_CATEGORIES: Record<AudiobookGapKey, GapCategory> = {
+  cover: 'essentials',
+  description: 'essentials',
+  authors: 'essentials',
+  genres: 'essentials',
+  narrator: 'audio',
+  chapters: 'audio',
+  publisher: 'publication',
+  publishedDate: 'publication',
+  language: 'publication',
+  hardcoverLink: 'matches',
+  goodreadsLink: 'matches',
+};
+
+export const EBOOK_GAP_CATEGORIES: Record<EbookGapKey, GapCategory> = {
+  cover: 'essentials',
+  description: 'essentials',
+  authors: 'essentials',
+  genres: 'essentials',
+  publisher: 'publication',
+  publishedDate: 'publication',
+  language: 'publication',
+  isbn: 'publication',
+  pageCount: 'publication',
+  hardcoverLink: 'matches',
+  goodreadsLink: 'matches',
+};
 
 /**
- * Which fields an external source can actually fill, verified against the
- * detail services rather than assumed from the priority settings. Getting this
- * wrong in either direction is a real bug: over-crediting a source hides items
- * that need work, under-crediting it reports gaps that are not gaps.
+ * Which fields an external *source* can fill is still worth recording, because
+ * it decides whether a gap condition may consult that source at all. Verified
+ * against the detail services rather than assumed from the priority settings:
+ * over-crediting a source hides items that need work, under-crediting reports
+ * gaps that are not gaps.
  *
- * Priority-resolved (an external source genuinely fills the displayed value):
- *   title, subtitle, description, authors, series
+ * Priority-resolved (a linked source genuinely fills the displayed value):
+ *   title, subtitle, description, authors
  *
- * NOT priority-resolved, despite what the default priority lists say:
+ * NOT priority-resolved, despite what the default priority lists say — these
+ * check local state only:
  *   - `genres` — `audiobooks.service.ts` does `const resolvedGenres = genres`
  *     and `ebooks.service.ts` returns the junction rows as-is; Hardcover and
  *     Goodreads genres are surfaced separately under their own objects and are
@@ -109,39 +155,7 @@ export type GapFixMethod = 'link' | 'manual' | 'file';
  *   - `cover` — linking writes the image onto the *external* record only. The
  *     cover endpoint has no fallback: it 404s without a local cover, and the
  *     change-cover dialog offers upload and URL, not the linked source.
- *
- * Those five therefore check local state only, and are `manual` work.
  */
-export const AUDIOBOOK_GAP_FIX_METHODS: Record<AudiobookGapKey, GapFixMethod> =
-  {
-    cover: 'manual',
-    description: 'link',
-    authors: 'link',
-    narrator: 'manual',
-    genres: 'manual',
-    series: 'link',
-    chapters: 'file',
-    publisher: 'manual',
-    publishedDate: 'manual',
-    language: 'manual',
-    hardcoverLink: 'link',
-    goodreadsLink: 'link',
-  };
-
-export const EBOOK_GAP_FIX_METHODS: Record<EbookGapKey, GapFixMethod> = {
-  cover: 'manual',
-  description: 'link',
-  authors: 'link',
-  genres: 'manual',
-  series: 'link',
-  publisher: 'manual',
-  publishedDate: 'manual',
-  language: 'manual',
-  isbn: 'manual',
-  pageCount: 'file',
-  hardcoverLink: 'link',
-  goodreadsLink: 'link',
-};
 
 /** The schemas the gap subqueries reach into. */
 export type GapDatabase = NodePgDatabase<
@@ -281,17 +295,6 @@ export function buildAudiobookGapConditions(
     );
   }
 
-  // Goodreads carries no series information, so it is absent here even when
-  // it sits in the priority list.
-  const series: SQL<boolean>[] = [lacksOwn(audiobooksSchema.audiobookSeries)];
-  if (uses('series', 'hardcover')) {
-    series.push(
-      hardcoverLacks(
-        textPresent(hardcoverSchema.hardcoverBooks.featuredSeriesName),
-      ),
-    );
-  }
-
   return {
     // Covers are downloaded and stored locally whenever a source supplies one,
     // so the local columns are the whole answer.
@@ -304,7 +307,6 @@ export function buildAudiobookGapConditions(
     // are shown under their own objects and never become the item's genres,
     // so an item with none is invisible to genre browsing however well linked.
     genres: lacksOwn(audiobooksSchema.audiobookGenres),
-    series: allEmpty(series),
     chapters: lacksOwn(audiobooksSchema.chapters),
     publisher: textEmpty(audiobooks.publisher),
     publishedDate: sql<boolean>`${audiobooks.publishedDate} IS NULL`,
@@ -419,22 +421,12 @@ export function buildEbookGapConditions(
     );
   }
 
-  const series: SQL<boolean>[] = [lacksOwn(ebooksSchema.ebookSeries)];
-  if (uses('series', 'hardcover')) {
-    series.push(
-      hardcoverLacks(
-        textPresent(hardcoverSchema.hardcoverBooks.featuredSeriesName),
-      ),
-    );
-  }
-
   return {
     cover: sql<boolean>`(${ebooks.coverUrl} IS NULL AND ${ebooks.coverSource} IS NULL)`,
     description: allEmpty(description),
     authors: allEmpty(authors),
     // Local only — see EBOOK_GAP_FIX_METHODS.
     genres: lacksOwn(ebooksSchema.ebookGenres),
-    series: allEmpty(series),
     publisher: textEmpty(ebooks.publisher),
     publishedDate: sql<boolean>`${ebooks.publishedDate} IS NULL`,
     language: textEmpty(ebooks.language),

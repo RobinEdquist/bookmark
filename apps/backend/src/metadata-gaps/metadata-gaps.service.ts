@@ -4,6 +4,8 @@ import {
   asc,
   count,
   desc,
+  eq,
+  exists,
   ilike,
   ne,
   or,
@@ -14,12 +16,15 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { CoverService } from '../common/cover.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
+import * as hardcoverSchema from '../hardcover/schema';
+import * as goodreadsSchema from '../gr-finder/schema';
 import {
-  AUDIOBOOK_GAP_FIX_METHODS,
+  AUDIOBOOK_GAP_CATEGORIES,
   AUDIOBOOK_GAP_KEYS,
-  EBOOK_GAP_FIX_METHODS,
+  EBOOK_GAP_CATEGORIES,
   EBOOK_GAP_KEYS,
   buildAudiobookGapConditions,
   buildEbookGapConditions,
@@ -56,6 +61,7 @@ export class MetadataGapsService {
     private readonly db: GapDatabase,
     private readonly appSettingsService: AppSettingsService,
     private readonly coverService: CoverService,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   async getSummary(type: GapMediaType): Promise<MetadataGapsSummaryDto> {
@@ -93,7 +99,7 @@ export class MetadataGapsService {
       gaps: AUDIOBOOK_GAP_KEYS.map((key) => ({
         key,
         count: Number(row?.[key] ?? 0),
-        fixableBy: AUDIOBOOK_GAP_FIX_METHODS[key],
+        category: AUDIOBOOK_GAP_CATEGORIES[key],
       })),
     };
   }
@@ -121,7 +127,7 @@ export class MetadataGapsService {
       gaps: EBOOK_GAP_KEYS.map((key) => ({
         key,
         count: Number(row?.[key] ?? 0),
-        fixableBy: EBOOK_GAP_FIX_METHODS[key],
+        category: EBOOK_GAP_CATEGORIES[key],
       })),
     };
   }
@@ -143,7 +149,7 @@ export class MetadataGapsService {
         query.match,
         query.missing,
       ),
-      ...titleSearch(query.search, audiobooks.title, audiobooks.subtitle),
+      ...this.audiobookSearch(query.search),
     );
 
     const [rows, [totals]] = await Promise.all([
@@ -175,9 +181,19 @@ export class MetadataGapsService {
       this.db.select({ value: count() }).from(audiobooks).where(where),
     ]);
 
+    const resolved = await this.metadataResolver.forAudiobooks(
+      rows.map((row) => row.id),
+    );
+
     return {
       items: rows.map((row) =>
-        this.toItem(row, 'audiobook', AUDIOBOOK_GAP_KEYS, 'audiobooks'),
+        this.toItem(
+          row,
+          'audiobook',
+          AUDIOBOOK_GAP_KEYS,
+          'audiobooks',
+          resolved,
+        ),
       ),
       total: Number(totals?.value ?? 0),
     };
@@ -200,7 +216,7 @@ export class MetadataGapsService {
         query.match,
         query.missing,
       ),
-      ...titleSearch(query.search, ebooks.title, ebooks.subtitle),
+      ...this.ebookSearch(query.search),
     );
 
     const [rows, [totals]] = await Promise.all([
@@ -232,9 +248,13 @@ export class MetadataGapsService {
       this.db.select({ value: count() }).from(ebooks).where(where),
     ]);
 
+    const resolved = await this.metadataResolver.forEbooks(
+      rows.map((row) => row.id),
+    );
+
     return {
       items: rows.map((row) =>
-        this.toItem(row, 'ebook', EBOOK_GAP_KEYS, 'ebooks'),
+        this.toItem(row, 'ebook', EBOOK_GAP_KEYS, 'ebooks', resolved),
       ),
       total: Number(totals?.value ?? 0),
     };
@@ -244,18 +264,27 @@ export class MetadataGapsService {
    * Turns one row of gap booleans into the response shape. Fields are listed
    * explicitly so the raw columns behind them (file paths, cover filenames)
    * cannot leak into the response.
+   *
+   * The name comes from the metadata resolver, not the raw column: an item
+   * whose embedded tag says `"Title (Unabridged)"` but whose linked source
+   * supplies a clean title is shown under the clean one everywhere else, and a
+   * worklist that disagreed would look like it was pointing at a different
+   * book.
    */
   private toItem<K extends GapKey>(
     row: GapRow & Partial<Record<K, boolean>>,
     type: GapMediaType,
     keys: readonly K[],
     apiPath: string,
+    resolved: Map<string, { title: string; subtitle: string | null }>,
   ): MetadataGapItemDto {
+    const names = resolved.get(row.id);
+
     return {
       id: row.id,
       type,
-      title: row.title,
-      subtitle: row.subtitle,
+      title: names?.title ?? row.title,
+      subtitle: names?.subtitle ?? row.subtitle,
       gaps: keys.filter((key) => row[key] === true),
       gapCount: Number(row.gapCount ?? 0),
       coverUrl: this.coverService.getCoverUrl(
@@ -268,6 +297,123 @@ export class MetadataGapsService {
       createdAt: row.createdAt,
     };
   }
+
+  /**
+   * Search has to look where the *displayed* name can come from, not just the
+   * local columns — otherwise typing the name you can see on screen finds
+   * nothing, because that name lives on the linked Hardcover or Goodreads
+   * record. Same approach as the audiobook list endpoint.
+   */
+  private audiobookSearch(search: string | undefined): SQL[] {
+    const pattern = searchPattern(search);
+    if (!pattern) return [];
+
+    const { audiobooks } = audiobooksSchema;
+
+    return [
+      or(
+        ilike(audiobooks.title, pattern),
+        ilike(audiobooks.subtitle, pattern),
+        exists(
+          this.db
+            .select({ one: sql`1` })
+            .from(hardcoverSchema.hardcoverAudiobookLinks)
+            .innerJoin(
+              hardcoverSchema.hardcoverBooks,
+              eq(
+                hardcoverSchema.hardcoverAudiobookLinks.hardcoverBookId,
+                hardcoverSchema.hardcoverBooks.id,
+              ),
+            )
+            .where(
+              and(
+                eq(
+                  hardcoverSchema.hardcoverAudiobookLinks.audiobookId,
+                  audiobooks.id,
+                ),
+                ilike(hardcoverSchema.hardcoverBooks.title, pattern),
+              ),
+            ),
+        ),
+        exists(
+          this.db
+            .select({ one: sql`1` })
+            .from(goodreadsSchema.goodreadsAudiobookLinks)
+            .innerJoin(
+              goodreadsSchema.goodreadsBooks,
+              eq(
+                goodreadsSchema.goodreadsAudiobookLinks.goodreadsBookId,
+                goodreadsSchema.goodreadsBooks.id,
+              ),
+            )
+            .where(
+              and(
+                eq(
+                  goodreadsSchema.goodreadsAudiobookLinks.audiobookId,
+                  audiobooks.id,
+                ),
+                ilike(goodreadsSchema.goodreadsBooks.title, pattern),
+              ),
+            ),
+        ),
+      )!,
+    ];
+  }
+
+  private ebookSearch(search: string | undefined): SQL[] {
+    const pattern = searchPattern(search);
+    if (!pattern) return [];
+
+    const { ebooks } = ebooksSchema;
+
+    return [
+      or(
+        ilike(ebooks.title, pattern),
+        ilike(ebooks.subtitle, pattern),
+        exists(
+          this.db
+            .select({ one: sql`1` })
+            .from(hardcoverSchema.hardcoverEbookLinks)
+            .innerJoin(
+              hardcoverSchema.hardcoverBooks,
+              eq(
+                hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
+                hardcoverSchema.hardcoverBooks.id,
+              ),
+            )
+            .where(
+              and(
+                eq(hardcoverSchema.hardcoverEbookLinks.ebookId, ebooks.id),
+                ilike(hardcoverSchema.hardcoverBooks.title, pattern),
+              ),
+            ),
+        ),
+        exists(
+          this.db
+            .select({ one: sql`1` })
+            .from(goodreadsSchema.goodreadsEbookLinks)
+            .innerJoin(
+              goodreadsSchema.goodreadsBooks,
+              eq(
+                goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
+                goodreadsSchema.goodreadsBooks.id,
+              ),
+            )
+            .where(
+              and(
+                eq(goodreadsSchema.goodreadsEbookLinks.ebookId, ebooks.id),
+                ilike(goodreadsSchema.goodreadsBooks.title, pattern),
+              ),
+            ),
+        ),
+      )!,
+    ];
+  }
+}
+
+function searchPattern(search: string | undefined): string | null {
+  const trimmed = search?.trim();
+  return trimmed ? `%${trimmed}%` : null;
 }
 
 /** The non-gap columns every list row carries. */
@@ -322,16 +468,6 @@ export function selectKeys<K extends GapKey>(
   if (!requested?.length) return [...available];
   const wanted = new Set(requested);
   return available.filter((key) => wanted.has(key));
-}
-
-function titleSearch(
-  search: string | undefined,
-  title: AnyPgColumn,
-  subtitle: AnyPgColumn,
-): SQL[] {
-  if (!search?.trim()) return [];
-  const pattern = `%${search.trim()}%`;
-  return [or(ilike(title, pattern), ilike(subtitle, pattern))!];
 }
 
 /**

@@ -1,19 +1,19 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { Link2, PencilLine, FileAudio } from "lucide-react";
+import { AudioLines, BookMarked, Link2, Sparkles } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
-import type {
-  GapFixMethod,
-  MetadataGapCount,
+import {
+  GAP_CATEGORY_ORDER,
+  type GapCategory,
+  type MetadataGapCount,
 } from "../../lib/use-metadata-gaps";
 
-const GROUP_ORDER: GapFixMethod[] = ["link", "manual", "file"];
-
-const GROUP_ICONS: Record<GapFixMethod, typeof Link2> = {
-  link: Link2,
-  manual: PencilLine,
-  file: FileAudio,
+const CATEGORY_ICONS: Record<GapCategory, typeof Link2> = {
+  essentials: Sparkles,
+  audio: AudioLines,
+  publication: BookMarked,
+  matches: Link2,
 };
 
 interface GapFilterChipsProps {
@@ -23,12 +23,13 @@ interface GapFilterChipsProps {
 }
 
 /**
- * The gap counts double as the filters.
+ * The gap counts double as the filters, grouped by what kind of data each one
+ * is — essentials, audio, publication detail, external matches.
  *
- * Grouping by how a gap gets closed is the point: "link an external source"
- * work is one click and often clears several fields at once, while "type it
- * in" work is per-item and slow. Mixing them into one flat list makes the
- * cheap wins impossible to spot.
+ * An earlier version grouped by how a gap gets fixed, which quietly lied:
+ * fields were filed as "has to be filled in by hand" when the Audible and
+ * iTunes match dialogs fill them. What a field *is* stays true regardless of
+ * which integrations happen to be configured.
  */
 export function GapFilterChips({
   gaps,
@@ -39,23 +40,23 @@ export function GapFilterChips({
 
   return (
     <div className="space-y-4">
-      {GROUP_ORDER.map((method) => {
+      {GAP_CATEGORY_ORDER.map((category) => {
         // A gap with no items left is noise, but a selected one stays put so
         // the filter you just applied does not vanish under your cursor.
         const group = gaps.filter(
           (gap) =>
-            gap.fixableBy === method &&
+            gap.category === category &&
             (gap.count > 0 || selected.includes(gap.key)),
         );
         if (group.length === 0) return null;
 
-        const Icon = GROUP_ICONS[method];
+        const Icon = CATEGORY_ICONS[category];
 
         return (
-          <div key={method}>
+          <div key={category}>
             <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               <Icon className="h-3.5 w-3.5" aria-hidden />
-              <span>{t(`fixMethods.${method}`)}</span>
+              <span>{t(`categories.${category}`)}</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {group.map((gap) => {

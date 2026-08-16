@@ -5,20 +5,33 @@ import type { MetadataGapCount } from "../../../lib/use-metadata-gaps";
 
 // next-intl is mocked globally to echo the key, so chips read as "gaps.<key>".
 const GAPS: MetadataGapCount[] = [
-  { key: "description", count: 12, fixableBy: "link" },
-  { key: "hardcoverLink", count: 5, fixableBy: "link" },
-  { key: "narrator", count: 30, fixableBy: "manual" },
-  { key: "chapters", count: 3, fixableBy: "file" },
-  { key: "language", count: 0, fixableBy: "manual" },
+  { key: "description", count: 12, category: "essentials" },
+  { key: "narrator", count: 30, category: "audio" },
+  { key: "chapters", count: 3, category: "audio" },
+  { key: "language", count: 0, category: "publication" },
+  { key: "hardcoverLink", count: 5, category: "matches" },
+  { key: "goodreadsLink", count: 9, category: "matches" },
 ];
 
 describe("GapFilterChips", () => {
-  it("groups gaps by how they get fixed", () => {
+  it("groups gaps by what kind of data they are", () => {
     render(<GapFilterChips gaps={GAPS} selected={[]} onToggle={vi.fn()} />);
 
-    expect(screen.getByText("fixMethods.link")).toBeInTheDocument();
-    expect(screen.getByText("fixMethods.manual")).toBeInTheDocument();
-    expect(screen.getByText("fixMethods.file")).toBeInTheDocument();
+    expect(screen.getByText("categories.essentials")).toBeInTheDocument();
+    expect(screen.getByText("categories.audio")).toBeInTheDocument();
+    expect(screen.getByText("categories.matches")).toBeInTheDocument();
+
+    // `language` is the only publication gap here and its count is 0.
+    expect(
+      screen.queryByText("categories.publication"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("gives each external source its own chip", () => {
+    render(<GapFilterChips gaps={GAPS} selected={[]} onToggle={vi.fn()} />);
+
+    expect(screen.getByText("gaps.hardcoverLink")).toBeInTheDocument();
+    expect(screen.getByText("gaps.goodreadsLink")).toBeInTheDocument();
   });
 
   it("shows each gap with its count", () => {
@@ -74,14 +87,14 @@ describe("GapFilterChips", () => {
   it("renders nothing for a group with no gaps left", () => {
     render(
       <GapFilterChips
-        gaps={[{ key: "description", count: 4, fixableBy: "link" }]}
+        gaps={[{ key: "description", count: 4, category: "essentials" }]}
         selected={[]}
         onToggle={vi.fn()}
       />,
     );
 
-    expect(screen.getByText("fixMethods.link")).toBeInTheDocument();
-    expect(screen.queryByText("fixMethods.manual")).not.toBeInTheDocument();
-    expect(screen.queryByText("fixMethods.file")).not.toBeInTheDocument();
+    expect(screen.getByText("categories.essentials")).toBeInTheDocument();
+    expect(screen.queryByText("categories.audio")).not.toBeInTheDocument();
+    expect(screen.queryByText("categories.matches")).not.toBeInTheDocument();
   });
 });

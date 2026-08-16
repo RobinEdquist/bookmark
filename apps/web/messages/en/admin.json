@@ -59,10 +59,11 @@
       "ebooks": "Ebooks"
     },
     "summary": "{withGaps} of {total} items are missing metadata",
-    "fixMethods": {
-      "link": "Fixed by linking a source",
-      "manual": "Has to be filled in by hand",
-      "file": "Comes from the file"
+    "categories": {
+      "essentials": "Essentials",
+      "audio": "Audio",
+      "publication": "Publication details",
+      "matches": "External matches"
     },
     "gaps": {
       "cover": "Cover",
@@ -70,15 +71,14 @@
       "authors": "Authors",
       "narrator": "Narrator",
       "genres": "Genres",
-      "series": "Series",
       "chapters": "Chapters",
       "publisher": "Publisher",
       "publishedDate": "Published date",
       "language": "Language",
       "isbn": "ISBN",
       "pageCount": "Page count",
-      "hardcoverLink": "Hardcover link",
-      "goodreadsLink": "Goodreads link"
+      "hardcoverLink": "Hardcover match",
+      "goodreadsLink": "Goodreads match"
     },
     "match": {
       "any": "Any",
@@ -100,6 +100,7 @@
       "edit": "Edit",
       "linkHardcover": "Link Hardcover...",
       "linkGoodreads": "Link Goodreads...",
+      "importChapters": "Import chapters from Audible...",
       "open": "Open item"
     },
     "searchPlaceholder": "Search by title",

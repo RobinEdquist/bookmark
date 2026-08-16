@@ -13,25 +13,34 @@ import {
 } from "@repo/ui/components/ui/dropdown-menu";
 import { cn } from "@repo/ui/lib/utils";
 import type {
-  GapFixMethod,
+  GapCategory,
   MetadataGapCount,
   MetadataGapItem,
 } from "../../lib/use-metadata-gaps";
 
 interface MetadataGapsTableProps {
   items: MetadataGapItem[];
-  /** Summary entries, used to colour each badge by how the gap gets fixed. */
+  /** Summary entries, used to colour each badge by its data category. */
   gapCounts: MetadataGapCount[];
   detailHref: (item: MetadataGapItem) => string;
   onEdit: (item: MetadataGapItem) => void;
   onLinkHardcover: (item: MetadataGapItem) => void;
   onLinkGoodreads: (item: MetadataGapItem) => void;
+  /**
+   * Omitted for ebooks — chapters are an audiobook concept, and Audible has
+   * nothing to offer an epub.
+   */
+  onImportChapters?: (item: MetadataGapItem) => void;
 }
 
-const BADGE_STYLES: Record<GapFixMethod, string> = {
-  link: "border-primary/30 bg-primary/10 text-primary",
-  manual: "border-border bg-muted text-muted-foreground",
-  file: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+/** Badges are tinted by data category so a row reads at a glance. */
+const BADGE_STYLES: Record<GapCategory, string> = {
+  essentials: "border-primary/30 bg-primary/10 text-primary",
+  audio:
+    "border-violet-500/30 bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  publication: "border-border bg-muted text-muted-foreground",
+  matches:
+    "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
 };
 
 export function MetadataGapsTable({
@@ -41,11 +50,12 @@ export function MetadataGapsTable({
   onEdit,
   onLinkHardcover,
   onLinkGoodreads,
+  onImportChapters,
 }: MetadataGapsTableProps) {
   const t = useTranslations("admin.metadata");
 
-  const fixMethodOf = (key: string): GapFixMethod =>
-    gapCounts.find((gap) => gap.key === key)?.fixableBy ?? "manual";
+  const categoryOf = (key: string): GapCategory =>
+    gapCounts.find((gap) => gap.key === key)?.category ?? "publication";
 
   if (items.length === 0) {
     return (
@@ -117,7 +127,7 @@ export function MetadataGapsTable({
                       key={key}
                       className={cn(
                         "rounded border px-1.5 py-0.5 text-[11px]",
-                        BADGE_STYLES[fixMethodOf(key)],
+                        BADGE_STYLES[categoryOf(key)],
                       )}
                     >
                       {t(`gaps.${key}`)}
@@ -152,6 +162,13 @@ export function MetadataGapsTable({
                       <DropdownMenuItem onClick={() => onLinkGoodreads(item)}>
                         {t("actions.linkGoodreads")}
                       </DropdownMenuItem>
+                      {onImportChapters && (
+                        <DropdownMenuItem
+                          onClick={() => onImportChapters(item)}
+                        >
+                          {t("actions.importChapters")}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem asChild>
                         <Link href={detailHref(item)}>
                           <ExternalLink

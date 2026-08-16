@@ -12,7 +12,7 @@ import {
 import {
   AUDIOBOOK_GAP_KEYS,
   EBOOK_GAP_KEYS,
-  type GapFixMethod,
+  type GapCategory,
   type GapKey,
 } from '../gap-definitions';
 
@@ -105,8 +105,8 @@ export class MetadataGapItemDto {
   @ApiProperty({
     example: 'The Way of Kings',
     description:
-      'Title as stored on the item. Not priority-resolved: this list is ' +
-      'about what the item itself is missing.',
+      'Title after metadata-priority resolution — the same name the item is ' +
+      'shown under everywhere else.',
   })
   title!: string;
 
@@ -167,13 +167,12 @@ export class MetadataGapCountDto {
   count!: number;
 
   @ApiProperty({
-    enum: ['link', 'manual', 'file'],
-    example: 'link',
-    description:
-      'How this gap can be closed — linking an external source, typing it ' +
-      'in, or re-reading the media file',
+    enum: ['essentials', 'audio', 'publication', 'matches'],
+    enumName: 'MetadataGapCategory',
+    example: 'essentials',
+    description: 'What kind of data this is, used to group the filter chips',
   })
-  fixableBy!: GapFixMethod;
+  category!: GapCategory;
 }
 
 export class MetadataGapsSummaryDto {
