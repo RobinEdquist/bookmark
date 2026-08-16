@@ -536,27 +536,27 @@ Rules:
 
 ### Endpoint Auth Registry
 
-**Every new endpoint that is not public MUST be registered in `apps/backend/test/auth/endpoint-definitions.ts`.** The file is both test configuration and security documentation: `auth.e2e-spec.ts` diffs it against the live `/api/docs-json` in *both* directions, so an unregistered operation **and** a registered path that no longer exists both fail the build.
+**Every new endpoint that is not public MUST be registered in `apps/backend/test/auth/endpoint-definitions.ts`.** The file is both test configuration and security documentation: `auth.e2e-spec.ts` diffs it against the live `/api/docs-json` in _both_ directions, so an unregistered operation **and** a registered path that no longer exists both fail the build.
 
 Add the endpoint to the array matching its guard, and make sure that array is spread into `allProtectedEndpoints`:
 
-| Guard on the controller/handler        | Array                            |
-| -------------------------------------- | -------------------------------- |
-| `AuthGuard` / `CombinedAuthGuard` only | `authGuardEndpoints`             |
-| `AdminGuard`                           | `adminGuardEndpoints`            |
-| `RolesGuard` + `@Roles('admin')`       | `rolesGuardAdminEndpoints`       |
-| `CanRequestGuard`                      | `canRequestGuardEndpoints`       |
-| `CanEditMetadataGuard`                 | `canEditMetadataGuardEndpoints`  |
-| Session-scoped `/users/me/*`           | `userSelfEndpoints`              |
-| `OpdsAuthGuard` (Basic auth)           | `opdsEndpoints`                  |
-| `@AllowAnonymous()`                    | `publicEndpoints`                |
+| Guard on the controller/handler        | Array                           |
+| -------------------------------------- | ------------------------------- |
+| `AuthGuard` / `CombinedAuthGuard` only | `authGuardEndpoints`            |
+| `AdminGuard`                           | `adminGuardEndpoints`           |
+| `RolesGuard` + `@Roles('admin')`       | `rolesGuardAdminEndpoints`      |
+| `CanRequestGuard`                      | `canRequestGuardEndpoints`      |
+| `CanEditMetadataGuard`                 | `canEditMetadataGuardEndpoints` |
+| Session-scoped `/users/me/*`           | `userSelfEndpoints`             |
+| `OpdsAuthGuard` (Basic auth)           | `opdsEndpoints`                 |
+| `@AllowAnonymous()`                    | `publicEndpoints`               |
 
 ```typescript
 // Paths omit the `/api` global prefix and use `:param`, not `{param}`.
 { method: 'GET', path: '/metadata-gaps/summary', expectedStatus: 401 },
 ```
 
-`expectedStatus` is almost always `401`: the global auth middleware runs before the permission guards, so an unauthenticated request never reaches them. `403` is only what an *authenticated* user without the permission gets.
+`expectedStatus` is almost always `401`: the global auth middleware runs before the permission guards, so an unauthenticated request never reaches them. `403` is only what an _authenticated_ user without the permission gets.
 
 **This check does not run under `pnpm test`.** Unit tests, `pnpm lint` and `pnpm check-types` all pass with the entry missing — it only fails in CI. Verify locally after adding endpoints:
 

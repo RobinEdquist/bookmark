@@ -30,9 +30,13 @@ vi.mock("../../hardcover/hardcover-sync-dialog", () => ({
   HardcoverSyncDialog: () => null,
 }));
 vi.mock("next/link", () => ({
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
+  default: ({
+    children,
+    href,
+  }: {
+    children: React.ReactNode;
+    href: string;
+  }) => <a href={href}>{children}</a>,
 }));
 vi.mock("next/image", () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
