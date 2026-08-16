@@ -37,6 +37,7 @@
     "audiobookApp": "Audiobook App",
     "requests": "Requests",
     "manageRequests": "Manage Requests",
+    "fixMetadata": "Fix Metadata",
     "lists": "Lists",
     "topList": "Top List",
     "settings": "Settings",

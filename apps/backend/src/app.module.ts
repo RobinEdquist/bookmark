@@ -43,6 +43,7 @@ import { AnnouncementsModule } from './announcements/announcements.module';
 import { GenresModule } from './genres/genres.module';
 import { UserProfileModule } from './user-profile/user-profile.module';
 import { StatsModule } from './stats/stats.module';
+import { MetadataGapsModule } from './metadata-gaps/metadata-gaps.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { BackupsModule } from './backups/backups.module';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
@@ -211,6 +212,7 @@ import { CommonModule } from './common/common.module';
     GenresModule,
     UserProfileModule,
     StatsModule,
+    MetadataGapsModule,
     MetricsModule,
     BackupsModule,
   ],

@@ -279,6 +279,20 @@ export const queryKeys = {
     list: (status?: string, missingOnly?: boolean) =>
       [...queryKeys.adminRequests.all, "list", status, missingOnly] as const,
   },
+  metadataGaps: {
+    all: ["metadata-gaps"] as const,
+    summary: (type: string) =>
+      [...queryKeys.metadataGaps.all, "summary", type] as const,
+    list: (filters: {
+      type: string;
+      missing?: string[];
+      match?: string;
+      search?: string;
+      sort?: string;
+      limit?: number;
+      offset?: number;
+    }) => [...queryKeys.metadataGaps.all, "list", filters] as const,
+  },
   adminPeople: {
     all: ["admin-people"] as const,
     authors: (search?: string) =>

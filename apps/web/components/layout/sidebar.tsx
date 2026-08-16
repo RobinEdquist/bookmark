@@ -15,6 +15,7 @@ import {
   LogOut,
   Search,
   ClipboardList,
+  ListChecks,
   ListMusic,
   Library,
   LayoutGrid,
@@ -99,6 +100,14 @@ export function Sidebar({
   const canRequestContent = permissions?.canRequestContent ?? false;
   const showRequests =
     settings?.requestsEnabled && (isAdmin || canRequestContent);
+  // Mirrors the backend guard: metadata editing is a permission of its own, so
+  // non-admins who hold it get the worklist too. No `isAdmin ||` needed —
+  // `/users/me/permissions` already reports every permission as true for
+  // admins. The worklist covers audiobooks and ebooks only, so a comics-only
+  // instance would otherwise get a link to a page reporting 0 of 0 on both tabs.
+  const showMetadataGaps =
+    (permissions?.canEditMetadata ?? false) &&
+    ((availability?.audiobooks ?? false) || (availability?.ebooks ?? false));
   const hasAnyLibrary =
     (availability?.audiobooks ?? false) ||
     (availability?.ebooks ?? false) ||
@@ -263,6 +272,15 @@ export function Sidebar({
               icon={ClipboardList}
               label={t("nav.manageRequests")}
               active={isActive("/admin/requests")}
+              onClick={handleNavClick}
+            />
+          )}
+          {showMetadataGaps && (
+            <NavLink
+              href="/metadata"
+              icon={ListChecks}
+              label={t("nav.fixMetadata")}
+              active={isActive("/metadata")}
               onClick={handleNavClick}
             />
           )}
