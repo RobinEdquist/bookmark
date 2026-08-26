@@ -135,6 +135,15 @@ export function createAuthInstance(
                   clientId: oidcConfig.clientId,
                   clientSecret: oidcConfig.clientSecret,
                   scopes: ['openid', 'profile', 'email'],
+                  // Pin the account-identity namespace to the configured
+                  // issuer URL instead of the discovery document's `issuer`
+                  // value. This keeps the namespace stable across discovery
+                  // hiccups (the plugin refuses to initialize without one),
+                  // avoids trailing-slash mismatches between OIDC_ISSUER_URL
+                  // and the discovered issuer, and lets
+                  // AccountIssuerBackfillService backfill pre-1.7 rows with
+                  // a value we know matches sign-in lookups exactly.
+                  accountIssuer: oidcConfig.issuerUrl,
                 },
               ],
             }),
@@ -170,10 +179,8 @@ export function createAuthInstance(
       }),
       after: createAuthMiddleware(async (ctx) => {
         // Handle new user setup for both sign-up and OAuth callback
-        // Note: genericOAuth uses /oauth2/callback/:providerId, not /callback/:providerId
-        const isOauthCallback =
-          ctx.path.startsWith('/callback') ||
-          ctx.path.startsWith('/oauth2/callback');
+        // (better-auth 1.7 routes all OAuth callbacks to /callback/:providerId)
+        const isOauthCallback = ctx.path.startsWith('/callback');
         if (ctx.path.startsWith('/sign-up') || isOauthCallback) {
           const newSession = ctx.context.newSession;
           if (newSession) {

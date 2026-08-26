@@ -33,7 +33,7 @@ describe('redactUrl', () => {
 
   it('redacts OAuth callback codes and state', () => {
     const result = redactUrl(
-      '/api/auth/oauth2/callback/oidc?code=abc123&state=xyz789',
+      '/api/auth/callback/oidc?code=abc123&state=xyz789',
     );
     expect(result).not.toContain('abc123');
     expect(result).not.toContain('xyz789');
