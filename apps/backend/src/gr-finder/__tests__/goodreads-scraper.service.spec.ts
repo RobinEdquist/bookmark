@@ -30,7 +30,7 @@ const bookPageHtml = `
   </span>
   <a href="/series/66175-the-lord-of-the-rings">The Lord of the Rings #0</a>
   <div class="DetailsLayoutRightParagraph__widthConstrained">
-    <span class="Formatted">In a hole in the ground there lived a hobbit.</span>
+    <span class="Formatted"><b>In a hole in the ground there lived a hobbit.</b><br><br>Written for J.R.R. Tolkien's own children, <i>The Hobbit</i> met with instant critical acclaim.</span>
   </div>
 </body></html>
 `;
@@ -174,10 +174,40 @@ describe('GoodreadsScraperService', () => {
         rating: 4.28,
         rating_count: 3585905,
         genres: ['Fantasy', 'Classics'],
-        description: 'In a hole in the ground there lived a hobbit.',
+        description:
+          "<b>In a hole in the ground there lived a hobbit.</b><br><br>Written for J.R.R. Tolkien's own children, <i>The Hobbit</i> met with instant critical acclaim.",
         series: 'The Lord of the Rings',
         series_number: '0',
       });
+    });
+
+    it('strips unsafe markup from the description but keeps its text', () => {
+      const html = bookPageHtml.replace(
+        /<span class="Formatted">.*<\/span>/,
+        '<span class="Formatted">' +
+          '<script>alert(1)</script>' +
+          '<b class="Text__bold" style="color:red">Bold</b> and ' +
+          '<a href="https://tracking.example.com">a link</a> inside ' +
+          '<div data-testid="wrapper">a wrapper</div>' +
+          '</span>',
+      );
+
+      const details = service.parseBookDetails(html)!;
+
+      expect(details.description).toBe(
+        '<b>Bold</b> and a link inside a wrapper',
+      );
+    });
+
+    it('treats a markup-only description as absent', () => {
+      const html = bookPageHtml.replace(
+        /<span class="Formatted">.*<\/span>/,
+        '<span class="Formatted"><br><br></span>',
+      );
+
+      const details = service.parseBookDetails(html)!;
+
+      expect(details.description).toBeNull();
     });
 
     it('handles a series link without a number', () => {

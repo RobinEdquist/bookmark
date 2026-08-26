@@ -22,6 +22,32 @@ const BOOK_TITLE_SELECTOR = 'h1.Text__title1';
 /** Book-page loads to attempt before giving up on the WAF challenge. */
 const BOOK_PAGE_ATTEMPTS = 3;
 
+/**
+ * Formatting tags kept when scraping a description. The detail pages render
+ * descriptions as sanitized HTML (like Audnexus summaries), but everything
+ * else in scraped markup — links, spoiler wrappers, class/style attributes —
+ * must not reach the database.
+ */
+const DESCRIPTION_ALLOWED_TAGS = new Set(['b', 'i', 'em', 'strong', 'br', 'p']);
+
+function sanitizeDescriptionHtml(html: string): string {
+  const $ = cheerio.load(html, null, false);
+  $('script, style').remove();
+  // Bottom-up, so unwrapping an element can't detach descendants that still
+  // need processing.
+  for (const el of $('*').toArray().reverse()) {
+    if (!('tagName' in el)) {
+      continue;
+    }
+    if (DESCRIPTION_ALLOWED_TAGS.has(el.tagName.toLowerCase())) {
+      el.attribs = {};
+    } else {
+      $(el).replaceWith($(el).contents());
+    }
+  }
+  return ($.root().html() ?? '').trim();
+}
+
 export interface ScrapedSearchResult {
   title: string;
   author: string;
@@ -229,13 +255,15 @@ export class GoodreadsScraperService implements OnModuleDestroy {
       });
     }
 
-    const descriptionText = $(
+    // Goodreads ships the description as real HTML (bold/italics/<br>), so
+    // keep the formatting instead of flattening it to text. A description
+    // that is markup-only (no actual text) counts as absent.
+    const descriptionEl = $(
       'div.DetailsLayoutRightParagraph__widthConstrained span.Formatted',
-    )
-      .first()
-      .text()
-      .trim();
-    const description = descriptionText || null;
+    ).first();
+    const description = descriptionEl.text().trim()
+      ? sanitizeDescriptionHtml(descriptionEl.html() ?? '') || null
+      : null;
 
     let series: string | null = null;
     let seriesNumber: string | null = null;
