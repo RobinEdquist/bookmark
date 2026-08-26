@@ -172,7 +172,11 @@ function MetadataMatchBody({
   const t = useTranslations("common.metadataMatch");
 
   const [step, setStep] = useState<Step>("search");
-  const [provider, setProvider] = useState<Provider>("audible");
+  // Audible/Audnexus only carries audiobook metadata, so ebooks are pinned to
+  // iTunes (which searches the Apple Books ebook catalog).
+  const [provider, setProvider] = useState<Provider>(
+    mediaType === "ebook" ? "itunes" : "audible",
+  );
   const [region, setRegion] = useState("us");
   const [titleInput, setTitleInput] = useState(current.title);
   const [authorInput, setAuthorInput] = useState(current.authors[0] ?? "");
@@ -415,25 +419,27 @@ function MetadataMatchBody({
             {/* Provider / region / query */}
             <form onSubmit={handleSearch} className="space-y-3">
               <div className="flex gap-2">
-                <div className="flex-1 space-y-1">
-                  <Label htmlFor="match-provider">{t("provider")}</Label>
-                  <Select
-                    value={provider}
-                    onValueChange={(value) => setProvider(value as Provider)}
-                  >
-                    <SelectTrigger id="match-provider">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="audible">
-                        {t("providers.audible")}
-                      </SelectItem>
-                      <SelectItem value="itunes">
-                        {t("providers.itunes")}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {mediaType === "audiobook" && (
+                  <div className="flex-1 space-y-1">
+                    <Label htmlFor="match-provider">{t("provider")}</Label>
+                    <Select
+                      value={provider}
+                      onValueChange={(value) => setProvider(value as Provider)}
+                    >
+                      <SelectTrigger id="match-provider">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="audible">
+                          {t("providers.audible")}
+                        </SelectItem>
+                        <SelectItem value="itunes">
+                          {t("providers.itunes")}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="w-28 space-y-1">
                   <Label htmlFor="match-region">{t("region")}</Label>
                   <Select value={region} onValueChange={setRegion}>
