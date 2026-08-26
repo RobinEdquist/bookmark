@@ -26,10 +26,13 @@ export function OidcButton({
   const handleOidcSignIn = async () => {
     setIsLoading(true);
     try {
-      const { data, error } = await authClient.signIn.oauth2({
-        providerId: "oidc",
+      const { data, error } = await authClient.signIn.social({
+        provider: "oidc",
         callbackURL: "/home",
         errorCallbackURL: "/?error=sso",
+        // We navigate ourselves below instead of relying on the client's
+        // implicit redirect handling.
+        disableRedirect: true,
       });
 
       if (error) {

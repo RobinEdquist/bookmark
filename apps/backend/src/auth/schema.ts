@@ -6,6 +6,7 @@ import {
   boolean,
   integer,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('user', {
@@ -54,6 +55,13 @@ export const account = pgTable(
     id: text('id').primaryKey(),
     accountId: text('account_id').notNull(),
     providerId: text('provider_id').notNull(),
+    // better-auth 1.7 keys account identity on (issuer, accountId).
+    // Credential rows hold the synthetic 'local:credential'; OIDC rows hold
+    // the configured OIDC_ISSUER_URL (pinned via the plugin's accountIssuer
+    // option). Nullable because pre-1.7 rows are backfilled after the column
+    // is added: credential rows by migration, OIDC rows at startup by
+    // AccountIssuerBackfillService (the value is instance-specific).
+    issuer: text('issuer'),
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
@@ -69,7 +77,16 @@ export const account = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index('account_userId_idx').on(table.userId)],
+  (table) => [
+    index('account_userId_idx').on(table.userId),
+    // Sign-in resolves accounts by (issuer, accountId); unique per the 1.7
+    // upgrade guide. Postgres treats NULLs as distinct, so legacy rows that
+    // are not yet backfilled cannot collide with each other.
+    uniqueIndex('account_issuer_account_id_idx').on(
+      table.issuer,
+      table.accountId,
+    ),
+  ],
 );
 
 export const verification = pgTable(

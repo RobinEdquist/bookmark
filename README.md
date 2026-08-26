@@ -93,6 +93,8 @@ Everything is set through environment variables in your `.env` file. With Docker
 | `OIDC_CLIENT_ID`     | If SSO enabled | —       | Client ID                              |
 | `OIDC_CLIENT_SECRET` | If SSO enabled | —       | Client secret                          |
 
+Register `https://<your-host>/api/auth/callback/oidc` as the redirect URI with your identity provider. (Releases up to v0.3.1 used `/api/auth/oauth2/callback/oidc` — update the registration when upgrading.)
+
 **AI-narrated audiobooks (optional)** — works with any OpenAI-compatible text-to-speech server (`/v1/audio/speech`); a CPU-friendly engine ships behind a compose profile. Generated files surface in the audiobook library as a `generated` folder, which needs its own writable mount. Create the folder first (Docker cannot create a mountpoint inside a read-only mount), then uncomment the mount in `docker-compose.yml`:
 
 ```bash
