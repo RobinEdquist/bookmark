@@ -127,7 +127,7 @@ export function EbookCard({
 
   const handleDownload = () => {
     // Open download endpoint in new tab
-    window.open(`/api/ebooks/${ebook.id}/file`, "_blank");
+    window.open(`/api/ebooks/${ebook.id}/download`, "_blank");
   };
 
   const primaryAuthor = ebook.authors[0]?.name;
