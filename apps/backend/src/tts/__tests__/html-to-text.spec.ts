@@ -48,6 +48,44 @@ describe('htmlToPlainText', () => {
       'line one\n\nline two',
     );
   });
+
+  it('keeps the content of an unclosed blocked element (no removal without a closer)', () => {
+    const html = '<p>Before</p><script>var x = 1;<p>After</p>';
+    // The old lazy regex also left unclosed regions untouched — content is
+    // kept rather than silently dropped on malformed chapters.
+    expect(htmlToPlainText(html)).toContain('After');
+    expect(htmlToPlainText(html)).toContain('Before');
+  });
+
+  it('keeps the text of a never-closed comment', () => {
+    expect(htmlToPlainText('Kept<!-- dangling')).toBe('Kept<!-- dangling');
+  });
+
+  it('strips several blocked regions in sequence', () => {
+    const html =
+      '<script>a</script><p>One</p><!-- c --><style>b</style><p>Two</p>';
+    expect(htmlToPlainText(html)).toBe('One\n\nTwo');
+  });
+
+  it('does not treat lookalike tag names as blocked openers', () => {
+    expect(htmlToPlainText('<scripting-is-fun>hello</scripting-is-fun>')).toBe(
+      'hello',
+    );
+  });
+
+  it('processes adversarial input with many unclosed openers in linear time', () => {
+    // 200k "<script" opens without closes: quadratic backtracking on the
+    // old regex took minutes; the forward scan must finish near-instantly.
+    const adversarial = '<script>'.repeat(200_000) + '<p>tail</p>';
+    const startedAt = Date.now();
+    const result = htmlToPlainText(adversarial);
+    const elapsed = Date.now() - startedAt;
+
+    expect(result).toContain('tail');
+    // Generous bound: even a slow CI runner completes this in well under a
+    // second; the old implementation needed orders of magnitude more.
+    expect(elapsed).toBeLessThan(2000);
+  });
 });
 
 describe('firstHeadingText', () => {

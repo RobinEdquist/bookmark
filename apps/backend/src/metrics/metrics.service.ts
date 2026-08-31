@@ -6,19 +6,26 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { NextFunction, Request, Response } from 'express';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import * as http from 'node:http';
 import { collectDefaultMetrics, Gauge, Histogram, Registry } from 'prom-client';
 import { StatsService } from '../stats/stats.service';
 
 /**
- * Prometheus metrics, fully opt-in: unless METRICS_ENABLED=true nothing is
- * registered, the HTTP middleware is a no-op, and no extra port is opened —
- * deployments without a Prometheus/Grafana stack are unaffected.
+ * Metrics endpoint (Prometheus exposition format), fully opt-in: unless
+ * METRICS_ENABLED=true nothing is registered, the HTTP middleware is a
+ * no-op, and no extra port is opened — deployments without a monitoring
+ * stack are unaffected.
  *
  * When enabled, metrics are served on a SEPARATE HTTP port (METRICS_PORT,
  * default 9464) instead of the API port, so they are only reachable from
  * networks that can hit the container directly (e.g. a Docker network shared
- * with Prometheus) and never through the public reverse proxy.
+ * with a scraper) and never through the public reverse proxy.
+ *
+ * Hardening knobs (both optional):
+ * - METRICS_TOKEN: require `Authorization: Bearer <token>` on scrapes.
+ * - METRICS_HOST: interface to bind (e.g. 127.0.0.1). Default binds all
+ *   interfaces for backward compatibility with cross-container scraping.
  */
 @Injectable()
 export class MetricsService
@@ -31,6 +38,8 @@ export class MetricsService
   readonly registry = new Registry();
   readonly enabled: boolean;
   private readonly port: number;
+  private readonly host?: string;
+  private readonly token?: string;
 
   private readonly httpDuration: Histogram;
   private readonly libraryItems: Gauge;
@@ -48,6 +57,8 @@ export class MetricsService
   ) {
     this.enabled = this.config.get('METRICS_ENABLED') === 'true';
     this.port = Number(this.config.get('METRICS_PORT', '9464'));
+    this.host = this.config.get('METRICS_HOST') || undefined;
+    this.token = this.config.get('METRICS_TOKEN') || undefined;
 
     // When disabled, metrics attach to no registry: they can still be
     // written to (keeping callers branch-free) but are never collected.
@@ -126,8 +137,12 @@ export class MetricsService
     this.server = http.createServer((req, res) => {
       void this.serve(req, res);
     });
-    this.server.listen(this.port, () => {
-      this.logger.log(`Prometheus metrics exposed on :${this.port}/metrics`);
+    this.server.listen(this.port, this.host, () => {
+      const bound = this.host ?? 'all interfaces';
+      this.logger.log(
+        `Prometheus metrics exposed on ${bound}:${this.port}/metrics` +
+          (this.token ? ' (bearer token required)' : ''),
+      );
     });
   }
 
@@ -140,6 +155,12 @@ export class MetricsService
     res: http.ServerResponse,
   ): Promise<void> {
     if (req.method === 'GET' && req.url?.split('?')[0] === '/metrics') {
+      if (!this.isAuthorized(req)) {
+        res.statusCode = 401;
+        res.setHeader('WWW-Authenticate', 'Bearer realm="bookmark-metrics"');
+        res.end('Unauthorized');
+        return;
+      }
       try {
         const body = await this.registry.metrics();
         res.setHeader('Content-Type', this.registry.contentType);
@@ -153,6 +174,25 @@ export class MetricsService
     }
     res.statusCode = 404;
     res.end('Not Found');
+  }
+
+  /**
+   * Scrape authorization. Open by default (the port is container-network
+   * internal and never proxied); when METRICS_TOKEN is set, requests must
+   * present it as a Bearer token. Compared via SHA-256 digests so the check
+   * is timing-safe without leaking token length.
+   */
+  private isAuthorized(req: http.IncomingMessage): boolean {
+    if (!this.token) {
+      return true;
+    }
+    const header = req.headers.authorization;
+    if (!header?.startsWith('Bearer ')) {
+      return false;
+    }
+    const digest = (value: string): Buffer =>
+      createHash('sha256').update(value, 'utf8').digest();
+    return timingSafeEqual(digest(header.slice(7).trim()), digest(this.token));
   }
 
   /**

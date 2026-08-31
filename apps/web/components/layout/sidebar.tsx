@@ -26,7 +26,7 @@ import {
 import { cn } from "@repo/ui/lib/utils";
 import { authClient } from "../../lib/auth-client";
 import { useLibraryAvailability } from "../../lib/use-library-availability";
-import { useSettings } from "../../lib/use-settings";
+import { useUserSettings } from "../../lib/use-settings";
 import { useMyPermissions } from "../../lib/use-users";
 import { TasksIndicator } from "./tasks-indicator";
 import { AppLogo } from "./app-logo";
@@ -93,7 +93,8 @@ export function Sidebar({
   const t = useTranslations("common");
   const pathname = usePathname();
   const { data: availability } = useLibraryAvailability();
-  const { settings } = useSettings();
+  // Reduced settings subset — the full settings payload is admin-only.
+  const { settings } = useUserSettings();
   const { data: permissions } = useMyPermissions();
 
   // Show requests if enabled and user has permission (admins always have permission)

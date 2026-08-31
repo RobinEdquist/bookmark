@@ -57,6 +57,16 @@ interface WorkerLibraryData {
 
 const POOL_NAME = 'abs-restore';
 
+/**
+ * ABS ids are hex/UUID-like strings (MongoDB ObjectIds, session hashes).
+ * Anything else — `..`, path separators, whitespace — cannot name a metadata
+ * directory inside a backup archive, so it is rejected before being joined
+ * into a filesystem path.
+ */
+function isSafeBackupId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]{1,128}$/.test(id);
+}
+
 @Injectable()
 export class AbsParserService implements OnModuleInit {
   private readonly logger = new Logger(AbsParserService.name);
@@ -147,6 +157,12 @@ export class AbsParserService implements OnModuleInit {
     extractedPath: string,
     absBookId: string,
   ): Promise<ABSMetadataJson | null> {
+    if (!isSafeBackupId(absBookId)) {
+      this.logger.warn(
+        `Rejected unsafe backup id in readMetadataJson: ${absBookId}`,
+      );
+      return null;
+    }
     return this.workerPool.executeTask<ABSMetadataJson | null>(
       POOL_NAME,
       'readMetadataJson',
@@ -158,6 +174,13 @@ export class AbsParserService implements OnModuleInit {
     extractedPath: string,
     absBookId: string,
   ): Promise<string | null> {
+    // The id originates from the untrusted backup database and is joined into
+    // filesystem paths below — `..` or separators would escape the extraction
+    // directory. ABS ids are hex/UUID-like; anything else cannot name a
+    // metadata directory.
+    if (!isSafeBackupId(absBookId)) {
+      return null;
+    }
     const coverPath = path.join(
       extractedPath,
       'metadata-items',
@@ -192,6 +215,9 @@ export class AbsParserService implements OnModuleInit {
     extractedPath: string,
     absAuthorId: string,
   ): Promise<string | null> {
+    if (!isSafeBackupId(absAuthorId)) {
+      return null;
+    }
     const authorsDir = path.join(extractedPath, 'metadata-authors');
 
     for (const ext of ['.jpg', '.png', '.webp', '.jpeg']) {

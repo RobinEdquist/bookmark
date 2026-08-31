@@ -61,6 +61,55 @@ describe('OpdsService', () => {
   });
 
   // -----------------------------------------------------------------------
+  // publishedDate escaping (via buildAllEbooksFeed)
+  // -----------------------------------------------------------------------
+  describe('publishedDate escaping (via buildAllEbooksFeed)', () => {
+    // publishedDate is user-editable and also derived from EPUB metadata —
+    // it must go through escapeXml like every other field, or a crafted
+    // date can inject markup into the Atom feed.
+    it('escapes XML metacharacters in publishedDate', async () => {
+      const db = createMockDb();
+      const service = new OpdsService(db as any, createMetadataResolver());
+
+      const ebook = makeEbook({
+        publishedDate: '2024</published><content type="html"><script>',
+      });
+
+      const countChain = createChainMock(['from', 'where']);
+      countChain.where.mockResolvedValueOnce([{ total: 1 }]);
+
+      const ebooksChain = createChainMock([
+        'from',
+        'where',
+        'orderBy',
+        'limit',
+        'offset',
+      ]);
+      ebooksChain.offset.mockResolvedValueOnce([ebook]);
+
+      const authorsChain = createChainMock([
+        'from',
+        'innerJoin',
+        'where',
+        'orderBy',
+      ]);
+      authorsChain.orderBy.mockResolvedValueOnce([]);
+
+      db.select
+        .mockReturnValueOnce(countChain)
+        .mockReturnValueOnce(ebooksChain)
+        .mockReturnValueOnce(authorsChain);
+
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
+
+      expect(result).toContain(
+        '<published>2024&lt;/published&gt;&lt;content type=&quot;html&quot;&gt;&lt;script&gt;</published>',
+      );
+      expect(result).not.toContain('</published><content');
+    });
+  });
+
+  // -----------------------------------------------------------------------
   // truncateDescription (tested via buildEbookEntries output)
   // -----------------------------------------------------------------------
   describe('truncateDescription (via buildAllEbooksFeed)', () => {

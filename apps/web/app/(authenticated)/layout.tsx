@@ -16,32 +16,12 @@ export default function AuthenticatedLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, isPending, error } = authClient.useSession();
+  const { data: session, isPending } = authClient.useSession();
   const isAdmin = session?.user?.role === "admin";
   const isAuthenticated = !isPending && !!session?.user;
 
-  // Log auth state changes
-  useEffect(() => {
-    console.log("[AuthenticatedLayout]", {
-      pathname,
-      isPending,
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userId: session?.user?.id,
-      userRole: session?.user?.role,
-      isAdmin,
-      isAuthenticated,
-      error: error?.message ?? null,
-    });
-  }, [pathname, isPending, session, isAdmin, isAuthenticated, error]);
-
   useEffect(() => {
     if (!isPending && !session?.user) {
-      console.log("[AuthenticatedLayout] Redirecting to / - no session", {
-        pathname,
-        isPending,
-        session,
-      });
       router.push("/");
     }
   }, [isPending, session, router, pathname]);

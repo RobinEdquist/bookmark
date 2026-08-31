@@ -111,6 +111,23 @@ Enter `http://tts:8880` as the server URL under **Settings → Integrations → 
 | `TRACKER_CLIENT_URL`     | If requests enabled | —       | Base URL of your content request module         |
 | `TRACKER_CLIENT_API_KEY` | If requests enabled | —       | Shared secret the module expects as `X-API-Key` |
 
+**Monitoring (optional)** — exposes metrics in the open Prometheus exposition format on a separate internal port, never on the public API. That format is the de-facto standard, so most monitoring stacks can scrape it directly. Leave disabled unless you run one.
+
+| Variable          | Required | Default        | Description                                                                                                                        |
+| ----------------- | -------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `METRICS_ENABLED` | No       | `false`        | Turn the metrics endpoint on or off                                                                                                |
+| `METRICS_PORT`    | No       | `9464`         | Internal port serving `http://<host>:<port>/metrics`                                                                               |
+| `METRICS_TOKEN`   | No       | —              | Require `Authorization: Bearer <token>` on every scrape; recommended when anything besides the container itself can reach the port |
+| `METRICS_HOST`    | No       | all interfaces | Network interface to bind, e.g. `127.0.0.1`                                                                                        |
+
+**API docs (optional)** — Swagger UI and the OpenAPI document are served while developing; they are off by default in production to keep the deployment minimal. The spec can also be exported to a file with `pnpm --filter backend openapi:export`.
+
+| Variable          | Required | Default               | Description                                                           |
+| ----------------- | -------- | --------------------- | --------------------------------------------------------------------- |
+| `SWAGGER_ENABLED` | No       | `false` in production | Set to `true` to serve `/api/docs` and `/api/docs-json` in production |
+
+When `METRICS_TOKEN` is set, point your scraper at `http://<bookmark-host>:<port>/metrics` and have it send the value as a standard `Authorization: Bearer` header — every mainstream scraper (Prometheus, Grafana Alloy, VictoriaMetrics, Netdata, OpenTelemetry Collector, …) supports this.
+
 **Image** — which image `docker compose up` runs. Ignored when building from source. The `latest` tag tracks the newest release; `edge` follows the main branch and is not release-tested.
 
 | Variable         | Required | Default                                | Description                    |

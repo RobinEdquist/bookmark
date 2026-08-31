@@ -20,6 +20,7 @@ import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
 import * as express from 'express';
 import { OpdsService } from './opds.service';
 import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
+import { resolveExternalBaseUrl } from '../common/utils/opds-base-url.util';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 
@@ -32,10 +33,7 @@ export class OpdsController {
   constructor(private readonly opdsService: OpdsService) {}
 
   private getBaseUrl(req: express.Request): string {
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
-    const host =
-      req.headers['x-forwarded-host'] || req.headers.host || 'localhost';
-    return `${protocol}://${host}/api/ebooks/opds`;
+    return resolveExternalBaseUrl(req, '/api/ebooks/opds');
   }
 
   private sendXml(res: express.Response, xml: string): void {

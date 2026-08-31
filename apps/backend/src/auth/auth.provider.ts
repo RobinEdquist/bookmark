@@ -56,6 +56,18 @@ export function createAuthInstance(
     emailAndPassword: {
       enabled: true,
     },
+    // Rate limiting: better-auth's core defaults apply (enabled in
+    // production, 100 requests / 60 s per IP, in-memory storage; disabled
+    // outside production, which keeps the e2e suites' multi-user flows
+    // working). These custom rules tighten the credential endpoints against
+    // password guessing. Persisting counters via storage: 'database' would
+    // need a rateLimit table/migration — see the security backlog.
+    rateLimit: {
+      customRules: {
+        '/sign-in/email': { window: 60, max: 5 },
+        '/sign-up/email': { window: 60, max: 3 },
+      },
+    },
     database: drizzleAdapter(database, {
       provider: 'pg',
       schema,
@@ -152,26 +164,59 @@ export function createAuthInstance(
     ],
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
-        // Enforce the "email/password authentication" admin setting at the
-        // API itself — hiding the form in the UI is presentation, not policy.
+        // Enforce the "email/password authentication" and "signups enabled"
+        // admin settings at the API itself — hiding the form in the UI is
+        // presentation, not policy. This hook is the only server-side
+        // enforcement point for these toggles: better-auth routes are mounted
+        // as raw Express middleware ahead of the Nest router, so Nest guards
+        // never run on them.
         if (ctx.path === '/sign-in/email' || ctx.path === '/sign-up/email') {
           const [settings] = await database
             .select({
               emailPasswordEnabled: appSettings.emailPasswordEnabled,
+              signupsEnabled: appSettings.signupsEnabled,
             })
             .from(appSettings)
             .where(eq(appSettings.id, 'app_settings'))
             .limit(1);
 
-          if (settings && !settings.emailPasswordEnabled) {
-            // Safety valve: never lock an empty instance out of first-user
-            // setup (mirrors SignupGuard).
+          // Safety valve: never lock an empty instance out of first-user setup.
+          const isSetupComplete = async (): Promise<boolean> => {
             const [existing] = await database
               .select({ count: count() })
               .from(schema.user);
-            if (existing.count > 0) {
+            return existing.count > 0;
+          };
+
+          if (
+            ctx.path === '/sign-in/email' &&
+            settings &&
+            !settings.emailPasswordEnabled &&
+            (await isSetupComplete())
+          ) {
+            throw new APIError('FORBIDDEN', {
+              message: 'Email/password authentication is disabled',
+            });
+          }
+
+          if (
+            ctx.path === '/sign-up/email' &&
+            settings &&
+            (await isSetupComplete())
+          ) {
+            // Sign-up is an email/password operation, so it must respect
+            // BOTH toggles: with the credential system off, allowing
+            // sign-up would mint local sessions on an OIDC-only instance
+            // (better-auth signs the user in on sign-up by default); the
+            // signup toggle independently forbids new accounts.
+            if (!settings.emailPasswordEnabled) {
               throw new APIError('FORBIDDEN', {
                 message: 'Email/password authentication is disabled',
+              });
+            }
+            if (!settings.signupsEnabled) {
+              throw new APIError('FORBIDDEN', {
+                message: 'Signups are currently disabled',
               });
             }
           }

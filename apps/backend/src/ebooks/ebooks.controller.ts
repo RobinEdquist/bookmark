@@ -50,7 +50,7 @@ import {
 import { AuthGuard } from '../common/guards/auth.guard';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 import { CanDeleteGuard } from '../common/guards/can-delete.guard';
-import { parseRangeHeader } from './http-range';
+import { parseRangeHeader } from '../common/utils/http-range';
 
 /** Formats the in-browser reader can open (foliate-js: epub/mobi/azw3, react-pdf: pdf). */
 const STREAMABLE_MIME_TYPES = new Set([

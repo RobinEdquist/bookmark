@@ -21,6 +21,7 @@ import {
   PublicSettingsResponseDto,
   AuthConfigResponseDto,
   SetupStatusResponseDto,
+  UserSettingsResponseDto,
   AppSettingsResponseDto,
 } from './dto/settings-response.dto';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
@@ -99,12 +100,36 @@ export class AppSettingsController {
     return { setupCompleted };
   }
 
-  @Get()
+  @Get('user')
   @ApiSecurity('better-auth.session_token')
   @ApiSecurity('api-key')
   @ApiOperation({
+    summary: 'Get settings relevant to the current user',
+    description:
+      'Returns the reduced settings subset regular users may see (feature toggles only). Server configuration is admin-only via GET /settings.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'User-visible settings',
+    type: UserSettingsResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getUserSettings(): Promise<UserSettingsResponseDto> {
+    const settings = await this.appSettingsService.getSettings();
+    return {
+      requestsEnabled: settings.requestsEnabled,
+    };
+  }
+
+  @Get()
+  @ApiSecurity('better-auth.session_token')
+  @ApiSecurity('api-key')
+  @UseGuards(RolesGuard)
+  @Roles('admin')
+  @ApiOperation({
     summary: 'Get all settings',
-    description: 'Returns all application settings. Requires authentication.',
+    description:
+      'Returns all application settings, including server filesystem paths and default permissions. Requires the admin role.',
   })
   @ApiResponse({
     status: 200,
@@ -112,6 +137,7 @@ export class AppSettingsController {
     type: AppSettingsResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Admin access required' })
   async getSettings(): Promise<AppSettingsResponseDto> {
     const settings = await this.appSettingsService.getSettings();
     const trackerClientConfigured = !!(

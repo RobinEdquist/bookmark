@@ -22,7 +22,6 @@ import {
   SQL,
 } from 'drizzle-orm';
 import * as fsPromises from 'fs/promises';
-import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
@@ -32,6 +31,7 @@ import { AppSettingsService } from '../app-settings/app-settings.service';
 import { DEFAULT_COMIC_METADATA_PRIORITY } from '../app-settings/schema';
 import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
 import { CoverService } from '../common/cover.service';
+import { resolveContainedPath } from '../common/utils/path-containment.util';
 import { AppDataService } from '../app-data/app-data.service';
 import { ComicMetadataProvider } from '../library-watcher/metadata/comic-metadata.provider';
 import { ImageProcessingService } from '../common/image-processing.service';
@@ -98,12 +98,17 @@ export class ComicsService {
     private collectionsService: ComicsCollectionsService,
   ) {}
 
+  /**
+   * Convert a relative file path (stored in DB) to an absolute path using the comic library path.
+   * The stored value can be polluted by crafted backup imports, so the result
+   * is guaranteed to stay inside the library root (see resolveContainedPath).
+   */
   private async resolveFilePath(relativePath: string): Promise<string> {
     const libraryPath = await this.appSettingsService.getComicLibraryPath();
     if (!libraryPath) {
       throw new Error('Comic library path not configured');
     }
-    return path.join(libraryPath, relativePath);
+    return resolveContainedPath(libraryPath, relativePath);
   }
 
   // ===== BLACKLIST =====

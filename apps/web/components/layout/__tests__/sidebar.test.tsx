@@ -7,13 +7,13 @@ const {
   mockSignOut,
   mockUsePathname,
   mockUseLibraryAvailability,
-  mockUseSettings,
+  mockUseUserSettings,
   mockUseMyPermissions,
 } = vi.hoisted(() => ({
   mockSignOut: vi.fn().mockResolvedValue(undefined),
   mockUsePathname: vi.fn().mockReturnValue("/"),
   mockUseLibraryAvailability: vi.fn().mockReturnValue({ data: undefined }),
-  mockUseSettings: vi.fn().mockReturnValue({ settings: null }),
+  mockUseUserSettings: vi.fn().mockReturnValue({ settings: null }),
   mockUseMyPermissions: vi.fn().mockReturnValue({ data: undefined }),
 }));
 
@@ -60,7 +60,7 @@ vi.mock("../../../lib/use-library-availability", () => ({
 }));
 
 vi.mock("../../../lib/use-settings", () => ({
-  useSettings: () => mockUseSettings(),
+  useUserSettings: () => mockUseUserSettings(),
 }));
 
 vi.mock("../../../lib/use-users", () => ({
@@ -86,7 +86,9 @@ describe("Sidebar", () => {
     mockUseLibraryAvailability.mockReturnValue({
       data: { audiobooks: true, ebooks: true, opds: false },
     });
-    mockUseSettings.mockReturnValue({ settings: { requestsEnabled: false } });
+    mockUseUserSettings.mockReturnValue({
+      settings: { requestsEnabled: false },
+    });
     mockUseMyPermissions.mockReturnValue({
       data: { canRequestContent: false, canGenerateApiKeys: false },
     });
@@ -197,7 +199,9 @@ describe("Sidebar", () => {
   });
 
   it("shows requests link when requests are enabled and user has permission", () => {
-    mockUseSettings.mockReturnValue({ settings: { requestsEnabled: true } });
+    mockUseUserSettings.mockReturnValue({
+      settings: { requestsEnabled: true },
+    });
     mockUseMyPermissions.mockReturnValue({
       data: { canRequestContent: true, canGenerateApiKeys: false },
     });
@@ -206,7 +210,9 @@ describe("Sidebar", () => {
   });
 
   it("does not show requests link when requests are disabled", () => {
-    mockUseSettings.mockReturnValue({ settings: { requestsEnabled: false } });
+    mockUseUserSettings.mockReturnValue({
+      settings: { requestsEnabled: false },
+    });
     mockUseMyPermissions.mockReturnValue({
       data: { canRequestContent: true, canGenerateApiKeys: false },
     });
@@ -215,7 +221,9 @@ describe("Sidebar", () => {
   });
 
   it("shows manage requests link for admin when requests are enabled", () => {
-    mockUseSettings.mockReturnValue({ settings: { requestsEnabled: true } });
+    mockUseUserSettings.mockReturnValue({
+      settings: { requestsEnabled: true },
+    });
     mockUseMyPermissions.mockReturnValue({
       data: { canRequestContent: false, canGenerateApiKeys: false },
     });

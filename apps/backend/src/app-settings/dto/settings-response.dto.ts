@@ -104,6 +104,15 @@ export class SetupStatusResponseDto {
   setupCompleted!: boolean;
 }
 
+/**
+ * Reduced settings subset for regular (non-admin) users: feature toggles
+ * only — never server paths, default permissions, or integration state.
+ */
+export class UserSettingsResponseDto {
+  @ApiProperty({ example: true })
+  requestsEnabled!: boolean;
+}
+
 export class AppSettingsResponseDto {
   @ApiProperty({ example: true })
   signupsEnabled!: boolean;

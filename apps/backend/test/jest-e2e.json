@@ -8,5 +8,6 @@
   },
   "testTimeout": 30000,
   "globalSetup": "<rootDir>/setup/globalSetup.ts",
-  "globalTeardown": "<rootDir>/setup/globalTeardown.ts"
+  "globalTeardown": "<rootDir>/setup/globalTeardown.ts",
+  "setupFilesAfterEnv": ["<rootDir>/setup/after-env.ts"]
 }

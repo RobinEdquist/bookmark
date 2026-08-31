@@ -186,6 +186,16 @@ describe('AbsParserService', () => {
 
       expect(result).toBeNull();
     });
+
+    it('rejects traversal ids without dispatching a worker task', async () => {
+      const result = await service.readMetadataJson(
+        '/tmp/backup',
+        '../../etc/passwd',
+      );
+
+      expect(result).toBeNull();
+      expect(workerPool.executeTask).not.toHaveBeenCalled();
+    });
   });
 
   // -------------------------------------------------------------------------
@@ -223,6 +233,16 @@ describe('AbsParserService', () => {
       // 1 for cover.jpg + 3 fallback extensions
       expect(mockedFs.access).toHaveBeenCalledTimes(4);
     });
+
+    it.each(['../../etc', 'a/b/../../../etc/passwd', 'id/with/slashes', ''])(
+      'rejects unsafe backup id %j without touching the filesystem',
+      async (id) => {
+        const result = await service.getCoverPath('/tmp/backup', id);
+
+        expect(result).toBeNull();
+        expect(mockedFs.access).not.toHaveBeenCalled();
+      },
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -267,6 +287,16 @@ describe('AbsParserService', () => {
 
       expect(result).toBeNull();
       expect(mockedFs.access).toHaveBeenCalledTimes(4);
+    });
+
+    it('rejects traversal author ids without touching the filesystem', async () => {
+      const result = await service.getAuthorImagePath(
+        '/tmp/backup',
+        '../../root/.ssh/id_rsa',
+      );
+
+      expect(result).toBeNull();
+      expect(mockedFs.access).not.toHaveBeenCalled();
     });
   });
 });

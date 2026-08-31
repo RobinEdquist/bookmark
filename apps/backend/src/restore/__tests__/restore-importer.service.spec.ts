@@ -177,6 +177,7 @@ describe('RestoreImporterService', () => {
   let mockDb: any;
   let mockAbsParser: any;
   let mockAppData: any;
+  let mockImageProcessing: any;
   let service: RestoreImporterService;
 
   beforeEach(() => {
@@ -191,11 +192,17 @@ describe('RestoreImporterService', () => {
       getAudiobookCoverPath: jest.fn().mockReturnValue('/data/covers/id.jpg'),
       getPersonImagePath: jest.fn().mockReturnValue('/data/people/id.jpg'),
     };
+    mockImageProcessing = {
+      processCover: jest
+        .fn()
+        .mockResolvedValue(Buffer.from('processed-jpeg-bytes')),
+    };
 
     service = new RestoreImporterService(
       mockDb as any,
       mockAbsParser,
       mockAppData,
+      mockImageProcessing,
     );
   });
 
@@ -451,6 +458,11 @@ describe('RestoreImporterService', () => {
         returning: jest.fn().mockResolvedValue([{ id: 'sav-person-1' }]),
       });
       mockDb._selectChain.limit.mockResolvedValue([]);
+      mockTx._selectChain.limit.mockResolvedValue([]);
+      mockTx._insertChain.returning.mockResolvedValue([
+        { id: 'sav-audiobook-1' },
+      ]);
+      mockTx._insertChain.values.mockResolvedValue(undefined);
     });
 
     it('skips items with no matching path mapping', async () => {
@@ -474,6 +486,76 @@ describe('RestoreImporterService', () => {
 
       // No audiobook transaction
       expect(mockDb.transaction).not.toHaveBeenCalled();
+    });
+
+    it('skips items whose mapped path contains traversal segments', async () => {
+      mockAbsParser.parseLibraryData.mockResolvedValue(
+        buildLibraryData({
+          libraryItems: [
+            {
+              id: 'item-1',
+              title: 'Evil Book',
+              mediaId: 'book-1',
+              path: '/abs/lib/../../../etc',
+              authorNamesFirstLast: 'Author',
+              createdAt: Date.now(),
+            },
+          ],
+        }),
+      );
+
+      const session = buildSession();
+      await service.executeImport(session as any);
+
+      // Unsafe path must be rejected like an unmatched mapping
+      expect(mockDb.transaction).not.toHaveBeenCalled();
+      expect(
+        mockTx._insertChain.values.mock.calls.some(
+          (call: any) => call[0]?.filePath !== undefined,
+        ),
+      ).toBe(false);
+    });
+
+    it('fails the audiobook import when an audio file relPath traverses', async () => {
+      mockAbsParser.parseLibraryData.mockResolvedValue(
+        buildLibraryData({
+          books: new Map([
+            [
+              'book-1',
+              {
+                id: 'book-1',
+                title: 'Evil Book',
+                audioFiles: [
+                  {
+                    index: 0,
+                    duration: 3600,
+                    format: 'm4b',
+                    bitRate: 128000,
+                    metadata: {
+                      relPath: '../../etc/passwd',
+                      filename: 'passwd',
+                      ext: '.m4b',
+                      size: 50000000,
+                    },
+                  },
+                ],
+              },
+            ],
+          ]) as any,
+        }),
+      );
+
+      const session = buildSession();
+      await service.executeImport(session as any);
+
+      // The per-item transaction runs but the audiobook import fails — no
+      // audiobookFiles row with the traversal path is persisted.
+      expect(mockDb.transaction).toHaveBeenCalled();
+      expect(
+        mockTx._insertChain.values.mock.calls.some((call: any) =>
+          call[0]?.filePath?.includes('..'),
+        ),
+      ).toBe(false);
     });
   });
 

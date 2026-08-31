@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import type { EbookListItem } from "../../lib/use-ebooks";
+import { formatRatingCount } from "../../lib/format-rating-count";
 import { useDeleteEbook } from "../../lib/use-ebooks";
 import { useMyPermissions } from "../../lib/use-users";
 import {
@@ -211,7 +212,7 @@ export function EbookCard({
                     <>
                       <span>{ebook.goodreadsRating.toFixed(2)}</span>
                       <span>
-                        ({ebook.goodreadsRatingsCount?.toLocaleString() ?? 0})
+                        ({formatRatingCount(ebook.goodreadsRatingsCount ?? 0)})
                       </span>
                     </>
                   )}
@@ -230,7 +231,7 @@ export function EbookCard({
                     <>
                       <span>{ebook.hardcoverRating.toFixed(2)}</span>
                       <span>
-                        ({ebook.hardcoverRatingsCount?.toLocaleString() ?? 0})
+                        ({formatRatingCount(ebook.hardcoverRatingsCount ?? 0)})
                       </span>
                     </>
                   )}

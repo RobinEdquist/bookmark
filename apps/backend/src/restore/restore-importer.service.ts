@@ -3,12 +3,16 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, sql } from 'drizzle-orm';
 import { EventEmitter } from 'events';
 import * as fs from 'fs/promises';
-import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as progressSchema from '../progress/schema';
 import { AbsParserService, LibraryData } from './abs-parser.service';
 import { AppDataService } from '../app-data/app-data.service';
+import { ImageProcessingService } from '../common/image-processing.service';
+import {
+  isSafeRelativePath,
+  resolveContainedPath,
+} from '../common/utils/path-containment.util';
 import {
   RestoreSession,
   RestoreSessionState,
@@ -44,6 +48,7 @@ export class RestoreImporterService {
     private readonly db: NodePgDatabase<typeof audiobooksSchema>,
     private readonly absParserService: AbsParserService,
     private readonly appDataService: AppDataService,
+    private readonly imageProcessing: ImageProcessingService,
   ) {}
 
   /**
@@ -651,6 +656,15 @@ export class RestoreImporterService {
         if (relativePath.startsWith('/')) {
           relativePath = relativePath.substring(1);
         }
+        // Backup data is untrusted (crafted .audiobookshelf archives). A
+        // relative path containing `..` would poison the stored filePath and
+        // later resolve outside the library root, so reject it outright.
+        if (!isSafeRelativePath(relativePath)) {
+          this.logger.warn(
+            `[ABS-RESTORE-IMPORT] Rejecting unsafe path from backup: ${absPath}`,
+          );
+          return null;
+        }
         return relativePath;
       }
     }
@@ -1005,6 +1019,13 @@ export class RestoreImporterService {
     // Import audio files
     if (book.audioFiles) {
       for (const audioFile of book.audioFiles) {
+        // Untrusted backup data: reject traversal attempts before persisting
+        // (throws inside the per-item transaction, failing only this book).
+        if (!isSafeRelativePath(audioFile.metadata.relPath)) {
+          throw new Error(
+            `Unsafe audio file path in backup: '${audioFile.metadata.relPath}'`,
+          );
+        }
         await tx.insert(audiobooksSchema.audiobookFiles).values({
           audiobookId,
           filePath: audioFile.metadata.relPath,
@@ -1059,11 +1080,19 @@ export class RestoreImporterService {
     if (!sourcePath && book.coverPath) {
       for (const mapping of pathMappings) {
         if (book.coverPath.startsWith(mapping.absPath)) {
-          // Map ABS library path to SAV library path
-          const relativePath = book.coverPath.substring(mapping.absPath.length);
-          const savCoverPath = path.join(mapping.savPath, relativePath);
+          // Map ABS library path to SAV library path. The relative portion
+          // comes from untrusted backup data — resolveContainedPath refuses
+          // to escape the mapped library root.
+          let relativePath = book.coverPath.substring(mapping.absPath.length);
+          if (relativePath.startsWith('/')) {
+            relativePath = relativePath.substring(1);
+          }
 
           try {
+            const savCoverPath = resolveContainedPath(
+              mapping.savPath,
+              relativePath,
+            );
             await fs.access(savCoverPath);
             sourcePath = savCoverPath;
             this.logger.debug(
@@ -1071,7 +1100,7 @@ export class RestoreImporterService {
             );
             break;
           } catch {
-            // File doesn't exist at mapped path, try next mapping
+            // Escapes the library root, or file doesn't exist — try next mapping
             continue;
           }
         }
@@ -1084,8 +1113,13 @@ export class RestoreImporterService {
 
     const destPath = this.appDataService.getAudiobookCoverPath(savAudiobookId);
 
-    // Copy the file
-    await fs.copyFile(sourcePath, destPath);
+    // Re-encode through sharp rather than copying byte-for-byte: the source
+    // comes from an untrusted backup archive, so its true content (and file
+    // type) is unknown. processCover always emits a validated JPEG, matching
+    // the <id>.jpg destination naming and the normal cover pipeline.
+    const imageBuffer = await fs.readFile(sourcePath);
+    const processed = await this.imageProcessing.processCover(imageBuffer);
+    await fs.writeFile(destPath, processed);
 
     // Update audiobook cover reference
     await this.db
@@ -1115,8 +1149,12 @@ export class RestoreImporterService {
 
     const destPath = this.appDataService.getPersonImagePath(savPersonId);
 
-    // Copy the file
-    await fs.copyFile(sourcePath, destPath);
+    // Re-encode through sharp rather than copying byte-for-byte — see
+    // copyCoverFile: untrusted backup content must be validated/re-encoded
+    // before it is ever served as an image.
+    const imageBuffer = await fs.readFile(sourcePath);
+    const processed = await this.imageProcessing.processCover(imageBuffer);
+    await fs.writeFile(destPath, processed);
 
     // Update person image reference
     await this.db

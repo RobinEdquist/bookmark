@@ -182,7 +182,7 @@ export class RestoreController {
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async getSession(@Param('id') sessionId: string): Promise<
-    RestoreSession & {
+    Omit<RestoreSession, 'extractedPath'> & {
       availableLibraries?: Array<{
         id: string;
         name: string;
@@ -208,8 +208,12 @@ export class RestoreController {
         }))
       : undefined;
 
+    // The server-side extraction path is an internal detail — the client
+    // only needs session state, mappings, and the available libraries.
+    // The return type omits it, so a leak here is a compile error.
+    const { extractedPath: _extractedPath, ...sessionWithoutPaths } = session;
     return {
-      ...session,
+      ...sessionWithoutPaths,
       availableLibraries,
     };
   }

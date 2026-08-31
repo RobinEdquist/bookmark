@@ -25,6 +25,7 @@ import { ComicsService } from './comics.service';
 import { ComicProgressService } from '../comic-progress/comic-progress.service';
 import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { resolveExternalBaseUrl } from '../common/utils/opds-base-url.util';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 
 @ApiTags('OPDS')
@@ -43,16 +44,8 @@ export class ComicsOpdsController {
   ) {}
 
   private getBaseUrl(req: express.Request): string {
-    const xForwardedProto = req.headers['x-forwarded-proto'];
-    const xForwardedHost = req.headers['x-forwarded-host'];
-    const hostHeader = req.headers.host;
-    const reqProtocol = req.protocol;
-    const protocol = xForwardedProto || reqProtocol || 'http';
-    const host = xForwardedHost || hostHeader || 'localhost';
-    const baseUrl = `${protocol}://${host}/api/comics/opds`;
-    this.logger.log(
-      `[comics-opds] getBaseUrl resolved=${baseUrl} x-forwarded-proto=${xForwardedProto ?? 'absent'} x-forwarded-host=${xForwardedHost ?? 'absent'} host=${hostHeader ?? 'absent'} req.protocol=${reqProtocol}`,
-    );
+    const baseUrl = resolveExternalBaseUrl(req, '/api/comics/opds');
+    this.logger.debug(`[comics-opds] getBaseUrl resolved=${baseUrl}`);
     return baseUrl;
   }
 

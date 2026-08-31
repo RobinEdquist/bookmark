@@ -7,10 +7,9 @@ import {
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import * as unzipper from 'unzipper';
-import { createReadStream } from 'fs';
 import { AbsParserService, ParsedBackup } from './abs-parser.service';
 import { AppDataService } from '../app-data/app-data.service';
+import { extractZipSafely } from '../common/utils/safe-zip-extract.util';
 import {
   RestoreSession,
   RestoreSessionState,
@@ -32,7 +31,9 @@ export class RestoreService {
   ) {}
 
   /**
-   * Creates a new restore session by extracting and parsing the uploaded backup file
+   * Creates a new restore session by extracting and parsing the uploaded backup file.
+   * The upload is already staged on disk by Multer (see RestoreModule) — the
+   * buffer never enters memory.
    */
   async createSession(
     uploadedFile: Express.Multer.File,
@@ -42,15 +43,12 @@ export class RestoreService {
     this.logger.log(
       `[ABS-RESTORE] Received file: ${uploadedFile.originalname} (${(uploadedFile.size / 1024 / 1024).toFixed(2)}MB)`,
     );
+    const stagedZipPath = uploadedFile.path;
 
     // Create temp directory for this session
     const extractedPath = this.appDataService.getTempSessionPath(sessionId);
     await fs.mkdir(extractedPath, { recursive: true });
     this.logger.log(`[ABS-RESTORE] Extracting to ${extractedPath}`);
-
-    // Write buffer to temp file (FileInterceptor uses memory storage by default)
-    const tempZipPath = path.join(extractedPath, 'backup.zip');
-    await fs.writeFile(tempZipPath, uploadedFile.buffer);
 
     // Initialize session in 'uploading' state
     const session: RestoreSession = {
@@ -74,7 +72,7 @@ export class RestoreService {
 
     try {
       // Extract ZIP file
-      await this.extractZipFile(tempZipPath, extractedPath);
+      await this.extractZipFile(stagedZipPath, extractedPath);
       this.logger.log(`[ABS-RESTORE] Extraction complete`);
 
       // Update state to parsing
@@ -104,11 +102,12 @@ export class RestoreService {
         `[ABS-RESTORE] Session ${sessionId} ready for library selection`,
       );
 
-      // Clean up temp ZIP file
+      // Clean up the staged upload (the extracted copy lives on in the
+      // session directory until the session is cleaned up)
       try {
-        await fs.unlink(tempZipPath);
+        await fs.unlink(stagedZipPath);
       } catch (error) {
-        this.logger.warn(`Failed to delete temp ZIP file: ${error}`);
+        this.logger.warn(`Failed to delete staged ZIP file: ${error}`);
       }
 
       return session;
@@ -118,30 +117,28 @@ export class RestoreService {
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`[ABS-RESTORE] Session ${sessionId} failed:`, error);
 
-      // Clean up on failure
+      // Clean up on failure — both the staged upload and the session dir
+      await fs.rm(stagedZipPath, { force: true }).catch(() => undefined);
       await this.cleanupSession(sessionId);
       throw error;
     }
   }
 
   /**
-   * Extracts a ZIP file to the specified destination
+   * Extracts a ZIP file to the specified destination with zip-bomb and
+   * path-traversal protections (entry-count cap, declared- and inflated-size
+   * budgets, path containment — see extractZipSafely).
    */
   private async extractZipFile(
     zipPath: string,
     destination: string,
   ): Promise<void> {
-    return new Promise((resolve, reject) => {
-      createReadStream(zipPath)
-        .pipe(unzipper.Extract({ path: destination }))
-        .on('error', (error) => {
-          this.logger.error('[ABS-RESTORE] Extraction error:', error);
-          reject(error);
-        })
-        .on('finish', () => {
-          resolve();
-        });
-    });
+    try {
+      await extractZipSafely(zipPath, destination);
+    } catch (error) {
+      this.logger.error('[ABS-RESTORE] Extraction error:', error);
+      throw error;
+    }
   }
 
   /**

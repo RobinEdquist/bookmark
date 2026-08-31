@@ -37,6 +37,67 @@ export function decodeHtmlEntities(text: string): string {
     });
 }
 
+// Regions whose entire content is dropped during conversion: script/style/
+// head/svg/math (the same list the previous regex handled), plus comments.
+const BLOCKED_TAG_PATTERN = /^\/?(script|style|head|svg|math)(?![a-z0-9])/;
+
+/**
+ * Removes blocked elements (script/style/head/svg/math) and comments in
+ * linear time.
+ *
+ * This replaces a pair of lazy regexes (`/<(script|...)[\s\S]*?<\/\1>/gi`
+ * and `/<!--[\s\S]*?-->/g`) whose backtracking was quadratic on input with
+ * many unclosed openers — a ReDoS vector, since chapter HTML comes from
+ * EPUB files. The scan is a single forward pass: each `<` is examined once
+ * (cheap boundary check), and each recognized region does one bounded
+ * `indexOf` for its closer. An opener with no closer leaves the rest of
+ * the input untouched — the same output the old regex produced for that
+ * case (content is kept, only complete regions are removed).
+ */
+function stripBlockedRegions(html: string): string {
+  const lower = html.toLowerCase();
+  let result = '';
+  let cursor = 0;
+
+  while (cursor < html.length) {
+    const open = lower.indexOf('<', cursor);
+    if (open === -1) break;
+
+    // "<" + optional "/" + longest tag name ("script") — a window of 9
+    // characters after "<" is enough to test the boundary.
+    const rest = lower.slice(open + 1, open + 10);
+    const isComment = rest.startsWith('!--');
+    const tagMatch = BLOCKED_TAG_PATTERN.exec(rest);
+
+    if (!isComment && !tagMatch) {
+      // Not a region opener: keep this character, keep scanning.
+      result += html.slice(cursor, open + 1);
+      cursor = open + 1;
+      continue;
+    }
+
+    result += html.slice(cursor, open);
+
+    if (isComment) {
+      const close = lower.indexOf('-->', open + 4);
+      // No closer: nothing is removed (matches the old lazy-regex behavior)
+      // — the region itself and everything after it stay in the output.
+      if (close === -1) return result + html.slice(open);
+      cursor = close + 3;
+      continue;
+    }
+
+    const tag = tagMatch![1];
+    const close = lower.indexOf('</' + tag, open + 1 + tag.length);
+    if (close === -1) return result + html.slice(open);
+    const closeEnd = lower.indexOf('>', close);
+    cursor = closeEnd === -1 ? html.length : closeEnd + 1;
+  }
+
+  result += html.slice(cursor);
+  return result;
+}
+
 /**
  * Convert chapter XHTML into plain text. Block-level boundaries become
  * paragraph breaks so the TTS chunker can split at natural pauses.
@@ -45,8 +106,7 @@ export function htmlToPlainText(html: string): string {
   let text = html;
 
   // Drop invisible/non-narratable content entirely
-  text = text.replace(/<(script|style|head|svg|math)[\s\S]*?<\/\1>/gi, '');
-  text = text.replace(/<!--[\s\S]*?-->/g, '');
+  text = stripBlockedRegions(text);
 
   // Block boundaries -> paragraph breaks
   text = text.replace(

@@ -65,6 +65,49 @@ const PDF_SIGNATURE = Buffer.from('%PDF-'); // PDFs may carry a little leading j
 // window rather than only the first few bytes.
 const SIGNATURE_SCAN_BYTES = 1024;
 
+// Cap on a single archive entry we are willing to materialize in memory.
+// Comic pages are a few megabytes; without a cap a hostile (or corrupt)
+// archive — possibly one whose declared entry size lies about the real
+// inflated size — can OOM the worker during import or page reads.
+const MAX_INFLATED_ENTRY_BYTES = 100 * 1024 * 1024;
+
+function assertWithinCap(byteLength: number, entryName: string): void {
+  if (byteLength > MAX_INFLATED_ENTRY_BYTES) {
+    throw new Error(
+      `Comic archive entry '${entryName}' exceeds the ${MAX_INFLATED_ENTRY_BYTES}-byte in-memory cap`,
+    );
+  }
+}
+
+/**
+ * Buffers a zip entry with a hard cap on the bytes actually inflated.
+ * `entry.buffer()` would trust the archive completely; the declared
+ * uncompressed size in the central directory is attacker-controlled and can
+ * lie, so the cap is enforced against the stream itself.
+ */
+async function bufferCappedEntry(entry: unzipper.File): Promise<Buffer> {
+  return new Promise<Buffer>((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let total = 0;
+    const stream = entry.stream();
+    stream.on('data', (chunk: Buffer) => {
+      total += chunk.length;
+      if (total > MAX_INFLATED_ENTRY_BYTES) {
+        stream.destroy();
+        reject(
+          new Error(
+            `Comic archive entry '${entry.path}' exceeds the ${MAX_INFLATED_ENTRY_BYTES}-byte in-memory cap`,
+          ),
+        );
+        return;
+      }
+      chunks.push(chunk);
+    });
+    stream.on('end', () => resolve(Buffer.concat(chunks)));
+    stream.on('error', reject);
+  });
+}
+
 export type ComicContainer = 'cbr' | 'cbz' | 'pdf';
 
 async function readHeader(filePath: string, length: number): Promise<Buffer> {
@@ -145,7 +188,7 @@ async function readCbz(
   let comicInfoXml: string | null = null;
   const infoEntry = fileEntries.find((f) => isComicInfoEntry(f.path));
   if (infoEntry) {
-    comicInfoXml = (await infoEntry.buffer()).toString('utf-8');
+    comicInfoXml = (await bufferCappedEntry(infoEntry)).toString('utf-8');
   }
 
   let coverImage: { data: Buffer; extension: string } | null = null;
@@ -154,7 +197,7 @@ async function readCbz(
     const coverEntry = fileEntries.find((f) => f.path === targetName);
     if (coverEntry) {
       coverImage = {
-        data: await coverEntry.buffer(),
+        data: await bufferCappedEntry(coverEntry),
         extension: path.extname(targetName).toLowerCase(),
       };
     }
@@ -203,6 +246,18 @@ async function readCbr(
   let coverImage: { data: Buffer; extension: string } | null = null;
 
   if (wanted.length > 0) {
+    // Best-effort pre-check: the unpacked size reported by the archive
+    // header (typed as absent in node-unrar-js's FileHeader, hence the
+    // accessor). A crafted header can lie, so the extracted buffers are
+    // re-checked against the cap below regardless.
+    for (const name of wanted) {
+      const header = headers.find((h) => h.name === name);
+      const declaredSize = (header as unknown as { size?: unknown })?.size;
+      if (typeof declaredSize === 'number') {
+        assertWithinCap(declaredSize, name);
+      }
+    }
+
     // extract().files is a Generator<ArcFile<Uint8Array>>
     // ArcFile.extraction is Uint8Array when present
     const extracted = extractor.extract({ files: wanted });
@@ -210,6 +265,7 @@ async function readCbr(
       if (!file.extraction) continue;
       // Convert Uint8Array to Buffer
       const content = Buffer.from(file.extraction);
+      assertWithinCap(content.length, file.fileHeader.name);
       if (infoHeader && file.fileHeader.name === infoHeader.name) {
         comicInfoXml = content.toString('utf-8');
       }
@@ -261,7 +317,7 @@ async function readCbzPage(
   const entry = fileEntries.find((f) => f.path === targetName);
   if (!entry) return null;
   return {
-    data: await entry.buffer(),
+    data: await bufferCappedEntry(entry),
     extension: path.extname(targetName).toLowerCase(),
   };
 }
@@ -287,8 +343,10 @@ async function readCbrPage(
   const extracted = extractor.extract({ files: [targetName] });
   for (const file of extracted.files) {
     if (file.extraction && file.fileHeader.name === targetName) {
+      const content = Buffer.from(file.extraction);
+      assertWithinCap(content.length, targetName);
       return {
-        data: Buffer.from(file.extraction),
+        data: content,
         extension: path.extname(targetName).toLowerCase(),
       };
     }

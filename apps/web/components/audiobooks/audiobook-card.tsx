@@ -22,6 +22,7 @@ import {
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
 import type { AudiobookListItem } from "../../lib/use-audiobooks";
+import { formatRatingCount } from "../../lib/format-rating-count";
 import { useDeleteAudiobook } from "../../lib/use-audiobooks";
 import { useMyPermissions } from "../../lib/use-users";
 import {
@@ -206,7 +207,9 @@ export function AudiobookCard({
                       <span>{audiobook.goodreadsRating.toFixed(2)}</span>
                       <span>
                         (
-                        {audiobook.goodreadsRatingsCount?.toLocaleString() ?? 0}
+                        {formatRatingCount(
+                          audiobook.goodreadsRatingsCount ?? 0,
+                        )}
                         )
                       </span>
                     </>
@@ -227,7 +230,9 @@ export function AudiobookCard({
                       <span>{audiobook.hardcoverRating.toFixed(2)}</span>
                       <span>
                         (
-                        {audiobook.hardcoverRatingsCount?.toLocaleString() ?? 0}
+                        {formatRatingCount(
+                          audiobook.hardcoverRatingsCount ?? 0,
+                        )}
                         )
                       </span>
                     </>

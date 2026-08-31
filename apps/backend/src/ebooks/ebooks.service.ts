@@ -24,6 +24,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
+import { resolveContainedPath } from '../common/utils/path-containment.util';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as hardcoverSchema from '../hardcover/schema';
@@ -87,7 +88,9 @@ export class EbooksService {
   ) {}
 
   /**
-   * Convert a relative file path (stored in DB) to an absolute path using the ebook library path
+   * Convert a relative file path (stored in DB) to an absolute path using the ebook library path.
+   * The stored value can be polluted by crafted backup imports, so the result
+   * is guaranteed to stay inside the library root (see resolveContainedPath).
    */
   private async resolveFilePath(relativePath: string): Promise<string> {
     const ebookLibraryPath =
@@ -95,7 +98,7 @@ export class EbooksService {
     if (!ebookLibraryPath) {
       throw new Error('Ebook library path not configured');
     }
-    return path.join(ebookLibraryPath, relativePath);
+    return resolveContainedPath(ebookLibraryPath, relativePath);
   }
 
   /**

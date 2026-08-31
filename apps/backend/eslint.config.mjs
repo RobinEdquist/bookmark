@@ -29,7 +29,10 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
-        { argsIgnorePattern: '^_' },
+        // ignoreRestSiblings matches the shared base config: naming a
+        // property purely to keep it out of a rest spread is the point of
+        // the pattern (e.g. omitting internal fields from a response).
+        { argsIgnorePattern: '^_', ignoreRestSiblings: true },
       ],
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },

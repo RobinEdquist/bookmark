@@ -110,4 +110,137 @@ describe('MetricsService', () => {
       );
     });
   });
+
+  describe('metrics HTTP endpoint', () => {
+    /** Boots the metrics server on an ephemeral port and returns its base URL. */
+    async function startService(
+      config: Record<string, string> = {},
+    ): Promise<{ service: MetricsService; baseUrl: string }> {
+      const service = new MetricsService(
+        configStub({ METRICS_ENABLED: 'true', METRICS_PORT: '0', ...config }),
+        statsStub(),
+      );
+      service.onApplicationBootstrap();
+      const server = (
+        service as unknown as { server: import('node:http').Server }
+      ).server!;
+      // address() is only valid once the 'listening' event has fired.
+      await new Promise<void>((resolve) => {
+        if (server.listening) {
+          resolve();
+        } else {
+          server.once('listening', () => resolve());
+        }
+      });
+      // Port 0 → OS-assigned; read it back from the underlying server.
+      const address = server.address() as {
+        port: number;
+        address: string;
+      };
+      // The default bind is all-interfaces ('::'), which is not a fetchable
+      // host on its own.
+      const host =
+        address.address === '::' || address.address === '0.0.0.0'
+          ? '127.0.0.1'
+          : address.address;
+      return {
+        service,
+        baseUrl: `http://${host}:${address.port}`,
+      };
+    }
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    async function stopService(service: MetricsService): Promise<void> {
+      await new Promise<void>((resolve) => {
+        const server = (
+          service as unknown as { server: { close(cb: () => void): void } }
+        ).server;
+        if (server) {
+          server.close(() => resolve());
+        } else {
+          resolve();
+        }
+      });
+    }
+
+    it('serves metrics without a token when METRICS_TOKEN is unset', async () => {
+      const { service, baseUrl } = await startService();
+      try {
+        const response = await fetch(`${baseUrl}/metrics`);
+        expect(response.status).toBe(200);
+        expect(await response.text()).toContain(
+          'bookmark_library_items{type="audiobooks"} 12',
+        );
+      } finally {
+        await stopService(service);
+      }
+    });
+
+    it('binds to the configured interface when METRICS_HOST is set', async () => {
+      const { service, baseUrl } = await startService({
+        METRICS_HOST: '127.0.0.1',
+      });
+      try {
+        const response = await fetch(`${baseUrl}/metrics`);
+        expect(response.status).toBe(200);
+      } finally {
+        await stopService(service);
+      }
+    });
+
+    it('rejects scrapes without a bearer token when METRICS_TOKEN is set', async () => {
+      const { service, baseUrl } = await startService({
+        METRICS_TOKEN: 's3cret',
+      });
+      try {
+        const response = await fetch(`${baseUrl}/metrics`);
+        expect(response.status).toBe(401);
+        expect(response.headers.get('www-authenticate')).toContain('Bearer');
+      } finally {
+        await stopService(service);
+      }
+    });
+
+    it('rejects a wrong bearer token', async () => {
+      const { service, baseUrl } = await startService({
+        METRICS_TOKEN: 's3cret',
+      });
+      try {
+        const response = await fetch(`${baseUrl}/metrics`, {
+          headers: { Authorization: 'Bearer wrong' },
+        });
+        expect(response.status).toBe(401);
+      } finally {
+        await stopService(service);
+      }
+    });
+
+    it('accepts the correct bearer token', async () => {
+      const { service, baseUrl } = await startService({
+        METRICS_TOKEN: 's3cret',
+      });
+      try {
+        const response = await fetch(`${baseUrl}/metrics`, {
+          headers: { Authorization: 'Bearer s3cret' },
+        });
+        expect(response.status).toBe(200);
+        expect(await response.text()).toContain('bookmark_requests');
+      } finally {
+        await stopService(service);
+      }
+    });
+
+    it('answers 404 for non-metrics paths', async () => {
+      const { service, baseUrl } = await startService();
+      try {
+        const response = await fetch(`${baseUrl}/`);
+        expect(response.status).toBe(404);
+      } finally {
+        await stopService(service);
+      }
+    });
+  });
 });

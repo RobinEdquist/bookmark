@@ -777,6 +777,7 @@ export const rolesGuardAdminEndpoints: ControllerEndpoints[] = [
   {
     controller: 'AppSettings (admin)',
     endpoints: [
+      { method: 'GET', path: '/settings', expectedStatus: 401 },
       { method: 'PATCH', path: '/settings', expectedStatus: 401, body: {} },
     ],
   },
@@ -1065,7 +1066,7 @@ export const userSelfEndpoints: ControllerEndpoints[] = [
   },
   {
     controller: 'AppSettings (authenticated)',
-    endpoints: [{ method: 'GET', path: '/settings', expectedStatus: 401 }],
+    endpoints: [{ method: 'GET', path: '/settings/user', expectedStatus: 401 }],
   },
 ];
 

@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fsSync from 'fs';
 import archiver from 'archiver';
+import { buildZip, type ZipEntrySpec } from '@test-utils';
 import {
   readComicArchive,
   readComicArchivePage,
@@ -241,6 +242,50 @@ describe('comic-archive.utils', () => {
       const p = path.join(tmpDir, 'mystery.cbr');
       await fs.writeFile(p, Buffer.from('not a known archive header'));
       expect(await detectComicContainer(p)).toBeNull();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // In-memory entry caps (hostile archives)
+  //
+  // buildZip writes raw zip structures, so entries can lie about their
+  // declared uncompressed size — something the archiver-based fixtures
+  // above cannot express. The enforcement point must be the streamed
+  // bytes, not the (forgeable) declared size.
+  // -------------------------------------------------------------------------
+  describe('in-memory entry caps', () => {
+    function writeRawCbz(entries: ZipEntrySpec[]): Promise<string> {
+      const p = path.join(tmpDir, `raw-${Date.now()}-${Math.random()}.cbz`);
+      return fs.writeFile(p, buildZip(entries)).then(() => p);
+    }
+
+    it('rejects an entry whose inflated size exceeds the cap', async () => {
+      // 200 MB of zeros deflates to ~200 KB on disk, but exceeds the
+      // 100 MB in-memory cap when inflated.
+      const p = await writeRawCbz([
+        { path: 'p1.jpg', data: Buffer.alloc(200 * 1024 * 1024, 0) },
+      ]);
+      await expect(readComicArchivePage(p, 0)).rejects.toThrow(
+        /exceeds the .* in-memory cap/,
+      );
+      await expect(readComicArchive(p)).rejects.toThrow(
+        /exceeds the .* in-memory cap/,
+      );
+    });
+
+    it('ignores a declared-size lie but still enforces the streamed cap', async () => {
+      // 110 MB of zeros with a declared size of 16 bytes: below-cap
+      // metadata, above-cap reality.
+      const p = await writeRawCbz([
+        {
+          path: 'p1.jpg',
+          data: Buffer.alloc(110 * 1024 * 1024, 0),
+          declaredUncompressedSize: 16,
+        },
+      ]);
+      await expect(readComicArchivePage(p, 0)).rejects.toThrow(
+        /exceeds the .* in-memory cap/,
+      );
     });
   });
 });

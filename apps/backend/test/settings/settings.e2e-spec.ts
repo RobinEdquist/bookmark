@@ -8,6 +8,7 @@
  */
 
 import { signUp, getSharedAdmin, type TestUser } from '../helpers/auth.helper';
+import { withCredentialPolicyWindow } from '../helpers/credential-lock';
 import { api } from '../helpers/api.helper';
 
 describe('Settings (e2e)', () => {
@@ -103,27 +104,42 @@ describe('Settings (e2e)', () => {
   });
 
   describe('PATCH /settings', () => {
-    it('should update settings as admin', async () => {
-      const { status, data } = await api.patch(
-        '/settings',
-        { signupsEnabled: false },
-        admin.cookie,
-      );
+    // Turning signupsEnabled off makes /sign-up/email 403 for every other
+    // parallel worker, so the two tests that actually flip it run inside an
+    // exclusive credential window and restore the default in a `finally`.
+    // (This spec previously left signups disabled after the first test.)
 
-      expect(status).toBe(200);
-      expect(data.signupsEnabled).toBe(false);
+    it('should update settings as admin', async () => {
+      await withCredentialPolicyWindow(async () => {
+        try {
+          const { status, data } = await api.patch(
+            '/settings',
+            { signupsEnabled: false },
+            admin.cookie,
+          );
+
+          expect(status).toBe(200);
+          expect(data.signupsEnabled).toBe(false);
+        } finally {
+          await api.patch('/settings', { signupsEnabled: true }, admin.cookie);
+        }
+      });
     });
 
     it('should persist updated settings', async () => {
-      // First update
-      await api.patch('/settings', { signupsEnabled: false }, admin.cookie);
+      await withCredentialPolicyWindow(async () => {
+        try {
+          // First update
+          await api.patch('/settings', { signupsEnabled: false }, admin.cookie);
 
-      // Then read back
-      const { data } = await api.get('/settings', admin.cookie);
-      expect(data.signupsEnabled).toBe(false);
-
-      // Restore
-      await api.patch('/settings', { signupsEnabled: true }, admin.cookie);
+          // Then read back
+          const { data } = await api.get('/settings', admin.cookie);
+          expect(data.signupsEnabled).toBe(false);
+        } finally {
+          // Restore
+          await api.patch('/settings', { signupsEnabled: true }, admin.cookie);
+        }
+      });
     });
 
     it('should return 403 for non-admin user', async () => {

@@ -57,19 +57,18 @@ For browser-based applications, use session-based authentication:
 For scripts, mobile apps, or third-party integrations, use API keys:
 
 1. Create an API key via the settings page or API
-2. Include the key in one of the following ways:
+2. Include the key in the \`Authorization\` header:
 
-   **Authorization Header (recommended):**
    \`\`\`
    Authorization: Bearer bkmrk_your_api_key_here
    \`\`\`
 
-   **Query Parameter (for image/asset URLs):**
-   \`\`\`
-   GET /api/audiobooks/:id/cover?token=bkmrk_your_api_key_here
-   \`\`\`
+   OPDS endpoints additionally accept HTTP Basic auth (any username, the
+   API key as the password), which is what most e-reader applications send.
 
-   Use query parameter authentication when loading images in contexts that cannot set custom headers (e.g., \`<img>\` tags, mobile app image loaders). Note that query parameters may be logged by web servers.
+   Query-string tokens (\`?token=...\`) are deliberately **not** accepted:
+   URLs end up in application logs, proxy logs, and browser history, which
+   would leak the long-lived credential.
 
 API keys have the same permissions as the user who created them.
 
@@ -88,7 +87,8 @@ API keys have the same permissions as the user who created them.
 
 ## Rate Limiting
 
-There are no rate limits for self-hosted instances. Be mindful of your server resources.
+Authentication endpoints are rate limited per IP address: sign-in allows 5
+requests per minute, sign-up 3. Other endpoints are not throttled.
     `.trim(),
     )
     .setVersion('1.0')

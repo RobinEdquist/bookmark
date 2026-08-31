@@ -51,25 +51,35 @@ async function bootstrap() {
   // killing the process mid-flight.
   app.enableShutdownHooks();
 
-  // OpenAPI/Swagger setup — config shared with scripts/export-openapi.ts
-  const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
+  // OpenAPI/Swagger setup — config shared with scripts/export-openapi.ts.
+  // Disabled in production unless explicitly re-enabled with
+  // SWAGGER_ENABLED=true — the interactive docs aren't needed on a running
+  // deployment, so the endpoints stay off there by default. The e2e suite
+  // runs with NODE_ENV=test, so the endpoint-registry diff against
+  // /api/docs-json keeps working.
+  const swaggerEnabled =
+    !isProduction || process.env.SWAGGER_ENABLED === 'true';
 
-  // Expose OpenAPI JSON at /api/docs-json for programmatic access
-  app.getHttpAdapter().get('/api/docs-json', (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.send(document);
-  });
+  if (swaggerEnabled) {
+    const document = SwaggerModule.createDocument(app, buildSwaggerConfig());
 
-  SwaggerModule.setup('api/docs', app, document, {
-    customSiteTitle: 'Bookmark API Documentation',
-    customfavIcon: '/favicon.ico',
-    swaggerOptions: {
-      persistAuthorization: true,
-      docExpansion: 'none',
-      filter: true,
-      showRequestDuration: true,
-    },
-  });
+    // Expose OpenAPI JSON at /api/docs-json for programmatic access
+    app.getHttpAdapter().get('/api/docs-json', (req, res) => {
+      res.setHeader('Content-Type', 'application/json');
+      res.send(document);
+    });
+
+    SwaggerModule.setup('api/docs', app, document, {
+      customSiteTitle: 'Bookmark API Documentation',
+      customfavIcon: '/favicon.ico',
+      swaggerOptions: {
+        persistAuthorization: true,
+        docExpansion: 'none',
+        filter: true,
+        showRequestDuration: true,
+      },
+    });
+  }
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);

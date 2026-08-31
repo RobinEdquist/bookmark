@@ -275,6 +275,21 @@ describe('AppSettingsController', () => {
     expect(result.comicMetadataPriority.title).toContain('comicvine');
   });
 
+  it('returns the reduced user settings subset without server configuration', async () => {
+    const { controller } = createController(
+      createSettings({
+        requestsEnabled: true,
+        audiobookLibraryPath: '/media/audiobooks',
+        defaultCanDelete: true,
+      }),
+    );
+
+    const result = await controller.getUserSettings();
+
+    // Only feature toggles — never paths, permissions, or integration state
+    expect(result).toEqual({ requestsEnabled: true });
+  });
+
   it('rejects empty updates', async () => {
     const { controller } = createController();
 

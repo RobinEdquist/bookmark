@@ -17,8 +17,9 @@ const nextConfig = {
   rewrites() {
     return [
       {
-        // Exclude /api/events - handled by route handler for SSE streaming
-        source: "/api/:path((?!events).*)",
+        // Everything under /api proxies to the backend (Socket.IO included,
+        // which the backend serves at /api/socket.io).
+        source: "/api/:path*",
         destination: `${process.env.API_URL}/api/:path*`,
       },
     ];

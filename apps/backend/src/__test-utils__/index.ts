@@ -15,3 +15,5 @@ export {
   createServiceTestModule,
   type ServiceTestContext,
 } from './service.factory';
+
+export { buildZip, type ZipEntrySpec } from './zip-builder';

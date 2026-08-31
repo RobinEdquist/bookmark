@@ -67,7 +67,6 @@ export interface RestoreSession {
   pathMappings: PathMapping[];
   userMappings: UserMapping[];
   options: RestoreOptions;
-  extractedPath?: string;
   selectedLibraryId?: string;
 }
 

@@ -37,6 +37,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import archiver from 'archiver';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { parseRangeHeader } from '../common/utils/http-range';
 import {
   createContentETag,
   matchesIfNoneMatch,
@@ -727,18 +728,31 @@ export class AudiobooksController {
       return;
     }
 
-    // Handle HTTP Range requests (for seeking within buffered content)
+    // Handle HTTP Range requests (for seeking within buffered content).
+    // parseRangeHeader returns null for malformed or unsatisfiable ranges
+    // (wrong units, NaN, start > end, start past EOF) — those get a proper
+    // 416 instead of a thrown ERR_OUT_OF_RANGE from createReadStream.
     if (rangeHeader) {
-      const parts = rangeHeader.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
-      const chunkSize = end - start + 1;
+      const range = parseRangeHeader(rangeHeader, fileSize);
+      if (!range) {
+        res.status(416);
+        res.setHeader('Content-Range', `bytes */${fileSize}`);
+        res.end();
+        return;
+      }
+      const chunkSize = range.end - range.start + 1;
 
       res.status(206);
-      res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+      res.setHeader(
+        'Content-Range',
+        `bytes ${range.start}-${range.end}/${fileSize}`,
+      );
       res.setHeader('Content-Length', chunkSize.toString());
 
-      const stream = fs.createReadStream(streamInfo.filePath, { start, end });
+      const stream = fs.createReadStream(streamInfo.filePath, {
+        start: range.start,
+        end: range.end,
+      });
       stream.on('error', () => {
         if (!res.headersSent) {
           res.status(500).json({ message: 'Failed to stream audio file' });

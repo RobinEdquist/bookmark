@@ -47,7 +47,6 @@ import { MetadataGapsModule } from './metadata-gaps/metadata-gaps.module';
 import { MetricsModule } from './metrics/metrics.module';
 import { BackupsModule } from './backups/backups.module';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { SignupGuard } from './auth/signup.guard';
 import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { redactUrl } from './common/log-redaction.util';
@@ -223,10 +222,11 @@ import { CommonModule } from './common/common.module';
       useClass: AllExceptionsFilter,
     },
     {
-      provide: APP_GUARD,
-      useClass: SignupGuard,
-    },
-    {
+      // Global auth guard for every Nest route. NOTE: better-auth routes
+      // (/api/auth/*) are mounted as raw Express middleware by
+      // @thallesp/nestjs-better-auth and never pass through Nest guards —
+      // signup / email-password policy is enforced in the better-auth
+      // hooks in auth.provider.ts instead.
       provide: APP_GUARD,
       useClass: CombinedAuthGuard,
     },

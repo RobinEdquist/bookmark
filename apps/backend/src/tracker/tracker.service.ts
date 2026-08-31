@@ -26,6 +26,19 @@ export class TrackerService {
     return !!(this.baseUrl && this.apiKey);
   }
 
+  /**
+   * Validates a path segment before it is interpolated into an upstream URL
+   * that carries the tracker API key. Unvalidated values would let a caller
+   * reach arbitrary paths on the tracker host (`..%2f`, `?`, `#`). Torrent
+   * ids and info-hashes are alphanumeric; anything else is rejected.
+   */
+  private validateSegment(value: string, field: string): string {
+    if (!/^[a-zA-Z0-9_-]+$/.test(value)) {
+      throw new HttpException(`Invalid ${field}`, 400);
+    }
+    return value;
+  }
+
   private async request<T>(
     method: 'GET' | 'POST',
     endpoint: string,
@@ -89,17 +102,32 @@ export class TrackerService {
   ): Promise<TrackerDownloadResponse> {
     return this.request<TrackerDownloadResponse>(
       'POST',
-      `/download/${torrentId}`,
+      `/download/${this.validateSegment(torrentId, 'torrent id')}`,
       options ?? {},
     );
   }
 
   async getTorrentStatus(hash: string): Promise<TorrentStatus> {
-    return this.request<TorrentStatus>('GET', `/torrent/${hash}`);
+    return this.request<TorrentStatus>(
+      'GET',
+      `/torrent/${this.validateSegment(hash, 'torrent hash')}`,
+    );
   }
 
   async getBulkTorrentStatus(hashes: string[]): Promise<BulkTorrentStatus> {
-    const hashesParam = hashes.join(',');
+    // Hashes originate from tracker responses / stored download results, not
+    // directly from user input — drop (rather than fail) anything malformed.
+    // After filtering, the join is guaranteed free of separators/injection.
+    const valid = hashes.filter((hash) => {
+      try {
+        this.validateSegment(hash, 'torrent hash');
+        return true;
+      } catch {
+        this.logger.warn(`Skipping malformed torrent hash: ${hash}`);
+        return false;
+      }
+    });
+    const hashesParam = valid.join(',');
     return this.request<BulkTorrentStatus>(
       'GET',
       `/torrents?hashes=${hashesParam}`,
@@ -111,7 +139,11 @@ export class TrackerService {
       throw new HttpException('Tracker client not configured', 503);
     }
 
-    const url = `${this.baseUrl}/image/${torrentId}`;
+    // `torrentId` is a raw route parameter — without this check a request
+    // like /requests/cover/..%2f..%2fdownload/<id> would make the backend
+    // call arbitrary tracker-client endpoints with the API key attached.
+    this.validateSegment(torrentId, 'torrent id');
+    const url = `${this.baseUrl}/image/${encodeURIComponent(torrentId)}`;
 
     try {
       const upstream = await fetch(url, {

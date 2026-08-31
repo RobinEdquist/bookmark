@@ -188,6 +188,16 @@ describe('TrackerService', () => {
         expect.objectContaining({ method: 'POST' }),
       );
     });
+
+    it.each(['..%2f..%2fdownload/x', '../../download/x', 'a?b', 'a#b', ' '])(
+      'should reject unsafe torrent id %j with 400',
+      async (torrentId) => {
+        await expect(service.download(torrentId)).rejects.toMatchObject({
+          status: 400,
+        });
+        expect(mockFetch).not.toHaveBeenCalled();
+      },
+    );
   });
 
   // ===== getTorrentStatus =====
@@ -205,6 +215,13 @@ describe('TrackerService', () => {
         expect.objectContaining({ method: 'GET' }),
       );
     });
+
+    it('should reject unsafe hash with 400', async () => {
+      await expect(
+        service.getTorrentStatus('../../torrents'),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
   });
 
   // ===== getBulkTorrentStatus =====
@@ -217,6 +234,17 @@ describe('TrackerService', () => {
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://tracker:3000/torrents?hashes=hash1,hash2,hash3',
+        expect.objectContaining({ method: 'GET' }),
+      );
+    });
+
+    it('should drop malformed hashes but keep valid ones', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({}));
+
+      await service.getBulkTorrentStatus(['goodhash1', '../evil', 'good2']);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'http://tracker:3000/torrents?hashes=goodhash1,good2',
         expect.objectContaining({ method: 'GET' }),
       );
     });
@@ -233,6 +261,15 @@ describe('TrackerService', () => {
       await expect(svc.proxyImage('123', res as any)).rejects.toThrow(
         HttpException,
       );
+    });
+
+    it('should reject traversal ids before fetching', async () => {
+      const res = createMockRes();
+
+      await expect(
+        service.proxyImage('..%2f..%2fdownload%2f1', res as any),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(mockFetch).not.toHaveBeenCalled();
     });
 
     it('should forward response headers from upstream', async () => {

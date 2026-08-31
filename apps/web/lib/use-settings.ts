@@ -138,3 +138,35 @@ export function useSettings() {
     refetch,
   };
 }
+
+/**
+ * Reduced settings subset regular users may see (`GET /settings/user`).
+ * The full `GET /settings` payload is admin-only — regular users should
+ * read feature toggles from here instead.
+ */
+export interface UserSettings {
+  requestsEnabled: boolean;
+}
+
+async function fetchUserSettings(): Promise<UserSettings> {
+  const response = await fetch("/api/settings/user", {
+    credentials: "include",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to fetch user settings");
+  }
+  return response.json();
+}
+
+export function useUserSettings() {
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.settings.user(),
+    queryFn: fetchUserSettings,
+  });
+
+  return {
+    settings: data ?? null,
+    isLoading,
+    error,
+  };
+}

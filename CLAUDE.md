@@ -1542,7 +1542,7 @@ Before deploying to production:
 ## Resources
 
 - **Scope Document:** `docs/scope.md`
-- **API Documentation:** OpenAPI spec at `/api/docs-json`, Swagger UI at `/api/docs`; `pnpm --filter backend openapi:export` writes the spec to a file. Hand-written specs for external contracts live in `docs/api/`.
+- **API Documentation:** OpenAPI spec at `/api/docs-json`, Swagger UI at `/api/docs`; `pnpm --filter backend openapi:export` writes the spec to a file. Hand-written specs for external contracts live in `docs/api/`. Both endpoints are **disabled in production** (`NODE_ENV=production`) unless `SWAGGER_ENABLED=true` — the interactive docs aren't needed on a running deployment. The endpoint-registry e2e test runs with `NODE_ENV=test`, so it still sees the spec.
 - **Component Storybook:** Run `pnpm storybook` (when implemented)
 - **Hardcover API:** https://hardcover.app/graphql
 

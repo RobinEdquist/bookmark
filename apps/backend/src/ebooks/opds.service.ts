@@ -369,7 +369,7 @@ export class OpdsService {
       // Add published date if available
       if (ebook.publishedDate) {
         entry += `
-    <published>${ebook.publishedDate}</published>`;
+    <published>${this.escapeXml(ebook.publishedDate)}</published>`;
       }
 
       // Add language if available

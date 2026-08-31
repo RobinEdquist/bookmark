@@ -135,11 +135,13 @@ export class ApiTokenMiddleware implements NestMiddleware {
 
       this.logger.debug(`[13] apiTokenUser set for user: ${user.id}`);
 
-      // Track usage with IP address
-      const clientIp =
-        (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() ||
-        req.ip ||
-        'unknown';
+      // Track usage with the direct peer address (req.ip). The
+      // client-supplied x-forwarded-for chain is deliberately not
+      // consulted: its leftmost token is trivially forgeable, which would
+      // let any caller rewrite the audit trail. req.ip is the immediate
+      // peer — behind a reverse proxy that is the proxy itself — which is
+      // unforgable attribution.
+      const clientIp = req.ip || 'unknown';
       await this.apiKeysService.updateKeyUsage(result.key.id, clientIp);
 
       this.logger.debug('[14] Usage tracked, calling next()');
