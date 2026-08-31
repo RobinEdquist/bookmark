@@ -66,7 +66,7 @@ describe('Settings (e2e)', () => {
   });
 
   describe('GET /settings', () => {
-    it('should return all settings for authenticated user', async () => {
+    it('should return all settings for an admin', async () => {
       const { status, data } = await api.get('/settings', admin.cookie);
 
       expect(status).toBe(200);
@@ -95,11 +95,39 @@ describe('Settings (e2e)', () => {
       expect(status).toBe(401);
     });
 
-    it('should return settings for non-admin user too', async () => {
-      const { status, data } = await api.get('/settings', regularUser.cookie);
+    it('should return 403 for a non-admin user', async () => {
+      // The full payload carries server filesystem paths and the default
+      // permission set, so it is admin-only. Regular users read the feature
+      // toggles they need from GET /settings/user instead.
+      const { status } = await api.get('/settings', regularUser.cookie);
+
+      expect(status).toBe(403);
+    });
+  });
+
+  describe('GET /settings/user', () => {
+    it('should return the reduced subset for a non-admin user', async () => {
+      const { status, data } = await api.get(
+        '/settings/user',
+        regularUser.cookie,
+      );
 
       expect(status).toBe(200);
-      expect(data).toHaveProperty('signupsEnabled');
+      expect(data).toHaveProperty('requestsEnabled');
+    });
+
+    it('should not leak server configuration', async () => {
+      const { data } = await api.get('/settings/user', regularUser.cookie);
+
+      // Feature toggles only — never paths, default permissions, or
+      // integration state.
+      expect(Object.keys(data)).toEqual(['requestsEnabled']);
+    });
+
+    it('should return 401 without authentication', async () => {
+      const { status } = await api.get('/settings/user');
+
+      expect(status).toBe(401);
     });
   });
 
