@@ -5,7 +5,7 @@
 ## Quick Reference
 
 ```bash
-# Development
+# Development (Node 26 per .nvmrc; Jest needs >= 24.9 to load NestJS 12's ESM packages)
 pnpm dev                    # Start all apps (web: 3001, backend: 3000)
 pnpm build                  # Build all packages
 pnpm lint                   # Lint all packages
@@ -75,7 +75,7 @@ simple-audiobook-vault/
 | **Frontend**        | Next.js (App Router) | 16.x    |
 | **UI Framework**    | React                | 19.x    |
 | **Styling**         | Tailwind CSS         | 4.x     |
-| **Backend**         | NestJS               | 11.x    |
+| **Backend**         | NestJS               | 12.x    |
 | **Database**        | PostgreSQL           | 18.x    |
 | **ORM**             | Drizzle ORM          | 0.45.x  |
 | **Auth**            | Better Auth          | 1.6.x   |

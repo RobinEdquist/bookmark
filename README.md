@@ -254,13 +254,13 @@ A TypeScript monorepo (Turborepo + pnpm): `apps/web` (Next.js), `apps/backend` (
 | Area           | Built with                                                          |
 | -------------- | ------------------------------------------------------------------- |
 | Web app        | Next.js 16 (App Router), React 19, Tailwind CSS 4, TanStack Query   |
-| API            | NestJS 11, PostgreSQL, Drizzle ORM                                  |
+| API            | NestJS 12, PostgreSQL, Drizzle ORM                                  |
 | Auth           | Better Auth — sessions, API keys, and optional OIDC                 |
 | Real-time      | Socket.IO                                                           |
 | Media handling | FFmpeg (audio + chapters), Sharp (covers), pdf.js, node-unrar, EPUB |
 | i18n           | next-intl (English + Swedish)                                       |
 
-You need Node.js 20+, pnpm 9+, FFmpeg, and Docker:
+You need Node.js 26 (`.nvmrc` pins it; `nvm use` picks it up), pnpm 9+, FFmpeg, and Docker. The backend itself runs on Node 22.12+, but Jest needs Node 24.9+ to load NestJS 12's ESM-only packages, so older Node fails the unit tests:
 
 ```bash
 pnpm install

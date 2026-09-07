@@ -14,9 +14,13 @@ updates:
     open-pull-requests-limit: 10
     groups:
       # Keep tightly-coupled framework packages in single PRs
+      # nestjs-pino and @thallesp/nestjs-better-auth peer on @nestjs/{common,core}
+      # majors, so a Nest major only compiles once they move too.
       nestjs:
         patterns:
           - "@nestjs/*"
+          - "nestjs-pino"
+          - "@thallesp/nestjs-better-auth"
       next:
         patterns:
           - "next"

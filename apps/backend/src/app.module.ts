@@ -149,11 +149,12 @@ import { CommonModule } from './common/common.module';
             ) => `${req.method} ${redactUrl(req.url)} → ${res.statusCode}`,
             customLogLevel: (
               _req: unknown,
-              res: { statusCode: number },
+              res: { statusCode?: number },
               err: unknown,
             ) => {
-              if (res.statusCode >= 500 || err) return 'error';
-              if (res.statusCode >= 400) return 'warn';
+              const status = res.statusCode ?? 0;
+              if (status >= 500 || err) return 'error';
+              if (status >= 400) return 'warn';
               return 'info';
             },
             autoLogging: {
