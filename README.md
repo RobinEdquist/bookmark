@@ -62,7 +62,7 @@ To use a Postgres server you already run instead of the built-in one, see [Using
 
 ## Configuration
 
-Everything is set through environment variables in your `.env` file. With Docker, internal values (the database URL, internal service URLs) are derived for you; the tables below are the variables you actually touch.
+Configuration is handled through environment variables and settings within the application. This chapter covers the environment variables available.
 
 **Core**
 
