@@ -4,9 +4,10 @@
  * Creates users via the backend API and logs in via the UI.
  */
 
+/* eslint-disable turbo/no-undeclared-env-vars */
 import { type Page } from "@playwright/test";
 
-const API_URL = "http://localhost:3000";
+const API_URL = process.env.E2E_API_URL ?? "http://localhost:3000";
 
 interface TestUser {
   name: string;

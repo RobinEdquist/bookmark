@@ -56,3 +56,4 @@ docker-compose.*.local.yml
 .idea
 data
 .pnpm-store
+docs/investigations

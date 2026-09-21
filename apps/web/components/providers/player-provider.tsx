@@ -4,12 +4,15 @@ import {
   createContext,
   useContext,
   useReducer,
+  useState,
   useRef,
   useCallback,
   useEffect,
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
+import { useSession } from "../../lib/auth-client";
+import { ProgressSaver } from "../../lib/player/progress-saver";
 import type { AudiobookDetail } from "../../lib/use-audiobooks";
 import {
   playerReducer,
@@ -40,6 +43,15 @@ function getInitialVolume(): number {
 }
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
+  const { data: session } = useSession();
+  const owner = session?.user.id ?? null;
+  const [progressSaver] = useState(() => new ProgressSaver());
+  const playbackOwner = useRef<string | null>(null);
+  useEffect(() => {
+    progressSaver.setOwner(owner);
+    return () => progressSaver.setOwner(null);
+  }, [owner, progressSaver]);
+
   // Initialize state with values from localStorage
   const [state, dispatch] = useReducer(playerReducer, undefined, () => ({
     ...initialState,
@@ -68,29 +80,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // Sync progress to server
+  // Local intent remains pending until the server acknowledges this sample.
   const syncProgress = useCallback(
     async (position: number) => {
       if (!state.audiobook) return;
-
-      try {
-        await fetch(`/api/progress/${state.audiobook.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ position: Math.floor(position) }),
-          credentials: "include",
-        });
-      } catch (error) {
-        console.error("[Player] Failed to sync progress:", error);
-      }
+      await progressSaver.save(
+        playbackOwner.current,
+        state.audiobook.id,
+        position,
+      );
     },
-    [state.audiobook],
+    [state.audiobook, progressSaver],
   );
 
   // Record listening session
   const recordSession = useCallback(async () => {
     const session = sessionRef.current;
-    if (!session || !state.audiobook) return;
+    if (!session || !state.audiobook || playbackOwner.current !== owner) return;
 
     const now = Date.now();
     const duration =
@@ -102,7 +108,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     try {
       await fetch(`/api/progress/${state.audiobook.id}/session`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Bookmark-User": playbackOwner.current ?? "",
+        },
         body: JSON.stringify({
           startedAt: session.startedAt.toISOString(),
           endedAt: new Date().toISOString(),
@@ -117,7 +126,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     }
 
     sessionRef.current = null;
-  }, [state.audiobook, state.currentPosition, state.isPlaying]);
+  }, [state.audiobook, state.currentPosition, state.isPlaying, owner]);
 
   // Set up audio event listeners
   useEffect(() => {
@@ -179,7 +188,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
       // Record the listening session on pause
       const session = sessionRef.current;
-      if (session && state.audiobook) {
+      if (session && state.audiobook && playbackOwner.current === owner) {
         const now = Date.now();
         const duration =
           session.accumulatedDuration +
@@ -189,7 +198,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         if (duration >= 5) {
           fetch(`/api/progress/${state.audiobook.id}/session`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "X-Bookmark-User": playbackOwner.current ?? "",
+            },
             body: JSON.stringify({
               startedAt: session.startedAt.toISOString(),
               endedAt: new Date().toISOString(),
@@ -295,6 +307,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     state.duration,
     syncProgress,
     recordSession,
+    owner,
   ]);
 
   // Set up periodic sync (every 60s while playing)
@@ -319,23 +332,30 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [state.isPlaying, state.audiobook, syncProgress]);
 
-  // Sync on page unload
+  // Lifecycle delivery is best-effort. Earlier pause/periodic saves still matter.
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (state.audiobook && audioRef.current) {
-        const actualPosition =
-          fileStartPositionRef.current + audioRef.current.currentTime;
-        // Use sendBeacon for reliable delivery
-        navigator.sendBeacon(
-          `/api/progress/${state.audiobook.id}`,
-          JSON.stringify({ position: Math.floor(actualPosition) }),
+    const checkpoint = () => {
+      if (audioRef.current && !isInitializingRef.current) {
+        void syncProgress(
+          fileStartPositionRef.current + audioRef.current.currentTime,
         );
       }
     };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [state.audiobook]);
+    const visibility = () => {
+      if (document.visibilityState === "hidden") checkpoint();
+    };
+    const reconnect = () => {
+      void progressSaver.retry();
+    };
+    window.addEventListener("pagehide", checkpoint);
+    window.addEventListener("online", reconnect);
+    document.addEventListener("visibilitychange", visibility);
+    return () => {
+      window.removeEventListener("pagehide", checkpoint);
+      window.removeEventListener("online", reconnect);
+      document.removeEventListener("visibilitychange", visibility);
+    };
+  }, [syncProgress, progressSaver]);
 
   // Update Media Session metadata when audiobook changes
   useEffect(() => {
@@ -386,6 +406,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   // Player actions
   const play = useCallback(
     async (audiobook: AudiobookDetail, startPosition: number = 0) => {
+      if (state.audiobook && audioRef.current && !isInitializingRef.current) {
+        void syncProgress(
+          fileStartPositionRef.current + audioRef.current.currentTime,
+        );
+      }
+      playbackOwner.current = owner;
       const audio = audioRef.current;
       if (!audio) return;
 
@@ -452,7 +478,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         );
       }
     },
-    [],
+    [owner, state.audiobook, syncProgress],
   );
 
   const pause = useCallback(() => {

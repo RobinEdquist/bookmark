@@ -12,13 +12,15 @@ import {
 } from "@testcontainers/postgresql";
 import { spawnSync, spawn, type ChildProcess } from "child_process";
 import { resolve, dirname } from "path";
+import { mkdtempSync } from "fs";
+import { tmpdir } from "os";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const BACKEND_URL = "http://localhost:3000";
-const FRONTEND_URL = "http://localhost:3001";
+const BACKEND_URL = process.env.E2E_API_URL ?? "http://localhost:3000";
+const FRONTEND_URL = process.env.E2E_WEB_URL ?? "http://localhost:3001";
 const backendDir = resolve(__dirname, "../../backend");
 const frontendDir = resolve(__dirname, "..");
 
@@ -69,6 +71,11 @@ export default async function globalSetup() {
   const env = {
     ...process.env,
     DATABASE_URL: connectionUri,
+    PORT: new URL(BACKEND_URL).port,
+    APP_DATA_PATH: mkdtempSync(resolve(tmpdir(), "bookmark-e2e-")),
+    LIBRARY_PATH: "",
+    EBOOK_LIBRARY_PATH: "",
+    COMIC_LIBRARY_PATH: "",
     NODE_ENV: "test" as const,
     BETTER_AUTH_SECRET: "test-secret-for-ci-only",
     BETTER_AUTH_URL: BACKEND_URL,
@@ -120,11 +127,15 @@ export default async function globalSetup() {
 
   // 4. Start Next.js dev server
   console.log("🌐 Starting frontend dev server...");
-  const frontendProcess = spawn("pnpm", ["dev"], {
-    cwd: frontendDir,
-    env: { ...env, API_URL: BACKEND_URL },
-    stdio: ["ignore", "pipe", "pipe"],
-  }) as ChildProcess;
+  const frontendProcess = spawn(
+    "pnpm",
+    ["exec", "next", "dev", "--port", new URL(FRONTEND_URL).port],
+    {
+      cwd: frontendDir,
+      env: { ...env, API_URL: BACKEND_URL },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  ) as ChildProcess;
   global.__PW_FRONTEND_PROCESS__ = frontendProcess;
 
   frontendProcess.stdout?.on("data", (chunk: Buffer) => {

@@ -135,4 +135,27 @@ describe('ProgressController', () => {
     expect(service.resetProgress).toHaveBeenCalledWith('user-1', 'audio-1');
     expect(service.hideProgress).toHaveBeenCalledWith('user-1', 'audio-1');
   });
+  it('rejects stale player identity before writing progress or sessions', async () => {
+    const { controller, service } = createController();
+    await expect(
+      controller.updateProgress(
+        'audio-1',
+        { position: 20 },
+        user,
+        'another-user',
+      ),
+    ).rejects.toMatchObject({ status: 403 });
+    await expect(
+      controller.createSession('audio-1', {} as any, user, 'another-user'),
+    ).rejects.toMatchObject({ status: 403 });
+    expect(service.updateProgress).not.toHaveBeenCalled();
+    expect(service.createSession).not.toHaveBeenCalled();
+    await controller.updateProgress(
+      'audio-1',
+      { position: 20 },
+      user,
+      'user-1',
+    );
+    expect(service.updateProgress).toHaveBeenCalledTimes(1);
+  });
 });

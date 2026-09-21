@@ -1,5 +1,7 @@
 import {
   Controller,
+  Headers,
+  ForbiddenException,
   Delete,
   Get,
   Patch,
@@ -12,6 +14,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiTags,
+  ApiHeader,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -156,11 +159,22 @@ export class ProgressController {
   })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiHeader({
+    name: 'X-Bookmark-User',
+    required: false,
+    description:
+      'Reject the write if the authenticated user differs from the playback owner.',
+  })
+  @ApiResponse({ status: 403, description: 'Playback account changed' })
   async updateProgress(
     @Param('audiobookId') audiobookId: string,
     @Body() dto: UpdateProgressDto,
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<ProgressResponse> {
+    @Headers('x-bookmark-user') expectedUserId?: string,
+  ): Promise<ProgressResponseDto> {
+    if (expectedUserId !== undefined && expectedUserId !== user.id) {
+      throw new ForbiddenException('Playback account changed');
+    }
     try {
       return await this.progressService.updateProgress(
         user.id,
@@ -207,11 +221,22 @@ export class ProgressController {
   })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiHeader({
+    name: 'X-Bookmark-User',
+    required: false,
+    description:
+      'Reject the write if the authenticated user differs from the playback owner.',
+  })
+  @ApiResponse({ status: 403, description: 'Playback account changed' })
   async createSession(
     @Param('audiobookId') audiobookId: string,
     @Body() dto: CreateSessionDto,
     @CurrentUser() user: AuthenticatedUser,
-  ): Promise<{ id: string; durationSeconds: number }> {
+    @Headers('x-bookmark-user') expectedUserId?: string,
+  ): Promise<CreateSessionResponseDto> {
+    if (expectedUserId !== undefined && expectedUserId !== user.id) {
+      throw new ForbiddenException('Playback account changed');
+    }
     return this.progressService.createSession(user.id, audiobookId, dto);
   }
 

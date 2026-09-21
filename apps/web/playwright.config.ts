@@ -9,7 +9,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3001",
+    baseURL: process.env.E2E_WEB_URL ?? "http://localhost:3001",
     trace: "on-first-retry",
   },
   projects: [
