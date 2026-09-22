@@ -533,7 +533,14 @@ describe('RequestsService', () => {
             folderName: null,
           }),
         ],
-        [{ hash: 'abc123', name: 'Test Folder', state: 'downloading', progress: 0.1 }],
+        [
+          {
+            hash: 'abc123',
+            name: 'Test Folder',
+            state: 'downloading',
+            progress: 0.1,
+          },
+        ],
       );
 
       await service.updateDownloadingStatuses();
@@ -726,8 +733,10 @@ describe('RequestsService', () => {
       const hashWrite = persisted.findIndex(
         (row) => row.torrentHash === 'abc123',
       );
-      const statusCallOrder = tracker.getTorrentStatus.mock.invocationCallOrder[0];
-      const hashWriteOrder = updateChain.set.mock.invocationCallOrder[hashWrite];
+      const statusCallOrder =
+        tracker.getTorrentStatus.mock.invocationCallOrder[0];
+      const hashWriteOrder =
+        updateChain.set.mock.invocationCallOrder[hashWrite];
       expect(hashWriteOrder).toBeLessThan(statusCallOrder);
       expect(tracker.download).toHaveBeenCalledTimes(1);
     });
