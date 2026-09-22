@@ -26,6 +26,7 @@ import * as ebooksSchema from '../ebooks/schema';
 import * as authSchema from '../auth/schema';
 import { TrackerService } from '../tracker';
 import { AppSettingsService } from '../app-settings/app-settings.service';
+import { LibraryService } from '../library/library.service';
 import {
   CreateRequestDto,
   RejectRequestDto,
@@ -50,7 +51,66 @@ export class RequestsService {
     private db: NodePgDatabase<CombinedSchema>,
     private tracker: TrackerService,
     private appSettingsService: AppSettingsService,
+    private libraryService: LibraryService,
   ) {}
+
+  /**
+   * A same-medium library item whose title matches exactly is a confirmed
+   * match. A trigram hit that is not an exact title match is only a
+   * suggestion: it must not hide the request button or complete a request.
+   * An audiobook never confirms an ebook request, and the reverse.
+   * Comics have no library search yet, so they are left unmatched.
+   */
+  private async findLibraryMatch(
+    title: string,
+    author: string | null,
+    contentType: ContentType,
+  ): Promise<{
+    confirmed: boolean;
+    confidence: 'confirmed' | 'possible';
+    libraryItemId: string;
+  } | null> {
+    if (contentType === 'comics' || !title.trim()) {
+      return null;
+    }
+
+    const contentFilter = contentType === 'audiobook' ? 'audiobooks' : 'ebooks';
+    let results: Awaited<ReturnType<LibraryService['searchLibrary']>>;
+    try {
+      results = await this.libraryService.searchLibrary(title, contentFilter, 5);
+    } catch (error) {
+      this.logger.debug(`Library match lookup failed: ${error}`);
+      return null;
+    }
+
+    const items =
+      contentType === 'audiobook' ? results.audiobooks : results.ebooks;
+    const wantedTitle = title.trim().toLowerCase();
+    const wantedAuthor = author?.trim().toLowerCase() || null;
+
+    const exact = items.find((item) => {
+      if (item.title.trim().toLowerCase() !== wantedTitle) return false;
+      if (!wantedAuthor) return true;
+      return item.authors.some(
+        (person) => person.name.trim().toLowerCase() === wantedAuthor,
+      );
+    });
+    if (exact) {
+      return {
+        confirmed: true,
+        confidence: 'confirmed',
+        libraryItemId: exact.id,
+      };
+    }
+
+    const possible = items[0];
+    if (!possible) return null;
+    return {
+      confirmed: false,
+      confidence: 'possible',
+      libraryItemId: possible.id,
+    };
+  }
 
   async search(
     query: string,
@@ -128,36 +188,46 @@ export class RequestsService {
     }
 
     // Map results (already parsed and cleaned by the tracker client)
-    const results: TrackerSearchResultDto[] = torrents.map((torrent) => {
-      const existing = requestMap.get(String(torrent.id));
+    const results: TrackerSearchResultDto[] = await Promise.all(
+      torrents.map(async (torrent) => {
+        const existing = requestMap.get(String(torrent.id));
+        const libraryMatch = await this.findLibraryMatch(
+          torrent.title,
+          torrent.author ?? null,
+          torrent.contentType,
+        );
 
-      return {
-        id: torrent.id,
-        title: torrent.title,
-        author: torrent.author ?? null,
-        narrator: torrent.narrator ?? null,
-        series:
-          torrent.series?.map((s) => ({
-            name: s.name,
-            number: s.number ?? null,
-          })) ?? null,
-        description: torrent.description ?? null,
-        coverUrl: `/api/requests/cover/${torrent.id}`,
-        contentType: torrent.contentType,
-        category: torrent.categoryName || '',
-        categoryId: torrent.categoryId,
-        size: torrent.size ?? '',
-        language: torrent.language ?? '',
-        fileType: torrent.fileType ?? '',
-        tags: torrent.tags ?? [],
-        addedDate: torrent.addedDate ?? '',
-        existingRequestId: existing?.id ?? null,
-        existingRequestStatus: existing?.status ?? null,
-        existingRequestIsMine: existing?.userId === userId,
-        inLibrary: false, // TODO: Check if in library by title/author matching
-        libraryItemId: null,
-      };
-    });
+        return {
+          id: torrent.id,
+          title: torrent.title,
+          author: torrent.author ?? null,
+          narrator: torrent.narrator ?? null,
+          series:
+            torrent.series?.map((s) => ({
+              name: s.name,
+              number: s.number ?? null,
+            })) ?? null,
+          description: torrent.description ?? null,
+          coverUrl: `/api/requests/cover/${torrent.id}`,
+          contentType: torrent.contentType,
+          category: torrent.categoryName || '',
+          categoryId: torrent.categoryId,
+          size: torrent.size ?? '',
+          language: torrent.language ?? '',
+          fileType: torrent.fileType ?? '',
+          tags: torrent.tags ?? [],
+          addedDate: torrent.addedDate ?? '',
+          existingRequestId: existing?.id ?? null,
+          existingRequestStatus: existing?.status ?? null,
+          existingRequestIsMine: existing?.userId === userId,
+          inLibrary: libraryMatch?.confirmed ?? false,
+          libraryItemId: libraryMatch?.confirmed
+            ? libraryMatch.libraryItemId
+            : null,
+          libraryMatch: libraryMatch?.confidence ?? null,
+        };
+      }),
+    );
 
     return {
       results,
@@ -631,21 +701,33 @@ export class RequestsService {
     // Find request with matching folder name that's approved or downloading
     // We need to match both statuses because small files may be imported
     // before updateDownloadingStatuses() runs to change status from 'approved' to 'downloading'
-    const [request] = await this.db
+    const candidates = await this.db
       .select()
       .from(requestsSchema.requests)
       .where(
         and(
           eq(requestsSchema.requests.folderName, folderName),
+          eq(requestsSchema.requests.contentType, libraryItemType),
           or(
             eq(requestsSchema.requests.status, 'approved'),
             eq(requestsSchema.requests.status, 'downloading'),
           ),
         ),
-      )
-      .limit(1);
+      );
 
-    if (!request) {
+    // An exact folder name shared by two active requests is not identity.
+    // Leave both waiting rather than completing the wrong one.
+    if (candidates.length !== 1) {
+      if (candidates.length > 1) {
+        this.logger.warn(
+          `Import "${folderName}" matches ${candidates.length} ${libraryItemType} requests; not completing any`,
+        );
+      }
+      return false;
+    }
+
+    const request = candidates[0];
+    if (request.contentType !== libraryItemType) {
       return false;
     }
 

@@ -61,6 +61,9 @@ export interface TrackerSearchResult {
   // The existing request is the current user's own, so it can't be supported.
   existingRequestIsMine: boolean;
   inLibrary: boolean;
+  // confirmed hides the request button. possible does not — the user can
+  // still request when the suggestion is wrong.
+  libraryMatch?: "confirmed" | "possible" | null;
   libraryItemId: string | null;
 }
 

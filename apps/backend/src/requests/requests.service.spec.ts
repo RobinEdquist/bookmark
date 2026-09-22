@@ -111,6 +111,12 @@ function createMockTracker() {
   } as any;
 }
 
+function createMockLibrary() {
+  return {
+    searchLibrary: jest.fn().mockResolvedValue({ audiobooks: [], ebooks: [] }),
+  } as any;
+}
+
 function createMockAppSettings(overrides: Record<string, any> = {}) {
   return {
     getSettings: jest.fn().mockResolvedValue({
@@ -164,6 +170,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.getRequestById('req-1', 'user-1');
@@ -181,6 +188,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(
@@ -199,6 +207,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.getRequestById('req-1', 'user-1');
@@ -238,6 +247,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.createRequest(
@@ -265,6 +275,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(
@@ -311,6 +322,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.createRequest(
@@ -342,6 +354,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(
@@ -356,6 +369,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(
@@ -377,6 +391,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await service.addSupporter('req-1', 'user-1');
@@ -402,6 +417,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await service.deleteRequest('req-1');
@@ -419,6 +435,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(service.deleteRequest('missing')).rejects.toBeInstanceOf(
@@ -444,7 +461,7 @@ describe('RequestsService', () => {
       });
       return {
         db,
-        service: new RequestsService(db, tracker, createMockAppSettings()),
+        service: new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary()),
         updateChain,
       };
     }
@@ -591,7 +608,7 @@ describe('RequestsService', () => {
         },
       );
 
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       const result = await service.approveRequest('req-1');
 
@@ -610,6 +627,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(service.approveRequest('req-1')).rejects.toBeInstanceOf(
@@ -623,6 +641,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(service.approveRequest('missing')).rejects.toBeInstanceOf(
@@ -655,7 +674,7 @@ describe('RequestsService', () => {
         { update: jest.fn().mockReturnValue(updateChain) },
       );
 
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       await service.approveRequest('req-1');
 
@@ -691,7 +710,7 @@ describe('RequestsService', () => {
         { update: jest.fn().mockReturnValue(updateChain) },
       );
 
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       await service.approveRequest('req-1');
 
@@ -720,7 +739,7 @@ describe('RequestsService', () => {
         },
       );
 
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       // Status enrichment is best-effort; the poller backfills folderName.
       // Approval must still succeed once the hash is durable.
@@ -762,7 +781,7 @@ describe('RequestsService', () => {
         update: jest.fn().mockReturnValue(lostClaim),
       });
 
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       await expect(service.approveRequest('req-1')).rejects.toBeInstanceOf(
         BadRequestException,
@@ -781,7 +800,7 @@ describe('RequestsService', () => {
         update: jest.fn().mockReturnValue(updateChain),
       });
 
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       await expect(service.approveRequest('req-1')).rejects.toThrow(
         'download timeout',
@@ -865,6 +884,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.rejectRequest('req-1', {
@@ -892,6 +912,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await service.rejectRequest('req-1', {});
@@ -909,6 +930,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(
@@ -922,6 +944,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       await expect(
@@ -982,6 +1005,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.getUserRequests('user-1');
@@ -997,6 +1021,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.getUserRequests('user-1');
@@ -1024,6 +1049,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.tryMatchImport(
@@ -1046,6 +1072,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings(),
+        createMockLibrary(),
       );
 
       const result = await service.tryMatchImport(
@@ -1055,6 +1082,65 @@ describe('RequestsService', () => {
       );
 
       expect(result).toBe(false);
+    });
+
+    it('does not complete a request when two share the folder name', async () => {
+      const first = buildRequest({
+        id: 'req-1',
+        status: 'downloading',
+        folderName: 'Same Name',
+      });
+      const second = buildRequest({
+        id: 'req-2',
+        status: 'approved',
+        folderName: 'Same Name',
+      });
+      const updateChain = chainMock([]);
+      const db = createSequentialSelectDb([[first, second]], {
+        update: jest.fn().mockReturnValue(updateChain),
+      });
+      const service = new RequestsService(
+        db,
+        createMockTracker(),
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
+
+      const result = await service.tryMatchImport(
+        'Same Name',
+        'lib-item-1',
+        'audiobook',
+      );
+
+      expect(result).toBe(false);
+      expect(db.update).not.toHaveBeenCalled();
+    });
+
+    it('does not complete an ebook request from an audiobook import', async () => {
+      const request = buildRequest({
+        status: 'downloading',
+        folderName: 'Test Folder',
+        contentType: 'ebook',
+      });
+      const updateChain = chainMock([]);
+      const db = createSequentialSelectDb([[request]], {
+        update: jest.fn().mockReturnValue(updateChain),
+      });
+      const service = new RequestsService(
+        db,
+        createMockTracker(),
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
+
+      const result = await service.tryMatchImport(
+        'Test Folder',
+        'lib-item-1',
+        'audiobook',
+      );
+
+      expect(result).toBe(false);
+      expect(db.update).not.toHaveBeenCalled();
     });
   });
 
@@ -1076,7 +1162,7 @@ describe('RequestsService', () => {
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1095,7 +1181,7 @@ describe('RequestsService', () => {
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1116,7 +1202,7 @@ describe('RequestsService', () => {
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1130,7 +1216,7 @@ describe('RequestsService', () => {
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       await service.search('Book', 25, 0, 'user-1', 'audiobooks');
 
@@ -1144,7 +1230,7 @@ describe('RequestsService', () => {
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       await service.search('Book', 25, 0, 'user-1', 'ebooks');
 
@@ -1158,7 +1244,7 @@ describe('RequestsService', () => {
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       await service.search('Book', 25, 0, 'user-1', 'all');
 
@@ -1179,7 +1265,7 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([
         [{ torrentId: '42', id: 'req-1', status: 'pending', userId: 'user-1' }],
       ]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1204,7 +1290,7 @@ describe('RequestsService', () => {
           },
         ],
       ]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1234,7 +1320,7 @@ describe('RequestsService', () => {
           },
         ],
       ]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1247,7 +1333,7 @@ describe('RequestsService', () => {
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(db, tracker, createMockAppSettings());
+      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
 
       await service.search('Book', 25, 0, 'user-1', 'comics');
 

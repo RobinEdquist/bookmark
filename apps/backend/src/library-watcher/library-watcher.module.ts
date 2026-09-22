@@ -16,7 +16,11 @@ import { ComicvineModule } from '../comicvine/comicvine.module';
 import { RequestsModule } from '../requests';
 
 @Module({
-  imports: [HardcoverModule, forwardRef(() => ComicvineModule), RequestsModule],
+  imports: [
+    HardcoverModule,
+    forwardRef(() => ComicvineModule),
+    forwardRef(() => RequestsModule),
+  ],
   controllers: [LibraryWatcherController],
   providers: [
     LibraryWatcherService,
