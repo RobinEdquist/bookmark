@@ -6,6 +6,6 @@ export default [
   {
     // Vendored third-party source (see lib/foliate-js/VENDOR.md) and the
     // pdf.js worker bundle copied from pdfjs-dist
-    ignores: ["lib/foliate-js/**", "public/pdf.worker.min.mjs"],
+    ignores: ["lib/foliate-js/**", "public/pdf.worker.min.mjs", "public/pdfjs/**"],
   },
 ];
