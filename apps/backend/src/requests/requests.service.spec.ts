@@ -461,7 +461,12 @@ describe('RequestsService', () => {
       });
       return {
         db,
-        service: new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary()),
+        service: new RequestsService(
+          db,
+          tracker,
+          createMockAppSettings(),
+          createMockLibrary(),
+        ),
         updateChain,
       };
     }
@@ -608,7 +613,12 @@ describe('RequestsService', () => {
         },
       );
 
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       const result = await service.approveRequest('req-1');
 
@@ -674,7 +684,12 @@ describe('RequestsService', () => {
         { update: jest.fn().mockReturnValue(updateChain) },
       );
 
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       await service.approveRequest('req-1');
 
@@ -710,7 +725,12 @@ describe('RequestsService', () => {
         { update: jest.fn().mockReturnValue(updateChain) },
       );
 
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       await service.approveRequest('req-1');
 
@@ -739,7 +759,12 @@ describe('RequestsService', () => {
         },
       );
 
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       // Status enrichment is best-effort; the poller backfills folderName.
       // Approval must still succeed once the hash is durable.
@@ -781,7 +806,12 @@ describe('RequestsService', () => {
         update: jest.fn().mockReturnValue(lostClaim),
       });
 
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       await expect(service.approveRequest('req-1')).rejects.toBeInstanceOf(
         BadRequestException,
@@ -800,7 +830,12 @@ describe('RequestsService', () => {
         update: jest.fn().mockReturnValue(updateChain),
       });
 
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       await expect(service.approveRequest('req-1')).rejects.toThrow(
         'download timeout',
@@ -847,6 +882,7 @@ describe('RequestsService', () => {
         db,
         tracker,
         createMockAppSettings({ requestsUseFreeleech: true }),
+        createMockLibrary(),
       );
 
       await service.approveRequest('req-1');
@@ -963,6 +999,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings({ autoApproveRequestsPerWeek: 0 }),
+        createMockLibrary(),
       );
 
       const result = await service.getUserAutoApproveUsage('user-1');
@@ -980,6 +1017,7 @@ describe('RequestsService', () => {
         db,
         createMockTracker(),
         createMockAppSettings({ autoApproveRequestsPerWeek: 5 }),
+        createMockLibrary(),
       );
 
       const result = await service.getUserAutoApproveUsage('user-1');
@@ -1162,7 +1200,12 @@ describe('RequestsService', () => {
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1181,7 +1224,12 @@ describe('RequestsService', () => {
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1202,7 +1250,12 @@ describe('RequestsService', () => {
       });
 
       const db = createSequentialSelectDb([[]]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1216,7 +1269,12 @@ describe('RequestsService', () => {
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       await service.search('Book', 25, 0, 'user-1', 'audiobooks');
 
@@ -1230,7 +1288,12 @@ describe('RequestsService', () => {
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       await service.search('Book', 25, 0, 'user-1', 'ebooks');
 
@@ -1244,7 +1307,12 @@ describe('RequestsService', () => {
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       await service.search('Book', 25, 0, 'user-1', 'all');
 
@@ -1265,7 +1333,12 @@ describe('RequestsService', () => {
       const db = createSequentialSelectDb([
         [{ torrentId: '42', id: 'req-1', status: 'pending', userId: 'user-1' }],
       ]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1290,7 +1363,12 @@ describe('RequestsService', () => {
           },
         ],
       ]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1320,7 +1398,12 @@ describe('RequestsService', () => {
           },
         ],
       ]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       const result = await service.search('Book', 25, 0, 'user-1');
 
@@ -1333,7 +1416,12 @@ describe('RequestsService', () => {
       tracker.search.mockResolvedValue({ results: [], total: 0 });
 
       const db = createSequentialSelectDb([]);
-      const service = new RequestsService(db, tracker, createMockAppSettings(), createMockLibrary());
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
 
       await service.search('Book', 25, 0, 'user-1', 'comics');
 

@@ -77,7 +77,11 @@ export class RequestsService {
     const contentFilter = contentType === 'audiobook' ? 'audiobooks' : 'ebooks';
     let results: Awaited<ReturnType<LibraryService['searchLibrary']>>;
     try {
-      results = await this.libraryService.searchLibrary(title, contentFilter, 5);
+      results = await this.libraryService.searchLibrary(
+        title,
+        contentFilter,
+        5,
+      );
     } catch (error) {
       this.logger.debug(`Library match lookup failed: ${error}`);
       return null;

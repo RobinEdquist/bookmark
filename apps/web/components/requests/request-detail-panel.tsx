@@ -259,11 +259,13 @@ export function RequestDetailPanel({
                     transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
                   >
                     <Button variant="outline" className="w-full" asChild>
-                      <Link href={
-                        item.libraryItemId
-                          ? `${item.contentType === "ebook" ? "/ebooks" : "/audiobooks"}/${item.libraryItemId}`
-                          : "#"
-                      }>
+                      <Link
+                        href={
+                          item.libraryItemId
+                            ? `${item.contentType === "ebook" ? "/ebooks" : "/audiobooks"}/${item.libraryItemId}`
+                            : "#"
+                        }
+                      >
                         {t("button.inLibrary")}
                       </Link>
                     </Button>
