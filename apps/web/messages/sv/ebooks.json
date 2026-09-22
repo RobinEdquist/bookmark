@@ -132,7 +132,17 @@
     "scrolled": "Rullande",
     "page": "Sida {page} av {pages}",
     "loadError": "Boken kunde inte laddas",
-    "unsupportedFormat": "Det här formatet kan inte läsas i webbläsaren"
+    "unsupportedFormat": "Det här formatet kan inte läsas i webbläsaren",
+    "fitMode": "Anpassningsläge",
+    "fitPage": "Anpassa till sida",
+    "fitWidth": "Anpassa till bredd",
+    "zoom": "Zoom",
+    "zoomIn": "Zooma in",
+    "zoomOut": "Zooma ut",
+    "zoomPercent": "{percent} %",
+    "goToPage": "Gå till sida",
+    "pdfLoadError": "PDF-filen kunde inte öppnas. Filen kan vara skadad eller oläsbar.",
+    "pdfPasswordRequired": "PDF-filen kräver lösenord och kan inte öppnas i läsaren."
   },
   "changeCover": {
     "title": "Ändra omslag",

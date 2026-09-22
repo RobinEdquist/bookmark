@@ -132,7 +132,17 @@
     "scrolled": "Scrolled",
     "page": "Page {page} of {pages}",
     "loadError": "Failed to load the book",
-    "unsupportedFormat": "This format cannot be read in the browser"
+    "unsupportedFormat": "This format cannot be read in the browser",
+    "fitMode": "Fit mode",
+    "fitPage": "Fit page",
+    "fitWidth": "Fit width",
+    "zoom": "Zoom",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "zoomPercent": "{percent}%",
+    "goToPage": "Go to page",
+    "pdfLoadError": "This PDF could not be opened. The file may be corrupt or unreadable.",
+    "pdfPasswordRequired": "This PDF requires a password and cannot be opened in the reader."
   },
   "changeCover": {
     "title": "Change Cover",

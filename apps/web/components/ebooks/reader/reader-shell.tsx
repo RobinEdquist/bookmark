@@ -140,6 +140,15 @@ export default function ReaderShell({ ebookId }: ReaderShellProps) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
       switch (event.key) {
         case "ArrowLeft":
         case "PageUp":
@@ -245,9 +254,9 @@ export default function ReaderShell({ ebookId }: ReaderShellProps) {
                 onError={handleError}
               />
             )}
-            {/* Edge tap zones for page turns (cover the column gaps; taps
-                inside foliate's iframe are handled by its swipe support) */}
-            {isReady && (
+            {/* Edge tap zones for EPUB page turns. Skipped for PDF so they
+                cannot intercept text selection or zoom/pan gestures. */}
+            {isReady && isFoliate && (
               <>
                 <button
                   type="button"
