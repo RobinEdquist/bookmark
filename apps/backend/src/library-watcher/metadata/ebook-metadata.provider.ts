@@ -91,6 +91,11 @@ export class EbookMetadataProvider implements OnModuleInit {
       this.logger.error(
         `Failed to extract metadata from ${filePath}: ${error}`,
       );
+      // PDF failures must surface so importEbook can quarantine corrupt /
+      // password-protected files. EPUB keeps the historical filename fallback.
+      if (path.extname(filePath).toLowerCase() === '.pdf') {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
       // Return minimal metadata based on filename
       const fileName = path.basename(filePath, path.extname(filePath));
       return {

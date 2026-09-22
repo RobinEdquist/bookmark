@@ -39,6 +39,13 @@ export class OpdsService {
       .replace(/'/g, '&apos;');
   }
 
+  /** Acquisition MIME type from the ebook's persisted format. */
+  private acquisitionMimeType(format: string | null | undefined): string {
+    return format?.toLowerCase() === 'pdf'
+      ? 'application/pdf'
+      : 'application/epub+zip';
+  }
+
   private truncateDescription(
     description: string | null,
     maxLength = 500,
@@ -393,7 +400,7 @@ export class OpdsService {
 
       // Add acquisition link (download)
       entry += `
-    <link rel="http://opds-spec.org/acquisition" href="${this.escapeXml(apiBaseUrl)}/${ebook.id}/download" type="application/epub+zip"/>
+    <link rel="http://opds-spec.org/acquisition" href="${this.escapeXml(apiBaseUrl)}/${ebook.id}/download" type="${this.acquisitionMimeType(ebook.format)}"/>
   </entry>`;
 
       entries.push(entry);

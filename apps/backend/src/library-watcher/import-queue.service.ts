@@ -2,19 +2,15 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { MediaDetectorService } from './media-detector.service';
+import {
+  MediaDetectorService,
+  isComicFile,
+  isEbookFile,
+} from './media-detector.service';
 import { MediaImporterService } from './media-importer.service';
 import { isAudioFile } from './utils/audio-file.utils';
-import { isComicFile } from './media-detector.service';
 import { WsEventsService } from '../events/ws-events.service';
 import { LibraryType } from './file-watcher.service';
-
-const EBOOK_EXTENSIONS = ['.epub'];
-
-function isEbookFile(fileName: string): boolean {
-  const ext = path.extname(fileName).toLowerCase();
-  return EBOOK_EXTENSIONS.includes(ext);
-}
 
 interface PendingImport {
   path: string;

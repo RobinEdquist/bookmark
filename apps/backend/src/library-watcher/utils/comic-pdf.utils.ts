@@ -84,19 +84,80 @@ function describeError(error: unknown): string {
  * message) and defeats Jest's toThrow(). Re-throwing a local Error keeps the
  * diagnosis in `cause` and gives callers one stable type in every environment.
  */
+/**
+ * Normalize a pdfjs load failure into a stable, actionable Error for importers.
+ * Exported for unit tests covering password vs corrupt messaging.
+ */
+export function formatPdfLoadError(error: unknown): Error {
+  const detail = describeError(error);
+  // Password-protected PDFs surface as PasswordException / "No password given"
+  // from pdfjs — surface an actionable message for the import-error UI.
+  if (/password/i.test(detail)) {
+    return new Error(
+      `PDF requires a password and cannot be imported: ${detail}`,
+      { cause: error },
+    );
+  }
+  return new Error(`Unreadable PDF: ${detail}`, {
+    cause: error,
+  });
+}
+
 async function loadDocument(loadingTask: PdfLoadingTask): Promise<PdfDocument> {
   try {
     return await loadingTask.promise;
   } catch (error) {
-    throw new Error(`Unreadable PDF: ${describeError(error)}`, {
-      cause: error,
-    });
+    throw formatPdfLoadError(error);
   }
 }
 
 export interface ComicPdfContents {
   pageCount: number;
   coverImage: { data: Buffer; extension: string } | null;
+  /** Embedded document title when present (Info dictionary). */
+  title?: string;
+  /** Embedded author(s) when present, split on common separators. */
+  authors?: string[];
+  /** Embedded subject/description when present. */
+  subject?: string;
+}
+
+
+function parsePdfInfoAuthors(author: unknown): string[] {
+  if (typeof author !== 'string' || !author.trim()) return [];
+  return author
+    .split(/[,&;]/)
+    .map((a) => a.trim())
+    .filter(Boolean);
+}
+
+async function extractPdfInfo(doc: PdfDocument): Promise<{
+  title?: string;
+  authors?: string[];
+  subject?: string;
+}> {
+  try {
+    const meta = await doc.getMetadata();
+    const info = (meta?.info ?? {}) as Record<string, unknown>;
+    const title =
+      typeof info.Title === 'string' && info.Title.trim()
+        ? info.Title.trim()
+        : undefined;
+    const authors = parsePdfInfoAuthors(info.Author);
+    const subject =
+      typeof info.Subject === 'string' && info.Subject.trim()
+        ? info.Subject.trim()
+        : undefined;
+    // Intentionally ignore CreationDate / ModDate — file timestamps must not
+    // become publication dates for ebook imports.
+    return {
+      title,
+      authors: authors.length > 0 ? authors : undefined,
+      subject,
+    };
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -152,7 +213,14 @@ export async function readComicPdf(
       coverImage = null;
     }
 
-    return { pageCount: doc.numPages, coverImage };
+    const info = await extractPdfInfo(doc);
+    return {
+      pageCount: doc.numPages,
+      coverImage,
+      title: info.title,
+      authors: info.authors,
+      subject: info.subject,
+    };
   } finally {
     // Always destroy the loading task, also when loadingTask.promise rejects
     // (corrupt PDF) — otherwise pdfjs internal state leaks in the long-running

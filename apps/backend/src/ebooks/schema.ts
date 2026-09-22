@@ -45,7 +45,7 @@ export const ebooks = pgTable(
     filePath: text('file_path').notNull(), // relative to library
     fileName: text('file_name').notNull(),
     sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
-    format: text('format').notNull().default('epub'), // epub for now
+    format: text('format').notNull().default('epub'), // epub | pdf
     isExplicit: boolean('is_explicit').notNull().default(false),
     status: ebookStatusEnum('status').notNull().default('available'),
     missingAt: timestamp('missing_at'),

@@ -7,7 +7,7 @@ Bookmark is built for audiobooks first: full M4B chapter support, a player with 
 ## Features
 
 - **Audiobooks** — stream in the browser with chapter support, variable playback speed, skip controls, and a sleep timer. The browser saves progress every 60 seconds during playback, on pauses, seeks, and chapter changes, and attempts a final save when the page is hidden or closed. Failed saves are retried while the page remains open; closing the browser does not guarantee delivery.
-- **Ebooks** — read EPUBs in the browser with your position saved, or over OPDS with the reader app you already use.
+- **Ebooks** — read EPUBs and PDFs in the browser with your position saved, or over OPDS with the reader app you already use.
 - **Comics** — series and issues, including TPBs, omnibuses, and one-shots. Browse, organize, and download; an in-browser reader is planned.
 - **Metadata** — covers, chapters, and embedded tags come from the files themselves; descriptions, ratings, and series info can be matched from Goodreads, Hardcover, Audible, and Comic Vine.
 - **AI narration** — generate an M4B audiobook from an ebook, using any OpenAI-compatible text-to-speech server. A ready-to-run engine ships in the compose file.
@@ -20,8 +20,10 @@ Bookmark is built for audiobooks first: full M4B chapter support, a player with 
 ### Supported formats
 
 - **Audiobooks** — M4B (with chapters), MP3, M4A/AAC, OGG/Opus
-- **Ebooks** — EPUB
+- **Ebooks** — EPUB, PDF
 - **Comics** — CBZ, CBR, PDF
+
+PDF classification follows the configured library type: a PDF under an ebook library imports as an ebook (`format: pdf`); under a comics library it imports as a comic. Prefer non-overlapping library roots so the same file is not watched by two libraries at once.
 
 ## Installation
 

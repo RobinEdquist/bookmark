@@ -1034,7 +1034,7 @@ export class EbooksService {
       }
     }
 
-    // Try to extract embedded cover from the EPUB
+    // Try to extract embedded cover from the ebook file (EPUB or PDF)
     if (coverSource === 'embedded') {
       const coverPath = this.appDataService.getEbookCoverPath(id);
 

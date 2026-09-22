@@ -406,11 +406,13 @@ export class MediaImporterService {
 
       this.logger.debug(`[IMPORT] Extracting metadata from: ${unit.path}`);
 
-      // Extract metadata from EPUB
+      // Extract metadata (EPUB via epub2, PDF via shared PDF util)
       const metadata = await this.ebookMetadataProvider.extractMetadata(
         unit.path,
       );
       const stats = await fs.stat(unit.path);
+      const format =
+        path.extname(unit.fileName).toLowerCase() === '.pdf' ? 'pdf' : 'epub';
 
       this.logger.debug(
         `[IMPORT] Ebook metadata extracted: ${JSON.stringify({
@@ -458,7 +460,7 @@ export class MediaImporterService {
           filePath: relativeFilePath,
           fileName: unit.fileName,
           sizeBytes: stats.size,
-          format: 'epub',
+          format,
           status: 'available',
         })
         .returning();

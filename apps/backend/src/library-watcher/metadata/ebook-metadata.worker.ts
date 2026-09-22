@@ -11,6 +11,7 @@ import {
   copyToTransferableBytes,
   responseTransferList,
 } from '../../common/utils/worker-bytes.util';
+import { readComicPdf } from '../utils/comic-pdf.utils';
 
 interface EbookMetadata {
   title: string;
@@ -144,7 +145,55 @@ async function extractCoverFromEpub(
   });
 }
 
+
+function isPdfPath(filePath: string): boolean {
+  return path.extname(filePath).toLowerCase() === '.pdf';
+}
+
+/**
+ * PDF ebook metadata via the shared backend PDF util (same stack as comics).
+ * Unreadable / password-protected files throw — callers must quarantine rather
+ * than silently falling back to a filename title (which would hide the failure).
+ * Missing Info-dictionary fields fall back to filename / empty authors.
+ * CreationDate is never treated as a publication date.
+ */
+async function extractPdfMetadata(filePath: string): Promise<EbookMetadata> {
+  const pdf = await readComicPdf(filePath);
+  const fileName = path.basename(filePath, path.extname(filePath));
+
+  let cover: { data: Uint8Array; mimeType: string } | undefined;
+  if (pdf.coverImage) {
+    cover = {
+      data: copyToTransferableBytes(pdf.coverImage.data),
+      mimeType: 'image/png',
+    };
+  }
+
+  return {
+    title: pdf.title?.trim() || fileName,
+    description: cleanDescription(pdf.subject),
+    authors: pdf.authors ?? [],
+    pageCount: pdf.pageCount,
+    cover,
+  };
+}
+
+async function extractPdfCover(
+  filePath: string,
+): Promise<{ data: Uint8Array; mimeType: string } | null> {
+  const pdf = await readComicPdf(filePath);
+  if (!pdf.coverImage) return null;
+  return {
+    data: copyToTransferableBytes(pdf.coverImage.data),
+    mimeType: 'image/png',
+  };
+}
+
 async function extractMetadata(filePath: string): Promise<EbookMetadata> {
+  if (isPdfPath(filePath)) {
+    return extractPdfMetadata(filePath);
+  }
+
   try {
     const epub = await EPub.createAsync(filePath);
     const metadata = epub.metadata;
@@ -228,6 +277,12 @@ async function extractMetadata(filePath: string): Promise<EbookMetadata> {
 async function extractCover(
   filePath: string,
 ): Promise<{ data: Uint8Array; mimeType: string } | null> {
+  if (isPdfPath(filePath)) {
+    // Propagate unreadable/password errors so cover cache-miss callers can
+    // distinguish "no cover" from "file cannot be opened".
+    return extractPdfCover(filePath);
+  }
+
   try {
     const epub = await EPub.createAsync(filePath);
     return await extractCoverFromEpub(epub);
@@ -242,6 +297,9 @@ const MIN_CHAPTER_CHARS = 250;
 
 /** Plain-text chapters for TTS narration, in reading order. */
 async function extractChapters(filePath: string): Promise<ExtractedChapters> {
+  if (isPdfPath(filePath)) {
+    throw new Error('PDF chapter extraction is not supported');
+  }
   const epub = await EPub.createAsync(filePath);
   const planned = planChapters(epub.flow ?? [], epub.toc ?? []);
 
