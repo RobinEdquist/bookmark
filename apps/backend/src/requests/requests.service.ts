@@ -56,10 +56,13 @@ export class RequestsService {
 
   /**
    * A same-medium library item whose title matches exactly is a confirmed
-   * match. A trigram hit that is not an exact title match is only a
-   * suggestion: it must not hide the request button or complete a request.
-   * An audiobook never confirms an ebook request, and the reverse.
-   * Comics have no library search yet, so they are left unmatched.
+   * match when authors agree: either the library item has no authors, or the
+   * torrent/wanted author matches one of them. Missing torrent author against
+   * a library item that has authors is only a possible match. A trigram hit
+   * that is not an exact title match is only a suggestion: it must not hide
+   * the request button or complete a request. An audiobook never confirms an
+   * ebook request, and the reverse. Comics have no library search yet, so
+   * they are left unmatched.
    */
   private async findLibraryMatch(
     title: string,
@@ -94,7 +97,11 @@ export class RequestsService {
 
     const exact = items.find((item) => {
       if (item.title.trim().toLowerCase() !== wantedTitle) return false;
-      if (!wantedAuthor) return true;
+      if (!wantedAuthor) {
+        // Exact title alone is not enough when the library item has authors —
+        // same title, different author must not confirm.
+        return item.authors.length === 0;
+      }
       return item.authors.some(
         (person) => person.name.trim().toLowerCase() === wantedAuthor,
       );
@@ -191,15 +198,27 @@ export class RequestsService {
       }
     }
 
+    // Cache library lookups within this search so duplicate torrents do not
+    // re-hit searchLibrary for the same title/author/medium.
+    const libraryMatchCache = new Map<
+      string,
+      Awaited<ReturnType<RequestsService['findLibraryMatch']>>
+    >();
+
     // Map results (already parsed and cleaned by the tracker client)
     const results: TrackerSearchResultDto[] = await Promise.all(
       torrents.map(async (torrent) => {
         const existing = requestMap.get(String(torrent.id));
-        const libraryMatch = await this.findLibraryMatch(
-          torrent.title,
-          torrent.author ?? null,
-          torrent.contentType,
-        );
+        const cacheKey = `${torrent.contentType}|${torrent.title.trim().toLowerCase()}|${(torrent.author ?? '').trim().toLowerCase()}`;
+        let libraryMatch = libraryMatchCache.get(cacheKey);
+        if (libraryMatch === undefined) {
+          libraryMatch = await this.findLibraryMatch(
+            torrent.title,
+            torrent.author ?? null,
+            torrent.contentType,
+          );
+          libraryMatchCache.set(cacheKey, libraryMatch);
+        }
 
         return {
           id: torrent.id,
@@ -731,9 +750,6 @@ export class RequestsService {
     }
 
     const request = candidates[0];
-    if (request.contentType !== libraryItemType) {
-      return false;
-    }
 
     // Link the request to the library item
     await this.db

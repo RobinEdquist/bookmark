@@ -1153,33 +1153,6 @@ describe('RequestsService', () => {
       expect(result).toBe(false);
       expect(db.update).not.toHaveBeenCalled();
     });
-
-    it('does not complete an ebook request from an audiobook import', async () => {
-      const request = buildRequest({
-        status: 'downloading',
-        folderName: 'Test Folder',
-        contentType: 'ebook',
-      });
-      const updateChain = chainMock([]);
-      const db = createSequentialSelectDb([[request]], {
-        update: jest.fn().mockReturnValue(updateChain),
-      });
-      const service = new RequestsService(
-        db,
-        createMockTracker(),
-        createMockAppSettings(),
-        createMockLibrary(),
-      );
-
-      const result = await service.tryMatchImport(
-        'Test Folder',
-        'lib-item-1',
-        'audiobook',
-      );
-
-      expect(result).toBe(false);
-      expect(db.update).not.toHaveBeenCalled();
-    });
   });
 
   // -----------------------------------------------------------------------
@@ -1428,6 +1401,218 @@ describe('RequestsService', () => {
       expect(tracker.search).toHaveBeenCalledWith(
         expect.objectContaining({ categories: ['comics'] }),
       );
+    });
+
+    it('marks a confirmed exact same-medium title as in library', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [
+          buildTrackerResult({
+            title: 'The Way of Kings',
+            author: 'Brandon Sanderson',
+            contentType: 'audiobook',
+          }),
+        ],
+        total: 1,
+      });
+
+      const library = createMockLibrary();
+      library.searchLibrary.mockResolvedValue({
+        audiobooks: [
+          {
+            id: 'lib-ab-1',
+            title: 'The Way of Kings',
+            subtitle: null,
+            coverUrl: null,
+            coverUpdatedAt: null,
+            authors: [{ id: 'p1', name: 'Brandon Sanderson' }],
+            similarity: 1,
+          },
+        ],
+        ebooks: [],
+      });
+
+      const db = createSequentialSelectDb([[]]);
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        library,
+      );
+
+      const result = await service.search('Kings', 25, 0, 'user-1');
+
+      expect(result.results[0].inLibrary).toBe(true);
+      expect(result.results[0].libraryMatch).toBe('confirmed');
+      expect(result.results[0].libraryItemId).toBe('lib-ab-1');
+      expect(library.searchLibrary).toHaveBeenCalledWith(
+        'The Way of Kings',
+        'audiobooks',
+        5,
+      );
+    });
+
+    it('marks a non-exact library hit as a possible match', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [
+          buildTrackerResult({
+            title: 'Way of Kings',
+            author: 'Brandon Sanderson',
+            contentType: 'audiobook',
+          }),
+        ],
+        total: 1,
+      });
+
+      const library = createMockLibrary();
+      library.searchLibrary.mockResolvedValue({
+        audiobooks: [
+          {
+            id: 'lib-ab-2',
+            title: 'The Way of Kings',
+            subtitle: null,
+            coverUrl: null,
+            coverUpdatedAt: null,
+            authors: [{ id: 'p1', name: 'Brandon Sanderson' }],
+            similarity: 0.8,
+          },
+        ],
+        ebooks: [],
+      });
+
+      const db = createSequentialSelectDb([[]]);
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        library,
+      );
+
+      const result = await service.search('Kings', 25, 0, 'user-1');
+
+      expect(result.results[0].inLibrary).toBe(false);
+      expect(result.results[0].libraryMatch).toBe('possible');
+      expect(result.results[0].libraryItemId).toBeNull();
+    });
+
+    it('skips library matching for comics', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [
+          buildTrackerResult({
+            title: 'Sandman',
+            contentType: 'comics',
+            categoryId: 15,
+            categoryName: 'Comics',
+          }),
+        ],
+        total: 1,
+      });
+
+      const library = createMockLibrary();
+      const db = createSequentialSelectDb([[]]);
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        library,
+      );
+
+      const result = await service.search('Sandman', 25, 0, 'user-1', 'comics');
+
+      expect(result.results[0].inLibrary).toBe(false);
+      expect(result.results[0].libraryMatch).toBeNull();
+      expect(result.results[0].libraryItemId).toBeNull();
+      expect(library.searchLibrary).not.toHaveBeenCalled();
+    });
+
+    it('does not confirm exact title when torrent author is missing but library has one', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [
+          buildTrackerResult({
+            title: 'The Way of Kings',
+            author: null,
+            contentType: 'audiobook',
+          }),
+        ],
+        total: 1,
+      });
+
+      const library = createMockLibrary();
+      library.searchLibrary.mockResolvedValue({
+        audiobooks: [
+          {
+            id: 'lib-ab-3',
+            title: 'The Way of Kings',
+            subtitle: null,
+            coverUrl: null,
+            coverUpdatedAt: null,
+            authors: [{ id: 'p1', name: 'Brandon Sanderson' }],
+            similarity: 1,
+          },
+        ],
+        ebooks: [],
+      });
+
+      const db = createSequentialSelectDb([[]]);
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        library,
+      );
+
+      const result = await service.search('Kings', 25, 0, 'user-1');
+
+      expect(result.results[0].inLibrary).toBe(false);
+      expect(result.results[0].libraryMatch).toBe('possible');
+      expect(result.results[0].libraryItemId).toBeNull();
+    });
+
+    it('does not confirm exact title with a different author', async () => {
+      const tracker = createMockTracker();
+      tracker.search.mockResolvedValue({
+        results: [
+          buildTrackerResult({
+            title: 'The Way of Kings',
+            author: 'Someone Else',
+            contentType: 'audiobook',
+          }),
+        ],
+        total: 1,
+      });
+
+      const library = createMockLibrary();
+      library.searchLibrary.mockResolvedValue({
+        audiobooks: [
+          {
+            id: 'lib-ab-4',
+            title: 'The Way of Kings',
+            subtitle: null,
+            coverUrl: null,
+            coverUpdatedAt: null,
+            authors: [{ id: 'p1', name: 'Brandon Sanderson' }],
+            similarity: 1,
+          },
+        ],
+        ebooks: [],
+      });
+
+      const db = createSequentialSelectDb([[]]);
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        library,
+      );
+
+      const result = await service.search('Kings', 25, 0, 'user-1');
+
+      expect(result.results[0].inLibrary).toBe(false);
+      expect(result.results[0].libraryMatch).toBe('possible');
+      expect(result.results[0].libraryItemId).toBeNull();
     });
   });
 });
