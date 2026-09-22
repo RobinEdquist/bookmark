@@ -350,4 +350,23 @@ describe('MediaDetectorService', () => {
       expect(result).toBeNull();
     });
   });
+
+  describe('PDF library-type separation', () => {
+    it('ebook and comic scanners both accept PDF; classification follows library type', async () => {
+      mockedFs.readdir.mockResolvedValueOnce([
+        mockDirent('same.pdf', true),
+      ] as any);
+      const ebooks = await service.scanLibraryForEbooks('/ebooks');
+      expect(ebooks).toHaveLength(1);
+      expect(ebooks[0].fileName).toBe('same.pdf');
+
+      mockedFs.readdir.mockResolvedValueOnce([
+        mockDirent('same.pdf', true),
+      ] as any);
+      const comics = await service.scanLibraryForComics('/comics');
+      expect(
+        comics.some((u) => u.books.some((b) => b.fileName === 'same.pdf')),
+      ).toBe(true);
+    });
+  });
 });

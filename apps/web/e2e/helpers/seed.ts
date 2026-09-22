@@ -133,6 +133,9 @@ export async function seedEbook(overrides?: {
   language?: string;
   publisher?: string;
   isbn?: string;
+  format?: "epub" | "pdf";
+  fileName?: string;
+  filePath?: string;
 }): Promise<SeededEbook> {
   const client = getClient();
   await client.connect();
@@ -145,6 +148,10 @@ export async function seedEbook(overrides?: {
     const language = overrides?.language ?? "en";
     const publisher = overrides?.publisher ?? "E2E Publisher";
     const isbn = overrides?.isbn ?? "978-0-123456-78-9";
+    const format = overrides?.format ?? "epub";
+    const fileName =
+      overrides?.fileName ?? (format === "pdf" ? "book.pdf" : "book.epub");
+    const filePath = overrides?.filePath ?? `/fake/e2e/path/${fileName}`;
 
     // Insert ebook
     const ebResult = await client.query(
@@ -158,10 +165,10 @@ export async function seedEbook(overrides?: {
         language,
         publisher,
         isbn,
-        "/fake/e2e/path/book.epub",
-        "book.epub",
+        filePath,
+        fileName,
         5000000,
-        "epub",
+        format,
         "available",
       ],
     );

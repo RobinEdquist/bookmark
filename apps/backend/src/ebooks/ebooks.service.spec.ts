@@ -83,7 +83,9 @@ describe('EbooksService.getCover', () => {
     const select = jest.fn().mockReturnValue(selectQuery);
     const db = { select } as any;
 
-    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const pngBytes = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+    ]);
     const ebookMetadataProvider = {
       extractCoverFromFile: jest.fn().mockResolvedValue({
         data: pngBytes,
@@ -92,7 +94,11 @@ describe('EbooksService.getCover', () => {
     };
 
     const appDataService = {
-      getEbookCoverPath: jest.fn().mockReturnValue('/tmp/missing-cover.jpg'),
+      getEbookCoverPath: jest
+        .fn()
+        .mockReturnValue(
+          `/tmp/bookmark-no-cover-${Date.now()}-${Math.random()}.jpg`,
+        ),
     };
 
     const service = new EbooksService(
@@ -116,5 +122,79 @@ describe('EbooksService.getCover', () => {
       '/library/ebooks/Textbook.pdf',
     );
     expect(result).toEqual({ data: pngBytes, mimeType: 'image/png' });
+  });
+});
+
+describe('EbooksService.getDownloadInfo', () => {
+  it('returns application/pdf and original filename for PDF ebooks', async () => {
+    const selectQuery = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([
+        {
+          filePath: 'Author/Textbook.pdf',
+          fileName: 'Textbook.pdf',
+          sizeBytes: 12345,
+          format: 'pdf',
+        },
+      ]),
+    };
+    const select = jest.fn().mockReturnValue(selectQuery);
+    const db = { select } as any;
+    const service = new EbooksService(
+      db,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    jest
+      .spyOn(service as any, 'resolveFilePath')
+      .mockResolvedValue('/library/ebooks/Author/Textbook.pdf');
+
+    const result = await service.getDownloadInfo('ebook-pdf-1');
+
+    expect(result).toEqual({
+      filePath: '/library/ebooks/Author/Textbook.pdf',
+      fileName: 'Textbook.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 12345,
+    });
+  });
+
+  it('returns application/epub+zip for EPUB ebooks', async () => {
+    const selectQuery = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([
+        {
+          filePath: 'Book.epub',
+          fileName: 'Book.epub',
+          sizeBytes: 99,
+          format: 'epub',
+        },
+      ]),
+    };
+    const select = jest.fn().mockReturnValue(selectQuery);
+    const db = { select } as any;
+    const service = new EbooksService(
+      db,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+      {} as any,
+    );
+
+    jest
+      .spyOn(service as any, 'resolveFilePath')
+      .mockResolvedValue('/library/ebooks/Book.epub');
+
+    const result = await service.getDownloadInfo('ebook-epub-1');
+    expect(result.mimeType).toBe('application/epub+zip');
   });
 });

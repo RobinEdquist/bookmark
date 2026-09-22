@@ -32,6 +32,7 @@ import {
   PDF_ZOOM_MAX,
   PDF_ZOOM_MIN,
   parsePdfLocator,
+  formatPdfLocator,
 } from "./pdf-reader-layout";
 
 export { parsePdfLocator } from "./pdf-reader-layout";
@@ -137,7 +138,7 @@ export function PdfReader({
       goToHref: () => {},
     };
     onRelocateRef.current({
-      locator: `page:${page}`,
+      locator: formatPdfLocator(page),
       fraction: page / numPages,
       pageLabel: `${page} / ${numPages}`,
     });
@@ -152,6 +153,7 @@ export function PdfReader({
   const handleLoadSuccess = useCallback(
     ({ numPages: total }: { numPages: number }) => {
       setNumPages(total);
+      // Clamp restored/out-of-range pages once the real page count is known.
       setPage((current) => clampPage(current, total));
       onReadyRef.current([]);
     },
@@ -160,9 +162,7 @@ export function PdfReader({
 
   const handleLoadError = useCallback(
     (error: Error) => {
-      onErrorRef.current(
-        new Error(t("reader.pdfLoadError"), { cause: error }),
-      );
+      onErrorRef.current(new Error(t("reader.pdfLoadError"), { cause: error }));
     },
     [onErrorRef, t],
   );
@@ -215,7 +215,11 @@ export function PdfReader({
   return (
     <div className="flex h-full w-full flex-col">
       <div className="z-10 flex shrink-0 flex-wrap items-center justify-center gap-1 border-b bg-background/95 px-2 py-1 backdrop-blur">
-        <div className="flex items-center gap-0.5" role="group" aria-label={t("reader.fitMode")}>
+        <div
+          className="flex items-center gap-0.5"
+          role="group"
+          aria-label={t("reader.fitMode")}
+        >
           <Button
             type="button"
             variant={fitMode === "page" ? "secondary" : "ghost"}
@@ -248,7 +252,11 @@ export function PdfReader({
 
         <div className="mx-1 h-4 w-px bg-border" aria-hidden />
 
-        <div className="flex items-center gap-0.5" role="group" aria-label={t("reader.zoom")}>
+        <div
+          className="flex items-center gap-0.5"
+          role="group"
+          aria-label={t("reader.zoom")}
+        >
           <Button
             type="button"
             variant="ghost"

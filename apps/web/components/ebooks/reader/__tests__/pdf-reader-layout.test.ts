@@ -10,6 +10,9 @@ import {
   PDF_ZOOM_MAX,
   PDF_ZOOM_MIN,
   parsePdfLocator,
+  resolveInitialPdfPage,
+  formatPdfLocator,
+  pdfProgressPercent,
 } from "../pdf-reader-layout";
 
 describe("clampPage", () => {
@@ -84,5 +87,23 @@ describe("parsePdfLocator", () => {
     expect(parsePdfLocator("page:0")).toBeNull();
     expect(parsePdfLocator("epubcfi(/6/2)")).toBeNull();
     expect(parsePdfLocator(null)).toBeNull();
+  });
+});
+
+describe("resolveInitialPdfPage / formatPdfLocator / pdfProgressPercent", () => {
+  it("falls back to page 1 for null, invalid, or out-of-range locators", () => {
+    expect(resolveInitialPdfPage(null, 10)).toBe(1);
+    expect(resolveInitialPdfPage("epubcfi(/6/2)", 10)).toBe(1);
+    expect(resolveInitialPdfPage("page:0", 10)).toBe(1);
+    expect(resolveInitialPdfPage("page:99", 10)).toBe(10);
+    expect(resolveInitialPdfPage("page:1", 1)).toBe(1);
+    expect(resolveInitialPdfPage("page:5", 1)).toBe(1);
+  });
+
+  it("formats locators and percent for first/last/single-page books", () => {
+    expect(formatPdfLocator(3)).toBe("page:3");
+    expect(pdfProgressPercent(1, 1)).toBe(100);
+    expect(pdfProgressPercent(1, 4)).toBe(25);
+    expect(pdfProgressPercent(4, 4)).toBe(100);
   });
 });

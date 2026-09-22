@@ -742,6 +742,27 @@ describe('MediaImporterService', () => {
         'IMPORT_FAILED',
       );
     });
+
+    it('matches completed PDF ebook requests by filename via tryMatchImport', async () => {
+      deps.ebookMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        title: 'Requested PDF',
+        authors: [],
+        pageCount: 10,
+      });
+      deps.requestsService.tryMatchImport.mockResolvedValueOnce(true);
+
+      const unit = makeEbookUnit({
+        path: '/library/ebooks/Requested.Book.pdf',
+        fileName: 'Requested.Book.pdf',
+      });
+      await service.importEbook(unit, '/library/ebooks');
+
+      expect(deps.requestsService.tryMatchImport).toHaveBeenCalledWith(
+        'Requested.Book.pdf',
+        'new-id',
+        'ebook',
+      );
+    });
   });
 
   // ------------------------------------------------------------------

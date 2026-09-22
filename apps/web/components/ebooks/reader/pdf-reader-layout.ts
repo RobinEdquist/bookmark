@@ -16,7 +16,10 @@ export function clampPage(target: number, numPages: number): number {
 export function clampZoom(zoom: number): number {
   if (!Number.isFinite(zoom)) return PDF_ZOOM_DEFAULT;
   const stepped = Math.round(zoom / PDF_ZOOM_STEP) * PDF_ZOOM_STEP;
-  return Math.min(PDF_ZOOM_MAX, Math.max(PDF_ZOOM_MIN, Number(stepped.toFixed(2))));
+  return Math.min(
+    PDF_ZOOM_MAX,
+    Math.max(PDF_ZOOM_MIN, Number(stepped.toFixed(2))),
+  );
 }
 
 export function stepZoom(zoom: number, direction: 1 | -1): number {
@@ -51,10 +54,7 @@ export function applyZoomToPageSize(
   return { height: base.height * z };
 }
 
-export function parsePageInput(
-  raw: string,
-  numPages: number,
-): number | null {
+export function parsePageInput(raw: string, numPages: number): number | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
   const n = Number.parseInt(trimmed, 10);
@@ -73,3 +73,28 @@ export function parsePdfLocator(locator: string | null): number | null {
   return Number.isNaN(page) || page < 1 ? null : page;
 }
 
+/**
+ * Resolve a saved locator against the loaded page count.
+ * Invalid / out-of-range / null locators fall back to page 1.
+ * Single-page books always resolve to 1.
+ */
+export function resolveInitialPdfPage(
+  locator: string | null,
+  numPages: number,
+): number {
+  const parsed = parsePdfLocator(locator);
+  if (parsed == null) return 1;
+  return clampPage(parsed, numPages);
+}
+
+/** Build the opaque progress locator stored in `cfi` for PDF ebooks. */
+export function formatPdfLocator(page: number): string {
+  return `page:${Math.max(1, Math.trunc(page))}`;
+}
+
+/** Progress percent 0-100 from 1-based page and total pages. */
+export function pdfProgressPercent(page: number, numPages: number): number {
+  const pages = Math.max(1, numPages || 1);
+  const current = clampPage(page, pages);
+  return Math.round((current / pages) * 100);
+}

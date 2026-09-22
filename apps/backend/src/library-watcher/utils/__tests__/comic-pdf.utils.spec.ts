@@ -78,7 +78,6 @@ describe('readComicPdf', () => {
     expect(result.authors).toBeUndefined();
     expect(result.subject).toBeUndefined();
   });
-
 });
 
 describe('formatPdfLoadError', () => {
@@ -106,5 +105,20 @@ describe('readComicPdfPage', () => {
   it('returns null for an out-of-range page index', async () => {
     expect(await readComicPdfPage(pdfPath, 9999)).toBeNull();
     expect(await readComicPdfPage(pdfPath, -1)).toBeNull();
+  });
+});
+
+describe('PDF Info metadata (non-Latin)', () => {
+  it('preserves non-Latin title and author from Info dictionary', async () => {
+    const doc = await PDFDocument.create();
+    doc.setTitle('日本語のタイトル');
+    doc.setAuthor('Anders Ångström');
+    doc.addPage([200, 300]);
+    const pathPdf = path.join(tmpDir, 'non-latin.pdf');
+    await fs.writeFile(pathPdf, await doc.save());
+
+    const result = await readComicPdf(pathPdf);
+    expect(result.title).toBe('日本語のタイトル');
+    expect(result.authors).toEqual(['Anders Ångström']);
   });
 });

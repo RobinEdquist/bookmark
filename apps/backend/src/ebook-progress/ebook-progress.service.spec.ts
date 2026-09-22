@@ -310,6 +310,56 @@ describe('EbookProgressService', () => {
       expect(valuesArg.cfi).toBe(cfi);
     });
 
+    it('persists PDF page:N locators in cfi with progress percent', async () => {
+      const cfi = 'page:12';
+      const row = makeProgressRow({ cfi, progressPercent: 40 });
+      const { insert } = buildInsertChain(row);
+      const selectQuery = buildEbookSelect([{ id: 'ebook-pdf-1' }]);
+
+      const db = createMockDb({
+        insert,
+        select: jest.fn().mockReturnValue(selectQuery),
+      });
+
+      const service = new EbookProgressService(db, createMetadataResolver());
+      const result = await service.updateProgress('user-1', 'ebook-pdf-1', {
+        progressPercent: 40,
+        cfi,
+      });
+
+      const valuesArg = insert.mock.results[0].value.values.mock.calls[0][0];
+      expect(valuesArg.cfi).toBe('page:12');
+      expect(valuesArg.progressPercent).toBe(40);
+      expect(result.cfi).toBe('page:12');
+      expect(result.progressPercent).toBe(40);
+    });
+
+    it('marks PDF progress completed at >= 95% (last pages)', async () => {
+      const cfi = 'page:100';
+      const row = makeProgressRow({
+        cfi,
+        progressPercent: 100,
+        completed: true,
+      });
+      const { insert } = buildInsertChain(row);
+      const selectQuery = buildEbookSelect([{ id: 'ebook-pdf-1' }]);
+
+      const db = createMockDb({
+        insert,
+        select: jest.fn().mockReturnValue(selectQuery),
+      });
+
+      const service = new EbookProgressService(db, createMetadataResolver());
+      await service.updateProgress('user-1', 'ebook-pdf-1', {
+        progressPercent: 100,
+        cfi,
+      });
+
+      const valuesArg = insert.mock.results[0].value.values.mock.calls[0][0];
+      expect(valuesArg.completed).toBe(true);
+      expect(valuesArg.cfi).toBe('page:100');
+    });
+
     it('passes null cfi when not provided in dto', async () => {
       const row = makeProgressRow({ cfi: null });
       const { insert } = buildInsertChain(row);
