@@ -66,3 +66,55 @@ describe('EbooksService', () => {
     });
   });
 });
+
+describe('EbooksService.getCover', () => {
+  it('returns image/png MIME for PDF cover extracted on cache miss', async () => {
+    const selectQuery = {
+      from: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue([
+        {
+          filePath: 'Textbook.pdf',
+          coverSource: 'embedded',
+          coverUrl: null,
+        },
+      ]),
+    };
+    const select = jest.fn().mockReturnValue(selectQuery);
+    const db = { select } as any;
+
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const ebookMetadataProvider = {
+      extractCoverFromFile: jest.fn().mockResolvedValue({
+        data: pngBytes,
+        mimeType: 'image/png',
+      }),
+    };
+
+    const appDataService = {
+      getEbookCoverPath: jest.fn().mockReturnValue('/tmp/missing-cover.jpg'),
+    };
+
+    const service = new EbooksService(
+      db,
+      {} as any,
+      {} as any,
+      appDataService as any,
+      ebookMetadataProvider as any,
+      {} as any,
+      {} as any,
+    );
+
+    // resolveFilePath needs library path from settings — stub the private path
+    jest
+      .spyOn(service as any, 'resolveFilePath')
+      .mockResolvedValue('/library/ebooks/Textbook.pdf');
+
+    const result = await service.getCover('ebook-pdf-1');
+
+    expect(ebookMetadataProvider.extractCoverFromFile).toHaveBeenCalledWith(
+      '/library/ebooks/Textbook.pdf',
+    );
+    expect(result).toEqual({ data: pngBytes, mimeType: 'image/png' });
+  });
+});

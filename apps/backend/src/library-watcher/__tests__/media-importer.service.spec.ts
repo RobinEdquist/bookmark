@@ -678,6 +678,70 @@ describe('MediaImporterService', () => {
         'ebook',
       );
     });
+
+    it('persists format epub for .epub files', async () => {
+      await service.importEbook(makeEbookUnit(), '/library/ebooks');
+
+      const insertValues = db._chains.insert.values.mock.calls[0][0];
+      expect(insertValues.format).toBe('epub');
+    });
+
+    it('persists format pdf for .pdf files and stores page count', async () => {
+      deps.ebookMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        title: 'PDF Textbook',
+        authors: ['Ada Lovelace'],
+        pageCount: 42,
+        cover: { data: Buffer.from('img'), mimeType: 'image/png' },
+      });
+
+      const unit = makeEbookUnit({
+        path: '/library/ebooks/Textbook.pdf',
+        fileName: 'Textbook.pdf',
+      });
+      await service.importEbook(unit, '/library/ebooks');
+
+      const insertValues = db._chains.insert.values.mock.calls[0][0];
+      expect(insertValues.format).toBe('pdf');
+      expect(insertValues.pageCount).toBe(42);
+      expect(insertValues.title).toBe('PDF Textbook');
+      expect(insertValues.coverSource).toBe('embedded');
+    });
+
+    it('persists format pdf for uppercase .PDF extension', async () => {
+      deps.ebookMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        title: 'Scanned Book',
+        authors: [],
+        pageCount: 10,
+      });
+
+      const unit = makeEbookUnit({
+        path: '/library/ebooks/Scanned.PDF',
+        fileName: 'Scanned.PDF',
+      });
+      await service.importEbook(unit, '/library/ebooks');
+
+      const insertValues = db._chains.insert.values.mock.calls[0][0];
+      expect(insertValues.format).toBe('pdf');
+    });
+
+    it('records import error when PDF metadata extraction fails', async () => {
+      deps.ebookMetadataProvider.extractMetadata.mockRejectedValueOnce(
+        new Error('PDF requires a password and cannot be imported'),
+      );
+
+      const unit = makeEbookUnit({
+        path: '/library/ebooks/Secret.pdf',
+        fileName: 'Secret.pdf',
+      });
+      const result = await service.importEbook(unit, '/library/ebooks');
+
+      expect(result).toBeNull();
+      expect(deps.importErrorsService.recordError).toHaveBeenCalledWith(
+        '/library/ebooks/Secret.pdf',
+        expect.any(Error),
+        'IMPORT_FAILED',
+      );
+    });
   });
 
   // ------------------------------------------------------------------
