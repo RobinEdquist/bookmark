@@ -337,6 +337,7 @@ export interface TrackerSearchResultDto {
   existingRequestStatus: RequestStatus | null;
   existingRequestIsMine: boolean;
   inLibrary: boolean;
+  libraryMatch?: 'confirmed' | 'possible' | null;
   libraryItemId: string | null;
 }
 
