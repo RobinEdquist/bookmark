@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Calendar,
   Tag,
@@ -257,8 +258,16 @@ export function RequestDetailPanel({
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
                   >
-                    <Button variant="outline" disabled className="w-full">
-                      {t("button.inLibrary")}
+                    <Button variant="outline" className="w-full" asChild>
+                      <Link
+                        href={
+                          item.libraryItemId
+                            ? `${item.contentType === "ebook" ? "/ebooks" : "/audiobooks"}/${item.libraryItemId}`
+                            : "#"
+                        }
+                      >
+                        {t("button.inLibrary")}
+                      </Link>
                     </Button>
                   </motion.div>
                 ) : item.existingRequestId ? (

@@ -13,10 +13,14 @@ import { ComicMetadataProvider } from './metadata/comic-metadata.provider';
 import { MetadataWorkerPoolService } from './metadata/metadata-worker-pool.service';
 import { HardcoverModule } from '../hardcover/hardcover.module';
 import { ComicvineModule } from '../comicvine/comicvine.module';
-import { RequestsModule } from '../requests';
+import { RequestsModule } from '../requests/requests.module';
 
 @Module({
-  imports: [HardcoverModule, forwardRef(() => ComicvineModule), RequestsModule],
+  imports: [
+    HardcoverModule,
+    forwardRef(() => ComicvineModule),
+    forwardRef(() => RequestsModule),
+  ],
   controllers: [LibraryWatcherController],
   providers: [
     LibraryWatcherService,

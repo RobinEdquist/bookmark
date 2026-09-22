@@ -24,7 +24,7 @@ import {
   EbookUnit,
   ComicSeriesUnit,
 } from './media-detector.service';
-import { RequestsService } from '../requests';
+import { RequestsService } from '../requests/requests.service';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import {
   calculateAudiobookPaths,

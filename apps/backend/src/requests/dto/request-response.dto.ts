@@ -215,6 +215,14 @@ export class TrackerSearchResultItemDto {
   inLibrary!: boolean;
 
   @ApiPropertyOptional({
+    enum: ['confirmed', 'possible'],
+    nullable: true,
+    description:
+      'confirmed is an exact same-medium title match and sets inLibrary. possible is a suggestion and does not block requesting.',
+  })
+  libraryMatch?: 'confirmed' | 'possible' | null;
+
+  @ApiPropertyOptional({
     type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
@@ -329,6 +337,7 @@ export interface TrackerSearchResultDto {
   existingRequestStatus: RequestStatus | null;
   existingRequestIsMine: boolean;
   inLibrary: boolean;
+  libraryMatch?: 'confirmed' | 'possible' | null;
   libraryItemId: string | null;
 }
 

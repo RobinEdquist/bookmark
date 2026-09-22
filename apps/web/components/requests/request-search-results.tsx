@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronRight, Calendar, Tag, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import DOMPurify from "dompurify";
@@ -31,6 +32,12 @@ interface RequestSearchResultsProps {
   onSupport: (requestId: string) => void;
   isRequesting: boolean;
   isSupporting: boolean;
+}
+
+function libraryHref(item: TrackerSearchResult): string | null {
+  if (!item.libraryItemId) return null;
+  const prefix = item.contentType === "ebook" ? "/ebooks" : "/audiobooks";
+  return `${prefix}/${item.libraryItemId}`;
 }
 
 function formatDate(dateString: string): string {
@@ -240,8 +247,10 @@ export function RequestSearchResults({
                             bounce: 0.2,
                           }}
                         >
-                          <Button variant="outline" disabled size="sm">
-                            {t("button.inLibrary")}
+                          <Button variant="outline" size="sm" asChild>
+                            <Link href={libraryHref(item) ?? "#"}>
+                              {t("button.inLibrary")}
+                            </Link>
                           </Button>
                         </motion.div>
                       ) : item.existingRequestId ? (
@@ -427,8 +436,10 @@ export function RequestSearchResults({
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                           >
-                            <Button variant="outline" disabled size="sm">
-                              {t("button.inLibrary")}
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={libraryHref(item) ?? "#"}>
+                                {t("button.inLibrary")}
+                              </Link>
                             </Button>
                           </motion.div>
                         ) : item.existingRequestId ? (
