@@ -10,6 +10,7 @@ export default [
       "lib/foliate-js/**",
       "public/pdf.worker.min.mjs",
       "public/pdfjs/**",
+      "scripts/**",
     ],
   },
 ];
