@@ -388,12 +388,47 @@ export class RequestsService {
     return this.getRequestById(id, null);
   }
 
+  /**
+   * Claims the request, submits the download, and records the returned hash
+   * before any optional status enrichment. A failed status lookup must not
+   * leave a running transfer attached to a still-pending request — that is
+   * what lets a later approval submit it again.
+   *
+   * The claim is conditional on `status = pending` and commits before the
+   * module is called, so concurrent approvals cannot both pass the check.
+   * The database transaction is not held open across the network calls.
+   * Download failures leave the request approved without a hash (do not
+   * release the claim / re-submit blindly).
+   */
   private async performApproval(
     request: typeof requestsSchema.requests.$inferSelect,
     autoApprovedByUserId: string | null,
   ): Promise<void> {
-    // Get configurable category names from settings
+    // Settings are local. Read them before claiming so a settings failure
+    // leaves the request pending and retryable. The claim itself commits
+    // before the module is called and is not held open across that call.
     const categories = await this.appSettingsService.getRequestsCategories();
+    const settings = await this.appSettingsService.getSettings();
+
+    const claimed = await this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(requestsSchema.requests)
+        .set({ status: 'approved', autoApprovedByUserId })
+        .where(
+          and(
+            eq(requestsSchema.requests.id, request.id),
+            eq(requestsSchema.requests.status, 'pending'),
+          ),
+        )
+        .returning({ id: requestsSchema.requests.id });
+      return row ?? null;
+    });
+
+    if (!claimed) {
+      throw new BadRequestException(
+        'Request is no longer pending and was not submitted',
+      );
+    }
 
     // Determine download-client category based on content type
     let category: string;
@@ -405,31 +440,51 @@ export class RequestsService {
       category = categories.ebook;
     }
 
-    // Check if freeleech credits should be used
-    const settings = await this.appSettingsService.getSettings();
     const usePersonalFL = settings.requestsUseFreeleech;
 
-    // Start download via tracker client
-    const downloadResult = await this.tracker.download(request.torrentId, {
-      category,
-      usePersonalFL: usePersonalFL || undefined,
-    });
+    // Once this call is made the outcome may be unknown (timeout, lost
+    // response). Prefer a stuck approved row with no hash over releasing the
+    // claim — releasing reopens double-submit if the module already accepted.
+    let downloadResult: Awaited<ReturnType<TrackerService['download']>>;
+    try {
+      downloadResult = await this.tracker.download(request.torrentId, {
+        category,
+        usePersonalFL: usePersonalFL || undefined,
+      });
+    } catch (error) {
+      this.logger.error(
+        `Download failed for request ${request.id} after claim; left approved without hash (do not re-submit blindly): ${error}`,
+      );
+      throw error;
+    }
 
-    // Get torrent info to cache folder name
-    const torrentStatus = await this.tracker.getTorrentStatus(
-      downloadResult.hash,
-    );
-
-    // Update request with hash, folder name, and auto-approval info
+    // Persist the hash before optional status enrichment. If this write fails,
+    // do not call status — the download already exists and must stay tracked
+    // by the next successful write, not by another submission.
     await this.db
       .update(requestsSchema.requests)
-      .set({
-        status: 'approved',
-        torrentHash: downloadResult.hash,
-        folderName: torrentStatus.name,
-        autoApprovedByUserId,
-      })
+      .set({ torrentHash: downloadResult.hash })
       .where(eq(requestsSchema.requests.id, request.id));
+
+    // Folder name is required for import matching, but a failure here must not
+    // erase the hash. The poller fills folderName from a later bulk status.
+    try {
+      const torrentStatus = await this.tracker.getTorrentStatus(
+        downloadResult.hash,
+      );
+      if (torrentStatus.name) {
+        await this.db
+          .update(requestsSchema.requests)
+          .set({ folderName: torrentStatus.name })
+          .where(eq(requestsSchema.requests.id, request.id));
+      }
+    } catch (error) {
+      this.logger.error(
+        `Download ${downloadResult.hash} started for request ${request.id}, but status lookup failed: ${error}`,
+      );
+      // Hash is already persisted; the poller backfills folderName. Do not
+      // fail the approval — the transfer is tracked.
+    }
   }
 
   async rejectRequest(
@@ -511,6 +566,12 @@ export class RequestsService {
           this.logger.log(
             `Torrent ${request.torrentHash} reappeared for request ${request.id}`,
           );
+        }
+
+        // A status lookup that failed during approval leaves folderName empty.
+        // Import matching needs it, and this poll is the later read that has it.
+        if (!request.folderName && torrentStatus.name) {
+          updates.folderName = torrentStatus.name;
         }
 
         if (Object.keys(updates).length > 0) {

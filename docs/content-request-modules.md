@@ -164,7 +164,7 @@ Status object (single endpoint returns one; bulk returns `{ "torrents": [ … ] 
 
 - `hash`, `name`, `state`, `progress` are required. `progress` is a 0–1 fraction.
 - `state` is a free-form string. The **only value Bookmark interprets** is `"not_found"`, meaning the download job no longer exists — return it in bulk responses for unknown hashes rather than omitting them (Bookmark logs a warning and leaves the request untouched). Every other state means "the job exists" and moves the request to _downloading_. Conventional values (`downloading`, `stalledDL`, `pausedDL`, `uploading`, `completed`, `seeding`, `error`, …) are listed in the OpenAPI spec for interoperability.
-- For the single endpoint, an unknown hash may return 404 — but note that Bookmark treats any non-2xx during approval as a failed approval.
+- For the single endpoint, an unknown hash may return 404. Bookmark stores the `hash` from `/download` before this call, so a non-2xx here does not un-approve the request or submit it again. The next bulk poll caches `name` if this call failed. Still resolve a hash you just returned; without `name`, import matching cannot complete the request.
 
 ### `GET /image/{torrentId}`
 
@@ -192,7 +192,7 @@ Matching is deliberately **content-type agnostic**: Bookmark compares folder nam
 
 1. User searches → Bookmark calls `POST /search` and shows results.
 2. User requests an item → stored in Bookmark as _pending_ (or auto-approved if the user has weekly auto-approve budget).
-3. Admin approves → `POST /download/{id}` with the configured `category` → your module returns a `hash` → Bookmark calls `GET /torrent/{hash}` and caches `name`. Request becomes _approved_.
+3. Admin approves → Bookmark marks the request _approved_ before calling the module, then `POST /download/{id}` with the configured `category`. Your module returns a `hash`, which Bookmark stores immediately. It then calls `GET /torrent/{hash}` and caches `name`. A failed status call leaves the request approved with its hash; it is not submitted again.
 4. A scheduler polls `GET /torrents?hashes=…`; any state other than `not_found` moves the request to _downloading_.
 5. Your module finishes the download into the watched import directory.
 6. Bookmark's library watcher imports the item, matches the folder name, links the library item to the request, and marks it _complete_.

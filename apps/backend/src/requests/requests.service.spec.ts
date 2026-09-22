@@ -28,14 +28,27 @@ function chainMock(resolvedValue: any = []) {
   return self;
 }
 
+/** Update chain whose `.returning()` yields one claimed row. */
+function claimedUpdateChain() {
+  const chain = chainMock([]);
+  chain.returning.mockReturnValue(Promise.resolve([{ id: 'req-1' }]));
+  return chain;
+}
+
 function createMockDb(overrides: Record<string, any> = {}) {
-  return {
+  const db = {
     select: jest.fn(),
     insert: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
     ...overrides,
   } as any;
+  // Default: a transaction is just the same mock db, so claim/update assertions
+  // keep working when approval moves its writes inside one.
+  if (!db.transaction) {
+    db.transaction = jest.fn(async (cb: (tx: any) => Promise<any>) => cb(db));
+  }
+  return db;
 }
 
 const NOW = new Date('2026-01-15T12:00:00.000Z');
@@ -510,6 +523,35 @@ describe('RequestsService', () => {
 
       expect(db.update).not.toHaveBeenCalled();
     });
+
+    it('fills a missing folder name from a later bulk status', async () => {
+      const { service, updateChain } = setup(
+        [
+          buildRequest({
+            status: 'approved',
+            torrentHash: 'abc123',
+            folderName: null,
+          }),
+        ],
+        [
+          {
+            hash: 'abc123',
+            name: 'Test Folder',
+            state: 'downloading',
+            progress: 0.1,
+          },
+        ],
+      );
+
+      await service.updateDownloadingStatuses();
+
+      expect(updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'downloading',
+          folderName: 'Test Folder',
+        }),
+      );
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -518,7 +560,7 @@ describe('RequestsService', () => {
   describe('approveRequest', () => {
     it('approves a pending request and starts download', async () => {
       const request = buildRequest({ status: 'pending' });
-      const updateChain = chainMock([]);
+      const updateChain = claimedUpdateChain();
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
@@ -593,7 +635,7 @@ describe('RequestsService', () => {
         status: 'pending',
         contentType: 'comics',
       });
-      const updateChain = chainMock([]);
+      const updateChain = claimedUpdateChain();
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
@@ -629,7 +671,7 @@ describe('RequestsService', () => {
         contentType: 'ebook',
         categoryId: 14,
       });
-      const updateChain = chainMock([]);
+      const updateChain = claimedUpdateChain();
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
@@ -659,9 +701,110 @@ describe('RequestsService', () => {
       );
     });
 
+    it('keeps the download hash when the post-submit status fetch fails', async () => {
+      const request = buildRequest({ status: 'pending' });
+      const updateChain = claimedUpdateChain();
+
+      const tracker = createMockTracker();
+      tracker.download.mockResolvedValue({ hash: 'abc123' });
+      tracker.getTorrentStatus.mockRejectedValue(new Error('status timeout'));
+
+      const approvedRequest = buildRequest({
+        status: 'approved',
+        torrentHash: 'abc123',
+      });
+      const db = createSequentialSelectDb(
+        [[request], [approvedRequest], [{ email: 'user@test.com' }], []],
+        {
+          update: jest.fn().mockReturnValue(updateChain),
+        },
+      );
+
+      const service = new RequestsService(db, tracker, createMockAppSettings());
+
+      // Status enrichment is best-effort; the poller backfills folderName.
+      // Approval must still succeed once the hash is durable.
+      await expect(service.approveRequest('req-1')).resolves.toMatchObject({
+        id: 'req-1',
+      });
+
+      // The hash must already be durable before the status lookup, and the
+      // request must no longer be pending, so a later approval cannot submit
+      // the same torrent again. Claim and hash are separate writes: the claim
+      // commits before the module is called.
+      const persisted = updateChain.set.mock.calls.map((call) => call[0]);
+      expect(persisted).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ status: 'approved' }),
+          expect.objectContaining({ torrentHash: 'abc123' }),
+        ]),
+      );
+      const hashWrite = persisted.findIndex(
+        (row) => row.torrentHash === 'abc123',
+      );
+      const statusCallOrder =
+        tracker.getTorrentStatus.mock.invocationCallOrder[0];
+      const hashWriteOrder =
+        updateChain.set.mock.invocationCallOrder[hashWrite];
+      expect(hashWriteOrder).toBeLessThan(statusCallOrder);
+      expect(tracker.download).toHaveBeenCalledTimes(1);
+      expect(tracker.getTorrentStatus).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not submit a download when the approval claim is lost', async () => {
+      const request = buildRequest({ status: 'pending' });
+      const lostClaim = chainMock([]);
+
+      const tracker = createMockTracker();
+      tracker.download.mockResolvedValue({ hash: 'abc123' });
+
+      const db = createSequentialSelectDb([[request]], {
+        update: jest.fn().mockReturnValue(lostClaim),
+      });
+
+      const service = new RequestsService(db, tracker, createMockAppSettings());
+
+      await expect(service.approveRequest('req-1')).rejects.toBeInstanceOf(
+        BadRequestException,
+      );
+      expect(tracker.download).not.toHaveBeenCalled();
+    });
+
+    it('leaves the request approved when download fails after the claim', async () => {
+      const request = buildRequest({ status: 'pending' });
+      const updateChain = claimedUpdateChain();
+
+      const tracker = createMockTracker();
+      tracker.download.mockRejectedValue(new Error('download timeout'));
+
+      const db = createSequentialSelectDb([[request]], {
+        update: jest.fn().mockReturnValue(updateChain),
+      });
+
+      const service = new RequestsService(db, tracker, createMockAppSettings());
+
+      await expect(service.approveRequest('req-1')).rejects.toThrow(
+        'download timeout',
+      );
+
+      // Prefer stuck approved (no hash) over releasing the claim — releasing
+      // would reopen double-submit if the module already accepted.
+      expect(tracker.download).toHaveBeenCalledTimes(1);
+      expect(tracker.getTorrentStatus).not.toHaveBeenCalled();
+      const persisted = updateChain.set.mock.calls.map((call) => call[0]);
+      expect(persisted).toEqual([
+        expect.objectContaining({ status: 'approved' }),
+      ]);
+      expect(persisted).not.toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ status: 'pending' }),
+        ]),
+      );
+    });
+
     it('uses freeleech when setting is enabled', async () => {
       const request = buildRequest({ status: 'pending' });
-      const updateChain = chainMock([]);
+      const updateChain = claimedUpdateChain();
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
