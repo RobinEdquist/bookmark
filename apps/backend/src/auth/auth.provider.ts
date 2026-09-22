@@ -155,6 +155,12 @@ export function createAuthInstance(
                   // and the discovered issuer, and lets
                   // AccountIssuerBackfillService backfill pre-1.7 rows with
                   // a value we know matches sign-in lookups exactly.
+                  //
+                  // Keep better-auth / @better-auth/api-key on 1.7.2 until a
+                  // later release restores an equivalent pin API: 1.7.5
+                  // removed `accountIssuer` and only uses the discovered
+                  // issuer, which can diverge from OIDC_ISSUER_URL and break
+                  // account lookups / cause duplicate users.
                   accountIssuer: oidcConfig.issuerUrl,
                 },
               ],
