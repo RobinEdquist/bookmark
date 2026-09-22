@@ -6,7 +6,13 @@
  *
  * Run from apps/web (pnpm copy-pdfjs-assets) or via prebuild/build.
  */
-import { cpSync, mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";

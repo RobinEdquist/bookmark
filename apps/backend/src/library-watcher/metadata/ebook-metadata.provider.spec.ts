@@ -12,7 +12,9 @@ describe('EbookMetadataProvider', () => {
   it('rethrows PDF metadata failures instead of filename fallback', async () => {
     const executeTask = jest
       .fn()
-      .mockRejectedValue(new Error('PDF requires a password and cannot be imported'));
+      .mockRejectedValue(
+        new Error('PDF requires a password and cannot be imported'),
+      );
     const provider = buildProvider(executeTask);
 
     await expect(
@@ -26,7 +28,9 @@ describe('EbookMetadataProvider', () => {
       .mockRejectedValue(new Error('epub parse failed'));
     const provider = buildProvider(executeTask);
 
-    const result = await provider.extractMetadata('/library/ebooks/Broken.epub');
+    const result = await provider.extractMetadata(
+      '/library/ebooks/Broken.epub',
+    );
     expect(result).toEqual({ title: 'Broken', authors: [] });
   });
 
@@ -38,7 +42,9 @@ describe('EbookMetadataProvider', () => {
     });
     const provider = buildProvider(executeTask);
 
-    const result = await provider.extractCoverFromFile('/library/ebooks/Book.pdf');
+    const result = await provider.extractCoverFromFile(
+      '/library/ebooks/Book.pdf',
+    );
     expect(result?.mimeType).toBe('image/png');
     expect(Buffer.isBuffer(result?.data)).toBe(true);
   });

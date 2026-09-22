@@ -122,7 +122,6 @@ export interface ComicPdfContents {
   subject?: string;
 }
 
-
 function parsePdfInfoAuthors(author: unknown): string[] {
   if (typeof author !== 'string' || !author.trim()) return [];
   return author

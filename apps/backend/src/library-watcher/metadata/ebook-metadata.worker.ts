@@ -145,7 +145,6 @@ async function extractCoverFromEpub(
   });
 }
 
-
 function isPdfPath(filePath: string): boolean {
   return path.extname(filePath).toLowerCase() === '.pdf';
 }

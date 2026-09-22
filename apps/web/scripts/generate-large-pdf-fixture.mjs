@@ -9,7 +9,11 @@ const backendScript = resolve(
   here,
   "../../backend/scripts/generate-large-pdf-fixture.mjs",
 );
-const result = spawnSync(process.execPath, [backendScript, ...process.argv.slice(2)], {
-  stdio: "inherit",
-});
+const result = spawnSync(
+  process.execPath,
+  [backendScript, ...process.argv.slice(2)],
+  {
+    stdio: "inherit",
+  },
+);
 process.exit(result.status ?? 1);

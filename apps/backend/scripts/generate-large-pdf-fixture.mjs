@@ -11,16 +11,16 @@
  *
  * Default: /tmp/bookmark-large-ebook.pdf (not committed to git).
  */
-import { writeFileSync, mkdirSync, statSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
-import { randomFillSync } from "node:crypto";
+import { writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { randomFillSync } from 'node:crypto';
 
 const require = createRequire(fileURLToPath(import.meta.url));
-const { PDFDocument, StandardFonts, rgb } = require("pdf-lib");
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
-const DEFAULT_OUT = "/tmp/bookmark-large-ebook.pdf";
+const DEFAULT_OUT = '/tmp/bookmark-large-ebook.pdf';
 const MIN_PAGES = 300;
 const MIN_BYTES = 50 * 1024 * 1024;
 
@@ -29,8 +29,8 @@ async function main() {
   mkdirSync(dirname(outPath), { recursive: true });
 
   const doc = await PDFDocument.create();
-  doc.setTitle("Bookmark large PDF fixture");
-  doc.setAuthor("Bookmark test harness");
+  doc.setTitle('Bookmark large PDF fixture');
+  doc.setAuthor('Bookmark test harness');
   const font = await doc.embedFont(StandardFonts.Helvetica);
 
   process.stderr.write(`Adding ${MIN_PAGES} pages...\n`);
@@ -63,12 +63,12 @@ async function main() {
   );
   const pad = Buffer.allocUnsafe(padSize);
   randomFillSync(pad);
-  await doc.attach(pad, "padding.bin", {
-    mimeType: "application/octet-stream",
-    description: "Size pad for range-loading / memory tests",
+  await doc.attach(pad, 'padding.bin', {
+    mimeType: 'application/octet-stream',
+    description: 'Size pad for range-loading / memory tests',
   });
 
-  process.stderr.write("Saving PDF...\n");
+  process.stderr.write('Saving PDF...\n');
   const bytes = await doc.save();
   writeFileSync(outPath, bytes);
   const size = statSync(outPath).size;
