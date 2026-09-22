@@ -397,6 +397,8 @@ export class RequestsService {
    * The claim is conditional on `status = pending` and commits before the
    * module is called, so concurrent approvals cannot both pass the check.
    * The database transaction is not held open across the network calls.
+   * Download failures leave the request approved without a hash (do not
+   * release the claim / re-submit blindly).
    */
   private async performApproval(
     request: typeof requestsSchema.requests.$inferSelect,
@@ -441,8 +443,8 @@ export class RequestsService {
     const usePersonalFL = settings.requestsUseFreeleech;
 
     // Once this call is made the outcome may be unknown (timeout, lost
-    // response). Do not move the request back to pending after it — that is
-    // what lets a later approval submit the same torrent again.
+    // response). Prefer a stuck approved row with no hash over releasing the
+    // claim — releasing reopens double-submit if the module already accepted.
     let downloadResult: Awaited<ReturnType<TrackerService['download']>>;
     try {
       downloadResult = await this.tracker.download(request.torrentId, {
@@ -450,9 +452,9 @@ export class RequestsService {
         usePersonalFL: usePersonalFL || undefined,
       });
     } catch (error) {
-      // The module rejected the submission before accepting it. Nothing is
-      // running, so release the claim and let a later approval try again.
-      await this.releaseUnsubmittedClaim(request.id);
+      this.logger.error(
+        `Download failed for request ${request.id} after claim; left approved without hash (do not re-submit blindly): ${error}`,
+      );
       throw error;
     }
 
@@ -480,26 +482,9 @@ export class RequestsService {
       this.logger.error(
         `Download ${downloadResult.hash} started for request ${request.id}, but status lookup failed: ${error}`,
       );
-      throw error;
+      // Hash is already persisted; the poller backfills folderName. Do not
+      // fail the approval — the transfer is tracked.
     }
-  }
-
-  /**
-   * Returns a claimed request to pending only when no download was accepted.
-   * Conditional on a null hash so a concurrent writer that already stored one
-   * cannot be undone.
-   */
-  private async releaseUnsubmittedClaim(requestId: string): Promise<void> {
-    await this.db
-      .update(requestsSchema.requests)
-      .set({ status: 'pending', autoApprovedByUserId: null })
-      .where(
-        and(
-          eq(requestsSchema.requests.id, requestId),
-          eq(requestsSchema.requests.status, 'approved'),
-          isNull(requestsSchema.requests.torrentHash),
-        ),
-      );
   }
 
   async rejectRequest(
