@@ -169,14 +169,16 @@ paths:
       tags: [Downloads]
       summary: Status of a single download
       description: |
-        Bookmark calls this **immediately after** a successful `/download` and
+        Bookmark stores the `hash` from `/download` before this call, then
         stores the returned `name` as the request's folder name for import
         matching. `name` must therefore be the exact, final on-disk name of
         the top-level folder or file the download produces in the import
         directory — from the very first call.
 
-        A non-2xx response during the post-approval call fails the approval,
-        so a hash you just returned from `/download` must resolve here.
+        A non-2xx response does not roll back the approval or cause another
+        `/download`. The next bulk poll caches `name` if this call failed,
+        which import matching needs, so a hash you just returned from
+        `/download` should still resolve here.
       parameters:
         - $ref: "#/components/parameters/Hash"
       responses:
