@@ -248,9 +248,35 @@ describe('MediaDetectorService', () => {
       });
     });
 
-    it('should ignore non-epub files', async () => {
+    it('should detect .pdf and .PDF ebook files case-insensitively', async () => {
       mockedFs.readdir.mockResolvedValueOnce([
         mockDirent('book.pdf', true),
+        mockDirent('SCANNED.PDF', true),
+      ] as any);
+
+      const result = await service.scanLibraryForEbooks('/ebooks');
+      expect(result).toHaveLength(2);
+      expect(result.map((u) => u.fileName).sort()).toEqual([
+        'SCANNED.PDF',
+        'book.pdf',
+      ]);
+    });
+
+    it('should detect nested PDF ebooks', async () => {
+      mockedFs.readdir
+        .mockResolvedValueOnce([mockDirent('Author', false)] as any)
+        .mockResolvedValueOnce([mockDirent('nested.pdf', true)] as any);
+
+      const result = await service.scanLibraryForEbooks('/ebooks');
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual({
+        path: path.join('/ebooks', 'Author', 'nested.pdf'),
+        fileName: 'nested.pdf',
+      });
+    });
+
+    it('should ignore unsupported ebook extensions', async () => {
+      mockedFs.readdir.mockResolvedValueOnce([
         mockDirent('book.mobi', true),
         mockDirent('notes.txt', true),
       ] as any);
@@ -300,10 +326,20 @@ describe('MediaDetectorService', () => {
       });
     });
 
-    it('should return null for non-epub file', async () => {
+    it('should return unit for .pdf file', async () => {
       mockedFs.stat.mockResolvedValueOnce(mockStat({ isFile: true }));
 
       const result = await service.detectEbook('/ebooks/book.pdf');
+      expect(result).toEqual({
+        path: '/ebooks/book.pdf',
+        fileName: 'book.pdf',
+      });
+    });
+
+    it('should return null for unsupported ebook extension', async () => {
+      mockedFs.stat.mockResolvedValueOnce(mockStat({ isFile: true }));
+
+      const result = await service.detectEbook('/ebooks/book.mobi');
       expect(result).toBeNull();
     });
 
@@ -312,6 +348,25 @@ describe('MediaDetectorService', () => {
 
       const result = await service.detectEbook('/ebooks/missing.epub');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('PDF library-type separation', () => {
+    it('ebook and comic scanners both accept PDF; classification follows library type', async () => {
+      mockedFs.readdir.mockResolvedValueOnce([
+        mockDirent('same.pdf', true),
+      ] as any);
+      const ebooks = await service.scanLibraryForEbooks('/ebooks');
+      expect(ebooks).toHaveLength(1);
+      expect(ebooks[0].fileName).toBe('same.pdf');
+
+      mockedFs.readdir.mockResolvedValueOnce([
+        mockDirent('same.pdf', true),
+      ] as any);
+      const comics = await service.scanLibraryForComics('/comics');
+      expect(
+        comics.some((u) => u.books.some((b) => b.fileName === 'same.pdf')),
+      ).toBe(true);
     });
   });
 });

@@ -943,5 +943,42 @@ describe('OpdsService', () => {
       expect(result).toContain(`/${ebook.id}/download`);
       expect(result).toContain('type="application/epub+zip"');
     });
+
+    it('advertises application/pdf for PDF ebooks', async () => {
+      const db = createMockDb();
+      const service = new OpdsService(db as any, createMetadataResolver());
+
+      const ebook = makeEbook({ format: 'pdf' });
+
+      const countChain = createChainMock(['from', 'where']);
+      countChain.where.mockResolvedValueOnce([{ total: 1 }]);
+
+      const ebooksChain = createChainMock([
+        'from',
+        'where',
+        'orderBy',
+        'limit',
+        'offset',
+      ]);
+      ebooksChain.offset.mockResolvedValueOnce([ebook]);
+
+      const authorsChain = createChainMock([
+        'from',
+        'innerJoin',
+        'where',
+        'orderBy',
+      ]);
+      authorsChain.orderBy.mockResolvedValueOnce([]);
+
+      db.select
+        .mockReturnValueOnce(countChain)
+        .mockReturnValueOnce(ebooksChain)
+        .mockReturnValueOnce(authorsChain);
+
+      const result = await service.buildAllEbooksFeed(BASE_URL, USER_ID, 1, 20);
+
+      expect(result).toContain('type="application/pdf"');
+      expect(result).not.toContain('type="application/epub+zip"');
+    });
   });
 });

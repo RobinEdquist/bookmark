@@ -5,14 +5,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3001",
-    "build": "next build",
+    "build": "pnpm copy-pdfjs-assets && next build",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "copy-pdfjs-assets": "node ./scripts/copy-pdfjs-assets.mjs"
   },
   "dependencies": {
     "@better-auth/api-key": "1.7.2",

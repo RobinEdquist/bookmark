@@ -2,7 +2,11 @@ import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
 import { PDFDocument } from 'pdf-lib';
-import { readComicPdf, readComicPdfPage } from '../comic-pdf.utils';
+import {
+  formatPdfLoadError,
+  readComicPdf,
+  readComicPdfPage,
+} from '../comic-pdf.utils';
 
 let tmpDir: string;
 let pdfPath: string;
@@ -10,6 +14,9 @@ let pdfPath: string;
 beforeAll(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comic-pdf-test-'));
   const doc = await PDFDocument.create();
+  doc.setTitle('Embedded Title');
+  doc.setAuthor('Jane Doe, John Smith');
+  doc.setSubject('A short subject');
   doc.addPage([200, 300]);
   doc.addPage([200, 300]);
   doc.addPage([200, 300]);
@@ -36,10 +43,10 @@ describe('readComicPdf', () => {
     );
   });
 
-  it('throws on a corrupt PDF', async () => {
+  it('throws an actionable Unreadable PDF error on a corrupt file', async () => {
     const badPath = path.join(tmpDir, 'bad.pdf');
     await fs.writeFile(badPath, Buffer.from('not a pdf'));
-    await expect(readComicPdf(badPath)).rejects.toThrow();
+    await expect(readComicPdf(badPath)).rejects.toThrow(/Unreadable PDF/i);
   });
 
   it('still reads a valid PDF after a corrupt-file failure (no poisoned state)', async () => {
@@ -50,6 +57,39 @@ describe('readComicPdf', () => {
     const result = await readComicPdf(pdfPath);
     expect(result.pageCount).toBe(3);
     expect(result.coverImage).not.toBeNull();
+  });
+
+  it('extracts title, authors, and subject from PDF Info metadata', async () => {
+    const result = await readComicPdf(pdfPath);
+    expect(result.title).toBe('Embedded Title');
+    expect(result.authors).toEqual(['Jane Doe', 'John Smith']);
+    expect(result.subject).toBe('A short subject');
+  });
+
+  it('omits title/authors when Info metadata is absent (no mtime fallback)', async () => {
+    const bare = await PDFDocument.create();
+    bare.addPage([100, 100]);
+    const barePath = path.join(tmpDir, 'bare.pdf');
+    await fs.writeFile(barePath, await bare.save());
+
+    const result = await readComicPdf(barePath);
+    expect(result.pageCount).toBe(1);
+    expect(result.title).toBeUndefined();
+    expect(result.authors).toBeUndefined();
+    expect(result.subject).toBeUndefined();
+  });
+});
+
+describe('formatPdfLoadError', () => {
+  it('surfaces an actionable password message', () => {
+    const err = formatPdfLoadError(new Error('No password given'));
+    expect(err.message).toMatch(/password/i);
+    expect(err.message).toMatch(/cannot be imported/i);
+  });
+
+  it('surfaces Unreadable PDF for non-password failures', () => {
+    const err = formatPdfLoadError(new Error('Invalid PDF structure'));
+    expect(err.message).toMatch(/^Unreadable PDF:/);
   });
 });
 
@@ -65,5 +105,20 @@ describe('readComicPdfPage', () => {
   it('returns null for an out-of-range page index', async () => {
     expect(await readComicPdfPage(pdfPath, 9999)).toBeNull();
     expect(await readComicPdfPage(pdfPath, -1)).toBeNull();
+  });
+});
+
+describe('PDF Info metadata (non-Latin)', () => {
+  it('preserves non-Latin title and author from Info dictionary', async () => {
+    const doc = await PDFDocument.create();
+    doc.setTitle('日本語のタイトル');
+    doc.setAuthor('Anders Ångström');
+    doc.addPage([200, 300]);
+    const pathPdf = path.join(tmpDir, 'non-latin.pdf');
+    await fs.writeFile(pathPdf, await doc.save());
+
+    const result = await readComicPdf(pathPdf);
+    expect(result.title).toBe('日本語のタイトル');
+    expect(result.authors).toEqual(['Anders Ångström']);
   });
 });

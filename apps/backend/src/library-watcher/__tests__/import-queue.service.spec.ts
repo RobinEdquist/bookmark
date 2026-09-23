@@ -63,8 +63,8 @@ describe('ImportQueueService', () => {
       expect(service.getPendingCount()).toBe(0);
     });
 
-    it('should ignore non-epub files for ebook library', () => {
-      service.queueFile('/lib/book.pdf', '/lib', 'ebook');
+    it('should ignore unsupported files for ebook library', () => {
+      service.queueFile('/lib/book.mobi', '/lib', 'ebook');
       expect(service.getPendingCount()).toBe(0);
     });
 
@@ -76,6 +76,18 @@ describe('ImportQueueService', () => {
     it('should queue valid epub file', () => {
       service.queueFile('/lib/book.epub', '/lib', 'ebook');
       expect(service.getPendingCount()).toBe(1);
+    });
+
+    it('should queue valid pdf ebook file case-insensitively', () => {
+      service.queueFile('/lib/book.pdf', '/lib', 'ebook');
+      service.queueFile('/lib/other.PDF', '/lib', 'ebook');
+      expect(service.getEbookPendingCount()).toBe(2);
+    });
+
+    it('should still queue PDF under comic library as comic', () => {
+      service.queueFile('/lib/issue.pdf', '/lib', 'comic');
+      expect(service.getComicPendingCount()).toBe(1);
+      expect(service.getEbookPendingCount()).toBe(0);
     });
 
     it('should group files by parent directory for multi-file audiobooks', () => {

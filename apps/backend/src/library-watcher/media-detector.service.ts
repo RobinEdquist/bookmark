@@ -30,10 +30,10 @@ export interface ComicSeriesUnit {
   books: ComicBookUnit[];
 }
 
-const EBOOK_EXTENSIONS = ['.epub'];
+const EBOOK_EXTENSIONS = ['.epub', '.pdf'];
 const COMIC_EXTENSIONS = ['.cbz', '.zip', '.cbr', '.rar', '.pdf'];
 
-function isEbookFile(fileName: string): boolean {
+export function isEbookFile(fileName: string): boolean {
   const ext = path.extname(fileName).toLowerCase();
   return EBOOK_EXTENSIONS.includes(ext);
 }

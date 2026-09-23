@@ -17,6 +17,17 @@ export default defineConfig({
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
     },
+    {
+      name: "firefox",
+      use: { ...devices["Desktop Firefox"] },
+    },
+    {
+      name: "mobile-chrome",
+      use: { ...devices["Pixel 5"] },
+    },
+    // Safari/WebKit is not installed in CI; run locally with:
+    //   pnpm exec playwright install webkit && pnpm test:e2e -- --project=webkit
+    // when validating macOS Safari.
   ],
   globalSetup: "./e2e/global-setup.ts",
   globalTeardown: "./e2e/global-teardown.ts",
