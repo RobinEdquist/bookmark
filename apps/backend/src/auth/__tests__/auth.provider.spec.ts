@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { createAuthInstance } from '../auth.provider';
+import { buildOidcProviderConfig, createAuthInstance } from '../auth.provider';
 
 /**
  * The drizzle adapter receives a NodePgDatabase handle, but constructing the
@@ -55,5 +55,45 @@ describe('createAuthInstance', () => {
     // rely on that to create several users per run).
     expect(rateLimit).not.toHaveProperty('enabled');
     expect(rateLimit).not.toHaveProperty('storage');
+  });
+
+  it('accepts the drizzle schema, including the nullable leftover issuer column', async () => {
+    const auth = createAuthInstance(
+      {} as never,
+      createConfigService(requiredConfig),
+    );
+    const ctx = await auth.$context;
+
+    // Schema validation runs before the query. A mismatch throws here;
+    // the fake database then fails the query itself.
+    try {
+      await ctx.internalAdapter.findUserByEmail('nobody@example.com');
+      throw new Error('expected the fake database query to fail');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      expect(message).not.toMatch(/schema/i);
+      expect(message).not.toMatch(/issuer/i);
+    }
+  });
+});
+
+describe('buildOidcProviderConfig', () => {
+  const oidcConfig = {
+    enabled: true,
+    issuerUrl: 'https://idp.example.com/application/o/bookmark',
+    clientId: 'bookmark',
+    clientSecret: 'secret',
+  };
+
+  it('does not pin accountIssuer; identity is the provider id plus subject', () => {
+    const config = buildOidcProviderConfig(oidcConfig);
+
+    // 1.7.5 removed the pin. Discovery issuer validates the id_token only.
+    expect(config).not.toHaveProperty('accountIssuer');
+    expect(config.providerId).toBe('oidc');
+    expect(config.discoveryUrl).toBe(
+      'https://idp.example.com/application/o/bookmark/.well-known/openid-configuration',
+    );
+    expect(config.scopes).toEqual(['openid', 'profile', 'email']);
   });
 });

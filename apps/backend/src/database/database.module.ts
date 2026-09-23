@@ -2,7 +2,7 @@ import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { DATABASE_CONNECTION } from './database-connection.constants';
 import { DatabaseIntegrityService } from './database-integrity.service';
-import { AccountIssuerBackfillService } from '../auth/account-issuer-backfill.service';
+import { AccountIdentityService } from '../auth/account-identity.service';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as authSchema from '../auth/schema';
@@ -63,10 +63,9 @@ import * as grFinderSchema from '../gr-finder/schema';
       inject: [ConfigService],
     },
     DatabaseIntegrityService,
-    // Startup data backfill, not a database concern per se, but it must run
-    // right after migrations and before auth traffic — same slot as the
-    // integrity check above.
-    AccountIssuerBackfillService,
+    // Runs after migrations and before auth traffic. Collapses any
+    // duplicate sign-in rows the migration has not already folded in.
+    AccountIdentityService,
   ],
   exports: [DATABASE_CONNECTION],
 })

@@ -2,7 +2,11 @@ import { ConfigService } from '@nestjs/config';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { admin, genericOAuth } from 'better-auth/plugins';
+import {
+  admin,
+  genericOAuth,
+  type GenericOAuthConfig,
+} from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { createAuthMiddleware, APIError } from 'better-auth/api';
 import { count, eq } from 'drizzle-orm';
@@ -36,6 +40,27 @@ function getOidcConfig(configService: ConfigService): OidcConfig | null {
     issuerUrl,
     clientId,
     clientSecret,
+  };
+}
+
+/**
+ * OIDC provider config for generic OAuth.
+ *
+ * better-auth 1.7.3+ identifies an account by (providerId, accountId) and
+ * removed `accountIssuer`. Discovery `issuer` is used only to verify the
+ * id_token. The account id stays the verified `sub` (the same value 1.7.2
+ * stored), so a discovered issuer that differs from OIDC_ISSUER_URL —
+ * trailing slash, alias, discovery hiccup — cannot mint a second user.
+ */
+export function buildOidcProviderConfig(
+  oidcConfig: OidcConfig,
+): GenericOAuthConfig<'oidc'> {
+  return {
+    providerId: 'oidc',
+    discoveryUrl: `${oidcConfig.issuerUrl}/.well-known/openid-configuration`,
+    clientId: oidcConfig.clientId,
+    clientSecret: oidcConfig.clientSecret,
+    scopes: ['openid', 'profile', 'email'],
   };
 }
 
@@ -140,30 +165,7 @@ export function createAuthInstance(
       ...(oidcConfig
         ? [
             genericOAuth({
-              config: [
-                {
-                  providerId: 'oidc',
-                  discoveryUrl: `${oidcConfig.issuerUrl}/.well-known/openid-configuration`,
-                  clientId: oidcConfig.clientId,
-                  clientSecret: oidcConfig.clientSecret,
-                  scopes: ['openid', 'profile', 'email'],
-                  // Pin the account-identity namespace to the configured
-                  // issuer URL instead of the discovery document's `issuer`
-                  // value. This keeps the namespace stable across discovery
-                  // hiccups (the plugin refuses to initialize without one),
-                  // avoids trailing-slash mismatches between OIDC_ISSUER_URL
-                  // and the discovered issuer, and lets
-                  // AccountIssuerBackfillService backfill pre-1.7 rows with
-                  // a value we know matches sign-in lookups exactly.
-                  //
-                  // Keep better-auth / @better-auth/api-key on 1.7.2 until a
-                  // later release restores an equivalent pin API: 1.7.5
-                  // removed `accountIssuer` and only uses the discovered
-                  // issuer, which can diverge from OIDC_ISSUER_URL and break
-                  // account lookups / cause duplicate users.
-                  accountIssuer: oidcConfig.issuerUrl,
-                },
-              ],
+              config: [buildOidcProviderConfig(oidcConfig)],
             }),
           ]
         : []),
