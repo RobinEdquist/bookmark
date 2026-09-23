@@ -55,12 +55,11 @@ export const account = pgTable(
     id: text('id').primaryKey(),
     accountId: text('account_id').notNull(),
     providerId: text('provider_id').notNull(),
-    // better-auth 1.7 keys account identity on (issuer, accountId).
-    // Credential rows hold the synthetic 'local:credential'; OIDC rows hold
-    // the configured OIDC_ISSUER_URL (pinned via the plugin's accountIssuer
-    // option). Nullable because pre-1.7 rows are backfilled after the column
-    // is added: credential rows by migration, OIDC rows at startup by
-    // AccountIssuerBackfillService (the value is instance-specific).
+    // Historical column from better-auth 1.7.0–1.7.2, which keyed accounts
+    // on (issuer, accountId). 1.7.3+ keys them on (providerId, accountId)
+    // and does not read or write this column. It stays nullable so new
+    // sign-ups succeed, and existing values are left in place (rollback to
+    // 1.7.2 needs them). See migration 0037.
     issuer: text('issuer'),
     userId: text('user_id')
       .notNull()
@@ -79,11 +78,11 @@ export const account = pgTable(
   },
   (table) => [
     index('account_userId_idx').on(table.userId),
-    // Sign-in resolves accounts by (issuer, accountId); unique per the 1.7
-    // upgrade guide. Postgres treats NULLs as distinct, so legacy rows that
-    // are not yet backfilled cannot collide with each other.
-    uniqueIndex('account_issuer_account_id_idx').on(
-      table.issuer,
+    // Sign-in resolves accounts by (providerId, accountId). Duplicate keys
+    // are rejected by better-auth instead of picking a row; the index makes
+    // that failure happen at insert time.
+    uniqueIndex('account_provider_id_account_id_idx').on(
+      table.providerId,
       table.accountId,
     ),
   ],

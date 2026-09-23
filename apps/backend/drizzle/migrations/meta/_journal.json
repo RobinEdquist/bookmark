@@ -260,6 +260,13 @@
       "when": 1787747582815,
       "tag": "0036_add_account_issuer_for_better_auth_1_7",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1790160567945,
+      "tag": "0037_replace_account_issuer_key_with_provider_account_id",
+      "breakpoints": true
     }
   ]
 }
