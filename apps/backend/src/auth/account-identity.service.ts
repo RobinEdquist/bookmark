@@ -1,12 +1,45 @@
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 
-interface DuplicateAccountKey {
-  provider_id: string;
-  account_id: string;
-  n: number;
+const MIGRATION_FILE =
+  '0037_replace_account_issuer_key_with_provider_account_id.sql';
+const COLLAPSE_START = '-- account-identity-collapse:start';
+const COLLAPSE_END = '-- account-identity-collapse:end';
+
+/**
+ * The collapse statement lives in migration 0037, which runs before the
+ * app boots. Run it again here so a database restored from a backup that
+ * still has duplicate sign-in rows is repaired on startup. The earliest
+ * account is kept. A later row's user is folded in when that row was their
+ * only login.
+ */
+export function loadAccountIdentityCollapseSql(): string {
+  const candidates = [
+    join(process.cwd(), 'drizzle/migrations', MIGRATION_FILE),
+    join(__dirname, '../../../drizzle/migrations', MIGRATION_FILE),
+    join(__dirname, '../../drizzle/migrations', MIGRATION_FILE),
+  ];
+  const path = candidates.find((candidate) => existsSync(candidate));
+  if (!path) {
+    throw new Error(
+      `Account identity migration not found. Looked in ${candidates.join(', ')}`,
+    );
+  }
+
+  const migration = readFileSync(path, 'utf8');
+  const start = migration.indexOf(COLLAPSE_START);
+  const end = migration.indexOf(COLLAPSE_END);
+  if (start < 0 || end < 0 || end <= start) {
+    throw new Error(
+      'Account identity collapse SQL is missing from migration 0037.',
+    );
+  }
+
+  return migration.slice(start + COLLAPSE_START.length, end).trim();
 }
 
 /**
@@ -17,12 +50,6 @@ interface DuplicateAccountKey {
  * OIDC_ISSUER_URL or `local:credential` would diverge from rows the library
  * creates, so this service does not touch the column. Historical issuer
  * values stay where they are; they are not part of the lookup.
- *
- * Duplicate (provider_id, account_id) pairs are rejected by better-auth
- * instead of selecting a row, which surfaces as a failed sign-in. Failing
- * startup is the same failure, earlier. Migration 0037 enforces the same
- * key; this check still runs so a database that skipped the migration
- * cannot serve traffic with an ambiguous identity.
  */
 @Injectable()
 export class AccountIdentityService implements OnModuleInit {
@@ -34,23 +61,7 @@ export class AccountIdentityService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    const duplicates = await this.db.execute(sql`
-      SELECT provider_id, account_id, count(*)::int AS n
-      FROM account
-      GROUP BY provider_id, account_id
-      HAVING count(*) > 1
-    `);
-    const rows = duplicates.rows as unknown as DuplicateAccountKey[];
-
-    if (rows.length > 0) {
-      const summary = rows
-        .map((row) => `${row.provider_id}/${row.account_id} (${row.n})`)
-        .join(', ');
-      throw new Error(
-        `Duplicate account identities for (provider_id, account_id): ${summary}. better-auth 1.7.3+ rejects these lookups instead of choosing a row.`,
-      );
-    }
-
+    await this.db.execute(sql.raw(loadAccountIdentityCollapseSql()));
     this.logger.log(
       'Account identity key is (provider_id, account_id). issuer is not read or written by better-auth and was left unchanged.',
     );

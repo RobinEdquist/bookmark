@@ -63,8 +63,8 @@ import * as grFinderSchema from '../gr-finder/schema';
       inject: [ConfigService],
     },
     DatabaseIntegrityService,
-    // Runs after migrations and before auth traffic. Duplicate account keys
-    // must fail here: better-auth 1.7.3+ rejects them at sign-in.
+    // Runs after migrations and before auth traffic. Collapses any
+    // duplicate sign-in rows the migration has not already folded in.
     AccountIdentityService,
   ],
   exports: [DATABASE_CONNECTION],
