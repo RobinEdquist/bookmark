@@ -22,6 +22,7 @@ import {
 } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import sharp from 'sharp';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
 import { resolveContainedPath } from '../common/utils/path-containment.util';
@@ -1041,9 +1042,11 @@ export class EbooksService {
       // Check if a cached version exists on disk
       try {
         const data = await fs.readFile(coverPath);
-        return { data, mimeType: 'image/jpeg' };
+        if (this.isJpeg(data)) return { data, mimeType: 'image/jpeg' };
+        // Repair covers cached as PNG bytes under a .jpg filename by older builds.
+        return await this.cacheEmbeddedCover(coverPath, data);
       } catch {
-        // Not cached yet, extract from file
+        // Not cached yet (or unreadable), extract from file
       }
 
       try {
@@ -1051,18 +1054,35 @@ export class EbooksService {
         const result =
           await this.ebookMetadataProvider.extractCoverFromFile(absolutePath);
 
-        // Cache to disk for future requests
-        if (result) {
-          fs.writeFile(coverPath, result.data).catch(() => {});
-        }
-
-        return result;
+        return result
+          ? await this.cacheEmbeddedCover(coverPath, result.data)
+          : null;
       } catch {
         return null;
       }
     }
 
     return null;
+  }
+
+  private isJpeg(data: Buffer): boolean {
+    return data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
+  }
+
+  private async cacheEmbeddedCover(
+    coverPath: string,
+    source: Buffer,
+  ): Promise<{ data: Buffer; mimeType: string }> {
+    // The cache path and OPDS links both promise JPEG. Normalize the bytes too.
+    const data = this.isJpeg(source)
+      ? source
+      : await sharp(source)
+          .flatten({ background: '#ffffff' })
+          .jpeg({ quality: 85 })
+          .toBuffer();
+    // A cache write failure must not prevent serving the extracted cover.
+    await fs.writeFile(coverPath, data).catch(() => {});
+    return { data, mimeType: 'image/jpeg' };
   }
 
   async update(id: string, dto: UpdateEbookDto) {

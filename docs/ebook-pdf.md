@@ -14,6 +14,27 @@ non-overlapping library roots so the same path is not watched twice.
   `apps/web/public/` and are refreshed with `pnpm --filter web copy-pdfjs-assets`
   (also runs as part of `web` build). See `apps/web/public/pdfjs/VERSION`.
 
+## Reader regression tests
+
+The Playwright PDF suite opens a generated four-page PDF in the application
+reader and verifies that zoomed page edges remain reachable, Escape cancels a
+page edit, intentionally committed pages survive reopening, and corrupt PDFs
+retain an error message and a working Close control. The fixture response is
+served by Playwright; authentication and progress use the real backend.
+This tests the browser reader, not backend file streaming or HTTP range proxying.
+
+```bash
+pnpm --filter web exec playwright install chromium firefox
+E2E_API_URL=http://localhost:43120 E2E_WEB_URL=http://localhost:43121 pnpm --filter web exec playwright test e2e/ebook-pdf.spec.ts --project=chromium --project=firefox --project=mobile-chrome --workers=1
+```
+
+Docker is required for the suite's temporary PostgreSQL container. These nine
+checks passed locally on macOS on 2026-09-23 and also run in the E2E CI job.
+
+Embedded covers are converted to JPEG before caching and serving to match the
+cache filename and OPDS MIME type. Previously cached PNG covers are repaired on
+read. JPEG covers and uploaded covers keep their existing bytes.
+
 ## Large fixture (≥300 pages, ≥50 MB)
 
 Generate a sparse performance fixture (not committed):
@@ -34,9 +55,9 @@ and open it in the reader. Expected behaviour:
 
 ### Observations log (fill when re-running)
 
-| Date (Europe/Stockholm) | Browser / device                        | Startup to first paint                                                                                                                                      | Peak memory (approx.)                                      | Notes                                                                                                                                                         |
-| ----------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-09-22 22:50 CEST   | Node/pdfjs on Linux CI agent (headless) | Generator produced 300 pages / 50.1 MB in ~3s; `readComicPdf` returns pageCount+first-page cover only; `readComicPdfPage(150)` renders a single middle page | Fixture ~50 MB on disk; worker destroy() on each util call | Range streaming covered by ebooks.controller 206/416 unit tests + Next `/api` rewrite contract test. Safari/WebKit not in CI — run Playwright webkit locally. |
+| Date (Europe/Stockholm) | Browser / device                        | Startup to first paint                                                                                                                                      | Peak memory (approx.)                                      | Notes                                                                                                                                                                         |
+| ----------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-22 22:50 CEST   | Node/pdfjs on Linux CI agent (headless) | Generator produced 300 pages / 50.1 MB in ~3s; `readComicPdf` returns pageCount+first-page cover only; `readComicPdfPage(150)` renders a single middle page | Fixture ~50 MB on disk; worker destroy() on each util call | Range streaming covered by ebooks.controller 206/416 unit tests + Next `/api` rewrite contract test. Safari/WebKit and large-file browser performance have not been measured. |
 
 ## Boundaries (out of scope)
 

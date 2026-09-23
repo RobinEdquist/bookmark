@@ -1,3 +1,7 @@
+import * as fs from 'fs/promises';
+import * as os from 'os';
+import * as path from 'path';
+import sharp from 'sharp';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as schema from './schema';
 import { EbooksService } from './ebooks.service';
@@ -68,8 +72,29 @@ describe('EbooksService', () => {
 });
 
 describe('EbooksService.getCover', () => {
-  it('returns image/png MIME for PDF cover extracted on cache miss', async () => {
-    const selectQuery = {
+  let tmpDir: string;
+  let pngBytes: Buffer;
+
+  beforeEach(async () => {
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ebook-cover-test-'));
+    pngBytes = await sharp({
+      create: {
+        width: 8,
+        height: 12,
+        channels: 4,
+        background: { r: 255, g: 0, b: 0, alpha: 1 },
+      },
+    })
+      .png()
+      .toBuffer();
+  });
+
+  afterEach(async () => {
+    await fs.rm(tmpDir, { recursive: true, force: true });
+  });
+
+  function setup(coverPath = path.join(tmpDir, 'cover.jpg')) {
+    const query = {
       from: jest.fn().mockReturnThis(),
       where: jest.fn().mockReturnThis(),
       limit: jest.fn().mockResolvedValue([
@@ -80,48 +105,91 @@ describe('EbooksService.getCover', () => {
         },
       ]),
     };
-    const select = jest.fn().mockReturnValue(selectQuery);
-    const db = { select } as any;
-
-    const pngBytes = Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-    ]);
-    const ebookMetadataProvider = {
+    const provider = {
       extractCoverFromFile: jest.fn().mockResolvedValue({
         data: pngBytes,
         mimeType: 'image/png',
       }),
     };
-
-    const appDataService = {
-      getEbookCoverPath: jest
-        .fn()
-        .mockReturnValue(
-          `/tmp/bookmark-no-cover-${Date.now()}-${Math.random()}.jpg`,
-        ),
-    };
-
     const service = new EbooksService(
-      db,
+      { select: jest.fn().mockReturnValue(query) } as any,
       {} as any,
       {} as any,
-      appDataService as any,
-      ebookMetadataProvider as any,
+      { getEbookCoverPath: () => coverPath } as any,
+      provider as any,
       {} as any,
       {} as any,
     );
-
-    // resolveFilePath needs library path from settings — stub the private path
     jest
       .spyOn(service as any, 'resolveFilePath')
       .mockResolvedValue('/library/ebooks/Textbook.pdf');
+    return { service, provider, coverPath, query };
+  }
 
-    const result = await service.getCover('ebook-pdf-1');
+  it('serves actual JPEG bytes on both PDF cover cache miss and hit', async () => {
+    const { service, provider, coverPath } = setup();
+    const first = await service.getCover('ebook-pdf-1');
+    const second = await service.getCover('ebook-pdf-1');
 
-    expect(ebookMetadataProvider.extractCoverFromFile).toHaveBeenCalledWith(
+    expect(first?.mimeType).toBe('image/jpeg');
+    expect((await sharp(first!.data).metadata()).format).toBe('jpeg');
+    expect(second).toEqual(first);
+    expect(await fs.readFile(coverPath)).toEqual(first!.data);
+    expect(provider.extractCoverFromFile).toHaveBeenCalledTimes(1);
+    expect(provider.extractCoverFromFile).toHaveBeenCalledWith(
       '/library/ebooks/Textbook.pdf',
     );
-    expect(result).toEqual({ data: pngBytes, mimeType: 'image/png' });
+  });
+
+  it('repairs a PNG already cached under a .jpg filename', async () => {
+    const { service, provider, coverPath } = setup();
+    await fs.writeFile(coverPath, pngBytes);
+    const first = await service.getCover('ebook-pdf-1');
+    const second = await service.getCover('ebook-pdf-1');
+
+    expect(first?.mimeType).toBe('image/jpeg');
+    expect((await sharp(first!.data).metadata()).format).toBe('jpeg');
+    expect(second).toEqual(first);
+    expect(await fs.readFile(coverPath)).toEqual(first!.data);
+    expect(provider.extractCoverFromFile).not.toHaveBeenCalled();
+  });
+
+  it('does not re-encode existing JPEG covers', async () => {
+    const { service, provider, coverPath } = setup();
+    const jpeg = await sharp(pngBytes).jpeg().toBuffer();
+    await fs.writeFile(coverPath, jpeg);
+
+    expect(await service.getCover('ebook-pdf-1')).toEqual({
+      data: jpeg,
+      mimeType: 'image/jpeg',
+    });
+    expect(provider.extractCoverFromFile).not.toHaveBeenCalled();
+  });
+
+  it('preserves uploaded covers', async () => {
+    const { service, provider, coverPath, query } = setup();
+    query.limit.mockResolvedValueOnce([
+      {
+        filePath: 'Textbook.pdf',
+        coverSource: 'uploaded',
+        coverUrl: '/cover',
+      },
+    ]);
+    const jpeg = await sharp(pngBytes).jpeg().toBuffer();
+    await fs.writeFile(coverPath, jpeg);
+
+    expect(await service.getCover('ebook-pdf-1')).toEqual({
+      data: jpeg,
+      mimeType: 'image/jpeg',
+    });
+    expect(provider.extractCoverFromFile).not.toHaveBeenCalled();
+  });
+
+  it('still serves a JPEG if the cover cache cannot be written', async () => {
+    const { service } = setup(path.join(tmpDir, 'missing', 'cover.jpg'));
+    const result = await service.getCover('ebook-pdf-1');
+    expect(result?.mimeType).toBe('image/jpeg');
+    expect((await sharp(result!.data).metadata()).format).toBe('jpeg');
   });
 });
 

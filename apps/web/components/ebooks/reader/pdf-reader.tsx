@@ -72,6 +72,7 @@ export function PdfReader({
 }: PdfReaderProps) {
   const t = useTranslations("ebooks");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const skipPageBlurCommitRef = useRef(false);
   const [containerSize, setContainerSize] = useState<{
     width: number;
     height: number;
@@ -197,8 +198,10 @@ export function PdfReader({
       // Stop shell page-turn keys while editing the page field.
       event.stopPropagation();
       if (event.key === "Escape") {
+        // blur fires synchronously, before React commits the cleared draft.
+        skipPageBlurCommitRef.current = true;
         setPageDraft(null);
-        (event.target as HTMLInputElement).blur();
+        event.currentTarget.blur();
       }
     },
     [],
@@ -303,7 +306,13 @@ export function PdfReader({
             value={pageDraft ?? String(page)}
             onFocus={() => setPageDraft(String(page))}
             onChange={(e) => setPageDraft(e.target.value)}
-            onBlur={commitPageInput}
+            onBlur={() => {
+              if (skipPageBlurCommitRef.current) {
+                skipPageBlurCommitRef.current = false;
+                return;
+              }
+              commitPageInput();
+            }}
             onKeyDown={onPageInputKeyDown}
             disabled={numPages < 1}
             aria-label={t("reader.goToPage")}
@@ -316,15 +325,19 @@ export function PdfReader({
 
       <div
         ref={scrollRef}
+        data-testid="pdf-viewport"
         className="min-h-0 flex-1 overflow-auto"
         // Allow pan/scroll when zoomed; text selection must not be blocked.
       >
-        <div className="flex min-h-full min-w-full items-start justify-center p-2">
+        <div className="flex min-h-full w-max min-w-full items-start justify-center p-2">
           <Document
             file={file}
+            // Keep failures in the shell's error UI instead of throwing to Next.
+            suspense={false}
             options={PDF_DOCUMENT_OPTIONS}
             onLoadSuccess={handleLoadSuccess}
             onLoadError={handleLoadError}
+            onSourceError={handleLoadError}
             onPassword={handlePassword}
             loading={null}
             error={null}
@@ -339,6 +352,7 @@ export function PdfReader({
               >
                 <Page
                   pageNumber={page}
+                  suspense={false}
                   {...pageSize}
                   renderTextLayer
                   renderAnnotationLayer={false}
@@ -349,11 +363,8 @@ export function PdfReader({
                     });
                     if (height > 0) setPageAspect(width / height);
                   }}
-                  onLoadError={(error) => {
-                    onErrorRef.current(
-                      new Error(t("reader.pdfLoadError"), { cause: error }),
-                    );
-                  }}
+                  onLoadError={handleLoadError}
+                  onRenderError={handleLoadError}
                   className="shadow-sm"
                 />
               </div>

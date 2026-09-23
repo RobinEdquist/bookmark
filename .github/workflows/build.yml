@@ -52,7 +52,7 @@ jobs:
         run: pnpm test
 
   # ==========================================================================
-  # E2E Tests (Backend Authentication)
+  # E2E Tests (Backend Authentication and PDF Reader)
   # Uses Testcontainers to automatically manage PostgreSQL
   # ==========================================================================
   e2e-tests:
@@ -78,6 +78,16 @@ jobs:
         env:
           # Testcontainers configuration
           TESTCONTAINERS_RYUK_DISABLED: "true"
+
+      - name: Install PDF reader test browsers
+        run: pnpm --filter web exec playwright install --with-deps chromium firefox
+
+      - name: Run PDF reader browser regression tests
+        run: pnpm --filter web exec playwright test e2e/ebook-pdf.spec.ts --project=chromium --project=firefox --project=mobile-chrome --workers=1
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          E2E_API_URL: http://localhost:43120
+          E2E_WEB_URL: http://localhost:43121
 
   # ==========================================================================
   # Which architectures this run publishes.
