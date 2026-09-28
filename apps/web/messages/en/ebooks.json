@@ -276,6 +276,7 @@
     "back": "Back to groups",
     "addSuccess": "Saved to group",
     "createSuccess": "Group created",
+    "createdNotAdded": "Group \"{name}\" was created, but the book could not be added to it. Pick it from the list to try again.",
     "updateSuccess": "Group updated",
     "deleteSuccess": "Group deleted",
     "removeSuccess": "Removed from group",

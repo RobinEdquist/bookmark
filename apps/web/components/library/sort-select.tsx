@@ -25,6 +25,10 @@ const DEFAULT_SORT_OPTIONS: SortField[] = [
   "rating",
   "series",
 ];
+export const EBOOK_GROUPS_SORT_OPTIONS: SortField[] = [
+  "title",
+  "recentlyAdded",
+];
 export const COMICS_SORT_OPTIONS: SortField[] = [
   "title",
   "recentlyAdded",

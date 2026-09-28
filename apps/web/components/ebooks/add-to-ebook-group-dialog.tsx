@@ -59,18 +59,31 @@ function AddToEbookGroupBody({
   const handleCreate = async () => {
     const name = query.trim();
     if (!name) return;
+
+    let created: { id: string };
     try {
-      const created = await createGroup.mutateAsync({ name });
+      created = await createGroup.mutateAsync({ name });
+    } catch {
+      toast.error(t("groups.error"));
+      return;
+    }
+
+    // The group now exists. If the membership write fails we must not leave the
+    // reader thinking nothing happened — say so by name and keep the dialog
+    // open, where the refetched list shows the new group to retry against.
+    try {
       await addEbook.mutateAsync({
         groupId: created.id,
         ebookId,
         role: roleValue,
       });
-      toast.success(t("groups.createSuccess"));
-      onClose();
     } catch {
-      toast.error(t("groups.error"));
+      toast.error(t("groups.createdNotAdded", { name }));
+      return;
     }
+
+    toast.success(t("groups.createSuccess"));
+    onClose();
   };
 
   return (

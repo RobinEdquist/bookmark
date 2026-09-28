@@ -276,6 +276,7 @@
     "back": "Tillbaka till grupper",
     "addSuccess": "Sparat i gruppen",
     "createSuccess": "Gruppen har skapats",
+    "createdNotAdded": "Gruppen \"{name}\" skapades, men boken kunde inte läggas till. Välj den i listan för att försöka igen.",
     "updateSuccess": "Gruppen har uppdaterats",
     "deleteSuccess": "Gruppen har tagits bort",
     "removeSuccess": "Borttagen från gruppen",

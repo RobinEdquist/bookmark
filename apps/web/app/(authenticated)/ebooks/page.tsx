@@ -8,7 +8,10 @@ import { EbookGrid } from "../../../components/ebooks/ebook-grid";
 import { EbookGroupsView } from "../../../components/ebooks/ebook-groups-view";
 import { useInfiniteEbooks } from "../../../lib/use-ebooks";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
-import { SortSelect } from "../../../components/library/sort-select";
+import {
+  EBOOK_GROUPS_SORT_OPTIONS,
+  SortSelect,
+} from "../../../components/library/sort-select";
 import { useSortPreference } from "../../../lib/use-sort-preference";
 import { useSaveLibraryUrl } from "../../../lib/use-library-return-url";
 import { useSaveLibraryNavigation } from "../../../lib/use-library-navigation";
@@ -62,6 +65,13 @@ export default function EbooksPage() {
     router.replace(newUrl, { scroll: false });
   }, [debouncedSearch, router, searchParams]);
   const { sortBy, sortOrder, setSortField } = useSortPreference("ebooks");
+  // Groups sort on their own fields (name / recently added) and keep their own
+  // stored preference, so the two tabs never clobber each other.
+  const {
+    sortBy: groupSortBy,
+    sortOrder: groupSortOrder,
+    setSortField: setGroupSortField,
+  } = useSortPreference("ebook-groups");
   const {
     data,
     isLoading,
@@ -113,7 +123,14 @@ export default function EbooksPage() {
               sortOrder={sortOrder}
               onSortChange={setSortField}
             />
-          ) : undefined
+          ) : (
+            <SortSelect
+              sortBy={groupSortBy}
+              sortOrder={groupSortOrder}
+              onSortChange={setGroupSortField}
+              options={EBOOK_GROUPS_SORT_OPTIONS}
+            />
+          )
         }
         isAdmin={isAdmin}
       />
@@ -153,6 +170,8 @@ export default function EbooksPage() {
           {view === "groups" ? (
             <EbookGroupsView
               search={debouncedSearch}
+              sortBy={groupSortBy === "recentlyAdded" ? "recentlyAdded" : "name"}
+              sortOrder={groupSortOrder}
               animateEntrance={!hasSavedPosition}
             />
           ) : (

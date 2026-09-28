@@ -28,7 +28,12 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 
 @ApiTags('OPDS')
+// Every OPDS route accepts either scheme: HTTP Basic (any username, API key as
+// the password) or `Authorization: Bearer bkmrk_…`. ApiTokenMiddleware resolves
+// both, so document both on the whole surface — readers differ in what they
+// support. A session cookie also works but no OPDS client uses one.
 @ApiBasicAuth()
+@ApiSecurity('api-key')
 @Controller('ebooks/opds')
 @AllowAnonymous() // Skip global auth - OpdsAuthGuard handles authentication
 @UseGuards(OpdsAuthGuard)
@@ -48,7 +53,7 @@ export class OpdsController {
   @ApiOperation({
     summary: 'Get OPDS root catalog',
     description:
-      'Returns the OPDS root catalog with links to browse by all, authors, series, or group. Requires HTTP Basic authentication.',
+      'Returns the OPDS root catalog with links to browse by all, authors, series, or group. Requires HTTP Basic auth or a Bearer API key.',
   })
   @ApiResponse({
     status: 200,
@@ -56,7 +61,7 @@ export class OpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getRootCatalog(
     @Req() req: express.Request,
@@ -83,7 +88,7 @@ export class OpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getAllEbooks(
     @Req() req: express.Request,
@@ -112,7 +117,7 @@ export class OpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getAuthors(
     @Req() req: express.Request,
@@ -140,7 +145,7 @@ export class OpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   @ApiResponse({ status: 404, description: 'Author not found' })
   async getAuthorEbooks(
@@ -169,7 +174,7 @@ export class OpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getSeries(
     @Req() req: express.Request,
@@ -197,7 +202,7 @@ export class OpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   @ApiResponse({ status: 404, description: 'Series not found' })
   async getSeriesEbooks(
@@ -216,12 +221,10 @@ export class OpdsController {
   }
 
   @Get('groups')
-  @ApiSecurity('api-key')
-  @ApiSecurity('better-auth.session_token')
   @ApiOperation({
     summary: 'Get group navigation',
     description:
-      'Lists groups with available ebooks visible to the reader, sorted by sort name or name. Empty groups are omitted. Requires OPDS to be enabled and a valid session or API key (Bearer or HTTP Basic).',
+      'Lists groups with available ebooks visible to the reader, sorted by sort name or name. Empty groups are omitted. Requires OPDS to be enabled and either HTTP Basic auth or a Bearer API key.',
   })
   @ApiResponse({
     status: 200,
@@ -230,8 +233,7 @@ export class OpdsController {
   })
   @ApiResponse({
     status: 401,
-    description:
-      'Missing or invalid session/API key; HTTP Basic accepts the API key as the password',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
     type: EbookGroupErrorResponseDto,
     headers: {
       'WWW-Authenticate': {
@@ -258,14 +260,17 @@ export class OpdsController {
   }
 
   @Get('groups/:id')
-  @ApiSecurity('api-key')
-  @ApiSecurity('better-auth.session_token')
   @ApiOperation({
     summary: 'Get group ebooks',
     description:
-      'Returns available ebooks visible to the reader in group order. A membership role is included in the summary. A group with no visible available members returns an empty feed. Requires OPDS to be enabled and a valid session or API key (Bearer or HTTP Basic).',
+      'Returns a paginated feed of available ebooks visible to the reader in group order. A membership role is included in the summary. A group with no visible available members returns an empty feed. Requires OPDS to be enabled and either HTTP Basic auth or a Bearer API key.',
   })
   @ApiParam({ name: 'id', description: 'Ebook group UUID', format: 'uuid' })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Page number for pagination (default: 1)',
+  })
   @ApiResponse({
     status: 200,
     description: 'OPDS Atom XML feed',
@@ -273,8 +278,7 @@ export class OpdsController {
   })
   @ApiResponse({
     status: 401,
-    description:
-      'Missing or invalid session/API key; HTTP Basic accepts the API key as the password',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
     type: EbookGroupErrorResponseDto,
     headers: {
       'WWW-Authenticate': {
@@ -297,9 +301,16 @@ export class OpdsController {
     @Res() res: express.Response,
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: AuthenticatedUser,
+    @Query('page') page?: string,
   ) {
     const baseUrl = this.getBaseUrl(req);
-    const xml = await this.opdsService.buildGroupFeed(baseUrl, id, user.id);
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const xml = await this.opdsService.buildGroupFeed(
+      baseUrl,
+      id,
+      user.id,
+      pageNum,
+    );
     this.sendXml(res, xml);
   }
 }

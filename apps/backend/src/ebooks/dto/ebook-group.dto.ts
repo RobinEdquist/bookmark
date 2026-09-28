@@ -57,7 +57,11 @@ export class ListEbookGroupsQueryDto {
   @IsIn(['name', 'recentlyAdded'])
   sortBy?: 'name' | 'recentlyAdded';
 
-  @ApiPropertyOptional({ enum: ['asc', 'desc'], default: 'asc' })
+  @ApiPropertyOptional({
+    enum: ['asc', 'desc'],
+    description:
+      "Defaults to 'asc' for name and 'desc' (newest first) for recentlyAdded",
+  })
   @IsOptional()
   @IsIn(['asc', 'desc'])
   sortOrder?: 'asc' | 'desc';

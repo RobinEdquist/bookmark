@@ -98,13 +98,10 @@ export class EbookGroupsService {
     filters: ListGroupsFilters,
     userId: string,
   ): Promise<EbookGroupListResponseDto> {
-    const {
-      search,
-      sortBy = 'name',
-      sortOrder = 'asc',
-      limit = 50,
-      offset = 0,
-    } = filters;
+    const { search, sortBy = 'name', limit = 50, offset = 0 } = filters;
+    // "Recently added" means newest first unless the caller says otherwise.
+    const sortOrder =
+      filters.sortOrder ?? (sortBy === 'recentlyAdded' ? 'desc' : 'asc');
     const boundedLimit = Math.min(Math.max(limit, 1), 100);
     const boundedOffset = Math.max(offset, 0);
 

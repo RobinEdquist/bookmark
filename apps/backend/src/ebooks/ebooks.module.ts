@@ -23,6 +23,10 @@ import { CanDeleteGuard } from '../common/guards/can-delete.guard';
     AuthModule,
     forwardRef(() => LibraryWatcherModule),
   ],
+  // Order matters: EbooksController has a catch-all `@Get(':id')`, so any
+  // controller sharing the `ebooks` prefix with literal sub-paths
+  // (`ebooks/opds`, `ebooks/groups`) must be registered before it.
+  // `ebook-groups.e2e-spec.ts` guards this.
   controllers: [OpdsController, EbookGroupsController, EbooksController],
   providers: [
     EbooksService,

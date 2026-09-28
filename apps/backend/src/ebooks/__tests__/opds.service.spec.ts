@@ -1008,18 +1008,24 @@ describe('OpdsService', () => {
         { id: 'group-1', name: 'Curse & Strahd' },
       ]);
 
+      const countChain = createChainMock(['from', 'innerJoin', 'where']);
+      countChain.where.mockResolvedValueOnce([{ total: 1 }]);
+
       const membersChain = createChainMock([
         'from',
         'innerJoin',
         'where',
         'orderBy',
+        'limit',
+        'offset',
       ]);
-      membersChain.orderBy.mockResolvedValueOnce([
+      membersChain.offset.mockResolvedValueOnce([
         { ebook, role: 'Scenario <1>' },
       ]);
 
       db.select
         .mockReturnValueOnce(groupChain)
+        .mockReturnValueOnce(countChain)
         .mockReturnValueOnce(membersChain);
 
       const result = await service.buildGroupFeed(BASE_URL, 'group-1', USER_ID);
@@ -1029,6 +1035,50 @@ describe('OpdsService', () => {
         '<summary>Scenario &lt;1&gt;\n\nA starter scenario</summary>',
       );
       expect(result).toContain(`${BASE_URL}/groups`);
+    });
+
+    it('paginates the group feed', async () => {
+      const db = createMockDb();
+      const service = new OpdsService(db as any, createMetadataResolver());
+
+      const groupChain = createChainMock(['from', 'where', 'limit']);
+      groupChain.limit.mockResolvedValueOnce([
+        { id: 'group-1', name: 'Curse of Strahd' },
+      ]);
+
+      const countChain = createChainMock(['from', 'innerJoin', 'where']);
+      countChain.where.mockResolvedValueOnce([{ total: 45 }]);
+
+      const membersChain = createChainMock([
+        'from',
+        'innerJoin',
+        'where',
+        'orderBy',
+        'limit',
+        'offset',
+      ]);
+      membersChain.offset.mockResolvedValueOnce([]);
+
+      db.select
+        .mockReturnValueOnce(groupChain)
+        .mockReturnValueOnce(countChain)
+        .mockReturnValueOnce(membersChain);
+
+      const result = await service.buildGroupFeed(
+        BASE_URL,
+        'group-1',
+        USER_ID,
+        2,
+      );
+
+      // 45 members at 20 per page: page 2 has neighbours on both sides.
+      expect(membersChain.offset).toHaveBeenCalledWith(20);
+      expect(result).toContain(
+        `rel="previous" href="${BASE_URL}/groups/group-1?page=1"`,
+      );
+      expect(result).toContain(
+        `rel="next" href="${BASE_URL}/groups/group-1?page=3"`,
+      );
     });
 
     it('throws when the group does not exist', async () => {

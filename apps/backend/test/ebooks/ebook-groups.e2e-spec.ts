@@ -59,6 +59,21 @@ describe('Ebook group membership concurrency (e2e)', () => {
     ).rows;
   }
 
+  /**
+   * `/ebooks/groups` only wins over EbooksController's catch-all `@Get(':id')`
+   * because EbookGroupsController is registered first in ebooks.module.ts.
+   * Reordering that array makes this list resolve as an ebook lookup instead.
+   */
+  it('routes the collection path to the group list, not the ebook lookup', async () => {
+    const response = await api.get<{
+      groups: { id: string; name: string }[];
+      total: number;
+    }>('/ebooks/groups', admin.cookie);
+    expect(response.status).toBe(200);
+    expect(Array.isArray(response.data.groups)).toBe(true);
+    expect(response.data.groups.some((g) => g.id === groupId)).toBe(true);
+  });
+
   it('assigns distinct consecutive positions to simultaneous additions', async () => {
     await add(ebookIds);
     expect((await members()).map((m) => m.position)).toEqual(

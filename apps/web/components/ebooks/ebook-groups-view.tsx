@@ -10,9 +10,13 @@ import { CreateEbookGroupDialog } from "./create-ebook-group-dialog";
 
 export function EbookGroupsView({
   search,
+  sortBy,
+  sortOrder,
   animateEntrance = true,
 }: {
   search: string;
+  sortBy: "name" | "recentlyAdded";
+  sortOrder: "asc" | "desc";
   animateEntrance?: boolean;
 }) {
   const t = useTranslations("ebooks");
@@ -26,7 +30,11 @@ export function EbookGroupsView({
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
-  } = useInfiniteEbookGroups({ search: search || undefined });
+  } = useInfiniteEbookGroups({
+    search: search || undefined,
+    sortBy,
+    sortOrder,
+  });
   const groups = data?.pages.flatMap((page) => page.groups) ?? [];
 
   return (

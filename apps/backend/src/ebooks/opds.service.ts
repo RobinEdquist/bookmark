@@ -411,6 +411,8 @@ export class OpdsService {
     baseUrl: string,
     groupId: string,
     userId: string,
+    page: number = 1,
+    perPage: number = 20,
   ): Promise<string> {
     const [group] = await this.db
       .select({
@@ -425,24 +427,37 @@ export class OpdsService {
       throw new NotFoundException('Ebook group not found');
     }
 
-    const rows = await this.db
-      .select({
-        ebook: schema.ebooks,
-        role: schema.ebookGroupMembers.role,
-      })
-      .from(schema.ebookGroupMembers)
-      .innerJoin(
-        schema.ebooks,
-        eq(schema.ebookGroupMembers.ebookId, schema.ebooks.id),
-      )
-      .where(
-        and(
-          eq(schema.ebookGroupMembers.groupId, groupId),
-          eq(schema.ebooks.status, 'available'),
-          this.visibleToUser(userId),
-        ),
-      )
-      .orderBy(asc(schema.ebookGroupMembers.position), asc(schema.ebooks.id));
+    const visibility = and(
+      eq(schema.ebookGroupMembers.groupId, groupId),
+      eq(schema.ebooks.status, 'available'),
+      this.visibleToUser(userId),
+    );
+    const offset = (page - 1) * perPage;
+
+    const [[{ total }], rows] = await Promise.all([
+      this.db
+        .select({ total: count() })
+        .from(schema.ebookGroupMembers)
+        .innerJoin(
+          schema.ebooks,
+          eq(schema.ebookGroupMembers.ebookId, schema.ebooks.id),
+        )
+        .where(visibility),
+      this.db
+        .select({
+          ebook: schema.ebooks,
+          role: schema.ebookGroupMembers.role,
+        })
+        .from(schema.ebookGroupMembers)
+        .innerJoin(
+          schema.ebooks,
+          eq(schema.ebookGroupMembers.ebookId, schema.ebooks.id),
+        )
+        .where(visibility)
+        .orderBy(asc(schema.ebookGroupMembers.position), asc(schema.ebooks.id))
+        .limit(perPage)
+        .offset(offset),
+    ]);
 
     const roles = new Map(rows.map((row) => [row.ebook.id, row.role]));
     const entries = await this.buildEbookEntries(
@@ -456,6 +471,9 @@ export class OpdsService {
       title: group.name,
       baseUrl,
       entries,
+      page,
+      totalPages: Math.ceil(total / perPage),
+      feedPath: `/groups/${groupId}`,
       upLink: `${baseUrl}/groups`,
     });
   }
