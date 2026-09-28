@@ -10,7 +10,8 @@ pnpm dev                    # Start all apps (web: 3001, backend: 3000)
 pnpm build                  # Build all packages
 pnpm lint                   # Lint all packages
 pnpm check-types            # Type check all packages
-pnpm format                 # Format with Prettier
+pnpm format                 # Format with Prettier (writes)
+pnpm format:check           # Prettier in check mode — CI's FIRST gate
 
 # Database
 cd apps/backend
@@ -23,6 +24,19 @@ pnpm test                   # Run unit tests
 pnpm test:e2e               # Run E2E tests
 pnpm test:cov               # Coverage report
 ```
+
+**Before calling a task done, run the CI gate in CI's own order** (`.github/workflows/build.yml`).
+A later step passing tells you nothing about an earlier one — `pnpm lint` is green on code
+Prettier rejects, and the whole job stops at the first failure:
+
+```bash
+pnpm format:check && pnpm lint && pnpm check-types && pnpm test   # lint job
+pnpm --filter backend test:e2e                                    # e2e job (separate)
+```
+
+Run backend Jest through the package scripts, not `npx jest` — `test` sets
+`NODE_OPTIONS=--experimental-vm-modules`, without which every suite fails to load NestJS's ESM.
+(`test:e2e` does not need the flag.)
 
 ---
 
@@ -568,6 +582,31 @@ TEST_PORT=3100 npx jest --config ./test/jest-e2e.json auth.e2e-spec.ts
 
 The harness starts its own PostgreSQL testcontainer and backend, so no local database is needed.
 
+### Settings and JSON Columns Merge With Defaults on Read
+
+`PATCH /settings` replaces a JSON column **wholesale**. A client that sends
+`metadataPriority: { title, author }` wipes the priority list for every other field, and any
+getter that guards only the whole-object case lets the partial map through:
+
+```typescript
+// ❌ Bad: a partial object is truthy, so callers get `undefined` per field
+return settings.metadataPriority || DEFAULT_METADATA_PRIORITY;
+
+// ✅ Good: fill missing keys from the defaults, per field
+return mergeFieldPriority(settings.metadataPriority, DEFAULT_METADATA_PRIORITY);
+```
+
+This shipped as a real 500 (`TypeError: priority is not iterable`) that took down ebook,
+audiobook, comic, list and OPDS endpoints for anyone who had saved a partial priority map.
+
+Rules for any defaulted JSON column:
+
+- **Merge on read, not only on write.** The read path is the single choke point every consumer
+  shares, and it also repairs rows already written in the bad shape — a write-path-only fix
+  leaves existing installs broken.
+- **Never assume a stored shape.** It is whatever some client last wrote, possibly by an older
+  version. Validate or fill it before handing it to code that iterates or indexes into it.
+
 ### Error Handling
 
 Use NestJS built-in exceptions with consistent error responses:
@@ -1089,6 +1128,31 @@ describe("AudiobooksService", () => {
 });
 ```
 
+### Backend E2E Tests (Jest + Testcontainers)
+
+`pnpm --filter backend test:e2e` starts **one** PostgreSQL container and **one** backend, then
+runs every `*.e2e-spec.ts` in parallel Jest workers against them. There is no per-file database,
+no transaction rollback, and no isolation: the library, the app settings and the user table are
+shared mutable state that other suites are changing while yours runs.
+
+Two rules follow, and breaking either produces a test that passes locally and fails in CI:
+
+- **Own every row you assert on.** Insert your own ebooks/groups with generated UUIDs and delete
+  them in `afterAll`. Never assert on a global count, on "the first item", or byte-compare two
+  responses from a shared collection endpoint — another worker adds or removes rows between your
+  two requests.
+- **Treat global settings as hostile.** `settings.e2e-spec.ts` mutates `/settings` (metadata
+  priority, library paths, OPDS) mid-run. If your endpoint reads a setting, it can observe any
+  value at any moment — which is a good reason to make the _server_ robust to partial or
+  unexpected setting shapes rather than to serialize the tests.
+
+`globalSetup` creates the shared admin before any worker starts; `getSharedAdmin()` only signs in.
+That is load-bearing — the older self-bootstrapping version races once enough spec files exist, so
+don't "simplify" it back.
+
+New endpoints also need an entry in `test/auth/endpoint-definitions.ts` — see
+[Endpoint Auth Registry](#endpoint-auth-registry).
+
 ### E2E Tests (Playwright)
 
 Test critical user flows:
@@ -1550,4 +1614,4 @@ Before deploying to production:
 
 _This document is the authoritative guide for development. When in doubt, refer here first._
 
-- Always run linting when reviewing of task is done
+- Before reporting a task done, run the full CI gate in order: `pnpm format:check && pnpm lint && pnpm check-types && pnpm test`, plus `pnpm --filter backend test:e2e` when backend code or tests changed.
