@@ -44,6 +44,7 @@ import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadat
 import { splitPersonNames } from '../common/utils/name.utils';
 import { resolveExternalTitle } from '../common/utils/title.utils';
 import { MetadataEntityService } from '../common/metadata-entity.service';
+import { EbookGroupsService } from './ebook-groups.service';
 
 export interface EbookListItem {
   id: string;
@@ -86,6 +87,7 @@ export class EbooksService {
     private ebookMetadataProvider: EbookMetadataProvider,
     private coverService: CoverService,
     private metadataEntityService: MetadataEntityService,
+    private ebookGroups: EbookGroupsService,
   ) {}
 
   /**
@@ -657,7 +659,7 @@ export class EbooksService {
     return { ebooks: result, total };
   }
 
-  async findById(id: string): Promise<EbookDetailDto> {
+  async findById(id: string, userId: string): Promise<EbookDetailDto> {
     const ebook = await this.db
       .select()
       .from(schema.ebooks)
@@ -680,6 +682,7 @@ export class EbooksService {
       goodreadsData,
       metadataPriority,
       generatedAudiobookData,
+      groups,
     ] = await Promise.all([
       this.db
         .select({
@@ -770,6 +773,7 @@ export class EbooksService {
           ),
         )
         .limit(1),
+      this.ebookGroups.findForEbook(id, userId),
     ]);
 
     const hc = hardcoverData[0]?.hardcoverBook || null;
@@ -993,6 +997,7 @@ export class EbooksService {
         : null,
       // AI-narrated audiobook generated from this ebook, if any
       generatedAudiobook: generatedAudiobookData[0] ?? null,
+      groups,
     };
   }
 
@@ -1085,7 +1090,7 @@ export class EbooksService {
     return { data, mimeType: 'image/jpeg' };
   }
 
-  async update(id: string, dto: UpdateEbookDto) {
+  async update(id: string, dto: UpdateEbookDto, userId: string) {
     // Verify ebook exists and get current manualFields
     const existing = await this.db
       .select({
@@ -1193,7 +1198,7 @@ export class EbooksService {
         .where(eq(schema.ebooks.id, id));
     }
 
-    const result = await this.findById(id);
+    const result = await this.findById(id, userId);
     this.appEvents.ebookUpdated(id);
     return result;
   }

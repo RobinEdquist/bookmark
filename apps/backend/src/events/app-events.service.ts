@@ -90,6 +90,18 @@ export class AppEventsService {
     this.emit({ type: 'ebook.deleted', entityId: id });
   }
 
+  ebookGroupCreated(id: string): void {
+    this.emit({ type: 'ebook.group.created', entityId: id });
+  }
+
+  ebookGroupUpdated(id: string): void {
+    this.emit({ type: 'ebook.group.updated', entityId: id });
+  }
+
+  ebookGroupDeleted(id: string): void {
+    this.emit({ type: 'ebook.group.deleted', entityId: id });
+  }
+
   // Comic series events
   comicSeriesCreated(id: string): void {
     this.emit({ type: 'comic.series.created', entityId: id });

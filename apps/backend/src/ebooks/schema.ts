@@ -139,12 +139,60 @@ export const ebookTags = pgTable(
   ],
 );
 
+// Companion sets that are not a numbered reading order. A game, its guides,
+// and its scenarios belong here; ebook_series stays the volume sequence.
+export const ebookGroups = pgTable(
+  'ebook_groups',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    sortName: text('sort_name'),
+    description: text('description'),
+    coverUrl: text('cover_url'),
+    coverSource: coverSourceEnum('cover_source'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('ebook_groups_name_idx').on(table.name),
+    index('ebook_groups_sort_name_idx').on(table.sortName),
+    index('ebook_groups_created_at_idx').on(table.createdAt),
+  ],
+);
+
+// An ebook may belong to several groups. role is free text, not an enum.
+export const ebookGroupMembers = pgTable(
+  'ebook_group_members',
+  {
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => ebookGroups.id, { onDelete: 'cascade' }),
+    ebookId: uuid('ebook_id')
+      .notNull()
+      .references(() => ebooks.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+    role: text('role'),
+  },
+  (table) => [
+    primaryKey({ columns: [table.groupId, table.ebookId] }),
+    index('ebook_group_members_group_position_idx').on(
+      table.groupId,
+      table.position,
+    ),
+    index('ebook_group_members_ebook_id_idx').on(table.ebookId),
+  ],
+);
+
 // Relations
 export const ebooksRelations = relations(ebooks, ({ many, one }) => ({
   authors: many(ebookAuthors),
   series: many(ebookSeries),
   genres: many(ebookGenres),
   tags: many(ebookTags),
+  groupMemberships: many(ebookGroupMembers),
   hardcoverLink: one(hardcoverEbookLinks, {
     fields: [ebooks.id],
     references: [hardcoverEbookLinks.ebookId],
@@ -194,3 +242,21 @@ export const ebookTagsRelations = relations(ebookTags, ({ one }) => ({
     references: [tags.id],
   }),
 }));
+
+export const ebookGroupsRelations = relations(ebookGroups, ({ many }) => ({
+  members: many(ebookGroupMembers),
+}));
+
+export const ebookGroupMembersRelations = relations(
+  ebookGroupMembers,
+  ({ one }) => ({
+    group: one(ebookGroups, {
+      fields: [ebookGroupMembers.groupId],
+      references: [ebookGroups.id],
+    }),
+    ebook: one(ebooks, {
+      fields: [ebookGroupMembers.ebookId],
+      references: [ebooks.id],
+    }),
+  }),
+);

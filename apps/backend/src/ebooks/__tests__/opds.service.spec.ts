@@ -981,4 +981,66 @@ describe('OpdsService', () => {
       expect(result).not.toContain('type="application/epub+zip"');
     });
   });
+
+  describe('groups', () => {
+    it('links the group catalog from the root', async () => {
+      const service = new OpdsService(
+        createMockDb() as any,
+        createMetadataResolver(),
+      );
+      const result = await service.buildRootCatalog(BASE_URL);
+
+      expect(result).toContain('<title>By Group</title>');
+      expect(result).toContain(`${BASE_URL}/groups`);
+    });
+
+    it('puts the membership role in the summary and escapes it', async () => {
+      const db = createMockDb();
+      const service = new OpdsService(db as any, createMetadataResolver());
+      const ebook = makeEbook({
+        id: 'ebook-1',
+        title: 'Death House',
+        description: 'A starter scenario',
+      });
+
+      const groupChain = createChainMock(['from', 'where', 'limit']);
+      groupChain.limit.mockResolvedValueOnce([
+        { id: 'group-1', name: 'Curse & Strahd' },
+      ]);
+
+      const membersChain = createChainMock([
+        'from',
+        'innerJoin',
+        'where',
+        'orderBy',
+      ]);
+      membersChain.orderBy.mockResolvedValueOnce([
+        { ebook, role: 'Scenario <1>' },
+      ]);
+
+      db.select
+        .mockReturnValueOnce(groupChain)
+        .mockReturnValueOnce(membersChain);
+
+      const result = await service.buildGroupFeed(BASE_URL, 'group-1', USER_ID);
+
+      expect(result).toContain('<title>Curse &amp; Strahd</title>');
+      expect(result).toContain(
+        '<summary>Scenario &lt;1&gt;\n\nA starter scenario</summary>',
+      );
+      expect(result).toContain(`${BASE_URL}/groups`);
+    });
+
+    it('throws when the group does not exist', async () => {
+      const db = createMockDb();
+      const service = new OpdsService(db as any, createMetadataResolver());
+      const groupChain = createChainMock(['from', 'where', 'limit']);
+      groupChain.limit.mockResolvedValueOnce([]);
+      db.select.mockReturnValueOnce(groupChain);
+
+      await expect(
+        service.buildGroupFeed(BASE_URL, 'missing', USER_ID),
+      ).rejects.toThrow('Ebook group not found');
+    });
+  });
 });

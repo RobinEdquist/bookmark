@@ -267,6 +267,13 @@
       "when": 1790160567945,
       "tag": "0037_replace_account_issuer_key_with_provider_account_id",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1790332126325,
+      "tag": "0038_add_ebook_groups",
+      "breakpoints": true
     }
   ]
 }

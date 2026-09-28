@@ -25,6 +25,7 @@ describe('EbooksService', () => {
         {} as any,
         {} as any,
         {} as any,
+        { findForEbook: jest.fn().mockResolvedValue([]) } as any,
       );
 
       await (service as any).updateSeries('ebook-1', []);
@@ -60,6 +61,7 @@ describe('EbooksService', () => {
         {} as any,
         {} as any,
         {} as any,
+        { findForEbook: jest.fn().mockResolvedValue([]) } as any,
       );
 
       await service.delete('ebook-1', false);
@@ -119,6 +121,7 @@ describe('EbooksService.getCover', () => {
       provider as any,
       {} as any,
       {} as any,
+      { findForEbook: jest.fn().mockResolvedValue([]) } as any,
     );
     jest
       .spyOn(service as any, 'resolveFilePath')
@@ -217,6 +220,7 @@ describe('EbooksService.getDownloadInfo', () => {
       {} as any,
       {} as any,
       {} as any,
+      { findForEbook: jest.fn().mockResolvedValue([]) } as any,
     );
 
     jest
@@ -256,6 +260,7 @@ describe('EbooksService.getDownloadInfo', () => {
       {} as any,
       {} as any,
       {} as any,
+      { findForEbook: jest.fn().mockResolvedValue([]) } as any,
     );
 
     jest
