@@ -7,7 +7,16 @@
 
 import { withCredentialAccess } from './credential-lock';
 
-const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
+// Global setup sets TEST_BASE_URL after importing this module.
+function baseUrl(): string {
+  return process.env.TEST_BASE_URL || 'http://localhost:3000';
+}
+
+const SHARED_ADMIN = {
+  name: 'Shared Admin',
+  email: 'shared-admin@test.com',
+  password: 'password123',
+};
 
 export interface TestUser {
   id: string;
@@ -73,7 +82,7 @@ export async function signUp(
   // lock across its own backoff.
   return withTransient403Retry(() =>
     withCredentialAccess(async () => {
-      const response = await fetch(`${BASE_URL}/api/auth/sign-up/email`, {
+      const response = await fetch(`${baseUrl()}/api/auth/sign-up/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
@@ -110,7 +119,7 @@ export async function signIn(
 ): Promise<TestUser> {
   return withTransient403Retry(() =>
     withCredentialAccess(async () => {
-      const response = await fetch(`${BASE_URL}/api/auth/sign-in/email`, {
+      const response = await fetch(`${baseUrl()}/api/auth/sign-in/email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -138,41 +147,28 @@ export async function signIn(
   );
 }
 
+/** Create the first user once, before any parallel E2E worker can sign up. */
+export async function initializeSharedAdmin(): Promise<void> {
+  await signUp(SHARED_ADMIN.name, SHARED_ADMIN.email, SHARED_ADMIN.password);
+}
+
 /**
- * Shared admin user — the first user created in the test database.
- * Call this from any test file that needs admin access.
- * Each Jest test file gets its own module scope and files may run in
- * parallel, so we try sign-up first (creating the admin), fall back
- * to sign-in if it already exists, and retry to handle race conditions.
+ * Global setup owns account creation. Each test file signs in independently,
+ * under the credential-policy lock, and shares its in-flight sign-in locally.
+ * Failures remain visible and can be retried without ever attempting sign-up.
  */
-let sharedAdmin: TestUser | null = null;
+let sharedAdmin: Promise<TestUser> | null = null;
 
-export async function getSharedAdmin(): Promise<TestUser> {
-  if (sharedAdmin) return sharedAdmin;
-
-  // Try sign-up first (becomes admin if first user in DB)
-  try {
-    sharedAdmin = await signUp(
-      'Shared Admin',
-      'shared-admin@test.com',
-      'password123',
+export function getSharedAdmin(): Promise<TestUser> {
+  if (!sharedAdmin) {
+    sharedAdmin = signIn(SHARED_ADMIN.email, SHARED_ADMIN.password).catch(
+      (error: unknown) => {
+        sharedAdmin = null;
+        throw error;
+      },
     );
-    return sharedAdmin;
-  } catch {
-    // User already exists — fall through to sign-in
   }
-
-  // Retry sign-in a few times (the user may still be mid-creation by another worker)
-  for (let i = 0; i < 3; i++) {
-    try {
-      sharedAdmin = await signIn('shared-admin@test.com', 'password123');
-      return sharedAdmin;
-    } catch {
-      if (i < 2) await new Promise((r) => setTimeout(r, 200));
-    }
-  }
-
-  throw new Error('Failed to get shared admin user after retries');
+  return sharedAdmin;
 }
 
 function extractSessionCookie(response: Response): string {

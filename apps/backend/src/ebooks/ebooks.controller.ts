@@ -295,7 +295,7 @@ export class EbooksController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     await this.ebooksService.verifyNotBlacklisted(id, user.id);
-    return this.ebooksService.findById(id);
+    return this.ebooksService.findById(id, user.id);
   }
 
   @Patch(':id')
@@ -317,8 +317,12 @@ export class EbooksController {
     description: 'Forbidden - requires edit metadata permission',
   })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
-  async update(@Param('id') id: string, @Body() dto: UpdateEbookDto) {
-    return this.ebooksService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateEbookDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.ebooksService.update(id, dto, user.id);
   }
 
   @Post(':id/cover')

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, asc, count, and, sql, type SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -91,6 +91,14 @@ export class OpdsService {
     <updated>${updated}</updated>
     <link rel="subsection" href="${this.escapeXml(baseUrl)}/series" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
     <content type="text">Browse ebooks by series</content>
+  </entry>
+
+  <entry>
+    <id>${this.escapeXml(baseUrl)}/groups</id>
+    <title>By Group</title>
+    <updated>${updated}</updated>
+    <link rel="subsection" href="${this.escapeXml(baseUrl)}/groups" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+    <content type="text">Browse ebooks by group</content>
   </entry>
 </feed>`;
   }
@@ -338,9 +346,142 @@ export class OpdsService {
     });
   }
 
+  async buildGroupsNavigationFeed(
+    baseUrl: string,
+    userId: string,
+  ): Promise<string> {
+    const groups = await this.db
+      .select({
+        id: schema.ebookGroups.id,
+        name: schema.ebookGroups.name,
+        count: count(schema.ebookGroupMembers.ebookId),
+      })
+      .from(schema.ebookGroups)
+      .innerJoin(
+        schema.ebookGroupMembers,
+        eq(schema.ebookGroups.id, schema.ebookGroupMembers.groupId),
+      )
+      .innerJoin(
+        schema.ebooks,
+        eq(schema.ebookGroupMembers.ebookId, schema.ebooks.id),
+      )
+      .where(
+        and(eq(schema.ebooks.status, 'available'), this.visibleToUser(userId)),
+      )
+      .groupBy(
+        schema.ebookGroups.id,
+        schema.ebookGroups.name,
+        schema.ebookGroups.sortName,
+      )
+      .orderBy(
+        asc(
+          sql`coalesce(${schema.ebookGroups.sortName}, ${schema.ebookGroups.name})`,
+        ),
+        asc(schema.ebookGroups.id),
+      );
+
+    const updated = new Date().toISOString();
+    const entries = groups
+      .map(
+        (group) => `
+  <entry>
+    <id>${this.escapeXml(baseUrl)}/groups/${group.id}</id>
+    <title>${this.escapeXml(group.name)}</title>
+    <updated>${updated}</updated>
+    <link rel="subsection" href="${this.escapeXml(baseUrl)}/groups/${group.id}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+    <content type="text">${group.count} ebook${group.count !== 1 ? 's' : ''}</content>
+  </entry>`,
+      )
+      .join('');
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:opds="http://opds-spec.org/2010/catalog">
+  <id>${this.escapeXml(baseUrl)}/groups</id>
+  <title>Groups</title>
+  <updated>${updated}</updated>
+  <link rel="self" href="${this.escapeXml(baseUrl)}/groups" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  <link rel="start" href="${this.escapeXml(baseUrl)}" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  <link rel="up" href="${this.escapeXml(baseUrl)}" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  ${entries}
+</feed>`;
+  }
+
+  async buildGroupFeed(
+    baseUrl: string,
+    groupId: string,
+    userId: string,
+    page: number = 1,
+    perPage: number = 20,
+  ): Promise<string> {
+    const [group] = await this.db
+      .select({
+        id: schema.ebookGroups.id,
+        name: schema.ebookGroups.name,
+      })
+      .from(schema.ebookGroups)
+      .where(eq(schema.ebookGroups.id, groupId))
+      .limit(1);
+
+    if (!group) {
+      throw new NotFoundException('Ebook group not found');
+    }
+
+    const visibility = and(
+      eq(schema.ebookGroupMembers.groupId, groupId),
+      eq(schema.ebooks.status, 'available'),
+      this.visibleToUser(userId),
+    );
+    const offset = (page - 1) * perPage;
+
+    const [[{ total }], rows] = await Promise.all([
+      this.db
+        .select({ total: count() })
+        .from(schema.ebookGroupMembers)
+        .innerJoin(
+          schema.ebooks,
+          eq(schema.ebookGroupMembers.ebookId, schema.ebooks.id),
+        )
+        .where(visibility),
+      this.db
+        .select({
+          ebook: schema.ebooks,
+          role: schema.ebookGroupMembers.role,
+        })
+        .from(schema.ebookGroupMembers)
+        .innerJoin(
+          schema.ebooks,
+          eq(schema.ebookGroupMembers.ebookId, schema.ebooks.id),
+        )
+        .where(visibility)
+        .orderBy(asc(schema.ebookGroupMembers.position), asc(schema.ebooks.id))
+        .limit(perPage)
+        .offset(offset),
+    ]);
+
+    const roles = new Map(rows.map((row) => [row.ebook.id, row.role]));
+    const entries = await this.buildEbookEntries(
+      rows.map((row) => row.ebook),
+      baseUrl,
+      roles,
+    );
+
+    return this.buildAcquisitionFeed({
+      id: `${baseUrl}/groups/${groupId}`,
+      title: group.name,
+      baseUrl,
+      entries,
+      page,
+      totalPages: Math.ceil(total / perPage),
+      feedPath: `/groups/${groupId}`,
+      upLink: `${baseUrl}/groups`,
+    });
+  }
+
   private async buildEbookEntries(
     ebooks: (typeof schema.ebooks.$inferSelect)[],
     baseUrl: string,
+    roles?: ReadonlyMap<string, string | null>,
   ): Promise<string> {
     const entries: string[] = [];
 
@@ -352,7 +493,12 @@ export class OpdsService {
     for (const ebook of ebooks) {
       const resolved = metadata.get(ebook.id);
       const authorNames = resolved?.authorNames ?? [];
-      const summary = this.truncateDescription(ebook.description);
+      const role = roles?.get(ebook.id)?.trim() || null;
+      const description = this.truncateDescription(ebook.description);
+      const summary =
+        role && description
+          ? `${role}\n\n${description}`
+          : (role ?? description);
       const apiBaseUrl = baseUrl.replace('/opds', '');
 
       let entry = `

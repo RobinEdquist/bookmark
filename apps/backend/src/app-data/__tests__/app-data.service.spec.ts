@@ -87,13 +87,17 @@ describe('AppDataService', () => {
 
       await service.onModuleInit();
 
-      expect(fs.mkdir).toHaveBeenCalledTimes(7);
+      expect(fs.mkdir).toHaveBeenCalledTimes(8);
       expect(fs.mkdir).toHaveBeenCalledWith(
         path.join('/app/data', 'audiobook-covers'),
         { recursive: true },
       );
       expect(fs.mkdir).toHaveBeenCalledWith(
         path.join('/app/data', 'ebook-covers'),
+        { recursive: true },
+      );
+      expect(fs.mkdir).toHaveBeenCalledWith(
+        path.join('/app/data', 'ebook-group-covers'),
         { recursive: true },
       );
       expect(fs.mkdir).toHaveBeenCalledWith(
@@ -143,6 +147,12 @@ describe('AppDataService', () => {
       );
     });
 
+    it('getEbookGroupCoversPath returns correct path', () => {
+      expect(service.getEbookGroupCoversPath()).toBe(
+        path.join('/app/data', 'ebook-group-covers'),
+      );
+    });
+
     it('getPeopleImagesPath returns correct path', () => {
       expect(service.getPeopleImagesPath()).toBe(
         path.join('/app/data', 'people-images'),
@@ -162,6 +172,12 @@ describe('AppDataService', () => {
     it('getEbookCoverPath returns correct path for a given ID', () => {
       expect(service.getEbookCoverPath('ebook-456')).toBe(
         path.join('/app/data', 'ebook-covers', 'ebook-456.jpg'),
+      );
+    });
+
+    it('getEbookGroupCoverPath returns correct path for a given ID', () => {
+      expect(service.getEbookGroupCoverPath('group-456')).toBe(
+        path.join('/app/data', 'ebook-group-covers', 'group-456.jpg'),
       );
     });
 

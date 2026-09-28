@@ -46,14 +46,17 @@ function normalizeOpenApiPath(path: string): string {
   return withoutGlobalPrefix.replace(/\{([^}]+)\}/g, ':$1');
 }
 
-function isBasicAuthOnly(operation: OpenApiOperation): boolean {
-  const securitySchemeNames = (operation.security ?? []).flatMap(
-    (requirement) => Object.keys(requirement),
-  );
-
-  return (
-    securitySchemeNames.length > 0 &&
-    securitySchemeNames.every((name) => name === 'basic')
+/**
+ * HTTP Basic is offered only by the OPDS controllers, which advertise it
+ * alongside the Bearer API key so e-readers can use whichever they support.
+ * Advertising Basic is therefore what marks an operation as an OPDS route, and
+ * those belong to `opdsEndpoints` rather than the session-guarded registries.
+ * Misclassifying does not weaken anything: both registries assert 401, and the
+ * bidirectional diff below fails if an entry sits in the wrong list.
+ */
+function isOpdsBasicAuthEndpoint(operation: OpenApiOperation): boolean {
+  return (operation.security ?? []).some(
+    (requirement) => 'basic' in requirement,
   );
 }
 
@@ -80,7 +83,7 @@ function getOpenApiEndpointKeys(document: OpenApiDocument): {
         continue;
       }
 
-      if (isBasicAuthOnly(operation as OpenApiOperation)) {
+      if (isOpdsBasicAuthEndpoint(operation as OpenApiOperation)) {
         basicAuthEndpointKeys.push(key);
       } else {
         protectedEndpointKeys.push(key);
@@ -145,7 +148,7 @@ describe('Authentication Verification (e2e)', () => {
   /**
    * Keep the opt-in request registry synchronized with the app's route table.
    * CombinedAuthGuard protects every route by default, so an OpenAPI operation
-   * is protected unless it is explicitly registered as public or uses only
+   * is protected unless it is explicitly registered as public or advertises
    * OPDS Basic authentication. Both protected registries are checked here.
    */
   describe('Endpoint Registry Coverage', () => {

@@ -48,6 +48,8 @@ import { useGrFinderStatus } from "../../../../lib/use-goodreads";
 import { useLibraryReturnUrl } from "../../../../lib/use-library-return-url";
 import { useScrollRestoration } from "../../../../lib/use-scroll-restoration";
 import { useLibraryNavigation } from "../../../../lib/use-library-navigation";
+import { AddToEbookGroupDialog } from "../../../../components/ebooks/add-to-ebook-group-dialog";
+import { EbookGroupMemberships } from "../../../../components/ebooks/ebook-group-memberships";
 import { EditEbookDialog } from "../../../../components/ebooks/edit-ebook-dialog";
 import { ChangeEbookCoverDialog } from "../../../../components/ebooks/change-ebook-cover-dialog";
 import { ReadButton } from "../../../../components/ebooks/read-button";
@@ -84,6 +86,7 @@ export default function EbookDetailPage({
   const { isConfigured: isHardcoverConfigured } = useHardcoverStatus();
   const { isConfigured: isGrFinderConfigured } = useGrFinderStatus();
   const [editOpen, setEditOpen] = useState(false);
+  const [addToGroupOpen, setAddToGroupOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [hardcoverSyncOpen, setHardcoverSyncOpen] = useState(false);
   const [goodreadsSearchOpen, setGoodreadsSearchOpen] = useState(false);
@@ -513,6 +516,12 @@ export default function EbookDetailPage({
               </div>
             </div>
 
+            <EbookGroupMemberships
+              groups={ebook.groups ?? []}
+              canEdit={canEdit}
+              onAdd={() => setAddToGroupOpen(true)}
+            />
+
             {/* Description */}
             {ebook.description && (
               <div>
@@ -596,6 +605,14 @@ export default function EbookDetailPage({
           ebook={ebook}
           open={editOpen}
           onOpenChange={setEditOpen}
+        />
+      )}
+
+      {canEdit && (
+        <AddToEbookGroupDialog
+          ebookId={id}
+          open={addToGroupOpen}
+          onOpenChange={setAddToGroupOpen}
         />
       )}
 

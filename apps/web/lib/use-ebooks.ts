@@ -7,6 +7,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
+import type { EbookDetailGroup } from "./use-ebook-groups";
 
 export interface EbookAuthor {
   id: string;
@@ -72,6 +73,8 @@ export interface EbookDetail {
   tags: EbookTag[];
   /** Set when a TTS-generated audiobook exists for this ebook. */
   generatedAudiobook: { id: string; title: string } | null;
+  /** Library groups this ebook belongs to, with the other members. */
+  groups: EbookDetailGroup[];
 }
 
 export interface EbookFilters {

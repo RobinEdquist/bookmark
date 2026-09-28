@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { EbookDetailGroupDto } from './ebook-group-response.dto';
 
 export class EbookPersonDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
@@ -289,6 +290,12 @@ export class EbookDetailDto {
     description: 'Set when a TTS-generated audiobook exists for this ebook',
   })
   generatedAudiobook?: EbookGeneratedAudiobookDto | null;
+
+  @ApiProperty({
+    type: [EbookDetailGroupDto],
+    description: 'Library groups this ebook belongs to, with the other members',
+  })
+  groups!: EbookDetailGroupDto[];
 }
 
 export class UpdateEbookCoverResponseDto {

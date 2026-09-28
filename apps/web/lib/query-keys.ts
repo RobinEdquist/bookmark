@@ -138,6 +138,13 @@ export const queryKeys = {
       [...queryKeys.ebooks.all, "publishers", search] as const,
     genres: (search?: string) =>
       [...queryKeys.ebooks.all, "genres", search] as const,
+    groups: (filters?: {
+      search?: string;
+      sortBy?: string;
+      sortOrder?: string;
+    }) => [...queryKeys.ebooks.all, "groups", filters] as const,
+    groupDetail: (id: string) =>
+      [...queryKeys.ebooks.all, "group", id] as const,
   },
   comics: {
     all: ["comics"] as const,

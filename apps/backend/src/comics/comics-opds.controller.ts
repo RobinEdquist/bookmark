@@ -15,6 +15,7 @@ import {
   ApiParam,
   ApiQuery,
   ApiResponse,
+  ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 import { AllowAnonymous } from '@thallesp/nestjs-better-auth';
@@ -29,7 +30,9 @@ import { resolveExternalBaseUrl } from '../common/utils/opds-base-url.util';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 
 @ApiTags('OPDS')
+// Both schemes are accepted here too — see the ebook OPDS controller.
 @ApiBasicAuth()
+@ApiSecurity('api-key')
 @Controller('comics/opds')
 @AllowAnonymous() // Skip global auth - OpdsAuthGuard handles authentication
 @UseGuards(OpdsAuthGuard)
@@ -66,7 +69,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getRoot(@Req() req: express.Request, @Res() res: express.Response) {
     this.logger.log(`[comics-opds] GET / (root catalog)`);
@@ -82,7 +85,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getAllSeries(
     @Req() req: express.Request,
@@ -106,7 +109,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   @ApiResponse({ status: 404, description: 'Series not found' })
   async getSeries(
@@ -142,7 +145,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getPublishers(
     @Req() req: express.Request,
@@ -166,7 +169,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getPublisherSeries(
     @Req() req: express.Request,
@@ -193,7 +196,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getCollections(
     @Req() req: express.Request,
@@ -213,7 +216,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   @ApiResponse({ status: 404, description: 'Collection not found' })
   async getCollection(
@@ -244,7 +247,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getOnDeck(
     @Req() req: express.Request,
@@ -264,7 +267,7 @@ export class ComicsOpdsController {
   })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   async getRecent(
     @Req() req: express.Request,
@@ -298,7 +301,7 @@ export class ComicsOpdsController {
   @ApiResponse({ status: 200, description: 'Page image (JPEG)' })
   @ApiResponse({
     status: 401,
-    description: 'Unauthorized - requires HTTP Basic auth',
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
   })
   @ApiResponse({
     status: 403,

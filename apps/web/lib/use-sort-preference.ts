@@ -27,6 +27,11 @@ const DEFAULT_SORT_COMICS: SortPreference = {
   sortOrder: "asc",
 };
 
+const DEFAULT_SORT_EBOOK_GROUPS: SortPreference = {
+  sortBy: "title",
+  sortOrder: "asc",
+};
+
 // Default directions when selecting a new sort field
 const DEFAULT_DIRECTIONS: Record<SortField, SortOrder> = {
   title: "asc",
@@ -38,9 +43,13 @@ const DEFAULT_DIRECTIONS: Record<SortField, SortOrder> = {
   startYear: "asc",
 };
 
-function getStorageKey(
-  libraryType: "audiobooks" | "ebooks" | "comics",
-): string {
+export type SortLibraryType =
+  | "audiobooks"
+  | "ebooks"
+  | "comics"
+  | "ebook-groups";
+
+function getStorageKey(libraryType: SortLibraryType): string {
   return `bookmark-${libraryType}-sort`;
 }
 
@@ -81,16 +90,19 @@ function saveToStorage(key: string, preference: SortPreference): void {
   localStorage.setItem(key, JSON.stringify(preference));
 }
 
-export function useSortPreference(
-  libraryType: "audiobooks" | "ebooks" | "comics",
-) {
+function defaultFor(libraryType: SortLibraryType): SortPreference {
+  if (libraryType === "comics") return DEFAULT_SORT_COMICS;
+  if (libraryType === "ebook-groups") return DEFAULT_SORT_EBOOK_GROUPS;
+  return DEFAULT_SORT;
+}
+
+export function useSortPreference(libraryType: SortLibraryType) {
   // Synchronous init keeps the first render's sort stable — scroll restoration
   // keys on it, and it avoids a default-sort fetch immediately superseded by
   // the stored sort. Safe: these pages never SSR (auth-gated client layout).
   const [preference, setPreference] = useState<SortPreference>(
     () =>
-      loadFromStorage(getStorageKey(libraryType)) ??
-      (libraryType === "comics" ? DEFAULT_SORT_COMICS : DEFAULT_SORT),
+      loadFromStorage(getStorageKey(libraryType)) ?? defaultFor(libraryType),
   );
 
   useEffect(() => {
