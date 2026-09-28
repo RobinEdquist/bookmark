@@ -15,6 +15,10 @@ import {
   EndpointDefinition,
   ControllerEndpoints,
 } from './endpoint-definitions';
+import {
+  supportsBasicAuth,
+  type OpenApiOperation,
+} from '../helpers/openapi-auth';
 
 const SERVER_BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000';
 const BASE_URL = `${SERVER_BASE_URL}/api`;
@@ -29,10 +33,6 @@ const OPENAPI_HTTP_METHODS: ReadonlySet<string> = new Set([
   'trace',
 ]);
 
-interface OpenApiOperation {
-  security?: Record<string, unknown>[];
-}
-
 interface OpenApiDocument {
   paths: Record<string, Record<string, unknown>>;
 }
@@ -44,17 +44,6 @@ function endpointKey(method: string, path: string): string {
 function normalizeOpenApiPath(path: string): string {
   const withoutGlobalPrefix = path.replace(/^\/api(?=\/|$)/, '') || '/';
   return withoutGlobalPrefix.replace(/\{([^}]+)\}/g, ':$1');
-}
-
-function isBasicAuthOnly(operation: OpenApiOperation): boolean {
-  const securitySchemeNames = (operation.security ?? []).flatMap(
-    (requirement) => Object.keys(requirement),
-  );
-
-  return (
-    securitySchemeNames.length > 0 &&
-    securitySchemeNames.every((name) => name === 'basic')
-  );
 }
 
 function getOpenApiEndpointKeys(document: OpenApiDocument): {
@@ -80,7 +69,7 @@ function getOpenApiEndpointKeys(document: OpenApiDocument): {
         continue;
       }
 
-      if (isBasicAuthOnly(operation as OpenApiOperation)) {
+      if (supportsBasicAuth(operation as OpenApiOperation)) {
         basicAuthEndpointKeys.push(key);
       } else {
         protectedEndpointKeys.push(key);
@@ -145,8 +134,9 @@ describe('Authentication Verification (e2e)', () => {
   /**
    * Keep the opt-in request registry synchronized with the app's route table.
    * CombinedAuthGuard protects every route by default, so an OpenAPI operation
-   * is protected unless it is explicitly registered as public or uses only
-   * OPDS Basic authentication. Both protected registries are checked here.
+   * is protected unless it is explicitly registered as public or supports
+   * OPDS Basic authentication (including routes with other auth alternatives).
+   * Both protected registries are checked here.
    */
   describe('Endpoint Registry Coverage', () => {
     it('registers every protected OpenAPI operation exactly once', async () => {

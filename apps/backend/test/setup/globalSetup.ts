@@ -4,6 +4,8 @@ import {
 } from '@testcontainers/postgresql';
 import { spawnSync, spawn, ChildProcess } from 'child_process';
 import { resolve } from 'path';
+import { initializeSharedAdmin } from '../helpers/auth.helper';
+import { closeCredentialLock } from '../helpers/credential-lock';
 
 declare global {
   var __POSTGRES_CONTAINER__: StartedPostgreSqlContainer;
@@ -118,14 +120,32 @@ export default async function globalSetup() {
       );
     }
 
+    let ready = false;
     try {
       const response = await fetch(`${serverBaseUrl}/api/health`);
-      if (response.ok) {
-        console.log('✅ Backend server is ready\n');
-        return;
-      }
+      ready = response.ok;
     } catch {
       // Server not ready yet
+    }
+
+    if (ready) {
+      // Bootstrap before Jest starts workers: racing sign-ups otherwise collide
+      // on the email constraint and can interfere with first-user admin setup.
+      try {
+        try {
+          await initializeSharedAdmin();
+        } finally {
+          await closeCredentialLock();
+        }
+      } catch (error) {
+        backendProcess.kill();
+        await container.stop();
+        throw new Error('Failed to initialize the shared E2E admin', {
+          cause: error,
+        });
+      }
+      console.log('✅ Backend server and shared admin are ready\n');
+      return;
     }
     attempts++;
     await new Promise((resolve) => setTimeout(resolve, 1000));
