@@ -170,7 +170,9 @@ export default function EbooksPage() {
           {view === "groups" ? (
             <EbookGroupsView
               search={debouncedSearch}
-              sortBy={groupSortBy === "recentlyAdded" ? "recentlyAdded" : "name"}
+              sortBy={
+                groupSortBy === "recentlyAdded" ? "recentlyAdded" : "name"
+              }
               sortOrder={groupSortOrder}
               animateEntrance={!hasSavedPosition}
             />

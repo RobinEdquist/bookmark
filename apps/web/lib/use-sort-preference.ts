@@ -44,10 +44,7 @@ const DEFAULT_DIRECTIONS: Record<SortField, SortOrder> = {
 };
 
 export type SortLibraryType =
-  | "audiobooks"
-  | "ebooks"
-  | "comics"
-  | "ebook-groups";
+  "audiobooks" | "ebooks" | "comics" | "ebook-groups";
 
 function getStorageKey(libraryType: SortLibraryType): string {
   return `bookmark-${libraryType}-sort`;
