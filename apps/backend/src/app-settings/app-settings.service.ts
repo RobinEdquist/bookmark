@@ -13,6 +13,33 @@ import {
 } from './schema';
 import { AppEventsService } from '../events/app-events.service';
 
+/**
+ * A stored priority map is whatever a client last PATCHed, and `PATCH /settings`
+ * replaces the column wholesale — so a caller that sends only `{ title, author }`
+ * leaves every other field without a priority list. Reading that back unguarded
+ * hands `undefined` to resolveFieldByPriority, which 500s every endpoint that
+ * resolves metadata. Fill the gaps from the defaults on read, per field, so a
+ * partial write degrades to "default order for the fields you omitted" and rows
+ * already written that way heal themselves.
+ */
+function mergeFieldPriority<T extends object>(
+  stored: T | null | undefined,
+  defaults: T,
+): T {
+  if (!stored || typeof stored !== 'object') return defaults;
+
+  const storedFields = stored as Record<string, unknown>;
+  const merged: Record<string, unknown> = { ...(defaults as object) } as Record<
+    string,
+    unknown
+  >;
+  for (const key of Object.keys(defaults)) {
+    const value = storedFields[key];
+    if (Array.isArray(value) && value.length > 0) merged[key] = value;
+  }
+  return merged as T;
+}
+
 @Injectable()
 export class AppSettingsService {
   constructor(
@@ -120,7 +147,10 @@ export class AppSettingsService {
 
   async getMetadataPriority(): Promise<MetadataFieldPriority> {
     const settings = await this.getSettings();
-    return settings.metadataPriority || DEFAULT_METADATA_PRIORITY;
+    return mergeFieldPriority(
+      settings.metadataPriority,
+      DEFAULT_METADATA_PRIORITY,
+    );
   }
 
   async isOpdsEnabled(): Promise<boolean> {
@@ -190,7 +220,10 @@ export class AppSettingsService {
 
   async getComicMetadataPriority(): Promise<ComicMetadataFieldPriority> {
     const settings = await this.getSettings();
-    return settings.comicMetadataPriority || DEFAULT_COMIC_METADATA_PRIORITY;
+    return mergeFieldPriority(
+      settings.comicMetadataPriority,
+      DEFAULT_COMIC_METADATA_PRIORITY,
+    );
   }
 
   async getTtsConfig(): Promise<{

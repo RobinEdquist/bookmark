@@ -304,6 +304,34 @@ describe('AppSettingsService', () => {
 
       expect(result).toEqual(DEFAULT_METADATA_PRIORITY);
     });
+
+    /**
+     * `PATCH /settings` replaces the whole column, so a client that sends only
+     * a couple of fields used to leave the rest undefined — and every metadata
+     * resolution then threw "priority is not iterable".
+     */
+    it('fills fields a partial stored priority omitted', async () => {
+      const settings = buildDefaultSettings({
+        metadataPriority: {
+          title: ['manual', 'embedded'],
+          author: ['embedded', 'manual'],
+        } as any,
+      });
+      const selectChain = chainMock([settings]);
+      const db = createMockDb({
+        select: jest.fn().mockReturnValue(selectChain),
+      });
+      const service = new AppSettingsService(db, createMockAppEvents());
+
+      const result = await service.getMetadataPriority();
+
+      expect(result.title).toEqual(['manual', 'embedded']);
+      expect(result.author).toEqual(['embedded', 'manual']);
+      for (const field of Object.keys(DEFAULT_METADATA_PRIORITY)) {
+        expect(Array.isArray((result as any)[field])).toBe(true);
+      }
+      expect(result.description).toEqual(DEFAULT_METADATA_PRIORITY.description);
+    });
   });
 
   // -----------------------------------------------------------------------
