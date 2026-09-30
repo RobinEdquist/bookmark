@@ -1,6 +1,20 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, asc, desc, eq, isNotNull, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  count,
+  or,
+  ilike,
+  isNotNull,
+  sql,
+} from 'drizzle-orm';
+import {
+  searchFeedUrl,
+  searchPaginationLinks,
+} from '../common/utils/opds-search.util';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
@@ -112,12 +126,79 @@ export class ComicsOpdsService {
   <updated>${updated}</updated>
   <link rel="self" href="${e(baseUrl)}" type="${navType('navigation')}"/>
   <link rel="start" href="${e(baseUrl)}" type="${navType('navigation')}"/>
+  <link rel="search" href="${e(baseUrl)}/search.xml" type="application/opensearchdescription+xml"/>
 ${entry('series', 'All Series', 'navigation', 'Browse all comic series')}
 ${entry('publishers', 'Publishers', 'navigation', 'Browse by publisher')}
 ${entry('collections', 'Collections', 'navigation', 'Browse comic collections')}
 ${entry('on-deck', 'On Deck', 'acquisition', 'Continue reading')}
 ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
 </feed>`;
+  }
+
+  async buildSearchFeed(
+    baseUrl: string,
+    userId: string,
+    query: string,
+    page: number = 1,
+    perPage: number = 20,
+  ): Promise<string> {
+    const terms = query.trim();
+    let total = 0;
+    let books: IssueRow[] = [];
+    if (terms) {
+      const pattern = `%${terms}%`;
+      const filter = and(
+        eq(schema.comicBooks.status, 'available'),
+        eq(schema.comicSeries.status, 'available'),
+        this.blacklistFilter(userId),
+        or(
+          ilike(schema.comicSeries.title, pattern),
+          ilike(schema.comicBooks.title, pattern),
+          ilike(schema.comicSeries.publisher, pattern),
+          sql`EXISTS (
+            SELECT 1 FROM ${schema.comicBookCreators} bc
+            INNER JOIN ${audiobookSchema.people} p ON p.id = bc.person_id
+            WHERE bc.book_id = ${schema.comicBooks.id} AND p.name ILIKE ${pattern}
+          )`,
+        ),
+      );
+      [{ total }] = await this.db
+        .select({ total: count() })
+        .from(schema.comicBooks)
+        .innerJoin(
+          schema.comicSeries,
+          eq(schema.comicBooks.seriesId, schema.comicSeries.id),
+        )
+        .where(filter);
+      books = await this.db
+        .select(this.issueColumns())
+        .from(schema.comicBooks)
+        .innerJoin(
+          schema.comicSeries,
+          eq(schema.comicBooks.seriesId, schema.comicSeries.id),
+        )
+        .where(filter)
+        .orderBy(
+          asc(schema.comicSeries.title),
+          sql`${schema.comicBooks.sortNumber} ASC NULLS LAST`,
+          asc(schema.comicBooks.id),
+        )
+        .limit(perPage)
+        .offset((page - 1) * perPage);
+    }
+    return this.buildAcquisitionFeed({
+      id: searchFeedUrl(baseUrl, terms, page),
+      title: terms ? `Search: ${terms}` : 'Search',
+      baseUrl,
+      books,
+      userId,
+      paginationLinks: searchPaginationLinks(
+        baseUrl,
+        terms,
+        page,
+        Math.ceil(total / perPage),
+      ),
+    });
   }
 
   /** Build one issue <entry> including download + PSE links. Exposed for tests. */
@@ -214,6 +295,7 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
     books: IssueRow[];
     userId: string;
     upLink?: string;
+    paginationLinks?: string;
   }): Promise<string> {
     const e = (s: string) => this.escapeXml(s);
     const updated = new Date().toISOString();
@@ -248,6 +330,7 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
   <link rel="self" href="${e(opts.id)}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
   <link rel="start" href="${e(opts.baseUrl)}" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
   <link rel="up" href="${e(up)}" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  ${opts.paginationLinks ?? ''}
   ${entries.join('')}
 </feed>`;
   }

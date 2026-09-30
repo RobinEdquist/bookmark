@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { api } from '../helpers/api.helper';
+import {
+  acquireOpdsSettingsLock,
+  OPDS_SETTINGS_WAIT_TIMEOUT,
+} from '../helpers/opds-settings-lock';
 import { getSharedAdmin, type TestUser } from '../helpers/auth.helper';
 
 /**
@@ -26,12 +30,14 @@ function basicHeader(key: string): string {
 
 describe('OPDS authentication schemes (e2e)', () => {
   let admin: TestUser;
+  let releaseOpdsSettings: (() => Promise<void>) | undefined;
   let apiKey: string;
   let keyId: string;
   let opdsWasEnabled = false;
 
   beforeAll(async () => {
     admin = await getSharedAdmin();
+    releaseOpdsSettings = await acquireOpdsSettingsLock();
 
     const settings = await api.get('/settings', admin.cookie);
     opdsWasEnabled = settings.data?.opdsEnabled === true;
@@ -53,12 +59,16 @@ describe('OPDS authentication schemes (e2e)', () => {
     apiKey = created.data.key;
     keyId = created.data.id;
     expect(apiKey).toMatch(/^bkmrk_/);
-  });
+  }, OPDS_SETTINGS_WAIT_TIMEOUT);
 
   afterAll(async () => {
-    if (keyId) await api.delete(`/api-keys/${keyId}`, admin.cookie);
-    if (!opdsWasEnabled) {
-      await api.patch('/settings', { opdsEnabled: false }, admin.cookie);
+    try {
+      if (keyId) await api.delete(`/api-keys/${keyId}`, admin.cookie);
+      if (!opdsWasEnabled && releaseOpdsSettings) {
+        await api.patch('/settings', { opdsEnabled: false }, admin.cookie);
+      }
+    } finally {
+      await releaseOpdsSettings?.();
     }
   });
 

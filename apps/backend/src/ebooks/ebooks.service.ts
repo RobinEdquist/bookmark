@@ -9,7 +9,6 @@ import {
   eq,
   ne,
   ilike,
-  or,
   desc,
   asc,
   SQL,
@@ -27,6 +26,7 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { CoverService } from '../common/cover.service';
 import { resolveContainedPath } from '../common/utils/path-containment.util';
 import * as schema from './schema';
+import { buildEbookSearchFilter } from './ebook-search.util';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
@@ -175,105 +175,7 @@ export class EbooksService {
     }
 
     if (search) {
-      const searchPattern = `%${search}%`;
-
-      // Search in title and subtitle
-      const titleMatch = ilike(schema.ebooks.title, searchPattern);
-      const subtitleMatch = ilike(schema.ebooks.subtitle, searchPattern);
-
-      // Search in authors (via ebookAuthors -> people)
-      const authorMatch = exists(
-        this.db
-          .select({ one: sql`1` })
-          .from(schema.ebookAuthors)
-          .innerJoin(
-            audiobookSchema.people,
-            eq(schema.ebookAuthors.personId, audiobookSchema.people.id),
-          )
-          .where(
-            and(
-              eq(schema.ebookAuthors.ebookId, schema.ebooks.id),
-              ilike(audiobookSchema.people.name, searchPattern),
-            ),
-          ),
-      );
-
-      // Search in series (via ebookSeries -> series)
-      const seriesMatch = exists(
-        this.db
-          .select({ one: sql`1` })
-          .from(schema.ebookSeries)
-          .innerJoin(
-            audiobookSchema.series,
-            eq(schema.ebookSeries.seriesId, audiobookSchema.series.id),
-          )
-          .where(
-            and(
-              eq(schema.ebookSeries.ebookId, schema.ebooks.id),
-              ilike(audiobookSchema.series.name, searchPattern),
-            ),
-          ),
-      );
-
-      // Search in linked Goodreads book (title and author)
-      const goodreadsMatch = exists(
-        this.db
-          .select({ one: sql`1` })
-          .from(goodreadsSchema.goodreadsEbookLinks)
-          .innerJoin(
-            goodreadsSchema.goodreadsBooks,
-            eq(
-              goodreadsSchema.goodreadsEbookLinks.goodreadsBookId,
-              goodreadsSchema.goodreadsBooks.id,
-            ),
-          )
-          .where(
-            and(
-              eq(goodreadsSchema.goodreadsEbookLinks.ebookId, schema.ebooks.id),
-              or(
-                ilike(goodreadsSchema.goodreadsBooks.title, searchPattern),
-                ilike(goodreadsSchema.goodreadsBooks.author, searchPattern),
-              ),
-            ),
-          ),
-      );
-
-      // Search in linked Hardcover book (title and author names)
-      const hardcoverMatch = exists(
-        this.db
-          .select({ one: sql`1` })
-          .from(hardcoverSchema.hardcoverEbookLinks)
-          .innerJoin(
-            hardcoverSchema.hardcoverBooks,
-            eq(
-              hardcoverSchema.hardcoverEbookLinks.hardcoverBookId,
-              hardcoverSchema.hardcoverBooks.id,
-            ),
-          )
-          .where(
-            and(
-              eq(hardcoverSchema.hardcoverEbookLinks.ebookId, schema.ebooks.id),
-              or(
-                ilike(hardcoverSchema.hardcoverBooks.title, searchPattern),
-                sql`EXISTS (
-                  SELECT 1 FROM jsonb_array_elements_text(${hardcoverSchema.hardcoverBooks.authorNames}) AS author_name
-                  WHERE author_name ILIKE ${searchPattern}
-                )`,
-              ),
-            ),
-          ),
-      );
-
-      conditions.push(
-        or(
-          titleMatch,
-          subtitleMatch,
-          authorMatch,
-          seriesMatch,
-          goodreadsMatch,
-          hardcoverMatch,
-        )!,
-      );
+      conditions.push(buildEbookSearchFilter(this.db, search));
     }
 
     if (language) {

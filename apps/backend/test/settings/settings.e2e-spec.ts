@@ -7,21 +7,45 @@
  * IMPORTANT: The first user signed up becomes admin.
  */
 
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { signUp, getSharedAdmin, type TestUser } from '../helpers/auth.helper';
 import { withCredentialPolicyWindow } from '../helpers/credential-lock';
 import { api } from '../helpers/api.helper';
+import {
+  withOpdsSettingsWindow,
+  OPDS_SETTINGS_WAIT_TIMEOUT,
+} from '../helpers/opds-settings-lock';
 
 describe('Settings (e2e)', () => {
   let admin: TestUser;
   let regularUser: TestUser;
+  let libraryPath: string;
 
   beforeAll(async () => {
+    libraryPath = await mkdtemp(join(tmpdir(), 'bookmark-settings-library-'));
     admin = await getSharedAdmin();
     regularUser = await signUp(
       'Settings User',
       'settings-user@test.com',
       'password123',
     );
+  });
+
+  afterAll(async () => {
+    if (libraryPath) {
+      try {
+        if (admin)
+          await api.patch(
+            '/settings',
+            { audiobookLibraryPath: null },
+            admin.cookie,
+          );
+      } finally {
+        await rm(libraryPath, { recursive: true, force: true });
+      }
+    }
   });
 
   describe('GET /settings/public', () => {
@@ -217,15 +241,15 @@ describe('Settings (e2e)', () => {
     });
 
     it('should update library path to a valid directory', async () => {
-      // /tmp always exists and is readable
+      // Use an owned, empty directory so the backend only watches this fixture.
       const { status, data } = await api.patch(
         '/settings',
-        { audiobookLibraryPath: '/tmp' },
+        { audiobookLibraryPath: libraryPath },
         admin.cookie,
       );
 
       expect(status).toBe(200);
-      expect(data.audiobookLibraryPath).toBe('/tmp');
+      expect(data.audiobookLibraryPath).toBe(libraryPath);
     });
 
     it('should reject an invalid library path', async () => {
@@ -249,35 +273,43 @@ describe('Settings (e2e)', () => {
       expect(data.audiobookLibraryPath).toBeNull();
     });
 
-    it('should update boolean feature flags', async () => {
-      const { status, data } = await api.patch(
-        '/settings',
-        {
-          opdsEnabled: true,
-          requestsEnabled: true,
-          defaultCanEditMetadata: true,
-          defaultCanUpload: true,
-        },
-        admin.cookie,
-      );
+    it(
+      'should update boolean feature flags',
+      async () => {
+        await withOpdsSettingsWindow(async () => {
+          const original = (await api.get('/settings', admin.cookie)).data;
+          try {
+            const { status, data } = await api.patch(
+              '/settings',
+              {
+                opdsEnabled: true,
+                requestsEnabled: true,
+                defaultCanEditMetadata: true,
+                defaultCanUpload: true,
+              },
+              admin.cookie,
+            );
 
-      expect(status).toBe(200);
-      expect(data.opdsEnabled).toBe(true);
-      expect(data.requestsEnabled).toBe(true);
-      expect(data.defaultCanEditMetadata).toBe(true);
-      expect(data.defaultCanUpload).toBe(true);
-
-      // Restore defaults
-      await api.patch(
-        '/settings',
-        {
-          opdsEnabled: false,
-          requestsEnabled: false,
-          defaultCanEditMetadata: false,
-          defaultCanUpload: false,
-        },
-        admin.cookie,
-      );
-    });
+            expect(status).toBe(200);
+            expect(data.opdsEnabled).toBe(true);
+            expect(data.requestsEnabled).toBe(true);
+            expect(data.defaultCanEditMetadata).toBe(true);
+            expect(data.defaultCanUpload).toBe(true);
+          } finally {
+            await api.patch(
+              '/settings',
+              {
+                opdsEnabled: original.opdsEnabled,
+                requestsEnabled: original.requestsEnabled,
+                defaultCanEditMetadata: original.defaultCanEditMetadata,
+                defaultCanUpload: original.defaultCanUpload,
+              },
+              admin.cookie,
+            );
+          }
+        });
+      },
+      OPDS_SETTINGS_WAIT_TIMEOUT,
+    );
   });
 });
