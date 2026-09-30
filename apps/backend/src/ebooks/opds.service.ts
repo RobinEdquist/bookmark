@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, asc, count, and, or, ilike, sql, type SQL } from 'drizzle-orm';
+import { eq, asc, count, and, sql, type SQL } from 'drizzle-orm';
 import {
   searchFeedUrl,
   searchPaginationLinks,
@@ -8,6 +8,7 @@ import {
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as schema from './schema';
+import { buildEbookSearchFilter } from './ebook-search.util';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
 
@@ -119,24 +120,10 @@ export class OpdsService {
     let total = 0;
     let ebooks: (typeof schema.ebooks.$inferSelect)[] = [];
     if (terms) {
-      const pattern = `%${terms}%`;
       const filter = and(
         eq(schema.ebooks.status, 'available'),
         this.visibleToUser(userId),
-        or(
-          ilike(schema.ebooks.title, pattern),
-          ilike(schema.ebooks.subtitle, pattern),
-          sql`EXISTS (
-            SELECT 1 FROM ${schema.ebookAuthors} ea
-            INNER JOIN ${audiobookSchema.people} p ON p.id = ea.person_id
-            WHERE ea.ebook_id = ${schema.ebooks.id} AND p.name ILIKE ${pattern}
-          )`,
-          sql`EXISTS (
-            SELECT 1 FROM ${schema.ebookSeries} es
-            INNER JOIN ${audiobookSchema.series} s ON s.id = es.series_id
-            WHERE es.ebook_id = ${schema.ebooks.id} AND s.name ILIKE ${pattern}
-          )`,
-        ),
+        buildEbookSearchFilter(this.db, terms),
       );
       [{ total }] = await this.db
         .select({ total: count() })

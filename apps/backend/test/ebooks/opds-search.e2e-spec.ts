@@ -30,6 +30,9 @@ describe('OPDS search (e2e)', () => {
   const personIds = [randomUUID(), randomUUID()];
   const ebookSeriesId = randomUUID();
   const tagId = randomUUID();
+  const goodreadsId = randomUUID();
+  const hardcoverId = randomUUID();
+  const externalToken = `External-${randomUUID()} & café ' <`;
 
   beforeAll(async () => {
     admin = await getSharedAdmin();
@@ -129,6 +132,40 @@ describe('OPDS search (e2e)', () => {
       'INSERT INTO ebook_series (ebook_id, series_id, "order") VALUES ($1, $2, 1)',
       [ebookIds[0], ebookSeriesId],
     );
+    // These terms occur only in linked metadata, never in the stored ebook
+    // titles/subtitles/authors. Both providers match the same books to catch
+    // duplicate rows and incorrect counts when searching across providers.
+    await db.query(
+      `INSERT INTO goodreads_books (id, goodreads_id, title, author, url)
+       VALUES ($1::uuid, $1::text, $2, $3, 'https://example.com/goodreads')`,
+      [
+        goodreadsId,
+        `${externalToken} Goodreads Title`,
+        `${externalToken} Goodreads Writer`,
+      ],
+    );
+    await db.query(
+      `INSERT INTO hardcover_books (id, hardcover_id, slug, title, author_names)
+       VALUES ($1::uuid, $1::text, $1::text, $2, $3::jsonb)`,
+      [
+        hardcoverId,
+        `${externalToken} Hardcover Title`,
+        JSON.stringify([
+          `${externalToken} Hardcover Writer`,
+          `${externalToken} Contributor`,
+        ]),
+      ],
+    );
+    for (const ebookId of ebookIds) {
+      await db.query(
+        'INSERT INTO goodreads_ebook_links (ebook_id, goodreads_book_id) VALUES ($1, $2)',
+        [ebookId, goodreadsId],
+      );
+      await db.query(
+        'INSERT INTO hardcover_ebook_links (ebook_id, hardcover_book_id) VALUES ($1, $2)',
+        [ebookId, hardcoverId],
+      );
+    }
   }, OPDS_SETTINGS_WAIT_TIMEOUT);
 
   afterAll(async () => {
@@ -146,6 +183,12 @@ describe('OPDS search (e2e)', () => {
         ]);
         await db.query('DELETE FROM series WHERE id = $1', [ebookSeriesId]);
         await db.query('DELETE FROM tags WHERE id = $1', [tagId]);
+        await db.query('DELETE FROM goodreads_books WHERE id = $1', [
+          goodreadsId,
+        ]);
+        await db.query('DELETE FROM hardcover_books WHERE id = $1', [
+          hardcoverId,
+        ]);
         await db.end();
       }
       if (!wasEnabled && admin && releaseOpdsSettings)
@@ -165,6 +208,56 @@ describe('OPDS search (e2e)', () => {
     const body = await response.text();
     return { response, body };
   }
+
+  it.each([
+    'Goodreads Title',
+    'Goodreads Writer',
+    'Hardcover Title',
+    'Hardcover Writer',
+    'Contributor',
+    '',
+  ])(
+    'finds linked metadata %j with paginated, unique, visible results',
+    async (field) => {
+      const query = `${externalToken} ${field}`.trim().toUpperCase();
+      const path = `/ebooks/opds/search?${new URLSearchParams({ q: query })}`;
+      const { response, body } = await fetchXml(path);
+      expect(response.status).toBe(200);
+      expect(XMLValidator.validate(body)).toBe(true);
+      const first = parser.parse(body).feed;
+      expect(first.entry).toHaveLength(20);
+      const nextUrl = first.link.find(
+        (link: { rel: string }) => link.rel === 'next',
+      ).href;
+      const next = await fetch(nextUrl, {
+        headers: { Authorization: authorization },
+      });
+      expect(next.status).toBe(200);
+      const last = parser.parse(await next.text()).feed;
+      expect(last.entry).toHaveLength(1);
+      expect(
+        last.link.some((link: { rel: string }) => link.rel === 'next'),
+      ).toBe(false);
+      const entries = [...first.entry, ...last.entry];
+      const actualIds = entries.map((entry: { id: string }) => entry.id);
+      const expectedIds = ebookIds.slice(0, 21).map((id) => `urn:uuid:${id}`);
+      expect(actualIds).toHaveLength(expectedIds.length);
+      expect(new Set(actualIds)).toEqual(new Set(expectedIds));
+      expect(body).toContain('http://opds-spec.org/acquisition');
+      const web = await api.get<{ ebooks: { id: string; status: string }[] }>(
+        `/ebooks?${new URLSearchParams({ search: query, limit: '100' })}`,
+        admin.cookie,
+      );
+      expect(web.status).toBe(200);
+      expect(
+        new Set(
+          web.data.ebooks
+            .filter((ebook) => ebook.status === 'available')
+            .map((ebook) => `urn:uuid:${ebook.id}`),
+        ),
+      ).toEqual(new Set(expectedIds));
+    },
+  );
 
   describe.each(['ebooks', 'comics'])('%s catalog', (catalog) => {
     const base = `/${catalog}/opds`;
