@@ -1,6 +1,10 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, asc, count, and, sql, type SQL } from 'drizzle-orm';
+import { eq, asc, count, and, or, ilike, sql, type SQL } from 'drizzle-orm';
+import {
+  searchFeedUrl,
+  searchPaginationLinks,
+} from '../common/utils/opds-search.util';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as schema from './schema';
@@ -68,6 +72,7 @@ export class OpdsService {
   <updated>${updated}</updated>
   <link rel="self" href="${this.escapeXml(baseUrl)}" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
   <link rel="start" href="${this.escapeXml(baseUrl)}" type="application/atom+xml;profile=opds-catalog;kind=navigation"/>
+  <link rel="search" href="${this.escapeXml(baseUrl)}/search.xml" type="application/opensearchdescription+xml"/>
 
   <entry>
     <id>${this.escapeXml(baseUrl)}/all</id>
@@ -101,6 +106,62 @@ export class OpdsService {
     <content type="text">Browse ebooks by group</content>
   </entry>
 </feed>`;
+  }
+
+  async buildSearchFeed(
+    baseUrl: string,
+    userId: string,
+    query: string,
+    page: number = 1,
+    perPage: number = 20,
+  ): Promise<string> {
+    const terms = query.trim();
+    let total = 0;
+    let ebooks: (typeof schema.ebooks.$inferSelect)[] = [];
+    if (terms) {
+      const pattern = `%${terms}%`;
+      const filter = and(
+        eq(schema.ebooks.status, 'available'),
+        this.visibleToUser(userId),
+        or(
+          ilike(schema.ebooks.title, pattern),
+          ilike(schema.ebooks.subtitle, pattern),
+          sql`EXISTS (
+            SELECT 1 FROM ${schema.ebookAuthors} ea
+            INNER JOIN ${audiobookSchema.people} p ON p.id = ea.person_id
+            WHERE ea.ebook_id = ${schema.ebooks.id} AND p.name ILIKE ${pattern}
+          )`,
+          sql`EXISTS (
+            SELECT 1 FROM ${schema.ebookSeries} es
+            INNER JOIN ${audiobookSchema.series} s ON s.id = es.series_id
+            WHERE es.ebook_id = ${schema.ebooks.id} AND s.name ILIKE ${pattern}
+          )`,
+        ),
+      );
+      [{ total }] = await this.db
+        .select({ total: count() })
+        .from(schema.ebooks)
+        .where(filter);
+      ebooks = await this.db
+        .select()
+        .from(schema.ebooks)
+        .where(filter)
+        .orderBy(asc(schema.ebooks.title), asc(schema.ebooks.id))
+        .limit(perPage)
+        .offset((page - 1) * perPage);
+    }
+    return this.buildAcquisitionFeed({
+      id: searchFeedUrl(baseUrl, terms, page),
+      title: terms ? `Search: ${terms}` : 'Search',
+      baseUrl,
+      entries: await this.buildEbookEntries(ebooks, baseUrl),
+      paginationLinks: searchPaginationLinks(
+        baseUrl,
+        terms,
+        page,
+        Math.ceil(total / perPage),
+      ),
+    });
   }
 
   async buildAllEbooksFeed(
@@ -564,12 +625,13 @@ export class OpdsService {
     totalPages?: number;
     feedPath?: string;
     upLink?: string;
+    paginationLinks?: string;
   }): string {
     const { id, title, baseUrl, entries, page, totalPages, feedPath, upLink } =
       options;
     const updated = new Date().toISOString();
 
-    let paginationLinks = '';
+    let paginationLinks = options.paginationLinks ?? '';
     if (page && totalPages && feedPath) {
       if (page > 1) {
         paginationLinks += `

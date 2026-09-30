@@ -24,6 +24,8 @@ import { OpdsService } from './opds.service';
 import { EbookGroupErrorResponseDto } from './dto/ebook-group-response.dto';
 import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
 import { resolveExternalBaseUrl } from '../common/utils/opds-base-url.util';
+import { OpdsSearchQueryDto } from '../common/dto/opds-search-query.dto';
+import { buildOpenSearchDescription } from '../common/utils/opds-search.util';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 
@@ -69,6 +71,41 @@ export class OpdsController {
   ) {
     const baseUrl = this.getBaseUrl(req);
     const xml = await this.opdsService.buildRootCatalog(baseUrl);
+    this.sendXml(res, xml);
+  }
+
+  @Get('search.xml')
+  @ApiOperation({ summary: 'Get OpenSearch description' })
+  @ApiResponse({ status: 200, description: 'OpenSearch description XML' })
+  getSearchDescription(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+  ) {
+    res.setHeader(
+      'Content-Type',
+      'application/opensearchdescription+xml; charset=utf-8',
+    );
+    res.send(buildOpenSearchDescription(this.getBaseUrl(req), 'Ebook Library'));
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search the ebook library (paginated acquisition feed)',
+  })
+  @ApiResponse({ status: 200, description: 'OPDS acquisition feed' })
+  @ApiResponse({ status: 400, description: 'Invalid search query or page' })
+  async search(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: OpdsSearchQueryDto,
+  ) {
+    const xml = await this.opdsService.buildSearchFeed(
+      this.getBaseUrl(req),
+      user.id,
+      query.q ?? '',
+      query.page,
+    );
     this.sendXml(res, xml);
   }
 

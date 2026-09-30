@@ -25,6 +25,8 @@ import { ComicPageService } from './comic-page.service';
 import { ComicsService } from './comics.service';
 import { ComicProgressService } from '../comic-progress/comic-progress.service';
 import { OpdsAuthGuard } from '../common/guards/opds-auth.guard';
+import { OpdsSearchQueryDto } from '../common/dto/opds-search-query.dto';
+import { buildOpenSearchDescription } from '../common/utils/opds-search.util';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { resolveExternalBaseUrl } from '../common/utils/opds-base-url.util';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
@@ -74,6 +76,41 @@ export class ComicsOpdsController {
   async getRoot(@Req() req: express.Request, @Res() res: express.Response) {
     this.logger.log(`[comics-opds] GET / (root catalog)`);
     const xml = await this.opds.buildRootCatalog(this.getBaseUrl(req));
+    this.sendXml(res, xml);
+  }
+
+  @Get('search.xml')
+  @ApiOperation({ summary: 'Get OpenSearch description' })
+  @ApiResponse({ status: 200, description: 'OpenSearch description XML' })
+  getSearchDescription(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+  ) {
+    res.setHeader(
+      'Content-Type',
+      'application/opensearchdescription+xml; charset=utf-8',
+    );
+    res.send(buildOpenSearchDescription(this.getBaseUrl(req), 'Comic Library'));
+  }
+
+  @Get('search')
+  @ApiOperation({
+    summary: 'Search the comic library (paginated acquisition feed)',
+  })
+  @ApiResponse({ status: 200, description: 'OPDS acquisition feed' })
+  @ApiResponse({ status: 400, description: 'Invalid search query or page' })
+  async search(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() query: OpdsSearchQueryDto,
+  ) {
+    const xml = await this.opds.buildSearchFeed(
+      this.getBaseUrl(req),
+      user.id,
+      query.q ?? '',
+      query.page,
+    );
     this.sendXml(res, xml);
   }
 

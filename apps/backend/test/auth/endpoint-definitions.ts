@@ -1022,6 +1022,8 @@ export const opdsEndpoints: ControllerEndpoints[] = [
     controller: 'Ebooks OPDS',
     endpoints: [
       { method: 'GET', path: '/ebooks/opds', expectedStatus: 401 },
+      { method: 'GET', path: '/ebooks/opds/search.xml', expectedStatus: 401 },
+      { method: 'GET', path: '/ebooks/opds/search', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/opds/all', expectedStatus: 401 },
       { method: 'GET', path: '/ebooks/opds/authors', expectedStatus: 401 },
       {
@@ -1047,6 +1049,8 @@ export const opdsEndpoints: ControllerEndpoints[] = [
     controller: 'Comics OPDS',
     endpoints: [
       { method: 'GET', path: '/comics/opds', expectedStatus: 401 },
+      { method: 'GET', path: '/comics/opds/search.xml', expectedStatus: 401 },
+      { method: 'GET', path: '/comics/opds/search', expectedStatus: 401 },
       { method: 'GET', path: '/comics/opds/series', expectedStatus: 401 },
       {
         method: 'GET',
