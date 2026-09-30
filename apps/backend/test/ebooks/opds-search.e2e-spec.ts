@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { api } from '../helpers/api.helper';
+import { acquireOpdsSettingsLock } from '../helpers/opds-settings-lock';
 import { getSharedAdmin, type TestUser } from '../helpers/auth.helper';
 
 const parser = new XMLParser({
@@ -14,6 +15,7 @@ const parser = new XMLParser({
 describe('OPDS search (e2e)', () => {
   let db: Pool;
   let admin: TestUser;
+  let releaseOpdsSettings: (() => Promise<void>) | undefined;
   let authorization: string;
   let keyId: string;
   let apiKey: string;
@@ -28,9 +30,15 @@ describe('OPDS search (e2e)', () => {
 
   beforeAll(async () => {
     admin = await getSharedAdmin();
+    releaseOpdsSettings = await acquireOpdsSettingsLock();
     db = new Pool({ connectionString: process.env.DATABASE_URL });
     wasEnabled = (await api.get('/settings', admin.cookie)).data.opdsEnabled;
-    await api.patch('/settings', { opdsEnabled: true }, admin.cookie);
+    const enabled = await api.patch(
+      '/settings',
+      { opdsEnabled: true },
+      admin.cookie,
+    );
+    expect(enabled.status).toBe(200);
     const key = await api.post<{ id: string; key: string }>(
       '/api-keys',
       { name: 'OPDS search test' },
@@ -121,23 +129,27 @@ describe('OPDS search (e2e)', () => {
   });
 
   afterAll(async () => {
-    if (keyId) await api.delete(`/api-keys/${keyId}`, admin.cookie);
-    if (db) {
-      await db.query('DELETE FROM ebooks WHERE id = ANY($1::uuid[])', [
-        ebookIds,
-      ]);
-      await db.query('DELETE FROM comic_series WHERE id = ANY($1::uuid[])', [
-        seriesIds,
-      ]);
-      await db.query('DELETE FROM people WHERE id = ANY($1::uuid[])', [
-        personIds,
-      ]);
-      await db.query('DELETE FROM series WHERE id = $1', [ebookSeriesId]);
-      await db.query('DELETE FROM tags WHERE id = $1', [tagId]);
-      await db.end();
+    try {
+      if (keyId) await api.delete(`/api-keys/${keyId}`, admin.cookie);
+      if (db) {
+        await db.query('DELETE FROM ebooks WHERE id = ANY($1::uuid[])', [
+          ebookIds,
+        ]);
+        await db.query('DELETE FROM comic_series WHERE id = ANY($1::uuid[])', [
+          seriesIds,
+        ]);
+        await db.query('DELETE FROM people WHERE id = ANY($1::uuid[])', [
+          personIds,
+        ]);
+        await db.query('DELETE FROM series WHERE id = $1', [ebookSeriesId]);
+        await db.query('DELETE FROM tags WHERE id = $1', [tagId]);
+        await db.end();
+      }
+      if (!wasEnabled && admin && releaseOpdsSettings)
+        await api.patch('/settings', { opdsEnabled: false }, admin.cookie);
+    } finally {
+      await releaseOpdsSettings?.();
     }
-    if (!wasEnabled && admin)
-      await api.patch('/settings', { opdsEnabled: false }, admin.cookie);
   });
 
   async function fetchXml(
