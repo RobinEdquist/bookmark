@@ -3,6 +3,9 @@ import { Client } from 'pg';
 /** Separate from the credential-policy lock: OPDS suites also sign in. */
 const OPDS_SETTINGS_LOCK = 4712;
 
+/** Suite leases can outlast a single test; give queued callers their own budget. */
+export const OPDS_SETTINGS_WAIT_TIMEOUT = 120_000;
+
 /**
  * OPDS suites and the settings test share one backend across Jest workers.
  * Hold this lease from before reading opdsEnabled until after restoring it,
@@ -13,7 +16,9 @@ export async function acquireOpdsSettingsLock(): Promise<() => Promise<void>> {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   try {
     await client.connect();
-    await client.query("SET lock_timeout = '15s'");
+    // The holder runs a whole suite, so a short PostgreSQL lock timeout would
+    // fail healthy waiters. Callers use OPDS_SETTINGS_WAIT_TIMEOUT for Jest.
+    await client.query("SET lock_timeout = '0'");
     await client.query('SELECT pg_advisory_lock($1)', [OPDS_SETTINGS_LOCK]);
     return () => client.end();
   } catch (error) {

@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { api } from '../helpers/api.helper';
-import { acquireOpdsSettingsLock } from '../helpers/opds-settings-lock';
+import {
+  acquireOpdsSettingsLock,
+  OPDS_SETTINGS_WAIT_TIMEOUT,
+} from '../helpers/opds-settings-lock';
 import { getSharedAdmin, type TestUser } from '../helpers/auth.helper';
 
 const parser = new XMLParser({
@@ -126,7 +129,7 @@ describe('OPDS search (e2e)', () => {
       'INSERT INTO ebook_series (ebook_id, series_id, "order") VALUES ($1, $2, 1)',
       [ebookIds[0], ebookSeriesId],
     );
-  });
+  }, OPDS_SETTINGS_WAIT_TIMEOUT);
 
   afterAll(async () => {
     try {
@@ -186,9 +189,34 @@ describe('OPDS search (e2e)', () => {
         `${process.env.TEST_BASE_URL}/api${base}/search.xml`,
       );
       expect(description.Url.template).toBe(
-        `${process.env.TEST_BASE_URL}/api${base}/search?q={searchTerms}&page={startPage?}`,
+        `${process.env.TEST_BASE_URL}/api${base}/search?q={searchTerms}`,
       );
       expect(description.Url.type).toContain('kind=acquisition');
+      expect(description.Url.pageOffset).toBeUndefined();
+
+      // Readers substitute searchTerms and follow Atom links for pagination.
+      const searchUrl = description.Url.template.replace(
+        '{searchTerms}',
+        encodeURIComponent(token),
+      );
+      const first = await fetch(searchUrl, {
+        headers: { Authorization: authorization },
+      });
+      expect(first.status).toBe(200);
+      const firstXml = await first.text();
+      expect(XMLValidator.validate(firstXml)).toBe(true);
+      const feed = parser.parse(firstXml).feed;
+      expect(feed.entry).toHaveLength(20);
+      const nextUrl = feed.link.find(
+        (link: { rel: string }) => link.rel === 'next',
+      ).href;
+      expect(new URL(nextUrl).searchParams.get('q')).toBe(token);
+      expect(new URL(nextUrl).searchParams.get('page')).toBe('2');
+      const next = await fetch(nextUrl, {
+        headers: { Authorization: authorization },
+      });
+      expect(next.status).toBe(200);
+      expect(parser.parse(await next.text()).feed.entry).toHaveLength(1);
     });
 
     it('paginates visible results and preserves special characters in all navigation links', async () => {

@@ -13,7 +13,10 @@ import { join } from 'node:path';
 import { signUp, getSharedAdmin, type TestUser } from '../helpers/auth.helper';
 import { withCredentialPolicyWindow } from '../helpers/credential-lock';
 import { api } from '../helpers/api.helper';
-import { withOpdsSettingsWindow } from '../helpers/opds-settings-lock';
+import {
+  withOpdsSettingsWindow,
+  OPDS_SETTINGS_WAIT_TIMEOUT,
+} from '../helpers/opds-settings-lock';
 
 describe('Settings (e2e)', () => {
   let admin: TestUser;
@@ -270,39 +273,43 @@ describe('Settings (e2e)', () => {
       expect(data.audiobookLibraryPath).toBeNull();
     });
 
-    it('should update boolean feature flags', async () => {
-      await withOpdsSettingsWindow(async () => {
-        const original = (await api.get('/settings', admin.cookie)).data;
-        try {
-          const { status, data } = await api.patch(
-            '/settings',
-            {
-              opdsEnabled: true,
-              requestsEnabled: true,
-              defaultCanEditMetadata: true,
-              defaultCanUpload: true,
-            },
-            admin.cookie,
-          );
+    it(
+      'should update boolean feature flags',
+      async () => {
+        await withOpdsSettingsWindow(async () => {
+          const original = (await api.get('/settings', admin.cookie)).data;
+          try {
+            const { status, data } = await api.patch(
+              '/settings',
+              {
+                opdsEnabled: true,
+                requestsEnabled: true,
+                defaultCanEditMetadata: true,
+                defaultCanUpload: true,
+              },
+              admin.cookie,
+            );
 
-          expect(status).toBe(200);
-          expect(data.opdsEnabled).toBe(true);
-          expect(data.requestsEnabled).toBe(true);
-          expect(data.defaultCanEditMetadata).toBe(true);
-          expect(data.defaultCanUpload).toBe(true);
-        } finally {
-          await api.patch(
-            '/settings',
-            {
-              opdsEnabled: original.opdsEnabled,
-              requestsEnabled: original.requestsEnabled,
-              defaultCanEditMetadata: original.defaultCanEditMetadata,
-              defaultCanUpload: original.defaultCanUpload,
-            },
-            admin.cookie,
-          );
-        }
-      });
-    });
+            expect(status).toBe(200);
+            expect(data.opdsEnabled).toBe(true);
+            expect(data.requestsEnabled).toBe(true);
+            expect(data.defaultCanEditMetadata).toBe(true);
+            expect(data.defaultCanUpload).toBe(true);
+          } finally {
+            await api.patch(
+              '/settings',
+              {
+                opdsEnabled: original.opdsEnabled,
+                requestsEnabled: original.requestsEnabled,
+                defaultCanEditMetadata: original.defaultCanEditMetadata,
+                defaultCanUpload: original.defaultCanUpload,
+              },
+              admin.cookie,
+            );
+          }
+        });
+      },
+      OPDS_SETTINGS_WAIT_TIMEOUT,
+    );
   });
 });

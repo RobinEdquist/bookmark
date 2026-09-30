@@ -19,7 +19,7 @@ export function buildOpenSearchDescription(
   <ShortName>${escapeXml(name)}</ShortName>
   <Description>Search the ${escapeXml(name)} catalog</Description>
   <InputEncoding>UTF-8</InputEncoding>
-  <Url type="${ACQUISITION_TYPE}" template="${escapeXml(baseUrl)}/search?q={searchTerms}&amp;page={startPage?}" pageOffset="1"/>
+  <Url type="${ACQUISITION_TYPE}" template="${escapeXml(baseUrl)}/search?q={searchTerms}"/>
 </OpenSearchDescription>`;
 }
 

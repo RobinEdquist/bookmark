@@ -1,7 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { api } from '../helpers/api.helper';
-import { acquireOpdsSettingsLock } from '../helpers/opds-settings-lock';
+import {
+  acquireOpdsSettingsLock,
+  OPDS_SETTINGS_WAIT_TIMEOUT,
+} from '../helpers/opds-settings-lock';
 import { getSharedAdmin, type TestUser } from '../helpers/auth.helper';
 
 /**
@@ -56,7 +59,7 @@ describe('OPDS authentication schemes (e2e)', () => {
     apiKey = created.data.key;
     keyId = created.data.id;
     expect(apiKey).toMatch(/^bkmrk_/);
-  });
+  }, OPDS_SETTINGS_WAIT_TIMEOUT);
 
   afterAll(async () => {
     try {
