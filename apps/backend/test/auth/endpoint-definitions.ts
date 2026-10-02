@@ -650,6 +650,16 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
     endpoints: [
       { method: 'GET', path: '/admin/requests', expectedStatus: 401 },
       {
+        method: 'GET',
+        path: '/admin/requests/:id/attempts',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/requests/:id/recheck',
+        expectedStatus: 401,
+      },
+      {
         method: 'POST',
         path: '/admin/requests/:id/approve',
         expectedStatus: 401,

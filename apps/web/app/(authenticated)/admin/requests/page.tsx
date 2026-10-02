@@ -15,6 +15,7 @@ import {
   useApproveRequest,
   useRejectRequest,
   useDeleteRequest,
+  useRecheckRequest,
 } from "../../../../lib/use-requests";
 import { AdminRequestsList } from "../../../../components/requests/admin-requests-list";
 import { authClient } from "../../../../lib/auth-client";
@@ -23,6 +24,7 @@ import { useUrlTab } from "../../../../lib/use-url-tab";
 const STATUS_TABS = [
   "pending",
   "approved",
+  "waiting",
   "downloading",
   "missing",
   "all",
@@ -53,6 +55,15 @@ export default function AdminRequestsPage() {
   const { approveRequest, isApproving } = useApproveRequest();
   const { rejectRequest, isRejecting } = useRejectRequest();
   const { deleteRequest, isDeleting } = useDeleteRequest();
+  const { recheckRequest, isRechecking } = useRecheckRequest();
+  const handleRecheck = async (id: string) => {
+    try {
+      await recheckRequest(id);
+      toast.success(t("recheck.queued"));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("toast.failed"));
+    }
+  };
 
   const isAdmin = session?.user?.role === "admin";
 
@@ -98,6 +109,7 @@ export default function AdminRequestsPage() {
             <TabsTrigger value="pending">
               {t("tabs.pending")} {pendingCount > 0 && `(${pendingCount})`}
             </TabsTrigger>
+            <TabsTrigger value="waiting">{t("tabs.waiting")}</TabsTrigger>
             <TabsTrigger value="approved">{t("tabs.approved")}</TabsTrigger>
             <TabsTrigger value="downloading">
               {t("tabs.downloading")}
@@ -117,6 +129,8 @@ export default function AdminRequestsPage() {
                 rejectRequest({ requestId: id, reason })
               }
               onDelete={handleDelete}
+              onRecheck={handleRecheck}
+              isRechecking={isRechecking}
               isApproving={isApproving}
               isRejecting={isRejecting}
               isDeleting={isDeleting}

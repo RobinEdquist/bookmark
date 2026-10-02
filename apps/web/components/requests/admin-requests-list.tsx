@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, ChevronDown, Trash2 } from "lucide-react";
+import { RequestAttemptHistory } from "./request-attempt-history";
 import { CONTENT_TYPE_STYLES } from "./content-type-styles";
 import { Button } from "@repo/ui/components/ui/button";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
@@ -31,6 +32,8 @@ interface AdminRequestsListProps {
   onApprove: (id: string) => Promise<unknown>;
   onReject: (id: string, reason?: string) => Promise<unknown>;
   onDelete: (id: string) => Promise<unknown>;
+  onRecheck: (id: string) => Promise<unknown>;
+  isRechecking: boolean;
   isApproving: boolean;
   isRejecting: boolean;
   isDeleting: boolean;
@@ -42,6 +45,7 @@ const statusVariants: Record<
 > = {
   pending: "secondary",
   approved: "default",
+  waiting: "secondary",
   downloading: "default",
   complete: "default",
   rejected: "destructive",
@@ -53,6 +57,8 @@ export function AdminRequestsList({
   onApprove,
   onReject,
   onDelete,
+  onRecheck,
+  isRechecking,
   isApproving,
   isRejecting,
   isDeleting,
@@ -124,6 +130,8 @@ export function AdminRequestsList({
       <div className="space-y-4">
         {requests.map((request) => {
           const TypeIcon = CONTENT_TYPE_STYLES[request.contentType].icon;
+          const isSearching =
+            request.status === "pending" || request.status === "waiting";
           return (
             <Card key={request.id}>
               <CardContent className="p-4">
@@ -174,6 +182,30 @@ export function AdminRequestsList({
                       {formatTimeAgo(request.createdAt)}
                     </p>
 
+                    {isSearching && request.searchError && (
+                      <p className="text-sm text-destructive">
+                        {t("recheck.failed")}
+                      </p>
+                    )}
+                    {request.lastSearchAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("recheck.lastCheck", {
+                          date: formatDateTime(request.lastSearchAt),
+                        })}
+                      </p>
+                    )}
+                    {isSearching && request.nextSearchAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("recheck.nextCheck", {
+                          date: formatDateTime(request.nextSearchAt),
+                        })}
+                      </p>
+                    )}
+                    {request.languageNames.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {request.languageNames.join(", ")}
+                      </p>
+                    )}
                     {request.torrentMissingSince && (
                       <p className="text-sm text-destructive">
                         {t("torrentMissing.description", {
@@ -183,6 +215,8 @@ export function AdminRequestsList({
                     )}
                   </div>
                 </div>
+
+                <RequestAttemptHistory requestId={request.id} />
 
                 {/* Actions - separate row on mobile */}
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
@@ -227,6 +261,24 @@ export function AdminRequestsList({
                       </DropdownMenu>
                     </>
                   )}
+                  {request.torrentId === null &&
+                    (request.status === "pending" ||
+                      request.status === "waiting") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onRecheck(request.id)}
+                        disabled={
+                          isRechecking ||
+                          !!(
+                            request.releaseDate &&
+                            new Date(request.releaseDate) > new Date()
+                          )
+                        }
+                      >
+                        {t("recheck.button")}
+                      </Button>
+                    )}
                   <Button
                     variant="ghost"
                     size="sm"

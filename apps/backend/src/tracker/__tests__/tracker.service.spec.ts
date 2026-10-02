@@ -138,7 +138,9 @@ describe('TrackerService', () => {
 
   describe('search', () => {
     it('should default categories to [audiobook, ebook]', async () => {
-      mockFetch.mockResolvedValueOnce(mockResponse({ results: [], total: 0 }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ results: [], total: 0, releaseDate: null }),
+      );
 
       await service.search({ query: 'audiobooks' });
 
@@ -148,7 +150,9 @@ describe('TrackerService', () => {
     });
 
     it('should pass custom categories when provided', async () => {
-      mockFetch.mockResolvedValueOnce(mockResponse({ results: [], total: 0 }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ results: [], total: 0, releaseDate: null }),
+      );
 
       await service.search({ query: 'test', categories: ['audiobook'] });
 
@@ -157,7 +161,9 @@ describe('TrackerService', () => {
     });
 
     it('should forward pagination and filter params', async () => {
-      mockFetch.mockResolvedValueOnce(mockResponse({ results: [], total: 0 }));
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ results: [], total: 0, releaseDate: null }),
+      );
 
       await service.search({
         query: 'test',
@@ -175,13 +181,67 @@ describe('TrackerService', () => {
     });
   });
 
+  describe('book request contract', () => {
+    it('rejects responses that omit the required publication-date field', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ results: [], total: 0 }));
+      await expect(service.search({ query: 'Book' })).rejects.toMatchObject({
+        status: 502,
+      });
+    });
+    it('rejects single and bulk statuses that omit the explicit failure attestation', async () => {
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ hash: 'abc123', state: 'error' }),
+      );
+      await expect(service.getTorrentStatus('abc123')).rejects.toMatchObject({
+        status: 502,
+      });
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({ torrents: [{ hash: 'abc123', state: 'error' }] }),
+      );
+      await expect(
+        service.getBulkTorrentStatus(['abc123']),
+      ).rejects.toMatchObject({ status: 502 });
+    });
+    it('sends scoped metadata and honors publication dates without negotiation', async () => {
+      const book = {
+        title: 'Book',
+        author: 'Author',
+        contentType: 'audiobook',
+        languageNames: ['English'],
+      };
+      mockFetch.mockResolvedValueOnce(
+        mockResponse({
+          results: [],
+          total: 0,
+          releaseDate: '2027-01-01T00:00:00Z',
+        }),
+      );
+      const response = await service.search({ query: 'Book', book });
+      expect(JSON.parse(mockFetch.mock.calls[0][1].body).book).toEqual(book);
+      expect(response.releaseDate).toBe('2027-01-01T00:00:00Z');
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+    it('always sends the durable submission identity without negotiation', async () => {
+      mockFetch.mockResolvedValueOnce(mockResponse({ hash: 'abc123' }));
+      await service.download('10', {
+        category: 'audiobooks',
+        submissionKey: 'attempt-1',
+      });
+      expect(JSON.parse(mockFetch.mock.calls[0][1].body)).toEqual({
+        category: 'audiobooks',
+        submissionKey: 'attempt-1',
+      });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+  });
+
   // ===== download =====
 
   describe('download', () => {
     it('should call correct endpoint with torrent ID', async () => {
       mockFetch.mockResolvedValueOnce(mockResponse({ success: true }));
 
-      await service.download('12345');
+      await service.download('12345', { submissionKey: 'attempt-1' });
 
       expect(mockFetch).toHaveBeenCalledWith(
         'http://tracker:3000/download/12345',
@@ -192,7 +252,9 @@ describe('TrackerService', () => {
     it.each(['..%2f..%2fdownload/x', '../../download/x', 'a?b', 'a#b', ' '])(
       'should reject unsafe torrent id %j with 400',
       async (torrentId) => {
-        await expect(service.download(torrentId)).rejects.toMatchObject({
+        await expect(
+          service.download(torrentId, { submissionKey: 'attempt-1' }),
+        ).rejects.toMatchObject({
           status: 400,
         });
         expect(mockFetch).not.toHaveBeenCalled();
@@ -205,7 +267,11 @@ describe('TrackerService', () => {
   describe('getTorrentStatus', () => {
     it('should call GET with hash', async () => {
       mockFetch.mockResolvedValueOnce(
-        mockResponse({ hash: 'abc', status: 'done' }),
+        mockResponse({
+          hash: 'abc',
+          state: 'completed',
+          acquisitionFailed: false,
+        }),
       );
 
       await service.getTorrentStatus('abc123');
@@ -228,7 +294,7 @@ describe('TrackerService', () => {
 
   describe('getBulkTorrentStatus', () => {
     it('should join hashes with comma', async () => {
-      mockFetch.mockResolvedValueOnce(mockResponse({}));
+      mockFetch.mockResolvedValueOnce(mockResponse({ torrents: [] }));
 
       await service.getBulkTorrentStatus(['hash1', 'hash2', 'hash3']);
 
@@ -239,7 +305,7 @@ describe('TrackerService', () => {
     });
 
     it('should drop malformed hashes but keep valid ones', async () => {
-      mockFetch.mockResolvedValueOnce(mockResponse({}));
+      mockFetch.mockResolvedValueOnce(mockResponse({ torrents: [] }));
 
       await service.getBulkTorrentStatus(['goodhash1', '../evil', 'good2']);
 

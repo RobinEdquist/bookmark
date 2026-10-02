@@ -28,6 +28,7 @@ interface RequestSearchResultsProps {
     coverUrl?: string;
     contentType: ContentType;
     categoryId: number;
+    language?: string;
   }) => void;
   onSupport: (requestId: string) => void;
   isRequesting: boolean;
@@ -107,6 +108,7 @@ export function RequestSearchResults({
       coverUrl: item.coverUrl ?? undefined,
       contentType: item.contentType,
       categoryId: item.categoryId,
+      language: item.language || undefined,
     });
   };
 
@@ -254,7 +256,8 @@ export function RequestSearchResults({
                           </Button>
                         </motion.div>
                       ) : item.existingRequestId ? (
-                        item.existingRequestStatus === "pending" &&
+                        item.existingRequestStatus !== "complete" &&
+                        item.existingRequestStatus !== "rejected" &&
                         !item.existingRequestIsMine ? (
                           <motion.div
                             key={`support-${item.id}`}
@@ -443,7 +446,8 @@ export function RequestSearchResults({
                             </Button>
                           </motion.div>
                         ) : item.existingRequestId ? (
-                          item.existingRequestStatus === "pending" &&
+                          item.existingRequestStatus !== "complete" &&
+                          item.existingRequestStatus !== "rejected" &&
                           !item.existingRequestIsMine ? (
                             <motion.div
                               key={`m-sup-${item.id}`}

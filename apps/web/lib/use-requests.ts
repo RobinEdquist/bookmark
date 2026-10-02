@@ -5,7 +5,7 @@ import { queryKeys } from "./query-keys";
 
 // Types
 export type RequestStatus =
-  "pending" | "approved" | "downloading" | "complete" | "rejected";
+  "pending" | "approved" | "waiting" | "downloading" | "complete" | "rejected";
 export type ContentType = "audiobook" | "ebook" | "comics";
 
 export interface SeriesInfo {
@@ -18,7 +18,14 @@ export interface RequestResponse {
   userId: string;
   userEmail: string;
   status: RequestStatus;
-  torrentId: string;
+  torrentId: string | null;
+  bookKey: string;
+  languageNames: string[];
+  approvedAt: string | null;
+  lastSearchAt: string | null;
+  nextSearchAt: string | null;
+  releaseDate: string | null;
+  searchError: string | null;
   title: string;
   author: string | null;
   narrator: string | null;
@@ -149,8 +156,8 @@ async function fetchMyRequests(): Promise<RequestResponse[]> {
   return response.json();
 }
 
-interface CreateRequestParams {
-  torrentId: number;
+export interface CreateRequestParams {
+  torrentId?: number;
   title: string;
   author?: string;
   narrator?: string;
@@ -158,7 +165,9 @@ interface CreateRequestParams {
   description?: string;
   coverUrl?: string;
   contentType: ContentType;
-  categoryId: number;
+  categoryId?: number;
+  languages?: number[];
+  language?: string;
 }
 
 async function createRequest(
@@ -323,6 +332,7 @@ export function useMyRequests() {
   return useQuery({
     queryKey: queryKeys.requests.list(),
     queryFn: fetchMyRequests,
+    refetchInterval: 30_000,
   });
 }
 
@@ -397,6 +407,7 @@ export function useAdminRequests(
   return useQuery({
     queryKey: queryKeys.adminRequests.list(status, missingOnly),
     queryFn: () => fetchAdminRequests(status, missingOnly),
+    refetchInterval: 30_000,
   });
 }
 
@@ -456,5 +467,30 @@ export function useDeleteRequest() {
     deleteRequest: mutation.mutateAsync,
     isDeleting: mutation.isPending,
     error: mutation.error,
+  };
+}
+
+export function useRecheckRequest() {
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: async (requestId: string): Promise<RequestResponse> => {
+      const response = await fetch(`/api/admin/requests/${requestId}/recheck`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.message || "Failed to queue availability check");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminRequests.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+    },
+  });
+  return {
+    recheckRequest: mutation.mutateAsync,
+    isRechecking: mutation.isPending,
   };
 }

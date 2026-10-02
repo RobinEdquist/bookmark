@@ -1,5 +1,11 @@
 // Tracker Search Types
 export interface TrackerSearchParams {
+  book?: {
+    title: string;
+    author: string | null;
+    contentType: string;
+    languageNames: string[];
+  };
   query: string;
   categories?: string[]; // content-type ids: 'audiobook', 'ebook', 'comics'
   searchIn?: string[]; // Fields to search: title, author, narrator, series, tags, description
@@ -33,6 +39,8 @@ export interface TrackerSearchResult {
 }
 
 export interface TrackerSearchResponse {
+  // Publication date for the exact book/medium/language in params.book.
+  releaseDate: string | null;
   results: TrackerSearchResult[];
   total: number;
 }
@@ -50,6 +58,7 @@ export interface TrackerLanguagesResponse {
 
 // Tracker Download Types
 export interface TrackerDownloadOptions {
+  submissionKey: string;
   category?: string; // download client category (e.g., "audiobooks", "books")
   tags?: string;
   paused?: boolean;
@@ -70,6 +79,8 @@ export interface TorrentFile {
 }
 
 export interface TorrentStatus {
+  // Only true after a conclusively failed acquisition with no live transfer.
+  acquisitionFailed: boolean;
   hash: string;
   name: string;
   // Download client states: downloading, stalledDL, metaDL, pausedDL, queuedDL, checkingDL, forcedDL,

@@ -53,11 +53,12 @@
     "comics": "Comics"
   },
   "status": {
-    "pending": "Pending",
+    "pending": "Awaiting approval",
     "approved": "Approved",
     "downloading": "Downloading",
-    "complete": "Complete",
-    "rejected": "Rejected"
+    "complete": "Available in library",
+    "rejected": "Rejected",
+    "waiting": "Waiting for availability"
   },
   "card": {
     "by": "by {author}",
@@ -95,5 +96,15 @@
     "title": "Already in Library",
     "audiobooks": "Audiobooks",
     "ebooks": "Ebooks"
+  },
+  "wanted": {
+    "title": "Request a book that is not available yet",
+    "description": "Save the title and author. Bookmark will keep looking, using your selected language filters. Downloads still require approval.",
+    "bookTitle": "Book title",
+    "author": "Author (optional)",
+    "languageHint": "The language filters above also apply to this request. Add the author to help Bookmark find an exact match.",
+    "waitingDescription": "Bookmark will keep looking for this book.",
+    "nextCheck": "Next availability check: {date}",
+    "searchFailed": "Search is unavailable right now. You can still save a book request."
   }
 }

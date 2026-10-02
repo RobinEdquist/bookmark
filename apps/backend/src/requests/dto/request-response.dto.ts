@@ -10,7 +10,10 @@ export class SeriesInfoDto {
 }
 
 export class ContentRequestDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiProperty({
+    format: 'uuid',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
   id!: string;
 
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
@@ -20,109 +23,180 @@ export class ContentRequestDto {
   userEmail!: string;
 
   @ApiProperty({
-    enum: ['pending', 'approved', 'downloading', 'complete', 'rejected'],
+    enum: [
+      'pending',
+      'approved',
+      'waiting',
+      'downloading',
+      'complete',
+      'rejected',
+    ],
     example: 'pending',
+    description:
+      'pending: awaiting approval, with or without a release; waiting: approved and awaiting a matching release; approved: submission recorded or awaiting download progress; downloading: transfer in progress; complete: imported into the library; rejected: declined.',
   })
   status!: RequestStatus;
 
-  @ApiProperty({ example: '12345' })
-  torrentId!: string;
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    example: '12345',
+    description:
+      'Selected release ID; null while no matching release is selected',
+  })
+  torrentId!: string | null;
+
+  @ApiProperty({
+    description:
+      'Server-generated normalized title and author identity. Medium and accepted languages also determine request compatibility.',
+  })
+  bookKey!: string;
+
+  @ApiProperty({
+    type: [String],
+    description: 'Accepted content languages; empty means any',
+  })
+  languageNames!: string[];
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    format: 'date-time',
+    description:
+      'Time of the single approval, preserved across replacement attempts. Null until approved.',
+  })
+  approvedAt!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    format: 'date-time',
+    description: 'Most recent availability check, or null if never checked',
+  })
+  lastSearchAt!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    format: 'date-time',
+    description:
+      'Earliest scheduled availability check, subject to shared rate limits and search leases; null if no check is scheduled',
+  })
+  nextSearchAt!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    format: 'date-time',
+    description:
+      'Publication date supplied by the configured module for this book intent',
+  })
+  releaseDate!: string | null;
+
+  @ApiProperty({
+    type: String,
+    nullable: true,
+    description:
+      'Sanitized reason for the last failed availability check; null when clear',
+  })
+  searchError!: string | null;
 
   @ApiProperty({ example: 'The Way of Kings' })
   title!: string;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: 'Brandon Sanderson',
     nullable: true,
   })
-  author?: string | null;
+  author!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: 'Michael Kramer',
     nullable: true,
   })
-  narrator?: string | null;
+  narrator!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: 'The Stormlight Archive #1',
     nullable: true,
   })
-  series?: string | null;
+  series!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: 'An epic fantasy...',
     nullable: true,
   })
-  description?: string | null;
+  description!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: 'https://example.com/cover.jpg',
     nullable: true,
   })
-  coverUrl?: string | null;
+  coverUrl!: string | null;
 
   @ApiProperty({ enum: ['audiobook', 'ebook', 'comics'], example: 'audiobook' })
   contentType!: 'audiobook' | 'ebook' | 'comics';
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: 'Already in library',
     nullable: true,
   })
-  rejectionReason?: string | null;
+  rejectionReason!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: '2024-01-15T12:00:00.000Z',
+    format: 'date-time',
     nullable: true,
     description:
       'When the download client first reported this torrent as unknown. Null while the torrent is present.',
   })
-  torrentMissingSince?: string | null;
+  torrentMissingSince!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
-  libraryItemId?: string | null;
+  libraryItemId!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     enum: ['audiobook', 'ebook', 'comics'],
     nullable: true,
   })
-  libraryItemType?: 'audiobook' | 'ebook' | 'comics' | null;
+  libraryItemType!: 'audiobook' | 'ebook' | 'comics' | null;
 
-  @ApiProperty({ example: 5 })
+  @ApiProperty({ type: 'integer', example: 5 })
   supporterCount!: number;
 
   @ApiProperty({ example: true })
   isSupporter!: boolean;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: '550e8400-e29b-41d4-a716-446655440000',
     nullable: true,
   })
-  autoApprovedByUserId?: string | null;
+  autoApprovedByUserId!: string | null;
 
-  @ApiPropertyOptional({
+  @ApiProperty({
     type: String,
     example: 'john@example.com',
     nullable: true,
   })
-  autoApprovedByEmail?: string | null;
+  autoApprovedByEmail!: string | null;
 
-  @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
+  @ApiProperty({ format: 'date-time', example: '2024-01-15T12:00:00.000Z' })
   createdAt!: string;
 
-  @ApiProperty({ example: '2024-01-15T12:00:00.000Z' })
+  @ApiProperty({ format: 'date-time', example: '2024-01-15T12:00:00.000Z' })
   updatedAt!: string;
 }
 
@@ -199,7 +273,14 @@ export class TrackerSearchResultItemDto {
   existingRequestId?: string | null;
 
   @ApiPropertyOptional({
-    enum: ['pending', 'approved', 'downloading', 'complete', 'rejected'],
+    enum: [
+      'pending',
+      'approved',
+      'waiting',
+      'downloading',
+      'complete',
+      'rejected',
+    ],
     nullable: true,
   })
   existingRequestStatus?: RequestStatus | null;
@@ -281,6 +362,7 @@ export class AutoApproveBudgetDto {
 
   @ApiProperty({
     example: '2024-01-22T00:00:00.000Z',
+    format: 'date-time',
     description: 'When the budget resets (next Monday UTC)',
   })
   resetsAt!: string;
@@ -297,7 +379,14 @@ export interface RequestResponseDto {
   userId: string;
   userEmail: string;
   status: RequestStatus;
-  torrentId: string;
+  torrentId: string | null;
+  bookKey: string;
+  languageNames: string[];
+  approvedAt: string | null;
+  lastSearchAt: string | null;
+  nextSearchAt: string | null;
+  releaseDate: string | null;
+  searchError: string | null;
   title: string;
   author: string | null;
   narrator: string | null;

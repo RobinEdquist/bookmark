@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Injectable, Logger, HttpException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
@@ -16,10 +17,15 @@ export class TrackerService {
   private readonly logger = new Logger(TrackerService.name);
   private readonly baseUrl: string | undefined;
   private readonly apiKey: string | undefined;
-
   constructor(private configService: ConfigService) {
     this.baseUrl = this.configService.get<string>('TRACKER_CLIENT_URL');
     this.apiKey = this.configService.get<string>('TRACKER_CLIENT_API_KEY');
+  }
+
+  getModuleId(): string {
+    return createHash('sha256')
+      .update((this.baseUrl ?? '').replace(/\/$/, ''))
+      .digest('hex');
   }
 
   isConfigured(): boolean {
@@ -59,6 +65,7 @@ export class TrackerService {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok) {
@@ -81,15 +88,29 @@ export class TrackerService {
   }
 
   async search(params: TrackerSearchParams): Promise<TrackerSearchResponse> {
-    // Default to audiobooks and ebooks if not specified
-    return this.request<TrackerSearchResponse>('POST', '/search', {
-      query: params.query,
-      categories: params.categories ?? ['audiobook', 'ebook'],
-      searchIn: params.searchIn,
-      languages: params.languages,
-      perPage: params.perPage,
-      offset: params.offset,
-    });
+    const response = await this.request<TrackerSearchResponse>(
+      'POST',
+      '/search',
+      {
+        query: params.query,
+        categories: params.categories ?? ['audiobook', 'ebook'],
+        searchIn: params.searchIn,
+        languages: params.languages,
+        perPage: params.perPage,
+        offset: params.offset,
+        book: params.book,
+      },
+    );
+    if (
+      response?.releaseDate !== null &&
+      typeof response?.releaseDate !== 'string'
+    ) {
+      throw new HttpException(
+        'Module search response must include releaseDate (timestamp or null)',
+        502,
+      );
+    }
+    return response;
   }
 
   async getLanguages(): Promise<TrackerLanguagesResponse> {
@@ -98,20 +119,27 @@ export class TrackerService {
 
   async download(
     torrentId: string,
-    options?: TrackerDownloadOptions,
+    options: TrackerDownloadOptions,
   ): Promise<TrackerDownloadResponse> {
     return this.request<TrackerDownloadResponse>(
       'POST',
       `/download/${this.validateSegment(torrentId, 'torrent id')}`,
-      options ?? {},
+      options,
     );
   }
 
   async getTorrentStatus(hash: string): Promise<TorrentStatus> {
-    return this.request<TorrentStatus>(
+    const response = await this.request<TorrentStatus>(
       'GET',
       `/torrent/${this.validateSegment(hash, 'torrent hash')}`,
     );
+    if (typeof response?.acquisitionFailed !== 'boolean') {
+      throw new HttpException(
+        'Module status response must include acquisitionFailed',
+        502,
+      );
+    }
+    return response;
   }
 
   async getBulkTorrentStatus(hashes: string[]): Promise<BulkTorrentStatus> {
@@ -128,10 +156,22 @@ export class TrackerService {
       }
     });
     const hashesParam = valid.join(',');
-    return this.request<BulkTorrentStatus>(
+    const response = await this.request<BulkTorrentStatus>(
       'GET',
       `/torrents?hashes=${hashesParam}`,
     );
+    if (
+      !Array.isArray(response?.torrents) ||
+      response.torrents.some(
+        (torrent) => typeof torrent?.acquisitionFailed !== 'boolean',
+      )
+    ) {
+      throw new HttpException(
+        'Module bulk status response must include acquisitionFailed for every job',
+        502,
+      );
+    }
+    return response;
   }
 
   async proxyImage(torrentId: string, res: Response): Promise<void> {
