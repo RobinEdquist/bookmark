@@ -19,6 +19,8 @@ function chainMock(resolvedValue: any = []) {
     'values',
     'innerJoin',
     'leftJoin',
+    'onConflictDoNothing',
+    'for',
   ];
   for (const m of methods) {
     self[m] = jest.fn().mockReturnValue(self);
@@ -29,16 +31,19 @@ function chainMock(resolvedValue: any = []) {
 }
 
 /** Update chain whose `.returning()` yields one claimed row. */
-function claimedUpdateChain() {
+function claimedUpdateChain(request = buildRequest()) {
   const chain = chainMock([]);
-  chain.returning.mockReturnValue(Promise.resolve([{ id: 'req-1' }]));
+  chain.returning.mockReturnValue(Promise.resolve([request]));
   return chain;
 }
 
 function createMockDb(overrides: Record<string, any> = {}) {
   const db = {
     select: jest.fn(),
-    insert: jest.fn(),
+    insert: jest
+      .fn()
+      .mockReturnValue(chainMock([{ id: 'attempt-1', torrentId: '12345' }])),
+    execute: jest.fn().mockResolvedValue([]),
     update: jest.fn(),
     delete: jest.fn(),
     ...overrides,
@@ -58,6 +63,20 @@ function buildRequest(overrides: Partial<Record<string, any>> = {}) {
     id: 'req-1',
     userId: 'user-1',
     status: 'pending' as const,
+    bookKey: '["test audiobook", "test author"]',
+    languageKey: 'any',
+    languageNames: [],
+    languageIds: [],
+    languageModule: null,
+    candidateModule: null,
+    approvedAt: null,
+    lastSearchAt: null,
+    nextSearchAt: null,
+    searchFailures: 0,
+    searchClaim: null,
+    searchLeaseUntil: null,
+    releaseDate: null,
+    searchError: null,
     torrentId: '12345',
     torrentHash: null,
     folderName: null,
@@ -104,6 +123,9 @@ function buildTrackerResult(overrides: Record<string, any> = {}) {
 function createMockTracker() {
   return {
     search: jest.fn(),
+    getModuleId: jest.fn().mockReturnValue('test-module'),
+    isConfigured: jest.fn().mockReturnValue(true),
+    getLanguages: jest.fn().mockResolvedValue({ languages: [] }),
     download: jest.fn(),
     getTorrentStatus: jest.fn(),
     getBulkTorrentStatus: jest.fn(),
@@ -154,6 +176,21 @@ function createSequentialSelectDb(
 // ---------------------------------------------------------------------------
 
 describe('RequestsService', () => {
+  it('propagates module language failures instead of hiding a missing endpoint', async () => {
+    const tracker = createMockTracker();
+    tracker.getLanguages.mockRejectedValueOnce(
+      new Error('Module language endpoint unavailable'),
+    );
+    const service = new RequestsService(
+      createMockDb(),
+      tracker,
+      createMockAppSettings(),
+      createMockLibrary(),
+    );
+    await expect(service.getLanguages()).rejects.toThrow(
+      'Module language endpoint unavailable',
+    );
+  });
   // -----------------------------------------------------------------------
   // getRequestById
   // -----------------------------------------------------------------------
@@ -582,7 +619,7 @@ describe('RequestsService', () => {
   describe('approveRequest', () => {
     it('approves a pending request and starts download', async () => {
       const request = buildRequest({ status: 'pending' });
-      const updateChain = claimedUpdateChain();
+      const updateChain = claimedUpdateChain(request);
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
@@ -625,6 +662,7 @@ describe('RequestsService', () => {
       expect(tracker.download).toHaveBeenCalledWith('12345', {
         category: 'audiobooks',
         usePersonalFL: undefined,
+        submissionKey: 'attempt-1',
       });
       expect(db.update).toHaveBeenCalledWith(requestsSchema.requests);
       expect(result.id).toBe('req-1');
@@ -664,7 +702,7 @@ describe('RequestsService', () => {
         status: 'pending',
         contentType: 'comics',
       });
-      const updateChain = claimedUpdateChain();
+      const updateChain = claimedUpdateChain(request);
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
@@ -705,7 +743,7 @@ describe('RequestsService', () => {
         contentType: 'ebook',
         categoryId: 14,
       });
-      const updateChain = claimedUpdateChain();
+      const updateChain = claimedUpdateChain(request);
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
@@ -742,7 +780,7 @@ describe('RequestsService', () => {
 
     it('keeps the download hash when the post-submit status fetch fails', async () => {
       const request = buildRequest({ status: 'pending' });
-      const updateChain = claimedUpdateChain();
+      const updateChain = claimedUpdateChain(request);
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
@@ -821,7 +859,7 @@ describe('RequestsService', () => {
 
     it('leaves the request approved when download fails after the claim', async () => {
       const request = buildRequest({ status: 'pending' });
-      const updateChain = claimedUpdateChain();
+      const updateChain = claimedUpdateChain(request);
 
       const tracker = createMockTracker();
       tracker.download.mockRejectedValue(new Error('download timeout'));
@@ -846,9 +884,12 @@ describe('RequestsService', () => {
       expect(tracker.download).toHaveBeenCalledTimes(1);
       expect(tracker.getTorrentStatus).not.toHaveBeenCalled();
       const persisted = updateChain.set.mock.calls.map((call) => call[0]);
-      expect(persisted).toEqual([
-        expect.objectContaining({ status: 'approved' }),
-      ]);
+      expect(persisted).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ status: 'approved' }),
+          expect.objectContaining({ status: 'uncertain' }),
+        ]),
+      );
       expect(persisted).not.toEqual(
         expect.arrayContaining([
           expect.objectContaining({ status: 'pending' }),
@@ -858,7 +899,7 @@ describe('RequestsService', () => {
 
     it('uses freeleech when setting is enabled', async () => {
       const request = buildRequest({ status: 'pending' });
-      const updateChain = claimedUpdateChain();
+      const updateChain = claimedUpdateChain(request);
 
       const tracker = createMockTracker();
       tracker.download.mockResolvedValue({ hash: 'abc123' });
@@ -903,6 +944,10 @@ describe('RequestsService', () => {
       const rejectedRequest = buildRequest({
         status: 'rejected',
         rejectionReason: 'Duplicate',
+        nextSearchAt: null,
+        searchError: null,
+        searchClaim: null,
+        searchLeaseUntil: null,
       });
       const updateChain = chainMock([]);
 
@@ -930,6 +975,10 @@ describe('RequestsService', () => {
       expect(updateChain.set).toHaveBeenCalledWith({
         status: 'rejected',
         rejectionReason: 'Duplicate',
+        nextSearchAt: null,
+        searchError: null,
+        searchClaim: null,
+        searchLeaseUntil: null,
       });
       expect(result.id).toBe('req-1');
     });
@@ -956,6 +1005,10 @@ describe('RequestsService', () => {
       expect(updateChain.set).toHaveBeenCalledWith({
         status: 'rejected',
         rejectionReason: null,
+        nextSearchAt: null,
+        searchError: null,
+        searchClaim: null,
+        searchLeaseUntil: null,
       });
     });
 
@@ -1077,7 +1130,7 @@ describe('RequestsService', () => {
         status: 'downloading',
         folderName: 'Test Folder',
       });
-      const updateChain = chainMock([]);
+      const updateChain = claimedUpdateChain();
 
       const db = createSequentialSelectDb([[request]], {
         update: jest.fn().mockReturnValue(updateChain),
@@ -1133,7 +1186,7 @@ describe('RequestsService', () => {
         status: 'approved',
         folderName: 'Same Name',
       });
-      const updateChain = chainMock([]);
+      const updateChain = claimedUpdateChain();
       const db = createSequentialSelectDb([[first, second]], {
         update: jest.fn().mockReturnValue(updateChain),
       });

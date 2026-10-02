@@ -14,6 +14,9 @@ import {
   ApiParam,
   ApiResponse,
   ApiSecurity,
+  ApiBody,
+  ApiExtraModels,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
@@ -24,7 +27,6 @@ import { TrackerSearchDto, CreateRequestDto } from './dto';
 import {
   TrackerSearchResponseDto,
   TrackerLanguagesResponseDto,
-  RequestListResponseDto,
   ContentRequestDto,
   AutoApproveBudgetDto,
 } from './dto/request-response.dto';
@@ -63,6 +65,11 @@ export class RequestsController {
     description: 'Available languages',
     type: TrackerLanguagesResponseDto,
   })
+  @ApiResponse({
+    status: 'default',
+    description:
+      'Module language lookup failures propagate the upstream HTTP status, or 503 when unreachable. The module must implement GET /languages.',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
@@ -79,9 +86,14 @@ export class RequestsController {
       'Search the tracker catalog for audiobooks, ebooks, or all content types',
   })
   @ApiResponse({
-    status: 200,
+    status: 201,
     description: 'Search results with request status',
     type: TrackerSearchResponseDto,
+  })
+  @ApiResponse({
+    status: 502,
+    description:
+      'Module search response does not satisfy the current book request contract',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -106,35 +118,90 @@ export class RequestsController {
   @Get()
   @ApiOperation({
     summary: 'Get my requests',
-    description: 'Returns all requests made by the current user',
+    description:
+      'Returns requests created or supported by the current user, each once. The response is an array, including waiting requests.',
   })
   @ApiResponse({
     status: 200,
     description: 'List of user requests',
-    type: RequestListResponseDto,
+    type: [ContentRequestDto],
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
     status: 403,
     description: 'Forbidden - user cannot make requests',
   })
-  async getMyRequests(@CurrentUser() user: AuthenticatedUser) {
+  async getMyRequests(
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ContentRequestDto[]> {
     return this.requestsService.getUserRequests(user.id);
   }
 
   @Post()
   @ApiOperation({
     summary: 'Create a new request',
-    description: 'Submit a request for content to be added to the library',
+    description:
+      'Request a book by title, optional author, medium, and accepted languages, with or without a selected release. A compatible active request by another user is supported and returned instead of creating a duplicate. Compatibility uses normalized title/author, medium, and language intent. Automatic approval uses the caller’s weekly allowance once; an approved request without a release waits for availability. Release discovery on a pending request does not bypass approval.',
+  })
+  @ApiExtraModels(CreateRequestDto)
+  @ApiBody({
+    schema: {
+      allOf: [
+        { $ref: getSchemaPath(CreateRequestDto) },
+        {
+          oneOf: [
+            {
+              title: 'Book without a selected release',
+              properties: {
+                torrentId: { type: 'integer', nullable: true, enum: [null] },
+              },
+            },
+            {
+              title: 'Selected release',
+              required: ['torrentId', 'categoryId'],
+              properties: { torrentId: { type: 'integer', minimum: 1 } },
+            },
+          ],
+        },
+      ],
+    },
+    examples: {
+      book: {
+        summary: 'Request a book before a release exists',
+        value: {
+          title: 'The Hobbit',
+          author: 'J.R.R. Tolkien',
+          contentType: 'audiobook',
+        },
+      },
+      release: {
+        summary: 'Request a selected search result',
+        value: {
+          title: 'The Hobbit',
+          author: 'J.R.R. Tolkien',
+          contentType: 'audiobook',
+          torrentId: 123456,
+          categoryId: 13,
+          language: 'English',
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 201,
-    description: 'Request created successfully',
+    description:
+      'New request or compatible existing request supported by the caller',
     type: ContentRequestDto,
   })
   @ApiResponse({
     status: 400,
-    description: 'Validation error or duplicate request',
+    description:
+      'Invalid input, missing category for a selected release, unavailable or mismatched language, or the caller already owns a compatible active request',
+  })
+  @ApiResponse({
+    status: 'default',
+    description:
+      'Module language lookup failures propagate the upstream HTTP status, or 503 when the module is unreachable',
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({
@@ -144,7 +211,7 @@ export class RequestsController {
   async createRequest(
     @Body() dto: CreateRequestDto,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<ContentRequestDto> {
     return this.requestsService.createRequest(dto, user.id);
   }
 
@@ -156,7 +223,7 @@ export class RequestsController {
   })
   @ApiParam({ name: 'id', description: 'Request UUID', format: 'uuid' })
   @ApiResponse({
-    status: 200,
+    status: 201,
     description: 'Support added successfully',
     type: ContentRequestDto,
   })
@@ -166,10 +233,11 @@ export class RequestsController {
     description: 'Forbidden - user cannot make requests',
   })
   @ApiResponse({ status: 404, description: 'Request not found' })
+  @ApiResponse({ status: 400, description: 'Cannot support your own request' })
   async supportRequest(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,
-  ) {
+  ): Promise<ContentRequestDto> {
     await this.requestsService.addSupporter(id, user.id);
     return this.requestsService.getRequestById(id, user.id);
   }

@@ -7,14 +7,16 @@
       "approved": "Godkända",
       "downloading": "Laddar ner",
       "all": "Alla",
-      "missing": "Saknade"
+      "missing": "Saknade",
+      "waiting": "Väntar"
     },
     "status": {
       "pending": "Väntande",
       "approved": "Godkänd",
       "downloading": "Laddar ner",
       "complete": "Klar",
-      "rejected": "Avvisad"
+      "rejected": "Avvisad",
+      "waiting": "Väntar på tillgänglighet"
     },
     "timeAgo": {
       "days": "{count, plural, =1 {1 dag sedan} other {# dagar sedan}}",
@@ -49,6 +51,27 @@
     "toast": {
       "deleted": "Förfrågan borttagen",
       "failed": "Något gick fel"
+    },
+    "recheck": {
+      "button": "Kontrollera tillgänglighet",
+      "queued": "Tillgänglighetskontroll köad",
+      "lastCheck": "Senast kontrollerad: {date}",
+      "nextCheck": "Nästa kontroll: {date}",
+      "failed": "Tillgänglighetskontrollen behöver uppmärksamhet. Bookmark försöker igen."
+    },
+    "history": {
+      "title": "Nedladdningshistorik",
+      "loading": "Läser in historik…",
+      "failed": "Historiken kunde inte läsas in.",
+      "empty": "Inga nedladdningsförsök än.",
+      "release": "Utgåva {id}",
+      "status": {
+        "submitting": "Skickar",
+        "tracking": "Följer nedladdning",
+        "uncertain": "Nedladdningen behöver kontrolleras",
+        "failed": "Hämtningen misslyckades",
+        "complete": "Importerad"
+      }
     }
   },
   "metadata": {

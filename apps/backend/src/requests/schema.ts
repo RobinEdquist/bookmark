@@ -6,8 +6,9 @@ import {
   index,
   primaryKey,
   integer,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { sql, relations } from 'drizzle-orm';
 import { user } from '../auth/schema';
 import { audiobooks } from '../audiobooks/schema';
 import { ebooks } from '../ebooks/schema';
@@ -15,6 +16,7 @@ import { ebooks } from '../ebooks/schema';
 export const requestStatus = [
   'pending',
   'approved',
+  'waiting',
   'downloading',
   'complete',
   'rejected',
@@ -32,7 +34,23 @@ export const requests = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
     status: text('status').$type<RequestStatus>().notNull().default('pending'),
-    torrentId: text('torrent_id').notNull(),
+    // Book intent survives changes to the selected release. Legacy transfer
+    // columns remain as a projection for existing API/import consumers.
+    bookKey: text('book_key').notNull(),
+    languageKey: text('language_key').notNull().default('any'),
+    languageNames: text('language_names').array().notNull().default([]),
+    languageIds: integer('language_ids').array().notNull().default([]),
+    languageModule: text('language_module'),
+    approvedAt: timestamp('approved_at'),
+    lastSearchAt: timestamp('last_search_at'),
+    nextSearchAt: timestamp('next_search_at'),
+    searchFailures: integer('search_failures').notNull().default(0),
+    searchError: text('search_error'),
+    searchClaim: uuid('search_claim'),
+    searchLeaseUntil: timestamp('search_lease_until'),
+    releaseDate: timestamp('release_date'),
+    candidateModule: text('candidate_module'),
+    torrentId: text('torrent_id'),
     torrentHash: text('torrent_hash'),
     folderName: text('folder_name'),
     title: text('title').notNull(),
@@ -42,7 +60,7 @@ export const requests = pgTable(
     description: text('description'),
     coverUrl: text('cover_url'),
     contentType: text('content_type').$type<ContentType>().notNull(),
-    categoryId: integer('category_id').notNull(),
+    categoryId: integer('category_id'),
     rejectionReason: text('rejection_reason'),
     // Set the first time the download client reports the torrent as unknown, so
     // admins can find requests whose download vanished. Cleared if it reappears.
@@ -60,6 +78,12 @@ export const requests = pgTable(
       .notNull(),
   },
   (table) => [
+    index('requests_book_intent_idx').on(
+      table.bookKey,
+      table.contentType,
+      table.languageKey,
+    ),
+    index('requests_search_due_idx').on(table.nextSearchAt),
     index('requests_status_idx').on(table.status),
     index('requests_user_id_idx').on(table.userId),
     index('requests_folder_name_idx').on(table.folderName),
@@ -113,3 +137,39 @@ export const requestSupportersRelations = relations(
     }),
   }),
 );
+
+export const requestAttempts = pgTable(
+  'request_attempts',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    requestId: uuid('request_id')
+      .notNull()
+      .references(() => requests.id, { onDelete: 'cascade' }),
+    moduleId: text('module_id').notNull(),
+    torrentId: text('torrent_id').notNull(),
+    categoryId: integer('category_id'),
+    status: text('status')
+      .$type<'submitting' | 'tracking' | 'uncertain' | 'failed' | 'complete'>()
+      .notNull(),
+    torrentHash: text('torrent_hash'),
+    folderName: text('folder_name'),
+    reason: text('reason'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    index('request_attempts_request_idx').on(table.requestId),
+    uniqueIndex('request_attempts_active_idx')
+      .on(table.requestId)
+      .where(sql`${table.status} IN ('submitting', 'tracking', 'uncertain')`),
+  ],
+);
+
+// Shared rate limit for scheduled and manually queued searches across replicas.
+export const requestSearchSchedule = pgTable('request_search_schedule', {
+  id: text('id').primaryKey(),
+  nextRunAt: timestamp('next_run_at').notNull(),
+});

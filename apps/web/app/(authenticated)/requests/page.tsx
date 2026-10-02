@@ -34,6 +34,7 @@ import { LibraryMatchesSection } from "../../../components/requests/library-matc
 import { useAutoApproveBudget } from "../../../lib/use-auto-approve-budget";
 import { RequestSearchResults } from "../../../components/requests/request-search-results";
 import { MyRequestsList } from "../../../components/requests/my-requests-list";
+import { WantedBookForm } from "../../../components/requests/wanted-book-form";
 import { SearchFiltersPanel } from "../../../components/requests/search-filters";
 import { authClient } from "../../../lib/auth-client";
 import { queryKeys } from "../../../lib/query-keys";
@@ -48,7 +49,7 @@ type ContentType = (typeof CONTENT_TYPES)[number];
 export default function RequestsPage() {
   const t = useTranslations("requests");
   const queryClient = useQueryClient();
-  const { isPending: sessionPending } = authClient.useSession();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const { data: budget } = useAutoApproveBudget();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -82,7 +83,12 @@ export default function RequestsPage() {
   >(null);
   const [librarySearchQuery, setLibrarySearchQuery] = useState("");
 
-  const { search, isSearching, data: searchResults } = useTrackerSearch();
+  const {
+    search,
+    isSearching,
+    data: searchResults,
+    error: searchError,
+  } = useTrackerSearch();
   const { data: myRequests, isLoading: requestsLoading } = useMyRequests();
   const { createRequest, isCreating } = useCreateRequest();
   const { supportRequest, isSupporting } = useSupportRequest();
@@ -97,14 +103,21 @@ export default function RequestsPage() {
       // Trigger both searches in parallel
       setPatchedResults(null);
       setLibrarySearchQuery(searchQuery.trim());
-      await search(searchQuery.trim(), filters);
+      try {
+        await search(searchQuery.trim(), filters);
+      } catch {
+        // The search error is rendered inline; requesting a book stays available.
+      }
     }
   };
 
   const handleRequest = async (item: Parameters<typeof createRequest>[0]) => {
     let newRequest: RequestResponse;
     try {
-      newRequest = await createRequest(item);
+      newRequest = await createRequest({
+        ...item,
+        languages: filters.languages,
+      });
     } catch (error) {
       // e.g. the item was requested from another tab since this search ran
       toast.error(error instanceof Error ? error.message : t("toast.failed"));
@@ -114,7 +127,10 @@ export default function RequestsPage() {
     // Optimistically update my requests cache for instant tab count
     queryClient.setQueryData<RequestResponse[]>(
       queryKeys.requests.list(),
-      (old) => (old ? [...old, newRequest] : [newRequest]),
+      (old) => [
+        newRequest,
+        ...(old ?? []).filter((request) => request.id !== newRequest.id),
+      ],
     );
 
     // Update local search results to show "requested" status (no external API call)
@@ -124,8 +140,8 @@ export default function RequestsPage() {
           ? {
               ...result,
               existingRequestId: newRequest.id,
-              existingRequestStatus: "pending" as const,
-              existingRequestIsMine: true,
+              existingRequestStatus: newRequest.status,
+              existingRequestIsMine: newRequest.userId === session?.user.id,
             }
           : result,
       ),
@@ -133,6 +149,7 @@ export default function RequestsPage() {
 
     // Show success toast instead of navigating away
     toast.success(t("toast.requested"));
+    return newRequest;
   };
 
   const handleSupport = async (requestId: string) => {
@@ -216,6 +233,19 @@ export default function RequestsPage() {
         </form>
 
         <SearchFiltersPanel filters={filters} onChange={setFilterOverrides} />
+
+        <WantedBookForm
+          key={librarySearchQuery}
+          initialTitle={librarySearchQuery}
+          contentType={contentType}
+          onRequest={handleRequest}
+          isRequesting={isCreating}
+        />
+        {searchError && (
+          <p role="alert" className="text-sm text-destructive">
+            {t("wanted.searchFailed")}
+          </p>
+        )}
 
         {/* Library search has no comics support yet, so the matches section
             is hidden for that filter */}

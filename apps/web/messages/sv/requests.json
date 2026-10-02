@@ -53,11 +53,12 @@
     "comics": "Serier"
   },
   "status": {
-    "pending": "Väntande",
+    "pending": "Väntar på godkännande",
     "approved": "Godkänd",
     "downloading": "Laddar ner",
-    "complete": "Klar",
-    "rejected": "Avvisad"
+    "complete": "Tillgänglig i biblioteket",
+    "rejected": "Avvisad",
+    "waiting": "Väntar på tillgänglighet"
   },
   "card": {
     "by": "av {author}",
@@ -95,5 +96,15 @@
     "title": "Finns i biblioteket",
     "audiobooks": "Ljudböcker",
     "ebooks": "E-böcker"
+  },
+  "wanted": {
+    "title": "Begär en bok som inte är tillgänglig än",
+    "description": "Spara titel och författare. Bookmark fortsätter att leta med dina valda språkfilter. Nedladdningar kräver fortfarande godkännande.",
+    "bookTitle": "Boktitel",
+    "author": "Författare (valfritt)",
+    "languageHint": "Språkfiltren ovan gäller även denna förfrågan. Ange författaren för att hjälpa Bookmark hitta en exakt träff.",
+    "waitingDescription": "Bookmark fortsätter att leta efter boken.",
+    "nextCheck": "Nästa tillgänglighetskontroll: {date}",
+    "searchFailed": "Sökningen är inte tillgänglig just nu. Du kan ändå spara en bokförfrågan."
   }
 }

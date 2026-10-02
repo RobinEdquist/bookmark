@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Bookmark Content Request Module API
-  version: 1.2.0
+  version: 2.0.0
   description: |
     The HTTP contract a **content request module** must implement so Bookmark
     can search an external catalog, start downloads for approved requests, and
@@ -16,9 +16,9 @@ info:
     module must validate. `GET /health` is probed without credentials and must
     be unauthenticated.
 
-    Any non-2xx response is treated as a hard failure (no retries): Bookmark
-    logs the response body and surfaces the status code to its user. A module
-    that is unreachable is reported as 503.
+    Non-2xx responses fail the current operation. Waiting book searches retry
+    on a durable bounded schedule; ambiguous download submissions never
+    trigger a blind resubmission. An unreachable module is reported as 503.
 
     See `docs/content-request-modules.md` in the Bookmark repository for the
     full developer guide, including the import-matching invariant that links
@@ -75,8 +75,7 @@ paths:
         field of `POST /search`.
 
         Return an empty list if the catalog has no language concept; Bookmark
-        then hides its language filter. A missing endpoint (404) is treated
-        the same as an empty list.
+        then hides its language filter. This endpoint is required.
       responses:
         "200":
           description: Available languages, in any order.
@@ -140,9 +139,9 @@ paths:
       requestBody:
         required: true
         description: |
-          May be an empty object. Bookmark currently sends `category` and,
-          when enabled, `usePersonalFL`; the remaining fields are reserved.
-          Accept and ignore unknown fields.
+          Requires the durable attempt UUID in `submissionKey`. Bookmark also
+          sends `category` and, when enabled, `usePersonalFL`. A key is bound to
+          one item and one set of options; repeated calls must not submit again.
         content:
           application/json:
             schema:
@@ -154,6 +153,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DownloadResponse"
+        "400":
+          description: Invalid body, item ID, or missing/invalid submission key.
+        "409":
+          description: Key conflicts with another request or the previous submission outcome is uncertain. No new submission is made.
+        "422":
+          description: An optional download control is unsupported by this module.
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":
@@ -309,12 +314,30 @@ components:
       type: object
       required: [query, categories]
       properties:
+        book:
+          type: object
+          description: Identity and intent for scheduled availability checks. Omitted for interactive catalog browsing.
+          required: [title, author, contentType, languageNames]
+          properties:
+            title:
+              type: string
+            author:
+              type: string
+              nullable: true
+            contentType:
+              type: string
+              enum: [audiobook, ebook, comics]
+            languageNames:
+              type: array
+              items:
+                type: string
         query:
           type: string
           description: Free-text search query entered by the user.
           example: project hail mary
         categories:
           type: array
+          minItems: 1
           description: >-
             Content types to include. Always sent by Bookmark (defaults to
             all types when the user does not filter). A module whose catalog
@@ -343,9 +366,10 @@ components:
           type: integer
           description: >-
             Page size. Bookmark's UI currently sends 10, 25, 50 or 100, but
-            modules should accept any positive integer. Pick a sensible
+            modules accept 1-1000. Pick a sensible
             default when omitted.
           minimum: 1
+          maximum: 1000
           example: 25
         offset:
           type: integer
@@ -379,8 +403,17 @@ components:
 
     SearchResponse:
       type: object
-      required: [results, total]
+      required: [results, total, releaseDate]
       properties:
+        releaseDate:
+          type: string
+          format: date-time
+          nullable: true
+          description: >-
+            Trustworthy publication date for the exact book, requested
+            medium, and accepted languages in SearchRequest.book. Do not supply
+            a date for a different edition or language. Return null if unknown.
+            Return null for interactive searches or when no trustworthy date is known.
         results:
           type: array
           items:
@@ -473,7 +506,18 @@ components:
 
     DownloadOptions:
       type: object
+      required: [submissionKey]
       properties:
+        submissionKey:
+          type: string
+          format: uuid
+          description: >-
+            Required durable attempt identity. Repeated calls with the same key
+            must return the same download
+            identity and must not start a second transfer or spend freeleech twice.
+            Persist the key and outcome across module restarts. If the outcome is
+            uncertain, return 409 without resubmitting; reconcile before returning
+            an identity. A conflicting item or options for the same key also returns 409.
         category:
           type: string
           description: >-
@@ -494,8 +538,8 @@ components:
           type: boolean
           description: >-
             Spend a personal freeleech credit before downloading, if the
-            module's backend has that concept. Sent only when enabled in
-            Bookmark's settings; safe to ignore otherwise.
+            module's backend supports this operation. Sent only when enabled in
+            Bookmark's settings; modules that cannot perform it return 422.
       additionalProperties: false
 
     DownloadResponse:
@@ -512,16 +556,27 @@ components:
           example: Download added
         hash:
           type: string
+          pattern: "^[a-zA-Z0-9_-]+$"
           description: >-
             Stable unique identifier for this download job (info-hash for
-            torrent-backed modules, otherwise any unique ID). Used for all
+            torrent-backed modules, otherwise an ID containing only ASCII letters,
+            digits, underscores, and hyphens). Used for all
             subsequent status lookups.
           example: a94a8fe5ccb19ba61c4c0873d391e987982fbbd3
 
     TorrentStatus:
       type: object
-      required: [hash, name, state, progress]
+      required: [hash, name, state, progress, acquisitionFailed]
       properties:
+        acquisitionFailed:
+          type: boolean
+          default: false
+          description: >-
+            Required explicit attestation of conclusive terminal acquisition failure with no live transfer.
+            Never true for a timeout, auth error, paused/stalled transfer, disk or
+            permission problem, import-only failure, or an uncertain outcome.
+            Bookmark may search for a replacement on the same approved request.
+            Return false unless failure is proven; missing jobs alone never allow replacement.
         hash:
           type: string
           description: The download hash this status refers to.

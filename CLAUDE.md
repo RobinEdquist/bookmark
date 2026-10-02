@@ -36,7 +36,7 @@ pnpm --filter backend test:e2e                                    # e2e job (sep
 
 Run backend Jest through the package scripts, not `npx jest` — `test` sets
 `NODE_OPTIONS=--experimental-vm-modules`, without which every suite fails to load NestJS's ESM.
-(`test:e2e` does not need the flag.)
+The `test:e2e` script also sets this flag because the acquisition integration specs load NestJS providers.
 
 ---
 

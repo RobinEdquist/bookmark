@@ -7,14 +7,16 @@
       "approved": "Approved",
       "downloading": "Downloading",
       "all": "All",
-      "missing": "Missing"
+      "missing": "Missing",
+      "waiting": "Waiting"
     },
     "status": {
       "pending": "Pending",
       "approved": "Approved",
       "downloading": "Downloading",
       "complete": "Complete",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "waiting": "Waiting for availability"
     },
     "timeAgo": {
       "days": "{count, plural, =1 {1 day ago} other {# days ago}}",
@@ -49,6 +51,27 @@
     "toast": {
       "deleted": "Request deleted",
       "failed": "Something went wrong"
+    },
+    "recheck": {
+      "button": "Check availability",
+      "queued": "Availability check queued",
+      "lastCheck": "Last checked: {date}",
+      "nextCheck": "Next check: {date}",
+      "failed": "Availability check needs attention. Bookmark will retry."
+    },
+    "history": {
+      "title": "Download history",
+      "loading": "Loading history…",
+      "failed": "History could not be loaded.",
+      "empty": "No download attempts yet.",
+      "release": "Release {id}",
+      "status": {
+        "submitting": "Submitting",
+        "tracking": "Tracking download",
+        "uncertain": "Submission needs reconciliation",
+        "failed": "Acquisition failed",
+        "complete": "Imported"
+      }
     }
   },
   "metadata": {

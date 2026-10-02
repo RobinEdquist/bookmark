@@ -19,9 +19,33 @@ Your module has two jobs:
 1. **Answer Bookmark's HTTP calls** — search the catalog, start downloads, report download status, serve cover images.
 2. **Deliver files** — completed downloads must land in a directory Bookmark's library watcher scans, under the exact folder name your module reports (see [Import matching](#the-import-matching-invariant)).
 
+Book requests can also be saved before a downloadable release exists. They keep their book identity (normalized title and author), desired medium, language intent, supporters, and one approval across subsequent search checks and download attempts. Existing direct search-result requests remain supported.
+
 The machine-readable version of this contract is the OpenAPI spec at
 [`docs/api/content-request-module.openapi.yaml`](./api/content-request-module.openapi.yaml).
 See [Verifying your implementation](#verifying-your-implementation) for how to test against it.
+
+## Bookmark API for request clients
+
+The module contract above describes the service Bookmark calls. The user and admin API is documented separately in Bookmark's generated OpenAPI document at `/api/docs-json` (Swagger UI: `/api/docs`). Export it with `pnpm --filter backend openapi:export /path/to/openapi.json`. These HTTP documentation endpoints are disabled in production unless `SWAGGER_ENABLED=true`; the export command remains available.
+
+`POST /api/requests` accepts a book without a release:
+
+```json
+{
+  "title": "The Hobbit",
+  "author": "J.R.R. Tolkien",
+  "contentType": "audiobook"
+}
+```
+
+For a selected search result, also send its integer `torrentId` and `categoryId`. `categoryId` is required when `torrentId` is non-null. Optional `languages` contains up to 20 integer IDs from `GET /api/requests/languages`; omitted or empty means any language. A selected result's optional `language` must agree with these languages. The generated schema includes both creation forms, validation constraints, and examples.
+
+Creation returns HTTP 201 with the request. When another user's compatible active request exists, Bookmark adds support and returns that existing request with the same status code. An existing request owned by the caller returns 400. Compatibility uses normalized title/author, medium, and accepted languages. `GET /api/requests` returns an array of requests the caller created or supports, each once.
+
+An approved book without a selected release has status `waiting`. `approvedAt` remains the original approval time across attempts. `lastSearchAt`, `nextSearchAt`, and `releaseDate` are nullable UTC timestamps; `nextSearchAt` is the earliest check time, subject to the shared scheduler. Pending books may acquire a release through search but still require approval before submission.
+
+Admins can inspect `GET /api/admin/requests/{id}/attempts`, which returns an array in creation order, oldest first (404 for a missing request). `POST /api/admin/requests/{id}/recheck` returns HTTP 200 after queuing an eligible pending or waiting request. It clears a stale source selection, retains approval gates, and cannot bypass a future publication date, active download, live search lease, or shared rate limits. Missing and ineligible requests return 400. Both endpoints require an authenticated admin. Existing approval, rejection, support, and search POST endpoints return HTTP 201.
 
 ---
 
@@ -30,8 +54,8 @@ See [Verifying your implementation](#verifying-your-implementation) for how to t
 - **Base URL** — Bookmark reads `TRACKER_CLIENT_URL` (e.g. `http://module:8000`) and appends paths directly. No trailing slash.
 - **Authentication** — every request except `GET /health` carries the header `X-API-Key: <TRACKER_CLIENT_API_KEY>`. Your module must reject requests with a missing or wrong key (401/403). `GET /health` is probed **without** the key, so it must be unauthenticated.
 - **Content type** — Bookmark sends `Content-Type: application/json` and expects JSON back on every endpoint except `/health` (body ignored) and `/image/{id}` (binary image).
-- **Errors** — any non-2xx response is treated as a failure: Bookmark logs your response body and surfaces the HTTP status to the user. If your module is unreachable, Bookmark reports 503 "Tracker client unavailable". There are no retries, so make responses fast and reliable; do your own upstream retrying internally.
-- **Timeouts** — Bookmark uses default fetch timeouts. Keep search responses in the low seconds; kick off downloads asynchronously and return immediately.
+- **Errors** — any non-2xx response is treated as a failure: Bookmark logs your response body and surfaces the HTTP status to the user. If your module is unreachable, Bookmark reports 503 "Tracker client unavailable". Waiting-book searches retry on a bounded durable schedule. Download submission never retries blindly after an uncertain outcome.
+- **Timeouts** — JSON operations use a 30-second timeout. Keep search responses in the low seconds; kick off downloads asynchronously and return immediately.
 
 Source of truth in the Bookmark codebase: `apps/backend/src/tracker/tracker.service.ts` (the client) and `apps/backend/src/tracker/types.ts` (the wire types).
 
@@ -66,7 +90,29 @@ Returns the module's language taxonomy, used to populate Bookmark's language fil
 }
 ```
 
-The `id` values are **your own** — Bookmark never interprets them, it only passes the user's selection back in the `languages` field of `POST /search`. Return an empty list if your catalog has no language concept; Bookmark then hides the filter (a missing endpoint is treated the same way).
+The `id` values are **your own** — Bookmark never interprets them, it only passes the user's selection back in the `languages` field of `POST /search`. Return an empty list if your catalog has no language concept; Bookmark then hides the filter (the endpoint is required).
+
+### Required book request contract
+
+Modules implement OpenAPI contract version 2.0 together with Bookmark. There is no capability negotiation or older module protocol. All listed endpoints, including `/languages`, are required; a catalog without languages returns `{ "languages": [] }`.
+
+Scheduled `/search` calls include `book: { title, author, contentType, languageNames }`. These fields scope observations to the requested book, medium, and language intent. Interactive searches omit `book`. Every response includes `releaseDate`, an ISO publication timestamp for that exact intent or null when unknown. A torrent's upload date is not a publication date. Search results use the same language names returned by `/languages` so accepted languages can match reliably.
+
+Every `/download/{id}` includes `submissionKey`, the durable attempt UUID. Persist the key, item, options, and result across restarts. Repeated calls return the same transfer identity without starting another transfer or spending another freeleech credit. Conflicting inputs or an unresolved submission return 409 without submitting again. Unsupported optional controls such as personal freeleech spending return 422. Bookmark records uncertain outcomes and does not automatically replay a submission.
+
+At startup and every thirty seconds, Bookmark marks `submitting` attempts with no update for thirty minutes as `uncertain`. This covers a process stopping after the durable attempt is committed, including while the module may already have accepted the transfer. Recent submissions remain untouched so another replica can finish them. Interrupted attempts appear in admin attempt history for reconciliation; the request's approval and supporters are preserved, and no replacement is submitted until the outcome is established.
+
+### Durable availability checks
+
+Approved requests without a release are **waiting for availability**; unapproved requests remain **pending**. Discovery may attach a candidate to either, but only an already approved waiting request can start downloading. Approval is charged once at the time it is granted, including when availability is unknown. Replacements do not charge it again.
+
+Rejecting a pending request cancels its scheduled check, clears the last search error, and revokes any live search claim. A search finishing afterward cannot attach a release or schedule another check. Rejected requests no longer display waiting or retry copy.
+
+Checks run in batches of at most ten searches per minute across server replicas, ordered by never-searched then least-recently-searched request. Only one batch runs at a time, followed by a one-minute cooldown. A persisted thirty-minute lease and token fence concurrent workers and recover after restarts. Language taxonomy is read once per batch when required. Ordinary misses recheck daily; infrastructure failures back off up to seven days. Future publication dates defer checks until the date, with at most weekly metadata revalidation to handle changed dates. Invalid and unknown dates retain regular checks. Administrators can queue eligible checks through `POST /api/admin/requests/{id}/recheck`, using the same schedule and limits.
+
+Language IDs are stored with the configured source's identity and the names returned by its taxonomy. Checks validate that mapping and pause acquisition if the module or taxonomy changes. A known result language also becomes part of direct-request intent. Unknown result languages cannot fulfill a language-specific request. Candidate selection requires exact normalized title, author when known, medium, and accepted language. Unknown-author requests wait when exact-title results identify multiple different authors. Legacy modules use ordinary `/search`, with the same local candidate validation, and never supply trusted publication dates.
+
+Book identity is intentionally lightweight. It does not yet model works and editions or unify different title/author spellings from external catalogs. Different medium and language requirements remain separate requests; compatible requests share supporters even if their release IDs differ. Existing duplicate rows are preserved during migration.
 
 ### `POST /search`
 
@@ -142,6 +188,8 @@ Response — return once the download has been **accepted** (not completed):
 { "status": "ok", "message": "Download added", "hash": "a94a8fe5cc…" }
 ```
 
+Every status response includes `acquisitionFailed`. Set it to true only for a conclusively failed acquisition with no live transfer. Never use it for temporary network/authentication errors, downloader absence, paused/stalled transfers, disk/permission problems, uncertain submissions, or import failures. This ends the attempt and returns the original approved request to the availability schedule; history and supporters remain. Return false for missing jobs and ambiguous or temporary failures. Persistent failed-candidate exclusions are separate follow-up work (#110).
+
 `hash` is the critical field: a stable, unique identifier for this download job (for torrent-backed modules, the info-hash; otherwise any unique ID). Bookmark stores it and uses it for all subsequent status lookups.
 
 ### `GET /torrent/{hash}` and `GET /torrents?hashes=h1,h2,h3`
@@ -186,7 +234,7 @@ Therefore:
 
 If the names don't match, the download still imports into the library — but the request stays stuck in _downloading_ forever instead of flipping to _complete_.
 
-Matching is deliberately **content-type agnostic**: Bookmark compares folder names only, never the requested content type. Some formats are ambiguous (a PDF can be an ebook or a comic), so whichever importer actually claims the files completes the request, recording the type that was really imported.
+Import matching requires a single active request with the exact folder name and matching requested medium. Ambiguous folder names and a different imported medium do not complete a request. The importer still records and imports the actual content independently.
 
 ### Request lifecycle, end to end
 
@@ -211,7 +259,7 @@ Matching is deliberately **content-type agnostic**: Bookmark compares folder nam
    TRACKER_CLIENT_API_KEY=<long random secret>
    ```
 
-   Both must be set; if either is missing, all request endpoints return 503 "Tracker client not configured".
+   Both must be set; the user request routes require a configured module.
 
 3. **Share the import directory.** Your module (or the download client behind it) must write completed downloads into the same path Bookmark's backend watches for imports. In Docker terms: mount the same volume into both containers, and map the `category` names to subpaths of it.
 

@@ -1,9 +1,12 @@
+import { RequestAttemptDto } from './dto/request-attempt.dto';
+import { randomUUID } from 'node:crypto';
 import {
   Inject,
   Injectable,
   Logger,
   NotFoundException,
   BadRequestException,
+  type OnApplicationBootstrap,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
@@ -17,6 +20,8 @@ import {
   sql,
   desc,
   type SQL,
+  asc,
+  lte,
 } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { getLastMondayUTC } from '../common/utils/date.utils';
@@ -36,6 +41,14 @@ import {
   TrackerLanguagesResponseDto,
 } from './dto';
 import { RequestStatus, ContentType } from './schema';
+import {
+  bookKey,
+  normalizeBookText,
+  languageKey,
+  nextSearchDate,
+  selectCandidate,
+  parseReleaseDate,
+} from './request-intent';
 
 type CombinedSchema = typeof requestsSchema &
   typeof audiobooksSchema &
@@ -43,7 +56,7 @@ type CombinedSchema = typeof requestsSchema &
   typeof authSchema;
 
 @Injectable()
-export class RequestsService {
+export class RequestsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RequestsService.name);
 
   constructor(
@@ -53,6 +66,34 @@ export class RequestsService {
     private appSettingsService: AppSettingsService,
     private libraryService: LibraryService,
   ) {}
+
+  async onApplicationBootstrap(): Promise<void> {
+    await this.recoverStaleSubmissions();
+  }
+
+  /** A crashed submitter cannot establish whether the module accepted a job. */
+  async recoverStaleSubmissions(): Promise<void> {
+    // JSON calls time out after 30 seconds. Allow the full search lease before
+    // retiring a submission so startup in another replica cannot interrupt it.
+    const cutoff = new Date(Date.now() - 1_800_000);
+    const recovered = await this.db
+      .update(requestsSchema.requestAttempts)
+      .set({
+        status: 'uncertain',
+        reason: 'Submission interrupted; outcome needs reconciliation',
+      })
+      .where(
+        and(
+          eq(requestsSchema.requestAttempts.status, 'submitting'),
+          lte(requestsSchema.requestAttempts.updatedAt, cutoff),
+        ),
+      )
+      .returning({ id: requestsSchema.requestAttempts.id });
+    if (recovered.length)
+      this.logger.warn(
+        `Marked ${recovered.length} interrupted submissions uncertain; inspect request attempt history before reconciliation`,
+      );
+  }
 
   /**
    * A same-medium library item whose title matches exactly is a confirmed
@@ -171,14 +212,36 @@ export class RequestsService {
               id: requestsSchema.requests.id,
               status: requestsSchema.requests.status,
               userId: requestsSchema.requests.userId,
+              bookKey: requestsSchema.requests.bookKey,
+              contentType: requestsSchema.requests.contentType,
+              languageKey: requestsSchema.requests.languageKey,
             })
             .from(requestsSchema.requests)
             .where(
               and(
-                inArray(requestsSchema.requests.torrentId, torrentIdStrings),
+                or(
+                  inArray(requestsSchema.requests.torrentId, torrentIdStrings),
+                  ...torrents.map((torrent) =>
+                    and(
+                      eq(
+                        requestsSchema.requests.bookKey,
+                        bookKey(torrent.title, torrent.author ?? null),
+                      ),
+                      eq(
+                        requestsSchema.requests.contentType,
+                        torrent.contentType,
+                      ),
+                      eq(
+                        requestsSchema.requests.languageKey,
+                        languageKey(torrent.language ? [torrent.language] : []),
+                      ),
+                    ),
+                  ),
+                ),
                 or(
                   eq(requestsSchema.requests.status, 'pending'),
                   eq(requestsSchema.requests.status, 'approved'),
+                  eq(requestsSchema.requests.status, 'waiting'),
                   eq(requestsSchema.requests.status, 'downloading'),
                 ),
               ),
@@ -189,13 +252,20 @@ export class RequestsService {
     // wins so the UI offers "Requested" rather than "Support your own request".
     const requestMap = new Map<string, (typeof existingRequests)[number]>();
     for (const existing of existingRequests) {
-      const current = requestMap.get(existing.torrentId);
+      const current = requestMap.get(existing.torrentId ?? '');
       if (
         !current ||
         (existing.userId === userId && current.userId !== userId)
       ) {
-        requestMap.set(existing.torrentId, existing);
+        requestMap.set(existing.torrentId ?? '', existing);
       }
+    }
+
+    const intentMap = new Map<string, (typeof existingRequests)[number]>();
+    for (const existing of existingRequests) {
+      const key = `${existing.bookKey}|${existing.contentType}|${existing.languageKey}`;
+      const current = intentMap.get(key);
+      if (!current || existing.userId === userId) intentMap.set(key, existing);
     }
 
     // Cache library lookups within this search so duplicate torrents do not
@@ -208,7 +278,15 @@ export class RequestsService {
     // Map results (already parsed and cleaned by the tracker client)
     const results: TrackerSearchResultDto[] = await Promise.all(
       torrents.map(async (torrent) => {
-        const existing = requestMap.get(String(torrent.id));
+        const intentKey = `${bookKey(torrent.title, torrent.author ?? null)}|${torrent.contentType}|${languageKey(torrent.language ? [torrent.language] : [])}`;
+        const releaseRequest = requestMap.get(String(torrent.id));
+        const existing =
+          intentMap.get(intentKey) ??
+          (releaseRequest?.languageKey == null ||
+          releaseRequest.languageKey ===
+            languageKey(torrent.language ? [torrent.language] : [])
+            ? releaseRequest
+            : undefined);
         const cacheKey = `${torrent.contentType}|${torrent.title.trim().toLowerCase()}|${(torrent.author ?? '').trim().toLowerCase()}`;
         let libraryMatch = libraryMatchCache.get(cacheKey);
         if (libraryMatch === undefined) {
@@ -259,74 +337,76 @@ export class RequestsService {
   }
 
   async getLanguages(): Promise<TrackerLanguagesResponseDto> {
-    try {
-      const response = await this.tracker.getLanguages();
-      return {
-        languages: (response.languages ?? []).map((language) => ({
-          id: language.id,
-          name: language.name,
-        })),
-      };
-    } catch (error) {
-      // A module without a language taxonomy (or one predating the endpoint)
-      // is treated as having none; the UI hides the language filter.
-      this.logger.debug(`Tracker languages unavailable: ${error}`);
-      return { languages: [] };
-    }
+    return this.tracker.getLanguages();
   }
 
   async createRequest(
     dto: CreateRequestDto,
     userId: string,
   ): Promise<RequestResponseDto> {
-    // Convert number to string for DB storage
-    const torrentIdStr = String(dto.torrentId);
-
-    // Check for existing active request
-    const existing = await this.db
-      .select()
-      .from(requestsSchema.requests)
-      .where(
-        and(
-          eq(requestsSchema.requests.torrentId, torrentIdStr),
-          or(
-            eq(requestsSchema.requests.status, 'pending'),
-            eq(requestsSchema.requests.status, 'approved'),
-            eq(requestsSchema.requests.status, 'downloading'),
+    const title = dto.title.trim();
+    if (!title) throw new BadRequestException('A book title is required');
+    const intent = await this.resolveLanguageIntent(dto);
+    const identity = bookKey(title, dto.author ?? null);
+    const result = await this.db.transaction(async (tx) => {
+      // Serialize compatible creates, including requests from different users.
+      // Existing duplicate rows are preserved by migration, so pick the caller's
+      // own row first rather than consolidating history/supporters destructively.
+      await tx.execute(
+        sql`SELECT pg_advisory_xact_lock(hashtextextended(${identity + dto.contentType + intent.languageKey}, 0))`,
+      );
+      const [existing] = await tx
+        .select()
+        .from(requestsSchema.requests)
+        .where(
+          and(
+            eq(requestsSchema.requests.bookKey, identity),
+            eq(requestsSchema.requests.contentType, dto.contentType),
+            eq(requestsSchema.requests.languageKey, intent.languageKey),
+            inArray(requestsSchema.requests.status, [
+              'pending',
+              'approved',
+              'waiting',
+              'downloading',
+            ]),
           ),
-        ),
-      )
-      .limit(1);
-
-    if (existing.length > 0) {
-      const existingRequest = existing[0];
-
-      // If user is already the requester, return error
-      if (existingRequest.userId === userId) {
-        throw new BadRequestException('You have already requested this item');
+        )
+        .orderBy(
+          sql`(${requestsSchema.requests.userId} = ${userId}) DESC`,
+          asc(requestsSchema.requests.createdAt),
+        )
+        .limit(1);
+      if (existing) return { request: existing, existing: true };
+      const [request] = await tx
+        .insert(requestsSchema.requests)
+        .values({
+          userId,
+          bookKey: identity,
+          ...intent,
+          title,
+          author: dto.author?.trim() || null,
+          narrator: dto.narrator,
+          series: dto.series,
+          description: dto.description,
+          coverUrl: dto.coverUrl,
+          contentType: dto.contentType,
+          torrentId: dto.torrentId == null ? null : String(dto.torrentId),
+          categoryId: dto.categoryId ?? null,
+          candidateModule:
+            dto.torrentId == null ? null : this.tracker.getModuleId(),
+          nextSearchAt: dto.torrentId == null ? new Date() : null,
+        })
+        .returning();
+      return { request, existing: false };
+    });
+    const { request } = result;
+    if (result.existing) {
+      if (request.userId === userId) {
+        throw new BadRequestException('You have already requested this book');
       }
-
-      // Add as supporter
-      await this.addSupporter(existingRequest.id, userId);
-      return this.getRequestById(existingRequest.id, userId);
+      await this.addSupporter(request.id, userId);
+      return this.getRequestById(request.id, userId);
     }
-
-    // Create new request
-    const [request] = await this.db
-      .insert(requestsSchema.requests)
-      .values({
-        userId,
-        torrentId: torrentIdStr,
-        title: dto.title,
-        author: dto.author,
-        narrator: dto.narrator,
-        series: dto.series,
-        description: dto.description,
-        coverUrl: dto.coverUrl,
-        contentType: dto.contentType,
-        categoryId: dto.categoryId,
-      })
-      .returning();
 
     // Check if user has auto-approve budget
     const { used, limit } = await this.getUserAutoApproveUsage(userId);
@@ -369,10 +449,13 @@ export class RequestsService {
       .limit(1);
 
     if (existing.length === 0) {
-      await this.db.insert(requestsSchema.requestSupporters).values({
-        requestId,
-        userId,
-      });
+      await this.db
+        .insert(requestsSchema.requestSupporters)
+        .values({
+          requestId,
+          userId,
+        })
+        .onConflictDoNothing();
     }
 
     // Check if request is still pending and supporter has budget
@@ -412,7 +495,7 @@ export class RequestsService {
       .where(
         and(
           eq(requestsSchema.requests.autoApprovedByUserId, userId),
-          gte(requestsSchema.requests.createdAt, lastMonday),
+          gte(requestsSchema.requests.approvedAt, lastMonday),
         ),
       );
 
@@ -423,7 +506,12 @@ export class RequestsService {
     const requests = await this.db
       .select()
       .from(requestsSchema.requests)
-      .where(eq(requestsSchema.requests.userId, userId))
+      .where(
+        or(
+          eq(requestsSchema.requests.userId, userId),
+          sql`EXISTS (SELECT 1 FROM request_supporters WHERE request_supporters.request_id = ${requestsSchema.requests.id} AND request_supporters.user_id = ${userId})`,
+        ),
+      )
       .orderBy(desc(requestsSchema.requests.createdAt));
 
     return Promise.all(requests.map((r) => this.mapToResponseDto(r, userId)));
@@ -481,102 +569,466 @@ export class RequestsService {
     return this.getRequestById(id, null);
   }
 
-  /**
-   * Claims the request, submits the download, and records the returned hash
-   * before any optional status enrichment. A failed status lookup must not
-   * leave a running transfer attached to a still-pending request — that is
-   * what lets a later approval submit it again.
-   *
-   * The claim is conditional on `status = pending` and commits before the
-   * module is called, so concurrent approvals cannot both pass the check.
-   * The database transaction is not held open across the network calls.
-   * Download failures leave the request approved without a hash (do not
-   * release the claim / re-submit blindly).
-   */
+  /** Approval is spent once. The attempt commits before external submission. */
   private async performApproval(
     request: typeof requestsSchema.requests.$inferSelect,
     autoApprovedByUserId: string | null,
   ): Promise<void> {
-    // Settings are local. Read them before claiming so a settings failure
-    // leaves the request pending and retryable. The claim itself commits
-    // before the module is called and is not held open across that call.
     const categories = await this.appSettingsService.getRequestsCategories();
     const settings = await this.appSettingsService.getSettings();
-
-    const claimed = await this.db.transaction(async (tx) => {
-      const [row] = await tx
-        .update(requestsSchema.requests)
-        .set({ status: 'approved', autoApprovedByUserId })
-        .where(
-          and(
-            eq(requestsSchema.requests.id, request.id),
-            eq(requestsSchema.requests.status, 'pending'),
-          ),
-        )
-        .returning({ id: requestsSchema.requests.id });
-      return row ?? null;
-    });
-
-    if (!claimed) {
+    const moduleId = this.tracker.getModuleId();
+    if (request.candidateModule && request.candidateModule !== moduleId) {
       throw new BadRequestException(
-        'Request is no longer pending and was not submitted',
+        'The selected source changed; recheck availability first',
       );
     }
+    const now = new Date();
+    const attempt = await this.db.transaction(async (tx) => {
+      const conditions = [
+        eq(requestsSchema.requests.id, request.id),
+        eq(requestsSchema.requests.status, 'pending'),
+      ];
+      if (autoApprovedByUserId) {
+        await tx.execute(
+          sql`SELECT pg_advisory_xact_lock(hashtextextended(${`request-budget:${autoApprovedByUserId}`}, 0))`,
+        );
+        const weeklyLimit = settings.autoApproveRequestsPerWeek ?? 0;
+        conditions.push(
+          sql`(SELECT count(*) FROM requests WHERE auto_approved_by_user_id = ${autoApprovedByUserId} AND approved_at >= ${getLastMondayUTC()}) < ${weeklyLimit}`,
+        );
+      }
+      const [claimed] = await tx
+        .update(requestsSchema.requests)
+        .set({
+          status: 'approved',
+          approvedAt: now,
+          autoApprovedByUserId,
+        })
+        .where(and(...conditions))
+        .returning();
+      if (!claimed)
+        throw new BadRequestException(
+          'Request is no longer pending or approval allowance is exhausted',
+        );
+      if (claimed.candidateModule && claimed.candidateModule !== moduleId)
+        throw new BadRequestException(
+          'The selected source changed; recheck availability first',
+        );
+      if (!claimed.torrentId) {
+        await tx
+          .update(requestsSchema.requests)
+          .set({ status: 'waiting', nextSearchAt: claimed.nextSearchAt ?? now })
+          .where(eq(requestsSchema.requests.id, request.id));
+        return null;
+      }
+      await tx
+        .update(requestsSchema.requests)
+        .set({ nextSearchAt: null })
+        .where(eq(requestsSchema.requests.id, request.id));
+      const [created] = await tx
+        .insert(requestsSchema.requestAttempts)
+        .values({
+          requestId: request.id,
+          moduleId,
+          torrentId: claimed.torrentId,
+          categoryId: claimed.categoryId,
+          status: 'submitting',
+        })
+        .returning();
+      return created;
+    });
+    if (attempt)
+      await this.submitAttempt(
+        request,
+        attempt,
+        categories,
+        settings.requestsUseFreeleech,
+      );
+  }
 
-    // Determine download-client category based on content type
-    let category: string;
-    if (request.contentType === 'comics') {
-      category = categories.comics;
-    } else if (request.contentType === 'audiobook') {
-      category = categories.audiobook;
-    } else {
-      category = categories.ebook;
-    }
-
-    const usePersonalFL = settings.requestsUseFreeleech;
-
-    // Once this call is made the outcome may be unknown (timeout, lost
-    // response). Prefer a stuck approved row with no hash over releasing the
-    // claim — releasing reopens double-submit if the module already accepted.
-    let downloadResult: Awaited<ReturnType<TrackerService['download']>>;
+  private async submitAttempt(
+    request: typeof requestsSchema.requests.$inferSelect,
+    attempt: typeof requestsSchema.requestAttempts.$inferSelect,
+    categories: { audiobook: string; ebook: string; comics: string },
+    usePersonalFL: boolean,
+  ): Promise<void> {
+    let hash: string;
     try {
-      downloadResult = await this.tracker.download(request.torrentId, {
-        category,
+      const result = await this.tracker.download(attempt.torrentId, {
+        category: categories[request.contentType],
         usePersonalFL: usePersonalFL || undefined,
+        submissionKey: attempt.id,
+      });
+      if (!result.hash || !/^[a-zA-Z0-9_-]+$/.test(result.hash)) {
+        throw new Error('Module returned an invalid download identity');
+      }
+      hash = result.hash;
+      await this.db.transaction(async (tx) => {
+        await tx
+          .update(requestsSchema.requestAttempts)
+          .set({ status: 'tracking', torrentHash: hash })
+          .where(eq(requestsSchema.requestAttempts.id, attempt.id));
+        await tx
+          .update(requestsSchema.requests)
+          .set({ torrentHash: hash })
+          .where(eq(requestsSchema.requests.id, request.id));
       });
     } catch (error) {
+      // A timeout or a crash does not establish that a transfer is absent.
+      // Retain the attempt for reconciliation rather than submitting it again.
+      await this.db
+        .update(requestsSchema.requestAttempts)
+        .set({
+          status: 'uncertain',
+          reason: 'Submission outcome needs reconciliation',
+        })
+        .where(eq(requestsSchema.requestAttempts.id, attempt.id));
       this.logger.error(
-        `Download failed for request ${request.id} after claim; left approved without hash (do not re-submit blindly): ${error}`,
+        `Submission uncertain for request ${request.id}: ${error}`,
       );
       throw error;
     }
-
-    // Persist the hash before optional status enrichment. If this write fails,
-    // do not call status — the download already exists and must stay tracked
-    // by the next successful write, not by another submission.
-    await this.db
-      .update(requestsSchema.requests)
-      .set({ torrentHash: downloadResult.hash })
-      .where(eq(requestsSchema.requests.id, request.id));
-
-    // Folder name is required for import matching, but a failure here must not
-    // erase the hash. The poller fills folderName from a later bulk status.
     try {
-      const torrentStatus = await this.tracker.getTorrentStatus(
-        downloadResult.hash,
+      const status = await this.tracker.getTorrentStatus(hash);
+      if (status.name)
+        await this.db.transaction(async (tx) => {
+          await tx
+            .update(requestsSchema.requests)
+            .set({ folderName: status.name })
+            .where(eq(requestsSchema.requests.id, request.id));
+          await tx
+            .update(requestsSchema.requestAttempts)
+            .set({ folderName: status.name })
+            .where(eq(requestsSchema.requestAttempts.id, attempt.id));
+        });
+    } catch (error) {
+      this.logger.debug(
+        `Status enrichment deferred for request ${request.id}: ${error}`,
       );
-      if (torrentStatus.name) {
-        await this.db
+    }
+  }
+
+  private async resolveLanguageIntent(dto: CreateRequestDto) {
+    const moduleId = this.tracker.getModuleId();
+    let languageIds = [...new Set(dto.languages ?? [])].sort((a, b) => a - b);
+    let languageNames: string[] = [];
+    if (languageIds.length) {
+      // Validate against the actual source rather than saving browser-owned IDs.
+      const taxonomy = await this.tracker.getLanguages();
+      languageNames = languageIds.map((id) => {
+        const entry = taxonomy.languages.find((language) => language.id === id);
+        if (!entry)
+          throw new BadRequestException(
+            'Selected language is unavailable from the current source',
+          );
+        return entry.name;
+      });
+    }
+    if (dto.language?.trim()) {
+      const name = dto.language.trim();
+      if (
+        languageNames.length &&
+        !languageNames.some(
+          (value) => normalizeBookText(value) === normalizeBookText(name),
+        )
+      ) {
+        throw new BadRequestException(
+          'Release language does not match the requested languages',
+        );
+      }
+      // Keep the narrower known release language, retaining only selected IDs.
+      if (languageIds.length) {
+        const matching = languageIds
+          .map((id, index) => ({ id, name: languageNames[index] }))
+          .filter(
+            (entry) =>
+              normalizeBookText(entry.name) === normalizeBookText(name),
+          );
+        languageIds = matching.map((entry) => entry.id);
+        languageNames = matching.map((entry) => entry.name);
+      } else {
+        languageNames = [name];
+      }
+    }
+    return {
+      languageIds,
+      languageNames,
+      languageModule: languageIds.length ? moduleId : null,
+      languageKey: languageKey(languageNames),
+    };
+  }
+
+  async getAttempts(id: string): Promise<RequestAttemptDto[]> {
+    await this.getRequestByIdInternal(id);
+    const attempts = await this.db
+      .select()
+      .from(requestsSchema.requestAttempts)
+      .where(eq(requestsSchema.requestAttempts.requestId, id))
+      .orderBy(asc(requestsSchema.requestAttempts.createdAt));
+    return attempts.map((attempt) => ({
+      id: attempt.id,
+      moduleId: attempt.moduleId,
+      torrentId: attempt.torrentId,
+      status: attempt.status,
+      torrentHash: attempt.torrentHash,
+      reason: attempt.reason,
+      createdAt: attempt.createdAt.toISOString(),
+    }));
+  }
+
+  /** Queue through the shared schedule; an admin click cannot bypass rate limits. */
+  async recheckRequest(id: string): Promise<RequestResponseDto> {
+    const now = new Date();
+    const [queued] = await this.db
+      .update(requestsSchema.requests)
+      .set({
+        nextSearchAt: now,
+        searchError: null,
+        torrentId: null,
+        categoryId: null,
+        candidateModule: null,
+      })
+      .where(
+        and(
+          eq(requestsSchema.requests.id, id),
+          inArray(requestsSchema.requests.status, ['pending', 'waiting']),
+          or(
+            isNull(requestsSchema.requests.torrentId),
+            and(
+              eq(requestsSchema.requests.status, 'pending'),
+              sql`${requestsSchema.requests.candidateModule} <> ${this.tracker.getModuleId()}`,
+            ),
+          ),
+          or(
+            isNull(requestsSchema.requests.searchLeaseUntil),
+            lte(requestsSchema.requests.searchLeaseUntil, now),
+          ),
+          or(
+            isNull(requestsSchema.requests.releaseDate),
+            lte(requestsSchema.requests.releaseDate, now),
+          ),
+        ),
+      )
+      .returning({ id: requestsSchema.requests.id });
+    if (!queued)
+      throw new BadRequestException(
+        'This request is not eligible for an availability check',
+      );
+    return this.getRequestById(id, null);
+  }
+
+  async searchWaitingRequests(): Promise<void> {
+    if (!this.tracker.isConfigured()) return;
+    const settings = await this.appSettingsService.getSettings();
+    if (!settings.requestsEnabled) return;
+    const now = new Date();
+    const schedulerLease = new Date(now.getTime() + 1_800_000);
+    const claimed = await this.db.transaction(async (tx) => {
+      const [slot] = await tx
+        .update(requestsSchema.requestSearchSchedule)
+        .set({ nextRunAt: schedulerLease })
+        .where(
+          and(
+            eq(requestsSchema.requestSearchSchedule.id, 'availability'),
+            lte(requestsSchema.requestSearchSchedule.nextRunAt, now),
+          ),
+        )
+        .returning();
+      if (!slot) return null;
+      const rows = await tx
+        .select()
+        .from(requestsSchema.requests)
+        .where(
+          and(
+            inArray(requestsSchema.requests.status, ['pending', 'waiting']),
+            isNull(requestsSchema.requests.torrentId),
+            lte(requestsSchema.requests.nextSearchAt, now),
+            or(
+              isNull(requestsSchema.requests.searchLeaseUntil),
+              lte(requestsSchema.requests.searchLeaseUntil, now),
+            ),
+          ),
+        )
+        .orderBy(
+          sql`${requestsSchema.requests.lastSearchAt} ASC NULLS FIRST`,
+          asc(requestsSchema.requests.createdAt),
+          asc(requestsSchema.requests.id),
+        )
+        .limit(10)
+        .for('update', { skipLocked: true });
+      const jobs: (typeof requestsSchema.requests.$inferSelect)[] = [];
+      for (const row of rows) {
+        const token = randomUUID();
+        await tx
           .update(requestsSchema.requests)
-          .set({ folderName: torrentStatus.name })
+          .set({ searchClaim: token, searchLeaseUntil: schedulerLease })
+          .where(eq(requestsSchema.requests.id, row.id));
+        jobs.push({ ...row, searchClaim: token });
+      }
+      return jobs;
+    });
+    if (!claimed) return;
+    try {
+      // One shared leased batch at a time. The cooldown starts after the last
+      // operation, so slow modules cannot bunch overlapping batches together.
+      const taxonomy = claimed.some((request) => request.languageIds.length)
+        ? this.tracker.getLanguages()
+        : null;
+      const observedTaxonomy = taxonomy?.then(
+        (value) => ({ value, error: null }),
+        (error: unknown) => ({ value: null, error }),
+      );
+      for (const request of claimed)
+        await this.searchWaitingRequest(request, observedTaxonomy);
+    } finally {
+      await this.db
+        .update(requestsSchema.requestSearchSchedule)
+        .set({ nextRunAt: new Date(Date.now() + 60_000) })
+        .where(
+          and(
+            eq(requestsSchema.requestSearchSchedule.id, 'availability'),
+            eq(requestsSchema.requestSearchSchedule.nextRunAt, schedulerLease),
+          ),
+        );
+    }
+  }
+
+  private async searchWaitingRequest(
+    request: typeof requestsSchema.requests.$inferSelect,
+    taxonomyResult?: Promise<{
+      value: { languages: { id: number; name: string }[] } | null;
+      error: unknown;
+    }> | null,
+  ): Promise<void> {
+    const moduleId = this.tracker.getModuleId();
+    const now = new Date();
+    try {
+      if (request.languageModule && request.languageModule !== moduleId) {
+        throw new Error('Language mapping belongs to a different source');
+      }
+      if (request.languageIds.length) {
+        const result = await taxonomyResult;
+        if (!result?.value)
+          throw result?.error ?? new Error('Language taxonomy is unavailable');
+        const taxonomy = result.value;
+        if (
+          request.languageIds.some(
+            (id, i) =>
+              !taxonomy.languages.some(
+                (entry) =>
+                  entry.id === id &&
+                  normalizeBookText(entry.name) ===
+                    normalizeBookText(request.languageNames[i]),
+              ),
+          )
+        ) {
+          throw new Error('Source language mapping changed');
+        }
+      }
+      const response = await this.tracker.search({
+        query: request.title,
+        categories: [request.contentType],
+        searchIn: ['title'],
+        languages: request.languageIds.length ? request.languageIds : undefined,
+        perPage: 25,
+        offset: 0,
+        book: {
+          title: request.title,
+          author: request.author,
+          contentType: request.contentType,
+          languageNames: request.languageNames,
+        },
+      });
+      const candidate = selectCandidate(request, response.results ?? []);
+      const validDate = parseReleaseDate(response.releaseDate);
+      const attempt = await this.db.transaction(async (tx) => {
+        const [current] = await tx
+          .select()
+          .from(requestsSchema.requests)
+          .where(
+            and(
+              eq(requestsSchema.requests.id, request.id),
+              eq(requestsSchema.requests.searchClaim, request.searchClaim!),
+              inArray(requestsSchema.requests.status, ['pending', 'waiting']),
+              isNull(requestsSchema.requests.torrentId),
+            ),
+          )
+          .for('update');
+        if (!current) return null;
+        await tx
+          .update(requestsSchema.requests)
+          .set({
+            lastSearchAt: now,
+            nextSearchAt: candidate ? null : nextSearchDate(now, 0, validDate),
+            releaseDate: validDate,
+            searchFailures: 0,
+            searchError:
+              response.releaseDate != null && !validDate
+                ? 'Source returned an invalid publication date; regular checks continue'
+                : null,
+            searchClaim: null,
+            searchLeaseUntil: null,
+            ...(candidate
+              ? {
+                  torrentId: String(candidate.id),
+                  categoryId: candidate.categoryId,
+                  candidateModule: moduleId,
+                }
+              : {}),
+          })
           .where(eq(requestsSchema.requests.id, request.id));
+        // Discovery can attach a candidate to pending requests, never approve it.
+        if (!candidate || current.status !== 'waiting' || !current.approvedAt)
+          return null;
+        const [created] = await tx
+          .insert(requestsSchema.requestAttempts)
+          .values({
+            requestId: current.id,
+            moduleId,
+            torrentId: String(candidate.id),
+            categoryId: candidate.categoryId,
+            status: 'submitting',
+          })
+          .returning();
+        await tx
+          .update(requestsSchema.requests)
+          .set({ status: 'approved' })
+          .where(eq(requestsSchema.requests.id, current.id));
+        return created;
+      });
+      if (attempt) {
+        const categories =
+          await this.appSettingsService.getRequestsCategories();
+        const settings = await this.appSettingsService.getSettings();
+        await this.submitAttempt(
+          request,
+          attempt,
+          categories,
+          settings.requestsUseFreeleech,
+        );
       }
     } catch (error) {
-      this.logger.error(
-        `Download ${downloadResult.hash} started for request ${request.id}, but status lookup failed: ${error}`,
+      const failures = request.searchFailures + 1;
+      // Do not expose module errors or credentials through user-facing responses.
+      this.logger.debug(
+        `Availability check failed for request ${request.id}: ${error}`,
       );
-      // Hash is already persisted; the poller backfills folderName. Do not
-      // fail the approval — the transfer is tracked.
+      await this.db
+        .update(requestsSchema.requests)
+        .set({
+          lastSearchAt: now,
+          nextSearchAt: nextSearchDate(now, failures, request.releaseDate),
+          searchFailures: failures,
+          searchError: 'Availability check failed; Bookmark will retry',
+          searchClaim: null,
+          searchLeaseUntil: null,
+        })
+        .where(
+          and(
+            eq(requestsSchema.requests.id, request.id),
+            eq(requestsSchema.requests.searchClaim, request.searchClaim!),
+          ),
+        );
     }
   }
 
@@ -595,8 +1047,17 @@ export class RequestsService {
       .set({
         status: 'rejected',
         rejectionReason: dto.reason || null,
+        nextSearchAt: null,
+        searchError: null,
+        searchClaim: null,
+        searchLeaseUntil: null,
       })
-      .where(eq(requestsSchema.requests.id, id));
+      .where(
+        and(
+          eq(requestsSchema.requests.id, id),
+          eq(requestsSchema.requests.status, 'pending'),
+        ),
+      );
 
     return this.getRequestById(id, null);
   }
@@ -618,7 +1079,12 @@ export class RequestsService {
 
     if (activeRequests.length === 0) return;
 
-    const hashes = activeRequests
+    const moduleId = this.tracker.getModuleId();
+    const monitoredRequests = activeRequests.filter(
+      (request) =>
+        !request.candidateModule || request.candidateModule === moduleId,
+    );
+    const hashes = monitoredRequests
       .map((r) => r.torrentHash)
       .filter((h): h is string => h !== null);
 
@@ -630,10 +1096,70 @@ export class RequestsService {
         statuses.torrents.map((t) => [t.hash.toLowerCase(), t]),
       );
 
-      for (const request of activeRequests) {
+      for (const request of monitoredRequests) {
         if (!request.torrentHash) continue;
 
         const torrentStatus = byHash.get(request.torrentHash.toLowerCase());
+
+        if (torrentStatus?.acquisitionFailed === true) {
+          await this.db.transaction(async (tx) => {
+            const [current] = await tx
+              .select()
+              .from(requestsSchema.requests)
+              .where(
+                and(
+                  eq(requestsSchema.requests.id, request.id),
+                  eq(requestsSchema.requests.torrentHash, request.torrentHash!),
+                  isNull(requestsSchema.requests.libraryItemId),
+                  inArray(requestsSchema.requests.status, [
+                    'approved',
+                    'downloading',
+                  ]),
+                ),
+              )
+              .for('update');
+            if (!current) return;
+            const [failed] = await tx
+              .update(requestsSchema.requestAttempts)
+              .set({
+                status: 'failed',
+                reason: 'Source confirmed a terminal acquisition failure',
+              })
+              .where(
+                and(
+                  eq(requestsSchema.requestAttempts.requestId, request.id),
+                  eq(
+                    requestsSchema.requestAttempts.torrentHash,
+                    request.torrentHash!,
+                  ),
+                  eq(requestsSchema.requestAttempts.status, 'tracking'),
+                ),
+              )
+              .returning();
+            if (!failed) return;
+            await tx
+              .update(requestsSchema.requests)
+              .set({
+                status: 'waiting',
+                torrentId: null,
+                categoryId: null,
+                candidateModule: null,
+                torrentHash: null,
+                folderName: null,
+                torrentMissingSince: null,
+                nextSearchAt: new Date(),
+                searchClaim: null,
+                searchLeaseUntil: null,
+              })
+              .where(
+                and(
+                  eq(requestsSchema.requests.id, request.id),
+                  eq(requestsSchema.requests.torrentHash, request.torrentHash!),
+                ),
+              );
+          });
+          continue;
+        }
 
         // A hash the client reports as 'not_found' — or doesn't report at all —
         // no longer exists there, so the request can never progress on its own.
@@ -667,11 +1193,35 @@ export class RequestsService {
           updates.folderName = torrentStatus.name;
         }
 
+        if (!request.folderName && torrentStatus.name) {
+          await this.db
+            .update(requestsSchema.requestAttempts)
+            .set({ folderName: torrentStatus.name })
+            .where(
+              and(
+                eq(requestsSchema.requestAttempts.requestId, request.id),
+                eq(
+                  requestsSchema.requestAttempts.torrentHash,
+                  request.torrentHash,
+                ),
+              ),
+            );
+        }
         if (Object.keys(updates).length > 0) {
           await this.db
             .update(requestsSchema.requests)
             .set(updates)
-            .where(eq(requestsSchema.requests.id, request.id));
+            .where(
+              and(
+                eq(requestsSchema.requests.id, request.id),
+                eq(requestsSchema.requests.torrentHash, request.torrentHash),
+                isNull(requestsSchema.requests.libraryItemId),
+                inArray(requestsSchema.requests.status, [
+                  'approved',
+                  'downloading',
+                ]),
+              ),
+            );
         }
       }
     } catch (error) {
@@ -697,7 +1247,14 @@ export class RequestsService {
     await this.db
       .update(requestsSchema.requests)
       .set({ torrentMissingSince: new Date() })
-      .where(eq(requestsSchema.requests.id, request.id));
+      .where(
+        and(
+          eq(requestsSchema.requests.id, request.id),
+          eq(requestsSchema.requests.torrentHash, request.torrentHash!),
+          isNull(requestsSchema.requests.libraryItemId),
+          inArray(requestsSchema.requests.status, ['approved', 'downloading']),
+        ),
+      );
 
     this.logger.warn(
       `Torrent ${request.torrentHash} not found for request ${request.id} ("${request.title}") - flagged for admin review`,
@@ -751,15 +1308,52 @@ export class RequestsService {
 
     const request = candidates[0];
 
-    // Link the request to the library item
-    await this.db
-      .update(requestsSchema.requests)
-      .set({
-        status: 'complete',
-        libraryItemId,
-        libraryItemType,
-      })
-      .where(eq(requestsSchema.requests.id, request.id));
+    const completed = await this.db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(requestsSchema.requests)
+        .set({
+          status: 'complete',
+          libraryItemId,
+          libraryItemType,
+        })
+        .where(
+          and(
+            eq(requestsSchema.requests.id, request.id),
+            eq(requestsSchema.requests.folderName, folderName),
+            request.torrentHash
+              ? eq(requestsSchema.requests.torrentHash, request.torrentHash)
+              : isNull(requestsSchema.requests.torrentHash),
+            inArray(requestsSchema.requests.status, [
+              'approved',
+              'downloading',
+            ]),
+            isNull(requestsSchema.requests.libraryItemId),
+          ),
+        )
+        .returning({ id: requestsSchema.requests.id });
+      if (!row) return false;
+      await tx
+        .update(requestsSchema.requestAttempts)
+        .set({ status: 'complete' })
+        .where(
+          and(
+            eq(requestsSchema.requestAttempts.requestId, request.id),
+            request.torrentHash
+              ? eq(
+                  requestsSchema.requestAttempts.torrentHash,
+                  request.torrentHash,
+                )
+              : isNull(requestsSchema.requestAttempts.torrentHash),
+            inArray(requestsSchema.requestAttempts.status, [
+              'tracking',
+              'uncertain',
+              'submitting',
+            ]),
+          ),
+        );
+      return true;
+    });
+    if (!completed) return false;
 
     this.logger.log(
       `Matched request ${request.id} to ${libraryItemType} ${libraryItemId}`,
@@ -819,6 +1413,13 @@ export class RequestsService {
       userEmail: user?.email ?? 'Unknown',
       status: request.status,
       torrentId: request.torrentId,
+      bookKey: request.bookKey,
+      languageNames: [...new Set(request.languageNames ?? [])],
+      approvedAt: request.approvedAt?.toISOString() ?? null,
+      lastSearchAt: request.lastSearchAt?.toISOString() ?? null,
+      nextSearchAt: request.nextSearchAt?.toISOString() ?? null,
+      releaseDate: request.releaseDate?.toISOString() ?? null,
+      searchError: request.searchError ?? null,
       title: request.title,
       author: request.author,
       narrator: request.narrator,

@@ -20,6 +20,7 @@ const statusVariants: Record<
 > = {
   pending: "secondary",
   approved: "default",
+  waiting: "secondary",
   downloading: "default",
   complete: "default",
   rejected: "destructive",
@@ -48,6 +49,8 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
     <div className="space-y-4">
       {requests.map((request) => {
         const TypeIcon = CONTENT_TYPE_STYLES[request.contentType].icon;
+        const isSearching =
+          request.status === "pending" || request.status === "waiting";
         return (
           <Card key={request.id}>
             <CardContent className="p-4">
@@ -96,6 +99,24 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
                       date: new Date(request.createdAt).toLocaleDateString(),
                     })}
                   </p>
+
+                  {request.languageNames.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      {request.languageNames.join(", ")}
+                    </p>
+                  )}
+                  {isSearching && request.torrentId === null && (
+                    <p className="text-sm text-muted-foreground">
+                      {t("wanted.waitingDescription")}
+                    </p>
+                  )}
+                  {isSearching && request.nextSearchAt && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("wanted.nextCheck", {
+                        date: new Date(request.nextSearchAt).toLocaleString(),
+                      })}
+                    </p>
+                  )}
 
                   {/* Link to library item if complete */}
                   {request.status === "complete" &&
