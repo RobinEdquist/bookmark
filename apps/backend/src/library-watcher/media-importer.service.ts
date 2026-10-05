@@ -11,6 +11,7 @@ import * as comicsSchema from '../comics/schema';
 import {
   EmbeddedMetadataProvider,
   AudioFileInfo,
+  FullMetadataResult,
 } from './metadata/embedded-metadata.provider';
 import { EbookMetadataProvider } from './metadata/ebook-metadata.provider';
 import { ComicMetadataProvider } from './metadata/comic-metadata.provider';
@@ -37,6 +38,7 @@ import {
   inferTitleFromPath,
 } from './utils/text.utils';
 import { generateChaptersFromFiles } from './utils/chapter.utils';
+import { isAudioFile } from './utils/audio-file.utils';
 import { splitPersonNames } from '../common/utils/name.utils';
 import {
   parseComicFilename,
@@ -49,6 +51,23 @@ import { selectBooksToImport } from '../comics/comic-grouping.utils';
 import { ParsedComicInfo, ComicCreatorRole } from './utils/comicinfo.parser';
 import { ImageProcessingService } from '../common/image-processing.service';
 import { AppDataService } from '../app-data/app-data.service';
+
+type Db = NodePgDatabase<
+  typeof audiobooksSchema & typeof ebooksSchema & typeof comicsSchema
+>;
+type Transaction = Parameters<Parameters<Db['transaction']>[0]>[0];
+type AudiobookStatus =
+  (typeof audiobooksSchema.audiobookStatusEnum.enumValues)[number];
+type ExtractedChapter = FullMetadataResult['chapters'][number];
+
+/** An already-imported audiobook paired with what the detector found on disk. */
+export interface KnownAudiobookUnit {
+  id: string;
+  unit: AudiobookUnit;
+}
+
+// Postgres caps bind parameters per statement; stay far below it.
+const FILE_LOOKUP_CHUNK_SIZE = 1000;
 
 @Injectable()
 export class MediaImporterService {
@@ -102,13 +121,17 @@ export class MediaImporterService {
 
     try {
       // Check if already exists
-      let existing: { id: string }[];
+      let existing: { id: string; status: AudiobookStatus }[];
+      const existingColumns = {
+        id: audiobooksSchema.audiobooks.id,
+        status: audiobooksSchema.audiobooks.status,
+      };
       if (isRootLevelFile) {
         // For root-level files, check by the actual filename in audiobook_files
         // since multiple audiobooks can have filePath = ''
         const filename = path.basename(primaryFile);
         existing = await this.db
-          .select({ id: audiobooksSchema.audiobooks.id })
+          .select(existingColumns)
           .from(audiobooksSchema.audiobooks)
           .innerJoin(
             audiobooksSchema.audiobookFiles,
@@ -121,7 +144,7 @@ export class MediaImporterService {
           .limit(1);
       } else {
         existing = await this.db
-          .select({ id: audiobooksSchema.audiobooks.id })
+          .select(existingColumns)
           .from(audiobooksSchema.audiobooks)
           .where(eq(audiobooksSchema.audiobooks.filePath, relativeUnitPath))
           .limit(1);
@@ -131,6 +154,7 @@ export class MediaImporterService {
         this.logger.debug(
           `[IMPORT] Audiobook already exists at ${unit.path}, id=${existing[0].id}`,
         );
+        await this.reconcileExistingAudiobook(existing[0], unit);
         return existing[0].id;
       }
 
@@ -1108,22 +1132,11 @@ export class MediaImporterService {
         `[RESCAN] Resolved file paths: ${JSON.stringify(filePaths)}`,
       );
 
-      // Extract metadata from the primary file
-      const primaryPath = filePaths[0];
-      const primaryData =
-        await this.audioMetadataProvider.extractFullMetadata(primaryPath);
       const {
         metadata,
-        fileInfo: primaryFileInfo,
+        fileInfos,
         chapters: primaryChapters,
-      } = primaryData;
-
-      // Extract file info for all files
-      const fileInfos: AudioFileInfo[] = [primaryFileInfo];
-      for (let i = 1; i < filePaths.length; i++) {
-        const info = await this.audioMetadataProvider.getFileInfo(filePaths[i]);
-        fileInfos.push(info);
-      }
+      } = await this.readAudiobookFiles(filePaths);
 
       // Calculate new total duration (always updated)
       const totalDuration = fileInfos.reduce((sum, f) => sum + f.duration, 0);
@@ -1168,67 +1181,17 @@ export class MediaImporterService {
         .set(updates)
         .where(eq(audiobooksSchema.audiobooks.id, audiobookId));
 
-      // ALWAYS delete and recreate audiobook_files (full override)
-      await this.db
-        .delete(audiobooksSchema.audiobookFiles)
-        .where(eq(audiobooksSchema.audiobookFiles.audiobookId, audiobookId));
-
-      // filePath stores just the filename (relative to audiobook folder)
-      await this.db.insert(audiobooksSchema.audiobookFiles).values(
-        fileInfos.map((fileInfo, i) => ({
+      // ALWAYS replace audiobook_files; chapters too unless hand-edited
+      await this.db.transaction((tx) =>
+        this.replaceFilesAndChapters(
+          tx,
           audiobookId,
-          filePath: path.basename(fileInfo.filePath),
-          fileName: fileInfo.fileName,
-          order: i,
-          duration: fileInfo.duration,
-          format: fileInfo.format,
-          bitrate: fileInfo.bitrate,
-          sampleRate: fileInfo.sampleRate,
-          sizeBytes: fileInfo.sizeBytes,
-        })),
+          fileInfos,
+          primaryChapters,
+          manualFields,
+          { kind: 'rescan' },
+        ),
       );
-
-      // Update chapters if not manually edited
-      if (!manualFields.includes('chapters')) {
-        // Check if any existing chapters are manually added
-        const existingChapters = await this.db
-          .select()
-          .from(audiobooksSchema.chapters)
-          .where(eq(audiobooksSchema.chapters.audiobookId, audiobookId));
-
-        const hasManualChapters = existingChapters.some(
-          (c) => c.source === 'manual',
-        );
-
-        if (!hasManualChapters) {
-          // Delete existing chapters and create new ones
-          await this.db
-            .delete(audiobooksSchema.chapters)
-            .where(eq(audiobooksSchema.chapters.audiobookId, audiobookId));
-
-          let chapters = primaryChapters;
-          let chapterSource: 'embedded' | 'external' = 'embedded';
-
-          // For multi-file audiobooks with no embedded chapters, generate from files
-          if (chapters.length === 0 && fileInfos.length > 1) {
-            chapters = generateChaptersFromFiles(fileInfos);
-            chapterSource = 'external';
-          }
-
-          if (chapters.length > 0) {
-            await this.db.insert(audiobooksSchema.chapters).values(
-              chapters.map((chapter, i) => ({
-                audiobookId,
-                title: sanitizeText(chapter.title) ?? chapter.title,
-                startTime: chapter.startTime,
-                endTime: chapter.endTime,
-                order: i,
-                source: chapterSource,
-              })),
-            );
-          }
-        }
-      }
 
       // Update author if not manually edited
       if (!manualFields.includes('authors') && metadata.author) {
@@ -1291,6 +1254,336 @@ export class MediaImporterService {
       );
       return false;
     }
+  }
+
+  // ===== AUDIOBOOK FILE REPAIR =====
+  //
+  // Scans and the watcher run unattended, so they only ever *repair*: a stored
+  // file list is rebuilt only when it is broken (a stored track is gone from
+  // disk) and only when Bookmark's own detector produced it. Anything else
+  // (AudioBookShelf track order, subfolder tracks, curated chapters) belongs
+  // to the explicit metadata rescan or to the user.
+
+  /**
+   * Repair every known audiobook whose stored files are no longer in its
+   * folder (renamed or removed while Bookmark wasn't looking).
+   *
+   * Returns the ids that were repaired, plus per-book failures so one
+   * unreadable folder can't abort a library scan.
+   */
+  async repairBrokenAudiobookFiles(candidates: KnownAudiobookUnit[]): Promise<{
+    repaired: string[];
+    errors: Array<{ path: string; error: string }>;
+  }> {
+    const repaired: string[] = [];
+    const errors: Array<{ path: string; error: string }> = [];
+    if (candidates.length === 0) return { repaired, errors };
+
+    const stored = await this.getStoredFileNames(
+      candidates.map((candidate) => candidate.id),
+    );
+
+    for (const { id, unit } of candidates) {
+      const storedNames = stored.get(id) ?? [];
+      if (!this.needsFileRepair(storedNames, unit)) continue;
+      try {
+        await this.repairAudiobookFiles(id, unit, storedNames);
+        repaired.push(id);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        errors.push({ path: unit.path, error: message });
+        this.logger.error(
+          `[REPAIR] Failed to repair files for ${unit.path}: ${message}`,
+        );
+      }
+    }
+
+    return { repaired, errors };
+  }
+
+  /**
+   * Put an existing (missing or hidden) audiobook back in the library,
+   * repairing its file list first if it is broken.
+   */
+  async markAudiobookAvailable(
+    audiobookId: string,
+    unit: AudiobookUnit,
+  ): Promise<void> {
+    const storedNames =
+      (await this.getStoredFileNames([audiobookId])).get(audiobookId) ?? [];
+    if (this.needsFileRepair(storedNames, unit)) {
+      await this.repairAudiobookFiles(audiobookId, unit, storedNames, {
+        markAvailable: true,
+      });
+      return;
+    }
+
+    await this.db
+      .update(audiobooksSchema.audiobooks)
+      .set({ status: 'available', missingAt: null })
+      .where(eq(audiobooksSchema.audiobooks.id, audiobookId));
+    this.logger.log(
+      `[IMPORT] Audiobook available again: ${unit.path} (id=${audiobookId})`,
+    );
+    this.appEvents.audiobookUpdated(audiobookId);
+    this.wsEvents.audiobookUpdated(audiobookId);
+  }
+
+  /**
+   * Bring an already-imported audiobook in line with its folder when the
+   * watcher sees it again: a folder moved back into the library is no longer
+   * missing, and a broken file list is repaired. Hidden books stay hidden;
+   * the user removed them on purpose.
+   */
+  private async reconcileExistingAudiobook(
+    existing: { id: string; status: AudiobookStatus },
+    unit: AudiobookUnit,
+  ): Promise<void> {
+    if (existing.status === 'hidden') return;
+
+    if (existing.status === 'missing') {
+      await this.markAudiobookAvailable(existing.id, unit);
+      return;
+    }
+
+    const storedNames =
+      (await this.getStoredFileNames([existing.id])).get(existing.id) ?? [];
+    if (this.needsFileRepair(storedNames, unit)) {
+      await this.repairAudiobookFiles(existing.id, unit, storedNames);
+    }
+  }
+
+  /**
+   * Rebuild an audiobook's file rows and duration from its folder. Chapters
+   * are regenerated only if they are the ones import derived from the old
+   * file names; embedded, Audible, AudioBookShelf and hand-made chapters are
+   * kept. Title, authors and all other metadata are never touched.
+   *
+   * `markAvailable` also clears a `missing` or `hidden` status in the same
+   * write, for books coming back into the library.
+   */
+  private async repairAudiobookFiles(
+    audiobookId: string,
+    unit: AudiobookUnit,
+    previousFileNames: string[],
+    options: { markAvailable?: boolean } = {},
+  ): Promise<void> {
+    const [audiobook] = await this.db
+      .select({ manualFields: audiobooksSchema.audiobooks.manualFields })
+      .from(audiobooksSchema.audiobooks)
+      .where(eq(audiobooksSchema.audiobooks.id, audiobookId))
+      .limit(1);
+    if (!audiobook) {
+      throw new Error(`Audiobook ${audiobookId} not found`);
+    }
+
+    const { fileInfos, chapters } = await this.readAudiobookFiles(unit.files);
+    const duration = fileInfos.reduce((sum, f) => sum + f.duration, 0);
+
+    await this.db.transaction(async (tx) => {
+      await tx
+        .update(audiobooksSchema.audiobooks)
+        .set(
+          options.markAvailable
+            ? { duration, status: 'available', missingAt: null }
+            : { duration },
+        )
+        .where(eq(audiobooksSchema.audiobooks.id, audiobookId));
+      await this.replaceFilesAndChapters(
+        tx,
+        audiobookId,
+        fileInfos,
+        chapters,
+        audiobook.manualFields ?? [],
+        { kind: 'repair', previousFileNames },
+      );
+    });
+
+    this.logger.log(
+      `[REPAIR] Rebuilt file list for audiobook ${audiobookId} from ${unit.path} (${previousFileNames.length} -> ${fileInfos.length} file(s))`,
+    );
+    this.appEvents.audiobookUpdated(audiobookId);
+    this.wsEvents.audiobookUpdated(audiobookId);
+  }
+
+  /** Stored audiobook_files.filePath values per audiobook, in play order. */
+  private async getStoredFileNames(
+    audiobookIds: string[],
+  ): Promise<Map<string, string[]>> {
+    const byAudiobook = new Map<string, string[]>();
+
+    for (let i = 0; i < audiobookIds.length; i += FILE_LOOKUP_CHUNK_SIZE) {
+      const rows = await this.db
+        .select({
+          audiobookId: audiobooksSchema.audiobookFiles.audiobookId,
+          filePath: audiobooksSchema.audiobookFiles.filePath,
+        })
+        .from(audiobooksSchema.audiobookFiles)
+        .where(
+          inArray(
+            audiobooksSchema.audiobookFiles.audiobookId,
+            audiobookIds.slice(i, i + FILE_LOOKUP_CHUNK_SIZE),
+          ),
+        )
+        .orderBy(
+          audiobooksSchema.audiobookFiles.audiobookId,
+          audiobooksSchema.audiobookFiles.order,
+        );
+
+      for (const row of rows) {
+        const names = byAudiobook.get(row.audiobookId);
+        if (names) names.push(row.filePath);
+        else byAudiobook.set(row.audiobookId, [row.filePath]);
+      }
+    }
+
+    return byAudiobook;
+  }
+
+  /**
+   * Whether an audiobook's stored file list is broken and safe to rebuild
+   * from what the detector found in its folder.
+   *
+   * Safe means the detector itself produced the list: bare file names with a
+   * supported extension, in the detector's name order. AudioBookShelf
+   * restores keep ABS's own track order, subfolder tracks (`CD1/01.mp3`) and
+   * formats the detector skips; rebuilding those would reorder or drop
+   * tracks.
+   *
+   * Broken means a stored track is gone from the folder. A track that was
+   * only added is not enough: progress is a single offset into the whole
+   * book, and slotting a file in would shift what plays at every later
+   * position.
+   */
+  private needsFileRepair(stored: string[], unit: AudiobookUnit): boolean {
+    const detectorProduced = stored.every(
+      (name, i) =>
+        name === path.basename(name) &&
+        isAudioFile(name) &&
+        (i === 0 || stored[i - 1] <= name),
+    );
+    if (!detectorProduced) return false;
+
+    const onDisk = new Set(unit.files.map((file) => path.basename(file)));
+    return stored.length === 0 || stored.some((name) => !onDisk.has(name));
+  }
+
+  /** Parse every file of a unit; the first one also yields tags and chapters. */
+  private async readAudiobookFiles(filePaths: string[]): Promise<{
+    metadata: FullMetadataResult['metadata'];
+    fileInfos: AudioFileInfo[];
+    chapters: ExtractedChapter[];
+  }> {
+    const { metadata, fileInfo, chapters } =
+      await this.audioMetadataProvider.extractFullMetadata(filePaths[0]);
+
+    const fileInfos: AudioFileInfo[] = [fileInfo];
+    for (let i = 1; i < filePaths.length; i++) {
+      fileInfos.push(
+        await this.audioMetadataProvider.getFileInfo(filePaths[i]),
+      );
+    }
+
+    return { metadata, fileInfos, chapters };
+  }
+
+  /**
+   * Swap an audiobook's file rows for `fileInfos` and regenerate chapters.
+   *
+   * Hand-made chapters always survive. Beyond that, a metadata `rescan`
+   * replaces chapters (the user asked to re-read the files), while a
+   * `repair` only replaces chapters import generated from the previous file
+   * names, since those name files that no longer exist.
+   */
+  private async replaceFilesAndChapters(
+    tx: Transaction,
+    audiobookId: string,
+    fileInfos: AudioFileInfo[],
+    primaryChapters: ExtractedChapter[],
+    manualFields: string[],
+    policy:
+      { kind: 'rescan' } | { kind: 'repair'; previousFileNames: string[] },
+  ): Promise<void> {
+    await tx
+      .delete(audiobooksSchema.audiobookFiles)
+      .where(eq(audiobooksSchema.audiobookFiles.audiobookId, audiobookId));
+
+    // filePath stores just the filename (relative to audiobook folder)
+    await tx.insert(audiobooksSchema.audiobookFiles).values(
+      fileInfos.map((fileInfo, i) => ({
+        audiobookId,
+        filePath: path.basename(fileInfo.filePath),
+        fileName: fileInfo.fileName,
+        order: i,
+        duration: fileInfo.duration,
+        format: fileInfo.format,
+        bitrate: fileInfo.bitrate,
+        sampleRate: fileInfo.sampleRate,
+        sizeBytes: fileInfo.sizeBytes,
+      })),
+    );
+
+    if (manualFields.includes('chapters')) return;
+
+    // Check if any existing chapters are manually added
+    const existingChapters = await tx
+      .select()
+      .from(audiobooksSchema.chapters)
+      .where(eq(audiobooksSchema.chapters.audiobookId, audiobookId));
+    if (existingChapters.some((c) => c.source === 'manual')) return;
+    if (
+      policy.kind === 'repair' &&
+      existingChapters.length > 0 &&
+      !this.chaptersNameFiles(existingChapters, policy.previousFileNames)
+    ) {
+      return;
+    }
+
+    await tx
+      .delete(audiobooksSchema.chapters)
+      .where(eq(audiobooksSchema.chapters.audiobookId, audiobookId));
+
+    let chapters: ExtractedChapter[] = primaryChapters;
+    let chapterSource: 'embedded' | 'external' = 'embedded';
+
+    // For multi-file audiobooks with no embedded chapters, generate from files
+    if (chapters.length === 0 && fileInfos.length > 1) {
+      chapters = generateChaptersFromFiles(fileInfos);
+      chapterSource = 'external';
+    }
+
+    if (chapters.length > 0) {
+      await tx.insert(audiobooksSchema.chapters).values(
+        chapters.map((chapter, i) => ({
+          audiobookId,
+          title: sanitizeText(chapter.title) ?? chapter.title,
+          startTime: chapter.startTime,
+          endTime: chapter.endTime,
+          order: i,
+          source: chapterSource,
+        })),
+      );
+    }
+  }
+
+  /**
+   * True when `chapters` are exactly what import generates from `fileNames`
+   * (one per file, titled after it). Audible chapters share the `external`
+   * source, so the titles are what tell them apart.
+   */
+  private chaptersNameFiles(
+    chapters: Array<{ title: string; order: number; source: string }>,
+    fileNames: string[],
+  ): boolean {
+    if (chapters.length !== fileNames.length) return false;
+    const ordered = [...chapters].sort((a, b) => a.order - b.order);
+    return ordered.every((chapter, i) => {
+      const base = path.basename(fileNames[i], path.extname(fileNames[i]));
+      return (
+        chapter.source === 'external' &&
+        chapter.title === (sanitizeText(base) ?? base)
+      );
+    });
   }
 
   // ===== COMIC BOOK RESCAN =====

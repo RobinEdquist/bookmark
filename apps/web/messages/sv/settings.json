@@ -24,11 +24,38 @@
       "notConfigured": "Ej konfigurerad",
       "browse": "Bläddra",
       "remove": "Ta bort bibliotekssökväg",
+      "scan": "Skanna nu",
+      "scanning": "Skannar...",
       "toast": {
         "updateSuccess": "Ljudboksbibliotekssökväg uppdaterad",
         "updateError": "Kunde inte uppdatera ljudboksbibliotekssökväg",
         "removeSuccess": "Ljudboksbibliotekssökväg borttagen",
-        "removeError": "Kunde inte ta bort ljudboksbibliotekssökväg"
+        "removeError": "Kunde inte ta bort ljudboksbibliotekssökväg",
+        "scanComplete": "Skanning klar: {summary}",
+        "scanNoChanges": "Skanning klar: inga ändringar",
+        "scanParts": {
+          "added": "{count} tillagda",
+          "repaired": "{count} reparerade",
+          "restored": "{count} tillbaka",
+          "missing": "{count} saknas",
+          "deleted": "{count} dolda borttagna",
+          "errors": "{count} fel"
+        },
+        "scanError": "Kunde inte skanna ljudboksbiblioteket"
+      },
+      "hidden": {
+        "title": "Dolda ljudböcker",
+        "description": "Borttagna med filerna kvar. Skanningar hoppar över de här mapparna tills du återställer dem.",
+        "rootFile": "Fil i bibliotekets rot",
+        "restore": "Återställ",
+        "restoring": "Återställer...",
+        "loadError": "Kunde inte hämta dolda ljudböcker",
+        "retry": "Försök igen",
+        "toast": {
+          "restored": "\"{title}\" finns i biblioteket igen",
+          "removed": "Filerna för \"{title}\" finns inte längre, så den togs bort",
+          "error": "Kunde inte återställa ljudboken"
+        }
       }
     },
     "ebookLibrary": {

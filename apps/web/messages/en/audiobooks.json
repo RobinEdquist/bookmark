@@ -39,7 +39,7 @@
     "description": "Are you sure you want to delete \"{title}\"?",
     "keepFiles": {
       "label": "Keep files on disk",
-      "description": "The audiobook will be removed from the library but the files will remain on your disk."
+      "description": "The audiobook will be removed from the library but the files will remain on your disk. Scans will skip its folder until you restore it under Settings → Libraries."
     },
     "deleteFiles": {
       "label": "Delete files permanently",

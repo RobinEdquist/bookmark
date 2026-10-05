@@ -1,12 +1,20 @@
 // apps/backend/src/library-watcher/library-watcher.service.ts
-import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService, RescanStatus } from '../events/ws-events.service';
 import { FileWatcherService } from './file-watcher.service';
 import {
+  HiddenAudiobook,
   LibraryScannerService,
+  RestoreHiddenAudiobookOutcome,
   ScanResult,
   ScanProgress,
 } from './library-scanner.service';
@@ -283,6 +291,20 @@ export class LibraryWatcherService implements OnModuleInit {
 
   async manualComicScan(): Promise<ScanResult> {
     return this.runComicScan();
+  }
+
+  async listHiddenAudiobooks(): Promise<HiddenAudiobook[]> {
+    return this.libraryScanner.listHiddenAudiobooks();
+  }
+
+  async restoreHiddenAudiobook(
+    id: string,
+  ): Promise<RestoreHiddenAudiobookOutcome> {
+    const libraryPath = await this.appSettingsService.getAudiobookLibraryPath();
+    if (!libraryPath) {
+      throw new BadRequestException('No audiobook library path configured');
+    }
+    return this.libraryScanner.restoreHiddenAudiobook(id, libraryPath);
   }
 
   getStatus(): {

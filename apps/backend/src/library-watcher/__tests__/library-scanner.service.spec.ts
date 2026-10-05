@@ -69,6 +69,7 @@ function createMockMediaDetector() {
   return {
     scanLibraryForAudiobooks: jest.fn().mockResolvedValue([]),
     scanLibraryForEbooks: jest.fn().mockResolvedValue([]),
+    detectAudiobook: jest.fn().mockResolvedValue(null),
   };
 }
 
@@ -76,6 +77,10 @@ function createMockMediaImporter() {
   return {
     importAudiobook: jest.fn().mockResolvedValue('new-id'),
     importEbook: jest.fn().mockResolvedValue('new-id'),
+    repairBrokenAudiobookFiles: jest
+      .fn()
+      .mockResolvedValue({ repaired: [], errors: [] }),
+    markAudiobookAvailable: jest.fn().mockResolvedValue(undefined),
   };
 }
 
@@ -178,6 +183,7 @@ describe('LibraryScannerService', () => {
         missing: 0,
         restored: 0,
         deleted: 0,
+        repaired: 0,
         errors: [],
       });
     });
@@ -329,7 +335,7 @@ describe('LibraryScannerService', () => {
         {
           path: path.join(LIBRARY_PATH, 'standalone.m4b'),
           type: 'single-file',
-          files: [],
+          files: [path.join(LIBRARY_PATH, 'standalone.m4b')],
         },
       ]);
 
@@ -337,6 +343,25 @@ describe('LibraryScannerService', () => {
 
       // The root-level file already exists so should not be imported
       expect(result.added).toBe(0);
+    });
+
+    it('does not re-import a single-file book whose folder sits directly in the root', async () => {
+      setupSelectFromSequence(mockDb, [
+        [{ id: 'ab-1', filePath: 'Dune', status: 'available' }],
+      ]);
+      mockedAccess.mockResolvedValue(undefined);
+      mockMediaDetector.scanLibraryForAudiobooks.mockResolvedValue([
+        {
+          path: path.join(LIBRARY_PATH, 'Dune'),
+          type: 'single-file',
+          files: [path.join(LIBRARY_PATH, 'Dune', 'Dune.m4b')],
+        },
+      ]);
+
+      const result = await service.scanAudiobookLibrary(LIBRARY_PATH);
+
+      expect(result.added).toBe(0);
+      expect(mockMediaImporter.importAudiobook).not.toHaveBeenCalled();
     });
 
     it('should return correct ScanResult counts for mixed operations', async () => {
@@ -466,6 +491,214 @@ describe('LibraryScannerService', () => {
 
   // ===== scanEbookLibrary =====
 
+  describe('scanAudiobookLibrary file repair', () => {
+    it('hands known, non-hidden folder audiobooks to the file repair', async () => {
+      const bookOne = {
+        path: path.join(LIBRARY_PATH, 'Author', 'Book One'),
+        type: 'multi-file' as const,
+        files: [path.join(LIBRARY_PATH, 'Author', 'Book One', '01.mp3')],
+      };
+      const hiddenBook = {
+        path: path.join(LIBRARY_PATH, 'Author', 'Hidden'),
+        type: 'multi-file' as const,
+        files: [path.join(LIBRARY_PATH, 'Author', 'Hidden', '01.mp3')],
+      };
+      setupSelectFromSequence(mockDb, [
+        [
+          { id: 'ab-1', filePath: 'Author/Book One', status: 'available' },
+          { id: 'ab-2', filePath: 'Author/Gone', status: 'available' },
+          { id: 'ab-hidden', filePath: 'Author/Hidden', status: 'hidden' },
+        ],
+      ]);
+      mockedAccess.mockResolvedValue(undefined);
+      mockMediaDetector.scanLibraryForAudiobooks.mockResolvedValue([
+        bookOne,
+        hiddenBook,
+      ]);
+
+      await service.scanAudiobookLibrary(LIBRARY_PATH);
+
+      // ab-2 has no folder on disk; the hidden book stays untouched
+      expect(mockMediaImporter.repairBrokenAudiobookFiles).toHaveBeenCalledWith(
+        [{ id: 'ab-1', unit: bookOne }],
+      );
+      expect(mockMediaImporter.importAudiobook).not.toHaveBeenCalled();
+    });
+
+    it('includes a book restored from missing, so a stale file list can be repaired', async () => {
+      const unit = {
+        path: path.join(LIBRARY_PATH, 'Stephen King', 'Skeleton Crew'),
+        type: 'multi-file' as const,
+        files: [
+          path.join(
+            LIBRARY_PATH,
+            'Stephen King',
+            'Skeleton Crew',
+            'Disc 01 - Track 01.mp3',
+          ),
+        ],
+      };
+      setupSelectFromSequence(mockDb, [
+        [
+          {
+            id: 'ab-1',
+            filePath: 'Stephen King/Skeleton Crew',
+            status: 'missing',
+          },
+        ],
+      ]);
+      mockedAccess.mockResolvedValue(undefined);
+      mockMediaDetector.scanLibraryForAudiobooks.mockResolvedValue([unit]);
+      mockMediaImporter.repairBrokenAudiobookFiles.mockResolvedValue({
+        repaired: ['ab-1'],
+        errors: [],
+      });
+
+      const result = await service.scanAudiobookLibrary(LIBRARY_PATH);
+
+      expect(result.restored).toBe(1);
+      expect(result.repaired).toBe(1);
+      expect(mockMediaImporter.repairBrokenAudiobookFiles).toHaveBeenCalledWith(
+        [{ id: 'ab-1', unit }],
+      );
+    });
+
+    it('reports repair failures as scan errors', async () => {
+      setupSelectFromSequence(mockDb, [[]]);
+      mockMediaImporter.repairBrokenAudiobookFiles.mockResolvedValue({
+        repaired: [],
+        errors: [{ path: '/media/audiobooks/A', error: 'unreadable' }],
+      });
+
+      const result = await service.scanAudiobookLibrary(LIBRARY_PATH);
+
+      expect(result.errors).toEqual([
+        { path: '/media/audiobooks/A', error: 'unreadable' },
+      ]);
+    });
+  });
+
+  describe('hidden audiobooks', () => {
+    function mockHiddenRow(row: Record<string, unknown> | undefined) {
+      mockDb._mockSelectFrom.mockReturnValueOnce({
+        where: jest.fn().mockReturnValue({
+          limit: jest.fn().mockResolvedValue(row ? [row] : []),
+        }),
+      });
+    }
+
+    it('lists hidden audiobooks by title', async () => {
+      const rows = [{ id: 'ab-1', title: 'Skeleton Crew', filePath: 'SK/SC' }];
+      const orderBy = jest.fn().mockResolvedValue(rows);
+      mockDb._mockSelectFrom.mockReturnValueOnce({
+        where: jest.fn().mockReturnValue({ orderBy }),
+      });
+
+      await expect(service.listHiddenAudiobooks()).resolves.toEqual(rows);
+      expect(orderBy).toHaveBeenCalled();
+    });
+
+    it('restores a hidden audiobook against what is on disk now', async () => {
+      const unit = {
+        path: path.join(LIBRARY_PATH, 'Stephen King', 'Skeleton Crew'),
+        type: 'multi-file' as const,
+        files: [
+          path.join(LIBRARY_PATH, 'Stephen King', 'Skeleton Crew', '1.mp3'),
+        ],
+      };
+      mockHiddenRow({
+        id: 'ab-1',
+        filePath: 'Stephen King/Skeleton Crew',
+        status: 'hidden',
+      });
+      mockedAccess.mockResolvedValue(undefined);
+      mockMediaDetector.detectAudiobook.mockResolvedValue(unit);
+
+      const outcome = await service.restoreHiddenAudiobook(
+        'ab-1',
+        LIBRARY_PATH,
+      );
+
+      expect(outcome).toBe('restored');
+      expect(mockMediaDetector.detectAudiobook).toHaveBeenCalledWith(unit.path);
+      expect(mockMediaImporter.markAudiobookAvailable).toHaveBeenCalledWith(
+        'ab-1',
+        unit,
+      );
+      expect(mockDb.delete).not.toHaveBeenCalled();
+    });
+
+    it('deletes the record only when its folder is gone', async () => {
+      mockHiddenRow({ id: 'ab-1', filePath: 'Author/Gone', status: 'hidden' });
+      mockedAccess.mockRejectedValue(new Error('ENOENT'));
+
+      const outcome = await service.restoreHiddenAudiobook(
+        'ab-1',
+        LIBRARY_PATH,
+      );
+
+      expect(outcome).toBe('removed');
+      expect(mockDb.delete).toHaveBeenCalled();
+      expect(mockAppEvents.audiobookDeleted).toHaveBeenCalledWith('ab-1');
+      expect(mockMediaDetector.detectAudiobook).not.toHaveBeenCalled();
+      expect(mockMediaImporter.markAudiobookAvailable).not.toHaveBeenCalled();
+    });
+
+    it('keeps the stored files when the folder exists in a layout the detector skips', async () => {
+      // e.g. AudioBookShelf CD1/01.mp3 subfolders, or .wav tracks
+      mockHiddenRow({
+        id: 'ab-1',
+        filePath: 'Author/Multi Disc',
+        status: 'hidden',
+      });
+      mockedAccess.mockResolvedValue(undefined);
+      mockMediaDetector.detectAudiobook.mockResolvedValue(null);
+
+      const outcome = await service.restoreHiddenAudiobook(
+        'ab-1',
+        LIBRARY_PATH,
+      );
+
+      expect(outcome).toBe('restored');
+      expect(mockDb.delete).not.toHaveBeenCalled();
+      expect(mockDb._mockSet).toHaveBeenCalledWith({
+        status: 'available',
+        missingAt: null,
+      });
+      expect(mockAppEvents.audiobookUpdated).toHaveBeenCalledWith('ab-1');
+      expect(mockMediaImporter.markAudiobookAvailable).not.toHaveBeenCalled();
+    });
+
+    it('locates a hidden root-level file through its file row', async () => {
+      mockHiddenRow({ id: 'ab-root', filePath: '', status: 'hidden' });
+      mockHiddenRow({ filePath: 'standalone.m4b' });
+      mockedAccess.mockResolvedValue(undefined);
+      const unit = {
+        path: path.join(LIBRARY_PATH, 'standalone.m4b'),
+        type: 'single-file' as const,
+        files: [path.join(LIBRARY_PATH, 'standalone.m4b')],
+      };
+      mockMediaDetector.detectAudiobook.mockResolvedValue(unit);
+
+      await expect(
+        service.restoreHiddenAudiobook('ab-root', LIBRARY_PATH),
+      ).resolves.toBe('restored');
+      expect(mockMediaDetector.detectAudiobook).toHaveBeenCalledWith(unit.path);
+    });
+
+    it.each([
+      ['does not exist', undefined],
+      ['is not hidden', { id: 'ab-1', filePath: 'A/B', status: 'available' }],
+    ])('rejects restore when the audiobook %s', async (_case, row) => {
+      mockHiddenRow(row);
+
+      await expect(
+        service.restoreHiddenAudiobook('ab-1', LIBRARY_PATH),
+      ).rejects.toThrow('Hidden audiobook not found');
+      expect(mockMediaImporter.markAudiobookAvailable).not.toHaveBeenCalled();
+    });
+  });
+
   describe('scanEbookLibrary', () => {
     it('should return zero counts for empty library', async () => {
       setupSelectFromSequence(mockDb, [
@@ -479,6 +712,7 @@ describe('LibraryScannerService', () => {
         missing: 0,
         restored: 0,
         deleted: 0,
+        repaired: 0,
         errors: [],
       });
     });

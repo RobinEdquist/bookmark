@@ -555,6 +555,16 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
         path: '/admin/library-watcher/rescan-status',
         expectedStatus: 401,
       },
+      {
+        method: 'GET',
+        path: '/admin/library-watcher/hidden-audiobooks',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/library-watcher/hidden-audiobooks/:id/restore',
+        expectedStatus: 401,
+      },
     ],
   },
   {

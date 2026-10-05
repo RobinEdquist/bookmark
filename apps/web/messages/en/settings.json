@@ -24,11 +24,38 @@
       "notConfigured": "Not configured",
       "browse": "Browse",
       "remove": "Remove library path",
+      "scan": "Scan now",
+      "scanning": "Scanning...",
       "toast": {
         "updateSuccess": "Audiobook library path updated",
         "updateError": "Failed to update audiobook library path",
         "removeSuccess": "Audiobook library path removed",
-        "removeError": "Failed to remove audiobook library path"
+        "removeError": "Failed to remove audiobook library path",
+        "scanComplete": "Scan complete: {summary}",
+        "scanNoChanges": "Scan complete: no changes",
+        "scanParts": {
+          "added": "{count} added",
+          "repaired": "{count} repaired",
+          "restored": "{count} back from missing",
+          "missing": "{count} missing",
+          "deleted": "{count} hidden removed",
+          "errors": "{count, plural, one {# error} other {# errors}}"
+        },
+        "scanError": "Failed to scan audiobook library"
+      },
+      "hidden": {
+        "title": "Hidden audiobooks",
+        "description": "Deleted with their files kept. Scans skip these folders until you restore them.",
+        "rootFile": "File in the library root",
+        "restore": "Restore",
+        "restoring": "Restoring...",
+        "loadError": "Couldn't load hidden audiobooks",
+        "retry": "Retry",
+        "toast": {
+          "restored": "\"{title}\" is back in your library",
+          "removed": "The files for \"{title}\" are gone, so it was removed",
+          "error": "Failed to restore audiobook"
+        }
       }
     },
     "ebookLibrary": {

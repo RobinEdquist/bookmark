@@ -1,7 +1,7 @@
 // apps/backend/src/library-watcher/library-scanner.service.ts
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, or, sql } from 'drizzle-orm';
+import { asc, eq, or, sql } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import pLimit from 'p-limit';
@@ -15,10 +15,14 @@ import {
   EbookUnit,
   ComicSeriesUnit,
 } from './media-detector.service';
-import { MediaImporterService } from './media-importer.service';
+import {
+  KnownAudiobookUnit,
+  MediaImporterService,
+} from './media-importer.service';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 import { LibraryType } from './file-watcher.service';
+import { calculateAudiobookPaths } from './utils/path.utils';
 
 // Configuration for parallel import processing
 const IMPORT_CONCURRENCY = 5; // Number of imports to run in parallel
@@ -29,8 +33,19 @@ export interface ScanResult {
   missing: number;
   restored: number;
   deleted: number;
+  /** Known audiobooks whose broken file list was rebuilt from disk */
+  repaired: number;
   errors: Array<{ path: string; error: string }>;
 }
+
+export interface HiddenAudiobook {
+  id: string;
+  title: string;
+  /** Folder relative to the library root; '' for a root-level file */
+  filePath: string;
+}
+
+export type RestoreHiddenAudiobookOutcome = 'restored' | 'removed';
 
 export interface ScanProgress {
   phase: 'reconciling' | 'scanning' | 'importing';
@@ -65,6 +80,7 @@ export class LibraryScannerService {
       missing: 0,
       restored: 0,
       deleted: 0,
+      repaired: 0,
       errors: [],
     };
 
@@ -179,19 +195,27 @@ export class LibraryScannerService {
     const detectedUnits =
       await this.mediaDetector.scanLibraryForAudiobooks(libraryPath);
 
-    const newUnits = detectedUnits.filter((unit) => {
-      const isRootLevelFile =
-        unit.type === 'single-file' && path.dirname(unit.path) === libraryPath;
+    // A known book whose stored tracks were renamed or removed while
+    // Bookmark wasn't watching can't play. Rebuild only those lists (see
+    // MediaImporterService.needsFileRepair). Hidden books stay as they are.
+    const repairResult = await this.mediaImporter.repairBrokenAudiobookFiles(
+      this.matchKnownAudiobooks(existingAudiobooks, detectedUnits, libraryPath),
+    );
+    result.repaired = repairResult.repaired.length;
+    result.errors.push(...repairResult.errors);
 
-      if (isRootLevelFile) {
-        // For root-level files, check by filename
-        const filename = path.basename(unit.path);
-        return !existingRootFilenames.has(filename);
-      } else {
-        // For folder-based audiobooks, check by folder path
-        const relativeUnitPath = path.relative(libraryPath, unit.path);
-        return !existingFolderPaths.has(relativeUnitPath);
-      }
+    const newUnits = detectedUnits.filter((unit) => {
+      // Classify exactly as import does: only a file directly in the library
+      // root is keyed by file name. A single-file book in a top-level folder
+      // is keyed by its folder (dirname === libraryPath used to misfile it,
+      // re-importing it, and counting it as added, on every scan).
+      const { isRootLevelFile, relativeUnitPath } = calculateAudiobookPaths(
+        unit,
+        libraryPath,
+      );
+      return isRootLevelFile
+        ? !existingRootFilenames.has(path.basename(unit.path))
+        : !existingFolderPaths.has(relativeUnitPath);
     });
 
     this.updateProgress({
@@ -221,7 +245,7 @@ export class LibraryScannerService {
     this.emitScanStatus(false);
 
     this.logger.log(
-      `Audiobook reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.errors.length} errors`,
+      `Audiobook reconciliation complete: ${result.added} added, ${result.missing} missing, ${result.restored} restored, ${result.deleted} deleted, ${result.repaired} repaired, ${result.errors.length} errors`,
     );
 
     this.appEvents.libraryScanCompleted();
@@ -236,6 +260,7 @@ export class LibraryScannerService {
       missing: 0,
       restored: 0,
       deleted: 0,
+      repaired: 0,
       errors: [],
     };
 
@@ -353,6 +378,7 @@ export class LibraryScannerService {
       missing: 0,
       restored: 0,
       deleted: 0,
+      repaired: 0,
       errors: [],
     };
 
@@ -503,6 +529,123 @@ export class LibraryScannerService {
     );
 
     return result;
+  }
+
+  // ===== HIDDEN AUDIOBOOKS =====
+  //
+  // "Delete, keep files" hides a book instead of deleting its row, so scans
+  // and the watcher don't import the folder straight back. These let an admin
+  // see what is hidden and undo it.
+
+  async listHiddenAudiobooks(): Promise<HiddenAudiobook[]> {
+    return this.db
+      .select({
+        id: audiobooksSchema.audiobooks.id,
+        title: audiobooksSchema.audiobooks.title,
+        filePath: audiobooksSchema.audiobooks.filePath,
+      })
+      .from(audiobooksSchema.audiobooks)
+      .where(eq(audiobooksSchema.audiobooks.status, 'hidden'))
+      .orderBy(asc(audiobooksSchema.audiobooks.title));
+  }
+
+  /**
+   * Put a hidden audiobook back in the library, repairing its file list if
+   * tracks were renamed while it was hidden. Only if its folder (or root
+   * file) no longer exists is the row deleted, exactly as the next scan
+   * would.
+   */
+  async restoreHiddenAudiobook(
+    id: string,
+    libraryPath: string,
+  ): Promise<RestoreHiddenAudiobookOutcome> {
+    const [audiobook] = await this.db
+      .select({
+        id: audiobooksSchema.audiobooks.id,
+        filePath: audiobooksSchema.audiobooks.filePath,
+        status: audiobooksSchema.audiobooks.status,
+      })
+      .from(audiobooksSchema.audiobooks)
+      .where(eq(audiobooksSchema.audiobooks.id, id))
+      .limit(1);
+
+    if (!audiobook || audiobook.status !== 'hidden') {
+      throw new NotFoundException('Hidden audiobook not found');
+    }
+
+    const location = await this.resolveAudiobookLocation(
+      audiobook,
+      libraryPath,
+    );
+
+    if (!location || !(await this.pathExists(location))) {
+      await this.deleteAudiobookFromDb(id);
+      this.logger.log(
+        `Deleted hidden audiobook on restore (files gone): ${audiobook.filePath}`,
+      );
+      this.appEvents.audiobookDeleted(id);
+      return 'removed';
+    }
+
+    const unit = await this.mediaDetector.detectAudiobook(location);
+    if (unit) {
+      await this.mediaImporter.markAudiobookAvailable(id, unit);
+    } else {
+      // The folder is there, in a layout the detector doesn't read (tracks
+      // in subfolders, formats it skips). The stored files are the only
+      // description of the book, so keep them, as a scan would.
+      await this.db
+        .update(audiobooksSchema.audiobooks)
+        .set({ status: 'available', missingAt: null })
+        .where(eq(audiobooksSchema.audiobooks.id, id));
+      this.appEvents.audiobookUpdated(id);
+    }
+    this.logger.log(`Restored hidden audiobook: ${location} (id=${id})`);
+    return 'restored';
+  }
+
+  /**
+   * Pair each known, non-hidden folder audiobook with the unit the detector
+   * found at its path. Root-level files are keyed by file name rather than
+   * folder, so a changed one shows up as a new import instead.
+   */
+  private matchKnownAudiobooks(
+    existing: Array<{ id: string; filePath: string; status: string }>,
+    detectedUnits: AudiobookUnit[],
+    libraryPath: string,
+  ): KnownAudiobookUnit[] {
+    const unitsByPath = new Map<string, AudiobookUnit>();
+    for (const unit of detectedUnits) {
+      const { isRootLevelFile, relativeUnitPath } = calculateAudiobookPaths(
+        unit,
+        libraryPath,
+      );
+      if (!isRootLevelFile) unitsByPath.set(relativeUnitPath, unit);
+    }
+
+    return existing.flatMap((audiobook) => {
+      if (audiobook.status === 'hidden' || audiobook.filePath === '') return [];
+      const unit = unitsByPath.get(audiobook.filePath);
+      return unit ? [{ id: audiobook.id, unit }] : [];
+    });
+  }
+
+  /** Absolute path the detector should look at for an existing row. */
+  private async resolveAudiobookLocation(
+    audiobook: { id: string; filePath: string },
+    libraryPath: string,
+  ): Promise<string | null> {
+    if (audiobook.filePath !== '') {
+      return path.join(libraryPath, audiobook.filePath);
+    }
+
+    // Root-level single file: the row only knows its file name
+    const [file] = await this.db
+      .select({ filePath: audiobooksSchema.audiobookFiles.filePath })
+      .from(audiobooksSchema.audiobookFiles)
+      .where(eq(audiobooksSchema.audiobookFiles.audiobookId, audiobook.id))
+      .limit(1);
+    return file ? path.join(libraryPath, file.filePath) : null;
   }
 
   // ===== PATH REMOVAL HANDLING =====

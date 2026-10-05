@@ -2,8 +2,9 @@
 
 import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   Folder,
   ChevronUp,
@@ -33,6 +34,7 @@ import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
 import { Progress } from "@repo/ui/components/ui/progress";
 import { Switch } from "@repo/ui/components/ui/switch";
 import { FolderPickerDialog } from "./folder-picker-dialog";
+import { HiddenAudiobooksSection } from "./hidden-audiobooks-section";
 import { ImportErrorsSection } from "./import-errors-section";
 import {
   useSettings,
@@ -45,6 +47,11 @@ import {
 } from "../../lib/use-hardcover";
 import { useRescan, useRescanStatus } from "../../lib/use-rescan";
 import { useRescanComics } from "../../lib/use-comics";
+import { queryKeys } from "../../lib/query-keys";
+import {
+  scanSummaryParts,
+  type LibraryScanResult,
+} from "../../lib/scan-summary";
 
 // Fields that make sense to show in the UI
 // Note: genres is excluded because it always combines all sources
@@ -143,6 +150,7 @@ export function LibrariesSettings() {
     useState(false);
   const [ebookFolderPickerOpen, setEbookFolderPickerOpen] = useState(false);
   const [comicFolderPickerOpen, setComicFolderPickerOpen] = useState(false);
+  const [isAudiobookScanning, setIsAudiobookScanning] = useState(false);
   const [isEbookScanning, setIsEbookScanning] = useState(false);
   const [isComicScanning, setIsComicScanning] = useState(false);
   const [opdsCopied, setOpdsCopied] = useState(false);
@@ -153,6 +161,7 @@ export function LibrariesSettings() {
   const { rescan, isRescanPending } = useRescan();
   const rescanStatus = useRescanStatus();
   const { rescanComics, isRescanComicsPending } = useRescanComics();
+  const queryClient = useQueryClient();
 
   const handleSelectAudiobookPath = async (path: string) => {
     try {
@@ -203,6 +212,50 @@ export function LibrariesSettings() {
           ? err.message
           : t("ebookLibrary.toast.removeError"),
       );
+    }
+  };
+
+  const handleScanAudiobooks = async () => {
+    setIsAudiobookScanning(true);
+    try {
+      const response = await fetch("/api/admin/library-watcher/scan", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || t("audiobookLibrary.toast.scanError"),
+        );
+      }
+      const data = (await response.json()) as {
+        success: boolean;
+        result: LibraryScanResult;
+      };
+      const parts = scanSummaryParts(data.result).map(({ key, count }) =>
+        t(`audiobookLibrary.toast.scanParts.${key}`, { count }),
+      );
+      toast.success(
+        parts.length > 0
+          ? t("audiobookLibrary.toast.scanComplete", {
+              summary: parts.join(", "),
+            })
+          : t("audiobookLibrary.toast.scanNoChanges"),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : t("audiobookLibrary.toast.scanError"),
+      );
+    } finally {
+      // Phase 1 marks books missing or restored without per-book events, and
+      // deletes hidden books whose folders are gone: refresh what's on screen
+      queryClient.invalidateQueries({ queryKey: queryKeys.audiobooks.all });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.hiddenAudiobooks.all,
+      });
+      setIsAudiobookScanning(false);
     }
   };
 
@@ -516,6 +569,29 @@ export function LibrariesSettings() {
                     t("audiobookLibrary.notConfigured")}
                 </code>
               </div>
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleScanAudiobooks}
+                  disabled={
+                    isAudiobookScanning || !settings?.audiobookLibraryPath
+                  }
+                >
+                  {isAudiobookScanning ? (
+                    <>
+                      <LoadingSpinner size="sm" className="mr-2" />
+                      {t("audiobookLibrary.scanning")}
+                    </>
+                  ) : (
+                    <>
+                      <ScanLine className="mr-2 h-4 w-4" />
+                      {t("audiobookLibrary.scan")}
+                    </>
+                  )}
+                </Button>
+              </div>
+              {settings?.audiobookLibraryPath && <HiddenAudiobooksSection />}
             </div>
           </fieldset>
 
