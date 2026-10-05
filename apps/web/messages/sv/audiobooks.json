@@ -39,7 +39,7 @@
     "description": "Är du säker på att du vill ta bort \"{title}\"?",
     "keepFiles": {
       "label": "Behåll filer på disken",
-      "description": "Ljudboken tas bort från biblioteket men filerna finns kvar på din disk."
+      "description": "Ljudboken tas bort från biblioteket men filerna finns kvar på din disk. Skanningar hoppar över mappen tills du återställer den under Inställningar → Bibliotek."
     },
     "deleteFiles": {
       "label": "Ta bort filer permanent",

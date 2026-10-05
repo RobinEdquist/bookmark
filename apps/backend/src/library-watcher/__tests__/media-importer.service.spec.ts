@@ -111,11 +111,14 @@ function createMockDb() {
     where: jest.fn().mockResolvedValue(undefined),
   };
 
-  return {
+  const db = {
     select: jest.fn().mockReturnValue(mockSelectChain),
     insert: jest.fn().mockReturnValue(mockInsertChain),
     update: jest.fn().mockReturnValue(mockUpdateChain),
     delete: jest.fn().mockReturnValue(mockDeleteChain),
+    // The transaction handle is the db itself, so per-test overrides of
+    // select/insert/... apply inside transactions too.
+    transaction: jest.fn(),
     // Queue a one-shot resolution for the next direct-await where() call
     // (e.g. `await select().from().where(inArray(...))`). FIFO.
     _queueWhereResult: (rows: unknown[]) => {
@@ -128,6 +131,8 @@ function createMockDb() {
       delete: mockDeleteChain,
     },
   } as any;
+  db.transaction.mockImplementation((fn: (tx: unknown) => unknown) => fn(db));
+  return db;
 }
 
 function createMockDeps() {
@@ -287,7 +292,14 @@ describe('MediaImporterService', () => {
   // ------------------------------------------------------------------
   describe('importAudiobook', () => {
     it('returns existing audiobook ID when already exists (folder-based)', async () => {
-      db._chains.select.limit.mockResolvedValueOnce([{ id: 'existing-id' }]);
+      db._chains.select.limit.mockResolvedValueOnce([
+        { id: 'existing-id', status: 'available' },
+      ]);
+      // where() #1 is the existence check, #2 the stored file list
+      db._queueWhereResult([]);
+      db._queueWhereResult([
+        { audiobookId: 'existing-id', filePath: 'file.m4b' },
+      ]);
 
       const result = await service.importAudiobook(
         makeSingleFileUnit(),
@@ -295,8 +307,9 @@ describe('MediaImporterService', () => {
       );
 
       expect(result).toBe('existing-id');
-      // Should not have inserted anything
+      // Unchanged and available: nothing to write
       expect(db.insert).not.toHaveBeenCalled();
+      expect(db.update).not.toHaveBeenCalled();
     });
 
     it('returns existing ID for root-level file (checks via audiobook_files join)', async () => {
@@ -307,14 +320,101 @@ describe('MediaImporterService', () => {
       };
 
       db._chains.select.limit.mockResolvedValueOnce([
-        { id: 'root-existing-id' },
+        { id: 'root-existing-id', status: 'available' },
+      ]);
+      db._queueWhereResult([]);
+      db._queueWhereResult([
+        { audiobookId: 'root-existing-id', filePath: 'standalone.m4b' },
       ]);
 
       const result = await service.importAudiobook(unit, '/library');
 
       expect(result).toBe('root-existing-id');
+      expect(db.insert).not.toHaveBeenCalled();
       // Should have used innerJoin for root-level detection
       expect(db._chains.select.innerJoin).toHaveBeenCalled();
+    });
+
+    it('restores a missing audiobook whose folder came back unchanged', async () => {
+      db._chains.select.limit.mockResolvedValueOnce([
+        { id: 'existing-id', status: 'missing' },
+      ]);
+      db._queueWhereResult([]);
+      db._queueWhereResult([
+        { audiobookId: 'existing-id', filePath: 'file.m4b' },
+      ]);
+
+      const result = await service.importAudiobook(
+        makeSingleFileUnit(),
+        '/library',
+      );
+
+      expect(result).toBe('existing-id');
+      expect(db._chains.update.set).toHaveBeenCalledWith({
+        status: 'available',
+        missingAt: null,
+      });
+      // Same files on disk: no re-read, no file rows rewritten
+      expect(
+        deps.audioMetadataProvider.extractFullMetadata,
+      ).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
+      expect(deps.appEvents.audiobookUpdated).toHaveBeenCalledWith(
+        'existing-id',
+      );
+    });
+
+    it('leaves a hidden audiobook alone when its folder is seen again', async () => {
+      db._chains.select.limit.mockResolvedValueOnce([
+        { id: 'hidden-id', status: 'hidden' },
+      ]);
+
+      const result = await service.importAudiobook(
+        makeMultiFileUnit(),
+        '/library',
+      );
+
+      expect(result).toBe('hidden-id');
+      expect(db.update).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
+      expect(db.delete).not.toHaveBeenCalled();
+    });
+
+    it('re-reads files of a known audiobook whose folder changed, without touching metadata', async () => {
+      db._chains.select.limit
+        .mockResolvedValueOnce([{ id: 'existing-id', status: 'missing' }])
+        // syncAudiobookFiles reads manualFields
+        .mockResolvedValueOnce([{ manualFields: ['title'] }]);
+      db._queueWhereResult([]);
+      // Stored list still has the old, broken names
+      db._queueWhereResult([
+        { audiobookId: 'existing-id', filePath: 'Disc 01 - Track 01\n3.mp3' },
+      ]);
+
+      const result = await service.importAudiobook(
+        makeMultiFileUnit(),
+        '/library',
+      );
+
+      expect(result).toBe('existing-id');
+      expect(db.transaction).toHaveBeenCalled();
+      // Duration + status in one write; no title/author/description fields
+      expect(db._chains.update.set).toHaveBeenCalledWith({
+        duration: 3600 + 1800,
+        status: 'available',
+        missingAt: null,
+      });
+      expect(db._chains.insert.values).toHaveBeenCalledWith([
+        expect.objectContaining({ audiobookId: 'existing-id', order: 0 }),
+        expect.objectContaining({ audiobookId: 'existing-id', order: 1 }),
+      ]);
+      // Author/narrator links are not rebuilt
+      expect(db.insert).not.toHaveBeenCalledWith(
+        audiobooksSchema.audiobookAuthors,
+      );
+      expect(db.insert).not.toHaveBeenCalledWith(
+        audiobooksSchema.audiobookNarrators,
+      );
     });
 
     it('returns null for quarantined paths', async () => {
@@ -768,6 +868,189 @@ describe('MediaImporterService', () => {
   // ------------------------------------------------------------------
   // rescanAudiobook
   // ------------------------------------------------------------------
+  describe('repairBrokenAudiobookFiles', () => {
+    it('repairs only books whose stored tracks are gone, collecting per-book failures', async () => {
+      const intact = makeMultiFileUnit({ path: '/library/A' });
+      const broken = makeMultiFileUnit({ path: '/library/B' });
+      const failing = makeMultiFileUnit({ path: '/library/C' });
+      db._queueWhereResult([
+        { audiobookId: 'a', filePath: 'part1.mp3' },
+        { audiobookId: 'a', filePath: 'part2.mp3' },
+        { audiobookId: 'b', filePath: 'old-name.mp3' },
+      ]);
+      db._chains.select.limit
+        .mockResolvedValueOnce([{ manualFields: [] }]) // b
+        .mockResolvedValueOnce([]); // c vanished mid-scan
+
+      const result = await service.repairBrokenAudiobookFiles([
+        { id: 'a', unit: intact },
+        { id: 'b', unit: broken },
+        { id: 'c', unit: failing },
+      ]);
+
+      expect(result.repaired).toEqual(['b']);
+      expect(result.errors).toEqual([
+        { path: '/library/C', error: 'Audiobook c not found' },
+      ]);
+      // Only b was re-read from disk
+      expect(
+        deps.audioMetadataProvider.extractFullMetadata,
+      ).toHaveBeenCalledTimes(1);
+      expect(deps.appEvents.audiobookUpdated).toHaveBeenCalledWith('b');
+    });
+
+    it.each([
+      ['a track was only added', ['part1.mp3']],
+      [
+        'the stored order is not the detector order (AudioBookShelf)',
+        ['part2.mp3', 'part1.mp3', 'gone.mp3'],
+      ],
+      [
+        'a stored track lives in a subfolder the detector does not read',
+        ['CD2/gone.mp3', 'part1.mp3'],
+      ],
+      [
+        'a stored track has a format the detector does not import',
+        ['gone.wav', 'part1.mp3'],
+      ],
+    ])('leaves a book alone when %s', async (_case, storedNames) => {
+      db._queueWhereResult(
+        storedNames.map((filePath) => ({ audiobookId: 'abs', filePath })),
+      );
+
+      const result = await service.repairBrokenAudiobookFiles([
+        { id: 'abs', unit: makeMultiFileUnit() },
+      ]);
+
+      expect(result.repaired).toEqual([]);
+      expect(
+        deps.audioMetadataProvider.extractFullMetadata,
+      ).not.toHaveBeenCalled();
+      expect(db.delete).not.toHaveBeenCalled();
+    });
+
+    it('repairs a book that has no file rows at all', async () => {
+      db._queueWhereResult([]);
+      db._chains.select.limit.mockResolvedValueOnce([{ manualFields: [] }]);
+
+      const result = await service.repairBrokenAudiobookFiles([
+        { id: 'empty', unit: makeMultiFileUnit() },
+      ]);
+
+      expect(result.repaired).toEqual(['empty']);
+    });
+
+    it('does nothing for an empty candidate list', async () => {
+      const result = await service.repairBrokenAudiobookFiles([]);
+
+      expect(result).toEqual({ repaired: [], errors: [] });
+      expect(db.select).not.toHaveBeenCalled();
+    });
+
+    it('regenerates chapters that were named after the old files', async () => {
+      db._queueWhereResult([
+        { audiobookId: 'sk', filePath: 'Disc 01 - Track 01\n3.mp3' },
+      ]);
+      db._queueWhereResult([]); // manualFields lookup (resolved via limit)
+      db._queueWhereResult([
+        {
+          title: 'Disc 01 - Track 01\n3',
+          order: 0,
+          source: 'external',
+        },
+      ]);
+      db._chains.select.limit.mockResolvedValueOnce([{ manualFields: [] }]);
+
+      await service.repairBrokenAudiobookFiles([
+        { id: 'sk', unit: makeMultiFileUnit() },
+      ]);
+
+      expect(db.delete).toHaveBeenCalledWith(audiobooksSchema.chapters);
+      expect(db._chains.insert.values).toHaveBeenLastCalledWith([
+        expect.objectContaining({ title: 'file', order: 0 }),
+        expect.objectContaining({ title: 'file2', order: 1 }),
+      ]);
+    });
+
+    it.each([
+      [
+        'Audible chapters (external, not named after files)',
+        [
+          { title: 'Opening Credits', order: 0, source: 'external' },
+          { title: 'Chapter 1', order: 1, source: 'external' },
+        ],
+      ],
+      [
+        'AudioBookShelf or embedded chapters',
+        [{ title: 'old-name', order: 0, source: 'embedded' }],
+      ],
+    ])('keeps %s while repairing files', async (_case, existingChapters) => {
+      db._queueWhereResult([{ audiobookId: 'b', filePath: 'old-name.mp3' }]);
+      db._queueWhereResult([]); // manualFields lookup (resolved via limit)
+      db._queueWhereResult(existingChapters);
+      db._chains.select.limit.mockResolvedValueOnce([{ manualFields: [] }]);
+
+      const result = await service.repairBrokenAudiobookFiles([
+        { id: 'b', unit: makeMultiFileUnit() },
+      ]);
+
+      expect(result.repaired).toEqual(['b']);
+      // Files are rebuilt, chapters are not touched
+      expect(db.delete).toHaveBeenCalledTimes(1);
+      expect(db.delete).toHaveBeenCalledWith(audiobooksSchema.audiobookFiles);
+    });
+
+    it('keeps hand-edited chapters when repairing files', async () => {
+      db._queueWhereResult([{ audiobookId: 'b', filePath: 'old-name.mp3' }]);
+      db._chains.select.limit.mockResolvedValueOnce([
+        { manualFields: ['chapters'] },
+      ]);
+
+      await service.repairBrokenAudiobookFiles([
+        { id: 'b', unit: makeMultiFileUnit() },
+      ]);
+
+      expect(db.delete).toHaveBeenCalledTimes(1);
+      expect(db.delete).toHaveBeenCalledWith(audiobooksSchema.audiobookFiles);
+    });
+  });
+
+  describe('markAudiobookAvailable', () => {
+    it.each([
+      ['unchanged', ['part1.mp3', 'part2.mp3']],
+      ['only gained a track', ['part1.mp3']],
+    ])(
+      'only flips the status when the files are %s',
+      async (_case, storedNames) => {
+        db._queueWhereResult(
+          storedNames.map((filePath) => ({ audiobookId: 'ab-1', filePath })),
+        );
+
+        await service.markAudiobookAvailable('ab-1', makeMultiFileUnit());
+
+        expect(db._chains.update.set).toHaveBeenCalledWith({
+          status: 'available',
+          missingAt: null,
+        });
+        expect(db.transaction).not.toHaveBeenCalled();
+        expect(deps.appEvents.audiobookUpdated).toHaveBeenCalledWith('ab-1');
+      },
+    );
+
+    it('repairs a broken file list and flips the status in one write', async () => {
+      db._queueWhereResult([{ audiobookId: 'ab-1', filePath: 'stale.mp3' }]);
+      db._chains.select.limit.mockResolvedValueOnce([{ manualFields: [] }]);
+
+      await service.markAudiobookAvailable('ab-1', makeMultiFileUnit());
+
+      expect(db.transaction).toHaveBeenCalledTimes(1);
+      expect(db._chains.update.set).toHaveBeenCalledTimes(1);
+      expect(db._chains.update.set).toHaveBeenCalledWith(
+        expect.objectContaining({ status: 'available', missingAt: null }),
+      );
+    });
+  });
+
   describe('rescanAudiobook', () => {
     function setupRescanMocks(
       audiobook: Record<string, unknown> | null,

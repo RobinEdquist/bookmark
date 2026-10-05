@@ -262,6 +262,10 @@ export const queryKeys = {
     detail: (id: string) =>
       [...queryKeys.importErrors.all, "detail", id] as const,
   },
+  hiddenAudiobooks: {
+    all: ["hiddenAudiobooks"] as const,
+    list: () => [...queryKeys.hiddenAudiobooks.all, "list"] as const,
+  },
   restore: {
     all: ["restore"] as const,
     session: (sessionId: string) =>

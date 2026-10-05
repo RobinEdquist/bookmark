@@ -13,6 +13,15 @@ function createController() {
     rescanAllAudiobooks: jest.fn().mockResolvedValue({ queued: 4 }),
     rescanAllComics: jest.fn().mockResolvedValue({ queued: 5 }),
     getRescanStatus: jest.fn().mockReturnValue({ running: false }),
+    listHiddenAudiobooks: jest.fn().mockResolvedValue([
+      {
+        id: 'ab-1',
+        title: 'Skeleton Crew',
+        filePath: 'Stephen King/Skeleton Crew',
+      },
+      { id: 'ab-2', title: 'Loose File', filePath: '' },
+    ]),
+    restoreHiddenAudiobook: jest.fn().mockResolvedValue('restored'),
   };
 
   return {
@@ -71,5 +80,30 @@ describe('LibraryWatcherController', () => {
 
     expect(controller.getRescanStatus()).toEqual({ running: false });
     expect(service.getRescanStatus).toHaveBeenCalledWith();
+  });
+
+  it('lists hidden audiobooks with a nullable folder path', async () => {
+    const { controller } = createController();
+
+    await expect(controller.listHiddenAudiobooks()).resolves.toEqual({
+      items: [
+        {
+          id: 'ab-1',
+          title: 'Skeleton Crew',
+          folderPath: 'Stephen King/Skeleton Crew',
+        },
+        // Root-level files have no folder
+        { id: 'ab-2', title: 'Loose File', folderPath: null },
+      ],
+    });
+  });
+
+  it('restores a hidden audiobook and reports the outcome', async () => {
+    const { controller, service } = createController();
+
+    await expect(controller.restoreHiddenAudiobook('ab-1')).resolves.toEqual({
+      outcome: 'restored',
+    });
+    expect(service.restoreHiddenAudiobook).toHaveBeenCalledWith('ab-1');
   });
 });

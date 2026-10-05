@@ -83,6 +83,8 @@ function createMockLibraryScanner() {
     isScanning: jest.fn().mockReturnValue(false),
     getProgress: jest.fn().mockReturnValue(null),
     onProgress: jest.fn(),
+    listHiddenAudiobooks: jest.fn().mockResolvedValue([]),
+    restoreHiddenAudiobook: jest.fn().mockResolvedValue('restored'),
   };
 }
 
@@ -428,6 +430,30 @@ describe('LibraryWatcherService', () => {
   // -----------------------------------------------------------------------
   // getStatus
   // -----------------------------------------------------------------------
+  describe('restoreHiddenAudiobook', () => {
+    it('restores against the configured audiobook library', async () => {
+      const { service, libraryScanner } = createService();
+
+      await expect(service.restoreHiddenAudiobook('ab-1')).resolves.toBe(
+        'restored',
+      );
+      expect(libraryScanner.restoreHiddenAudiobook).toHaveBeenCalledWith(
+        'ab-1',
+        '/audiobooks',
+      );
+    });
+
+    it('rejects when no audiobook library is configured', async () => {
+      const { service, appSettings, libraryScanner } = createService();
+      appSettings.getAudiobookLibraryPath.mockResolvedValue(null);
+
+      await expect(service.restoreHiddenAudiobook('ab-1')).rejects.toThrow(
+        'No audiobook library path configured',
+      );
+      expect(libraryScanner.restoreHiddenAudiobook).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getStatus', () => {
     it('returns correct state from fileWatcher and libraryScanner', () => {
       const { service, fileWatcher, libraryScanner } = createService();
