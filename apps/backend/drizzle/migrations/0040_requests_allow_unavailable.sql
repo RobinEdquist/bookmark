@@ -1,0 +1,1 @@
+ALTER TABLE "app_settings" ADD COLUMN "requests_allow_unavailable" boolean DEFAULT false NOT NULL;

@@ -52,6 +52,12 @@
       "deleted": "Förfrågan borttagen",
       "failed": "Något gick fel"
     },
+    "queue": {
+      "overdue": "{count, plural, =0 {Inga försenade tillgänglighetskontroller} one {# försenad tillgänglighetskontroll} other {# försenade tillgänglighetskontroller}}",
+      "oldest": "Äldsta schemalagda kontroll: {date}",
+      "loading": "Läser in tillgänglighetskön…",
+      "failed": "Tillgänglighetskön kunde inte läsas in."
+    },
     "recheck": {
       "button": "Kontrollera tillgänglighet",
       "queued": "Tillgänglighetskontroll köad",

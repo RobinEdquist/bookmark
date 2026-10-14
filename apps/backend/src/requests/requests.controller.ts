@@ -141,7 +141,7 @@ export class RequestsController {
   @ApiOperation({
     summary: 'Create a new request',
     description:
-      'Request a book by title, optional author, medium, and accepted languages, with or without a selected release. A compatible active request by another user is supported and returned instead of creating a duplicate. Compatibility uses normalized title/author, medium, and language intent. Automatic approval uses the caller’s weekly allowance once; an approved request without a release waits for availability. Release discovery on a pending request does not bypass approval.',
+      'Request a book by title, optional author, medium, and accepted languages. Requests without a selected release require requestsAllowUnavailable to be enabled (off by default); otherwise they return 400. A compatible active request by another user is supported and returned instead of creating a duplicate. Compatibility uses normalized title/author, medium, and language intent. Automatic approval uses the caller’s weekly allowance once; an approved request without a release waits for availability. Release discovery on a pending request does not bypass approval.',
   })
   @ApiExtraModels(CreateRequestDto)
   @ApiBody({
@@ -196,7 +196,7 @@ export class RequestsController {
   @ApiResponse({
     status: 400,
     description:
-      'Invalid input, missing category for a selected release, unavailable or mismatched language, or the caller already owns a compatible active request',
+      'Invalid input, unavailable-title requests disabled, missing category for a selected release, unavailable or mismatched language, or the caller already owns a compatible active request',
   })
   @ApiResponse({
     status: 'default',
@@ -219,7 +219,7 @@ export class RequestsController {
   @ApiOperation({
     summary: 'Support a request',
     description:
-      'Add your support to an existing request to help prioritize it',
+      'Add your support to an existing request. Supporting a title without a selected release requires requestsAllowUnavailable to be enabled.',
   })
   @ApiParam({ name: 'id', description: 'Request UUID', format: 'uuid' })
   @ApiResponse({
@@ -233,7 +233,11 @@ export class RequestsController {
     description: 'Forbidden - user cannot make requests',
   })
   @ApiResponse({ status: 404, description: 'Request not found' })
-  @ApiResponse({ status: 400, description: 'Cannot support your own request' })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Cannot support your own request or an unavailable title while requestsAllowUnavailable is disabled',
+  })
   async supportRequest(
     @Param('id') id: string,
     @CurrentUser() user: AuthenticatedUser,

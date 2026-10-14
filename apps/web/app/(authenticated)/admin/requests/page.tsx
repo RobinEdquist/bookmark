@@ -16,6 +16,7 @@ import {
   useRejectRequest,
   useDeleteRequest,
   useRecheckRequest,
+  useRequestSearchQueue,
 } from "../../../../lib/use-requests";
 import { AdminRequestsList } from "../../../../components/requests/admin-requests-list";
 import { authClient } from "../../../../lib/auth-client";
@@ -35,6 +36,9 @@ export default function AdminRequestsPage() {
   const t = useTranslations("admin.requests");
   const router = useRouter();
   const { data: session, isPending: sessionPending } = authClient.useSession();
+  const { data: searchQueue, error: queueError } = useRequestSearchQueue(
+    session?.user?.role === "admin",
+  );
 
   const [activeTab, setActiveTab] = useUrlTab<StatusTab>(
     "status",
@@ -100,6 +104,27 @@ export default function AdminRequestsPage() {
           <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-muted-foreground">{t("description")}</p>
         </header>
+
+        <div className="space-y-1 text-sm" role="status">
+          {queueError ? (
+            <p className="text-destructive">{t("queue.failed")}</p>
+          ) : searchQueue ? (
+            <>
+              <p className="text-muted-foreground">
+                {t("queue.overdue", { count: searchQueue.overdueCount })}
+              </p>
+              {searchQueue.oldestDueAt && (
+                <p className="text-xs text-muted-foreground">
+                  {t("queue.oldest", {
+                    date: new Date(searchQueue.oldestDueAt).toLocaleString(),
+                  })}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-muted-foreground">{t("queue.loading")}</p>
+          )}
+        </div>
 
         <Tabs
           value={activeTab}

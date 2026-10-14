@@ -41,6 +41,7 @@ import {
   TrackerLanguagesResponseDto,
 } from './dto';
 import { RequestStatus, ContentType } from './schema';
+import { RequestSearchQueueDto } from './dto/request-search-queue.dto';
 import {
   bookKey,
   normalizeBookText,
@@ -202,6 +203,10 @@ export class RequestsService implements OnApplicationBootstrap {
 
     // Get torrent IDs to check for existing requests (convert to strings for DB query)
     const torrentIdStrings = torrents.map((t) => String(t.id));
+    const allowUnavailable =
+      torrentIdStrings.length > 0
+        ? (await this.appSettingsService.getSettings()).requestsAllowUnavailable
+        : false;
 
     // Fetch existing requests for these torrents
     const existingRequests =
@@ -219,6 +224,9 @@ export class RequestsService implements OnApplicationBootstrap {
             .from(requestsSchema.requests)
             .where(
               and(
+                allowUnavailable
+                  ? undefined
+                  : isNotNull(requestsSchema.requests.torrentId),
                 or(
                   inArray(requestsSchema.requests.torrentId, torrentIdStrings),
                   ...torrents.map((torrent) =>
@@ -346,6 +354,14 @@ export class RequestsService implements OnApplicationBootstrap {
   ): Promise<RequestResponseDto> {
     const title = dto.title.trim();
     if (!title) throw new BadRequestException('A book title is required');
+    if (
+      dto.torrentId == null &&
+      !(await this.appSettingsService.getSettings()).requestsAllowUnavailable
+    ) {
+      throw new BadRequestException(
+        'Requests for unavailable titles are disabled; select an available release',
+      );
+    }
     const intent = await this.resolveLanguageIntent(dto);
     const identity = bookKey(title, dto.author ?? null);
     const result = await this.db.transaction(async (tx) => {
@@ -404,7 +420,9 @@ export class RequestsService implements OnApplicationBootstrap {
       if (request.userId === userId) {
         throw new BadRequestException('You have already requested this book');
       }
-      await this.addSupporter(request.id, userId);
+      // A selected release may share a request created before opting out.
+      // Direct support without a release remains subject to the setting.
+      await this.addSupporter(request.id, userId, dto.torrentId != null);
       return this.getRequestById(request.id, userId);
     }
 
@@ -427,8 +445,22 @@ export class RequestsService implements OnApplicationBootstrap {
     return this.getRequestById(request.id, userId);
   }
 
-  async addSupporter(requestId: string, userId: string): Promise<void> {
+  async addSupporter(
+    requestId: string,
+    userId: string,
+    hasSelectedRelease = false,
+  ): Promise<void> {
     const request = await this.getRequestByIdInternal(requestId);
+
+    if (
+      request.torrentId == null &&
+      !hasSelectedRelease &&
+      !(await this.appSettingsService.getSettings()).requestsAllowUnavailable
+    ) {
+      throw new BadRequestException(
+        'Requests for unavailable titles are disabled; select an available release',
+      );
+    }
 
     // The requester already backs their own request — supporting it would only
     // inflate the supporter count and spend their own auto-approve budget twice.
@@ -817,6 +849,34 @@ export class RequestsService implements OnApplicationBootstrap {
     return this.getRequestById(id, null);
   }
 
+  async getSearchQueue(): Promise<RequestSearchQueueDto> {
+    const now = new Date();
+    const [queue] = await this.db
+      .select({
+        overdueCount: sql<number>`count(*)::integer`,
+        oldestDueAt:
+          sql<Date | null>`min(${requestsSchema.requests.nextSearchAt})`.mapWith(
+            requestsSchema.requests.nextSearchAt,
+          ),
+      })
+      .from(requestsSchema.requests)
+      .where(
+        and(
+          inArray(requestsSchema.requests.status, ['pending', 'waiting']),
+          isNull(requestsSchema.requests.torrentId),
+          lte(requestsSchema.requests.nextSearchAt, now),
+          or(
+            isNull(requestsSchema.requests.searchLeaseUntil),
+            lte(requestsSchema.requests.searchLeaseUntil, now),
+          ),
+        ),
+      );
+    return {
+      overdueCount: queue.overdueCount,
+      oldestDueAt: queue.oldestDueAt?.toISOString() ?? null,
+    };
+  }
+
   async searchWaitingRequests(): Promise<void> {
     if (!this.tracker.isConfigured()) return;
     const settings = await this.appSettingsService.getSettings();
@@ -850,7 +910,7 @@ export class RequestsService implements OnApplicationBootstrap {
           ),
         )
         .orderBy(
-          sql`${requestsSchema.requests.lastSearchAt} ASC NULLS FIRST`,
+          asc(requestsSchema.requests.nextSearchAt),
           asc(requestsSchema.requests.createdAt),
           asc(requestsSchema.requests.id),
         )

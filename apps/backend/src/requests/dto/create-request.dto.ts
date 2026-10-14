@@ -18,7 +18,7 @@ export class CreateRequestDto {
     minimum: 1,
     nullable: true,
     description:
-      'Selected release ID from the current module. Omit or null to request a book before a release exists. Requires categoryId when supplied.',
+      'Selected release ID from the current module. Omit or null only when requestsAllowUnavailable is enabled. Requires categoryId when supplied.',
     example: 123456,
   })
   @IsOptional()

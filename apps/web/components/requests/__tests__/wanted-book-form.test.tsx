@@ -13,6 +13,7 @@ describe("Request an unavailable book", () => {
     const onRequest = vi.fn().mockResolvedValue({ id: "request-1" });
     render(
       <WantedBookForm
+        enabled={true}
         initialTitle="The Book"
         contentType="all"
         onRequest={onRequest}
@@ -40,6 +41,7 @@ describe("Request an unavailable book", () => {
     const onRequest = vi.fn().mockResolvedValue(undefined);
     render(
       <WantedBookForm
+        enabled={true}
         initialTitle="Keep this title"
         contentType="audiobooks"
         onRequest={onRequest}
@@ -58,5 +60,29 @@ describe("Request an unavailable book", () => {
     expect(screen.getByLabelText("wanted.bookTitle")).toHaveValue(
       "Keep this title",
     );
+  });
+
+  it("hides the form when disabled, including an open draft", async () => {
+    const user = userEvent.setup();
+    const onRequest = vi.fn();
+    const props = {
+      initialTitle: "Future Book",
+      contentType: "all" as const,
+      onRequest,
+      isRequesting: false,
+    };
+    const { rerender } = render(<WantedBookForm {...props} enabled={false} />);
+    expect(screen.queryByText("wanted.title")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "button.request" }),
+    ).not.toBeInTheDocument();
+    rerender(<WantedBookForm {...props} enabled={true} />);
+    await user.click(screen.getByText("wanted.title"));
+    expect(screen.getByLabelText("wanted.bookTitle")).toHaveValue(
+      "Future Book",
+    );
+    rerender(<WantedBookForm {...props} enabled={false} />);
+    expect(screen.queryByLabelText("wanted.bookTitle")).not.toBeInTheDocument();
+    expect(onRequest).not.toHaveBeenCalled();
   });
 });

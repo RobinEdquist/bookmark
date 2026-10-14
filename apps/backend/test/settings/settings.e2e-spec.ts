@@ -145,7 +145,10 @@ describe('Settings (e2e)', () => {
 
       // Feature toggles only — never paths, default permissions, or
       // integration state.
-      expect(Object.keys(data)).toEqual(['requestsEnabled']);
+      expect(Object.keys(data)).toEqual([
+        'requestsEnabled',
+        'requestsAllowUnavailable',
+      ]);
     });
 
     it('should return 401 without authentication', async () => {

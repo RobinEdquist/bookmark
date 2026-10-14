@@ -41,6 +41,7 @@ function createSettings(
     emailPasswordEnabled: true,
     oidcAutoCreateUsers: 'pending',
     requestsEnabled: true,
+    requestsAllowUnavailable: false,
     requestsAudiobookCategory: 'audiobooks',
     requestsEbookCategory: 'ebooks',
     requestsComicsCategory: 'comics',
@@ -287,7 +288,10 @@ describe('AppSettingsController', () => {
     const result = await controller.getUserSettings();
 
     // Only feature toggles — never paths, permissions, or integration state
-    expect(result).toEqual({ requestsEnabled: true });
+    expect(result).toEqual({
+      requestsEnabled: true,
+      requestsAllowUnavailable: false,
+    });
   });
 
   it('rejects empty updates', async () => {
@@ -297,6 +301,26 @@ describe('AppSettingsController', () => {
       BadRequestException,
     );
   });
+
+  it.each([true, false])(
+    'persists the unavailable-title gate as %s and exposes it to users',
+    async (enabled) => {
+      const { controller, appSettingsService } = createController();
+      const updated = await controller.updateSettings({
+        requestsAllowUnavailable: enabled,
+      });
+      expect(appSettingsService.updateSettings).toHaveBeenCalledWith({
+        requestsAllowUnavailable: enabled,
+      });
+      expect(updated.requestsAllowUnavailable).toBe(enabled);
+      appSettingsService.getSettings.mockResolvedValue(
+        createSettings({ requestsAllowUnavailable: enabled }),
+      );
+      expect(
+        (await controller.getUserSettings()).requestsAllowUnavailable,
+      ).toBe(enabled);
+    },
+  );
 
   it('rejects disabling password login when OIDC is disabled', async () => {
     const { controller, oidcConfigService } = createController();

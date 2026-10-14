@@ -422,6 +422,12 @@
       },
       "autoApproveLimit": "Auto-godkänn förfrågningar per vecka",
       "autoApproveLimitDescription": "Antal förfrågningar varje användare kan auto-godkänna per vecka. Sätt till 0 för att inaktivera.",
+      "unavailable": {
+        "label": "Tillåt förfrågningar om otillgängliga titlar",
+        "description": "Låt användare önska ljudböcker, e-böcker och serier innan en utgåva finns tillgänglig. Godkända förfrågningar kontrolleras automatiskt tills en matchande utgåva hittas. Befintliga förfrågningar fortsätter att behandlas om inställningen stängs av.",
+        "saved": "Inställningen för otillgängliga titlar har sparats",
+        "failed": "Kunde inte spara inställningen för otillgängliga titlar"
+      },
       "freeleech": {
         "label": "Använd freeleech-krediter",
         "description": "Använd automatiskt en personlig freeleech-kredit på varje begärd nedladdning innan den startar. Om inga krediter finns tillgängliga misslyckas nedladdningen.",

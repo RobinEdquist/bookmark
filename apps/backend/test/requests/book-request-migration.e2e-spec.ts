@@ -45,6 +45,10 @@ describe('Book request migration (e2e)', () => {
         );
       const db = drizzle(pool);
       await migrate(db, { migrationsFolder: directory });
+      await pool.query(
+        'INSERT INTO app_settings (id, requests_enabled) VALUES ($1, true)',
+        ['app_settings'],
+      );
       const userId = randomUUID();
       await pool.query(
         'INSERT INTO "user" (id, name, email) VALUES ($1, $2, $3)',
@@ -91,6 +95,16 @@ describe('Book request migration (e2e)', () => {
       const supporters = (await pool.query('SELECT * FROM request_supporters'))
         .rows;
       await migrate(db, { migrationsFolder: migrations });
+      expect(
+        (
+          await pool.query(
+            'SELECT requests_enabled, requests_allow_unavailable FROM app_settings WHERE id = $1',
+            ['app_settings'],
+          )
+        ).rows,
+      ).toEqual([
+        { requests_enabled: true, requests_allow_unavailable: false },
+      ]);
       const after = (
         await pool.query('SELECT * FROM requests ORDER BY torrent_id')
       ).rows as Record<string, unknown>[];

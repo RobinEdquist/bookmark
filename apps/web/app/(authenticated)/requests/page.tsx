@@ -39,6 +39,7 @@ import { SearchFiltersPanel } from "../../../components/requests/search-filters"
 import { authClient } from "../../../lib/auth-client";
 import { queryKeys } from "../../../lib/query-keys";
 import { useUrlTab } from "../../../lib/use-url-tab";
+import { useUserSettings } from "../../../lib/use-settings";
 
 const VIEW_TABS = ["search", "my-requests"] as const;
 type ViewTab = (typeof VIEW_TABS)[number];
@@ -51,6 +52,7 @@ export default function RequestsPage() {
   const queryClient = useQueryClient();
   const { data: session, isPending: sessionPending } = authClient.useSession();
   const { data: budget } = useAutoApproveBudget();
+  const { settings } = useUserSettings();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useUrlTab<ViewTab>(
@@ -106,7 +108,7 @@ export default function RequestsPage() {
       try {
         await search(searchQuery.trim(), filters);
       } catch {
-        // The search error is rendered inline; requesting a book stays available.
+        // The search error is rendered inline.
       }
     }
   };
@@ -236,6 +238,7 @@ export default function RequestsPage() {
 
         <WantedBookForm
           key={librarySearchQuery}
+          enabled={settings?.requestsAllowUnavailable === true}
           initialTitle={librarySearchQuery}
           contentType={contentType}
           onRequest={handleRequest}
@@ -243,7 +246,9 @@ export default function RequestsPage() {
         />
         {searchError && (
           <p role="alert" className="text-sm text-destructive">
-            {t("wanted.searchFailed")}
+            {settings?.requestsAllowUnavailable
+              ? t("wanted.searchFailed")
+              : t("wanted.searchUnavailable")}
           </p>
         )}
 

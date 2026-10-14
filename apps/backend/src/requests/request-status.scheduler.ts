@@ -8,7 +8,7 @@ export class RequestStatusScheduler {
 
   constructor(private readonly requestsService: RequestsService) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_10_SECONDS)
   async searchWaitingRequests() {
     try {
       await this.requestsService.searchWaitingRequests();

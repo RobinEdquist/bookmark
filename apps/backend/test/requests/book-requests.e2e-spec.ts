@@ -27,6 +27,7 @@ describe('Book requests and acquisition (e2e)', () => {
   let service: RequestsService;
   const userIds = [randomUUID(), randomUUID()];
   let weeklyLimit = 0;
+  let allowUnavailable = true;
   let beforeApproval: (() => Promise<void>) | undefined;
   const tracker = {
     getModuleId: jest.fn(() => 'test-module'),
@@ -61,6 +62,7 @@ describe('Book requests and acquisition (e2e)', () => {
         autoApproveRequestsPerWeek: weeklyLimit,
         requestsUseFreeleech: false,
         requestsEnabled: true,
+        requestsAllowUnavailable: allowUnavailable,
       }),
       getRequestsCategories: async () => {
         await beforeApproval?.();
@@ -81,6 +83,7 @@ describe('Book requests and acquisition (e2e)', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     weeklyLimit = 0;
+    allowUnavailable = true;
     beforeApproval = undefined;
     tracker.getModuleId.mockReturnValue('test-module');
     tracker.getLanguages.mockResolvedValue({
@@ -171,6 +174,37 @@ describe('Book requests and acquisition (e2e)', () => {
       (await service.getUserRequests(userIds[1])).map((row) => row.id),
     ).toContain(first.id);
     expect(tracker.download).not.toHaveBeenCalled();
+  });
+
+  it('accepts an available release matching an older unavailable request after opting out', async () => {
+    const first = await wanted('Existing Future Book', { language: 'English' });
+    allowUnavailable = false;
+    tracker.search.mockResolvedValue({
+      results: [release(first.title)],
+      total: 1,
+    });
+    const search = await service.search(first.title, 25, 0, userIds[1]);
+    expect(search.results[0].existingRequestId).toBeNull();
+    await expect(service.addSupporter(first.id, userIds[1])).rejects.toThrow(
+      'Requests for unavailable titles are disabled',
+    );
+    const shared = await service.createRequest(
+      {
+        title: first.title,
+        author: 'An Author',
+        contentType: 'audiobook',
+        language: 'English',
+        torrentId: 10,
+        categoryId: 13,
+      },
+      userIds[1],
+    );
+    expect(shared.id).toBe(first.id);
+    expect(shared.supporterCount).toBe(1);
+    await tick();
+    expect((await service.getRequestById(first.id, userIds[1])).torrentId).toBe(
+      '10',
+    );
   });
 
   it('keeps differing medium, language, and author intents distinct', async () => {
@@ -316,6 +350,105 @@ describe('Book requests and acquisition (e2e)', () => {
     expect(
       new Set(tracker.search.mock.calls.map(([params]) => params.query)).size,
     ).toBe(23);
+  });
+
+  it('services overdue rechecks while new requests keep arriving', async () => {
+    const older = await Promise.all(Array.from({ length: 25 }, () => wanted()));
+    await pool.query(
+      "UPDATE requests SET last_search_at = now() - interval '2 days', next_search_at = now() - interval '1 day' WHERE id = ANY($1::uuid[])",
+      [older.map((request) => request.id)],
+    );
+    for (let batch = 0; batch < 3; batch++) {
+      await Promise.all(Array.from({ length: 10 }, () => wanted()));
+      await tick();
+      const queries = tracker.search.mock.calls.map(([params]) => params.query);
+      expect(
+        older.filter((request) => queries.includes(request.title)),
+      ).toHaveLength(Math.min((batch + 1) * 10, older.length));
+    }
+  });
+
+  it('reports overdue checks across statuses and excludes future, selected, rejected, and leased requests', async () => {
+    const rows = await Promise.all(Array.from({ length: 8 }, () => wanted()));
+    const oldest = new Date('2026-01-01T00:00:00Z');
+    await pool.query('UPDATE requests SET next_search_at = $1 WHERE id = $2', [
+      oldest,
+      rows[0].id,
+    ]);
+    await pool.query(
+      "UPDATE requests SET status = 'waiting', approved_at = now() WHERE id = $1",
+      [rows[1].id],
+    );
+    await pool.query(
+      "UPDATE requests SET next_search_at = now() + interval '1 day' WHERE id = $1",
+      [rows[2].id],
+    );
+    await pool.query("UPDATE requests SET torrent_id = '123' WHERE id = $1", [
+      rows[3].id,
+    ]);
+    await pool.query("UPDATE requests SET status = 'rejected' WHERE id = $1", [
+      rows[4].id,
+    ]);
+    await pool.query(
+      "UPDATE requests SET search_lease_until = now() + interval '30 minutes' WHERE id = $1",
+      [rows[5].id],
+    );
+    await pool.query(
+      "UPDATE requests SET search_lease_until = now() - interval '1 minute' WHERE id = $1",
+      [rows[6].id],
+    );
+    await pool.query(
+      'UPDATE requests SET next_search_at = null WHERE id = $1',
+      [rows[7].id],
+    );
+    expect(await service.getSearchQueue()).toEqual({
+      overdueCount: 3,
+      oldestDueAt: oldest.toISOString(),
+    });
+    await tick();
+    expect(await service.getSearchQueue()).toEqual({
+      overdueCount: 0,
+      oldestDueAt: null,
+    });
+  });
+
+  it.each(['audiobook', 'ebook', 'comics'] as const)(
+    'requires opting in before requesting an unavailable %s',
+    async (contentType) => {
+      allowUnavailable = false;
+      await expect(wanted(randomUUID(), { contentType })).rejects.toThrow(
+        'Requests for unavailable titles are disabled',
+      );
+      expect(tracker.search).not.toHaveBeenCalled();
+      expect(tracker.download).not.toHaveBeenCalled();
+      const selected = await wanted(randomUUID(), {
+        contentType,
+        torrentId: 10,
+        categoryId: 13,
+      });
+      expect(selected.torrentId).toBe('10');
+      allowUnavailable = true;
+      const unavailable = await wanted(randomUUID(), { contentType });
+      expect(unavailable.torrentId).toBeNull();
+    },
+  );
+
+  it('continues an existing approved request after unavailable-title requests are disabled', async () => {
+    weeklyLimit = 1;
+    const row = await wanted();
+    expect(row.status).toBe('waiting');
+    allowUnavailable = false;
+    tracker.search.mockResolvedValue({
+      results: [release(row.title)],
+      total: 1,
+      releaseDate: null,
+    });
+    await tick();
+    expect(tracker.download).toHaveBeenCalledTimes(1);
+    expect(await service.getUserAutoApproveUsage(userIds[0])).toEqual({
+      used: 1,
+      limit: 1,
+    });
   });
 
   it('recovers expired search leases after restart without stealing a live lease', async () => {

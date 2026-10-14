@@ -118,6 +118,7 @@ export class AppSettingsController {
     const settings = await this.appSettingsService.getSettings();
     return {
       requestsEnabled: settings.requestsEnabled,
+      requestsAllowUnavailable: settings.requestsAllowUnavailable,
     };
   }
 
@@ -169,6 +170,7 @@ export class AppSettingsController {
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
       requestsEnabled: settings.requestsEnabled,
+      requestsAllowUnavailable: settings.requestsAllowUnavailable,
       requestsAudiobookCategory: settings.requestsAudiobookCategory,
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
@@ -220,6 +222,7 @@ export class AppSettingsController {
       dto.emailPasswordEnabled === undefined &&
       dto.oidcAutoCreateUsers === undefined &&
       dto.requestsEnabled === undefined &&
+      dto.requestsAllowUnavailable === undefined &&
       dto.requestsAudiobookCategory === undefined &&
       dto.requestsEbookCategory === undefined &&
       dto.requestsComicsCategory === undefined &&
@@ -283,6 +286,7 @@ export class AppSettingsController {
       emailPasswordEnabled?: boolean;
       oidcAutoCreateUsers?: string;
       requestsEnabled?: boolean;
+      requestsAllowUnavailable?: boolean;
       requestsAudiobookCategory?: string;
       requestsEbookCategory?: string;
       requestsComicsCategory?: string;
@@ -317,6 +321,8 @@ export class AppSettingsController {
       updates.oidcAutoCreateUsers = dto.oidcAutoCreateUsers;
     if (dto.requestsEnabled !== undefined)
       updates.requestsEnabled = dto.requestsEnabled;
+    if (dto.requestsAllowUnavailable !== undefined)
+      updates.requestsAllowUnavailable = dto.requestsAllowUnavailable;
     if (dto.requestsAudiobookCategory !== undefined)
       updates.requestsAudiobookCategory = dto.requestsAudiobookCategory;
     if (dto.requestsEbookCategory !== undefined)
@@ -370,6 +376,7 @@ export class AppSettingsController {
       emailPasswordEnabled: settings.emailPasswordEnabled,
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
       requestsEnabled: settings.requestsEnabled,
+      requestsAllowUnavailable: settings.requestsAllowUnavailable,
       requestsAudiobookCategory: settings.requestsAudiobookCategory,
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,

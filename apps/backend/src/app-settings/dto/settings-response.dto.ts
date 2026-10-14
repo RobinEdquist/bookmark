@@ -111,6 +111,9 @@ export class SetupStatusResponseDto {
 export class UserSettingsResponseDto {
   @ApiProperty({ example: true })
   requestsEnabled!: boolean;
+
+  @ApiProperty({ default: false })
+  requestsAllowUnavailable!: boolean;
 }
 
 export class AppSettingsResponseDto {
@@ -162,6 +165,13 @@ export class AppSettingsResponseDto {
 
   @ApiProperty({ example: true })
   requestsEnabled!: boolean;
+
+  @ApiProperty({
+    default: false,
+    description:
+      'Whether users can request titles before a release is available.',
+  })
+  requestsAllowUnavailable!: boolean;
 
   @ApiPropertyOptional({ type: String, example: 'audiobooks', nullable: true })
   requestsAudiobookCategory?: string | null;

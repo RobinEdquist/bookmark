@@ -661,6 +661,11 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
       { method: 'GET', path: '/admin/requests', expectedStatus: 401 },
       {
         method: 'GET',
+        path: '/admin/requests/search-queue',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
         path: '/admin/requests/:id/attempts',
         expectedStatus: 401,
       },

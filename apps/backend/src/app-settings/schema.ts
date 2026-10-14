@@ -114,6 +114,9 @@ export const appSettings = pgTable(
       .notNull()
       .default('auto'),
     requestsEnabled: boolean('requests_enabled').notNull().default(false),
+    requestsAllowUnavailable: boolean('requests_allow_unavailable')
+      .notNull()
+      .default(false),
     requestsAudiobookCategory: text('requests_audiobook_category')
       .notNull()
       .default('audiobooks'),

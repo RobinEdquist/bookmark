@@ -366,6 +366,15 @@ export class UpdateSettingsDto {
   requestsEnabled?: boolean;
 
   @ApiPropertyOptional({
+    description:
+      'Allow new requests and support for titles without an available release. Disabled by default. Existing requests continue processing when switched off.',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  requestsAllowUnavailable?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Download client category for audiobook requests',
     example: 'audiobooks',
   })

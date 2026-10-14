@@ -22,6 +22,7 @@ import {
 import { AdminGuard } from '../common/guards/admin.guard';
 import { RequestsService } from './requests.service';
 import { RequestAttemptDto } from './dto/request-attempt.dto';
+import { RequestSearchQueueDto } from './dto/request-search-queue.dto';
 import { RejectRequestDto } from './dto';
 import { ContentRequestDto } from './dto/request-response.dto';
 import type { RequestStatus } from './schema';
@@ -73,6 +74,19 @@ export class RequestsAdminController {
     missing?: boolean,
   ): Promise<ContentRequestDto[]> {
     return this.requestsService.getAllRequests(status, missing ?? false);
+  }
+
+  @Get('search-queue')
+  @ApiOperation({
+    summary: 'Inspect overdue availability checks (Admin)',
+    description:
+      'Returns the count and earliest scheduled time of due availability checks across pending and waiting requests. Active search leases are excluded. Requires admin role.',
+  })
+  @ApiResponse({ status: 200, type: RequestSearchQueueDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
+  async getSearchQueue(): Promise<RequestSearchQueueDto> {
+    return this.requestsService.getSearchQueue();
   }
 
   @Post(':id/approve')

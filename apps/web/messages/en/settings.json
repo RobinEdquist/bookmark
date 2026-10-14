@@ -422,6 +422,12 @@
       },
       "autoApproveLimit": "Auto-approve requests per week",
       "autoApproveLimitDescription": "Number of requests each user can auto-approve per week. Set to 0 to disable.",
+      "unavailable": {
+        "label": "Allow requests for unavailable titles",
+        "description": "Let users request audiobooks, ebooks, and comics before a release is available. Approved requests are checked automatically until a matching release is found. Existing requests continue processing if this is switched off.",
+        "saved": "Unavailable-title requests setting saved",
+        "failed": "Could not save unavailable-title requests setting"
+      },
       "freeleech": {
         "label": "Use Freeleech Credits",
         "description": "Automatically spend a personal freeleech credit on each requested download before it starts. If no credits are available, the download will fail.",

@@ -52,6 +52,12 @@
       "deleted": "Request deleted",
       "failed": "Something went wrong"
     },
+    "queue": {
+      "overdue": "{count, plural, =0 {No availability checks overdue} one {# availability check overdue} other {# availability checks overdue}}",
+      "oldest": "Oldest scheduled check: {date}",
+      "loading": "Loading availability queue…",
+      "failed": "Availability queue could not be loaded."
+    },
     "recheck": {
       "button": "Check availability",
       "queued": "Availability check queued",

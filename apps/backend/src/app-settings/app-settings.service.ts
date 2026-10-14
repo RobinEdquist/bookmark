@@ -85,6 +85,7 @@ export class AppSettingsService {
     emailPasswordEnabled?: boolean;
     oidcAutoCreateUsers?: string;
     requestsEnabled?: boolean;
+    requestsAllowUnavailable?: boolean;
     requestsAudiobookCategory?: string;
     requestsEbookCategory?: string;
     requestsComicsCategory?: string;

@@ -288,6 +288,8 @@ export const queryKeys = {
   },
   adminRequests: {
     all: ["admin-requests"] as const,
+    searchQueue: () =>
+      [...queryKeys.adminRequests.all, "search-queue"] as const,
     list: (status?: string, missingOnly?: boolean) =>
       [...queryKeys.adminRequests.all, "list", status, missingOnly] as const,
   },

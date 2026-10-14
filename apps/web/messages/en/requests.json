@@ -105,6 +105,7 @@
     "languageHint": "The language filters above also apply to this request. Add the author to help Bookmark find an exact match.",
     "waitingDescription": "Bookmark will keep looking for this book.",
     "nextCheck": "Next availability check: {date}",
-    "searchFailed": "Search is unavailable right now. You can still save a book request."
+    "searchFailed": "Search is unavailable right now. You can still save a book request.",
+    "searchUnavailable": "Search is unavailable right now. Try again later."
   }
 }

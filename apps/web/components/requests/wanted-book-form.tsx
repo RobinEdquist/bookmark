@@ -14,6 +14,7 @@ import type {
 } from "../../lib/use-requests";
 
 interface Props {
+  enabled: boolean;
   initialTitle: string;
   contentType: "all" | "audiobooks" | "ebooks" | "comics";
   onRequest: (
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function WantedBookForm({
+  enabled,
   initialTitle,
   contentType,
   onRequest,
@@ -40,6 +42,8 @@ export function WantedBookForm({
         : contentType === "ebooks"
           ? "ebook"
           : "comics";
+
+  if (!enabled) return null;
 
   return (
     <details className="rounded-lg border p-4">

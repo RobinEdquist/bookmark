@@ -176,6 +176,115 @@ function createSequentialSelectDb(
 // ---------------------------------------------------------------------------
 
 describe('RequestsService', () => {
+  it.each(['audiobook', 'ebook', 'comics'] as const)(
+    'blocks unavailable %s requests before writing or contacting the module when disabled',
+    async (contentType) => {
+      const db = createMockDb();
+      const tracker = createMockTracker();
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings({ requestsAllowUnavailable: false }),
+        createMockLibrary(),
+      );
+      await expect(
+        service.createRequest(
+          { title: 'An unavailable title', contentType, languages: [1] },
+          'user-1',
+        ),
+      ).rejects.toThrow('Requests for unavailable titles are disabled');
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(tracker.getLanguages).not.toHaveBeenCalled();
+      expect(tracker.download).not.toHaveBeenCalled();
+    },
+  );
+
+  it('blocks support for an unavailable title while the setting is off', async () => {
+    const db = createSequentialSelectDb([
+      [buildRequest({ userId: 'another-user', torrentId: null })],
+    ]);
+    const service = new RequestsService(
+      db,
+      createMockTracker(),
+      createMockAppSettings({ requestsAllowUnavailable: false }),
+      createMockLibrary(),
+    );
+    await expect(service.addSupporter('req-1', 'user-1')).rejects.toThrow(
+      'Requests for unavailable titles are disabled',
+    );
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+
+  it('returns an empty availability queue without inventing an oldest due date', async () => {
+    const service = new RequestsService(
+      createSequentialSelectDb([[{ overdueCount: 0, oldestDueAt: null }]]),
+      createMockTracker(),
+      createMockAppSettings(),
+      createMockLibrary(),
+    );
+    expect(await service.getSearchQueue()).toEqual({
+      overdueCount: 0,
+      oldestDueAt: null,
+    });
+  });
+
+  it('holds the shared lease throughout a slow search and starts cooldown after completion', async () => {
+    jest.useFakeTimers();
+    const startedAt = new Date('2026-10-09T12:00:00Z');
+    jest.setSystemTime(startedAt);
+    try {
+      const row = buildRequest({ torrentId: null, searchClaim: 'claim' });
+      const db = createSequentialSelectDb([[row], [row]]);
+      const scheduleClaim = jest
+        .fn()
+        .mockResolvedValueOnce([{ id: 'availability' }])
+        .mockResolvedValue([]);
+      const scheduleWrites: ReturnType<typeof chainMock>[] = [];
+      db.update.mockImplementation((table: unknown) => {
+        const chain = chainMock([]);
+        if (table === requestsSchema.requestSearchSchedule) {
+          chain.returning = scheduleClaim;
+          scheduleWrites.push(chain);
+        }
+        return chain;
+      });
+      let finishSearch!: (response: {
+        results: [];
+        total: number;
+        releaseDate: null;
+      }) => void;
+      let searchStarted!: () => void;
+      const observedSearch = new Promise<void>((resolve) => {
+        searchStarted = resolve;
+      });
+      const tracker = createMockTracker();
+      tracker.search.mockImplementation(() => {
+        searchStarted();
+        return new Promise((resolve) => {
+          finishSearch = resolve;
+        });
+      });
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings({ requestsEnabled: true }),
+        createMockLibrary(),
+      );
+      const worker = service.searchWaitingRequests();
+      await observedSearch;
+      jest.setSystemTime(new Date(startedAt.getTime() + 150_000));
+      await service.searchWaitingRequests();
+      expect(tracker.search).toHaveBeenCalledTimes(1);
+      finishSearch({ results: [], total: 0, releaseDate: null });
+      await worker;
+      expect(scheduleWrites.at(-1)!.set).toHaveBeenCalledWith({
+        nextRunAt: new Date(startedAt.getTime() + 210_000),
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('propagates module language failures instead of hiding a missing endpoint', async () => {
     const tracker = createMockTracker();
     tracker.getLanguages.mockRejectedValueOnce(
@@ -328,54 +437,60 @@ describe('RequestsService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('adds as supporter when another user already has active request', async () => {
-      const existing = buildRequest({
-        userId: 'user-other',
-        id: 'req-existing',
-      });
-      const insertChain = chainMock([]);
+    it.each([null, '12345'])(
+      'shares a selected release with an active request whose torrent is %s while unavailable requests are disabled',
+      async (torrentId) => {
+        const existing = buildRequest({
+          userId: 'user-other',
+          id: 'req-existing',
+          torrentId,
+        });
+        const insertChain = chainMock([]);
 
-      // Sequential selects:
-      // 1) existing active request -> found (different user)
-      // 2) addSupporter: load the request (owner check + auto-approve check)
-      // 3) addSupporter: check existing supporter -> none
-      // getUserAutoApproveUsage: limit=0, returns immediately (no DB count query)
-      // Then getRequestById: 4) select request, 5) select user, 6) select supporters
-      const db = createSequentialSelectDb(
-        [
-          [existing],
-          [existing], // request loaded by addSupporter
-          [], // no existing supporter
-          [existing], // getRequestById
-          [{ email: 'other@test.com' }], // user email
-          [{ userId: 'user-1' }], // supporters
-        ],
-        {
-          insert: jest.fn().mockReturnValue(insertChain),
-        },
-      );
+        // Sequential selects:
+        // 1) existing active request -> found (different user)
+        // 2) addSupporter: load the request (owner check + auto-approve check)
+        // 3) addSupporter: check existing supporter -> none
+        // getUserAutoApproveUsage: limit=0, returns immediately (no DB count query)
+        // Then getRequestById: 4) select request, 5) select user, 6) select supporters
+        const db = createSequentialSelectDb(
+          [
+            [existing],
+            [existing], // request loaded by addSupporter
+            [], // no existing supporter
+            [existing], // getRequestById
+            [{ email: 'other@test.com' }], // user email
+            [{ userId: 'user-1' }], // supporters
+          ],
+          {
+            insert: jest.fn().mockReturnValue(insertChain),
+          },
+        );
 
-      const service = new RequestsService(
-        db,
-        createMockTracker(),
-        createMockAppSettings(),
-        createMockLibrary(),
-      );
+        const service = new RequestsService(
+          db,
+          createMockTracker(),
+          createMockAppSettings({ requestsAllowUnavailable: false }),
+          createMockLibrary(),
+        );
 
-      const result = await service.createRequest(
-        {
-          torrentId: 12345,
-          title: 'Test',
-          contentType: 'audiobook',
-          categoryId: 13,
-        } as any,
-        'user-1',
-      );
+        const result = await service.createRequest(
+          {
+            torrentId: 12345,
+            title: 'Test',
+            contentType: 'audiobook',
+            categoryId: 13,
+          } as any,
+          'user-1',
+        );
 
-      // insert should have been called for the supporter entry
-      expect(db.insert).toHaveBeenCalledWith(requestsSchema.requestSupporters);
-      expect(result.id).toBe('req-existing');
-    });
+        // insert should have been called for the supporter entry
+        expect(db.insert).toHaveBeenCalledWith(
+          requestsSchema.requestSupporters,
+        );
+        expect(result.id).toBe('req-existing');
+      },
+    );
   });
 
   // -----------------------------------------------------------------------

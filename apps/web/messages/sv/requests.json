@@ -105,6 +105,7 @@
     "languageHint": "Språkfiltren ovan gäller även denna förfrågan. Ange författaren för att hjälpa Bookmark hitta en exakt träff.",
     "waitingDescription": "Bookmark fortsätter att leta efter boken.",
     "nextCheck": "Nästa tillgänglighetskontroll: {date}",
-    "searchFailed": "Sökningen är inte tillgänglig just nu. Du kan ändå spara en bokförfrågan."
+    "searchFailed": "Sökningen är inte tillgänglig just nu. Du kan ändå spara en bokförfrågan.",
+    "searchUnavailable": "Sökningen är inte tillgänglig just nu. Försök igen senare."
   }
 }

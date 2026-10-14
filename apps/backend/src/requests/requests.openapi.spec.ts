@@ -7,6 +7,11 @@ import { CanRequestGuard } from '../common/guards/can-request.guard';
 import { AdminGuard } from '../common/guards/admin.guard';
 import { TrackerService } from '../tracker';
 import { buildSwaggerConfig } from '../swagger';
+import {
+  AppSettingsResponseDto,
+  UserSettingsResponseDto,
+} from '../app-settings/dto/settings-response.dto';
+import { UpdateSettingsDto } from '../app-settings/dto/update-settings.dto';
 import { RequestsController } from './requests.controller';
 import { RequestsAdminController } from './requests-admin.controller';
 import { RequestsService } from './requests.service';
@@ -34,6 +39,10 @@ describe('Request OpenAPI contract', () => {
             getAttempts: jest.fn().mockResolvedValue([]),
             getUserRequests: jest.fn().mockResolvedValue([]),
             getAllRequests: jest.fn().mockResolvedValue([]),
+            getSearchQueue: jest.fn().mockResolvedValue({
+              overdueCount: 3,
+              oldestDueAt: '2026-10-09T12:00:00.000Z',
+            }),
             search: jest.fn().mockResolvedValue({ results: [], total: 0 }),
           },
         },
@@ -54,7 +63,13 @@ describe('Request OpenAPI contract', () => {
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, transform: true }),
     );
-    document = SwaggerModule.createDocument(app, buildSwaggerConfig());
+    document = SwaggerModule.createDocument(app, buildSwaggerConfig(), {
+      extraModels: [
+        AppSettingsResponseDto,
+        UserSettingsResponseDto,
+        UpdateSettingsDto,
+      ],
+    });
     await app.init();
   });
 
@@ -92,6 +107,35 @@ describe('Request OpenAPI contract', () => {
       });
     },
   );
+
+  it('returns the admin queue', async () => {
+    const response = await request(app.getHttpServer())
+      .get('/api/admin/requests/search-queue')
+      .expect(200);
+    expect(response.body).toEqual({
+      overdueCount: 3,
+      oldestDueAt: '2026-10-09T12:00:00.000Z',
+    });
+  });
+
+  it('documents the admin queue schema and permissions', () => {
+    expect(document.components?.schemas?.RequestSearchQueueDto).toMatchObject({
+      required: ['overdueCount', 'oldestDueAt'],
+      properties: {
+        overdueCount: { type: 'integer', minimum: 0 },
+        oldestDueAt: { format: 'date-time', nullable: true },
+      },
+    });
+    const responses =
+      document.paths['/api/admin/requests/search-queue']?.get?.responses;
+    expect(responses).toEqual(
+      expect.objectContaining({
+        '200': expect.anything(),
+        '401': expect.anything(),
+        '403': expect.anything(),
+      }),
+    );
+  });
 
   it('documents both creation forms and accepts book-only and selected-release requests', async () => {
     expect(document.paths['/api/requests']?.post?.requestBody).toMatchObject({
@@ -158,6 +202,29 @@ describe('Request OpenAPI contract', () => {
         },
         createdAt: { format: 'date-time' },
       },
+    });
+  });
+
+  it('documents the opt-in setting and disabled creation response', () => {
+    for (const name of ['AppSettingsResponseDto', 'UserSettingsResponseDto']) {
+      expect(document.components?.schemas?.[name]).toMatchObject({
+        required: expect.arrayContaining(['requestsAllowUnavailable']),
+        properties: {
+          requestsAllowUnavailable: { type: 'boolean', default: false },
+        },
+      });
+    }
+    expect(document.components?.schemas?.UpdateSettingsDto).toMatchObject({
+      properties: {
+        requestsAllowUnavailable: { type: 'boolean', default: false },
+      },
+    });
+    expect(
+      document.paths['/api/requests']?.post?.responses['400'],
+    ).toMatchObject({
+      description: expect.stringContaining(
+        'unavailable-title requests disabled',
+      ),
     });
   });
 

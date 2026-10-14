@@ -381,6 +381,15 @@ export function IntegrationsSettings() {
     }
   };
 
+  const handleUnavailableRequestsToggle = async (enabled: boolean) => {
+    try {
+      await updateSettings({ requestsAllowUnavailable: enabled });
+      toast.success(t("requests.unavailable.saved"));
+    } catch {
+      toast.error(t("requests.unavailable.failed"));
+    }
+  };
+
   const handleFreeleechToggle = async (enabled: boolean) => {
     try {
       await updateSettings({ requestsUseFreeleech: enabled });
@@ -491,6 +500,26 @@ export function IntegrationsSettings() {
 
           {settings.requestsEnabled && (
             <div className="space-y-4 pt-4 border-t">
+              <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <Label
+                    htmlFor="requests-allow-unavailable"
+                    className="text-base font-medium"
+                  >
+                    {t("requests.unavailable.label")}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t("requests.unavailable.description")}
+                  </p>
+                </div>
+                <Switch
+                  id="requests-allow-unavailable"
+                  checked={settings.requestsAllowUnavailable}
+                  onCheckedChange={handleUnavailableRequestsToggle}
+                  disabled={isUpdatingSettings}
+                />
+              </fieldset>
+
               <div className="space-y-1">
                 <Label className="text-base font-medium">
                   {t("requests.categories.title")}

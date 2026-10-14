@@ -8,6 +8,11 @@ export type RequestStatus =
   "pending" | "approved" | "waiting" | "downloading" | "complete" | "rejected";
 export type ContentType = "audiobook" | "ebook" | "comics";
 
+export interface RequestSearchQueue {
+  overdueCount: number;
+  oldestDueAt: string | null;
+}
+
 export interface SeriesInfo {
   name: string;
   number: string | null;
@@ -238,6 +243,14 @@ async function searchLibrary(
 }
 
 // Admin API functions
+async function fetchRequestSearchQueue(): Promise<RequestSearchQueue> {
+  const response = await fetch("/api/admin/requests/search-queue", {
+    credentials: "include",
+  });
+  if (!response.ok) throw new Error("Failed to fetch availability queue");
+  return response.json();
+}
+
 async function fetchAdminRequests(
   status?: RequestStatus,
   missingOnly?: boolean,
@@ -400,6 +413,15 @@ export function useLibrarySearch(
 }
 
 // Admin hooks
+export function useRequestSearchQueue(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.adminRequests.searchQueue(),
+    queryFn: fetchRequestSearchQueue,
+    enabled,
+    refetchInterval: 30_000,
+  });
+}
+
 export function useAdminRequests(
   status?: RequestStatus,
   missingOnly?: boolean,

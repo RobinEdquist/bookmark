@@ -281,6 +281,13 @@
       "when": 1790938235793,
       "tag": "0039_book_requests_and_download_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1791541623905,
+      "tag": "0040_requests_allow_unavailable",
+      "breakpoints": true
     }
   ]
 }
