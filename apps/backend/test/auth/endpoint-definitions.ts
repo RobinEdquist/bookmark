@@ -658,6 +658,16 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
   {
     controller: 'RequestsAdmin',
     endpoints: [
+      {
+        method: 'GET',
+        path: '/admin/requests/:id/diagnostics',
+        expectedStatus: 401,
+      },
+      {
+        method: 'POST',
+        path: '/admin/requests/:id/reconcile',
+        expectedStatus: 401,
+      },
       { method: 'GET', path: '/admin/requests', expectedStatus: 401 },
       {
         method: 'GET',

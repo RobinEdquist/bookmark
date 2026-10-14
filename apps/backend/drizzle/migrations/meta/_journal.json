@@ -288,6 +288,13 @@
       "when": 1791541623905,
       "tag": "0040_requests_allow_unavailable",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791986501838,
+      "tag": "0041_request_activity_observations",
+      "breakpoints": true
     }
   ]
 }

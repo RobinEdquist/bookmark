@@ -18,7 +18,58 @@ export interface SeriesInfo {
   number: string | null;
 }
 
+export interface RequestActivity {
+  stage:
+    | "waiting_approval"
+    | "waiting_availability"
+    | "submitting"
+    | "downloading"
+    | "adding_to_library"
+    | "ready"
+    | "needs_attention"
+    | "rejected";
+  transferState:
+    | "downloading"
+    | "paused"
+    | "stalled"
+    | "queued"
+    | "checking"
+    | "moving"
+    | "completed"
+    | "error"
+    | "not_found"
+    | "unknown"
+    | null;
+  progress: number | null;
+  observedAt: string | null;
+  stale: boolean;
+  issue:
+    | "submission_uncertain"
+    | "download_error"
+    | "download_missing"
+    | "status_unknown"
+    | "paused"
+    | "stalled"
+    | "queued"
+    | "checking"
+    | "import_failed"
+    | "import_retrying"
+    | "availability_retrying"
+    | null;
+}
+export interface RequestDiagnostics {
+  activity: RequestActivity;
+  rawState: string | null;
+  submissionReason: string | null;
+  importErrorId: string | null;
+  importPath: string | null;
+  importMessage: string | null;
+  importStatus: string | null;
+  canReconcile: boolean;
+}
+
 export interface RequestResponse {
+  activity: RequestActivity;
   id: string;
   userId: string;
   userEmail: string;
@@ -39,8 +90,7 @@ export interface RequestResponse {
   coverUrl: string | null;
   contentType: ContentType;
   rejectionReason: string | null;
-  // Set once the download client stops reporting the torrent; such a request can
-  // never complete on its own and needs an admin to delete or re-request it.
+  // Explicit absence established by a successful source lookup.
   torrentMissingSince: string | null;
   libraryItemId: string | null;
   libraryItemType: ContentType | null;

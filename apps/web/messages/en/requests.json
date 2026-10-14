@@ -107,5 +107,34 @@
     "nextCheck": "Next availability check: {date}",
     "searchFailed": "Search is unavailable right now. You can still save a book request.",
     "searchUnavailable": "Search is unavailable right now. Try again later."
+  },
+  "activity": {
+    "stage": {
+      "waiting_approval": "Waiting for approval",
+      "waiting_availability": "Waiting for availability",
+      "submitting": "Starting download",
+      "downloading": "Downloading",
+      "adding_to_library": "Adding to library",
+      "ready": "Ready",
+      "needs_attention": "Needs attention",
+      "rejected": "Declined"
+    },
+    "issue": {
+      "submission_uncertain": "The download submission could not be confirmed. An administrator needs to check it.",
+      "download_error": "The download is blocked. An administrator needs to check the download client.",
+      "download_missing": "The download client no longer has this download. An administrator needs to check it.",
+      "status_unknown": "The download status is unknown. Bookmark will check again.",
+      "paused": "The download is paused.",
+      "stalled": "The download is waiting for data.",
+      "queued": "The download is queued.",
+      "checking": "The download client is checking the files.",
+      "import_failed": "The download could not be added to the library. An administrator needs to retry the import.",
+      "import_retrying": "The import has been queued for another attempt.",
+      "availability_retrying": "The availability check failed. Bookmark will retry."
+    },
+    "progress": "{percentage}% downloaded",
+    "progressUnknown": "Download percentage unknown",
+    "downloadProgress": "Download progress",
+    "stale": "Progress updates are unavailable or out of date. Last observation shown; retrying."
   }
 }

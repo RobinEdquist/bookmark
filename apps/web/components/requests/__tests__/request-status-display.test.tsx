@@ -5,6 +5,14 @@ import { AdminRequestsList } from "../admin-requests-list";
 import type { RequestResponse } from "../../../lib/use-requests";
 
 const request: RequestResponse = {
+  activity: {
+    stage: "waiting_approval",
+    transferState: null,
+    progress: null,
+    observedAt: null,
+    stale: false,
+    issue: null,
+  },
   id: "request-1",
   userId: "user-1",
   userEmail: "user@test.com",
@@ -39,7 +47,15 @@ const request: RequestResponse = {
 function admin(row: RequestResponse) {
   return (
     <AdminRequestsList
-      requests={[row]}
+      requests={[
+        {
+          ...row,
+          activity: {
+            ...row.activity,
+            stage: row.status === "rejected" ? "rejected" : row.activity.stage,
+          },
+        },
+      ]}
       isLoading={false}
       onApprove={vi.fn()}
       onReject={vi.fn()}
@@ -96,6 +112,6 @@ describe("Request status display", () => {
     render(admin({ ...request, status: "rejected" }));
     expect(screen.queryByText("recheck.failed")).not.toBeInTheDocument();
     expect(screen.queryByText(/^recheck.nextCheck/)).not.toBeInTheDocument();
-    expect(screen.getByText("status.rejected")).toBeInTheDocument();
+    expect(screen.getByText("stage.rejected")).toBeInTheDocument();
   });
 });

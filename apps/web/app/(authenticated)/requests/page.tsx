@@ -91,7 +91,11 @@ export default function RequestsPage() {
     data: searchResults,
     error: searchError,
   } = useTrackerSearch();
-  const { data: myRequests, isLoading: requestsLoading } = useMyRequests();
+  const {
+    data: myRequests,
+    isLoading: requestsLoading,
+    error: requestsError,
+  } = useMyRequests();
   const { createRequest, isCreating } = useCreateRequest();
   const { supportRequest, isSupporting } = useSupportRequest();
   const { data: libraryResults, isLoading: librarySearching } =
@@ -288,7 +292,15 @@ export default function RequestsPage() {
 
           <TabsContent value="my-requests" className="mt-6">
             <MyRequestsList
-              requests={myRequests ?? []}
+              requests={(myRequests ?? []).map((request) =>
+                requestsError &&
+                !["ready", "rejected"].includes(request.activity.stage)
+                  ? {
+                      ...request,
+                      activity: { ...request.activity, stale: true },
+                    }
+                  : request,
+              )}
               isLoading={requestsLoading}
             />
           </TabsContent>

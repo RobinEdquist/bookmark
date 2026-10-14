@@ -10,6 +10,7 @@ interface Attempt {
   torrentId: string;
   status: string;
   createdAt: string;
+  reason: string | null;
 }
 
 export function RequestAttemptHistory({ requestId }: { requestId: string }) {
@@ -60,6 +61,11 @@ export function RequestAttemptHistory({ requestId }: { requestId: string }) {
                 {t("release", { id: attempt.torrentId })} ·{" "}
                 {new Date(attempt.createdAt).toLocaleString()}
               </span>
+              {attempt.reason && (
+                <p className="mt-1 max-w-prose break-words text-xs text-muted-foreground">
+                  {attempt.reason}
+                </p>
+              )}
             </li>
           ))}
         </ol>

@@ -23,6 +23,7 @@ import { AdminGuard } from '../common/guards/admin.guard';
 import { RequestsService } from './requests.service';
 import { RequestAttemptDto } from './dto/request-attempt.dto';
 import { RequestSearchQueueDto } from './dto/request-search-queue.dto';
+import { RequestDiagnosticsDto } from './dto/request-activity.dto';
 import { RejectRequestDto } from './dto';
 import { ContentRequestDto } from './dto/request-response.dto';
 import type { RequestStatus } from './schema';
@@ -87,6 +88,42 @@ export class RequestsAdminController {
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   async getSearchQueue(): Promise<RequestSearchQueueDto> {
     return this.requestsService.getSearchQueue();
+  }
+
+  @Get(':id/diagnostics')
+  @ApiOperation({
+    summary: 'Inspect request progress and blocked stage (Admin)',
+    description:
+      'Source state, submission reason, and correlated import errors are admin-only. This endpoint never polls the module.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: RequestDiagnosticsDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Requires admin role' })
+  @ApiResponse({ status: 404, description: 'Request not found' })
+  getDiagnostics(@Param('id') id: string): Promise<RequestDiagnosticsDto> {
+    return this.requestsService.getDiagnostics(id);
+  }
+
+  @Post(':id/reconcile')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reconcile an uncertain submission (Admin)',
+    description:
+      'Explicitly replays the original durable submission key at the original source. Idempotency preserves the transfer, approval, allowance, and history. Concurrent reconciliation is rejected.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: ContentRequestDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Ineligible request, changed source, or reconciliation already running',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Requires admin role' })
+  @ApiResponse({ status: 404, description: 'Request not found' })
+  reconcile(@Param('id') id: string): Promise<ContentRequestDto> {
+    return this.requestsService.reconcileSubmission(id);
   }
 
   @Post(':id/approve')

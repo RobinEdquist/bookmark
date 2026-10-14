@@ -151,13 +151,11 @@ export class ImportErrorsController {
       throw new BadRequestException('Library path not configured');
     }
 
-    // Mark as retrying
-    await this.importErrorsService.markRetrying(id);
-
     // Queue for re-import - check if path is a directory or file
     // Audiobook errors typically store directory paths, ebook errors store file paths
     try {
       const stat = await fs.stat(error.filePath);
+      await this.importErrorsService.markRetrying(id);
       if (stat.isDirectory()) {
         this.importQueueService.queueDirectory(
           error.filePath,
@@ -172,7 +170,7 @@ export class ImportErrorsController {
         );
       }
     } catch {
-      // Path no longer exists - still mark as retrying but let the queue handle the error
+      // A missing path was not queued; preserve the failed stage.
       throw new BadRequestException(
         'File or directory no longer exists at the original path',
       );

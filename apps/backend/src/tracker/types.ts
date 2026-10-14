@@ -88,7 +88,9 @@ export interface TorrentStatus {
   // moving, missingFiles, error, allocating, completed, seeding
   // We also use 'not_found' for missing torrents
   state: string;
-  progress: number;
+  progress: number | null;
+  // Source-owned diagnostic, never exposed in ordinary request responses.
+  rawState?: string | null;
   size?: number;
   downloaded?: number;
   files?: TorrentFile[];

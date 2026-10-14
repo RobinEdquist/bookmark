@@ -136,11 +136,15 @@ describe('ImportErrorsController', () => {
 
   it('rejects retries when the original path is gone', async () => {
     mockedFs.stat.mockRejectedValue(new Error('ENOENT'));
-    const { controller } = createController();
+    const { controller, importErrorsService, importQueueService } =
+      createController();
 
     await expect(controller.retryImport('error-1')).rejects.toThrow(
       BadRequestException,
     );
+    expect(importErrorsService.markRetrying).not.toHaveBeenCalled();
+    expect(importQueueService.queueFile).not.toHaveBeenCalled();
+    expect(importQueueService.queueDirectory).not.toHaveBeenCalled();
   });
 
   it('ignores an error as the current user', async () => {

@@ -78,6 +78,18 @@
         "failed": "Acquisition failed",
         "complete": "Imported"
       }
+    },
+    "diagnostics": {
+      "title": "Progress details and recovery",
+      "loading": "Loading progress details…",
+      "failed": "Progress details could not be loaded.",
+      "sourceState": "Download client state: {state}",
+      "retryImport": "Retry import",
+      "queued": "Recovery action completed",
+      "recoveryFailed": "Recovery failed. Check the progress details and source.",
+      "reconcile": "Reconcile submission",
+      "reconcileDescription": "Ask the original source to resolve this submission using its existing submission key. This preserves the approval and prevents a duplicate transfer.",
+      "checkClient": "Check or resume the existing transfer in the download client. A temporary error does not authorize a replacement."
     }
   },
   "metadata": {

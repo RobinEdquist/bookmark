@@ -107,5 +107,34 @@
     "nextCheck": "Nästa tillgänglighetskontroll: {date}",
     "searchFailed": "Sökningen är inte tillgänglig just nu. Du kan ändå spara en bokförfrågan.",
     "searchUnavailable": "Sökningen är inte tillgänglig just nu. Försök igen senare."
+  },
+  "activity": {
+    "stage": {
+      "waiting_approval": "Väntar på godkännande",
+      "waiting_availability": "Väntar på tillgänglighet",
+      "submitting": "Startar nedladdning",
+      "downloading": "Laddar ned",
+      "adding_to_library": "Lägger till i biblioteket",
+      "ready": "Klar",
+      "needs_attention": "Behöver åtgärdas",
+      "rejected": "Avvisad"
+    },
+    "issue": {
+      "submission_uncertain": "Det gick inte att bekräfta nedladdningen. En administratör behöver kontrollera den.",
+      "download_error": "Nedladdningen är blockerad. En administratör behöver kontrollera nedladdningsklienten.",
+      "download_missing": "Nedladdningsklienten har inte längre denna nedladdning. En administratör behöver kontrollera den.",
+      "status_unknown": "Nedladdningens status är okänd. Bookmark kontrollerar igen.",
+      "paused": "Nedladdningen är pausad.",
+      "stalled": "Nedladdningen väntar på data.",
+      "queued": "Nedladdningen ligger i kö.",
+      "checking": "Nedladdningsklienten kontrollerar filerna.",
+      "import_failed": "Nedladdningen kunde inte läggas till i biblioteket. En administratör behöver försöka importera igen.",
+      "import_retrying": "Importen har köats för ett nytt försök.",
+      "availability_retrying": "Tillgänglighetskontrollen misslyckades. Bookmark försöker igen."
+    },
+    "progress": "{percentage}% nedladdat",
+    "progressUnknown": "Nedladdningsprocenten är okänd",
+    "downloadProgress": "Nedladdningsförlopp",
+    "stale": "Uppdateringar saknas eller är inaktuella. Senast kända uppgifter visas; nya försök pågår."
   }
 }

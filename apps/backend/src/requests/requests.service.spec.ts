@@ -90,6 +90,13 @@ function buildRequest(overrides: Partial<Record<string, any>> = {}) {
     categoryId: 13,
     rejectionReason: null,
     torrentMissingSince: null,
+    transferState: null,
+    transferProgress: null,
+    transferRawState: null,
+    transferObservedAt: null,
+    transferStale: false,
+    submissionUncertain: false,
+    importErrorId: null,
     libraryItemId: null,
     libraryItemType: null,
     autoApprovedByUserId: null,
@@ -632,12 +639,16 @@ describe('RequestsService', () => {
       await service.updateDownloadingStatuses();
 
       expect(db.update).toHaveBeenCalledWith(requestsSchema.requests);
-      expect(updateChain.set).toHaveBeenCalledWith({
-        torrentMissingSince: expect.any(Date),
-      });
+      expect(updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          torrentMissingSince: expect.any(Date),
+          transferState: 'not_found',
+          transferStale: false,
+        }),
+      );
     });
 
-    it('flags the request when the client omits the hash entirely', async () => {
+    it('marks observations stale without inferring absence when the client omits the hash', async () => {
       const { service, updateChain } = setup(
         [buildRequest({ status: 'downloading', torrentHash: 'abc123' })],
         [],
@@ -646,12 +657,12 @@ describe('RequestsService', () => {
       await service.updateDownloadingStatuses();
 
       expect(updateChain.set).toHaveBeenCalledWith({
-        torrentMissingSince: expect.any(Date),
+        transferStale: true,
       });
     });
 
-    it('does not write again while the torrent stays missing', async () => {
-      const { db, service } = setup(
+    it('refreshes a missing observation without changing the original missing time', async () => {
+      const { updateChain, service } = setup(
         [
           buildRequest({
             status: 'downloading',
@@ -664,10 +675,15 @@ describe('RequestsService', () => {
 
       await service.updateDownloadingStatuses();
 
-      expect(db.update).not.toHaveBeenCalled();
+      expect(updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          torrentMissingSince: NOW,
+          transferState: 'not_found',
+        }),
+      );
     });
 
-    it('clears the flag and sets downloading when the torrent reappears', async () => {
+    it('clears the flag but preserves a stalled observation when the torrent reappears', async () => {
       const { service, updateChain } = setup(
         [
           buildRequest({
@@ -676,26 +692,37 @@ describe('RequestsService', () => {
             torrentMissingSince: NOW,
           }),
         ],
-        [{ hash: 'abc123', state: 'stalledDL', progress: 0.1 }],
+        [{ hash: 'abc123', state: 'stalled', progress: 0.1 }],
       );
 
       await service.updateDownloadingStatuses();
 
-      expect(updateChain.set).toHaveBeenCalledWith({
-        status: 'downloading',
-        torrentMissingSince: null,
-      });
+      expect(updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          torrentMissingSince: null,
+          transferState: 'stalled',
+          transferProgress: 0.1,
+        }),
+      );
+      expect(updateChain.set.mock.calls[0][0]).not.toHaveProperty('status');
     });
 
-    it('leaves an untouched downloading request alone', async () => {
-      const { db, service } = setup(
+    it('refreshes download percentage and the observation time on each successful poll', async () => {
+      const { updateChain, service } = setup(
         [buildRequest({ status: 'downloading', torrentHash: 'abc123' })],
         [{ hash: 'abc123', state: 'downloading', progress: 0.5 }],
       );
 
       await service.updateDownloadingStatuses();
 
-      expect(db.update).not.toHaveBeenCalled();
+      expect(updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transferProgress: 0.5,
+          transferState: 'downloading',
+          transferObservedAt: expect.any(Date),
+          transferStale: false,
+        }),
+      );
     });
 
     it('fills a missing folder name from a later bulk status', async () => {
@@ -776,7 +803,6 @@ describe('RequestsService', () => {
 
       expect(tracker.download).toHaveBeenCalledWith('12345', {
         category: 'audiobooks',
-        usePersonalFL: undefined,
         submissionKey: 'attempt-1',
       });
       expect(db.update).toHaveBeenCalledWith(requestsSchema.requests);
@@ -1269,6 +1295,9 @@ describe('RequestsService', () => {
         status: 'complete',
         libraryItemId: 'lib-item-1',
         libraryItemType: 'audiobook',
+        importErrorId: null,
+        transferStale: false,
+        submissionUncertain: false,
       });
     });
 
@@ -1782,5 +1811,273 @@ describe('RequestsService', () => {
       expect(result.results[0].libraryMatch).toBe('possible');
       expect(result.results[0].libraryItemId).toBeNull();
     });
+  });
+});
+
+describe('Request progress persistence and recovery', () => {
+  it('suppresses overlapping ticks and deduplicates hashes without multiplying source calls', async () => {
+    const row = buildRequest({
+      status: 'downloading',
+      torrentHash: 'shared-hash',
+    });
+    const db = createSequentialSelectDb([[row, { ...row, id: 'second' }]], {
+      update: jest.fn().mockReturnValue(chainMock([])),
+    });
+    const tracker = createMockTracker();
+    let finish!: (value: { torrents: [] }) => void;
+    let started!: () => void;
+    const observed = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    tracker.getBulkTorrentStatus.mockImplementation(() => {
+      started();
+      return new Promise((resolve) => {
+        finish = resolve;
+      });
+    });
+    const service = new RequestsService(
+      db,
+      tracker,
+      createMockAppSettings(),
+      createMockLibrary(),
+    );
+    const first = service.updateDownloadingStatuses();
+    await observed;
+    await service.updateDownloadingStatuses();
+    expect(tracker.getBulkTorrentStatus).toHaveBeenCalledTimes(1);
+    expect(tracker.getBulkTorrentStatus).toHaveBeenCalledWith(['shared-hash']);
+    finish({ torrents: [] });
+    await first;
+  });
+  it.each([
+    ['downloading', 0, 'downloading'],
+    ['completed', 1, 'completed'],
+    ['paused', null, 'paused'],
+    ['error', 1, 'error'],
+    ['futureRawState', NaN, 'unknown'],
+  ] as const)(
+    'persists %s without inventing progress or readiness',
+    async (state, progress, normalized) => {
+      const update = chainMock([]);
+      const db = createSequentialSelectDb(
+        [[buildRequest({ status: 'approved', torrentHash: 'hash' })]],
+        { update: jest.fn().mockReturnValue(update) },
+      );
+      const tracker = createMockTracker();
+      tracker.getBulkTorrentStatus.mockResolvedValue({
+        torrents: [
+          { hash: 'hash', state, progress, rawState: 'client-private-state' },
+        ],
+      });
+      await new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      ).updateDownloadingStatuses();
+      expect(update.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transferState: normalized,
+          transferProgress: Number.isFinite(progress) ? progress : null,
+          transferStale: false,
+        }),
+      );
+      const write = update.set.mock.calls[0][0];
+      expect(write.status).toBe(
+        state === 'downloading' ? 'downloading' : undefined,
+      );
+      expect(write).not.toHaveProperty('libraryItemId');
+    },
+  );
+
+  it('retains the last successful observation after a connection failure', async () => {
+    const update = chainMock([]);
+    const db = createSequentialSelectDb(
+      [
+        [
+          buildRequest({
+            status: 'downloading',
+            torrentHash: 'hash',
+            transferState: 'paused',
+            transferProgress: 0.42,
+          }),
+        ],
+      ],
+      { update: jest.fn().mockReturnValue(update) },
+    );
+    const tracker = createMockTracker();
+    tracker.getBulkTorrentStatus.mockRejectedValue(
+      new Error('connection failed'),
+    );
+    await new RequestsService(
+      db,
+      tracker,
+      createMockAppSettings(),
+      createMockLibrary(),
+    ).updateDownloadingStatuses();
+    expect(update.set).toHaveBeenCalledWith({ transferStale: true });
+  });
+
+  it.each(['audiobook', 'ebook', 'comics'] as const)(
+    'correlates a failed %s import by exact folder, medium and library root',
+    async (medium) => {
+      const update = chainMock([]);
+      const db = createSequentialSelectDb(
+        [
+          [
+            buildRequest({
+              status: 'downloading',
+              torrentHash: 'hash',
+              folderName: 'Book',
+              contentType: medium,
+            }),
+          ],
+          [{ id: 'import-error' }],
+        ],
+        { update: jest.fn().mockReturnValue(update) },
+      );
+      const service = new RequestsService(
+        db,
+        createMockTracker(),
+        createMockAppSettings({
+          audiobookLibraryPath: '/library/audio',
+          ebookLibraryPath: '/library/books',
+          comicLibraryPath: '/library/comics',
+        }),
+        createMockLibrary(),
+      );
+      const root = { audiobook: 'audio', ebook: 'books', comics: 'comics' }[
+        medium
+      ];
+      await service.recordImportFailure(
+        `/library/${root}/Book/nested/file`,
+        medium,
+      );
+      expect(update.set).toHaveBeenCalledWith({
+        importErrorId: 'import-error',
+      });
+      await service.recordImportFailure(
+        `/library/${root}-other/Book/file`,
+        medium,
+      );
+      expect(update.set).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('does not attach an import error to ambiguous requests', async () => {
+    const db = createSequentialSelectDb(
+      [[buildRequest(), buildRequest({ id: 'second' })]],
+      { update: jest.fn() },
+    );
+    await new RequestsService(
+      db,
+      createMockTracker(),
+      createMockAppSettings({ ebookLibraryPath: '/library' }),
+      createMockLibrary(),
+    ).recordImportFailure('/library/Book/file.epub', 'ebook');
+    expect(db.update).not.toHaveBeenCalled();
+  });
+
+  it('keeps raw states and import paths out of ordinary request responses', async () => {
+    const row = buildRequest({
+      status: 'downloading',
+      torrentHash: 'hash',
+      transferState: 'error',
+      transferRawState: 'private-client-state',
+      importErrorId: 'error-id',
+    });
+    const db = createSequentialSelectDb([
+      [row],
+      [{ email: 'user@example.com' }],
+      [],
+      [
+        {
+          status: 'pending',
+          errorMessage: 'Secret source details',
+          filePath: '/private/path',
+        },
+      ],
+    ]);
+    const dto = await new RequestsService(
+      db,
+      createMockTracker(),
+      createMockAppSettings(),
+      createMockLibrary(),
+    ).getRequestById(row.id, row.userId);
+    expect(dto.activity).toMatchObject({
+      stage: 'needs_attention',
+      issue: 'import_failed',
+    });
+    expect(JSON.stringify(dto)).not.toContain('private-client-state');
+    expect(JSON.stringify(dto)).not.toContain('/private/path');
+    expect(JSON.stringify(dto)).not.toContain('Secret source details');
+  });
+
+  it('reconciles with the original key and options without creating a new attempt or spending approval', async () => {
+    const row = buildRequest({
+      status: 'approved',
+      torrentHash: null,
+      submissionUncertain: true,
+    });
+    const attempt = {
+      id: 'attempt-original',
+      requestId: row.id,
+      status: 'uncertain',
+      moduleId: 'test-module',
+      torrentId: '12345',
+      downloadOptions: { category: 'original-category', usePersonalFL: true },
+    };
+    const update = chainMock([attempt]);
+    const db = createSequentialSelectDb(
+      [[row], [attempt], [row], [{ email: 'user@test.com' }], []],
+      { update: jest.fn().mockReturnValue(update) },
+    );
+    const tracker = createMockTracker();
+    tracker.download.mockResolvedValue({ hash: 'same-transfer' });
+    tracker.getTorrentStatus.mockResolvedValue({
+      state: 'downloading',
+      progress: null,
+    });
+    const service = new RequestsService(
+      db,
+      tracker,
+      createMockAppSettings({ requestsUseFreeleech: false }),
+      createMockLibrary(),
+    );
+    await service.reconcileSubmission(row.id);
+    expect(tracker.download).toHaveBeenCalledWith('12345', {
+      submissionKey: 'attempt-original',
+      category: 'original-category',
+      usePersonalFL: true,
+    });
+    expect(db.insert).not.toHaveBeenCalled();
+    expect(
+      update.set.mock.calls.every(
+        ([write]: [Record<string, unknown>]) =>
+          !('approvedAt' in write) && !('autoApprovedByUserId' in write),
+      ),
+    ).toBe(true);
+  });
+
+  it('rejects unsafe replay when the source changed or original options are unavailable', async () => {
+    for (const attempt of [
+      { moduleId: 'different', downloadOptions: { category: 'books' } },
+      { moduleId: 'test-module', downloadOptions: null },
+    ]) {
+      const tracker = createMockTracker();
+      const db = createSequentialSelectDb([
+        [buildRequest({ status: 'approved' })],
+        [{ ...attempt, id: 'attempt', status: 'uncertain' }],
+      ]);
+      await expect(
+        new RequestsService(
+          db,
+          tracker,
+          createMockAppSettings(),
+          createMockLibrary(),
+        ).reconcileSubmission('req-1'),
+      ).rejects.toThrow(BadRequestException);
+      expect(tracker.download).not.toHaveBeenCalled();
+    }
   });
 });

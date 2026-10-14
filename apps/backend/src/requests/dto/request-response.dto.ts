@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import type { RequestStatus, ContentType } from '../schema';
+import { RequestActivityDto } from './request-activity.dto';
 
 export class SeriesInfoDto {
   @ApiProperty({ example: 'The Stormlight Archive' })
@@ -10,6 +11,7 @@ export class SeriesInfoDto {
 }
 
 export class ContentRequestDto {
+  @ApiProperty({ type: RequestActivityDto }) activity!: RequestActivityDto;
   @ApiProperty({
     format: 'uuid',
     example: '550e8400-e29b-41d4-a716-446655440000',
@@ -375,6 +377,7 @@ export interface SeriesInfo {
 }
 
 export interface RequestResponseDto {
+  activity: RequestActivityDto;
   id: string;
   userId: string;
   userEmail: string;

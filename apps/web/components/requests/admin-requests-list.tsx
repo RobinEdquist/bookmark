@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, ChevronDown, Trash2 } from "lucide-react";
+import { RequestDiagnostics } from "./request-diagnostics";
 import { RequestAttemptHistory } from "./request-attempt-history";
 import { CONTENT_TYPE_STYLES } from "./content-type-styles";
 import { Button } from "@repo/ui/components/ui/button";
@@ -24,6 +25,7 @@ import {
   DialogTitle,
 } from "@repo/ui/components/ui/dialog";
 import { Textarea } from "@repo/ui/components/ui/textarea";
+import { RequestActivity } from "./request-activity";
 import type { RequestResponse } from "../../lib/use-requests";
 
 interface AdminRequestsListProps {
@@ -38,18 +40,6 @@ interface AdminRequestsListProps {
   isRejecting: boolean;
   isDeleting: boolean;
 }
-
-const statusVariants: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  pending: "secondary",
-  approved: "default",
-  waiting: "secondary",
-  downloading: "default",
-  complete: "default",
-  rejected: "destructive",
-};
 
 export function AdminRequestsList({
   requests,
@@ -157,17 +147,16 @@ export function AdminRequestsList({
                             {t("torrentMissing.badge")}
                           </Badge>
                         )}
-                        <Badge variant={statusVariants[request.status]}>
-                          {request.status === "approved" &&
-                          request.autoApprovedByUserId
-                            ? request.autoApprovedByUserId === request.userId
+                        {request.autoApprovedByUserId && (
+                          <Badge variant="outline">
+                            {request.autoApprovedByUserId === request.userId
                               ? tRequests("autoApprove.autoApproved")
                               : tRequests("autoApprove.autoApprovedBy", {
                                   email:
                                     request.autoApprovedByEmail ?? "Unknown",
-                                })
-                            : t(`status.${request.status}`)}
-                        </Badge>
+                                })}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground truncate">
@@ -182,6 +171,7 @@ export function AdminRequestsList({
                       {formatTimeAgo(request.createdAt)}
                     </p>
 
+                    <RequestActivity activity={request.activity} />
                     {isSearching && request.searchError && (
                       <p className="text-sm text-destructive">
                         {t("recheck.failed")}
@@ -216,6 +206,7 @@ export function AdminRequestsList({
                   </div>
                 </div>
 
+                <RequestDiagnostics requestId={request.id} />
                 <RequestAttemptHistory requestId={request.id} />
 
                 {/* Actions - separate row on mobile */}

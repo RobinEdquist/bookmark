@@ -210,6 +210,7 @@ function createMockDeps() {
     } as any,
     requestsService: {
       tryMatchImport: jest.fn().mockResolvedValue(false),
+      recordImportFailure: jest.fn().mockResolvedValue(undefined),
     } as any,
     appSettingsService: {
       getAudiobookLibraryPath: jest.fn().mockResolvedValue('/library'),
@@ -1831,6 +1832,39 @@ describe('MediaImporterService', () => {
       };
     }
 
+    it('does not confirm library availability when every comic import fails', async () => {
+      db._chains.select.limit.mockResolvedValue([]);
+      deps.comicMetadataProvider.extractMetadata.mockRejectedValue(
+        new Error('Broken archive'),
+      );
+      const result = await service.importComicSeriesUnit(
+        makeComicSeriesUnit(),
+        '/library/comics',
+      );
+      expect(result).toBeNull();
+      expect(deps.requestsService.tryMatchImport).not.toHaveBeenCalled();
+      expect(deps.requestsService.recordImportFailure).toHaveBeenCalledWith(
+        makeComicSeriesUnit().books[0]!.path,
+        'comics',
+      );
+    });
+
+    it('does not confirm availability for a comic archive without readable pages', async () => {
+      db._chains.select.limit.mockResolvedValue([]);
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValue({
+        comicInfo: null,
+        pageCount: 0,
+        cover: null,
+      });
+      expect(
+        await service.importComicSeriesUnit(
+          makeComicSeriesUnit(),
+          '/library/comics',
+        ),
+      ).toBeNull();
+      expect(deps.requestsService.tryMatchImport).not.toHaveBeenCalled();
+    });
+
     it('uses parsed filename title when ComicInfo.xml is absent', async () => {
       // Stub: no existing series, no existing book
       db._chains.select.limit.mockResolvedValue([]);
@@ -1838,7 +1872,7 @@ describe('MediaImporterService', () => {
       // Stub: comicMetadataProvider returns no ComicInfo (info = null)
       deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
         comicInfo: null,
-        pageCount: 0,
+        pageCount: 1,
         cover: null,
       });
 
@@ -1908,7 +1942,7 @@ describe('MediaImporterService', () => {
       db._chains.select.limit.mockResolvedValue([]);
       deps.comicMetadataProvider.extractMetadata.mockResolvedValue({
         comicInfo: null,
-        pageCount: 0,
+        pageCount: 1,
         cover: null,
       });
 

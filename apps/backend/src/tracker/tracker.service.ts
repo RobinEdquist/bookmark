@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { transferState, transferProgress } from './transfer-observation';
+import { TrackerClientException } from './tracker-client.exception';
 import { Injectable, Logger, HttpException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
@@ -73,9 +75,28 @@ export class TrackerService {
         this.logger.error(
           `Tracker client error: ${response.status} ${errorText}`,
         );
-        throw new HttpException(
-          `Tracker client error: ${response.statusText}`,
+        let detail = `Module returned HTTP ${response.status}`;
+        try {
+          const body = JSON.parse(errorText) as {
+            error?: unknown;
+            message?: unknown;
+          };
+          const message = body.error ?? body.message;
+          if (typeof message === 'string') detail = message.slice(0, 2000);
+        } catch {
+          /* Do not store an arbitrary HTML/error response. */
+        }
+        if (this.apiKey) detail = detail.replaceAll(this.apiKey, '[redacted]');
+        detail = detail
+          .replace(
+            /(password|token|secret|api[-_ ]?key)(\s*[:=]\s*)[^\s,;]+/gi,
+            '$1$2[redacted]',
+          )
+          .replace(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/gi, '$1[redacted]@');
+        throw new TrackerClientException(
+          response.statusText,
           response.status,
+          detail,
         );
       }
 
@@ -139,7 +160,12 @@ export class TrackerService {
         502,
       );
     }
-    return response;
+    return {
+      ...response,
+      state: transferState(response.state),
+      progress: transferProgress(response.progress),
+      rawState: response.rawState ?? response.state ?? null,
+    };
   }
 
   async getBulkTorrentStatus(hashes: string[]): Promise<BulkTorrentStatus> {
@@ -171,7 +197,14 @@ export class TrackerService {
         502,
       );
     }
-    return response;
+    return {
+      torrents: response.torrents.map((torrent) => ({
+        ...torrent,
+        state: transferState(torrent.state),
+        progress: transferProgress(torrent.progress),
+        rawState: torrent.rawState ?? torrent.state ?? null,
+      })),
+    };
   }
 
   async proxyImage(torrentId: string, res: Response): Promise<void> {

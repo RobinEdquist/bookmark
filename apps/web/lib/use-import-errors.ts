@@ -92,6 +92,8 @@ export function useRetryImport() {
     mutationFn: retryImport,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.importErrors.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminRequests.all });
     },
   });
 }
@@ -103,6 +105,8 @@ export function useDismissImportError() {
     mutationFn: dismissImportError,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.importErrors.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminRequests.all });
     },
   });
 }
@@ -114,6 +118,8 @@ export function useDeleteImportError() {
     mutationFn: deleteImportError,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.importErrors.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.requests.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminRequests.all });
     },
   });
 }

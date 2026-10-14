@@ -78,6 +78,18 @@
         "failed": "Hämtningen misslyckades",
         "complete": "Importerad"
       }
+    },
+    "diagnostics": {
+      "title": "Förloppsdetaljer och återställning",
+      "loading": "Laddar förloppsdetaljer…",
+      "failed": "Förloppsdetaljerna kunde inte laddas.",
+      "sourceState": "Nedladdningsklientens status: {state}",
+      "retryImport": "Försök importera igen",
+      "queued": "Återställningsåtgärden är klar",
+      "recoveryFailed": "Återställningen misslyckades. Kontrollera förloppsdetaljerna och källan.",
+      "reconcile": "Stäm av begäran",
+      "reconcileDescription": "Be den ursprungliga källan stämma av begäran med dess befintliga begäransnyckel. Godkännandet bevaras och dubbla överföringar förhindras.",
+      "checkClient": "Kontrollera eller återuppta den befintliga överföringen i nedladdningsklienten. Ett tillfälligt fel tillåter inte en ersättningsnedladdning."
     }
   },
   "metadata": {

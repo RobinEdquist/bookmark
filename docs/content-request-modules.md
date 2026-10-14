@@ -47,6 +47,16 @@ An approved book without a selected release has status `waiting`. `approvedAt` r
 
 Admins can inspect `GET /api/admin/requests/{id}/attempts`, which returns an array in creation order, oldest first (404 for a missing request). `POST /api/admin/requests/{id}/recheck` returns HTTP 200 after queuing an eligible pending or waiting request. It clears a stale source selection, retains approval gates, and cannot bypass a future publication date, active download, live search lease, or shared rate limits. Missing and ineligible requests return 400. Both endpoints require an authenticated admin. Existing approval, rejection, support, and search POST endpoints return HTTP 201.
 
+### Request stages and recovery
+
+Every request includes `activity`, separate from its approval `status`. Its `stage` is `waiting_approval`, `waiting_availability`, `submitting`, `downloading`, `adding_to_library`, `ready`, `needs_attention`, or `rejected`. `transferState` is the source-normalized observation, `progress` is a 0–1 fraction or null, `observedAt` is the server's UTC observation time, and `issue` is a sanitized explanation code. Zero means known zero progress. Unknown progress never becomes zero, and neither 100% nor a completed transfer makes a request ready: the importer must confirm usable same-medium library content.
+
+Bookmark keeps paused, stalled, queued, checking, moving, completed, error, explicit missing, and unknown states distinct. Failed bulk lookups or omitted jobs retain the last observation with `stale: true`, rather than asserting absence. Observations older than ninety seconds are stale even if the worker stopped. Only an explicit `not_found` from a successful lookup marks a transfer missing. The existing worker makes one bulk lookup every thirty seconds; overlapping ticks are suppressed and shared hashes are deduplicated. User and admin views refresh their protected request lists every thirty seconds without polling the source themselves or broadcasting private request events.
+
+Import failures are correlated using exact path components within the configured library and the requested medium. Ambiguous folder matches are left for admin review. An import queued for retry remains `adding_to_library`; pending or ignored import errors need attention. Empty or partially failed comic imports do not confirm readiness. Existing usable audiobook/ebook/comic imports can reconcile the request during a retry.
+
+`GET /api/admin/requests/{id}/diagnostics` exposes the raw source state, latest submission reason, and correlated import error ID/path/message/status. These fields are excluded from ordinary request responses. Admins can retry a correlated import through the existing `/api/admin/import-errors/{id}/retry` endpoint, inspect paused/blocked jobs in their download client, or explicitly reconcile an uncertain submission with `POST /api/admin/requests/{id}/reconcile` (HTTP 200). Reconciliation conditionally claims the original attempt, reuses its submission key and saved category/freeleech options, and spends no new approval allowance. Changed sources, concurrently claimed submissions, and older attempts without saved options return 400 and require inspection in the source client. Neither history nor supporters are discarded.
+
 ---
 
 ## How Bookmark calls your module
@@ -94,7 +104,7 @@ The `id` values are **your own** — Bookmark never interprets them, it only pas
 
 ### Required book request contract
 
-Modules implement OpenAPI contract version 2.0 together with Bookmark. There is no capability negotiation or older module protocol. All listed endpoints, including `/languages`, are required; a catalog without languages returns `{ "languages": [] }`.
+Modules implement OpenAPI contract version 3.0 together with Bookmark. There is no capability negotiation or older module protocol. All listed endpoints, including `/languages`, are required; a catalog without languages returns `{ "languages": [] }`.
 
 Scheduled `/search` calls include `book: { title, author, contentType, languageNames }`. These fields scope observations to the requested book, medium, and language intent. Interactive searches omit `book`. Every response includes `releaseDate`, an ISO publication timestamp for that exact intent or null when unknown. A torrent's upload date is not a publication date. Search results use the same language names returned by `/languages` so accepted languages can match reliably.
 
@@ -112,7 +122,7 @@ Rejecting a pending request cancels its scheduled check, clears the last search 
 
 Checks run in batches of at most ten searches per minute across server replicas, ordered by earliest `nextSearchAt`, then creation time and ID. Overdue rechecks stay ahead of newly submitted requests, so continuous arrivals cannot starve them. Only one batch runs at a time, followed by a one-minute cooldown after completion. The worker polls every ten seconds, so a completed cooldown does not wait for another whole-minute cron tick. Slow searches keep the shared lease and do not allow overlapping batches. A persisted thirty-minute lease and token fence concurrent workers and recover after restarts. Language taxonomy is read once per batch when required. Ordinary misses recheck daily; infrastructure failures back off up to seven days. Future publication dates defer checks until the date, with at most weekly metadata revalidation to handle changed dates. Invalid and unknown dates retain regular checks. Administrators can queue eligible checks through `POST /api/admin/requests/{id}/recheck`, using the same schedule and limits.
 
-Language IDs are stored with the configured source's identity and the names returned by its taxonomy. Checks validate that mapping and pause acquisition if the module or taxonomy changes. A known result language also becomes part of direct-request intent. Unknown result languages cannot fulfill a language-specific request. Candidate selection requires exact normalized title, author when known, medium, and accepted language. Unknown-author requests wait when exact-title results identify multiple different authors. Legacy modules use ordinary `/search`, with the same local candidate validation, and never supply trusted publication dates.
+Language IDs are stored with the configured source's identity and the names returned by its taxonomy. Checks validate that mapping and pause acquisition if the module or taxonomy changes. A known result language also becomes part of direct-request intent. Unknown result languages cannot fulfill a language-specific request. Candidate selection requires exact normalized title, author when known, medium, and accepted language. Unknown-author requests wait when exact-title results identify multiple different authors. Every source uses the required `/search` book-intent contract, with the same local candidate validation.
 
 Book identity is intentionally lightweight. It does not yet model works and editions or unify different title/author spellings from external catalogs. Different medium and language requirements remain separate requests; compatible requests share supporters even if their release IDs differ. Existing duplicate rows are preserved during migration.
 
@@ -205,6 +215,8 @@ Status object (single endpoint returns one; bulk returns `{ "torrents": [ … ] 
   "hash": "a94a8fe5cc…",
   "name": "Project Hail Mary [M4B]",
   "state": "downloading",
+  "rawState": "forcedDL",
+  "acquisitionFailed": false,
   "progress": 0.42,
   "size": 1288490188,
   "downloaded": 541165879,
@@ -212,8 +224,8 @@ Status object (single endpoint returns one; bulk returns `{ "torrents": [ … ] 
 }
 ```
 
-- `hash`, `name`, `state`, `progress` are required. `progress` is a 0–1 fraction.
-- `state` is a free-form string. The **only value Bookmark interprets** is `"not_found"`, meaning the download job no longer exists — return it in bulk responses for unknown hashes rather than omitting them (Bookmark logs a warning and leaves the request untouched). Every other state means "the job exists" and moves the request to _downloading_. Conventional values (`downloading`, `stalledDL`, `pausedDL`, `uploading`, `completed`, `seeding`, `error`, …) are listed in the OpenAPI spec for interoperability.
+- `hash`, `name`, `state`, `progress`, `rawState`, and `acquisitionFailed` are required. `progress` is a 0–1 fraction or null; zero must mean observed zero, not missing data. `rawState` is the original downloader state or null, reserved for admin diagnostics.
+- `state` is normalized by the module: `downloading`, `paused`, `stalled`, `queued`, `checking`, `moving`, `completed`, `error`, `not_found`, or `unknown`. A percentage alone cannot establish completion. Return `not_found` only for confirmed absence after a successful lookup, including each absent job in bulk responses. Lookup failures return non-2xx. Unknown source states must become `unknown`, never presumed downloading. `completed` transfers wait for library import and are not yet ready.
 - For the single endpoint, an unknown hash may return 404. Bookmark stores the `hash` from `/download` before this call, so a non-2xx here does not un-approve the request or submit it again. The next bulk poll caches `name` if this call failed. Still resolve a hash you just returned; without `name`, import matching cannot complete the request.
 
 ### `GET /image/{torrentId}`
@@ -243,7 +255,7 @@ Import matching requires a single active request with the exact folder name and 
 1. User searches → Bookmark calls `POST /search` and shows results.
 2. User requests an item → stored in Bookmark as _pending_ (or auto-approved if the user has weekly auto-approve budget).
 3. Admin approves → Bookmark marks the request _approved_ before calling the module, then `POST /download/{id}` with the configured `category`. Your module returns a `hash`, which Bookmark stores immediately. It then calls `GET /torrent/{hash}` and caches `name`. A failed status call leaves the request approved with its hash; it is not submitted again.
-4. A scheduler polls `GET /torrents?hashes=…`; any state other than `not_found` moves the request to _downloading_.
+4. A scheduler polls `GET /torrents?hashes=…`, saving normalized transfer state, nullable progress and observation time. Temporary failures preserve the last observation. Completed transfers wait for usable library import; explicit missing and blocked transfers need attention.
 5. Your module finishes the download into the watched import directory.
 6. Bookmark's library watcher imports the item, matches the folder name, links the library item to the request, and marks it _complete_.
 

@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: Bookmark Content Request Module API
-  version: 2.0.0
+  version: 3.0.0
   description: |
     The HTTP contract a **content request module** must implement so Bookmark
     can search an external catalog, start downloads for approved requests, and
@@ -566,7 +566,7 @@ components:
 
     TorrentStatus:
       type: object
-      required: [hash, name, state, progress, acquisitionFailed]
+      required: [hash, name, state, progress, rawState, acquisitionFailed]
       properties:
         acquisitionFailed:
           type: boolean
@@ -591,19 +591,37 @@ components:
           example: Project Hail Mary [M4B]
         state:
           type: string
+          enum:
+            [
+              downloading,
+              paused,
+              stalled,
+              queued,
+              checking,
+              moving,
+              completed,
+              error,
+              not_found,
+              unknown,
+            ]
           description: >-
-            Free-form state string. The only value Bookmark interprets is
-            "not_found" (download job no longer exists); every other value
-            means the job exists. Conventional values - downloading,
-            stalledDL, metaDL, pausedDL, queuedDL, checkingDL, forcedDL,
-            uploading, stalledUP, pausedUP, queuedUP, checkingUP, forcedUP,
-            checkingResumeData, moving, missingFiles, error, allocating,
-            completed, seeding.
+            Source-normalized observation. completed means the transfer finished, not
+            that Bookmark imported usable content. not_found is explicit absence
+            from a successful lookup. unknown never implies downloading or completion.
+            Preserve paused, stalled, queued, checking, moving and errors separately.
+            Do not infer completion solely from a percentage or turn a lookup failure
+            into not_found. Omit no requested jobs on a successful bulk lookup.
           example: downloading
+        rawState:
+          type: string
+          nullable: true
+          description: Original downloader state for admin diagnostics; null when unavailable.
+          example: stalledDL
         progress:
           type: number
           format: double
-          description: Download progress as a 0-1 fraction.
+          nullable: true
+          description: Download progress as a 0-1 fraction, or null if unknown. Zero is known zero progress; never fabricate it for missing data.
           minimum: 0
           maximum: 1
           example: 0.42

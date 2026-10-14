@@ -1,11 +1,15 @@
 import { RequestAttemptDto } from './dto/request-attempt.dto';
 import { randomUUID } from 'node:crypto';
+import { relative, resolve, sep } from 'node:path';
+import type { TorrentStatus } from '../tracker/types';
+import { TrackerClientException } from '../tracker/tracker-client.exception';
 import {
   Inject,
   Injectable,
   Logger,
   NotFoundException,
   BadRequestException,
+  HttpException,
   type OnApplicationBootstrap,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
@@ -42,6 +46,13 @@ import {
 } from './dto';
 import { RequestStatus, ContentType } from './schema';
 import { RequestSearchQueueDto } from './dto/request-search-queue.dto';
+import { RequestDiagnosticsDto } from './dto/request-activity.dto';
+import {
+  requestActivity,
+  transferState,
+  transferProgress,
+} from './request-activity';
+import { importErrors } from '../import-errors/schema';
 import {
   bookKey,
   normalizeBookText,
@@ -59,6 +70,7 @@ type CombinedSchema = typeof requestsSchema &
 @Injectable()
 export class RequestsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RequestsService.name);
+  private pollingTransfers = false;
 
   constructor(
     @Inject(DATABASE_CONNECTION)
@@ -89,7 +101,24 @@ export class RequestsService implements OnApplicationBootstrap {
           lte(requestsSchema.requestAttempts.updatedAt, cutoff),
         ),
       )
-      .returning({ id: requestsSchema.requestAttempts.id });
+      .returning({
+        id: requestsSchema.requestAttempts.id,
+        requestId: requestsSchema.requestAttempts.requestId,
+      });
+    if (recovered.length)
+      await this.db
+        .update(requestsSchema.requests)
+        .set({ submissionUncertain: true })
+        .where(
+          and(
+            inArray(
+              requestsSchema.requests.id,
+              recovered.map((attempt) => attempt.requestId),
+            ),
+            eq(requestsSchema.requests.status, 'approved'),
+            isNull(requestsSchema.requests.torrentHash),
+          ),
+        );
     if (recovered.length)
       this.logger.warn(
         `Marked ${recovered.length} interrupted submissions uncertain; inspect request attempt history before reconciliation`,
@@ -686,9 +715,19 @@ export class RequestsService implements OnApplicationBootstrap {
   ): Promise<void> {
     let hash: string;
     try {
-      const result = await this.tracker.download(attempt.torrentId, {
+      const options = attempt.downloadOptions ?? {
         category: categories[request.contentType],
-        usePersonalFL: usePersonalFL || undefined,
+        ...(usePersonalFL ? { usePersonalFL: true } : {}),
+      };
+      // Save the original options before calling the source, so explicit
+      // reconciliation cannot change freeleech/category settings mid-attempt.
+      if (!attempt.downloadOptions)
+        await this.db
+          .update(requestsSchema.requestAttempts)
+          .set({ downloadOptions: options })
+          .where(eq(requestsSchema.requestAttempts.id, attempt.id));
+      const result = await this.tracker.download(attempt.torrentId, {
+        ...options,
         submissionKey: attempt.id,
       });
       if (!result.hash || !/^[a-zA-Z0-9_-]+$/.test(result.hash)) {
@@ -699,11 +738,33 @@ export class RequestsService implements OnApplicationBootstrap {
         await tx
           .update(requestsSchema.requestAttempts)
           .set({ status: 'tracking', torrentHash: hash })
-          .where(eq(requestsSchema.requestAttempts.id, attempt.id));
+          .where(
+            and(
+              eq(requestsSchema.requestAttempts.id, attempt.id),
+              eq(requestsSchema.requestAttempts.status, 'submitting'),
+            ),
+          );
         await tx
           .update(requestsSchema.requests)
-          .set({ torrentHash: hash })
-          .where(eq(requestsSchema.requests.id, request.id));
+          .set({
+            torrentHash: hash,
+            submissionUncertain: false,
+            transferState: null,
+            transferProgress: null,
+            transferObservedAt: null,
+            transferRawState: null,
+            transferStale: false,
+          })
+          .where(
+            and(
+              eq(requestsSchema.requests.id, request.id),
+              inArray(requestsSchema.requests.status, [
+                'approved',
+                'downloading',
+              ]),
+              isNull(requestsSchema.requests.libraryItemId),
+            ),
+          );
       });
     } catch (error) {
       // A timeout or a crash does not establish that a transfer is absent.
@@ -712,9 +773,27 @@ export class RequestsService implements OnApplicationBootstrap {
         .update(requestsSchema.requestAttempts)
         .set({
           status: 'uncertain',
-          reason: 'Submission outcome needs reconciliation',
+          reason: this.sourceFailureReason(
+            error,
+            'Submission outcome needs reconciliation',
+          ),
         })
-        .where(eq(requestsSchema.requestAttempts.id, attempt.id));
+        .where(
+          and(
+            eq(requestsSchema.requestAttempts.id, attempt.id),
+            eq(requestsSchema.requestAttempts.status, 'submitting'),
+          ),
+        );
+      await this.db
+        .update(requestsSchema.requests)
+        .set({ submissionUncertain: true })
+        .where(
+          and(
+            eq(requestsSchema.requests.id, request.id),
+            isNull(requestsSchema.requests.torrentHash),
+            eq(requestsSchema.requests.status, 'approved'),
+          ),
+        );
       this.logger.error(
         `Submission uncertain for request ${request.id}: ${error}`,
       );
@@ -722,16 +801,21 @@ export class RequestsService implements OnApplicationBootstrap {
     }
     try {
       const status = await this.tracker.getTorrentStatus(hash);
+      await this.captureTransferObservation(
+        { ...request, torrentHash: hash },
+        status,
+      );
       if (status.name)
         await this.db.transaction(async (tx) => {
           await tx
-            .update(requestsSchema.requests)
-            .set({ folderName: status.name })
-            .where(eq(requestsSchema.requests.id, request.id));
-          await tx
             .update(requestsSchema.requestAttempts)
             .set({ folderName: status.name })
-            .where(eq(requestsSchema.requestAttempts.id, attempt.id));
+            .where(
+              and(
+                eq(requestsSchema.requestAttempts.id, attempt.id),
+                eq(requestsSchema.requestAttempts.status, 'tracking'),
+              ),
+            );
         });
     } catch (error) {
       this.logger.debug(
@@ -806,6 +890,201 @@ export class RequestsService implements OnApplicationBootstrap {
       reason: attempt.reason,
       createdAt: attempt.createdAt.toISOString(),
     }));
+  }
+
+  async getDiagnostics(id: string): Promise<RequestDiagnosticsDto> {
+    const request = await this.getRequestByIdInternal(id);
+    const error = request.importErrorId
+      ? (
+          await this.db
+            .select()
+            .from(importErrors)
+            .where(eq(importErrors.id, request.importErrorId))
+            .limit(1)
+        )[0]
+      : null;
+    const attempts = await this.db
+      .select()
+      .from(requestsSchema.requestAttempts)
+      .where(eq(requestsSchema.requestAttempts.requestId, id))
+      .orderBy(desc(requestsSchema.requestAttempts.createdAt))
+      .limit(1);
+    return {
+      activity: requestActivity(request, error?.status ?? null),
+      rawState: request.transferRawState ?? null,
+      submissionReason: attempts[0]?.reason ?? null,
+      importErrorId: error?.id ?? null,
+      importPath: error?.filePath ?? null,
+      importMessage: error?.errorMessage ?? null,
+      importStatus: error?.status ?? null,
+      canReconcile:
+        request.status === 'approved' &&
+        !request.torrentHash &&
+        attempts[0]?.status === 'uncertain' &&
+        !!attempts[0].downloadOptions &&
+        attempts[0].moduleId === this.tracker.getModuleId(),
+    };
+  }
+
+  /** Explicit reconciliation reuses the durable key; it never spends approval again. */
+  async reconcileSubmission(id: string): Promise<RequestResponseDto> {
+    const request = await this.getRequestByIdInternal(id);
+    const [attempt] = await this.db
+      .select()
+      .from(requestsSchema.requestAttempts)
+      .where(
+        and(
+          eq(requestsSchema.requestAttempts.requestId, id),
+          eq(requestsSchema.requestAttempts.status, 'uncertain'),
+        ),
+      )
+      .limit(1);
+    if (
+      request.status !== 'approved' ||
+      request.torrentHash ||
+      !attempt?.downloadOptions ||
+      attempt.moduleId !== this.tracker.getModuleId()
+    )
+      throw new BadRequestException(
+        'Reconciliation requires an uncertain submission with saved options at the original source; inspect older attempts in the source client',
+      );
+    // Conditional claim prevents two administrators replaying at the same time.
+    const [claimed] = await this.db
+      .update(requestsSchema.requestAttempts)
+      .set({ status: 'submitting', reason: null })
+      .where(
+        and(
+          eq(requestsSchema.requestAttempts.id, attempt.id),
+          eq(requestsSchema.requestAttempts.status, 'uncertain'),
+        ),
+      )
+      .returning();
+    if (!claimed)
+      throw new BadRequestException('Submission is already being reconciled');
+    const settings = await this.appSettingsService.getSettings();
+    await this.submitAttempt(
+      request,
+      claimed,
+      await this.appSettingsService.getRequestsCategories(),
+      settings.requestsUseFreeleech,
+    );
+    return this.getRequestById(id, null);
+  }
+
+  /** Correlation uses exact path components in the correct library and medium. */
+  async recordImportFailure(
+    filePath: string,
+    contentType: ContentType,
+  ): Promise<void> {
+    const settings = await this.appSettingsService.getSettings();
+    const root =
+      contentType === 'audiobook'
+        ? settings.audiobookLibraryPath
+        : contentType === 'ebook'
+          ? settings.ebookLibraryPath
+          : settings.comicLibraryPath;
+    if (!root) return;
+    const path = relative(resolve(root), resolve(filePath));
+    if (
+      !path ||
+      path === '..' ||
+      path.startsWith(`..${sep}`) ||
+      path.startsWith(sep)
+    )
+      return;
+    const candidates = await this.db
+      .select()
+      .from(requestsSchema.requests)
+      .where(
+        and(
+          eq(requestsSchema.requests.contentType, contentType),
+          inArray(requestsSchema.requests.folderName, path.split(sep)),
+          inArray(requestsSchema.requests.status, ['approved', 'downloading']),
+          isNull(requestsSchema.requests.libraryItemId),
+        ),
+      );
+    if (candidates.length !== 1) return;
+    const [error] = await this.db
+      .select()
+      .from(importErrors)
+      .where(eq(importErrors.filePath, filePath))
+      .limit(1);
+    if (!error) return;
+    const request = candidates[0];
+    await this.db
+      .update(requestsSchema.requests)
+      .set({ importErrorId: error.id })
+      .where(
+        and(
+          eq(requestsSchema.requests.id, request.id),
+          isNull(requestsSchema.requests.libraryItemId),
+          request.torrentHash
+            ? eq(requestsSchema.requests.torrentHash, request.torrentHash)
+            : isNull(requestsSchema.requests.torrentHash),
+          inArray(requestsSchema.requests.status, ['approved', 'downloading']),
+        ),
+      );
+  }
+
+  private sourceFailureReason(error: unknown, fallback: string): string {
+    if (error instanceof TrackerClientException)
+      return `Source HTTP ${error.getStatus()}: ${error.sourceDetail}`;
+    if (error instanceof HttpException)
+      return `Source HTTP ${error.getStatus()}: ${error.message}`;
+    return fallback;
+  }
+
+  private async captureTransferObservation(
+    request: typeof requestsSchema.requests.$inferSelect,
+    observation?: TorrentStatus,
+    failureReason = 'Source omitted this download from its response; retrying',
+  ): Promise<void> {
+    if (!request.torrentHash) return;
+    const state = observation ? transferState(observation.state) : null;
+    await this.db
+      .update(requestsSchema.requests)
+      .set(
+        observation
+          ? {
+              transferState: state,
+              transferProgress: transferProgress(observation.progress),
+              transferRawState:
+                typeof observation.rawState === 'string'
+                  ? observation.rawState
+                  : typeof observation.state === 'string'
+                    ? observation.state
+                    : null,
+              transferObservedAt: new Date(),
+              transferStale: false,
+              ...(state === 'downloading'
+                ? { status: 'downloading' as const }
+                : {}),
+              torrentMissingSince:
+                state === 'not_found'
+                  ? (request.torrentMissingSince ?? new Date())
+                  : null,
+              ...(observation.name ? { folderName: observation.name } : {}),
+            }
+          : { transferStale: true },
+      )
+      .where(
+        and(
+          eq(requestsSchema.requests.id, request.id),
+          eq(requestsSchema.requests.torrentHash, request.torrentHash),
+          isNull(requestsSchema.requests.libraryItemId),
+          inArray(requestsSchema.requests.status, ['approved', 'downloading']),
+        ),
+      );
+    await this.db
+      .update(requestsSchema.requestAttempts)
+      .set({ reason: observation ? null : failureReason })
+      .where(
+        and(
+          eq(requestsSchema.requestAttempts.requestId, request.id),
+          eq(requestsSchema.requestAttempts.torrentHash, request.torrentHash),
+          eq(requestsSchema.requestAttempts.status, 'tracking'),
+        ),
+      );
   }
 
   /** Queue through the shared schedule; an admin click cannot bypass rate limits. */
@@ -1123,202 +1402,194 @@ export class RequestsService implements OnApplicationBootstrap {
   }
 
   async updateDownloadingStatuses(): Promise<void> {
-    // Get all requests that are approved or downloading
-    const activeRequests = await this.db
-      .select()
-      .from(requestsSchema.requests)
-      .where(
-        and(
-          or(
-            eq(requestsSchema.requests.status, 'approved'),
-            eq(requestsSchema.requests.status, 'downloading'),
-          ),
-          isNull(requestsSchema.requests.libraryItemId),
-        ),
-      );
-
-    if (activeRequests.length === 0) return;
-
-    const moduleId = this.tracker.getModuleId();
-    const monitoredRequests = activeRequests.filter(
-      (request) =>
-        !request.candidateModule || request.candidateModule === moduleId,
-    );
-    const hashes = monitoredRequests
-      .map((r) => r.torrentHash)
-      .filter((h): h is string => h !== null);
-
-    if (hashes.length === 0) return;
-
+    if (this.pollingTransfers) return;
+    this.pollingTransfers = true;
     try {
-      const statuses = await this.tracker.getBulkTorrentStatus(hashes);
-      const byHash = new Map(
-        statuses.torrents.map((t) => [t.hash.toLowerCase(), t]),
+      // Get all requests that are approved or downloading
+      const activeRequests = await this.db
+        .select()
+        .from(requestsSchema.requests)
+        .where(
+          and(
+            or(
+              eq(requestsSchema.requests.status, 'approved'),
+              eq(requestsSchema.requests.status, 'downloading'),
+            ),
+            isNull(requestsSchema.requests.libraryItemId),
+          ),
+        );
+
+      if (activeRequests.length === 0) return;
+
+      const moduleId = this.tracker.getModuleId();
+      const monitoredRequests = activeRequests.filter(
+        (request) =>
+          !request.candidateModule || request.candidateModule === moduleId,
       );
+      const hashes = [
+        ...new Set(
+          monitoredRequests
+            .map((r) => r.torrentHash)
+            .filter((h): h is string => h !== null),
+        ),
+      ];
 
-      for (const request of monitoredRequests) {
-        if (!request.torrentHash) continue;
+      if (hashes.length === 0) return;
 
-        const torrentStatus = byHash.get(request.torrentHash.toLowerCase());
-
-        if (torrentStatus?.acquisitionFailed === true) {
-          await this.db.transaction(async (tx) => {
-            const [current] = await tx
-              .select()
-              .from(requestsSchema.requests)
-              .where(
-                and(
-                  eq(requestsSchema.requests.id, request.id),
-                  eq(requestsSchema.requests.torrentHash, request.torrentHash!),
-                  isNull(requestsSchema.requests.libraryItemId),
-                  inArray(requestsSchema.requests.status, [
-                    'approved',
-                    'downloading',
-                  ]),
-                ),
+      try {
+        const statuses = await this.tracker.getBulkTorrentStatus(hashes);
+        const byHash = new Map(
+          statuses.torrents.map((t) => [t.hash.toLowerCase(), t]),
+        );
+        // Catch earlier import errors once a late source lookup supplies the
+        // folder name. Exact path components avoid wildcard/title collisions.
+        const folders = [
+          ...new Set(
+            monitoredRequests
+              .map(
+                (request) =>
+                  byHash.get(request.torrentHash?.toLowerCase() ?? '')?.name ||
+                  request.folderName,
               )
-              .for('update');
-            if (!current) return;
-            const [failed] = await tx
+              .filter((name): name is string => !!name),
+          ),
+        ];
+        if (folders.length) {
+          const errors = await this.db
+            .select()
+            .from(importErrors)
+            .where(
+              and(
+                inArray(importErrors.status, [
+                  'pending',
+                  'retrying',
+                  'ignored',
+                ]),
+                sql`string_to_array(${importErrors.filePath}, '/') && ${folders}::text[]`,
+                sql`NOT EXISTS (SELECT 1 FROM requests WHERE requests.import_error_id = ${importErrors.id})`,
+              ),
+            );
+          for (const error of errors) {
+            for (const medium of ['audiobook', 'ebook', 'comics'] as const)
+              await this.recordImportFailure(error.filePath, medium);
+          }
+        }
+
+        for (const request of monitoredRequests) {
+          if (!request.torrentHash) continue;
+
+          const torrentStatus = byHash.get(request.torrentHash.toLowerCase());
+
+          if (torrentStatus?.acquisitionFailed === true) {
+            await this.db.transaction(async (tx) => {
+              const [current] = await tx
+                .select()
+                .from(requestsSchema.requests)
+                .where(
+                  and(
+                    eq(requestsSchema.requests.id, request.id),
+                    eq(
+                      requestsSchema.requests.torrentHash,
+                      request.torrentHash!,
+                    ),
+                    isNull(requestsSchema.requests.libraryItemId),
+                    inArray(requestsSchema.requests.status, [
+                      'approved',
+                      'downloading',
+                    ]),
+                  ),
+                )
+                .for('update');
+              if (!current) return;
+              const [failed] = await tx
+                .update(requestsSchema.requestAttempts)
+                .set({
+                  status: 'failed',
+                  reason: 'Source confirmed a terminal acquisition failure',
+                })
+                .where(
+                  and(
+                    eq(requestsSchema.requestAttempts.requestId, request.id),
+                    eq(
+                      requestsSchema.requestAttempts.torrentHash,
+                      request.torrentHash!,
+                    ),
+                    eq(requestsSchema.requestAttempts.status, 'tracking'),
+                  ),
+                )
+                .returning();
+              if (!failed) return;
+              await tx
+                .update(requestsSchema.requests)
+                .set({
+                  status: 'waiting',
+                  torrentId: null,
+                  categoryId: null,
+                  candidateModule: null,
+                  torrentHash: null,
+                  folderName: null,
+                  transferState: null,
+                  transferProgress: null,
+                  transferRawState: null,
+                  transferObservedAt: null,
+                  transferStale: false,
+                  submissionUncertain: false,
+                  importErrorId: null,
+                  torrentMissingSince: null,
+                  nextSearchAt: new Date(),
+                  searchClaim: null,
+                  searchLeaseUntil: null,
+                })
+                .where(
+                  and(
+                    eq(requestsSchema.requests.id, request.id),
+                    eq(
+                      requestsSchema.requests.torrentHash,
+                      request.torrentHash!,
+                    ),
+                  ),
+                );
+            });
+            continue;
+          }
+
+          // Omission is an incomplete observation, not evidence of absence.
+          await this.captureTransferObservation(request, torrentStatus);
+          if (torrentStatus?.state === 'not_found') {
+            this.logger.debug(
+              `Source explicitly reports missing transfer for request ${request.id}`,
+            );
+          }
+          if (!request.folderName && torrentStatus?.name) {
+            await this.db
               .update(requestsSchema.requestAttempts)
-              .set({
-                status: 'failed',
-                reason: 'Source confirmed a terminal acquisition failure',
-              })
+              .set({ folderName: torrentStatus.name })
               .where(
                 and(
                   eq(requestsSchema.requestAttempts.requestId, request.id),
                   eq(
                     requestsSchema.requestAttempts.torrentHash,
-                    request.torrentHash!,
+                    request.torrentHash,
                   ),
-                  eq(requestsSchema.requestAttempts.status, 'tracking'),
-                ),
-              )
-              .returning();
-            if (!failed) return;
-            await tx
-              .update(requestsSchema.requests)
-              .set({
-                status: 'waiting',
-                torrentId: null,
-                categoryId: null,
-                candidateModule: null,
-                torrentHash: null,
-                folderName: null,
-                torrentMissingSince: null,
-                nextSearchAt: new Date(),
-                searchClaim: null,
-                searchLeaseUntil: null,
-              })
-              .where(
-                and(
-                  eq(requestsSchema.requests.id, request.id),
-                  eq(requestsSchema.requests.torrentHash, request.torrentHash!),
                 ),
               );
-          });
-          continue;
+          }
         }
-
-        // A hash the client reports as 'not_found' — or doesn't report at all —
-        // no longer exists there, so the request can never progress on its own.
-        if (!torrentStatus || torrentStatus.state === 'not_found') {
-          await this.flagTorrentMissing(request);
-          continue;
-        }
-
-        // The download client has many states (downloading, stalledDL, uploading, stalledUP, etc.)
-        // All of them mean the torrent exists; transition to 'complete' happens
-        // via the import matcher when the file is imported, so keep the request
-        // as 'downloading' until then.
-        const updates: Partial<typeof requestsSchema.requests.$inferInsert> =
-          {};
-
-        if (request.status !== 'downloading') {
-          updates.status = 'downloading';
-        }
-
-        // The torrent is back (re-added, or the client had just restarted).
-        if (request.torrentMissingSince) {
-          updates.torrentMissingSince = null;
-          this.logger.log(
-            `Torrent ${request.torrentHash} reappeared for request ${request.id}`,
-          );
-        }
-
-        // A status lookup that failed during approval leaves folderName empty.
-        // Import matching needs it, and this poll is the later read that has it.
-        if (!request.folderName && torrentStatus.name) {
-          updates.folderName = torrentStatus.name;
-        }
-
-        if (!request.folderName && torrentStatus.name) {
-          await this.db
-            .update(requestsSchema.requestAttempts)
-            .set({ folderName: torrentStatus.name })
-            .where(
-              and(
-                eq(requestsSchema.requestAttempts.requestId, request.id),
-                eq(
-                  requestsSchema.requestAttempts.torrentHash,
-                  request.torrentHash,
-                ),
-              ),
-            );
-        }
-        if (Object.keys(updates).length > 0) {
-          await this.db
-            .update(requestsSchema.requests)
-            .set(updates)
-            .where(
-              and(
-                eq(requestsSchema.requests.id, request.id),
-                eq(requestsSchema.requests.torrentHash, request.torrentHash),
-                isNull(requestsSchema.requests.libraryItemId),
-                inArray(requestsSchema.requests.status, [
-                  'approved',
-                  'downloading',
-                ]),
-              ),
-            );
-        }
+      } catch (error) {
+        await Promise.all(
+          monitoredRequests.map((request) =>
+            this.captureTransferObservation(
+              request,
+              undefined,
+              this.sourceFailureReason(error, 'Source lookup failed; retrying'),
+            ),
+          ),
+        );
+        this.logger.error(`Failed to update downloading statuses: ${error}`);
       }
-    } catch (error) {
-      this.logger.error(`Failed to update downloading statuses: ${error}`);
+    } finally {
+      this.pollingTransfers = false;
     }
-  }
-
-  /**
-   * Records that a request's torrent is gone from the download client. Logged at
-   * warn level once, on the poll that first notices — the flag then keeps the
-   * following 30-second polls quiet while the request waits for an admin.
-   */
-  private async flagTorrentMissing(
-    request: typeof requestsSchema.requests.$inferSelect,
-  ): Promise<void> {
-    if (request.torrentMissingSince) {
-      this.logger.debug(
-        `Torrent ${request.torrentHash} still missing for request ${request.id} (since ${request.torrentMissingSince.toISOString()})`,
-      );
-      return;
-    }
-
-    await this.db
-      .update(requestsSchema.requests)
-      .set({ torrentMissingSince: new Date() })
-      .where(
-        and(
-          eq(requestsSchema.requests.id, request.id),
-          eq(requestsSchema.requests.torrentHash, request.torrentHash!),
-          isNull(requestsSchema.requests.libraryItemId),
-          inArray(requestsSchema.requests.status, ['approved', 'downloading']),
-        ),
-      );
-
-    this.logger.warn(
-      `Torrent ${request.torrentHash} not found for request ${request.id} ("${request.title}") - flagged for admin review`,
-    );
   }
 
   async deleteRequest(id: string): Promise<void> {
@@ -1375,6 +1646,9 @@ export class RequestsService implements OnApplicationBootstrap {
           status: 'complete',
           libraryItemId,
           libraryItemType,
+          importErrorId: null,
+          transferStale: false,
+          submissionUncertain: false,
         })
         .where(
           and(
@@ -1467,7 +1741,17 @@ export class RequestsService implements OnApplicationBootstrap {
       ? supporters.some((s) => s.userId === currentUserId)
       : false;
 
+    const importError = request.importErrorId
+      ? (
+          await this.db
+            .select()
+            .from(importErrors)
+            .where(eq(importErrors.id, request.importErrorId))
+            .limit(1)
+        )[0]
+      : null;
     return {
+      activity: requestActivity(request, importError?.status ?? null),
       id: request.id,
       userId: request.userId,
       userEmail: user?.email ?? 'Unknown',

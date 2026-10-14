@@ -1,7 +1,7 @@
 // apps/backend/src/library-watcher/media-importer.service.ts
 import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { eq, inArray, sql, and } from 'drizzle-orm';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
@@ -155,6 +155,14 @@ export class MediaImporterService {
           `[IMPORT] Audiobook already exists at ${unit.path}, id=${existing[0].id}`,
         );
         await this.reconcileExistingAudiobook(existing[0], unit);
+        if (existing[0].status !== 'hidden') {
+          await this.matchImportedRequest(
+            unit.path,
+            existing[0].id,
+            'audiobook',
+          );
+          await this.importErrorsService.clearResolvedByPath(unit.path);
+        }
         return existing[0].id;
       }
 
@@ -385,6 +393,7 @@ export class MediaImporterService {
         error instanceof Error ? error : new Error(String(error)),
         'IMPORT_FAILED',
       );
+      await this.requestsService.recordImportFailure(unit.path, 'audiobook');
       return null;
     }
   }
@@ -410,7 +419,10 @@ export class MediaImporterService {
     try {
       // Check if already exists
       const existing = await this.db
-        .select({ id: ebooksSchema.ebooks.id })
+        .select({
+          id: ebooksSchema.ebooks.id,
+          status: ebooksSchema.ebooks.status,
+        })
         .from(ebooksSchema.ebooks)
         .where(eq(ebooksSchema.ebooks.filePath, relativeFilePath))
         .limit(1);
@@ -419,6 +431,10 @@ export class MediaImporterService {
         this.logger.debug(
           `[IMPORT] Ebook already exists at ${unit.path}, id=${existing[0].id}`,
         );
+        if (existing[0].status === 'available') {
+          await this.matchImportedRequest(unit.path, existing[0].id, 'ebook');
+          await this.importErrorsService.clearResolvedByPath(unit.path);
+        }
         return existing[0].id;
       }
 
@@ -553,6 +569,7 @@ export class MediaImporterService {
         error instanceof Error ? error : new Error(String(error)),
         'IMPORT_FAILED',
       );
+      await this.requestsService.recordImportFailure(unit.path, 'ebook');
       return null;
     }
   }
@@ -583,7 +600,12 @@ export class MediaImporterService {
       if (relPaths.length === 0) return null; // inArray requires a non-empty list
 
       const existingRows = await this.db
-        .select({ filePath: comicsSchema.comicBooks.filePath })
+        .select({
+          filePath: comicsSchema.comicBooks.filePath,
+          seriesId: comicsSchema.comicBooks.seriesId,
+          status: comicsSchema.comicBooks.status,
+          pageCount: comicsSchema.comicBooks.pageCount,
+        })
         .from(comicsSchema.comicBooks)
         .where(
           inArray(
@@ -600,7 +622,35 @@ export class MediaImporterService {
       );
 
       if (toImport.size === 0) {
-        // Nothing new to place; do not create or resurrect a series.
+        // Reconcile only usable files owned by this existing folder. Files
+        // moved to another series must never resurrect a phantom series.
+        const owner = existingRows[0]?.seriesId;
+        if (
+          owner &&
+          existingRows.every(
+            (book) =>
+              book.seriesId === owner &&
+              book.status === 'available' &&
+              (book.pageCount ?? 0) > 0,
+          )
+        ) {
+          const [series] = await this.db
+            .select()
+            .from(comicsSchema.comicSeries)
+            .where(
+              and(
+                eq(comicsSchema.comicSeries.id, owner),
+                eq(comicsSchema.comicSeries.folderPath, relativeFolderPath),
+              ),
+            )
+            .limit(1);
+          if (series) {
+            await this.matchImportedRequest(unit.path, series.id, 'comics');
+            for (const { book } of relPaths)
+              await this.importErrorsService.clearResolvedByPath(book.path);
+            return series.id;
+          }
+        }
         return null;
       }
 
@@ -616,6 +666,7 @@ export class MediaImporterService {
         isNewSeries = true;
       }
 
+      let importedBooks = 0;
       for (const { book, rel } of relPaths) {
         if (!toImport.has(rel)) continue;
 
@@ -624,8 +675,11 @@ export class MediaImporterService {
           continue;
         }
 
-        await this.importComicBook(series.id, book.path, rel);
+        if (await this.importComicBook(series.id, book.path, rel))
+          importedBooks++;
       }
+
+      if (importedBooks < toImport.size) return null;
 
       if (isNewSeries) {
         this.logger.log(
@@ -687,7 +741,28 @@ export class MediaImporterService {
         error instanceof Error ? error : new Error(String(error)),
         'IMPORT_FAILED',
       );
+      await this.requestsService.recordImportFailure(unit.path, 'comics');
       return null;
+    }
+  }
+
+  private async matchImportedRequest(
+    filePath: string,
+    id: string,
+    medium: 'audiobook' | 'ebook' | 'comics',
+  ): Promise<void> {
+    if (
+      !(await this.requestsService.tryMatchImport(
+        path.basename(filePath),
+        id,
+        medium,
+      ))
+    ) {
+      await this.requestsService.tryMatchImport(
+        path.basename(path.dirname(filePath)),
+        id,
+        medium,
+      );
     }
   }
 
@@ -789,6 +864,8 @@ export class MediaImporterService {
     try {
       const metadata =
         await this.comicMetadataProvider.extractMetadata(absolutePath);
+      if (metadata.pageCount <= 0)
+        throw new Error('No readable comic pages found');
       const stats = await fs.stat(absolutePath);
       const parsed = parseComicFilename(fileName);
       const info = metadata.comicInfo;
@@ -895,6 +972,7 @@ export class MediaImporterService {
         error instanceof Error ? error : new Error(String(error)),
         'IMPORT_FAILED',
       );
+      await this.requestsService.recordImportFailure(absolutePath, 'comics');
       return null;
     }
   }

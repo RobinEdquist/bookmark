@@ -6,6 +6,7 @@ import { ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@repo/ui/components/ui/card";
 import { Badge } from "@repo/ui/components/ui/badge";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
+import { RequestActivity } from "./request-activity";
 import type { RequestResponse } from "../../lib/use-requests";
 import { CONTENT_TYPE_STYLES, libraryItemHref } from "./content-type-styles";
 
@@ -13,18 +14,6 @@ interface MyRequestsListProps {
   requests: RequestResponse[];
   isLoading: boolean;
 }
-
-const statusVariants: Record<
-  string,
-  "default" | "secondary" | "destructive" | "outline"
-> = {
-  pending: "secondary",
-  approved: "default",
-  waiting: "secondary",
-  downloading: "default",
-  complete: "default",
-  rejected: "destructive",
-};
 
 export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
   const t = useTranslations("requests");
@@ -73,19 +62,15 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
                         </p>
                       )}
                     </div>
-                    <Badge
-                      variant={statusVariants[request.status]}
-                      className="shrink-0"
-                    >
-                      {request.status === "approved" &&
-                      request.autoApprovedByUserId
-                        ? request.autoApprovedByUserId === request.userId
+                    {request.autoApprovedByUserId && (
+                      <Badge variant="outline" className="shrink-0">
+                        {request.autoApprovedByUserId === request.userId
                           ? t("autoApprove.autoApproved")
                           : t("autoApprove.autoApprovedBy", {
                               email: request.autoApprovedByEmail ?? "Unknown",
-                            })
-                        : t(`status.${request.status}`)}
-                    </Badge>
+                            })}
+                      </Badge>
+                    )}
                   </div>
 
                   {request.status === "rejected" && request.rejectionReason && (
@@ -105,6 +90,7 @@ export function MyRequestsList({ requests, isLoading }: MyRequestsListProps) {
                       {request.languageNames.join(", ")}
                     </p>
                   )}
+                  <RequestActivity activity={request.activity} />
                   {isSearching && request.torrentId === null && (
                     <p className="text-sm text-muted-foreground">
                       {t("wanted.waitingDescription")}

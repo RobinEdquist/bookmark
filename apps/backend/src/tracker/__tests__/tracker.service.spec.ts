@@ -1,5 +1,6 @@
 import { HttpException } from '@nestjs/common';
 import { TrackerService } from '../tracker.service';
+import { TrackerClientException } from '../tracker-client.exception';
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -74,6 +75,43 @@ describe('TrackerService', () => {
     jest.clearAllMocks();
     const mockConfig = createMockConfigService();
     service = new TrackerService(mockConfig as any);
+  });
+
+  it('retains useful source diagnostics with credentials redacted and public errors generic', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockResponse(
+        { error: 'unsupported option, key test-key, token=private-token' },
+        422,
+      ),
+    );
+    try {
+      await service.download('123', { submissionKey: 'attempt' });
+      throw new Error('expected rejection');
+    } catch (error) {
+      expect(error).toBeInstanceOf(TrackerClientException);
+      const failure = error as TrackerClientException;
+      expect(failure.sourceDetail).toContain('unsupported option');
+      expect(failure.sourceDetail).not.toContain('test-key');
+      expect(failure.sourceDetail).not.toContain('private-token');
+      expect(JSON.stringify(failure.getResponse())).not.toContain(
+        'unsupported option',
+      );
+    }
+  });
+
+  it('normalizes unexpected module state and missing progress without guessing activity', async () => {
+    mockFetch.mockResolvedValueOnce(
+      mockResponse({
+        hash: 'hash',
+        state: 'futureState',
+        acquisitionFailed: false,
+      }),
+    );
+    expect(await service.getTorrentStatus('hash')).toMatchObject({
+      state: 'unknown',
+      progress: null,
+      rawState: 'futureState',
+    });
   });
 
   // ===== isConfigured =====

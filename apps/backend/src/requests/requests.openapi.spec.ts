@@ -37,6 +37,24 @@ describe('Request OpenAPI contract', () => {
             rejectRequest: jest.fn().mockResolvedValue(result),
             recheckRequest: jest.fn().mockResolvedValue(result),
             getAttempts: jest.fn().mockResolvedValue([]),
+            getDiagnostics: jest.fn().mockResolvedValue({
+              activity: {
+                stage: 'needs_attention',
+                transferState: 'error',
+                progress: null,
+                observedAt: null,
+                stale: false,
+                issue: 'download_error',
+              },
+              rawState: 'missingFiles',
+              submissionReason: null,
+              importErrorId: null,
+              importPath: null,
+              importMessage: null,
+              importStatus: null,
+              canReconcile: false,
+            }),
+            reconcileSubmission: jest.fn().mockResolvedValue(result),
             getUserRequests: jest.fn().mockResolvedValue([]),
             getAllRequests: jest.fn().mockResolvedValue([]),
             getSearchQueue: jest.fn().mockResolvedValue({
@@ -84,6 +102,7 @@ describe('Request OpenAPI contract', () => {
     [`/api/admin/requests/${id}/approve`, {}],
     [`/api/admin/requests/${id}/reject`, {}],
     [`/api/admin/requests/${id}/recheck`, {}],
+    [`/api/admin/requests/${id}/reconcile`, {}],
   ])('documents the actual success code for POST %s', async (path, body) => {
     const response = await request(app.getHttpServer()).post(path).send(body);
     expect(response.status).toBeGreaterThanOrEqual(200);
@@ -185,6 +204,7 @@ describe('Request OpenAPI contract', () => {
     });
     expect(document.components?.schemas?.ContentRequestDto).toMatchObject({
       properties: {
+        activity: { $ref: '#/components/schemas/RequestActivityDto' },
         status: { enum: expect.arrayContaining(['waiting']) },
         torrentId: { type: 'string', nullable: true },
         languageNames: { type: 'array', items: { type: 'string' } },
@@ -203,6 +223,58 @@ describe('Request OpenAPI contract', () => {
         createdAt: { format: 'date-time' },
       },
     });
+  });
+
+  it('documents observations independently of approval status and keeps diagnostics admin-only', () => {
+    expect(document.components?.schemas?.RequestActivityDto).toMatchObject({
+      required: expect.arrayContaining([
+        'stage',
+        'transferState',
+        'progress',
+        'observedAt',
+        'stale',
+        'issue',
+      ]),
+      properties: {
+        progress: { nullable: true, minimum: 0, maximum: 1 },
+        stage: {
+          enum: expect.arrayContaining([
+            'adding_to_library',
+            'ready',
+            'needs_attention',
+          ]),
+        },
+      },
+    });
+    const requestSchema = document.components?.schemas?.ContentRequestDto;
+    expect(requestSchema).not.toMatchObject({
+      properties: { rawState: expect.anything() },
+    });
+    for (const [path, method] of [
+      ['/api/admin/requests/{id}/diagnostics', 'get'],
+      ['/api/admin/requests/{id}/reconcile', 'post'],
+    ] as const) {
+      const operation = document.paths[path]?.[method];
+      expect(operation?.responses).toEqual(
+        expect.objectContaining({
+          '200': expect.anything(),
+          '401': expect.anything(),
+          '403': expect.anything(),
+          '404': expect.anything(),
+        }),
+      );
+      expect(operation?.security).toEqual(
+        expect.arrayContaining([
+          { 'better-auth.session_token': [] },
+          { 'api-key': [] },
+        ]),
+      );
+    }
+    expect(
+      document.paths['/api/admin/requests/{id}/reconcile']?.post?.responses[
+        '400'
+      ],
+    ).toBeDefined();
   });
 
   it('documents the opt-in setting and disabled creation response', () => {

@@ -63,6 +63,9 @@ describe('Book requests and acquisition (e2e)', () => {
         requestsUseFreeleech: false,
         requestsEnabled: true,
         requestsAllowUnavailable: allowUnavailable,
+        audiobookLibraryPath: '/library/audio',
+        ebookLibraryPath: '/library/books',
+        comicLibraryPath: '/library/comics',
       }),
       getRequestsCategories: async () => {
         await beforeApproval?.();
@@ -623,6 +626,95 @@ describe('Book requests and acquisition (e2e)', () => {
     await tick();
     expect(tracker.download).toHaveBeenCalledTimes(1);
     expect((await service.getAttempts(request.id))[0].status).toBe('tracking');
+  });
+
+  it('persists stale observations, links failed imports, and confirms ready only after usable import', async () => {
+    const request = await wanted(undefined, { torrentId: 10, categoryId: 13 });
+    await service.approveRequest(request.id);
+    const saved = (await service.getAttempts(request.id))[0];
+    tracker.getBulkTorrentStatus.mockResolvedValueOnce({
+      torrents: [
+        {
+          hash: saved.torrentHash,
+          name: 'Observed Book',
+          state: 'completed',
+          progress: 1,
+          rawState: 'uploading',
+          acquisitionFailed: false,
+        },
+      ],
+    });
+    await service.updateDownloadingStatuses();
+    expect(
+      (await service.getRequestById(request.id, userIds[0])).activity,
+    ).toMatchObject({ stage: 'adding_to_library', progress: 1, stale: false });
+    tracker.getBulkTorrentStatus.mockRejectedValueOnce(
+      new Error('temporary source failure'),
+    );
+    await service.updateDownloadingStatuses();
+    expect(
+      (await service.getRequestById(request.id, userIds[0])).activity,
+    ).toMatchObject({ stage: 'adding_to_library', progress: 1, stale: true });
+    const path = '/library/audio/Observed Book/file.m4b';
+    const error = (
+      await pool.query(
+        'INSERT INTO import_errors (file_path, error_message) VALUES ($1, $2) RETURNING id',
+        [path, 'Private parser detail'],
+      )
+    ).rows[0];
+    try {
+      await service.recordImportFailure(path, 'audiobook');
+      const dto = await service.getRequestById(request.id, userIds[0]);
+      expect(dto.activity).toMatchObject({
+        stage: 'needs_attention',
+        issue: 'import_failed',
+      });
+      expect(JSON.stringify(dto)).not.toContain('Private parser detail');
+      expect(await service.getDiagnostics(request.id)).toMatchObject({
+        rawState: 'uploading',
+        importErrorId: error.id,
+        importPath: path,
+      });
+      await pool.query(
+        "UPDATE import_errors SET status = 'retrying' WHERE id = $1",
+        [error.id],
+      );
+      expect(
+        (await service.getRequestById(request.id, userIds[0])).activity,
+      ).toMatchObject({ stage: 'adding_to_library', issue: 'import_retrying' });
+      // Only the importer supplies this confirmation; a percentage never does.
+      await service.tryMatchImport('Observed Book', randomUUID(), 'audiobook');
+      expect(
+        (await service.getRequestById(request.id, userIds[0])).activity,
+      ).toMatchObject({ stage: 'ready', stale: false, issue: null });
+    } finally {
+      await pool.query('DELETE FROM import_errors WHERE id = $1', [error.id]);
+    }
+  });
+
+  it('scopes progress polling to the requester and supporters', async () => {
+    const request = await wanted();
+    expect(await service.getUserRequests(userIds[1])).toEqual([]);
+    await service.addSupporter(request.id, userIds[1]);
+    expect(
+      (await service.getUserRequests(userIds[1])).map((row) => row.id),
+    ).toEqual([request.id]);
+    expect(await service.getUserRequests(randomUUID())).toEqual([]);
+  });
+
+  it('reconciles an uncertain submission with the same attempt and original options', async () => {
+    weeklyLimit = 1;
+    tracker.download.mockRejectedValueOnce(new Error('response lost'));
+    const request = await wanted(undefined, { torrentId: 10, categoryId: 13 });
+    expect(request.activity.issue).toBe('submission_uncertain');
+    const first = tracker.download.mock.calls[0];
+    await service.reconcileSubmission(request.id);
+    expect(tracker.download.mock.calls[1]).toEqual(first);
+    expect(await service.getAttempts(request.id)).toHaveLength(1);
+    expect(await service.getUserAutoApproveUsage(userIds[0])).toEqual({
+      used: 1,
+      limit: 1,
+    });
   });
 
   it('recovers crash-left submissions at startup and after expiry without resubmitting or spending approval again', async () => {

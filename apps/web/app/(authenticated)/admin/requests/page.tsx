@@ -52,7 +52,11 @@ export default function AdminRequestsPage() {
     activeTab === "all" || missingOnly
       ? undefined
       : (activeTab as Exclude<StatusTab, "all" | "missing">);
-  const { data: requests, isLoading } = useAdminRequests(status, missingOnly);
+  const {
+    data: requests,
+    isLoading,
+    error: requestsError,
+  } = useAdminRequests(status, missingOnly);
   // Own query so the tab count is there before the tab is opened; React Query
   // dedupes it against the list query while the Missing tab is active.
   const { data: missingRequests } = useAdminRequests(undefined, true);
@@ -147,7 +151,15 @@ export default function AdminRequestsPage() {
 
           <TabsContent value={activeTab} className="mt-6">
             <AdminRequestsList
-              requests={requests ?? []}
+              requests={(requests ?? []).map((request) =>
+                requestsError &&
+                !["ready", "rejected"].includes(request.activity.stage)
+                  ? {
+                      ...request,
+                      activity: { ...request.activity, stale: true },
+                    }
+                  : request,
+              )}
               isLoading={isLoading}
               onApprove={approveRequest}
               onReject={(id, reason) =>

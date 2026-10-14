@@ -7,11 +7,16 @@ import {
   primaryKey,
   integer,
   uniqueIndex,
+  real,
+  boolean,
+  jsonb,
 } from 'drizzle-orm/pg-core';
 import { sql, relations } from 'drizzle-orm';
 import { user } from '../auth/schema';
 import { audiobooks } from '../audiobooks/schema';
 import { ebooks } from '../ebooks/schema';
+import { importErrors } from '../import-errors/schema';
+import type { TransferState } from '../tracker/transfer-observation';
 
 export const requestStatus = [
   'pending',
@@ -53,6 +58,17 @@ export const requests = pgTable(
     torrentId: text('torrent_id'),
     torrentHash: text('torrent_hash'),
     folderName: text('folder_name'),
+    transferState: text('transfer_state').$type<TransferState>(),
+    transferProgress: real('transfer_progress'),
+    transferRawState: text('transfer_raw_state'),
+    transferObservedAt: timestamp('transfer_observed_at'),
+    transferStale: boolean('transfer_stale').notNull().default(false),
+    submissionUncertain: boolean('submission_uncertain')
+      .notNull()
+      .default(false),
+    importErrorId: uuid('import_error_id').references(() => importErrors.id, {
+      onDelete: 'set null',
+    }),
     title: text('title').notNull(),
     author: text('author'),
     narrator: text('narrator'),
@@ -151,6 +167,10 @@ export const requestAttempts = pgTable(
     status: text('status')
       .$type<'submitting' | 'tracking' | 'uncertain' | 'failed' | 'complete'>()
       .notNull(),
+    downloadOptions: jsonb('download_options').$type<{
+      category?: string;
+      usePersonalFL?: boolean;
+    }>(),
     torrentHash: text('torrent_hash'),
     folderName: text('folder_name'),
     reason: text('reason'),
