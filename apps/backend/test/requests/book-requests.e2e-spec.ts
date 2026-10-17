@@ -692,6 +692,35 @@ describe('Book requests and acquisition (e2e)', () => {
     }
   });
 
+  it('links an import failure recorded before the next status poll', async () => {
+    const request = await wanted(undefined, { torrentId: 10, categoryId: 13 });
+    await service.approveRequest(request.id);
+    const saved = (await service.getAttempts(request.id))[0];
+    const path = `/library/audio/${saved.torrentHash}/file.m4b`;
+    const error = (
+      await pool.query(
+        'INSERT INTO import_errors (file_path, error_message) VALUES ($1, $2) RETURNING id',
+        [path, 'Parser detail'],
+      )
+    ).rows[0];
+    try {
+      await service.updateDownloadingStatuses();
+      expect(
+        (await service.getRequestById(request.id, userIds[0])).activity,
+      ).toMatchObject({
+        stage: 'needs_attention',
+        issue: 'import_failed',
+        stale: false,
+      });
+      expect(await service.getDiagnostics(request.id)).toMatchObject({
+        importErrorId: error.id,
+        importPath: path,
+      });
+    } finally {
+      await pool.query('DELETE FROM import_errors WHERE id = $1', [error.id]);
+    }
+  });
+
   it('scopes progress polling to the requester and supporters', async () => {
     const request = await wanted();
     expect(await service.getUserRequests(userIds[1])).toEqual([]);
