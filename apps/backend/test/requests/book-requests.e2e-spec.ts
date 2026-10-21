@@ -504,8 +504,10 @@ describe('Book requests and acquisition (e2e)', () => {
     await expect(service.recheckRequest(request.id)).rejects.toThrow(
       'not eligible',
     );
+    // Postgres now() has microsecond precision but the due check compares
+    // against a millisecond JS Date, so a same-millisecond now() is not yet due.
     await pool.query(
-      "UPDATE requests SET next_search_at = now(), release_date = now() - interval '1 second' WHERE id = $1",
+      "UPDATE requests SET next_search_at = now() - interval '1 second', release_date = now() - interval '1 second' WHERE id = $1",
       [request.id],
     );
     await tick();
@@ -687,6 +689,35 @@ describe('Book requests and acquisition (e2e)', () => {
       expect(
         (await service.getRequestById(request.id, userIds[0])).activity,
       ).toMatchObject({ stage: 'ready', stale: false, issue: null });
+    } finally {
+      await pool.query('DELETE FROM import_errors WHERE id = $1', [error.id]);
+    }
+  });
+
+  it('links an import failure recorded before the next status poll', async () => {
+    const request = await wanted(undefined, { torrentId: 10, categoryId: 13 });
+    await service.approveRequest(request.id);
+    const saved = (await service.getAttempts(request.id))[0];
+    const path = `/library/audio/${saved.torrentHash}/file.m4b`;
+    const error = (
+      await pool.query(
+        'INSERT INTO import_errors (file_path, error_message) VALUES ($1, $2) RETURNING id',
+        [path, 'Parser detail'],
+      )
+    ).rows[0];
+    try {
+      await service.updateDownloadingStatuses();
+      expect(
+        (await service.getRequestById(request.id, userIds[0])).activity,
+      ).toMatchObject({
+        stage: 'needs_attention',
+        issue: 'import_failed',
+        stale: false,
+      });
+      expect(await service.getDiagnostics(request.id)).toMatchObject({
+        importErrorId: error.id,
+        importPath: path,
+      });
     } finally {
       await pool.query('DELETE FROM import_errors WHERE id = $1', [error.id]);
     }
