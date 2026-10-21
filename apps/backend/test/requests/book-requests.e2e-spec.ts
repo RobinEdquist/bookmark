@@ -504,10 +504,10 @@ describe('Book requests and acquisition (e2e)', () => {
     await expect(service.recheckRequest(request.id)).rejects.toThrow(
       'not eligible',
     );
-    // Postgres now() has microsecond precision but the due check compares
-    // against a millisecond JS Date, so a same-millisecond now() is not yet due.
+    // now() keeps microseconds; the due check must not see it as up to 999µs
+    // in the future relative to a millisecond JS Date.
     await pool.query(
-      "UPDATE requests SET next_search_at = now() - interval '1 second', release_date = now() - interval '1 second' WHERE id = $1",
+      "UPDATE requests SET next_search_at = now(), release_date = now() - interval '1 second' WHERE id = $1",
       [request.id],
     );
     await tick();
