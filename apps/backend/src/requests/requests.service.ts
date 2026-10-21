@@ -26,6 +26,8 @@ import {
   type SQL,
   asc,
   lte,
+  lt,
+  type Column,
 } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { getLastMondayUTC } from '../common/utils/date.utils';
@@ -66,6 +68,15 @@ type CombinedSchema = typeof requestsSchema &
   typeof audiobooksSchema &
   typeof ebooksSchema &
   typeof authSchema;
+
+/**
+ * `column <= at`, ignoring sub-millisecond digits. Postgres timestamps keep
+ * microseconds but JS Dates only milliseconds, so a value written with SQL
+ * now() in the same millisecond as `at` would otherwise not be due yet.
+ */
+function isDue(column: Column, at: Date) {
+  return lt(column, new Date(at.getTime() + 1));
+}
 
 @Injectable()
 export class RequestsService implements OnApplicationBootstrap {
@@ -1112,11 +1123,11 @@ export class RequestsService implements OnApplicationBootstrap {
           ),
           or(
             isNull(requestsSchema.requests.searchLeaseUntil),
-            lte(requestsSchema.requests.searchLeaseUntil, now),
+            isDue(requestsSchema.requests.searchLeaseUntil, now),
           ),
           or(
             isNull(requestsSchema.requests.releaseDate),
-            lte(requestsSchema.requests.releaseDate, now),
+            isDue(requestsSchema.requests.releaseDate, now),
           ),
         ),
       )
@@ -1143,10 +1154,10 @@ export class RequestsService implements OnApplicationBootstrap {
         and(
           inArray(requestsSchema.requests.status, ['pending', 'waiting']),
           isNull(requestsSchema.requests.torrentId),
-          lte(requestsSchema.requests.nextSearchAt, now),
+          isDue(requestsSchema.requests.nextSearchAt, now),
           or(
             isNull(requestsSchema.requests.searchLeaseUntil),
-            lte(requestsSchema.requests.searchLeaseUntil, now),
+            isDue(requestsSchema.requests.searchLeaseUntil, now),
           ),
         ),
       );
@@ -1169,7 +1180,7 @@ export class RequestsService implements OnApplicationBootstrap {
         .where(
           and(
             eq(requestsSchema.requestSearchSchedule.id, 'availability'),
-            lte(requestsSchema.requestSearchSchedule.nextRunAt, now),
+            isDue(requestsSchema.requestSearchSchedule.nextRunAt, now),
           ),
         )
         .returning();
@@ -1181,10 +1192,10 @@ export class RequestsService implements OnApplicationBootstrap {
           and(
             inArray(requestsSchema.requests.status, ['pending', 'waiting']),
             isNull(requestsSchema.requests.torrentId),
-            lte(requestsSchema.requests.nextSearchAt, now),
+            isDue(requestsSchema.requests.nextSearchAt, now),
             or(
               isNull(requestsSchema.requests.searchLeaseUntil),
-              lte(requestsSchema.requests.searchLeaseUntil, now),
+              isDue(requestsSchema.requests.searchLeaseUntil, now),
             ),
           ),
         )
