@@ -107,6 +107,8 @@
     }
   },
   "metadataMatch": {
+    "yourAudiobookDuration": "Längd på din ljudbok",
+    "durationUnknown": "Okänd",
     "title": "Matcha metadata",
     "description": "Sök i en extern källa och hämta metadata",
     "reviewDescription": "Välj vilka fält som ska tillämpas på formuläret",

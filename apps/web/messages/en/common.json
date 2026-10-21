@@ -107,6 +107,8 @@
     }
   },
   "metadataMatch": {
+    "yourAudiobookDuration": "Your audiobook duration",
+    "durationUnknown": "Unknown",
     "title": "Match Metadata",
     "description": "Search an external provider and pull in metadata",
     "reviewDescription": "Choose which fields to apply to the form",

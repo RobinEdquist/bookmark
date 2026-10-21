@@ -769,6 +769,7 @@ function EditAudiobookForm({
           description,
           authors,
           narrators,
+          duration: audiobookData.duration,
           publisher,
           language,
           publishedYear,

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
-import { ArrowRight, Check, ChevronLeft, Search } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, Clock, Search } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
@@ -29,6 +29,7 @@ import {
   type AudibleSearchResult,
 } from "../../lib/use-audnexus";
 import { useItunesSearch, type ItunesSearchResult } from "../../lib/use-itunes";
+import { formatDurationShort } from "../../lib/format-duration";
 import type { SeriesEntry } from "../shared/series-entry-editor";
 import {
   mapAudibleSearchResult,
@@ -99,6 +100,8 @@ export interface MetadataMatchCurrentValues {
   description: string;
   authors: string[];
   narrators?: string[];
+  /** Duration of the local audio files in seconds, for comparison only. */
+  duration?: number | null;
   publisher: string;
   language: string;
   publishedYear: string;
@@ -416,6 +419,22 @@ function MetadataMatchBody({
 
         {step === "search" ? (
           <>
+            {mediaType === "audiobook" && (
+              <div className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-sm">
+                <Clock
+                  className="h-4 w-4 shrink-0 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span>{t("yourAudiobookDuration")}</span>
+                <span className="font-medium tabular-nums">
+                  {current.duration != null &&
+                  Number.isFinite(current.duration) &&
+                  current.duration > 0
+                    ? formatDurationShort(current.duration)
+                    : t("durationUnknown")}
+                </span>
+              </div>
+            )}
             {/* Provider / region / query */}
             <form onSubmit={handleSearch} className="space-y-3">
               <div className="flex gap-2">
