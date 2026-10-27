@@ -1465,7 +1465,12 @@ export class RequestsService implements OnApplicationBootstrap {
                   'retrying',
                   'ignored',
                 ]),
-                sql`string_to_array(${importErrors.filePath}, '/') && ${folders}::text[]`,
+                // Drizzle expands an interpolated JS array into a parenthesised
+                // list of parameters, so build the array explicitly.
+                sql`string_to_array(${importErrors.filePath}, '/') && ARRAY[${sql.join(
+                  folders.map((folder) => sql`${folder}`),
+                  sql`, `,
+                )}]::text[]`,
                 sql`NOT EXISTS (SELECT 1 FROM requests WHERE requests.import_error_id = ${importErrors.id})`,
               ),
             );
