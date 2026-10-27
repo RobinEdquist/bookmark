@@ -291,6 +291,7 @@ Swagger UI lives at `http://localhost:3000/api/docs` once the backend is up, and
 - [Comic Vine](https://comicvine.gamespot.com) for comic series and issue metadata (used under its non-commercial terms)
 - [Audnexus](https://github.com/laxamentumtech/audnexus) for extra audiobook metadata
 - [FFmpeg](https://www.ffmpeg.org/) for the heavy lifting on media
+- [PDF.js](https://mozilla.github.io/pdf.js/) for rendering PDFs in the browser
 
 ## License
 
