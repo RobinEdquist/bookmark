@@ -428,6 +428,14 @@
         "saved": "Unavailable-title requests setting saved",
         "failed": "Could not save unavailable-title requests setting"
       },
+      "mobile": {
+        "label": "Allow requests from mobile apps",
+        "description": "Show content requests in the Bookmark iOS and Android apps. When off, users can still request from the web.",
+        "toast": {
+          "enabled": "Mobile app requests enabled",
+          "disabled": "Mobile app requests disabled"
+        }
+      },
       "freeleech": {
         "label": "Use Freeleech Credits",
         "description": "Automatically spend a personal freeleech credit on each requested download before it starts. If no credits are available, the download will fail.",

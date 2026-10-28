@@ -114,6 +114,13 @@ export class UserSettingsResponseDto {
 
   @ApiProperty({ default: false })
   requestsAllowUnavailable!: boolean;
+
+  @ApiProperty({
+    default: false,
+    description:
+      'Whether the mobile apps should offer content requests. Only applies while requestsEnabled is true.',
+  })
+  requestsMobileEnabled!: boolean;
 }
 
 export class AppSettingsResponseDto {
@@ -172,6 +179,13 @@ export class AppSettingsResponseDto {
       'Whether users can request titles before a release is available.',
   })
   requestsAllowUnavailable!: boolean;
+
+  @ApiProperty({
+    default: false,
+    description:
+      'Whether the mobile apps should offer content requests. Only applies while requestsEnabled is true.',
+  })
+  requestsMobileEnabled!: boolean;
 
   @ApiPropertyOptional({ type: String, example: 'audiobooks', nullable: true })
   requestsAudiobookCategory?: string | null;

@@ -428,6 +428,14 @@
         "saved": "Inställningen för otillgängliga titlar har sparats",
         "failed": "Kunde inte spara inställningen för otillgängliga titlar"
       },
+      "mobile": {
+        "label": "Tillåt förfrågningar från mobilapparna",
+        "description": "Visa innehållsförfrågningar i Bookmarks iOS- och Android-appar. När inställningen är avstängd kan användare fortfarande göra förfrågningar via webben.",
+        "toast": {
+          "enabled": "Förfrågningar från mobilapparna aktiverade",
+          "disabled": "Förfrågningar från mobilapparna inaktiverade"
+        }
+      },
       "freeleech": {
         "label": "Använd freeleech-krediter",
         "description": "Använd automatiskt en personlig freeleech-kredit på varje begärd nedladdning innan den startar. Om inga krediter finns tillgängliga misslyckas nedladdningen.",

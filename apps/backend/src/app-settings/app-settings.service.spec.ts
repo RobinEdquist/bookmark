@@ -59,6 +59,7 @@ function buildDefaultSettings(overrides: Partial<Record<string, any>> = {}) {
     oidcAutoCreateUsers: 'auto',
     requestsEnabled: false,
     requestsAllowUnavailable: false,
+    requestsMobileEnabled: false,
     requestsAudiobookCategory: 'audiobooks',
     requestsEbookCategory: 'books',
     requestsComicsCategory: 'comics',

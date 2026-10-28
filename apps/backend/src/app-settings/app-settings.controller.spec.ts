@@ -42,6 +42,7 @@ function createSettings(
     oidcAutoCreateUsers: 'pending',
     requestsEnabled: true,
     requestsAllowUnavailable: false,
+    requestsMobileEnabled: false,
     requestsAudiobookCategory: 'audiobooks',
     requestsEbookCategory: 'ebooks',
     requestsComicsCategory: 'comics',
@@ -291,6 +292,7 @@ describe('AppSettingsController', () => {
     expect(result).toEqual({
       requestsEnabled: true,
       requestsAllowUnavailable: false,
+      requestsMobileEnabled: false,
     });
   });
 
@@ -319,6 +321,26 @@ describe('AppSettingsController', () => {
       expect(
         (await controller.getUserSettings()).requestsAllowUnavailable,
       ).toBe(enabled);
+    },
+  );
+
+  it.each([true, false])(
+    'persists the mobile requests gate as %s and exposes it to users',
+    async (enabled) => {
+      const { controller, appSettingsService } = createController();
+      const updated = await controller.updateSettings({
+        requestsMobileEnabled: enabled,
+      });
+      expect(appSettingsService.updateSettings).toHaveBeenCalledWith({
+        requestsMobileEnabled: enabled,
+      });
+      expect(updated.requestsMobileEnabled).toBe(enabled);
+      appSettingsService.getSettings.mockResolvedValue(
+        createSettings({ requestsMobileEnabled: enabled }),
+      );
+      expect((await controller.getUserSettings()).requestsMobileEnabled).toBe(
+        enabled,
+      );
     },
   );
 

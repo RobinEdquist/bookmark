@@ -119,6 +119,7 @@ export class AppSettingsController {
     return {
       requestsEnabled: settings.requestsEnabled,
       requestsAllowUnavailable: settings.requestsAllowUnavailable,
+      requestsMobileEnabled: settings.requestsMobileEnabled,
     };
   }
 
@@ -171,6 +172,7 @@ export class AppSettingsController {
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
       requestsEnabled: settings.requestsEnabled,
       requestsAllowUnavailable: settings.requestsAllowUnavailable,
+      requestsMobileEnabled: settings.requestsMobileEnabled,
       requestsAudiobookCategory: settings.requestsAudiobookCategory,
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
@@ -223,6 +225,7 @@ export class AppSettingsController {
       dto.oidcAutoCreateUsers === undefined &&
       dto.requestsEnabled === undefined &&
       dto.requestsAllowUnavailable === undefined &&
+      dto.requestsMobileEnabled === undefined &&
       dto.requestsAudiobookCategory === undefined &&
       dto.requestsEbookCategory === undefined &&
       dto.requestsComicsCategory === undefined &&
@@ -287,6 +290,7 @@ export class AppSettingsController {
       oidcAutoCreateUsers?: string;
       requestsEnabled?: boolean;
       requestsAllowUnavailable?: boolean;
+      requestsMobileEnabled?: boolean;
       requestsAudiobookCategory?: string;
       requestsEbookCategory?: string;
       requestsComicsCategory?: string;
@@ -323,6 +327,8 @@ export class AppSettingsController {
       updates.requestsEnabled = dto.requestsEnabled;
     if (dto.requestsAllowUnavailable !== undefined)
       updates.requestsAllowUnavailable = dto.requestsAllowUnavailable;
+    if (dto.requestsMobileEnabled !== undefined)
+      updates.requestsMobileEnabled = dto.requestsMobileEnabled;
     if (dto.requestsAudiobookCategory !== undefined)
       updates.requestsAudiobookCategory = dto.requestsAudiobookCategory;
     if (dto.requestsEbookCategory !== undefined)
@@ -377,6 +383,7 @@ export class AppSettingsController {
       oidcAutoCreateUsers: settings.oidcAutoCreateUsers,
       requestsEnabled: settings.requestsEnabled,
       requestsAllowUnavailable: settings.requestsAllowUnavailable,
+      requestsMobileEnabled: settings.requestsMobileEnabled,
       requestsAudiobookCategory: settings.requestsAudiobookCategory,
       requestsEbookCategory: settings.requestsEbookCategory,
       requestsComicsCategory: settings.requestsComicsCategory,
