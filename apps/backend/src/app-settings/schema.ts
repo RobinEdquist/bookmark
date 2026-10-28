@@ -117,6 +117,11 @@ export const appSettings = pgTable(
     requestsAllowUnavailable: boolean('requests_allow_unavailable')
       .notNull()
       .default(false),
+    // Whether the mobile apps offer requests. Only meaningful while
+    // requestsEnabled is on; the server does not tell clients apart.
+    requestsMobileEnabled: boolean('requests_mobile_enabled')
+      .notNull()
+      .default(false),
     requestsAudiobookCategory: text('requests_audiobook_category')
       .notNull()
       .default('audiobooks'),

@@ -148,6 +148,7 @@ describe('Settings (e2e)', () => {
       expect(Object.keys(data)).toEqual([
         'requestsEnabled',
         'requestsAllowUnavailable',
+        'requestsMobileEnabled',
       ]);
     });
 

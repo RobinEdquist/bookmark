@@ -21,6 +21,8 @@ Your module has two jobs:
 
 Book requests can also be saved before a downloadable release exists when `requestsAllowUnavailable` is enabled in Settings → Integrations → Requests. This opt-in setting defaults to false. When it is off, new requests must select an available release; book-only creation and support return HTTP 400. Existing requests continue their search and approval lifecycle after the setting is disabled. They keep their book identity (normalized title and author), desired medium, language intent, supporters, and one approval across subsequent search checks and download attempts. Existing direct search-result requests remain supported.
 
+Admins can offer requests in the iOS and Android apps with `requestsMobileEnabled` (Settings → Integrations → Requests, default false). The apps read it from `GET /api/settings/user` and offer requests only when both `requestsEnabled` and `requestsMobileEnabled` are true and the user can request content. It is a client-side switch: the server does not tell mobile clients apart, so it does not reject `/api/requests` calls when the flag is off.
+
 The machine-readable version of this contract is the OpenAPI spec at
 [`docs/api/content-request-module.openapi.yaml`](./api/content-request-module.openapi.yaml).
 See [Verifying your implementation](#verifying-your-implementation) for how to test against it.

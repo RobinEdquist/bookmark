@@ -38,6 +38,7 @@ export interface Settings {
   oidcAutoCreateUsers: string;
   requestsEnabled: boolean;
   requestsAllowUnavailable: boolean;
+  requestsMobileEnabled: boolean;
   requestsAudiobookCategory: string;
   requestsEbookCategory: string;
   requestsComicsCategory: string;
@@ -66,6 +67,7 @@ export interface UpdateSettingsDto {
   oidcAutoCreateUsers?: string;
   requestsEnabled?: boolean;
   requestsAllowUnavailable?: boolean;
+  requestsMobileEnabled?: boolean;
   requestsAudiobookCategory?: string;
   requestsEbookCategory?: string;
   requestsComicsCategory?: string;
@@ -149,6 +151,7 @@ export function useSettings() {
 export interface UserSettings {
   requestsEnabled: boolean;
   requestsAllowUnavailable: boolean;
+  requestsMobileEnabled: boolean;
 }
 
 async function fetchUserSettings(): Promise<UserSettings> {

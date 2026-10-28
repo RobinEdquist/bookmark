@@ -375,6 +375,15 @@ export class UpdateSettingsDto {
   requestsAllowUnavailable?: boolean;
 
   @ApiPropertyOptional({
+    description:
+      'Whether the mobile apps should offer content requests. Only applies while requestsEnabled is true. Disabled by default.',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  requestsMobileEnabled?: boolean;
+
+  @ApiPropertyOptional({
     description: 'Download client category for audiobook requests',
     example: 'audiobooks',
   })

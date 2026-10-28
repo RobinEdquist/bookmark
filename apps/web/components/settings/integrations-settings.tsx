@@ -390,6 +390,21 @@ export function IntegrationsSettings() {
     }
   };
 
+  const handleMobileRequestsToggle = async (enabled: boolean) => {
+    try {
+      await updateSettings({ requestsMobileEnabled: enabled });
+      toast.success(
+        enabled
+          ? t("requests.mobile.toast.enabled")
+          : t("requests.mobile.toast.disabled"),
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : t("requests.toast.error"),
+      );
+    }
+  };
+
   const handleFreeleechToggle = async (enabled: boolean) => {
     try {
       await updateSettings({ requestsUseFreeleech: enabled });
@@ -516,6 +531,26 @@ export function IntegrationsSettings() {
                   id="requests-allow-unavailable"
                   checked={settings.requestsAllowUnavailable}
                   onCheckedChange={handleUnavailableRequestsToggle}
+                  disabled={isUpdatingSettings}
+                />
+              </fieldset>
+
+              <fieldset className="flex flex-col gap-4 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <Label
+                    htmlFor="requests-mobile-enabled"
+                    className="text-base font-medium"
+                  >
+                    {t("requests.mobile.label")}
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    {t("requests.mobile.description")}
+                  </p>
+                </div>
+                <Switch
+                  id="requests-mobile-enabled"
+                  checked={settings.requestsMobileEnabled}
+                  onCheckedChange={handleMobileRequestsToggle}
                   disabled={isUpdatingSettings}
                 />
               </fieldset>
