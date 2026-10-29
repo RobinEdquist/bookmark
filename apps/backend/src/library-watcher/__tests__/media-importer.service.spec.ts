@@ -870,6 +870,24 @@ describe('MediaImporterService', () => {
   // rescanAudiobook
   // ------------------------------------------------------------------
   describe('repairBrokenAudiobookFiles', () => {
+    it('includes trailing tracks downloaded after the first track was imported', async () => {
+      db._queueWhereResult([
+        { audiobookId: 'meditations', filePath: 'part1.mp3' },
+      ]);
+      db._chains.select.limit.mockResolvedValueOnce([{ manualFields: [] }]);
+
+      const result = await service.repairBrokenAudiobookFiles([
+        { id: 'meditations', unit: makeMultiFileUnit() },
+      ]);
+
+      expect(result.repaired).toEqual(['meditations']);
+      expect(db.transaction).toHaveBeenCalledTimes(1);
+      expect(db._chains.insert.values).toHaveBeenCalledWith([
+        expect.objectContaining({ audiobookId: 'meditations', order: 0 }),
+        expect.objectContaining({ audiobookId: 'meditations', order: 1 }),
+      ]);
+    });
+
     it('repairs only books whose stored tracks are gone, collecting per-book failures', async () => {
       const intact = makeMultiFileUnit({ path: '/library/A' });
       const broken = makeMultiFileUnit({ path: '/library/B' });
@@ -901,7 +919,7 @@ describe('MediaImporterService', () => {
     });
 
     it.each([
-      ['a track was only added', ['part1.mp3']],
+      ['a track was inserted before the stored tracks', ['part2.mp3']],
       [
         'the stored order is not the detector order (AudioBookShelf)',
         ['part2.mp3', 'part1.mp3', 'gone.mp3'],
@@ -928,6 +946,29 @@ describe('MediaImporterService', () => {
         deps.audioMetadataProvider.extractFullMetadata,
       ).not.toHaveBeenCalled();
       expect(db.delete).not.toHaveBeenCalled();
+    });
+
+    it('does not insert new tracks between stored tracks and shift playback offsets', async () => {
+      db._queueWhereResult([
+        { audiobookId: 'curated', filePath: 'part1.mp3' },
+        { audiobookId: 'curated', filePath: 'part3.mp3' },
+      ]);
+
+      const result = await service.repairBrokenAudiobookFiles([
+        {
+          id: 'curated',
+          unit: makeMultiFileUnit({
+            files: [
+              '/library/TestBook/part1.mp3',
+              '/library/TestBook/part2.mp3',
+              '/library/TestBook/part3.mp3',
+            ],
+          }),
+        },
+      ]);
+
+      expect(result.repaired).toEqual([]);
+      expect(db.transaction).not.toHaveBeenCalled();
     });
 
     it('repairs a book that has no file rows at all', async () => {
@@ -1019,7 +1060,7 @@ describe('MediaImporterService', () => {
   describe('markAudiobookAvailable', () => {
     it.each([
       ['unchanged', ['part1.mp3', 'part2.mp3']],
-      ['only gained a track', ['part1.mp3']],
+      ['gained an earlier track', ['part2.mp3']],
     ])(
       'only flips the status when the files are %s',
       async (_case, storedNames) => {
