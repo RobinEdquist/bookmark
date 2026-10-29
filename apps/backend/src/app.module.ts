@@ -49,7 +49,7 @@ import { BackupsModule } from './backups/backups.module';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { CombinedAuthGuard } from './common/guards/combined-auth.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
-import { redactUrl } from './common/log-redaction.util';
+import { redactUrl, serializeRequestForLog } from './common/log-redaction.util';
 import { createAuthInstance } from './auth/auth.provider';
 import { CommonModule } from './common/common.module';
 
@@ -97,20 +97,11 @@ import { CommonModule } from './common/common.module';
             },
             // The default serializers dump every request/response header —
             // including session cookies — into each log line. Keep only
-            // what's needed to identify the request, and strip credential
-            // query params (tokens, OAuth codes) from the URL.
+            // what's needed to identify the request (plus the mobile apps'
+            // X-Bookmark-Client header), and strip credential query params
+            // (tokens, OAuth codes) from the URL.
             serializers: {
-              req: (req: {
-                id?: unknown;
-                method?: string;
-                url?: string;
-                remoteAddress?: string;
-              }) => ({
-                id: req.id,
-                method: req.method,
-                url: redactUrl(req.url),
-                remoteAddress: req.remoteAddress,
-              }),
+              req: serializeRequestForLog,
               res: (res: { statusCode?: number }) => ({
                 statusCode: res.statusCode,
               }),
