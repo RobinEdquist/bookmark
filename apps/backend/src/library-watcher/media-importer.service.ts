@@ -1337,14 +1337,15 @@ export class MediaImporterService {
   // ===== AUDIOBOOK FILE REPAIR =====
   //
   // Scans and the watcher run unattended, so they only ever *repair*: a stored
-  // file list is rebuilt only when it is broken (a stored track is gone from
-  // disk) and only when Bookmark's own detector produced it. Anything else
+  // file list is rebuilt when it is broken (a stored track is gone from
+  // disk), or gains trailing tracks, and only when the detector produced it.
+  // Anything else
   // (AudioBookShelf track order, subfolder tracks, curated chapters) belongs
   // to the explicit metadata rescan or to the user.
 
   /**
-   * Repair every known audiobook whose stored files are no longer in its
-   * folder (renamed or removed while Bookmark wasn't looking).
+   * Repair known audiobooks whose stored files disappeared or whose folders
+   * gained trailing tracks after the initial import.
    *
    * Returns the ids that were repaired, plus per-book failures so one
    * unreadable folder can't abort a library scan.
@@ -1528,10 +1529,10 @@ export class MediaImporterService {
    * formats the detector skips; rebuilding those would reorder or drop
    * tracks.
    *
-   * Broken means a stored track is gone from the folder. A track that was
-   * only added is not enough: progress is a single offset into the whole
-   * book, and slotting a file in would shift what plays at every later
-   * position.
+   * Missing stored tracks need repair. Trailing additions are also safe:
+   * the stored list must be an exact prefix of the detected list, so existing
+   * playback offsets keep pointing at the same audio. Insertions before or
+   * between stored tracks would shift those offsets and stay untouched.
    */
   private needsFileRepair(stored: string[], unit: AudiobookUnit): boolean {
     const detectorProduced = stored.every(
@@ -1542,8 +1543,16 @@ export class MediaImporterService {
     );
     if (!detectorProduced) return false;
 
-    const onDisk = new Set(unit.files.map((file) => path.basename(file)));
-    return stored.length === 0 || stored.some((name) => !onDisk.has(name));
+    const detected = unit.files.map((file) => path.basename(file));
+    const onDisk = new Set(detected);
+    const gainedTrailingTracks =
+      detected.length > stored.length &&
+      stored.every((name, i) => detected[i] === name);
+    return (
+      stored.length === 0 ||
+      stored.some((name) => !onDisk.has(name)) ||
+      gainedTrailingTracks
+    );
   }
 
   /** Parse every file of a unit; the first one also yields tags and chapters. */
