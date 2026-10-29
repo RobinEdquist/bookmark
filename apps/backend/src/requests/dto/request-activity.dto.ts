@@ -52,5 +52,16 @@ export class RequestDiagnosticsDto {
   @ApiProperty({ type: String, nullable: true }) importPath!: string | null;
   @ApiProperty({ type: String, nullable: true }) importMessage!: string | null;
   @ApiProperty({ type: String, nullable: true }) importStatus!: string | null;
-  @ApiProperty({ type: Boolean }) canReconcile!: boolean;
+  @ApiProperty({
+    type: Boolean,
+    description:
+      'The latest submission outcome is unknown and can be reconciled with its original key.',
+  })
+  canReconcile!: boolean;
+  @ApiProperty({
+    type: Boolean,
+    description:
+      'The source refused or could not receive the latest submission; the same attempt can be resubmitted.',
+  })
+  canRetry!: boolean;
 }

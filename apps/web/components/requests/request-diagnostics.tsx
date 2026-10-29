@@ -31,13 +31,15 @@ export function RequestDiagnostics({ requestId }: { requestId: string }) {
     },
   });
   const retry = useRetryImport();
-  const reconcile = useMutation({
-    mutationFn: async () => {
+  // Reconcile replays an uncertain submission; retry resubmits one the source
+  // refused or never received. Both reuse the attempt's key on the server.
+  const resubmit = useMutation({
+    mutationFn: async (action: "reconcile" | "retry-submission") => {
       const response = await fetch(
-        `/api/admin/requests/${requestId}/reconcile`,
+        `/api/admin/requests/${requestId}/${action}`,
         { method: "POST", credentials: "include" },
       );
-      if (!response.ok) throw new Error("Reconciliation failed");
+      if (!response.ok) throw new Error(`Request ${action} failed`);
     },
     onSuccess: invalidate,
   });
@@ -99,10 +101,27 @@ export function RequestDiagnostics({ requestId }: { requestId: string }) {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={reconcile.isPending}
-                onClick={() => recover(() => reconcile.mutateAsync())}
+                disabled={resubmit.isPending}
+                onClick={() => recover(() => resubmit.mutateAsync("reconcile"))}
               >
                 {t("reconcile")}
+              </Button>
+            </>
+          )}
+          {data.canRetry && (
+            <>
+              <p className="max-w-prose text-xs text-muted-foreground">
+                {t("retryDescription")}
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={resubmit.isPending}
+                onClick={() =>
+                  recover(() => resubmit.mutateAsync("retry-submission"))
+                }
+              >
+                {t("retry")}
               </Button>
             </>
           )}

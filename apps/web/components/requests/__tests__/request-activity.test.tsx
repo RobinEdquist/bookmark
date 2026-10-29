@@ -102,6 +102,7 @@ describe("Admin request recovery", () => {
         importMessage: "Unreadable archive",
         importStatus: "pending",
         canReconcile: false,
+        canRetry: false,
         submissionReason: null,
       }),
     });
@@ -132,4 +133,66 @@ describe("Admin request recovery", () => {
       ),
     );
   });
+  it.each([
+    ["retry", "retry-submission", { canRetry: true, canReconcile: false }],
+    ["reconcile", "reconcile", { canRetry: false, canReconcile: true }],
+  ] as const)(
+    "shows only the %s action and posts it to the matching endpoint",
+    async (label, action, flags) => {
+      const other = label === "retry" ? "reconcile" : "retry";
+      fetchMock.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          activity: {
+            ...activity,
+            stage: "needs_attention",
+            issue:
+              label === "retry" ? "submission_failed" : "submission_uncertain",
+          },
+          rawState: null,
+          importErrorId: null,
+          importPath: null,
+          importMessage: null,
+          importStatus: null,
+          submissionReason: "Source HTTP 503: download client unreachable",
+          ...flags,
+        }),
+      });
+      const user = userEvent.setup();
+      render(<RequestDiagnostics requestId="request-1" />);
+      await user.click(screen.getByText("title"));
+      await waitFor(() =>
+        expect(screen.getByRole("button", { name: label })).toBeInTheDocument(),
+      );
+      expect(screen.getByText(`${label}Description`)).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: other }),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByText("Source HTTP 503: download client unreachable"),
+      ).toBeInTheDocument();
+      // The action response and the diagnostics refetch share this mock.
+      fetchMock.mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          activity,
+          rawState: null,
+          importErrorId: null,
+          importPath: null,
+          importMessage: null,
+          importStatus: null,
+          submissionReason: null,
+          canRetry: false,
+          canReconcile: false,
+        }),
+      });
+      await user.click(screen.getByRole("button", { name: label }));
+      await waitFor(() =>
+        expect(fetchMock).toHaveBeenCalledWith(
+          `/api/admin/requests/request-1/${action}`,
+          { method: "POST", credentials: "include" },
+        ),
+      );
+    },
+  );
 });

@@ -5,7 +5,7 @@ import { RequestsAdminController } from './requests-admin.controller';
 import type { RequestsService } from './requests.service';
 
 describe('Request diagnostic and recovery authorization', () => {
-  it.each(['getDiagnostics', 'reconcile'] as const)(
+  it.each(['getDiagnostics', 'reconcile', 'retrySubmission'] as const)(
     'keeps %s behind the admin guard for sessions and API tokens',
     (method) => {
       const guards: (new () => AdminGuard)[] = Reflect.getMetadata(
@@ -16,6 +16,7 @@ describe('Request diagnostic and recovery authorization', () => {
       const requestService = {
         getDiagnostics: jest.fn(),
         reconcileSubmission: jest.fn(),
+        retrySubmission: jest.fn(),
       };
       const controller = new RequestsAdminController(
         requestService as unknown as RequestsService,
@@ -34,6 +35,7 @@ describe('Request diagnostic and recovery authorization', () => {
       }
       expect(requestService.getDiagnostics).not.toHaveBeenCalled();
       expect(requestService.reconcileSubmission).not.toHaveBeenCalled();
+      expect(requestService.retrySubmission).not.toHaveBeenCalled();
     },
   );
 });

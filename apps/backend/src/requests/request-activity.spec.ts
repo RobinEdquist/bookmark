@@ -17,6 +17,7 @@ const request: ActivityRequest = {
   transferObservedAt: new Date(now),
   transferStale: false,
   submissionUncertain: false,
+  submissionFailed: false,
   searchError: null,
 };
 
@@ -141,6 +142,30 @@ describe('Request activity observations', () => {
       stage: 'needs_attention',
       issue: 'submission_uncertain',
     });
+  });
+  it('reports a refused or undelivered submission as retryable, and uncertainty first when both are set', () => {
+    expect(
+      requestActivity(
+        { ...request, torrentHash: null, submissionFailed: true },
+        null,
+        now,
+      ),
+    ).toMatchObject({
+      stage: 'needs_attention',
+      issue: 'submission_failed',
+    });
+    expect(
+      requestActivity(
+        {
+          ...request,
+          torrentHash: null,
+          submissionFailed: true,
+          submissionUncertain: true,
+        },
+        null,
+        now,
+      ).issue,
+    ).toBe('submission_uncertain');
   });
   it.each(['pending', 'waiting', 'rejected'] as const)(
     'preserves the %s policy stage despite old transfer data',

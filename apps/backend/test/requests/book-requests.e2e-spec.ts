@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { resolve } from 'node:path';
+import { BadRequestException } from '@nestjs/common';
 import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
@@ -13,6 +14,7 @@ import * as audiobooks from '../../src/audiobooks/schema';
 import * as ebooks from '../../src/ebooks/schema';
 import * as auth from '../../src/auth/schema';
 import type { TrackerService } from '../../src/tracker';
+import { TrackerClientException } from '../../src/tracker/tracker-client.exception';
 import type { AppSettingsService } from '../../src/app-settings/app-settings.service';
 import type { LibraryService } from '../../src/library/library.service';
 import type {
@@ -748,6 +750,58 @@ describe('Book requests and acquisition (e2e)', () => {
     });
   });
 
+  it('retries a refused submission with the same attempt and options, never reconciling it or spending approval again', async () => {
+    weeklyLimit = 1;
+    tracker.download.mockRejectedValueOnce(
+      new TrackerClientException(
+        'Service Unavailable',
+        503,
+        'download client unreachable',
+      ),
+    );
+    const request = await wanted(undefined, { torrentId: 10, categoryId: 13 });
+    expect(request.activity).toMatchObject({
+      stage: 'needs_attention',
+      issue: 'submission_failed',
+    });
+    expect((await service.getAttempts(request.id))[0]).toMatchObject({
+      status: 'failed',
+      torrentHash: null,
+      reason: 'Source HTTP 503: download client unreachable',
+    });
+    expect(await service.getDiagnostics(request.id)).toMatchObject({
+      canRetry: true,
+      canReconcile: false,
+    });
+    await tick();
+    await service.updateDownloadingStatuses();
+    expect(tracker.download).toHaveBeenCalledTimes(1);
+    await expect(service.reconcileSubmission(request.id)).rejects.toThrow(
+      BadRequestException,
+    );
+    const first = tracker.download.mock.calls[0];
+    const retried = await service.retrySubmission(request.id);
+    expect(tracker.download.mock.calls[1]).toEqual(first);
+    expect(retried.activity).toMatchObject({
+      stage: 'downloading',
+      issue: null,
+    });
+    expect(await service.getAttempts(request.id)).toEqual([
+      expect.objectContaining({
+        id: first[1].submissionKey,
+        status: 'tracking',
+        torrentHash: `hash_${first[1].submissionKey}`,
+      }),
+    ]);
+    expect(await service.getDiagnostics(request.id)).toMatchObject({
+      canRetry: false,
+      canReconcile: false,
+    });
+    expect(await service.getUserAutoApproveUsage(userIds[0])).toEqual({
+      used: 1,
+      limit: 1,
+    });
+  });
   it('recovers crash-left submissions at startup and after expiry without resubmitting or spending approval again', async () => {
     const stale = await wanted(undefined, { torrentId: 10, categoryId: 13 });
     const recent = await wanted(undefined, { torrentId: 20, categoryId: 13 });

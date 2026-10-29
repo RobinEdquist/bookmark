@@ -121,6 +121,7 @@
     },
     "issue": {
       "submission_uncertain": "Det gick inte att bekräfta nedladdningen. En administratör behöver kontrollera den.",
+      "submission_failed": "Nedladdningsbegäran gick inte fram. En administratör kan försöka igen.",
       "download_error": "Nedladdningen är blockerad. En administratör behöver kontrollera nedladdningsklienten.",
       "download_missing": "Nedladdningsklienten har inte längre denna nedladdning. En administratör behöver kontrollera den.",
       "status_unknown": "Nedladdningens status är okänd. Bookmark kontrollerar igen.",

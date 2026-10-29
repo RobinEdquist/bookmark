@@ -76,6 +76,7 @@
         "tracking": "Tracking download",
         "uncertain": "Submission needs reconciliation",
         "failed": "Acquisition failed",
+        "submissionFailed": "Submission failed",
         "complete": "Imported"
       }
     },
@@ -86,9 +87,11 @@
       "sourceState": "Download client state: {state}",
       "retryImport": "Retry import",
       "queued": "Recovery action completed",
-      "recoveryFailed": "Recovery failed. Check the progress details and source.",
+      "recoveryFailed": "Recovery failed. Check the progress details.",
       "reconcile": "Reconcile submission",
-      "reconcileDescription": "Ask the original source to resolve this submission using its existing submission key. This preserves the approval and prevents a duplicate transfer.",
+      "reconcileDescription": "Bookmark does not know if this download was started. This checks, and starts it only if it was not.",
+      "retry": "Retry submission",
+      "retryDescription": "This download was never started. This sends the same download request again.",
       "checkClient": "Check or resume the existing transfer in the download client. A temporary error does not authorize a replacement."
     }
   },

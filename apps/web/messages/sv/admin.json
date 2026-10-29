@@ -76,6 +76,7 @@
         "tracking": "Följer nedladdning",
         "uncertain": "Nedladdningen behöver kontrolleras",
         "failed": "Hämtningen misslyckades",
+        "submissionFailed": "Begäran kunde inte skickas",
         "complete": "Importerad"
       }
     },
@@ -86,9 +87,11 @@
       "sourceState": "Nedladdningsklientens status: {state}",
       "retryImport": "Försök importera igen",
       "queued": "Återställningsåtgärden är klar",
-      "recoveryFailed": "Återställningen misslyckades. Kontrollera förloppsdetaljerna och källan.",
+      "recoveryFailed": "Återställningen misslyckades. Kontrollera förloppsdetaljerna.",
       "reconcile": "Stäm av begäran",
-      "reconcileDescription": "Be den ursprungliga källan stämma av begäran med dess befintliga begäransnyckel. Godkännandet bevaras och dubbla överföringar förhindras.",
+      "reconcileDescription": "Bookmark vet inte om nedladdningen startades. Det här kontrollerar det och startar den bara om den inte startades.",
+      "retry": "Skicka begäran igen",
+      "retryDescription": "Nedladdningen startades aldrig. Det här skickar samma nedladdningsbegäran igen.",
       "checkClient": "Kontrollera eller återuppta den befintliga överföringen i nedladdningsklienten. Ett tillfälligt fel tillåter inte en ersättningsnedladdning."
     }
   },

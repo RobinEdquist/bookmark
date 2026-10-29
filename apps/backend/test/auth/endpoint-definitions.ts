@@ -668,6 +668,11 @@ export const adminGuardEndpoints: ControllerEndpoints[] = [
         path: '/admin/requests/:id/reconcile',
         expectedStatus: 401,
       },
+      {
+        method: 'POST',
+        path: '/admin/requests/:id/retry-submission',
+        expectedStatus: 401,
+      },
       { method: 'GET', path: '/admin/requests', expectedStatus: 401 },
       {
         method: 'GET',

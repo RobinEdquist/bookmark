@@ -66,6 +66,9 @@ export const requests = pgTable(
     submissionUncertain: boolean('submission_uncertain')
       .notNull()
       .default(false),
+    // The source refused or could not receive the last submission and released
+    // its key, so the same attempt can be resubmitted. Cleared on success.
+    submissionFailed: boolean('submission_failed').notNull().default(false),
     importErrorId: uuid('import_error_id').references(() => importErrors.id, {
       onDelete: 'set null',
     }),

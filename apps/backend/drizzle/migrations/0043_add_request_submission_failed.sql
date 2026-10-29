@@ -1,0 +1,1 @@
+ALTER TABLE "requests" ADD COLUMN "submission_failed" boolean DEFAULT false NOT NULL;

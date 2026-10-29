@@ -67,6 +67,18 @@ type CombinedSchema = typeof requestsSchema &
   typeof ebooksSchema &
   typeof authSchema;
 
+type RequestRow = typeof requestsSchema.requests.$inferSelect;
+type RequestAttemptRow = typeof requestsSchema.requestAttempts.$inferSelect;
+
+/**
+ * POST /download/{id} statuses after which the module has released the
+ * submission key without submitting: 502 is a definitive refusal by the
+ * source or download client, 503 means it was unreachable or rejected the
+ * session. 500 (outcome unknown), 409 and anything else keep the attempt
+ * uncertain until it is reconciled.
+ */
+const RETRYABLE_SUBMISSION_STATUSES = new Set([502, 503]);
+
 @Injectable()
 export class RequestsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RequestsService.name);
@@ -108,7 +120,7 @@ export class RequestsService implements OnApplicationBootstrap {
     if (recovered.length)
       await this.db
         .update(requestsSchema.requests)
-        .set({ submissionUncertain: true })
+        .set({ submissionUncertain: true, submissionFailed: false })
         .where(
           and(
             inArray(
@@ -749,6 +761,7 @@ export class RequestsService implements OnApplicationBootstrap {
           .set({
             torrentHash: hash,
             submissionUncertain: false,
+            submissionFailed: false,
             transferState: null,
             transferProgress: null,
             transferObservedAt: null,
@@ -767,33 +780,32 @@ export class RequestsService implements OnApplicationBootstrap {
           );
       });
     } catch (error) {
+      if (this.isRetryableSubmissionFailure(error)) {
+        // The module released the key without submitting, so the same attempt
+        // can be resubmitted once the cause is fixed. Nothing is replayed
+        // automatically; an administrator retries it.
+        await this.recordSubmissionFailure(
+          request,
+          attempt,
+          'failed',
+          this.sourceFailureReason(error, 'Submission failed'),
+        );
+        this.logger.warn(
+          `Submission failed for request ${request.id}; retry available: ${error}`,
+        );
+        throw error;
+      }
       // A timeout or a crash does not establish that a transfer is absent.
       // Retain the attempt for reconciliation rather than submitting it again.
-      await this.db
-        .update(requestsSchema.requestAttempts)
-        .set({
-          status: 'uncertain',
-          reason: this.sourceFailureReason(
-            error,
-            'Submission outcome needs reconciliation',
-          ),
-        })
-        .where(
-          and(
-            eq(requestsSchema.requestAttempts.id, attempt.id),
-            eq(requestsSchema.requestAttempts.status, 'submitting'),
-          ),
-        );
-      await this.db
-        .update(requestsSchema.requests)
-        .set({ submissionUncertain: true })
-        .where(
-          and(
-            eq(requestsSchema.requests.id, request.id),
-            isNull(requestsSchema.requests.torrentHash),
-            eq(requestsSchema.requests.status, 'approved'),
-          ),
-        );
+      await this.recordSubmissionFailure(
+        request,
+        attempt,
+        'uncertain',
+        this.sourceFailureReason(
+          error,
+          'Submission outcome needs reconciliation',
+        ),
+      );
       this.logger.error(
         `Submission uncertain for request ${request.id}: ${error}`,
       );
@@ -918,12 +930,30 @@ export class RequestsService implements OnApplicationBootstrap {
       importMessage: error?.errorMessage ?? null,
       importStatus: error?.status ?? null,
       canReconcile:
-        request.status === 'approved' &&
-        !request.torrentHash &&
-        attempts[0]?.status === 'uncertain' &&
-        !!attempts[0].downloadOptions &&
-        attempts[0].moduleId === this.tracker.getModuleId(),
+        this.submissionRecovery(request, attempts[0]) === 'reconcile',
+      canRetry: this.submissionRecovery(request, attempts[0]) === 'retry',
     };
+  }
+
+  /**
+   * Which admin action the latest attempt allows: reconcile replays an
+   * uncertain submission with its key; retry resubmits one the source refused
+   * or never received. Both need the saved options at the original source.
+   */
+  private submissionRecovery(
+    request: RequestRow,
+    attempt: RequestAttemptRow | undefined,
+  ): 'reconcile' | 'retry' | null {
+    if (
+      request.status !== 'approved' ||
+      request.torrentHash ||
+      !attempt?.downloadOptions ||
+      attempt.moduleId !== this.tracker.getModuleId()
+    )
+      return null;
+    if (attempt.status === 'uncertain') return 'reconcile';
+    if (attempt.status === 'failed' && !attempt.torrentHash) return 'retry';
+    return null;
   }
 
   /** Explicit reconciliation reuses the durable key; it never spends approval again. */
@@ -961,6 +991,47 @@ export class RequestsService implements OnApplicationBootstrap {
       .returning();
     if (!claimed)
       throw new BadRequestException('Submission is already being reconciled');
+    const settings = await this.appSettingsService.getSettings();
+    await this.submitAttempt(
+      request,
+      claimed,
+      await this.appSettingsService.getRequestsCategories(),
+      settings.requestsUseFreeleech,
+    );
+    return this.getRequestById(id, null);
+  }
+
+  /**
+   * Retry resubmits the latest refused or undelivered attempt with its durable
+   * key and saved options. The source released the key, so this is a plain
+   * resubmission; it never spends approval again or creates another attempt.
+   */
+  async retrySubmission(id: string): Promise<RequestResponseDto> {
+    const request = await this.getRequestByIdInternal(id);
+    const [attempt] = await this.db
+      .select()
+      .from(requestsSchema.requestAttempts)
+      .where(eq(requestsSchema.requestAttempts.requestId, id))
+      .orderBy(desc(requestsSchema.requestAttempts.createdAt))
+      .limit(1);
+    if (!attempt || this.submissionRecovery(request, attempt) !== 'retry')
+      throw new BadRequestException(
+        'Retry requires a submission the original source refused or did not receive, with saved options; uncertain submissions are reconciled instead',
+      );
+    // Conditional claim prevents two administrators retrying at the same time.
+    // The active-attempt index rejects the claim while another attempt is in flight.
+    const [claimed] = await this.db
+      .update(requestsSchema.requestAttempts)
+      .set({ status: 'submitting', reason: null })
+      .where(
+        and(
+          eq(requestsSchema.requestAttempts.id, attempt.id),
+          eq(requestsSchema.requestAttempts.status, 'failed'),
+        ),
+      )
+      .returning();
+    if (!claimed)
+      throw new BadRequestException('Submission is already being retried');
     const settings = await this.appSettingsService.getSettings();
     await this.submitAttempt(
       request,
@@ -1032,6 +1103,49 @@ export class RequestsService implements OnApplicationBootstrap {
     if (error instanceof HttpException)
       return `Source HTTP ${error.getStatus()}: ${error.message}`;
     return fallback;
+  }
+
+  /**
+   * Only a response from the module itself can release the key. A timeout or
+   * connection failure (a plain 503 HttpException) may have reached it, so
+   * those stay uncertain.
+   */
+  private isRetryableSubmissionFailure(error: unknown): boolean {
+    return (
+      error instanceof TrackerClientException &&
+      RETRYABLE_SUBMISSION_STATUSES.has(error.getStatus())
+    );
+  }
+
+  /** Keeps the attempt for recovery and flags the request for the one action that fits. */
+  private async recordSubmissionFailure(
+    request: RequestRow,
+    attempt: RequestAttemptRow,
+    outcome: 'uncertain' | 'failed',
+    reason: string,
+  ): Promise<void> {
+    await this.db
+      .update(requestsSchema.requestAttempts)
+      .set({ status: outcome, reason })
+      .where(
+        and(
+          eq(requestsSchema.requestAttempts.id, attempt.id),
+          eq(requestsSchema.requestAttempts.status, 'submitting'),
+        ),
+      );
+    await this.db
+      .update(requestsSchema.requests)
+      .set({
+        submissionUncertain: outcome === 'uncertain',
+        submissionFailed: outcome === 'failed',
+      })
+      .where(
+        and(
+          eq(requestsSchema.requests.id, request.id),
+          isNull(requestsSchema.requests.torrentHash),
+          eq(requestsSchema.requests.status, 'approved'),
+        ),
+      );
   }
 
   private async captureTransferObservation(
@@ -1539,6 +1653,7 @@ export class RequestsService implements OnApplicationBootstrap {
                   transferObservedAt: null,
                   transferStale: false,
                   submissionUncertain: false,
+                  submissionFailed: false,
                   importErrorId: null,
                   torrentMissingSince: null,
                   nextSearchAt: new Date(),
@@ -1654,6 +1769,7 @@ export class RequestsService implements OnApplicationBootstrap {
           importErrorId: null,
           transferStale: false,
           submissionUncertain: false,
+          submissionFailed: false,
         })
         .where(
           and(

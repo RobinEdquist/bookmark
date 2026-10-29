@@ -121,6 +121,7 @@
     },
     "issue": {
       "submission_uncertain": "The download submission could not be confirmed. An administrator needs to check it.",
+      "submission_failed": "The download request did not go through. An administrator can retry it.",
       "download_error": "The download is blocked. An administrator needs to check the download client.",
       "download_missing": "The download client no longer has this download. An administrator needs to check it.",
       "status_unknown": "The download status is unknown. Bookmark will check again.",

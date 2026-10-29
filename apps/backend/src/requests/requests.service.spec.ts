@@ -1,6 +1,11 @@
-import { NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  NotFoundException,
+  BadRequestException,
+  HttpException,
+} from '@nestjs/common';
 import { RequestsService } from './requests.service';
 import * as requestsSchema from './schema';
+import { TrackerClientException } from '../tracker/tracker-client.exception';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -96,6 +101,7 @@ function buildRequest(overrides: Partial<Record<string, any>> = {}) {
     transferObservedAt: null,
     transferStale: false,
     submissionUncertain: false,
+    submissionFailed: false,
     importErrorId: null,
     libraryItemId: null,
     libraryItemType: null,
@@ -1038,6 +1044,95 @@ describe('RequestsService', () => {
       );
     });
 
+    it.each([
+      [502, 'failed'],
+      [503, 'failed'],
+      [500, 'uncertain'],
+      [409, 'uncertain'],
+      [422, 'uncertain'],
+    ] as const)(
+      'records a module HTTP %s on submission as %s without releasing the claim',
+      async (status, outcome) => {
+        const request = buildRequest({ status: 'pending' });
+        const updateChain = claimedUpdateChain(request);
+        const tracker = createMockTracker();
+        tracker.download.mockRejectedValue(
+          new TrackerClientException('Error', status, `module said ${status}`),
+        );
+        const db = createSequentialSelectDb([[request]], {
+          update: jest.fn().mockReturnValue(updateChain),
+        });
+        const service = new RequestsService(
+          db,
+          tracker,
+          createMockAppSettings(),
+          createMockLibrary(),
+        );
+
+        await expect(service.approveRequest('req-1')).rejects.toBeInstanceOf(
+          TrackerClientException,
+        );
+
+        expect(tracker.download).toHaveBeenCalledTimes(1);
+        const persisted = updateChain.set.mock.calls.map((call) => call[0]);
+        expect(persisted).toEqual(
+          expect.arrayContaining([
+            {
+              status: outcome,
+              reason: `Source HTTP ${status}: module said ${status}`,
+            },
+            {
+              submissionUncertain: outcome === 'uncertain',
+              submissionFailed: outcome === 'failed',
+            },
+          ]),
+        );
+        expect(persisted).not.toEqual(
+          expect.arrayContaining([
+            expect.objectContaining({ status: 'pending' }),
+          ]),
+        );
+      },
+    );
+
+    it('keeps a connection failure uncertain even though the client reports it as 503', async () => {
+      // Only a response from the module releases the key; a timeout or
+      // refused connection may still have reached it.
+      const request = buildRequest({ status: 'pending' });
+      const updateChain = claimedUpdateChain(request);
+      const tracker = createMockTracker();
+      tracker.download.mockRejectedValue(
+        new HttpException('Tracker client unavailable', 503),
+      );
+      const db = createSequentialSelectDb([[request]], {
+        update: jest.fn().mockReturnValue(updateChain),
+      });
+      const service = new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      );
+
+      await expect(service.approveRequest('req-1')).rejects.toThrow(
+        'Tracker client unavailable',
+      );
+
+      const persisted = updateChain.set.mock.calls.map((call) => call[0]);
+      expect(persisted).toEqual(
+        expect.arrayContaining([
+          {
+            status: 'uncertain',
+            reason: 'Source HTTP 503: Tracker client unavailable',
+          },
+          { submissionUncertain: true, submissionFailed: false },
+        ]),
+      );
+      expect(persisted).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ status: 'failed' })]),
+      );
+    });
+
     it('uses freeleech when setting is enabled', async () => {
       const request = buildRequest({ status: 'pending' });
       const updateChain = claimedUpdateChain(request);
@@ -1298,6 +1393,7 @@ describe('RequestsService', () => {
         importErrorId: null,
         transferStale: false,
         submissionUncertain: false,
+        submissionFailed: false,
       });
     });
 
@@ -2079,5 +2175,158 @@ describe('Request progress persistence and recovery', () => {
       ).rejects.toThrow(BadRequestException);
       expect(tracker.download).not.toHaveBeenCalled();
     }
+  });
+
+  it.each([
+    ['uncertain', null, { canReconcile: true, canRetry: false }],
+    ['failed', null, { canReconcile: false, canRetry: true }],
+    ['failed', 'had-a-transfer', { canReconcile: false, canRetry: false }],
+    ['tracking', null, { canReconcile: false, canRetry: false }],
+  ] as const)(
+    'offers at most one recovery action for the latest %s attempt (hash %s)',
+    async (status, torrentHash, expected) => {
+      const row = buildRequest({ status: 'approved', torrentHash: null });
+      const attempt = {
+        id: 'attempt',
+        requestId: row.id,
+        status,
+        torrentHash,
+        moduleId: 'test-module',
+        torrentId: '12345',
+        downloadOptions: { category: 'books' },
+        reason: 'Source HTTP 503: download client unreachable',
+      };
+      const diagnostics = await new RequestsService(
+        createSequentialSelectDb([[row], [attempt]]),
+        createMockTracker(),
+        createMockAppSettings(),
+        createMockLibrary(),
+      ).getDiagnostics(row.id);
+      expect(diagnostics).toMatchObject({
+        ...expected,
+        submissionReason: 'Source HTTP 503: download client unreachable',
+      });
+    },
+  );
+
+  it('retries a refused submission with the original key and options without a new attempt or approval spend', async () => {
+    const row = buildRequest({
+      status: 'approved',
+      torrentHash: null,
+      submissionFailed: true,
+    });
+    const attempt = {
+      id: 'attempt-original',
+      requestId: row.id,
+      status: 'failed',
+      torrentHash: null,
+      moduleId: 'test-module',
+      torrentId: '12345',
+      downloadOptions: { category: 'original-category', usePersonalFL: true },
+    };
+    const update = chainMock([attempt]);
+    const db = createSequentialSelectDb(
+      [[row], [attempt], [row], [{ email: 'user@test.com' }], []],
+      { update: jest.fn().mockReturnValue(update) },
+    );
+    const tracker = createMockTracker();
+    tracker.download.mockResolvedValue({ hash: 'new-transfer' });
+    tracker.getTorrentStatus.mockResolvedValue({
+      state: 'downloading',
+      progress: null,
+    });
+    const service = new RequestsService(
+      db,
+      tracker,
+      createMockAppSettings({ requestsUseFreeleech: false }),
+      createMockLibrary(),
+    );
+    await service.retrySubmission(row.id);
+    expect(tracker.download).toHaveBeenCalledTimes(1);
+    expect(tracker.download).toHaveBeenCalledWith('12345', {
+      submissionKey: 'attempt-original',
+      category: 'original-category',
+      usePersonalFL: true,
+    });
+    expect(db.insert).not.toHaveBeenCalled();
+    const writes = update.set.mock.calls.map(
+      ([write]: [Record<string, unknown>]) => write,
+    );
+    expect(writes[0]).toEqual({ status: 'submitting', reason: null });
+    expect(writes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          status: 'tracking',
+          torrentHash: 'new-transfer',
+        }),
+        expect.objectContaining({
+          torrentHash: 'new-transfer',
+          submissionFailed: false,
+          submissionUncertain: false,
+        }),
+      ]),
+    );
+    expect(
+      writes.every(
+        (write) =>
+          !('approvedAt' in write) && !('autoApprovedByUserId' in write),
+      ),
+    ).toBe(true);
+  });
+
+  it('rejects retry for uncertain, tracked, foreign, or optionless attempts and for a lost claim', async () => {
+    const eligible = {
+      status: 'failed',
+      torrentHash: null,
+      moduleId: 'test-module',
+      downloadOptions: { category: 'books' },
+    };
+    for (const attempt of [
+      { ...eligible, status: 'uncertain' },
+      { ...eligible, torrentHash: 'had-a-transfer' },
+      { ...eligible, moduleId: 'different' },
+      { ...eligible, downloadOptions: null },
+    ]) {
+      const tracker = createMockTracker();
+      const db = createSequentialSelectDb([
+        [buildRequest({ status: 'approved' })],
+        [{ ...attempt, id: 'attempt', requestId: 'req-1', torrentId: '12345' }],
+      ]);
+      await expect(
+        new RequestsService(
+          db,
+          tracker,
+          createMockAppSettings(),
+          createMockLibrary(),
+        ).retrySubmission('req-1'),
+      ).rejects.toThrow(BadRequestException);
+      expect(db.update).not.toHaveBeenCalled();
+      expect(tracker.download).not.toHaveBeenCalled();
+    }
+    // Another administrator claimed the same attempt first.
+    const tracker = createMockTracker();
+    const db = createSequentialSelectDb(
+      [
+        [buildRequest({ status: 'approved' })],
+        [
+          {
+            ...eligible,
+            id: 'attempt',
+            requestId: 'req-1',
+            torrentId: '12345',
+          },
+        ],
+      ],
+      { update: jest.fn().mockReturnValue(chainMock([])) },
+    );
+    await expect(
+      new RequestsService(
+        db,
+        tracker,
+        createMockAppSettings(),
+        createMockLibrary(),
+      ).retrySubmission('req-1'),
+    ).rejects.toThrow('already being retried');
+    expect(tracker.download).not.toHaveBeenCalled();
   });
 });

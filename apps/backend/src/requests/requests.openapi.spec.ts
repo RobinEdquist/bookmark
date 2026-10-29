@@ -53,8 +53,10 @@ describe('Request OpenAPI contract', () => {
               importMessage: null,
               importStatus: null,
               canReconcile: false,
+              canRetry: false,
             }),
             reconcileSubmission: jest.fn().mockResolvedValue(result),
+            retrySubmission: jest.fn().mockResolvedValue(result),
             getUserRequests: jest.fn().mockResolvedValue([]),
             getAllRequests: jest.fn().mockResolvedValue([]),
             getSearchQueue: jest.fn().mockResolvedValue({
@@ -103,6 +105,7 @@ describe('Request OpenAPI contract', () => {
     [`/api/admin/requests/${id}/reject`, {}],
     [`/api/admin/requests/${id}/recheck`, {}],
     [`/api/admin/requests/${id}/reconcile`, {}],
+    [`/api/admin/requests/${id}/retry-submission`, {}],
   ])('documents the actual success code for POST %s', async (path, body) => {
     const response = await request(app.getHttpServer()).post(path).send(body);
     expect(response.status).toBeGreaterThanOrEqual(200);
@@ -253,6 +256,7 @@ describe('Request OpenAPI contract', () => {
     for (const [path, method] of [
       ['/api/admin/requests/{id}/diagnostics', 'get'],
       ['/api/admin/requests/{id}/reconcile', 'post'],
+      ['/api/admin/requests/{id}/retry-submission', 'post'],
     ] as const) {
       const operation = document.paths[path]?.[method];
       expect(operation?.responses).toEqual(
@@ -270,11 +274,15 @@ describe('Request OpenAPI contract', () => {
         ]),
       );
     }
-    expect(
-      document.paths['/api/admin/requests/{id}/reconcile']?.post?.responses[
-        '400'
-      ],
-    ).toBeDefined();
+    for (const action of ['reconcile', 'retry-submission'])
+      expect(
+        document.paths[`/api/admin/requests/{id}/${action}`]?.post?.responses[
+          '400'
+        ],
+      ).toBeDefined();
+    expect(document.components?.schemas?.RequestDiagnosticsDto).toMatchObject({
+      required: expect.arrayContaining(['canReconcile', 'canRetry']),
+    });
   });
 
   it('documents the opt-in setting and disabled creation response', () => {

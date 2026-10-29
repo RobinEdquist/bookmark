@@ -159,6 +159,31 @@ paths:
           description: Key conflicts with another request or the previous submission outcome is uncertain. No new submission is made.
         "422":
           description: An optional download control is unsupported by this module.
+        "500":
+          description: >-
+            Outcome unknown: the submission may have been accepted. The key stays
+            pending and must be reconciled; it is never resubmitted.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: >-
+            The source or download client answered with a definitive refusal
+            (for example an invalid torrent file). Nothing was submitted, so the
+            same key may be retried once the cause is fixed.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: >-
+            The source or download client could not be reached or rejected the
+            session. Nothing was submitted, so the same key may be retried.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "404":

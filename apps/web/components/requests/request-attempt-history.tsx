@@ -9,8 +9,16 @@ interface Attempt {
   id: string;
   torrentId: string;
   status: string;
+  torrentHash: string | null;
   createdAt: string;
   reason: string | null;
+}
+
+/** A failed attempt that never got a download identity was never submitted. */
+function statusKey(attempt: Attempt): string {
+  return attempt.status === "failed" && !attempt.torrentHash
+    ? "submissionFailed"
+    : attempt.status;
 }
 
 export function RequestAttemptHistory({ requestId }: { requestId: string }) {
@@ -55,7 +63,7 @@ export function RequestAttemptHistory({ requestId }: { requestId: string }) {
           {data.map((attempt) => (
             <li key={attempt.id}>
               <span className="font-medium">
-                {t(`status.${attempt.status}`)}
+                {t(`status.${statusKey(attempt)}`)}
               </span>{" "}
               <span className="text-muted-foreground">
                 {t("release", { id: attempt.torrentId })} ·{" "}

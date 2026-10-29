@@ -20,6 +20,7 @@ export const requestStages = [
 ] as const;
 export const requestIssues = [
   'submission_uncertain',
+  'submission_failed',
   'download_error',
   'download_missing',
   'status_unknown',
@@ -52,6 +53,7 @@ export type ActivityRequest = Pick<
   | 'transferObservedAt'
   | 'transferStale'
   | 'submissionUncertain'
+  | 'submissionFailed'
   | 'searchError'
 >;
 
@@ -110,6 +112,12 @@ export function requestActivity(
       ...activity,
       stage: 'needs_attention',
       issue: 'submission_uncertain',
+    };
+  if (request.submissionFailed)
+    return {
+      ...activity,
+      stage: 'needs_attention',
+      issue: 'submission_failed',
     };
   if (
     request.transferState === 'completed' ||

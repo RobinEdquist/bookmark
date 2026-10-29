@@ -12,7 +12,7 @@ export class RequestAttemptDto {
   @ApiProperty({
     enum: ['submitting', 'tracking', 'uncertain', 'failed', 'complete'],
     description:
-      'submitting: recorded before submission; tracking: download identity saved; uncertain: failed or interrupted submission needs reconciliation and is not automatically resubmitted (submitting attempts idle for thirty minutes are recovered at startup and every thirty seconds); failed: conclusive acquisition failure; complete: imported into the library.',
+      'submitting: recorded before submission; tracking: download identity saved; uncertain: failed or interrupted submission needs reconciliation and is not automatically resubmitted (submitting attempts idle for thirty minutes are recovered at startup and every thirty seconds); failed: conclusive acquisition failure, or (without a download identity) a submission the source refused or could not receive, which an admin can resubmit with the same key; complete: imported into the library.',
   })
   status!: string;
   @ApiProperty({

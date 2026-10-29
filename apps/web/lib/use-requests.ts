@@ -45,6 +45,7 @@ export interface RequestActivity {
   stale: boolean;
   issue:
     | "submission_uncertain"
+    | "submission_failed"
     | "download_error"
     | "download_missing"
     | "status_unknown"
@@ -66,6 +67,7 @@ export interface RequestDiagnostics {
   importMessage: string | null;
   importStatus: string | null;
   canReconcile: boolean;
+  canRetry: boolean;
 }
 
 export interface RequestResponse {

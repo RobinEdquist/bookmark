@@ -126,6 +126,27 @@ export class RequestsAdminController {
     return this.requestsService.reconcileSubmission(id);
   }
 
+  @Post(':id/retry-submission')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Retry a refused or undelivered submission (Admin)',
+    description:
+      'Resubmits the latest attempt the source refused (502) or could not receive (503) with the same durable submission key and saved options. The source released the key, so nothing is duplicated; approval, allowance, and history are preserved. Concurrent retries are rejected.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: ContentRequestDto })
+  @ApiResponse({
+    status: 400,
+    description:
+      'Ineligible request, changed source, uncertain submission, or retry already running',
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Requires admin role' })
+  @ApiResponse({ status: 404, description: 'Request not found' })
+  retrySubmission(@Param('id') id: string): Promise<ContentRequestDto> {
+    return this.requestsService.retrySubmission(id);
+  }
+
   @Post(':id/approve')
   @ApiOperation({
     summary: 'Approve request (Admin)',
