@@ -547,25 +547,20 @@ export default function ComicSeriesDetailPage({
                 <h3 className="mb-2 font-semibold">
                   {t("detail.description")}
                 </h3>
-                <div className="relative">
-                  <div
-                    ref={descriptionRef}
-                    className="overflow-hidden text-sm leading-relaxed text-muted-foreground transition-[max-height] duration-300 ease-in-out [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_em]:italic [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4"
-                    style={{
-                      maxHeight: descriptionExpanded
-                        ? (descriptionFullHeight ?? 9999)
-                        : COLLAPSED_DESCRIPTION_HEIGHT,
-                    }}
-                    dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
-                  />
-                  <div
-                    className={`pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-background to-transparent transition-opacity duration-200 ${
+                <div
+                  ref={descriptionRef}
+                  className="overflow-hidden text-sm leading-relaxed text-muted-foreground transition-[max-height] duration-300 ease-in-out [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_em]:italic [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4"
+                  style={{
+                    maxHeight: descriptionExpanded
+                      ? (descriptionFullHeight ?? 9999)
+                      : COLLAPSED_DESCRIPTION_HEIGHT,
+                    maskImage:
                       descriptionOverflows && !descriptionExpanded
-                        ? "opacity-100"
-                        : "opacity-0"
-                    }`}
-                  />
-                </div>
+                        ? "linear-gradient(to bottom, black calc(100% - 4rem), transparent)"
+                        : undefined,
+                  }}
+                  dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
+                />
                 {descriptionOverflows && (
                   <Button
                     variant="ghost"
