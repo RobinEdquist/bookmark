@@ -54,6 +54,7 @@ describe('GrFinderService', () => {
   let metadataEntityService: {
     materializeExternalMetadata: jest.Mock;
   };
+  let metadataResolver: { forMedia: jest.Mock };
 
   beforeEach(() => {
     db = createMockDb();
@@ -64,10 +65,12 @@ describe('GrFinderService', () => {
     metadataEntityService = {
       materializeExternalMetadata: jest.fn().mockResolvedValue(undefined),
     };
+    metadataResolver = { forMedia: jest.fn() };
     service = new GrFinderService(
       db as any,
       scraper as unknown as GoodreadsScraperService,
       metadataEntityService as any,
+      metadataResolver as any,
     );
   });
 
@@ -108,6 +111,11 @@ describe('GrFinderService', () => {
   // -----------------------------------------------------------------------
   describe('searchByMediaId', () => {
     it('uses custom query directly when provided', async () => {
+      metadataResolver.forMedia.mockResolvedValue({
+        title: 'The Great Gatsby',
+        subtitle: null,
+        authorNames: ['F. Scott Fitzgerald'],
+      });
       scraper.searchBooks.mockResolvedValue(mockSearchResults);
 
       const result = await service.searchByMediaId(
@@ -118,39 +126,35 @@ describe('GrFinderService', () => {
 
       expect(scraper.searchBooks).toHaveBeenCalledWith('custom search term');
       expect(result.query).toBe('custom search term');
+      expect(result.authors).toEqual(['F. Scott Fitzgerald']);
     });
 
-    it('builds query from the audiobook title', async () => {
-      const audiobookSelectChain = createChainMock(['from', 'where', 'limit']);
-      audiobookSelectChain.limit.mockResolvedValue([
-        { title: 'The Great Gatsby', subtitle: null },
-      ]);
-
-      db.select.mockReturnValueOnce(audiobookSelectChain);
+    it('builds query from the resolved title, not the raw column', async () => {
+      // The raw column can hold a filename-style string while a linked source
+      // or manual edit supplies the title the user actually sees.
+      metadataResolver.forMedia.mockResolvedValue({
+        title: 'A Storm of Swords',
+        subtitle: null,
+        authorNames: ['George R. R. Martin'],
+      });
       scraper.searchBooks.mockResolvedValue(mockSearchResults);
 
       const result = await service.searchByMediaId('audiobook', AUDIOBOOK_ID);
 
-      expect(result.query).toBe('The Great Gatsby');
-    });
-
-    it('throws NotFoundException for missing audiobook', async () => {
-      const selectChain = createChainMock(['from', 'where', 'limit']);
-      selectChain.limit.mockResolvedValue([]);
-      db.select.mockReturnValue(selectChain);
-
-      await expect(
-        service.searchByMediaId('audiobook', 'nonexistent'),
-      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(metadataResolver.forMedia).toHaveBeenCalledWith(
+        'audiobook',
+        AUDIOBOOK_ID,
+      );
+      expect(result.query).toBe('A Storm of Swords');
+      expect(result.authors).toEqual(['George R. R. Martin']);
     });
 
     it('builds query from ebook title and subtitle', async () => {
-      const ebookSelectChain = createChainMock(['from', 'where', 'limit']);
-      ebookSelectChain.limit.mockResolvedValue([
-        { title: 'Dune', subtitle: 'A Science Fiction Epic' },
-      ]);
-
-      db.select.mockReturnValueOnce(ebookSelectChain);
+      metadataResolver.forMedia.mockResolvedValue({
+        title: 'Dune',
+        subtitle: 'A Science Fiction Epic',
+        authorNames: [],
+      });
       scraper.searchBooks.mockResolvedValue(mockSearchResults);
 
       const result = await service.searchByMediaId('ebook', EBOOK_ID);
@@ -158,15 +162,16 @@ describe('GrFinderService', () => {
       expect(result.query).toBe('Dune: A Science Fiction Epic');
     });
 
-    it('throws NotFoundException for missing ebook', async () => {
-      const selectChain = createChainMock(['from', 'where', 'limit']);
-      selectChain.limit.mockResolvedValue([]);
-      db.select.mockReturnValue(selectChain);
+    it.each(['audiobook', 'ebook'] as const)(
+      'throws NotFoundException for missing %s',
+      async (mediaType) => {
+        metadataResolver.forMedia.mockResolvedValue(undefined);
 
-      await expect(
-        service.searchByMediaId('ebook', 'nonexistent'),
-      ).rejects.toBeInstanceOf(NotFoundException);
-    });
+        await expect(
+          service.searchByMediaId(mediaType, 'nonexistent'),
+        ).rejects.toBeInstanceOf(NotFoundException);
+      },
+    );
   });
 
   // -----------------------------------------------------------------------

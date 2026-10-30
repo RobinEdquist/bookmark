@@ -237,7 +237,8 @@ export class HardcoverController {
     const pageNum = page ? parseInt(page, 10) : 1;
     const perPageNum = perPage ? parseInt(perPage, 10) : 10;
 
-    const result = await this.hardcoverService.searchByAudiobookIdPaginated(
+    const result = await this.hardcoverService.searchByMediaIdPaginated(
+      'audiobook',
       audiobookId,
       pageNum,
       perPageNum,
@@ -249,7 +250,8 @@ export class HardcoverController {
     }
 
     return {
-      query: result.query ?? '',
+      query: result.query,
+      authors: result.authors,
       ...result.data,
     };
   }
@@ -414,7 +416,8 @@ export class HardcoverController {
     }
 
     return {
-      query: result.query ?? '',
+      query: result.query,
+      authors: result.authors,
       ...result.data,
     };
   }

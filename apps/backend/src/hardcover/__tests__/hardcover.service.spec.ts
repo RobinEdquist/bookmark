@@ -108,6 +108,7 @@ describe('HardcoverService', () => {
   let mockMetadataEntityService: ReturnType<
     typeof createMockMetadataEntityService
   >;
+  let mockMetadataResolver: { forMedia: jest.Mock };
   let service: HardcoverService;
 
   beforeEach(() => {
@@ -116,11 +117,13 @@ describe('HardcoverService', () => {
     mockAppEvents = createMockAppEvents();
     mockWsEvents = createMockWsEvents();
     mockMetadataEntityService = createMockMetadataEntityService();
+    mockMetadataResolver = { forMedia: jest.fn() };
     service = new HardcoverService(
       db as any,
       mockAppEvents as any,
       mockWsEvents as any,
       mockMetadataEntityService as any,
+      mockMetadataResolver as any,
     );
   });
 
@@ -373,8 +376,8 @@ describe('HardcoverService', () => {
   });
 
   describe('searchByMediaIdPaginated', () => {
-    it('should use customQuery when provided, skipping DB lookups', async () => {
-      // Only getApiKey select is needed (inside searchBooks)
+    function mockSearch() {
+      // getApiKey inside searchBooks
       const settingsChain = createChainMock(['from', 'where', 'limit']);
       settingsChain.limit.mockResolvedValueOnce([
         { hardcoverApiKey: 'test-key' },
@@ -384,6 +387,15 @@ describe('HardcoverService', () => {
       mockGraphQLRequest.mockResolvedValueOnce({
         search: { results: { hits: [], found: 0 } },
       });
+    }
+
+    it('should use customQuery when provided', async () => {
+      mockMetadataResolver.forMedia.mockResolvedValueOnce({
+        title: 'The Way of Kings',
+        subtitle: null,
+        authorNames: ['Brandon Sanderson'],
+      });
+      mockSearch();
 
       const result = await service.searchByMediaIdPaginated(
         'audiobook',
@@ -394,9 +406,52 @@ describe('HardcoverService', () => {
       );
 
       expect(result.query).toBe('custom search term');
+      expect(result.authors).toEqual(['Brandon Sanderson']);
       expect(result.success).toBe(true);
-      // Only 1 select call (for getApiKey), not 2-3 for media lookup
-      expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('should build the query from the resolved title, not the raw column', async () => {
+      // The raw column can hold a filename-style string while a linked source
+      // or manual edit supplies the title the user actually sees.
+      mockMetadataResolver.forMedia.mockResolvedValueOnce({
+        title: 'A Storm of Swords',
+        subtitle: null,
+        authorNames: ['George R. R. Martin'],
+      });
+      mockSearch();
+
+      const result = await service.searchByMediaIdPaginated('ebook', 'eb-1');
+
+      expect(mockMetadataResolver.forMedia).toHaveBeenCalledWith(
+        'ebook',
+        'eb-1',
+      );
+      expect(result.query).toBe('A Storm of Swords');
+      expect(result.authors).toEqual(['George R. R. Martin']);
+    });
+
+    it('should include the resolved subtitle in the query', async () => {
+      mockMetadataResolver.forMedia.mockResolvedValueOnce({
+        title: 'The Stormlight Archive',
+        subtitle: 'The Way of Kings',
+        authorNames: [],
+      });
+      mockSearch();
+
+      const result = await service.searchByMediaIdPaginated(
+        'audiobook',
+        'ab-1',
+      );
+
+      expect(result.query).toBe('The Stormlight Archive: The Way of Kings');
+    });
+
+    it('should throw NotFoundException for missing media', async () => {
+      mockMetadataResolver.forMedia.mockResolvedValueOnce(undefined);
+
+      await expect(
+        service.searchByMediaIdPaginated('audiobook', 'nonexistent'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

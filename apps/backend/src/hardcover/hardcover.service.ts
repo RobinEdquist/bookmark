@@ -18,6 +18,7 @@ import { WsEventsService } from '../events/ws-events.service';
 import { splitPersonNames } from '../common/utils/name.utils';
 import { splitTitleSubtitle } from '../common/utils/title.utils';
 import { MetadataEntityService } from '../common/metadata-entity.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 
 type CombinedSchema = typeof appSettingsSchema &
   typeof audiobooksSchema &
@@ -163,6 +164,7 @@ export class HardcoverService {
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
     private metadataEntityService: MetadataEntityService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   private createClient(apiKey: string): GraphQLClient {
@@ -459,48 +461,6 @@ export class HardcoverService {
     };
   }
 
-  async searchByAudiobookIdPaginated(
-    audiobookId: string,
-    page: number = 1,
-    perPage: number = 10,
-    customQuery?: string,
-  ): Promise<{
-    success: boolean;
-    data?: HardcoverSearchResponse;
-    query?: string;
-    error?: string;
-  }> {
-    let searchQuery: string;
-
-    if (customQuery) {
-      // Use custom query provided by user
-      searchQuery = customQuery;
-    } else {
-      const audiobook = await this.db
-        .select({
-          title: audiobooksSchema.audiobooks.title,
-          subtitle: audiobooksSchema.audiobooks.subtitle,
-        })
-        .from(audiobooksSchema.audiobooks)
-        .where(eq(audiobooksSchema.audiobooks.id, audiobookId))
-        .limit(1);
-
-      if (audiobook.length === 0) {
-        throw new NotFoundException('Audiobook not found');
-      }
-
-      const { title, subtitle } = audiobook[0];
-      searchQuery = subtitle ? `${title}: ${subtitle}` : title;
-    }
-
-    const result = await this.searchBooks(searchQuery, page, perPage);
-
-    return {
-      ...result,
-      query: searchQuery,
-    };
-  }
-
   async linkMediaToHardcover(
     mediaType: MediaType,
     mediaId: string,
@@ -767,6 +727,12 @@ export class HardcoverService {
     };
   }
 
+  /**
+   * Backs the link dialog. Searches with the title the user sees for this
+   * book (the metadata resolver's, not the raw column, which can still hold a
+   * filename-style string), and returns the resolved authors so the dialog can
+   * show them.
+   */
   async searchByMediaIdPaginated(
     mediaType: MediaType,
     mediaId: string,
@@ -776,60 +742,29 @@ export class HardcoverService {
   ): Promise<{
     success: boolean;
     data?: HardcoverSearchResponse;
-    query?: string;
+    query: string;
+    authors: string[];
     error?: string;
   }> {
-    let searchQuery: string;
-
-    if (customQuery) {
-      // Use custom query provided by user
-      searchQuery = customQuery;
-    } else {
-      let title: string;
-      let subtitle: string | null;
-
-      if (mediaType === 'audiobook') {
-        const audiobook = await this.db
-          .select({
-            title: audiobooksSchema.audiobooks.title,
-            subtitle: audiobooksSchema.audiobooks.subtitle,
-          })
-          .from(audiobooksSchema.audiobooks)
-          .where(eq(audiobooksSchema.audiobooks.id, mediaId))
-          .limit(1);
-
-        if (audiobook.length === 0) {
-          throw new NotFoundException('Audiobook not found');
-        }
-
-        title = audiobook[0].title;
-        subtitle = audiobook[0].subtitle;
-      } else {
-        const ebook = await this.db
-          .select({
-            title: ebooksSchema.ebooks.title,
-            subtitle: ebooksSchema.ebooks.subtitle,
-          })
-          .from(ebooksSchema.ebooks)
-          .where(eq(ebooksSchema.ebooks.id, mediaId))
-          .limit(1);
-
-        if (ebook.length === 0) {
-          throw new NotFoundException('Ebook not found');
-        }
-
-        title = ebook[0].title;
-        subtitle = ebook[0].subtitle;
-      }
-
-      searchQuery = subtitle ? `${title}: ${subtitle}` : title;
+    const resolved = await this.metadataResolver.forMedia(mediaType, mediaId);
+    if (!resolved) {
+      throw new NotFoundException(
+        mediaType === 'audiobook' ? 'Audiobook not found' : 'Ebook not found',
+      );
     }
+
+    const searchQuery =
+      customQuery ||
+      (resolved.subtitle
+        ? `${resolved.title}: ${resolved.subtitle}`
+        : resolved.title);
 
     const result = await this.searchBooks(searchQuery, page, perPage);
 
     return {
       ...result,
       query: searchQuery,
+      authors: resolved.authorNames,
     };
   }
 

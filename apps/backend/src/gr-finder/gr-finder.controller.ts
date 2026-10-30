@@ -27,6 +27,7 @@ import { GrFinderService, type MediaType } from './gr-finder.service';
 import { GoodreadsLinkQueueService } from './goodreads-link-queue.service';
 import {
   GrFinderSearchResponseDto,
+  GrFinderMediaSearchResponseDto,
   GrFinderBookDetailsDto,
   GrFinderStatusResponseDto,
   GrFinderLinkResponseDto,
@@ -138,14 +139,14 @@ export class GrFinderController {
   @ApiResponse({
     status: 200,
     description: 'Search results with computed query',
-    type: GrFinderSearchResponseDto,
+    type: GrFinderMediaSearchResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Audiobook not found' })
   async searchByAudiobook(
     @Param('audiobookId') audiobookId: string,
     @Query('q') customQuery?: string,
-  ): Promise<GrFinderSearchResponseDto> {
+  ): Promise<GrFinderMediaSearchResponseDto> {
     try {
       return await this.grFinderService.searchByMediaId(
         'audiobook',
@@ -180,14 +181,14 @@ export class GrFinderController {
   @ApiResponse({
     status: 200,
     description: 'Search results with computed query',
-    type: GrFinderSearchResponseDto,
+    type: GrFinderMediaSearchResponseDto,
   })
   @ApiResponse({ status: 403, description: 'Forbidden - requires admin role' })
   @ApiResponse({ status: 404, description: 'Ebook not found' })
   async searchByEbook(
     @Param('ebookId') ebookId: string,
     @Query('q') customQuery?: string,
-  ): Promise<GrFinderSearchResponseDto> {
+  ): Promise<GrFinderMediaSearchResponseDto> {
     try {
       return await this.grFinderService.searchByMediaId(
         'ebook',

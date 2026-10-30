@@ -19,6 +19,7 @@ import type { ScrapedBookDetails } from './goodreads-scraper.service';
 import { splitPersonNames } from '../common/utils/name.utils';
 import { splitTitleSubtitle } from '../common/utils/title.utils';
 import { MetadataEntityService } from '../common/metadata-entity.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 
 export type MediaType = 'audiobook' | 'ebook';
 
@@ -95,6 +96,7 @@ export class GrFinderService {
     private readonly db: NodePgDatabase,
     private readonly scraper: GoodreadsScraperService,
     private readonly metadataEntityService: MetadataEntityService,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   async search(query: string): Promise<GrFinderSearchResponse> {
@@ -109,61 +111,34 @@ export class GrFinderService {
     };
   }
 
+  /**
+   * Searches with the title the user sees for this book (the metadata
+   * resolver's, not the raw column, which can still hold a filename-style
+   * string), and returns the resolved authors so the dialog can show them.
+   */
   async searchByMediaId(
     mediaType: MediaType,
     mediaId: string,
     customQuery?: string,
-  ): Promise<GrFinderSearchResponse & { query: string }> {
-    let searchQuery: string;
-
-    if (customQuery) {
-      searchQuery = customQuery;
-    } else {
-      let title: string;
-      let subtitle: string | null;
-
-      if (mediaType === 'audiobook') {
-        const [audiobook] = await this.db
-          .select({
-            title: audiobooks.title,
-            subtitle: audiobooks.subtitle,
-          })
-          .from(audiobooks)
-          .where(eq(audiobooks.id, mediaId))
-          .limit(1);
-
-        if (!audiobook) {
-          throw new NotFoundException('Audiobook not found');
-        }
-
-        title = audiobook.title;
-        subtitle = audiobook.subtitle;
-      } else {
-        const [ebook] = await this.db
-          .select({
-            title: ebooks.title,
-            subtitle: ebooks.subtitle,
-          })
-          .from(ebooks)
-          .where(eq(ebooks.id, mediaId))
-          .limit(1);
-
-        if (!ebook) {
-          throw new NotFoundException('Ebook not found');
-        }
-
-        title = ebook.title;
-        subtitle = ebook.subtitle;
-      }
-
-      searchQuery = subtitle ? `${title}: ${subtitle}` : title;
+  ): Promise<GrFinderSearchResponse & { authors: string[] }> {
+    const resolved = await this.metadataResolver.forMedia(mediaType, mediaId);
+    if (!resolved) {
+      throw new NotFoundException(
+        mediaType === 'audiobook' ? 'Audiobook not found' : 'Ebook not found',
+      );
     }
+
+    const searchQuery =
+      customQuery ||
+      (resolved.subtitle
+        ? `${resolved.title}: ${resolved.subtitle}`
+        : resolved.title);
 
     const result = await this.search(searchQuery);
 
     return {
       ...result,
-      query: searchQuery,
+      authors: resolved.authorNames,
     };
   }
 
