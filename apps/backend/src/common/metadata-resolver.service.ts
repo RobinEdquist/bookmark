@@ -165,6 +165,21 @@ export class MetadataResolverService {
   }
 
   /**
+   * Resolve display metadata for one audiobook or ebook.
+   * Returns undefined when no such row exists.
+   */
+  async forMedia(
+    mediaType: 'audiobook' | 'ebook',
+    mediaId: string,
+  ): Promise<ResolvedBookMetadata | undefined> {
+    const resolved =
+      mediaType === 'audiobook'
+        ? await this.forAudiobooks([mediaId])
+        : await this.forEbooks([mediaId]);
+    return resolved.get(mediaId);
+  }
+
+  /**
    * Resolve display metadata for the given ebooks.
    * Ids with no matching row are simply absent from the returned map.
    */

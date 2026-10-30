@@ -46,6 +46,15 @@ export class GrFinderSearchResponseDto {
 }
 
 /**
+ * Response of `GET /gr-finder/search/{audiobook,ebook}/:id` — the search plus
+ * the book's resolved authors, shown in the link dialog.
+ */
+export class GrFinderMediaSearchResponseDto extends GrFinderSearchResponseDto {
+  @ApiProperty({ type: [String], example: ['Douglas Adams'] })
+  authors!: string[];
+}
+
+/**
  * Full book details from `GET /gr-finder/book/:goodreadsId`. Mirrors the
  * gr-finder service's `GrFinderBookDetails` — the scraped book payload.
  */

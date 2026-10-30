@@ -90,6 +90,7 @@
   "hardcoverSync": {
     "title": "Link to Hardcover",
     "description": "Select a book from Hardcover to link with \"{title}\"",
+    "descriptionWithAuthor": "Select a book from Hardcover to link with \"{title}\" by {author}",
     "searchPlaceholder": "Search Hardcover...",
     "search": "Search",
     "resultsCount": "{count, plural, one {# result found} other {# results found}}",
@@ -172,6 +173,7 @@
   "goodreadsSearch": {
     "title": "Link to Goodreads",
     "description": "Select a book from Goodreads to link with \"{title}\"",
+    "descriptionWithAuthor": "Select a book from Goodreads to link with \"{title}\" by {author}",
     "searchPlaceholder": "Search Goodreads...",
     "search": "Search",
     "resultsCount": "{count, plural, one {# result found} other {# results found}}",

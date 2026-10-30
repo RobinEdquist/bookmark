@@ -94,6 +94,7 @@ export interface HardcoverSearchResponse {
 
 export interface HardcoverAudiobookSearchResponse extends HardcoverSearchResponse {
   query: string;
+  authors: string[];
 }
 
 async function fetchStatus(): Promise<HardcoverStatus> {
