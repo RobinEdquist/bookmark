@@ -344,6 +344,7 @@ export class MetadataWorkerPoolService implements OnModuleDestroy {
       hasEmbeddedCover?: boolean;
       duration?: number;
       format?: string;
+      codec?: string;
       bitrate?: number;
       sampleRate?: number;
     };
@@ -352,6 +353,7 @@ export class MetadataWorkerPoolService implements OnModuleDestroy {
       fileName: string;
       duration: number;
       format: string;
+      codec?: string;
       bitrate?: number;
       sampleRate?: number;
       sizeBytes: number;
@@ -366,6 +368,7 @@ export class MetadataWorkerPoolService implements OnModuleDestroy {
     fileName: string;
     duration: number;
     format: string;
+    codec?: string;
     bitrate?: number;
     sampleRate?: number;
     sizeBytes: number;

@@ -200,7 +200,7 @@
       "description": "Läs om metadata från alla ljudboksfiler och uppdatera databasposter",
       "button": "Skanna om alla ljudböcker",
       "inProgress": "Skannar om...",
-      "hint": "Detta läser om metadata från dina ljudfiler. Manuellt redigerade fält skrivs inte över. Filinformation (längd, bitrate, etc.) uppdateras alltid.",
+      "hint": "Detta läser om metadata från dina ljudfiler. Manuellt redigerade fält, uppladdade omslag och importerade kapitel behålls. Filinformation (längd, bitrate, etc.) uppdateras alltid.",
       "progress": {
         "preparing": "Förbereder...",
         "current": "Skannar om: {title}"

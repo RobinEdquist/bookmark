@@ -1033,6 +1033,7 @@ export class RestoreImporterService {
           order: audioFile.index,
           duration: Math.floor(audioFile.duration),
           format: audioFile.format || audioFile.metadata.ext.replace('.', ''),
+          codec: codecDisplayName(audioFile.codec),
           bitrate: audioFile.bitRate,
           sizeBytes: audioFile.metadata.size,
         });
@@ -1205,4 +1206,26 @@ export class RestoreImporterService {
         },
       });
   }
+}
+
+// ffprobe codec names as Audiobookshelf stores them, spelled the way the
+// library scanner (mediainfo) spells them so restored and rescanned files
+// read the same in the files list.
+const FFPROBE_CODEC_NAMES: Record<string, string> = {
+  aac: 'AAC',
+  mp3: 'MP3',
+  mp2: 'MP2',
+  eac3: 'E-AC-3',
+  ac3: 'AC-3',
+  opus: 'Opus',
+  vorbis: 'Vorbis',
+  flac: 'FLAC',
+  alac: 'ALAC',
+  wmav2: 'WMA',
+};
+
+function codecDisplayName(codec: string | undefined): string | null {
+  const key = codec?.trim().toLowerCase();
+  if (!key) return null;
+  return FFPROBE_CODEC_NAMES[key] ?? key.toUpperCase();
 }

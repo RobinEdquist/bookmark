@@ -776,7 +776,9 @@ export default function AudiobookDetailPage({
                                   </div>
                                 </div>
                                 <div className="mt-1 flex gap-3 text-xs text-muted-foreground">
-                                  <span>{file.format.toUpperCase()}</span>
+                                  <span>
+                                    {(file.codec ?? file.format).toUpperCase()}
+                                  </span>
                                   {file.bitrate && (
                                     <span>
                                       {Math.round(file.bitrate / 1000)} kbps

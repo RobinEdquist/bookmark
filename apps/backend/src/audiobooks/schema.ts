@@ -90,9 +90,10 @@ export const audiobookFiles = pgTable(
     fileName: text('file_name').notNull(),
     order: integer('order').notNull(),
     duration: integer('duration').notNull(), // seconds
-    format: text('format').notNull(), // mp3, m4b, m4a, ogg
-    bitrate: integer('bitrate'),
-    sampleRate: integer('sample_rate'),
+    format: text('format').notNull(), // container: MPEG-4, MPEG Audio, Ogg
+    codec: text('codec'), // audio stream: AAC LC, MP3, E-AC-3, Opus
+    bitrate: integer('bitrate'), // bits per second
+    sampleRate: integer('sample_rate'), // Hz
     sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },

@@ -1458,6 +1458,195 @@ describe('MediaImporterService', () => {
       const setCall = db._chains.update.set.mock.calls[0][0];
       expect(setCall).not.toHaveProperty('coverSource');
     });
+
+    it('keeps an uploaded cover when the file also has embedded art', async () => {
+      setupRescanMocks(
+        {
+          id: 'ab-1',
+          title: 'Test',
+          filePath: 'TestBook',
+          manualFields: [],
+          coverSource: 'uploaded',
+          coverUrl: 'ab-1.jpg',
+        },
+        [{ id: 'f1', audiobookId: 'ab-1', filePath: 'file.m4b', order: 0 }],
+      );
+
+      deps.audioMetadataProvider.extractFullMetadata.mockResolvedValueOnce({
+        metadata: { title: 'Test', hasEmbeddedCover: true },
+        fileInfo: {
+          filePath: '/library/TestBook/file.m4b',
+          fileName: 'file.m4b',
+          duration: 3600,
+          format: 'm4b',
+          sizeBytes: 50000000,
+        },
+        chapters: [],
+      });
+
+      await service.rescanAudiobook('ab-1');
+
+      const setCall = db._chains.update.set.mock.calls[0][0];
+      expect(setCall).not.toHaveProperty('coverSource');
+    });
+
+    it('switches to the embedded cover when none was uploaded', async () => {
+      setupRescanMocks(
+        {
+          id: 'ab-1',
+          title: 'Test',
+          filePath: 'TestBook',
+          manualFields: [],
+          coverSource: null,
+          coverUrl: null,
+        },
+        [{ id: 'f1', audiobookId: 'ab-1', filePath: 'file.m4b', order: 0 }],
+      );
+
+      deps.audioMetadataProvider.extractFullMetadata.mockResolvedValueOnce({
+        metadata: { title: 'Test', hasEmbeddedCover: true },
+        fileInfo: {
+          filePath: '/library/TestBook/file.m4b',
+          fileName: 'file.m4b',
+          duration: 3600,
+          format: 'm4b',
+          sizeBytes: 50000000,
+        },
+        chapters: [],
+      });
+
+      await service.rescanAudiobook('ab-1');
+
+      const setCall = db._chains.update.set.mock.calls[0][0];
+      expect(setCall).toHaveProperty('coverSource', 'embedded');
+    });
+
+    it('keeps chapters imported from Audible on rescan', async () => {
+      let selectCount = 0;
+      db.select.mockImplementation(() => {
+        selectCount++;
+        const chain = {
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockReturnThis(),
+          innerJoin: jest.fn().mockReturnThis(),
+          limit: jest.fn(),
+          orderBy: jest.fn(),
+        };
+        if (selectCount === 1) {
+          chain.limit.mockResolvedValue([
+            {
+              id: 'ab-1',
+              title: 'Test',
+              filePath: 'TestBook',
+              manualFields: [],
+            },
+          ]);
+        } else if (selectCount === 2) {
+          chain.orderBy.mockResolvedValue([
+            {
+              id: 'f1',
+              audiobookId: 'ab-1',
+              filePath: 'file.m4b',
+              order: 0,
+            },
+          ]);
+        } else if (selectCount === 3) {
+          // existing chapters came from the Audible import
+          chain.where.mockResolvedValue([
+            {
+              id: 'ch-1',
+              audiobookId: 'ab-1',
+              source: 'external',
+              title: 'Audible Chapter 1',
+            },
+          ]);
+        }
+        return chain;
+      });
+
+      deps.audioMetadataProvider.extractFullMetadata.mockResolvedValueOnce({
+        metadata: { title: 'Test', hasEmbeddedCover: false },
+        fileInfo: {
+          filePath: '/library/TestBook/file.m4b',
+          fileName: 'file.m4b',
+          duration: 3600,
+          format: 'm4b',
+          sizeBytes: 50000000,
+        },
+        chapters: [
+          { title: 'Embedded Chapter 1', startTime: 0, endTime: 3600 },
+        ],
+      });
+
+      await service.rescanAudiobook('ab-1');
+
+      // File rows are always rebuilt; the imported chapters are left alone.
+      expect(db.insert).toHaveBeenCalledWith(audiobooksSchema.audiobookFiles);
+      expect(db.delete).not.toHaveBeenCalledWith(audiobooksSchema.chapters);
+      expect(db.insert).not.toHaveBeenCalledWith(audiobooksSchema.chapters);
+      expect(deps.appEvents.audiobookUpdated).toHaveBeenCalledWith('ab-1');
+    });
+
+    it('still regenerates chapters that were named after the files', async () => {
+      let selectCount = 0;
+      db.select.mockImplementation(() => {
+        selectCount++;
+        const chain = {
+          from: jest.fn().mockReturnThis(),
+          where: jest.fn().mockReturnThis(),
+          innerJoin: jest.fn().mockReturnThis(),
+          limit: jest.fn(),
+          orderBy: jest.fn(),
+        };
+        if (selectCount === 1) {
+          chain.limit.mockResolvedValue([
+            {
+              id: 'ab-1',
+              title: 'Test',
+              filePath: 'TestBook',
+              manualFields: [],
+            },
+          ]);
+        } else if (selectCount === 2) {
+          chain.orderBy.mockResolvedValue([
+            {
+              id: 'f1',
+              audiobookId: 'ab-1',
+              filePath: 'file.m4b',
+              order: 0,
+            },
+          ]);
+        } else if (selectCount === 3) {
+          // one chapter per file, titled after it: import made these
+          chain.where.mockResolvedValue([
+            {
+              id: 'ch-1',
+              audiobookId: 'ab-1',
+              source: 'external',
+              title: 'file',
+              order: 0,
+            },
+          ]);
+        }
+        return chain;
+      });
+
+      deps.audioMetadataProvider.extractFullMetadata.mockResolvedValueOnce({
+        metadata: { title: 'Test', hasEmbeddedCover: false },
+        fileInfo: {
+          filePath: '/library/TestBook/file.m4b',
+          fileName: 'file.m4b',
+          duration: 3600,
+          format: 'm4b',
+          sizeBytes: 50000000,
+        },
+        chapters: [],
+      });
+
+      await service.rescanAudiobook('ab-1');
+
+      expect(db.delete).toHaveBeenCalledWith(audiobooksSchema.chapters);
+    });
   });
 
   // ------------------------------------------------------------------

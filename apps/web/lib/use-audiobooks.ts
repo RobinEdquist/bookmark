@@ -43,6 +43,7 @@ export interface AudiobookFile {
   order: number;
   duration: number;
   format: string;
+  codec: string | null;
   bitrate: number | null;
   sampleRate: number | null;
   sizeBytes: number;

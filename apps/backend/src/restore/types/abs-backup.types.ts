@@ -65,8 +65,11 @@ export interface ABSAudioFile {
     size: number;
   };
   duration: number;
+  /** Bits per second, as Audiobookshelf stores it */
   bitRate: number;
   format: string;
+  /** ffprobe codec name ("aac", "mp3", "eac3"); absent in older backups */
+  codec?: string;
 }
 
 export interface ABSChapter {
