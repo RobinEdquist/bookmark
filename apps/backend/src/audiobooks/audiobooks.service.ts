@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
@@ -1876,8 +1877,9 @@ export class AudiobooksService {
     const shouldDeleteFromDb = deleteFiles || status === 'missing';
 
     if (shouldDeleteFromDb) {
-      // Delete files from disk if requested and not already missing
-      if (deleteFiles && status !== 'missing') {
+      // Check disk even for a missing record: files may have reappeared since
+      // the last scan. Only remove the record after file deletion succeeds.
+      if (deleteFiles) {
         try {
           if (filePath === '') {
             // Root-level audiobook: delete individual files
@@ -1892,8 +1894,12 @@ export class AudiobooksService {
               );
               try {
                 await fs.unlink(absoluteFilePath);
-              } catch {
-                // Continue deleting other files if one fails
+              } catch (error) {
+                // Already absent is success; other failures must keep the
+                // record so surviving files cannot be imported as a new book.
+                if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+                  throw error;
+                }
               }
             }
           } else {
@@ -1902,8 +1908,10 @@ export class AudiobooksService {
             await fs.rm(absolutePath, { recursive: true, force: true });
           }
         } catch (error) {
-          // Log but continue with DB deletion if file removal fails
-          console.error(`Failed to delete files for audiobook ${id}:`, error);
+          throw new InternalServerErrorException(
+            'Failed to delete audiobook files. Check filesystem permissions and try again.',
+            { cause: error },
+          );
         }
       }
 
