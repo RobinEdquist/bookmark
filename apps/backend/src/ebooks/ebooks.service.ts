@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import {
@@ -1464,23 +1465,31 @@ export class EbooksService {
     const shouldDeleteFromDb = deleteFiles || status === 'missing';
 
     if (shouldDeleteFromDb) {
-      // Delete files from disk if requested and not already missing
-      if (deleteFiles && status !== 'missing') {
+      // Files may have reappeared since the last scan. Only remove the record
+      // after the requested deletion succeeds, even for a missing record.
+      if (deleteFiles) {
         try {
           const absolutePath = await this.resolveFilePath(filePath);
-          await fs.unlink(absolutePath);
-
-          // Also try to delete associated cover
-          const dir = path.dirname(absolutePath);
-          const coverPath = path.join(dir, 'cover.jpg');
-          try {
-            await fs.unlink(coverPath);
-          } catch {
-            // Cover might not exist, ignore
+          const filePaths = [
+            absolutePath,
+            path.join(path.dirname(absolutePath), 'cover.jpg'),
+          ];
+          for (const absoluteFilePath of filePaths) {
+            try {
+              await fs.unlink(absoluteFilePath);
+            } catch (error) {
+              // The cover may be absent, or a previous attempt may already
+              // have removed the ebook. Other failures must remain visible.
+              if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+                throw error;
+              }
+            }
           }
         } catch (error) {
-          // Log but continue with DB deletion if file removal fails
-          console.error(`Failed to delete files for ebook ${id}:`, error);
+          throw new InternalServerErrorException(
+            'Failed to delete ebook files. Check filesystem permissions and try again.',
+            { cause: error },
+          );
         }
       }
 

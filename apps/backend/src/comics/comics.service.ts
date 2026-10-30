@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from '@nestjs/common';
@@ -1053,7 +1054,9 @@ export class ComicsService {
       return;
     }
 
-    if (deleteFiles && series.status !== 'missing') {
+    // A missing status can be stale. Keep the series and every book record
+    // until all requested file removals succeed, so failed attempts can retry.
+    if (deleteFiles) {
       const books = await this.db
         .select({ filePath: schema.comicBooks.filePath })
         .from(schema.comicBooks)
@@ -1062,7 +1065,12 @@ export class ComicsService {
         try {
           await fsPromises.unlink(await this.resolveFilePath(book.filePath));
         } catch (error) {
-          this.logger.warn(`Failed to delete file ${book.filePath}: ${error}`);
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            throw new InternalServerErrorException(
+              'Failed to delete comic series files. Check filesystem permissions and try again.',
+              { cause: error },
+            );
+          }
         }
       }
     }
@@ -1097,11 +1105,16 @@ export class ComicsService {
       return;
     }
 
-    if (deleteFiles && book.status !== 'missing') {
+    if (deleteFiles) {
       try {
         await fsPromises.unlink(await this.resolveFilePath(book.filePath));
       } catch (error) {
-        this.logger.warn(`Failed to delete file ${book.filePath}: ${error}`);
+        if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+          throw new InternalServerErrorException(
+            'Failed to delete comic file. Check filesystem permissions and try again.',
+            { cause: error },
+          );
+        }
       }
     }
 
