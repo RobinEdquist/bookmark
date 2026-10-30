@@ -56,6 +56,8 @@ export default async function RootLayout({
 
   // Build initial CSS variables for SSR to avoid flash of unstyled content
   const cssVars = {
+    // Native scrollbars and form controls follow the surface, not the OS
+    colorScheme: surface.isDark ? "dark" : "light",
     "--primary": primary.hsl,
     "--ring": primary.hsl,
     "--primary-foreground": surface.isDark
