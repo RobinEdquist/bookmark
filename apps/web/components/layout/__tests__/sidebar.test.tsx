@@ -5,12 +5,14 @@ import { Sidebar } from "../sidebar";
 // --- Hoisted mocks ---
 const {
   mockSignOut,
+  mockUseSession,
   mockUsePathname,
   mockUseLibraryAvailability,
   mockUseUserSettings,
   mockUseMyPermissions,
 } = vi.hoisted(() => ({
   mockSignOut: vi.fn().mockResolvedValue(undefined),
+  mockUseSession: vi.fn().mockReturnValue({ data: null }),
   mockUsePathname: vi.fn().mockReturnValue("/"),
   mockUseLibraryAvailability: vi.fn().mockReturnValue({ data: undefined }),
   mockUseUserSettings: vi.fn().mockReturnValue({ settings: null }),
@@ -35,15 +37,13 @@ vi.mock("next/link", () => ({
   default: ({
     children,
     href,
-    onClick,
-    className,
-  }: {
-    children: React.ReactNode;
+    scroll: _scroll,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
     href: string;
-    onClick?: () => void;
-    className?: string;
+    scroll?: boolean;
   }) => (
-    <a href={href} onClick={onClick} className={className}>
+    <a href={href} {...props}>
       {children}
     </a>
   ),
@@ -52,6 +52,7 @@ vi.mock("next/link", () => ({
 vi.mock("../../../lib/auth-client", () => ({
   authClient: {
     signOut: (...args: unknown[]) => mockSignOut(...args),
+    useSession: () => mockUseSession(),
   },
 }));
 
@@ -91,6 +92,9 @@ describe("Sidebar", () => {
     });
     mockUseMyPermissions.mockReturnValue({
       data: { canRequestContent: false, canGenerateApiKeys: false },
+    });
+    mockUseSession.mockReturnValue({
+      data: { user: { name: "Test User", email: "test@example.com" } },
     });
     // Reset window.location for signOut tests
     Object.defineProperty(window, "location", {
@@ -152,18 +156,52 @@ describe("Sidebar", () => {
     expect(screen.getByText("nav.settings")).toBeInTheDocument();
   });
 
-  it("renders sign out button", () => {
+  it("shows the signed-in user on the account button", () => {
     render(<Sidebar isAdmin={false} />);
-    expect(screen.getByText("nav.signOut")).toBeInTheDocument();
+    expect(screen.getByText("Test User")).toBeInTheDocument();
+    expect(screen.getByText("test@example.com")).toBeInTheDocument();
+  });
+
+  it("falls back to the account label before the session loads", () => {
+    mockUseSession.mockReturnValue({ data: null });
+    render(<Sidebar isAdmin={false} />);
+    expect(screen.getByText("nav.sections.account")).toBeInTheDocument();
+  });
+
+  it("keeps sign out in the account menu", async () => {
+    const user = userEvent.setup();
+    render(<Sidebar isAdmin={false} />);
+    expect(screen.queryByText("nav.signOut")).not.toBeInTheDocument();
+
+    await user.click(screen.getByText("Test User"));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "nav.signOut" }),
+    ).toBeInTheDocument();
   });
 
   it("calls signOut and redirects on sign out click", async () => {
     const user = userEvent.setup();
     render(<Sidebar isAdmin={false} />);
 
-    await user.click(screen.getByText("nav.signOut"));
+    await user.click(screen.getByText("Test User"));
+    await user.click(
+      await screen.findByRole("menuitem", { name: "nav.signOut" }),
+    );
 
     expect(mockSignOut).toHaveBeenCalled();
+  });
+
+  it("marks the current page's link", () => {
+    mockUsePathname.mockReturnValue("/ebooks/123");
+    render(<Sidebar isAdmin={false} />);
+    expect(screen.getByText("nav.ebooks").closest("a")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    expect(screen.getByText("nav.home").closest("a")).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
   it("calls onNavigate callback when a nav link is clicked", async () => {
@@ -176,10 +214,37 @@ describe("Sidebar", () => {
     expect(onNavigate).toHaveBeenCalled();
   });
 
-  it("renders My Stats and Preferences links for all users", () => {
+  it("renders My Stats and Preferences in the account menu for all users", async () => {
+    const user = userEvent.setup();
     render(<Sidebar isAdmin={false} />);
-    expect(screen.getByText("nav.myStats")).toBeInTheDocument();
-    expect(screen.getByText("nav.preferences")).toBeInTheDocument();
+
+    await user.click(screen.getByText("Test User"));
+
+    expect(
+      await screen.findByRole("menuitem", { name: "nav.myStats" }),
+    ).toHaveAttribute("href", "/users/me");
+    expect(
+      screen.getByRole("menuitem", { name: "nav.preferences" }),
+    ).toHaveAttribute("href", "/preferences");
+  });
+
+  it("shows Fix Metadata under Manage for non-admins who can edit metadata", () => {
+    mockUseMyPermissions.mockReturnValue({
+      data: {
+        canRequestContent: false,
+        canGenerateApiKeys: false,
+        canEditMetadata: true,
+      },
+    });
+    render(<Sidebar isAdmin={false} />);
+    expect(screen.getByText("nav.sections.manage")).toBeInTheDocument();
+    expect(screen.getByText("nav.fixMetadata")).toBeInTheDocument();
+    expect(screen.queryByText("nav.settings")).not.toBeInTheDocument();
+  });
+
+  it("hides the Manage section when it has nothing to show", () => {
+    render(<Sidebar isAdmin={false} />);
+    expect(screen.queryByText("nav.sections.manage")).not.toBeInTheDocument();
   });
 
   it("renders Genres link when audiobooks or ebooks are available", () => {
