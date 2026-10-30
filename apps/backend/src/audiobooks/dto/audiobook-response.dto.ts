@@ -83,8 +83,18 @@ export class AudiobookFileDto {
   @ApiProperty({ example: 'chapter01.mp3' })
   fileName!: string;
 
-  @ApiProperty({ example: 'mp3' })
+  @ApiProperty({
+    example: 'MPEG-4',
+    description: 'Container format as reported by the file',
+  })
   format!: string;
+
+  @ApiPropertyOptional({
+    example: 'AAC LC',
+    description: 'Audio codec of the stream, when known',
+    nullable: true,
+  })
+  codec?: string | null;
 
   @ApiProperty({ example: 3600, description: 'Duration in seconds' })
   duration!: number;

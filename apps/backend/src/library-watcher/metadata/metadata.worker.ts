@@ -12,36 +12,22 @@ import {
   copyToTransferableBytes,
   responseTransferList,
 } from '../../common/utils/worker-bytes.util';
+import {
+  mapMediaInfoToMetadata,
+  type ExtractedMetadata,
+  type MediaInfoTrack,
+} from './mediainfo-mapping';
 
 // execFile (never exec): media file names are untrusted input and must be
 // passed as argv entries, not interpolated into a shell command line.
 const execFileAsync = promisify(execFile);
-
-interface ExtractedMetadata {
-  title?: string;
-  album?: string;
-  subtitle?: string;
-  author?: string;
-  narrator?: string;
-  description?: string;
-  publisher?: string;
-  publishedDate?: string;
-  language?: string;
-  genres?: string[];
-  series?: string;
-  seriesOrder?: string;
-  hasEmbeddedCover?: boolean;
-  duration?: number;
-  format?: string;
-  bitrate?: number;
-  sampleRate?: number;
-}
 
 interface AudioFileInfo {
   filePath: string;
   fileName: string;
   duration: number;
   format: string;
+  codec?: string;
   bitrate?: number;
   sampleRate?: number;
   sizeBytes: number;
@@ -122,143 +108,6 @@ async function analyzeFile(filePath: string): Promise<MediaInfoResult> {
   return analyzeFileWith(await getMediaInfo(), filePath);
 }
 
-// Type definitions for mediainfo.js result structure
-interface MediaInfoTrack {
-  '@type': 'General' | 'Audio' | 'Video' | 'Image' | 'Text' | 'Menu';
-  // General track fields
-  Title?: string;
-  Album?: string;
-  Track?: string;
-  Performer?: string;
-  Artist?: string;
-  AlbumPerformer?: string;
-  Composer?: string;
-  Description?: string;
-  Comment?: string;
-  Publisher?: string;
-  Label?: string;
-  Genre?: string;
-  Recorded_Date?: string;
-  Released_Date?: string;
-  Original_Released_Date?: string;
-  Language?: string;
-  Duration?: number; // in seconds
-  Format?: string;
-  Grouping?: string;
-  Part?: string;
-  Part_Position?: string;
-  Copyright?: string;
-  Cover?: string; // 'Yes' if cover exists
-  Cover_Data?: string; // Base64 encoded cover
-  Cover_Mime?: string;
-  // Custom m4b tags (lowercase)
-  nrt?: string; // narrator
-  pub?: string; // publisher
-  // Audio track fields
-  BitRate?: number;
-  SamplingRate?: number;
-  Channels?: number;
-  // Allow other fields
-  [key: string]: unknown;
-}
-
-/**
- * Normalize year string to just the year portion
- */
-function normalizeYear(dateStr: string | undefined): string | undefined {
-  if (!dateStr) return undefined;
-
-  // Try to extract a 4-digit year
-  const yearMatch = dateStr.match(/\b(19|20)\d{2}\b/);
-  if (yearMatch) {
-    const year = parseInt(yearMatch[0], 10);
-    if (year >= 1000 && year <= 2100) {
-      return yearMatch[0];
-    }
-  }
-
-  return undefined;
-}
-
-/**
- * Map mediainfo.js result to ExtractedMetadata
- */
-function mapMediaInfoToMetadata(result: MediaInfoResult): ExtractedMetadata {
-  const tracks = (result.media?.track || []) as MediaInfoTrack[];
-  const generalTrack = tracks.find((t) => t['@type'] === 'General');
-  const audioTrack = tracks.find((t) => t['@type'] === 'Audio');
-  const imageTrack = tracks.find((t) => t['@type'] === 'Image');
-
-  if (!generalTrack) {
-    return {};
-  }
-
-  // Smart fallback for author: Artist → Performer → AlbumPerformer
-  const author =
-    generalTrack.Artist ||
-    generalTrack.Performer ||
-    generalTrack.AlbumPerformer ||
-    undefined;
-
-  // Smart fallback for narrator: custom nrt tag → Composer (common m4b convention)
-  const narrator = generalTrack.nrt || generalTrack.Composer || undefined;
-
-  // Smart fallback for publisher: custom pub tag → Publisher → Label
-  const publisher =
-    generalTrack.pub ||
-    generalTrack.Publisher ||
-    generalTrack.Label ||
-    undefined;
-
-  // Parse genres - may be comma-separated or semicolon-separated
-  let genres: string[] | undefined;
-  if (generalTrack.Genre) {
-    genres = generalTrack.Genre.split(/[,;]/)
-      .map((g) => g.trim())
-      .filter(Boolean);
-  }
-
-  // Duration comes in seconds from mediainfo.js
-  const duration = generalTrack.Duration
-    ? Math.round(generalTrack.Duration)
-    : undefined;
-
-  // Bitrate from audio track (in bps, convert to kbps)
-  const bitrate = audioTrack?.BitRate
-    ? Math.round(audioTrack.BitRate / 1000)
-    : undefined;
-
-  // Sample rate from audio track
-  const sampleRate = audioTrack?.SamplingRate || undefined;
-
-  // Check for embedded cover
-  const hasEmbeddedCover = generalTrack.Cover === 'Yes' || !!imageTrack;
-
-  return {
-    title: generalTrack.Title || generalTrack.Track || undefined,
-    album: generalTrack.Album || undefined,
-    subtitle: undefined, // mediainfo.js doesn't have a standard subtitle field
-    author,
-    narrator,
-    description: generalTrack.Description || generalTrack.Comment || undefined,
-    publisher,
-    publishedDate: normalizeYear(
-      generalTrack.Recorded_Date ||
-        generalTrack.Released_Date ||
-        generalTrack.Original_Released_Date,
-    ),
-    language: generalTrack.Language || undefined,
-    genres,
-    series: generalTrack.Grouping || undefined,
-    seriesOrder: generalTrack.Part || generalTrack.Part_Position || undefined,
-    hasEmbeddedCover,
-    duration,
-    format: generalTrack.Format || audioTrack?.Format || undefined,
-    bitrate,
-    sampleRate,
-  };
-}
-
 /**
  * Extract chapters using ffprobe (mediainfo.js doesn't handle chapters well)
  */
@@ -323,6 +172,7 @@ async function extractFullMetadata(
     fileName: path.basename(filePath),
     duration: metadata.duration || 0,
     format: metadata.format || path.extname(filePath).slice(1).toUpperCase(),
+    codec: metadata.codec,
     bitrate: metadata.bitrate,
     sampleRate: metadata.sampleRate,
     sizeBytes: stats.size,
@@ -354,6 +204,7 @@ async function getFileInfo(filePath: string): Promise<AudioFileInfo> {
     fileName: path.basename(filePath),
     duration: metadata.duration || 0,
     format: metadata.format || path.extname(filePath).slice(1).toUpperCase(),
+    codec: metadata.codec,
     bitrate: metadata.bitrate,
     sampleRate: metadata.sampleRate,
     sizeBytes: stats.size,

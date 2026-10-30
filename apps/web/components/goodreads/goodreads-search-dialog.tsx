@@ -62,6 +62,11 @@ export function GoodreadsSearchDialog({
   // response and leaned on a `!customQuery` guard to avoid clobbering typing.
   const searchInput = searchDraft ?? data?.query ?? "";
 
+  // Authors come with each search response. Held across searches so the
+  // description doesn't blank out while a custom query is loading.
+  const [authors, setAuthors] = useState<string[]>([]);
+  if (data && data.authors !== authors) setAuthors(data.authors);
+
   const { linkMedia, isLinking } = useGoodreadsLinkMedia();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -117,7 +122,12 @@ export function GoodreadsSearchDialog({
             {t("title")}
           </DialogTitle>
           <DialogDescription>
-            {t("description", { title: mediaTitle })}
+            {authors.length > 0
+              ? t("descriptionWithAuthor", {
+                  title: mediaTitle,
+                  author: authors.join(", "),
+                })
+              : t("description", { title: mediaTitle })}
           </DialogDescription>
         </DialogHeader>
 

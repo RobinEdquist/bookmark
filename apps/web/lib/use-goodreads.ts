@@ -100,7 +100,7 @@ async function searchGrFinderByMedia(
   mediaType: MediaType,
   mediaId: string,
   customQuery?: string,
-): Promise<GrFinderSearchResponse & { query: string }> {
+): Promise<GrFinderSearchResponse & { authors: string[] }> {
   const endpoint =
     mediaType === "audiobook"
       ? `/api/gr-finder/search/audiobook/${mediaId}`

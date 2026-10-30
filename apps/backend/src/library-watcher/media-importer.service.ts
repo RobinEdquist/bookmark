@@ -272,6 +272,7 @@ export class MediaImporterService {
           order: i,
           duration: fileInfo.duration,
           format: fileInfo.format,
+          codec: fileInfo.codec,
           bitrate: fileInfo.bitrate,
           sampleRate: fileInfo.sampleRate,
           sizeBytes: fileInfo.sizeBytes,
@@ -1248,8 +1249,13 @@ export class MediaImporterService {
         updates.publishedDate = normalizePublishedDate(metadata.publishedDate);
       }
 
-      // Update cover source if not manually set
-      if (!manualFields.includes('coverUrl') && metadata.hasEmbeddedCover) {
+      // Switch to the embedded cover only when nothing deliberate is in
+      // place: a cover the user uploaded, or one marked manual, stays.
+      if (
+        !manualFields.includes('coverUrl') &&
+        audiobook.coverSource !== 'uploaded' &&
+        metadata.hasEmbeddedCover
+      ) {
         updates.coverSource = 'embedded';
       }
 
@@ -1577,10 +1583,11 @@ export class MediaImporterService {
   /**
    * Swap an audiobook's file rows for `fileInfos` and regenerate chapters.
    *
-   * Hand-made chapters always survive. Beyond that, a metadata `rescan`
-   * replaces chapters (the user asked to re-read the files), while a
-   * `repair` only replaces chapters import generated from the previous file
-   * names, since those name files that no longer exist.
+   * Hand-made chapters and chapters imported from Audible always survive.
+   * Beyond that, a metadata `rescan` replaces chapters (the user asked to
+   * re-read the files), while a `repair` only replaces chapters import
+   * generated from the previous file names, since those name files that no
+   * longer exist.
    */
   private async replaceFilesAndChapters(
     tx: Transaction,
@@ -1604,6 +1611,7 @@ export class MediaImporterService {
         order: i,
         duration: fileInfo.duration,
         format: fileInfo.format,
+        codec: fileInfo.codec,
         bitrate: fileInfo.bitrate,
         sampleRate: fileInfo.sampleRate,
         sizeBytes: fileInfo.sizeBytes,
@@ -1618,8 +1626,20 @@ export class MediaImporterService {
       .from(audiobooksSchema.chapters)
       .where(eq(audiobooksSchema.chapters.audiobookId, audiobookId));
     if (existingChapters.some((c) => c.source === 'manual')) return;
-    if (
-      policy.kind === 'repair' &&
+
+    // `external` covers both the per-file chapters import generates and the
+    // ones the user imported from Audible. Only the former are ours to
+    // regenerate, and the titles are what tell them apart; "Refresh chapters
+    // from audio files" is the explicit way back to the embedded ones.
+    if (policy.kind === 'rescan') {
+      const fileNames = fileInfos.map((fileInfo) => fileInfo.fileName);
+      if (
+        existingChapters.some((c) => c.source === 'external') &&
+        !this.chaptersNameFiles(existingChapters, fileNames)
+      ) {
+        return;
+      }
+    } else if (
       existingChapters.length > 0 &&
       !this.chaptersNameFiles(existingChapters, policy.previousFileNames)
     ) {

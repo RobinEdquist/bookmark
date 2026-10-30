@@ -17,6 +17,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     root.style.setProperty("--ring", primary.hsl);
 
     // Apply surface-derived colors
+    root.style.colorScheme = surface.isDark ? "dark" : "light";
     Object.entries(surface.vars).forEach(([key, value]) => {
       root.style.setProperty(`--${key}`, value);
     });

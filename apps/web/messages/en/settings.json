@@ -200,7 +200,7 @@
       "description": "Re-extract metadata from all audiobook files and update database records",
       "button": "Rescan All Audiobooks",
       "inProgress": "Rescanning...",
-      "hint": "This will re-read metadata from your audio files. Manually edited fields will not be overwritten. File information (duration, bitrate, etc.) is always updated.",
+      "hint": "This will re-read metadata from your audio files. Manually edited fields, uploaded covers and imported chapters are kept. File information (duration, bitrate, etc.) is always updated.",
       "progress": {
         "preparing": "Preparing...",
         "current": "Rescanning: {title}"

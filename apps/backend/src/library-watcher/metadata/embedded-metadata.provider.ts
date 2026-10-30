@@ -21,6 +21,7 @@ export interface ExtractedMetadata {
   hasEmbeddedCover?: boolean;
   duration?: number;
   format?: string;
+  codec?: string;
   bitrate?: number;
   sampleRate?: number;
 }
@@ -30,6 +31,7 @@ export interface AudioFileInfo {
   fileName: string;
   duration: number;
   format: string;
+  codec?: string;
   bitrate?: number;
   sampleRate?: number;
   sizeBytes: number;

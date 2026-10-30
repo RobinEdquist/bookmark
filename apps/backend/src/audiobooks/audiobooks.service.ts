@@ -1089,6 +1089,7 @@ export class AudiobooksService {
         filePath: f.filePath,
         fileName: f.fileName,
         format: f.format,
+        codec: f.codec,
         duration: f.duration,
         bitrate: f.bitrate,
         sampleRate: f.sampleRate,

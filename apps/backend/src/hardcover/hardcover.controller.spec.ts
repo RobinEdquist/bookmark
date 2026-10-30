@@ -16,7 +16,6 @@ type HardcoverServiceMock = jest.Mocked<
     | 'validateApiKey'
     | 'setApiKey'
     | 'searchBooks'
-    | 'searchByAudiobookIdPaginated'
     | 'getHardcoverLink'
     | 'linkAudiobookToHardcover'
     | 'unlinkAudiobookFromHardcover'
@@ -41,17 +40,14 @@ function createService(): HardcoverServiceMock {
       success: true,
       data: { results: [{ id: 'book-1' }] },
     }),
-    searchByAudiobookIdPaginated: jest.fn().mockResolvedValue({
-      success: true,
-      query: 'Dune',
-      data: { results: [{ id: 'book-1' }], page: 2 },
-    }),
     getHardcoverLink: jest.fn().mockResolvedValue({ id: 'link-1' }),
     linkAudiobookToHardcover: jest.fn().mockResolvedValue({ id: 'link-1' }),
     unlinkAudiobookFromHardcover: jest.fn().mockResolvedValue(undefined),
     searchByMediaIdPaginated: jest.fn().mockResolvedValue({
       success: true,
-      data: { results: [{ id: 'ebook-1' }] },
+      query: 'Dune',
+      authors: ['Frank Herbert'],
+      data: { results: [{ id: 'book-1' }], page: 2 },
     }),
     linkMediaToHardcover: jest.fn().mockResolvedValue({ id: 'ebook-link-1' }),
     unlinkMedia: jest.fn().mockResolvedValue(undefined),
@@ -161,10 +157,12 @@ describe('HardcoverController', () => {
       controller.searchByAudiobook('audio-1', '2', '25', 'custom'),
     ).resolves.toEqual({
       query: 'Dune',
+      authors: ['Frank Herbert'],
       results: [{ id: 'book-1' }],
       page: 2,
     });
-    expect(service.searchByAudiobookIdPaginated).toHaveBeenCalledWith(
+    expect(service.searchByMediaIdPaginated).toHaveBeenCalledWith(
+      'audiobook',
       'audio-1',
       2,
       25,
@@ -174,8 +172,10 @@ describe('HardcoverController', () => {
 
   it('throws when audiobook search fails', async () => {
     const { controller, service } = createController();
-    service.searchByAudiobookIdPaginated.mockResolvedValue({
+    service.searchByMediaIdPaginated.mockResolvedValue({
       success: false,
+      query: 'Dune',
+      authors: [],
       error: 'not configured',
     });
 
@@ -220,12 +220,14 @@ describe('HardcoverController', () => {
     ).rejects.toThrow('Hardcover book data with id and slug is required');
   });
 
-  it('searches by ebook and defaults missing query text', async () => {
+  it('searches by ebook with default pagination', async () => {
     const { controller, service } = createController();
 
     await expect(controller.searchByEbook('ebook-1')).resolves.toEqual({
-      query: '',
-      results: [{ id: 'ebook-1' }],
+      query: 'Dune',
+      authors: ['Frank Herbert'],
+      results: [{ id: 'book-1' }],
+      page: 2,
     });
     expect(service.searchByMediaIdPaginated).toHaveBeenCalledWith(
       'ebook',
@@ -240,6 +242,8 @@ describe('HardcoverController', () => {
     const { controller, service } = createController();
     service.searchByMediaIdPaginated.mockResolvedValue({
       success: false,
+      query: 'Dune',
+      authors: [],
       error: 'api failed',
     });
 

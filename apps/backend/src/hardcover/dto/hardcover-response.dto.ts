@@ -143,11 +143,15 @@ export class HardcoverSearchResponseDto {
 
 /**
  * Response of `GET /hardcover/search/{audiobook,ebook}/:id` — the raw search
- * response plus the resolved query string the backend searched with.
+ * response plus the query the backend searched with and the book's resolved
+ * authors, shown in the link dialog.
  */
 export class HardcoverMediaSearchResponseDto extends HardcoverSearchResponseDto {
   @ApiProperty({ example: 'The Way of Kings' })
   query!: string;
+
+  @ApiProperty({ type: [String], example: ['Brandon Sanderson'] })
+  authors!: string[];
 }
 
 /**
