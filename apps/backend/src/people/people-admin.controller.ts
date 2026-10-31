@@ -109,7 +109,7 @@ export class PeopleAdminController {
   @ApiOperation({
     summary: 'Merge people',
     description:
-      'Merge source person into target person and move all author/narrator links.',
+      'Merge source person into target person and move all author, narrator and comic creator links.',
   })
   @ApiParam({ name: 'id', description: 'Source person ID (will be deleted)' })
   @ApiParam({ name: 'targetId', description: 'Target person ID (will remain)' })
@@ -135,7 +135,7 @@ export class PeopleAdminController {
   @ApiOperation({
     summary: 'Split person',
     description:
-      'Replace a person with multiple people and move all author/narrator links.',
+      'Replace a person with multiple people and move all author, narrator and comic creator links.',
   })
   @ApiParam({ name: 'id', description: 'Source person ID' })
   @ApiResponse({

@@ -66,6 +66,9 @@ export class MergePersonResultDto {
 
   @ApiProperty({ description: 'Number of audiobook narrator links merged' })
   audiobookNarratorLinksMerged!: number;
+
+  @ApiProperty({ description: 'Number of comic creator links merged' })
+  comicCreatorLinksMerged!: number;
 }
 
 export class SplitPersonResultDto {
@@ -83,4 +86,7 @@ export class SplitPersonResultDto {
 
   @ApiProperty({ description: 'Number of audiobook narrator links split' })
   audiobookNarratorLinksSplit!: number;
+
+  @ApiProperty({ description: 'Number of comic creator links split' })
+  comicCreatorLinksSplit!: number;
 }
