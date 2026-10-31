@@ -88,9 +88,10 @@ Steps:
 2. For each series, read get_series. Folder and file names are often the best clue. Use view_item to look at covers and first pages when the names do not say enough.
 3. Find the ComicVine volume with get_match_candidates, or search_external with a cleaned-up title. Link it with link_external; its issues are then matched in the background. If you are not an admin, tell me which volume you would link and move on.
 4. Fix structure. Split junk-drawer series (packs like "Limited Series & One-Shots" or "Annuals 01-10") with create_series and move_items. Merge duplicates with merge_series. Rename to "Title (Start year)" with update_series. Always run move_items and merge_series with dryRun: true first and show me the result. A merge cannot be undone.
-5. Set the one to three main characters or teams each series is about with set_main_characters. Not everyone who appears.
-6. Fill in other fields with update_series and update_item, following my preferences above. Check each field's source in get_series before you change it.
-7. Suggest collections, such as "Wolverine solo series", and build them with create_collection and add_to_collection.
+5. Check every issue in the series, not only the series. Each needs its number: ComicVine matches issues by number, so an issue without one gets no title, date or credits. A "missing" number in the series' gaps that you can see in the issue list means an issue lost its number. A title that is only the series name or a file name ("Death of Wolverine 02_ _ _ _") is not an issue title. Fix both with update_item, then link_external on the series again to queue its issues for matching.
+6. Set the one to three main characters or teams each series is about with set_main_characters. Not everyone who appears.
+7. Fill in other fields with update_series and update_item, following my preferences above. Check each field's source in get_series before you change it.
+8. Suggest collections, such as "Wolverine solo series", and build them with create_collection and add_to_collection. For events and reading orders across series, build reading lists with create_reading_list; add issues the library lacks as missing items.
 
 Every write is in the change log. At the end, run list_changes with mine: true and give me a short summary. If something went wrong, undo_change reverts one change set.`;
 }

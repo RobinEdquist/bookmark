@@ -2,6 +2,7 @@ import {
   parseComicFilename,
   parseSeriesFolderName,
   computeSortNumber,
+  fileIssueTitle,
 } from '../comic-filename.utils';
 
 describe('parseComicFilename', () => {
@@ -18,6 +19,28 @@ describe('parseComicFilename', () => {
       },
     ]
   > = [
+    [
+      'Death of Wolverine 02_(of_04)_(2014)_(Digital)_(Nahga-Empire).cbr',
+      {
+        title: 'Death of Wolverine',
+        number: '2',
+        sortNumber: 2,
+        format: 'single_issue',
+        year: 2014,
+        countInSeries: 4,
+      },
+    ],
+    [
+      'Wolverine_-_Origin_of_an_X-Man_(1992).cbr',
+      {
+        title: 'Wolverine - Origin of an X-Man',
+        number: null,
+        sortNumber: null,
+        format: 'single_issue',
+        year: 1992,
+        countInSeries: null,
+      },
+    ],
     [
       'Saga #043 (2017).cbz',
       {
@@ -178,5 +201,21 @@ describe('computeSortNumber', () => {
     ['abc', null],
   ])('computes sort number for %s', (input, expected) => {
     expect(computeSortNumber(input)).toBe(expected);
+  });
+});
+
+describe('fileIssueTitle', () => {
+  it('gives no title when the name has an issue number', () => {
+    expect(
+      fileIssueTitle(parseComicFilename('Saga 043 (2017).cbz')),
+    ).toBeNull();
+  });
+
+  it('keeps the name as the title when it has no number', () => {
+    expect(
+      fileIssueTitle(
+        parseComicFilename('Wolverine - Origin of an X-Man (1992).cbr'),
+      ),
+    ).toBe('Wolverine - Origin of an X-Man');
   });
 });
