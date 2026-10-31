@@ -121,6 +121,30 @@ describe("MetadataGapsTable", () => {
     expect(props.onLinkHardcover).toHaveBeenCalledWith(ITEMS[0]);
   });
 
+  it("leaves out the link actions it has no callback for", async () => {
+    // Comics: no Hardcover or Goodreads, ComicVine instead.
+    const props = renderTable({
+      onLinkHardcover: undefined,
+      onLinkGoodreads: undefined,
+      onLinkComicvine: vi.fn(),
+    });
+
+    await userEvent.click(screen.getAllByLabelText("table.actions")[0]!);
+
+    expect(screen.queryByText("actions.linkHardcover")).not.toBeInTheDocument();
+    expect(screen.queryByText("actions.linkGoodreads")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText("actions.linkComicvine"));
+    expect(props.onLinkComicvine).toHaveBeenCalledWith(ITEMS[0]);
+  });
+
+  it("does not offer ComicVine without a callback", async () => {
+    renderTable();
+
+    await userEvent.click(screen.getAllByLabelText("table.actions")[0]!);
+
+    expect(screen.queryByText("actions.linkComicvine")).not.toBeInTheDocument();
+  });
+
   it("says so when nothing is missing", () => {
     renderTable({ items: [] });
 

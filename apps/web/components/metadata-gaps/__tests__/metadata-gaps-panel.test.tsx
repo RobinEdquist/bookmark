@@ -73,6 +73,45 @@ vi.mock("../../../lib/use-audiobooks", () => ({
   useAudiobook: (id: string) => mockUseAudiobook(id),
 }));
 
+const { mockUseMyPermissions, mockUseComicvineStatus } = vi.hoisted(() => ({
+  mockUseMyPermissions: vi.fn(),
+  mockUseComicvineStatus: vi.fn(),
+}));
+vi.mock("../../../lib/use-users", () => ({
+  useMyPermissions: () => mockUseMyPermissions(),
+}));
+vi.mock("../../../lib/use-comicvine", () => ({
+  useComicvineStatus: (enabled: boolean) => mockUseComicvineStatus(enabled),
+}));
+
+const { mockEditComicSeriesDialog } = vi.hoisted(() => ({
+  mockEditComicSeriesDialog: vi.fn(),
+}));
+vi.mock("../../comics/edit-comic-series-dialog", () => ({
+  EditComicSeriesDialog: (props: {
+    series: { id: string } | null;
+    open: boolean;
+  }) => {
+    mockEditComicSeriesDialog(props);
+    return props.open && props.series ? (
+      <div data-testid="edit-comic-series">{props.series.id}</div>
+    ) : null;
+  },
+}));
+vi.mock("../../comicvine/comicvine-match-dialog", () => ({
+  ComicvineMatchDialog: ({
+    level,
+    entityId,
+  }: {
+    level: string;
+    entityId: string;
+  }) => (
+    <div data-testid="comicvine-match">
+      {level}:{entityId}
+    </div>
+  ),
+}));
+
 /** The query string the panel has written so far. */
 function currentUrl() {
   return urlStore.read();
@@ -156,6 +195,8 @@ describe("MetadataGapsPanel", () => {
     vi.clearAllMocks();
     urlStore.write("");
     mockUseAudiobook.mockReturnValue({ data: undefined });
+    mockUseMyPermissions.mockReturnValue({ data: { isAdmin: false } });
+    mockUseComicvineStatus.mockReturnValue({ isConfigured: true });
     mockUseMetadataGapsSummary.mockReturnValue({
       data: SUMMARY,
       isLoading: false,
@@ -347,6 +388,111 @@ describe("MetadataGapsPanel", () => {
       expect(screen.getByTestId("chapter-import")).toHaveTextContent(
         "The Way of Kings",
       );
+    });
+  });
+
+  describe("comics", () => {
+    function asAdmin() {
+      mockUseMyPermissions.mockReturnValue({ data: { isAdmin: true } });
+    }
+
+    async function openRowMenu() {
+      await userEvent.click(screen.getAllByLabelText("table.actions")[0]!);
+    }
+
+    it("asks for comic gaps", () => {
+      render(<MetadataGapsPanel type="comic" />);
+
+      expect(mockUseMetadataGapsSummary).toHaveBeenCalledWith("comic");
+      expect(lastFilters()).toMatchObject({ type: "comic" });
+    });
+
+    it("links each series to its comic page", async () => {
+      render(<MetadataGapsPanel type="comic" />);
+
+      expect(screen.getByText("Book a").closest("a")).toHaveAttribute(
+        "href",
+        "/comics/a",
+      );
+
+      await openRowMenu();
+      expect(screen.getByText("actions.open").closest("a")).toHaveAttribute(
+        "href",
+        "/comics/a",
+      );
+    });
+
+    it("does not offer Hardcover or Goodreads", async () => {
+      asAdmin();
+      render(<MetadataGapsPanel type="comic" />);
+      await openRowMenu();
+
+      expect(
+        screen.queryByText("actions.linkHardcover"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("actions.linkGoodreads"),
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByText("actions.importChapters"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("opens the series editor with a list item it can fetch from", async () => {
+      render(<MetadataGapsPanel type="comic" />);
+
+      await userEvent.click(screen.getByText("actions.edit"));
+
+      expect(screen.getByTestId("edit-comic-series")).toHaveTextContent("a");
+      // The dialog only fetches the full series for a list item, which it
+      // recognises by the missing `description` key.
+      const { series, seriesIds } =
+        mockEditComicSeriesDialog.mock.calls.at(-1)![0];
+      expect(series).not.toHaveProperty("description");
+      expect(seriesIds).toEqual(["a"]);
+    });
+
+    it("hides the ComicVine action from non-admins", async () => {
+      render(<MetadataGapsPanel type="comic" />);
+      await openRowMenu();
+
+      expect(
+        screen.queryByText("actions.linkComicvine"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("hides the ComicVine action when ComicVine is not set up", async () => {
+      asAdmin();
+      mockUseComicvineStatus.mockReturnValue({ isConfigured: false });
+      render(<MetadataGapsPanel type="comic" />);
+      await openRowMenu();
+
+      expect(
+        screen.queryByText("actions.linkComicvine"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("lets admins link a series to ComicVine", async () => {
+      asAdmin();
+      render(<MetadataGapsPanel type="comic" />);
+      await openRowMenu();
+
+      await userEvent.click(screen.getByText("actions.linkComicvine"));
+
+      expect(screen.getByTestId("comicvine-match")).toHaveTextContent(
+        "series:a",
+      );
+    });
+
+    it("does not offer ComicVine on books", async () => {
+      asAdmin();
+      render(<MetadataGapsPanel type="audiobook" />);
+      await openRowMenu();
+
+      expect(
+        screen.queryByText("actions.linkComicvine"),
+      ).not.toBeInTheDocument();
+      expect(mockUseComicvineStatus).toHaveBeenLastCalledWith(false);
     });
   });
 

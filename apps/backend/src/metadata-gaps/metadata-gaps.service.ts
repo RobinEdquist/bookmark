@@ -17,19 +17,28 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { CoverService } from '../common/cover.service';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
+import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
+import * as comicsSchema from '../comics/schema';
+import * as comicvineSchema from '../comicvine/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
+import * as usersSchema from '../users/schema';
 import {
   AUDIOBOOK_GAP_CATEGORIES,
   AUDIOBOOK_GAP_KEYS,
+  COMIC_GAP_CATEGORIES,
+  COMIC_GAP_KEYS,
   EBOOK_GAP_CATEGORIES,
   EBOOK_GAP_KEYS,
   buildAudiobookGapConditions,
+  buildComicGapConditions,
   buildEbookGapConditions,
   countFilters,
   gapCountExpression,
+  noRowMatches,
+  type GapCategory,
   type GapDatabase,
   type GapKey,
 } from './gap-definitions';
@@ -42,6 +51,24 @@ import {
 } from './dto/metadata-gaps.dto';
 
 const DEFAULT_LIMIT = 50;
+
+/**
+ * Narrowing the REST worklist does not need, used by the MCP's `find_items`.
+ *
+ * - `viewerId` hides items carrying a tag that user blacklisted, the same
+ *   filter the library lists apply. The admin worklist does not set it.
+ * - `unlinked` keeps only items with no external link at all.
+ * - `withoutSeries` keeps only books in no series. Comics are always in one,
+ *   so it matches nothing there.
+ * - `includeComplete` lists items with no gaps too when no gap is requested,
+ *   so a text search finds an item whether or not it still needs work.
+ */
+export interface GapQueryOptions {
+  viewerId?: string;
+  unlinked?: boolean;
+  withoutSeries?: boolean;
+  includeComplete?: boolean;
+}
 
 /**
  * The admin worklist behind issue #61: which items in the library still need
@@ -64,22 +91,43 @@ export class MetadataGapsService {
     private readonly metadataResolver: MetadataResolverService,
   ) {}
 
-  async getSummary(type: GapMediaType): Promise<MetadataGapsSummaryDto> {
-    return type === 'audiobook'
-      ? this.getAudiobookSummary()
-      : this.getEbookSummary();
+  async getSummary(
+    type: GapMediaType,
+    options: GapQueryOptions = {},
+  ): Promise<MetadataGapsSummaryDto> {
+    switch (type) {
+      case 'audiobook':
+        return this.getAudiobookSummary(options);
+      case 'ebook':
+        return this.getEbookSummary(options);
+      case 'comic':
+        return this.getComicSummary(options);
+    }
   }
 
-  async list(query: ListMetadataGapsQueryDto): Promise<MetadataGapListDto> {
-    return query.type === 'audiobook'
-      ? this.listAudiobooks(query)
-      : this.listEbooks(query);
+  async list(
+    query: ListMetadataGapsQueryDto,
+    options: GapQueryOptions = {},
+  ): Promise<MetadataGapListDto> {
+    switch (query.type) {
+      case 'audiobook':
+        return this.listAudiobooks(query, options);
+      case 'ebook':
+        return this.listEbooks(query, options);
+      case 'comic':
+        return this.listComics(query, options);
+    }
   }
 
-  private async getAudiobookSummary(): Promise<MetadataGapsSummaryDto> {
+  private async getAudiobookSummary(
+    options: GapQueryOptions,
+  ): Promise<MetadataGapsSummaryDto> {
     const priority = await this.appSettingsService.getMetadataPriority();
     const conditions = buildAudiobookGapConditions(this.db, priority);
-    const visible = ne(audiobooksSchema.audiobooks.status, 'hidden');
+    const visible = and(
+      ne(audiobooksSchema.audiobooks.status, 'hidden'),
+      ...this.audiobookVisibility(options.viewerId),
+    );
 
     const [row] = await this.db
       .select({
@@ -104,10 +152,15 @@ export class MetadataGapsService {
     };
   }
 
-  private async getEbookSummary(): Promise<MetadataGapsSummaryDto> {
+  private async getEbookSummary(
+    options: GapQueryOptions,
+  ): Promise<MetadataGapsSummaryDto> {
     const priority = await this.appSettingsService.getMetadataPriority();
     const conditions = buildEbookGapConditions(this.db, priority);
-    const visible = ne(ebooksSchema.ebooks.status, 'hidden');
+    const visible = and(
+      ne(ebooksSchema.ebooks.status, 'hidden'),
+      ...this.ebookVisibility(options.viewerId),
+    );
 
     const [row] = await this.db
       .select({
@@ -132,8 +185,42 @@ export class MetadataGapsService {
     };
   }
 
+  private async getComicSummary(
+    options: GapQueryOptions,
+  ): Promise<MetadataGapsSummaryDto> {
+    const priority = await this.appSettingsService.getComicMetadataPriority();
+    const conditions = buildComicGapConditions(this.db, priority);
+    const visible = and(
+      ne(comicsSchema.comicSeries.status, 'hidden'),
+      ...this.comicVisibility(options.viewerId),
+    );
+
+    const [row] = await this.db
+      .select({
+        totalItems: count(),
+        itemsWithGaps: sql<number>`count(*) FILTER (WHERE ${anyOf(
+          COMIC_GAP_KEYS.map((key) => conditions[key]),
+        )})`.mapWith(Number),
+        ...countFilters(conditions),
+      })
+      .from(comicsSchema.comicSeries)
+      .where(visible);
+
+    return {
+      type: 'comic',
+      totalItems: Number(row?.totalItems ?? 0),
+      itemsWithGaps: Number(row?.itemsWithGaps ?? 0),
+      gaps: COMIC_GAP_KEYS.map((key) => ({
+        key,
+        count: Number(row?.[key] ?? 0),
+        category: COMIC_GAP_CATEGORIES[key],
+      })),
+    };
+  }
+
   private async listAudiobooks(
     query: ListMetadataGapsQueryDto,
+    options: GapQueryOptions,
   ): Promise<MetadataGapListDto> {
     const { limit = DEFAULT_LIMIT, offset = 0, sort = 'newest' } = query;
     const { audiobooks } = audiobooksSchema;
@@ -144,12 +231,25 @@ export class MetadataGapsService {
     const gapCount = gapCountExpression(conditions);
     const where = and(
       ne(audiobooks.status, 'hidden'),
-      gapFilter(
-        selectedKeys.map((key) => conditions[key]),
-        query.match,
-        query.missing,
-      ),
+      options.includeComplete && !query.missing?.length
+        ? undefined
+        : gapFilter(
+            selectedKeys.map((key) => conditions[key]),
+            query.match,
+            query.missing,
+          ),
       ...this.audiobookSearch(query.search),
+      ...this.audiobookVisibility(options.viewerId),
+      ...narrowing(options, AUDIOBOOK_GAP_CATEGORIES, conditions, () =>
+        noRowMatches(
+          this.db
+            .select({ one: sql`1` })
+            .from(audiobooksSchema.audiobookSeries)
+            .where(
+              eq(audiobooksSchema.audiobookSeries.audiobookId, audiobooks.id),
+            ),
+        ),
+      ),
     );
 
     const [rows, [totals]] = await Promise.all([
@@ -201,6 +301,7 @@ export class MetadataGapsService {
 
   private async listEbooks(
     query: ListMetadataGapsQueryDto,
+    options: GapQueryOptions,
   ): Promise<MetadataGapListDto> {
     const { limit = DEFAULT_LIMIT, offset = 0, sort = 'newest' } = query;
     const { ebooks } = ebooksSchema;
@@ -211,12 +312,23 @@ export class MetadataGapsService {
     const gapCount = gapCountExpression(conditions);
     const where = and(
       ne(ebooks.status, 'hidden'),
-      gapFilter(
-        selectedKeys.map((key) => conditions[key]),
-        query.match,
-        query.missing,
-      ),
+      options.includeComplete && !query.missing?.length
+        ? undefined
+        : gapFilter(
+            selectedKeys.map((key) => conditions[key]),
+            query.match,
+            query.missing,
+          ),
       ...this.ebookSearch(query.search),
+      ...this.ebookVisibility(options.viewerId),
+      ...narrowing(options, EBOOK_GAP_CATEGORIES, conditions, () =>
+        noRowMatches(
+          this.db
+            .select({ one: sql`1` })
+            .from(ebooksSchema.ebookSeries)
+            .where(eq(ebooksSchema.ebookSeries.ebookId, ebooks.id)),
+        ),
+      ),
     );
 
     const [rows, [totals]] = await Promise.all([
@@ -256,6 +368,140 @@ export class MetadataGapsService {
       items: rows.map((row) =>
         this.toItem(row, 'ebook', EBOOK_GAP_KEYS, 'ebooks', resolved),
       ),
+      total: Number(totals?.value ?? 0),
+    };
+  }
+
+  /**
+   * Comic rows are series. The title is resolved through the comic priority
+   * against the linked volume, and the cover falls back to the first issue
+   * with one, both as `ComicsService` does for the series page and grid.
+   */
+  private async listComics(
+    query: ListMetadataGapsQueryDto,
+    options: GapQueryOptions,
+  ): Promise<MetadataGapListDto> {
+    const { limit = DEFAULT_LIMIT, offset = 0, sort = 'newest' } = query;
+    const { comicSeries, comicBooks } = comicsSchema;
+    const priority = await this.appSettingsService.getComicMetadataPriority();
+    const conditions = buildComicGapConditions(this.db, priority);
+
+    const selectedKeys = selectKeys(COMIC_GAP_KEYS, query.missing);
+    const gapCount = gapCountExpression(conditions);
+    const where = and(
+      ne(comicSeries.status, 'hidden'),
+      options.includeComplete && !query.missing?.length
+        ? undefined
+        : gapFilter(
+            selectedKeys.map((key) => conditions[key]),
+            query.match,
+            query.missing,
+          ),
+      ...this.comicSearch(query.search),
+      ...this.comicVisibility(options.viewerId),
+      ...narrowing(
+        options,
+        COMIC_GAP_CATEGORIES,
+        conditions,
+        () => sql<boolean>`false`,
+      ),
+    );
+
+    const volumeName = this.db
+      .select({ name: comicvineSchema.comicvineVolumes.name })
+      .from(comicvineSchema.comicvineVolumeLinks)
+      .innerJoin(
+        comicvineSchema.comicvineVolumes,
+        eq(
+          comicvineSchema.comicvineVolumeLinks.comicvineVolumeRowId,
+          comicvineSchema.comicvineVolumes.id,
+        ),
+      )
+      .where(eq(comicvineSchema.comicvineVolumeLinks.seriesId, comicSeries.id))
+      .limit(1);
+    const fallbackCoverBook = this.db
+      .select({ id: comicBooks.id })
+      .from(comicBooks)
+      .where(
+        and(
+          eq(comicBooks.seriesId, comicSeries.id),
+          sql`${comicBooks.coverSource} IS NOT NULL`,
+          ne(comicBooks.status, 'hidden'),
+        ),
+      )
+      .orderBy(
+        sql`${comicBooks.sortNumber} ASC NULLS LAST`,
+        comicBooks.createdAt,
+      )
+      .limit(1);
+
+    const [rows, [totals]] = await Promise.all([
+      this.db
+        .select({
+          id: comicSeries.id,
+          title: comicSeries.title,
+          manualFields: comicSeries.manualFields,
+          coverUrl: comicSeries.coverUrl,
+          coverSource: comicSeries.coverSource,
+          status: comicSeries.status,
+          createdAt: comicSeries.createdAt,
+          volumeName: sql<string | null>`(${volumeName})`,
+          fallbackCoverBookId: sql<string | null>`(${fallbackCoverBook})`,
+          gapCount,
+          ...conditions,
+        })
+        .from(comicSeries)
+        .where(where)
+        .orderBy(
+          ...orderFor(
+            sort,
+            comicSeries.title,
+            comicSeries.createdAt,
+            comicSeries.id,
+            gapCount,
+          ),
+        )
+        .limit(limit)
+        .offset(offset),
+      this.db.select({ value: count() }).from(comicSeries).where(where),
+    ]);
+
+    return {
+      items: rows.map((row) => {
+        const title =
+          resolveFieldByPriority(
+            'title',
+            {
+              manual: row.title,
+              embedded: row.title,
+              comicvine: row.volumeName,
+            },
+            priority.title,
+            row.manualFields ?? [],
+          ) ?? row.title;
+        const coverUrl =
+          this.coverService.getCoverUrl(
+            row.id,
+            row.coverUrl,
+            row.coverSource,
+            'comics/series',
+          ) ??
+          (row.fallbackCoverBookId
+            ? `/api/comics/books/${row.fallbackCoverBookId}/cover`
+            : null);
+
+        return {
+          id: row.id,
+          type: 'comic',
+          title,
+          subtitle: null,
+          gaps: COMIC_GAP_KEYS.filter((key) => row[key] === true),
+          gapCount: Number(row.gapCount ?? 0),
+          coverUrl,
+          status: row.status,
+          createdAt: row.createdAt,
+        };
+      }),
       total: Number(totals?.value ?? 0),
     };
   }
@@ -409,6 +655,129 @@ export class MetadataGapsService {
       )!,
     ];
   }
+
+  /**
+   * The displayed title can come from the linked ComicVine volume, so search
+   * it as well as the local title and sort title.
+   */
+  private comicSearch(search: string | undefined): SQL[] {
+    const pattern = searchPattern(search);
+    if (!pattern) return [];
+
+    const { comicSeries } = comicsSchema;
+
+    return [
+      or(
+        ilike(comicSeries.title, pattern),
+        ilike(comicSeries.sortTitle, pattern),
+        exists(
+          this.db
+            .select({ one: sql`1` })
+            .from(comicvineSchema.comicvineVolumeLinks)
+            .innerJoin(
+              comicvineSchema.comicvineVolumes,
+              eq(
+                comicvineSchema.comicvineVolumeLinks.comicvineVolumeRowId,
+                comicvineSchema.comicvineVolumes.id,
+              ),
+            )
+            .where(
+              and(
+                eq(
+                  comicvineSchema.comicvineVolumeLinks.seriesId,
+                  comicSeries.id,
+                ),
+                ilike(comicvineSchema.comicvineVolumes.name, pattern),
+              ),
+            ),
+        ),
+      )!,
+    ];
+  }
+
+  /** Hides items carrying a tag the viewer blacklisted, as the lists do. */
+  private audiobookVisibility(viewerId: string | undefined): SQL[] {
+    if (!viewerId) return [];
+    const { audiobookTags, audiobooks } = audiobooksSchema;
+    return [
+      noRowMatches(
+        this.db
+          .select({ one: sql`1` })
+          .from(audiobookTags)
+          .innerJoin(
+            usersSchema.userBlacklistedTags,
+            and(
+              eq(audiobookTags.tagId, usersSchema.userBlacklistedTags.tagId),
+              eq(usersSchema.userBlacklistedTags.userId, viewerId),
+            ),
+          )
+          .where(eq(audiobookTags.audiobookId, audiobooks.id)),
+      ),
+    ];
+  }
+
+  private ebookVisibility(viewerId: string | undefined): SQL[] {
+    if (!viewerId) return [];
+    const { ebookTags, ebooks } = ebooksSchema;
+    return [
+      noRowMatches(
+        this.db
+          .select({ one: sql`1` })
+          .from(ebookTags)
+          .innerJoin(
+            usersSchema.userBlacklistedTags,
+            and(
+              eq(ebookTags.tagId, usersSchema.userBlacklistedTags.tagId),
+              eq(usersSchema.userBlacklistedTags.userId, viewerId),
+            ),
+          )
+          .where(eq(ebookTags.ebookId, ebooks.id)),
+      ),
+    ];
+  }
+
+  private comicVisibility(viewerId: string | undefined): SQL[] {
+    if (!viewerId) return [];
+    const { comicSeriesTags, comicSeries } = comicsSchema;
+    return [
+      noRowMatches(
+        this.db
+          .select({ one: sql`1` })
+          .from(comicSeriesTags)
+          .innerJoin(
+            usersSchema.userBlacklistedTags,
+            and(
+              eq(comicSeriesTags.tagId, usersSchema.userBlacklistedTags.tagId),
+              eq(usersSchema.userBlacklistedTags.userId, viewerId),
+            ),
+          )
+          .where(eq(comicSeriesTags.seriesId, comicSeries.id)),
+      ),
+    ];
+  }
+}
+
+/**
+ * The `unlinked` and `withoutSeries` options as extra conditions. "Unlinked"
+ * means every link gap of the media type is open, i.e. no source is linked.
+ */
+function narrowing<K extends GapKey>(
+  options: GapQueryOptions,
+  categories: Record<K, GapCategory>,
+  conditions: Record<K, SQL<boolean>>,
+  withoutSeries: () => SQL<boolean>,
+): SQL<boolean>[] {
+  const extra: SQL<boolean>[] = [];
+  if (options.unlinked) {
+    const linkKeys = (Object.keys(categories) as K[]).filter(
+      (key) => categories[key] === 'matches',
+    );
+    extra.push(allOf(linkKeys.map((key) => conditions[key])));
+  }
+  if (options.withoutSeries) {
+    extra.push(withoutSeries());
+  }
+  return extra;
 }
 
 function searchPattern(search: string | undefined): string | null {

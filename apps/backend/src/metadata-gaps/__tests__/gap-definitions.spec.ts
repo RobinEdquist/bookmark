@@ -2,15 +2,20 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
 import {
+  DEFAULT_COMIC_METADATA_PRIORITY,
   DEFAULT_METADATA_PRIORITY,
+  type ComicMetadataFieldPriority,
   type MetadataFieldPriority,
 } from '../../app-settings/schema';
 import {
   AUDIOBOOK_GAP_CATEGORIES,
   AUDIOBOOK_GAP_KEYS,
+  COMIC_GAP_CATEGORIES,
+  COMIC_GAP_KEYS,
   EBOOK_GAP_CATEGORIES,
   EBOOK_GAP_KEYS,
   buildAudiobookGapConditions,
+  buildComicGapConditions,
   buildEbookGapConditions,
   countFilters,
   gapCountExpression,
@@ -177,6 +182,101 @@ describe('gap definitions', () => {
       const sql = toSql(description);
       expect(sql).toContain('hardcover_ebook_links');
       expect(sql).toContain('goodreads_ebook_links');
+    });
+  });
+
+  describe('comic conditions', () => {
+    const comicWithout = (source: string): ComicMetadataFieldPriority =>
+      Object.fromEntries(
+        Object.entries(DEFAULT_COMIC_METADATA_PRIORITY).map(
+          ([field, sources]) => [field, sources.filter((s) => s !== source)],
+        ),
+      ) as ComicMetadataFieldPriority;
+
+    it('covers every declared gap key', () => {
+      const conditions = buildComicGapConditions(
+        db,
+        DEFAULT_COMIC_METADATA_PRIORITY,
+      );
+      for (const key of COMIC_GAP_KEYS) {
+        expect(conditions[key]).toBeDefined();
+        expect(COMIC_GAP_CATEGORIES[key]).toBeDefined();
+      }
+    });
+
+    it('lets a linked ComicVine volume fill series fields', () => {
+      const { description, publisher, startYear } = buildComicGapConditions(
+        db,
+        DEFAULT_COMIC_METADATA_PRIORITY,
+      );
+
+      expect(toSql(description)).toContain('"comic_series"."description"');
+      expect(toSql(description)).toContain('"comicvine_volumes"."description"');
+      expect(toSql(publisher)).toContain(
+        '"comicvine_volumes"."publisher_name"',
+      );
+      expect(toSql(startYear)).toContain('"comicvine_volumes"."start_year"');
+    });
+
+    it('ignores ComicVine when the priority settings leave it out', () => {
+      const { description, issueCoverDates } = buildComicGapConditions(
+        db,
+        comicWithout('comicvine'),
+      );
+
+      expect(toSql(description)).not.toContain('comicvine_volumes');
+      expect(toSql(issueCoverDates)).not.toContain('comicvine_issues');
+    });
+
+    it('rolls issue gaps up to the series, skipping hidden issues', () => {
+      const { issueNumbers, issueCoverDates } = buildComicGapConditions(
+        db,
+        DEFAULT_COMIC_METADATA_PRIORITY,
+      );
+
+      for (const condition of [issueNumbers, issueCoverDates]) {
+        const sql = toSql(condition);
+        expect(sql).toMatch(/^exists/i);
+        expect(sql).toContain(
+          '"comic_books"."series_id" = "comic_series"."id"',
+        );
+        expect(sql).toContain('"comic_books"."status" <> $');
+        expect(sql).toContain('comicvine_issues');
+      }
+    });
+
+    it('only expects a number on issues in a numbered run', () => {
+      const { issueNumbers } = buildComicGapConditions(
+        db,
+        DEFAULT_COMIC_METADATA_PRIORITY,
+      );
+
+      expect(toSql(issueNumbers)).toContain(
+        `"comic_books"."format" IN ('single_issue', 'annual')`,
+      );
+    });
+
+    it('falls back to issue covers like the series page does', () => {
+      const { cover } = buildComicGapConditions(
+        db,
+        DEFAULT_COMIC_METADATA_PRIORITY,
+      );
+      const sql = toSql(cover);
+
+      expect(sql).toContain('"comic_series"."cover_url" IS NULL');
+      expect(sql).toContain('"comic_books"."cover_source" IS NOT NULL');
+      expect(sql).not.toContain('comicvine');
+    });
+
+    it('checks main characters and the ComicVine link locally', () => {
+      const { mainCharacters, comicvineLink } = buildComicGapConditions(
+        db,
+        DEFAULT_COMIC_METADATA_PRIORITY,
+      );
+
+      expect(toSql(mainCharacters)).toContain('comic_series_main_characters');
+      expect(toSql(comicvineLink)).toContain('comicvine_volume_links');
+      expect(COMIC_GAP_CATEGORIES.comicvineLink).toBe('matches');
     });
   });
 

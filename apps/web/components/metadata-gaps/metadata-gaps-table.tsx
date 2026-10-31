@@ -24,13 +24,20 @@ interface MetadataGapsTableProps {
   gapCounts: MetadataGapCount[];
   detailHref: (item: MetadataGapItem) => string;
   onEdit: (item: MetadataGapItem) => void;
-  onLinkHardcover: (item: MetadataGapItem) => void;
-  onLinkGoodreads: (item: MetadataGapItem) => void;
+  /** Omitted for comics — Hardcover and Goodreads only know books. */
+  onLinkHardcover?: (item: MetadataGapItem) => void;
+  /** Omitted for comics — Hardcover and Goodreads only know books. */
+  onLinkGoodreads?: (item: MetadataGapItem) => void;
   /**
    * Omitted for ebooks — chapters are an audiobook concept, and Audible has
    * nothing to offer an epub.
    */
   onImportChapters?: (item: MetadataGapItem) => void;
+  /**
+   * Comics only, and only for admins with ComicVine set up: the API keeps
+   * ComicVine linking admin-only.
+   */
+  onLinkComicvine?: (item: MetadataGapItem) => void;
 }
 
 /** Badges are tinted by data category so a row reads at a glance. */
@@ -51,6 +58,7 @@ export function MetadataGapsTable({
   onLinkHardcover,
   onLinkGoodreads,
   onImportChapters,
+  onLinkComicvine,
 }: MetadataGapsTableProps) {
   const t = useTranslations("admin.metadata");
 
@@ -156,12 +164,21 @@ export function MetadataGapsTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onLinkHardcover(item)}>
-                        {t("actions.linkHardcover")}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onLinkGoodreads(item)}>
-                        {t("actions.linkGoodreads")}
-                      </DropdownMenuItem>
+                      {onLinkHardcover && (
+                        <DropdownMenuItem onClick={() => onLinkHardcover(item)}>
+                          {t("actions.linkHardcover")}
+                        </DropdownMenuItem>
+                      )}
+                      {onLinkGoodreads && (
+                        <DropdownMenuItem onClick={() => onLinkGoodreads(item)}>
+                          {t("actions.linkGoodreads")}
+                        </DropdownMenuItem>
+                      )}
+                      {onLinkComicvine && (
+                        <DropdownMenuItem onClick={() => onLinkComicvine(item)}>
+                          {t("actions.linkComicvine")}
+                        </DropdownMenuItem>
+                      )}
                       {onImportChapters && (
                         <DropdownMenuItem
                           onClick={() => onImportChapters(item)}

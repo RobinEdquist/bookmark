@@ -100,7 +100,8 @@
     "description": "Find library items that are still missing metadata, and fill it in.",
     "tabs": {
       "audiobooks": "Audiobooks",
-      "ebooks": "Ebooks"
+      "ebooks": "Ebooks",
+      "comics": "Comics"
     },
     "summary": "{withGaps} of {total} items are missing metadata",
     "categories": {
@@ -122,7 +123,12 @@
       "isbn": "ISBN",
       "pageCount": "Page count",
       "hardcoverLink": "Hardcover match",
-      "goodreadsLink": "Goodreads match"
+      "goodreadsLink": "Goodreads match",
+      "mainCharacters": "Main characters",
+      "startYear": "Start year",
+      "issueNumbers": "Issue numbers",
+      "issueCoverDates": "Cover dates",
+      "comicvineLink": "ComicVine match"
     },
     "match": {
       "any": "Any",
@@ -144,6 +150,7 @@
       "edit": "Edit",
       "linkHardcover": "Link Hardcover...",
       "linkGoodreads": "Link Goodreads...",
+      "linkComicvine": "Link ComicVine...",
       "importChapters": "Import chapters from Audible...",
       "open": "Open item"
     },

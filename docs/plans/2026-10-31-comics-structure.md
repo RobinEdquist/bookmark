@@ -112,6 +112,8 @@ Each gets a tab on `/comics` and a page. **Files.** `comics.controller.ts`, a ne
 
 Add `comic` to the media types in `metadata-gaps`: series with no ComicVine link, no description,
 no publisher, no start year, no main characters, and issues with no cover date or number.
+**Built** on `feature/mcp-read-only`, with the MCP's read-only tools. Issue gaps roll up to the
+series (`issueNumbers`, `issueCoverDates`), and a series cover falls back to its first issue's.
 **Files.** `apps/backend/src/metadata-gaps/gap-definitions.ts`, `metadata-gaps.service.ts`,
 its DTOs and specs; web `components/metadata-gaps/*`, `lib/use-metadata-gaps.ts`, messages.
 
