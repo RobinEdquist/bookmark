@@ -67,6 +67,29 @@ export function resolveFieldByPriority<T>(
 }
 
 /**
+ * Which source `resolveFieldByPriority` takes its value from, given the same
+ * arguments. `null` when no source has a value (the resolver then returns the
+ * empty embedded value). Kept beside the resolver so the two cannot drift.
+ */
+export function resolveFieldSource<T>(
+  manualFieldName: string,
+  sources: MetadataSources<T>,
+  priority: MetadataSource[],
+  manualFields: string[],
+): MetadataSource | null {
+  if (manualFields.includes(manualFieldName) && hasValue(sources.manual)) {
+    return 'manual';
+  }
+
+  for (const source of priority) {
+    if (source === 'manual') continue;
+    if (hasValue(sources[source])) return source;
+  }
+
+  return hasValue(sources.embedded) ? 'embedded' : null;
+}
+
+/**
  * Resolve a relationship field while preserving an explicit manual clear.
  *
  * Empty scalar values normally fall through to another provider, but an empty

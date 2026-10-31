@@ -1,7 +1,10 @@
+import type { MetadataSource } from '../../../app-settings/schema';
 import {
   hasValue,
   resolveFieldByPriority,
+  resolveFieldSource,
   resolveRelationByPriority,
+  type MetadataSources,
 } from '../metadata-priority.utils';
 
 describe('hasValue', () => {
@@ -153,4 +156,78 @@ describe('resolveRelationByPriority', () => {
       ),
     ).toEqual(['External Saga']);
   });
+});
+
+describe('resolveFieldSource', () => {
+  const cases: [
+    string,
+    MetadataSources<string>,
+    MetadataSource[],
+    string[],
+    MetadataSource | null,
+  ][] = [
+    [
+      'a locked hand-edit',
+      { manual: 'Edited', embedded: 'Edited', comicvine: 'CV' },
+      ['manual', 'comicvine', 'embedded'],
+      ['title'],
+      'manual',
+    ],
+    [
+      'the first source in priority order',
+      { manual: 'File', embedded: 'File', comicvine: 'CV' },
+      ['manual', 'comicvine', 'embedded'],
+      [],
+      'comicvine',
+    ],
+    [
+      'the file when it comes first',
+      { manual: 'File', embedded: 'File', comicvine: 'CV' },
+      ['manual', 'embedded', 'comicvine'],
+      [],
+      'embedded',
+    ],
+    [
+      'a later source when a locked field was cleared',
+      { manual: '', embedded: '', comicvine: 'CV' },
+      ['manual', 'embedded', 'comicvine'],
+      ['title'],
+      'comicvine',
+    ],
+    [
+      'the embedded fallback when it is not in the priority list',
+      { manual: 'File', embedded: 'File', hardcover: null },
+      ['hardcover'],
+      [],
+      'embedded',
+    ],
+    [
+      'nothing when every source is empty',
+      { manual: null, embedded: '  ', comicvine: null },
+      ['manual', 'embedded', 'comicvine'],
+      [],
+      null,
+    ],
+  ];
+
+  it.each(cases)(
+    'names %s, agreeing with resolveFieldByPriority',
+    (_label, sources, priority, manualFields, expected) => {
+      const source = resolveFieldSource(
+        'title',
+        sources,
+        priority,
+        manualFields,
+      );
+      expect(source).toBe(expected);
+
+      const value = resolveFieldByPriority(
+        'title',
+        sources,
+        priority,
+        manualFields,
+      );
+      if (source) expect(sources[source]).toBe(value);
+    },
+  );
 });
