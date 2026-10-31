@@ -8,6 +8,7 @@ import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { ComicMetadataProvider } from '../library-watcher/metadata/comic-metadata.provider';
 import { ImageProcessingService } from '../common/image-processing.service';
+import { resolveContainedPath } from '../common/utils/path-containment.util';
 import * as schema from './schema';
 
 export interface PageRenderOptions {
@@ -113,7 +114,18 @@ export class ComicPageService {
     if (!libraryPath) {
       throw new Error('Comic library path not configured');
     }
-    const absolute = path.join(libraryPath, book.filePath);
+    // The stored path can be polluted by a crafted backup import, so it must
+    // resolve inside the library root before anything opens it. A path that
+    // does not is a file this library does not have: 404, not 500.
+    let absolute: string;
+    try {
+      absolute = resolveContainedPath(libraryPath, book.filePath);
+    } catch (error) {
+      this.logger.warn(
+        `[comic-page] getPageImage refused a path outside the library bookId=${bookId}: ${error instanceof Error ? error.message : error}`,
+      );
+      throw new NotFoundException('Comic file not found');
+    }
     this.logger.log(
       `[comic-page] getPageImage extracting bookId=${bookId} pageIndex=${pageIndex} filePath=${absolute} container=${book.container}`,
     );
