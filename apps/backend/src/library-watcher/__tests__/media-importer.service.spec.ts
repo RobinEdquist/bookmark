@@ -192,6 +192,8 @@ function createMockDeps() {
     comicvineService: {
       getAutoSyncOnImport: jest.fn().mockResolvedValue(false),
       addToSyncQueue: jest.fn().mockResolvedValue(undefined),
+      getSeriesLink: jest.fn().mockResolvedValue(null),
+      queueSeriesBooks: jest.fn().mockResolvedValue(0),
     } as any,
     appEvents: {
       audiobookCreated: jest.fn(),
@@ -1721,6 +1723,45 @@ describe('MediaImporterService', () => {
       expect(setCall.sortNumber).not.toBeNull();
     });
 
+    it('reads an underscore name, drops the series-name title and queues ComicVine matching', async () => {
+      setupBookRescanMocks({
+        id: 'book-dow-2',
+        seriesId: 'series-dow',
+        fileName:
+          'Death of Wolverine 02_(of_04)_(2014)_(Digital)_(Nahga-Empire).cbr',
+        filePath: 'Death of Wolverine/02.cbr',
+        number: null,
+        title: 'Death of Wolverine 02_ _ _ _',
+        format: 'single_issue',
+        coverDate: null,
+        summary: null,
+        pageCount: 22,
+        manualFields: [],
+      });
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValueOnce('/library/comics');
+      deps.comicMetadataProvider.extractMetadata.mockResolvedValueOnce({
+        comicInfo: null,
+        pageCount: 22,
+        cover: null,
+      });
+      deps.comicvineService.getSeriesLink.mockResolvedValueOnce({
+        comicvineVolumeId: 76710,
+      });
+
+      const result = await service.reExtractComicBook('book-dow-2');
+
+      expect(result).toBe(true);
+      const setCall = db._chains.update.set.mock.calls[0][0];
+      expect(setCall.number).toBe('2');
+      // "Death of Wolverine" is the series, not this issue's title
+      expect(setCall.title).toBeNull();
+      expect(deps.comicvineService.queueSeriesBooks).toHaveBeenCalledWith(
+        'series-dow',
+      );
+    });
+
     it('preserves manual title when manualFields includes title', async () => {
       setupBookRescanMocks({
         id: 'book-52',
@@ -2120,7 +2161,7 @@ describe('MediaImporterService', () => {
       expect(deps.requestsService.tryMatchImport).not.toHaveBeenCalled();
     });
 
-    it('uses parsed filename title when ComicInfo.xml is absent', async () => {
+    it('takes the number but not a title from a numbered file name when ComicInfo.xml is absent', async () => {
       // Stub: no existing series, no existing book
       db._chains.select.limit.mockResolvedValue([]);
 
@@ -2147,9 +2188,9 @@ describe('MediaImporterService', () => {
 
       // number should be extracted from the filename
       expect(bookValues.number).toBe('51');
-      // title must NOT be null — it should fall back to the parsed series title
-      expect(bookValues.title).not.toBeNull();
-      expect(bookValues.title).toBe('Saga');
+      // The rest of the name is the series, not the issue's title; leaving it
+      // empty lets ComicVine's issue title show.
+      expect(bookValues.title).toBeNull();
     });
 
     it('returns null and creates no series when all books already exist (phantom prevention)', async () => {

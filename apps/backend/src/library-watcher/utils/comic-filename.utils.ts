@@ -42,8 +42,22 @@ export function parseSeriesFolderName(folderName: string): ParsedSeriesFolder {
   return { title: folderName.trim(), year: null };
 }
 
+/**
+ * The issue title a file name gives, if any. With an issue number the rest of
+ * the name is the series ("Saga 043 (2017)"), not a title; without one, the
+ * name is all that tells the book apart ("Wolverine - Origin of an X-Man").
+ */
+export function fileIssueTitle(parsed: ParsedComicFilename): string | null {
+  return parsed.number === null ? parsed.title : null;
+}
+
 export function parseComicFilename(fileName: string): ParsedComicFilename {
-  let base = path.basename(fileName, path.extname(fileName)).trim();
+  // Scene releases often use underscores for spaces:
+  // "Death of Wolverine 02_(of_04)_(2014)_(Digital).cbr"
+  let base = path
+    .basename(fileName, path.extname(fileName))
+    .replace(/_/g, ' ')
+    .trim();
 
   // 1. Strip bracketed scene/format groups: [group], {tag}
   base = base.replace(/\[[^\]]*\]/g, ' ').replace(/\{[^}]*\}/g, ' ');

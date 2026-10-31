@@ -43,6 +43,7 @@ import { isAudioFile } from './utils/audio-file.utils';
 import { splitPersonNames } from '../common/utils/name.utils';
 import {
   parseComicFilename,
+  fileIssueTitle,
   parseSeriesFolderName,
   computeSortNumber,
 } from './utils/comic-filename.utils';
@@ -874,7 +875,9 @@ export class MediaImporterService {
 
       const number = info?.number ?? parsed.number;
       const title =
-        sanitizeText(info?.title) ?? sanitizeText(parsed.title) ?? null;
+        sanitizeText(info?.title) ??
+        sanitizeText(fileIssueTitle(parsed)) ??
+        null;
       // ComicInfo Format wins only when actually present in the file
       const format = info?.formatRaw ? info.format : parsed.format;
       const container = await this.resolveComicContainer(absolutePath);
@@ -1705,6 +1708,19 @@ export class MediaImporterService {
    * returns false (logging the error) on file extraction failure so the
    * caller can continue with other books.
    */
+  /** Queues a ComicVine-linked series' unlinked issues for matching. */
+  private async queueComicvineMatch(seriesId: string): Promise<void> {
+    try {
+      if (await this.comicvineService.getSeriesLink(seriesId)) {
+        await this.comicvineService.queueSeriesBooks(seriesId);
+      }
+    } catch (error) {
+      this.logger.warn(
+        `[RESCAN] Could not queue ComicVine matching for series ${seriesId}: ${error}`,
+      );
+    }
+  }
+
   async reExtractComicBook(bookId: string): Promise<boolean> {
     this.logger.debug(`[RESCAN] Starting comic book rescan: ${bookId}`);
 
@@ -1768,7 +1784,9 @@ export class MediaImporterService {
     // title
     if (!manualFields.includes('title')) {
       const derivedTitle =
-        sanitizeText(info?.title) ?? sanitizeText(parsed.title) ?? null;
+        sanitizeText(info?.title) ??
+        sanitizeText(fileIssueTitle(parsed)) ??
+        null;
       if (derivedTitle !== book.title) {
         updates.title = derivedTitle;
       }
@@ -1835,6 +1853,12 @@ export class MediaImporterService {
       );
     } else {
       this.logger.debug(`[RESCAN] No changes for comic book ${bookId}`);
+    }
+
+    // An issue that just got a number can now be matched to an issue of its
+    // series' ComicVine volume, which matches by number.
+    if (updates.number != null) {
+      await this.queueComicvineMatch(book.seriesId);
     }
 
     // Refresh metadata tags from file (tags are never user-edited)
