@@ -19,6 +19,10 @@ import {
   type LocalSeries,
   type CandidateVolume,
 } from './utils/match-confidence';
+import { localSeriesFor, planVolumeSearch } from './utils/search-query';
+
+/** Typed text plus cleaned-up versions, so at most two extra API calls. */
+const MAX_VOLUME_QUERIES = 3;
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
@@ -252,6 +256,8 @@ export class ComicvineService {
   /**
    * Search ComicVine volumes prefilled with the series title.
    * Used by the controller's /search/volume-for-series/:seriesId endpoint.
+   * The title is cleaned first (folder numbers, issue ranges, years), and
+   * `query` is the text that found the results, for prefilling the search box.
    * Results are annotated with `isCollected` and sorted by ranking score so
    * the single-issue series appears before collected/TPB editions.
    */
@@ -283,50 +289,30 @@ export class ComicvineService {
         ),
     ]);
 
-    const query = seriesRows[0]?.title ?? '';
-    if (!query) {
-      return { totalResults: 0, results: [], query };
+    const title = seriesRows[0]?.title ?? '';
+    if (!title) {
+      return { totalResults: 0, results: [], query: title };
+    }
+
+    const { queries } = planVolumeSearch(title);
+    const client = await this.getClient();
+    if (!client) {
+      return { totalResults: 0, results: [], query: queries[0] };
     }
 
     const bookCount = Number(countRows[0]?.count ?? 0);
-    const startYear = seriesRows[0]?.startYear ?? null;
+    const localSeries = localSeriesFor(
+      title,
+      seriesRows[0]?.startYear ?? null,
+      bookCount > 0 ? bookCount : null,
+    );
+    const found = await this.searchVolumesByQueries(client, queries, page);
 
-    const localSeries: LocalSeries = {
-      title: query,
-      startYear,
-      bookCount: bookCount > 0 ? bookCount : null,
+    return {
+      totalResults: found.totalResults,
+      results: this.rankVolumes(localSeries, found.results),
+      query: found.query,
     };
-
-    const raw = await this.searchVolumes(query, page);
-
-    // Annotate each result with isCollected and sort by ranking score (desc)
-    const annotated = (raw.results as CvVolumeRaw[])
-      .map((v) => ({
-        ...v,
-        isCollected: isLikelyCollectedEdition(v.name),
-      }))
-      .sort((a, b) => {
-        const candidateA: CandidateVolume = {
-          id: a.id,
-          name: a.name,
-          startYear:
-            a.start_year != null ? parseInt(String(a.start_year), 10) : null,
-          countOfIssues: a.count_of_issues ?? null,
-        };
-        const candidateB: CandidateVolume = {
-          id: b.id,
-          name: b.name,
-          startYear:
-            b.start_year != null ? parseInt(String(b.start_year), 10) : null,
-          countOfIssues: b.count_of_issues ?? null,
-        };
-        return (
-          rankVolumeCandidate(localSeries, candidateB) -
-          rankVolumeCandidate(localSeries, candidateA)
-        );
-      });
-
-    return { totalResults: raw.totalResults, results: annotated, query };
   }
 
   /**
@@ -381,59 +367,75 @@ export class ComicvineService {
     return { ...result, linkedVolume: true };
   }
 
+  /**
+   * Free-text volume search. The text is tried as typed, then cleaned up
+   * (see planVolumeSearch), because ComicVine only matches names that contain
+   * the text. `query` is the text that found the results.
+   */
   async searchVolumes(
     query: string,
     page: number = 1,
   ): Promise<{
     totalResults: number;
     results: (CvVolumeRaw & { isCollected: boolean })[];
+    query: string;
   }> {
     const client = await this.getClient();
     if (!client) {
-      return { totalResults: 0, results: [] };
+      return { totalResults: 0, results: [], query };
     }
 
-    const result = await client.searchVolumes(query, { page, limit: 20 });
-    const rawResults = result.results as CvVolumeRaw[];
-
-    // Use the query string as the local title context (no startYear/bookCount
-    // available for free-text searches — collected editions are still de-ranked).
-    const localSeries: LocalSeries = {
-      title: query,
-      startYear: null,
-      bookCount: null,
-    };
-
-    const annotated = rawResults
-      .map((v) => ({
-        ...v,
-        isCollected: isLikelyCollectedEdition(v.name),
-      }))
-      .sort((a, b) => {
-        const candidateA: CandidateVolume = {
-          id: a.id,
-          name: a.name,
-          startYear:
-            a.start_year != null ? parseInt(String(a.start_year), 10) : null,
-          countOfIssues: a.count_of_issues ?? null,
-        };
-        const candidateB: CandidateVolume = {
-          id: b.id,
-          name: b.name,
-          startYear:
-            b.start_year != null ? parseInt(String(b.start_year), 10) : null,
-          countOfIssues: b.count_of_issues ?? null,
-        };
-        return (
-          rankVolumeCandidate(localSeries, candidateB) -
-          rankVolumeCandidate(localSeries, candidateA)
-        );
-      });
+    const queries = [
+      ...new Set([query.trim(), ...planVolumeSearch(query).queries]),
+    ].slice(0, MAX_VOLUME_QUERIES);
+    const found = await this.searchVolumesByQueries(client, queries, page);
 
     return {
-      totalResults: result.totalResults,
-      results: annotated,
+      totalResults: found.totalResults,
+      results: this.rankVolumes(localSeriesFor(query, null), found.results),
+      query: found.query,
     };
+  }
+
+  /**
+   * Run ComicVine's name filter with each query until one finds volumes.
+   * The fallbacks cost extra API calls only when the earlier queries find
+   * nothing at all.
+   */
+  private async searchVolumesByQueries(
+    client: ComicVineApiClient,
+    queries: string[],
+    page: number,
+  ): Promise<{ query: string; totalResults: number; results: CvVolumeRaw[] }> {
+    for (const query of queries) {
+      const result = await client.searchVolumes(query, { page, limit: 20 });
+      const results = result.results as CvVolumeRaw[];
+      if (result.totalResults > 0 || results.length > 0) {
+        return { query, totalResults: result.totalResults, results };
+      }
+    }
+    return { query: queries[0] ?? '', totalResults: 0, results: [] };
+  }
+
+  /** Annotate volumes with isCollected and sort them best match first. */
+  private rankVolumes(
+    local: LocalSeries,
+    volumes: CvVolumeRaw[],
+  ): (CvVolumeRaw & { isCollected: boolean })[] {
+    const toCandidate = (v: CvVolumeRaw): CandidateVolume => ({
+      id: v.id,
+      name: v.name,
+      startYear:
+        v.start_year != null ? parseInt(String(v.start_year), 10) : null,
+      countOfIssues: v.count_of_issues ?? null,
+    });
+    return volumes
+      .map((v) => ({ ...v, isCollected: isLikelyCollectedEdition(v.name) }))
+      .sort(
+        (a, b) =>
+          rankVolumeCandidate(local, toCandidate(b)) -
+          rankVolumeCandidate(local, toCandidate(a)),
+      );
   }
 
   /**
@@ -507,17 +509,16 @@ export class ComicvineService {
     }
 
     // --- Branch 2: name + year conservative match ---
+    // Folder-style titles are cleaned first; a start year read from the
+    // title counts only when the stored one is missing.
     const client = this.createClient(apiKey);
-    const searchResult = await client.searchVolumes(s.title, {
-      page: 1,
-      limit: 20,
-    });
-    const candidates = searchResult.results as CvVolumeRaw[];
-
-    const localSeries: LocalSeries = {
-      title: s.title,
-      startYear: s.startYear ?? null,
-    };
+    const found = await this.searchVolumesByQueries(
+      client,
+      planVolumeSearch(s.title).queries,
+      1,
+    );
+    const candidates = found.results;
+    const localSeries = localSeriesFor(s.title, s.startYear ?? null);
 
     const candidateVolumes: CandidateVolume[] = candidates.map((c) => ({
       id: c.id,
@@ -541,7 +542,7 @@ export class ComicvineService {
     // Ambiguous or no confident match → needs_review
     const reason =
       candidates.length === 0
-        ? 'No search results found'
+        ? `No search results for "${found.query}"`
         : `${candidates.length} candidates, none auto-linkable (ambiguous or year mismatch)`;
 
     this.logger.log(`Series ${seriesId} needs review: ${reason}`);

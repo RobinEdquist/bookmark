@@ -19,6 +19,11 @@ describe('normalizeComicTitle', () => {
     expect(normalizeComicTitle('Saga')).toBe('saga');
   });
 
+  it('treats a slash as a word break, so team-up names match either way', () => {
+    expect(normalizeComicTitle('Wolverine/Hulk')).toBe('wolverine hulk');
+    expect(normalizeComicTitle('Wolverine & Hulk')).toBe('wolverine hulk');
+  });
+
   it('strips a leading "A " article', () => {
     expect(normalizeComicTitle('A Tale of Two Cities')).toBe(
       'tale of two cities',
@@ -345,6 +350,30 @@ describe('rankVolumeCandidate', () => {
       rankVolumeCandidate(local, collected),
     );
   });
+
+  it('ranks the matching collected edition first when the local series is one', () => {
+    const deluxe = {
+      title: 'Wolverine By Claremont & Miller Deluxe Edition',
+      startYear: null,
+      bookCount: 1,
+      isCollected: true,
+    };
+    const hardcover2009 = {
+      id: 4,
+      name: 'Wolverine By Claremont & Miller',
+      startYear: 2009,
+      countOfIssues: 1,
+    };
+    const deluxe2022 = {
+      id: 5,
+      name: 'Wolverine by Claremont & Miller Deluxe Edition',
+      startYear: 2022,
+      countOfIssues: 1,
+    };
+    expect(rankVolumeCandidate(deluxe, deluxe2022)).toBeGreaterThan(
+      rankVolumeCandidate(deluxe, hardcover2009),
+    );
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -361,5 +390,20 @@ describe('scoreVolumeMatch — collected editions are not auto-linkable', () => 
       countOfIssues: 3,
     };
     expect(scoreVolumeMatch(local, namedCollected).autoLinkable).toBe(false);
+  });
+
+  it('auto-links a collected edition to a local series that is the same edition', () => {
+    const local = {
+      title: 'Saga Deluxe Edition',
+      startYear: 2014,
+      isCollected: true,
+    };
+    const deluxe = {
+      id: 6,
+      name: 'Saga Deluxe Edition',
+      startYear: 2014,
+      countOfIssues: 3,
+    };
+    expect(scoreVolumeMatch(local, deluxe).autoLinkable).toBe(true);
   });
 });

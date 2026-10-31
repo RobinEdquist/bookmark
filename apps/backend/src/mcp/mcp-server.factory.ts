@@ -236,7 +236,9 @@ export class McpServerFactory {
         title: 'Search external sources',
         description:
           'Search an outside catalogue by text. comic: comicvine (volumes). audiobook: hardcover, goodreads, audible, itunes. ebook: hardcover, goodreads, itunes. ' +
-          'ComicVine, Hardcover and Goodreads are for admins only.',
+          'ComicVine, Hardcover and Goodreads are for admins only. ' +
+          'ComicVine finds volumes whose name contains the text, so search with the title only ("Wolverine", not "Wolverine 1982") and compare start years in the results. ' +
+          'If the text finds nothing, a cleaned-up version is tried; `query` shows what was searched.',
         inputSchema: {
           mediaType,
           source: z
@@ -261,7 +263,8 @@ export class McpServerFactory {
         description:
           'Suggested external matches for an item, searched from its current metadata. ' +
           'Comics: a series id gives ComicVine volumes with a confidence; an issue id gives issues of the linked volume, same number first. ' +
-          'If the title is a folder-style name, use search_external with a cleaned-up query instead.',
+          'Folder-style series titles are cleaned before searching (order numbers, volume markers, issue ranges and years removed); `query` shows what was searched. ' +
+          'If nothing is found, try search_external with other title words.',
         inputSchema: {
           mediaType,
           id: z.uuid(),

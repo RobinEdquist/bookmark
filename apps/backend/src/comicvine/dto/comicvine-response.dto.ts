@@ -308,6 +308,13 @@ export class ComicvineVolumeSearchResponseDto {
 
   @ApiProperty({ type: [CvVolumeResultDto] })
   results!: CvVolumeResultDto[];
+
+  @ApiProperty({
+    example: 'Batman',
+    description:
+      'The text that found the results. ComicVine matches volume names containing it, so a cleaned-up version of the request is tried when the request finds nothing.',
+  })
+  query!: string;
 }
 
 /**
@@ -316,9 +323,6 @@ export class ComicvineVolumeSearchResponseDto {
  * series' current link (if any).
  */
 export class ComicvineVolumeForSeriesResponseDto extends ComicvineVolumeSearchResponseDto {
-  @ApiProperty({ example: 'Batman' })
-  query!: string;
-
   @ApiPropertyOptional({ type: CachedVolumeDto, nullable: true })
   currentLink!: CachedVolumeDto | null;
 }

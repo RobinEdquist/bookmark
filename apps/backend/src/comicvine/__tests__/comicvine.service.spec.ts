@@ -485,6 +485,144 @@ describe('ComicvineService', () => {
         expect.objectContaining({ comicvineVolumeId: 222 }),
       );
     });
+
+    it('searches a folder-style title cleaned up and uses the year in it', async () => {
+      const settingsChain = createChainMock(['from', 'where', 'limit']);
+      settingsChain.limit.mockResolvedValueOnce([
+        { comicvineApiKey: 'cv-key' },
+      ]);
+      db.select.mockReturnValueOnce(settingsChain);
+
+      const seriesChain = createChainMock(['from', 'where', 'limit']);
+      seriesChain.limit.mockResolvedValueOnce([
+        {
+          id: 'series-4',
+          title: '02 Wolverine v2 01-189+Extras (1988-2003)',
+          startYear: null,
+          comicvineVolumeId: null,
+        },
+      ]);
+      db.select.mockReturnValueOnce(seriesChain);
+
+      mockSearchVolumes.mockResolvedValueOnce({
+        totalResults: 3,
+        results: [
+          buildCvVolume({ id: 1, name: 'Wolverine', start_year: 1982 }),
+          buildCvVolume({ id: 2, name: 'Wolverine', start_year: 1988 }),
+          buildCvVolume({ id: 3, name: 'Wolverine', start_year: 2003 }),
+        ],
+      });
+
+      db.insert.mockReturnValueOnce(
+        createUpsertChain({ id: 'cached-wolverine', comicvineVolumeId: 2 }),
+      );
+      const delChain = createChainMock(['where']);
+      delChain.where.mockResolvedValueOnce(undefined);
+      db.delete.mockReturnValueOnce(delChain);
+      const linkInsert = createChainMock(['values']);
+      linkInsert.values.mockResolvedValueOnce(undefined);
+      db.insert.mockReturnValueOnce(linkInsert);
+      const updateChain = createChainMock(['set', 'where']);
+      updateChain.where.mockResolvedValueOnce(undefined);
+      db.update.mockReturnValueOnce(updateChain);
+
+      const result = await service.matchSeries('series-4');
+
+      expect(mockSearchVolumes).toHaveBeenCalledTimes(1);
+      expect(mockSearchVolumes).toHaveBeenCalledWith('Wolverine', {
+        page: 1,
+        limit: 20,
+      });
+      expect(result).toEqual({ outcome: 'linked', cvId: 2 });
+    });
+  });
+
+  // =========================================================================
+  // Volume search — cleaned queries and fallbacks
+  // =========================================================================
+
+  describe('volume search fallbacks', () => {
+    function mockApiKey() {
+      const settingsChain = createChainMock(['from', 'where', 'limit']);
+      settingsChain.limit.mockResolvedValueOnce([
+        { comicvineApiKey: 'cv-key' },
+      ]);
+      db.select.mockReturnValueOnce(settingsChain);
+    }
+
+    it('retries free text without the year and ranks by it', async () => {
+      mockApiKey();
+      mockSearchVolumes
+        .mockResolvedValueOnce({ totalResults: 0, results: [] })
+        .mockResolvedValueOnce({
+          totalResults: 3,
+          results: [
+            buildCvVolume({ id: 3, name: 'Wolverine', start_year: 2003 }),
+            buildCvVolume({ id: 1, name: 'Wolverine', start_year: 1982 }),
+            buildCvVolume({ id: 2, name: 'Wolverine', start_year: 1988 }),
+          ],
+        });
+
+      const result = await service.searchVolumes('Wolverine 1982');
+
+      expect(mockSearchVolumes.mock.calls.map(([q]) => q)).toEqual([
+        'Wolverine 1982',
+        'Wolverine',
+      ]);
+      expect(result.query).toBe('Wolverine');
+      expect(result.totalResults).toBe(3);
+      expect(result.results[0].id).toBe(1);
+    });
+
+    it('falls back to a shorter query for a series and reports it', async () => {
+      const seriesChain = createChainMock(['from', 'where', 'limit']);
+      seriesChain.limit.mockResolvedValueOnce([
+        { title: 'Wolverine - Manifest Destiny 01-04', startYear: null },
+      ]);
+      db.select.mockReturnValueOnce(seriesChain);
+      const countChain = createChainMock(['from', 'where']);
+      countChain.where.mockResolvedValueOnce([{ count: 4 }]);
+      db.select.mockReturnValueOnce(countChain);
+      mockApiKey();
+
+      mockSearchVolumes
+        .mockResolvedValueOnce({ totalResults: 0, results: [] })
+        .mockResolvedValueOnce({
+          totalResults: 1,
+          results: [
+            buildCvVolume({
+              id: 7,
+              name: 'Wolverine: Manifest Destiny',
+              start_year: 2008,
+            }),
+          ],
+        });
+
+      const result = await service.searchVolumesForSeries('series-5');
+
+      expect(mockSearchVolumes.mock.calls.map(([q]) => q)).toEqual([
+        'Wolverine: Manifest Destiny',
+        'Manifest Destiny',
+      ]);
+      expect(result.query).toBe('Manifest Destiny');
+      expect(result.results.map((v) => v.id)).toEqual([7]);
+    });
+
+    it('stops after three queries that find nothing', async () => {
+      mockApiKey();
+      mockSearchVolumes.mockResolvedValue({ totalResults: 0, results: [] });
+
+      const result = await service.searchVolumes(
+        'Wolverine & Gambit - Victims 01-04',
+      );
+
+      expect(mockSearchVolumes).toHaveBeenCalledTimes(3);
+      expect(result).toEqual({
+        totalResults: 0,
+        results: [],
+        query: 'Wolverine & Gambit - Victims 01-04',
+      });
+    });
   });
 
   // =========================================================================
