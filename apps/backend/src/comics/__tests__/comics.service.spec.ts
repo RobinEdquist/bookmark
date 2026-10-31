@@ -7,6 +7,7 @@ import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { CoverService } from '../../common/cover.service';
 import {
+  BatchBookDataDto,
   UpdateComicBookDto,
   UpdateComicSeriesDto,
   ComicCreatorInputDto,
@@ -2146,5 +2147,76 @@ describe('ComicsService.updateSeries — main characters', () => {
     expect(updateSet).toHaveBeenCalledWith(
       expect.objectContaining({ manualFields: ['title'] }),
     );
+  });
+});
+
+describe('ComicsService.updateBook / updateBooksBatch — manualFields', () => {
+  function buildServiceForBookUpdate() {
+    const updateSet = jest.fn().mockReturnValue({
+      where: jest.fn().mockResolvedValue(undefined),
+    });
+    const update = jest.fn().mockReturnValue({ set: updateSet });
+    const db = {
+      select: jest
+        .fn()
+        .mockReturnValue(
+          chainMock([{ id: 'book-1', seriesId: 'series-1', manualFields: [] }]),
+        ),
+      update,
+    } as never;
+    const stub = {} as never;
+    const service = new ComicsService(
+      db,
+      stub, // appSettings
+      stub, // coverService
+      stub, // imageProcessing
+      stub, // appData
+      stub, // comicMetadataProvider
+      stub, // appEvents
+      { comicBookUpdated: jest.fn() } as never, // wsEvents
+      stub, // collectionsService
+    );
+    return { service, update, updateSet };
+  }
+
+  it('locks only the fields that were sent, not every field the DTO declares', async () => {
+    const { service, updateSet } = buildServiceForBookUpdate();
+    // What the validation pipe produces: unset fields are own properties
+    // holding undefined
+    const dto = plainToInstance(UpdateComicBookDto, { title: 'Weapon X' });
+    expect(Object.keys(dto)).toContain('summary');
+
+    await service.updateBook('book-1', dto);
+
+    const set = updateSet.mock.calls[0][0] as Record<string, unknown>;
+    expect(set.manualFields).toEqual(['title']);
+    expect(Object.keys(set).sort()).toEqual(['manualFields', 'title']);
+  });
+
+  it('skips a batch that sends no fields', async () => {
+    const { service, update } = buildServiceForBookUpdate();
+
+    const result = await service.updateBooksBatch(
+      ['book-1'],
+      plainToInstance(BatchBookDataDto, {}),
+    );
+
+    expect(result).toEqual({ updated: 0 });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('locks only the batch fields that were sent', async () => {
+    const { service, updateSet } = buildServiceForBookUpdate();
+
+    const result = await service.updateBooksBatch(
+      ['book-1'],
+      plainToInstance(BatchBookDataDto, { format: 'tpb' }),
+    );
+
+    expect(result).toEqual({ updated: 1 });
+    expect(updateSet).toHaveBeenCalledWith({
+      format: 'tpb',
+      manualFields: ['format'],
+    });
   });
 });

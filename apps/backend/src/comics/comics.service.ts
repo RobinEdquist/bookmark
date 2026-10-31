@@ -33,6 +33,7 @@ import { DEFAULT_COMIC_METADATA_PRIORITY } from '../app-settings/schema';
 import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
 import { CoverService } from '../common/cover.service';
 import { resolveContainedPath } from '../common/utils/path-containment.util';
+import { definedFields } from '../common/utils/defined-fields.util';
 import { AppDataService } from '../app-data/app-data.service';
 import { ComicMetadataProvider } from '../library-watcher/metadata/comic-metadata.provider';
 import { ImageProcessingService } from '../common/image-processing.service';
@@ -913,11 +914,8 @@ export class ComicsService {
     if (!series) throw new NotFoundException('Comic series not found');
 
     const { genres, tags, mainCharacters, ...sent } = dto;
-    // The validation pipe hands over a DTO instance whose unset fields exist
-    // as undefined own properties; only fields the client sent are edits.
-    const fields = Object.fromEntries(
-      Object.entries(sent).filter(([, value]) => value !== undefined),
-    ) as typeof sent;
+    // Only fields the client sent are edits (see definedFields)
+    const fields = definedFields(sent);
 
     const touchedFields = Object.keys(fields);
     if (genres !== undefined) touchedFields.push('genres');
@@ -1119,8 +1117,10 @@ export class ComicsService {
       .limit(1);
     if (!book) throw new NotFoundException('Comic book not found');
 
-    // Pull creators out so it isn't spread into the DB .set() column update
-    const { creators, ...scalarUpdates } = dto;
+    // Pull creators out so it isn't spread into the DB .set() column update,
+    // and keep only the fields the client sent (see definedFields)
+    const { creators, ...sent } = dto;
+    const scalarUpdates = definedFields(sent);
 
     const updates: Record<string, unknown> = { ...scalarUpdates };
     if (scalarUpdates.number !== undefined) {
@@ -1186,13 +1186,14 @@ export class ComicsService {
       ageRating?: string | null;
     },
   ): Promise<ComicBatchUpdateResultDto> {
-    if (Object.keys(data).length === 0) {
+    const fields = definedFields(data);
+    if (Object.keys(fields).length === 0) {
       return { updated: 0 };
     }
     let updated = 0;
     for (const id of ids) {
       try {
-        await this.updateBook(id, data);
+        await this.updateBook(id, fields);
         updated++;
       } catch (err) {
         if (err instanceof NotFoundException) {

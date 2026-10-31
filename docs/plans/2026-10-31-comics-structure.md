@@ -126,12 +126,14 @@ today's grid. A small `GET /comics/home` returns the shelves in one call. **File
 
 ## Notes from building
 
-- `PATCH /comics/series/:id` locked every field the DTO declares, not only the fields sent: the
+- Comic series and book edits locked every field the DTO declares, not only the fields sent: the
   validation pipe builds a DTO instance whose unset fields are own properties holding
   `undefined`, and `Object.keys` counted them. Setting main characters would have locked title,
-  description and the rest against ComicVine. Fixed for series in slice 1. `updateBook` and the
-  batch book update use the same pattern and still lock everything; the MCP decision that agent
-  writes lock only what they change needs that fixed too.
+  description and the rest against ComicVine. Fixed for `PATCH /comics/series/:id`,
+  `/comics/books/:id` and `/comics/books/batch` with `definedFields`
+  (`apps/backend/src/common/utils/defined-fields.util.ts`). Ebooks and audiobooks check each
+  field against `undefined` and were not affected. Rows already locked this way stay locked
+  until `unlock_field` exists.
 - Merging series keeps only the target's main characters. That suits merging junk-drawer series
   into a real one; if it turns out wrong, merge could add the sources' characters up to three.
 - Characters have no rename or merge yet. The MCP's `set_main_characters` only needs set by name;
