@@ -358,6 +358,12 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
         path: '/comics/collections/:id/order',
         expectedStatus: 401,
       },
+      { method: 'GET', path: '/comics/characters', expectedStatus: 401 },
+      {
+        method: 'GET',
+        path: '/comics/characters/:id',
+        expectedStatus: 401,
+      },
       { method: 'GET', path: '/comics/publishers', expectedStatus: 401 },
       { method: 'GET', path: '/comics/genres', expectedStatus: 401 },
       { method: 'GET', path: '/comics/series/:id', expectedStatus: 401 },

@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import { ComicSeriesGrid } from "../../../components/comics/comic-series-grid";
 import { ComicCollectionsView } from "../../../components/comics/comic-collections-view";
+import { ComicCharactersView } from "../../../components/comics/comic-characters-view";
 import { useInfiniteComicSeries } from "../../../lib/use-comics";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
 import {
@@ -41,9 +42,12 @@ export default function ComicsPage() {
   const { data: session } = authClient.useSession();
   const isAdmin = session?.user?.role === "admin";
 
-  // Browse mode: "series" (default) or "collections"
+  // Browse mode: "series" (default), "characters" or "collections"
+  const viewParam = searchParams.get("view");
   const view =
-    searchParams.get("view") === "collections" ? "collections" : "series";
+    viewParam === "collections" || viewParam === "characters"
+      ? viewParam
+      : "series";
 
   // Save current URL for back navigation from detail pages
   useSaveLibraryUrl("/comics");
@@ -132,12 +136,18 @@ export default function ComicsPage() {
   const showSkeletons = isLoading && !data;
 
   // Toggle hrefs: preserve search param, set/clear view param
-  const seriesHref = debouncedSearch
-    ? `/comics?search=${encodeURIComponent(debouncedSearch)}`
-    : "/comics";
-  const collectionsHref = debouncedSearch
-    ? `/comics?view=collections&search=${encodeURIComponent(debouncedSearch)}`
-    : "/comics?view=collections";
+  const viewHref = (target: typeof view) => {
+    const params = new URLSearchParams();
+    if (target !== "series") params.set("view", target);
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    const query = params.toString();
+    return query ? `/comics?${query}` : "/comics";
+  };
+  const viewTabs = [
+    { view: "series", label: tComics("collections.tabSeries") },
+    { view: "characters", label: tComics("collections.tabCharacters") },
+    { view: "collections", label: tComics("collections.tabCollections") },
+  ] as const;
 
   return (
     <div className="flex flex-col">
@@ -161,28 +171,22 @@ export default function ComicsPage() {
 
       <div className="p-4 pt-4 lg:p-8 lg:pt-6">
         <div className="mx-auto max-w-7xl">
-          {/* Series | Collections toggle */}
+          {/* Series | Characters | Collections toggle */}
           <div className="mb-4 flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
-            <Link
-              href={seriesHref}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                view === "series"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tComics("collections.tabSeries")}
-            </Link>
-            <Link
-              href={collectionsHref}
-              className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
-                view === "collections"
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {tComics("collections.tabCollections")}
-            </Link>
+            {viewTabs.map((tab) => (
+              <Link
+                key={tab.view}
+                href={viewHref(tab.view)}
+                aria-current={view === tab.view ? "page" : undefined}
+                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                  view === tab.view
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+              </Link>
+            ))}
           </div>
 
           {/* Active metadata tag filter chip (series mode only) */}
@@ -203,6 +207,11 @@ export default function ComicsPage() {
 
           {view === "collections" ? (
             <ComicCollectionsView
+              search={debouncedSearch}
+              animateEntrance={!hasSavedPosition}
+            />
+          ) : view === "characters" ? (
+            <ComicCharactersView
               search={debouncedSearch}
               animateEntrance={!hasSavedPosition}
             />

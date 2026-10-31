@@ -2,9 +2,11 @@ import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import {
   CreateComicSeriesDto,
+  ListComicSeriesQueryDto,
   MoveComicBooksDto,
   MergeComicSeriesDto,
   UpdateComicBookDto,
+  UpdateComicSeriesDto,
 } from '../dto/comics.dto';
 
 describe('MoveComicBooksDto', () => {
@@ -98,5 +100,51 @@ describe('CreateComicSeriesDto', () => {
   it('fails without a title', async () => {
     const dto = plainToInstance(CreateComicSeriesDto, {});
     expect((await validate(dto)).length).toBeGreaterThan(0);
+  });
+});
+
+describe('UpdateComicSeriesDto mainCharacters', () => {
+  it('accepts up to three names', async () => {
+    const dto = plainToInstance(UpdateComicSeriesDto, {
+      mainCharacters: ['Wolverine', 'Captain America', 'X-Men'],
+    });
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('accepts an empty array (clears them)', async () => {
+    const dto = plainToInstance(UpdateComicSeriesDto, { mainCharacters: [] });
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('rejects more than three names', async () => {
+    const dto = plainToInstance(UpdateComicSeriesDto, {
+      mainCharacters: ['A', 'B', 'C', 'D'],
+    });
+    const errors = await validate(dto);
+    expect(errors.map((e) => e.property)).toContain('mainCharacters');
+  });
+
+  it('rejects non-string entries', async () => {
+    const dto = plainToInstance(UpdateComicSeriesDto, {
+      mainCharacters: ['Wolverine', 42],
+    });
+    expect((await validate(dto)).length).toBeGreaterThan(0);
+  });
+});
+
+describe('ListComicSeriesQueryDto mainCharacterId', () => {
+  it('accepts a uuid', async () => {
+    const dto = plainToInstance(ListComicSeriesQueryDto, {
+      mainCharacterId: '7f6c2b1e-4d2a-4c4e-9a7b-2f0f3c1d5e6a',
+    });
+    expect(await validate(dto)).toHaveLength(0);
+  });
+
+  it('rejects a value that is not a uuid', async () => {
+    const dto = plainToInstance(ListComicSeriesQueryDto, {
+      mainCharacterId: 'wolverine',
+    });
+    const errors = await validate(dto);
+    expect(errors.map((e) => e.property)).toContain('mainCharacterId');
   });
 });

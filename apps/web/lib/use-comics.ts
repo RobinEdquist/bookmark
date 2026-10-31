@@ -41,6 +41,7 @@ export interface ComicSeriesListItem {
   coverUrl: string | null;
   createdAt: string;
   comicvineLinked: boolean;
+  mainCharacters: ComicNamedRef[];
 }
 
 export interface ComicNamedRef {
@@ -86,6 +87,7 @@ export interface ComicSeriesDetail {
   coverUrl: string | null;
   genres: ComicNamedRef[];
   tags: ComicNamedRef[];
+  mainCharacters: ComicNamedRef[];
   creators: ComicCreatorRef[];
   books: ComicBookListItem[];
   gaps: string[];
@@ -140,6 +142,7 @@ export interface ComicSeriesFilters {
   publisher?: string;
   genreId?: string;
   metadataTag?: string;
+  mainCharacterId?: string;
   sortBy?: "title" | "recentlyAdded" | "startYear";
   sortOrder?: "asc" | "desc";
   limit?: number;
@@ -158,6 +161,7 @@ export interface UpdateComicSeriesInput {
   ageRating?: string | null;
   genres?: string[];
   tags?: string[];
+  mainCharacters?: string[];
 }
 
 export interface UpdateComicBookInput {
@@ -178,6 +182,8 @@ function buildSeriesParams(filters: ComicSeriesFilters): URLSearchParams {
   if (filters.publisher) params.set("publisher", filters.publisher);
   if (filters.genreId) params.set("genreId", filters.genreId);
   if (filters.metadataTag) params.set("metadataTag", filters.metadataTag);
+  if (filters.mainCharacterId)
+    params.set("mainCharacterId", filters.mainCharacterId);
   if (filters.sortBy) params.set("sortBy", filters.sortBy);
   if (filters.sortOrder) params.set("sortOrder", filters.sortOrder);
   if (filters.limit != null) params.set("limit", filters.limit.toString());

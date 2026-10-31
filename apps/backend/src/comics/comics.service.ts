@@ -33,6 +33,7 @@ import { DEFAULT_COMIC_METADATA_PRIORITY } from '../app-settings/schema';
 import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
 import { CoverService } from '../common/cover.service';
 import { resolveContainedPath } from '../common/utils/path-containment.util';
+import { definedFields } from '../common/utils/defined-fields.util';
 import { AppDataService } from '../app-data/app-data.service';
 import { ComicMetadataProvider } from '../library-watcher/metadata/comic-metadata.provider';
 import { ImageProcessingService } from '../common/image-processing.service';
@@ -44,6 +45,10 @@ import {
   withSeriesIdManual,
 } from './comic-grouping.utils';
 import { parseCollects, computeIssueCoverage } from './comic-issue-list';
+import {
+  loadMainCharacters,
+  normalizeMainCharacterNames,
+} from './comic-main-characters';
 import { ComicsCollectionsService } from './comics-collections.service';
 import {
   ComicSeriesListResponseDto,
@@ -63,6 +68,7 @@ export interface ComicSeriesFilters {
   publisher?: string;
   genreId?: string;
   metadataTag?: string;
+  mainCharacterId?: string;
   sortBy?: 'title' | 'recentlyAdded' | 'startYear';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
@@ -157,6 +163,36 @@ export class ComicsService {
 
   // ===== SERIES QUERIES =====
 
+  /**
+   * Conditions for series a user may see: not hidden, and (with a user) no tag
+   * the user blacklisted. Correlated on comic_series.id, so they work in any
+   * query that has comic_series in its FROM.
+   */
+  visibleSeriesConditions(userId?: string): SQL[] {
+    const conditions: SQL[] = [ne(schema.comicSeries.status, 'hidden')];
+    if (userId) {
+      conditions.push(
+        notExists(
+          this.db
+            .select({ one: sql`1` })
+            .from(schema.comicSeriesTags)
+            .innerJoin(
+              usersSchema.userBlacklistedTags,
+              and(
+                eq(
+                  schema.comicSeriesTags.tagId,
+                  usersSchema.userBlacklistedTags.tagId,
+                ),
+                eq(usersSchema.userBlacklistedTags.userId, userId),
+              ),
+            )
+            .where(eq(schema.comicSeriesTags.seriesId, schema.comicSeries.id)),
+        ),
+      );
+    }
+    return conditions;
+  }
+
   async findAllSeries(
     filters: ComicSeriesFilters = {},
     userId?: string,
@@ -166,13 +202,14 @@ export class ComicsService {
       publisher,
       genreId,
       metadataTag,
+      mainCharacterId,
       sortBy = 'title',
       sortOrder = 'asc',
       limit = 50,
       offset = 0,
     } = filters;
 
-    const conditions = [ne(schema.comicSeries.status, 'hidden')];
+    const conditions = this.visibleSeriesConditions(userId);
 
     if (search) {
       conditions.push(ilike(schema.comicSeries.title, `%${search}%`));
@@ -227,43 +264,45 @@ export class ComicsService {
         }
       }
     }
-    if (userId) {
+    if (mainCharacterId) {
       conditions.push(
-        notExists(
+        exists(
           this.db
             .select({ one: sql`1` })
-            .from(schema.comicSeriesTags)
-            .innerJoin(
-              usersSchema.userBlacklistedTags,
+            .from(schema.comicSeriesMainCharacters)
+            .where(
               and(
                 eq(
-                  schema.comicSeriesTags.tagId,
-                  usersSchema.userBlacklistedTags.tagId,
+                  schema.comicSeriesMainCharacters.seriesId,
+                  schema.comicSeries.id,
                 ),
-                eq(usersSchema.userBlacklistedTags.userId, userId),
+                eq(
+                  schema.comicSeriesMainCharacters.characterId,
+                  mainCharacterId,
+                ),
               ),
-            )
-            .where(eq(schema.comicSeriesTags.seriesId, schema.comicSeries.id)),
+            ),
         ),
       );
     }
 
+    const titleOrder = sql`coalesce(${schema.comicSeries.sortTitle}, ${schema.comicSeries.title})`;
     const orderBy =
       sortBy === 'recentlyAdded'
-        ? sortOrder === 'asc'
-          ? asc(schema.comicSeries.createdAt)
-          : desc(schema.comicSeries.createdAt)
+        ? [
+            sortOrder === 'asc'
+              ? asc(schema.comicSeries.createdAt)
+              : desc(schema.comicSeries.createdAt),
+          ]
         : sortBy === 'startYear'
-          ? sortOrder === 'asc'
-            ? asc(schema.comicSeries.startYear)
-            : desc(schema.comicSeries.startYear)
-          : sortOrder === 'desc'
-            ? desc(
-                sql`coalesce(${schema.comicSeries.sortTitle}, ${schema.comicSeries.title})`,
-              )
-            : asc(
-                sql`coalesce(${schema.comicSeries.sortTitle}, ${schema.comicSeries.title})`,
-              );
+          ? // Series that share a start year fall back to title order
+            [
+              sortOrder === 'asc'
+                ? asc(schema.comicSeries.startYear)
+                : desc(schema.comicSeries.startYear),
+              asc(titleOrder),
+            ]
+          : [sortOrder === 'desc' ? desc(titleOrder) : asc(titleOrder)];
 
     const bookCount = this.db
       .select({ value: sql<number>`count(*)` })
@@ -284,7 +323,7 @@ export class ComicsService {
         })
         .from(schema.comicSeries)
         .where(and(...conditions))
-        .orderBy(orderBy)
+        .orderBy(...orderBy)
         .limit(limit)
         .offset(offset),
       this.db
@@ -293,28 +332,20 @@ export class ComicsService {
         .where(and(...conditions)),
     ]);
 
-    // Resolve fallback covers, linked ComicVine volumes, and comic metadata
-    // priority in one batch (all depend on the page's series IDs).
+    // Resolve fallback covers, linked ComicVine volumes, comic metadata
+    // priority and main characters in one batch (all depend on the page's
+    // series IDs).
     const seriesIds = items.map((i) => i.series.id);
-    const fallbackCovers = new Map<string, string>();
+    let fallbackCovers = new Map<string, string>();
     const volumeBySeriesId = new Map<
       string,
       typeof comicvineSchema.comicvineVolumes.$inferSelect
     >();
     let comicPriority = DEFAULT_COMIC_METADATA_PRIORITY;
+    let mainCharacters = new Map<string, ComicNamedRefDto[]>();
     if (seriesIds.length > 0) {
-      const [coverRows, volumeRows, priority] = await Promise.all([
-        this.db.execute(sql`
-          SELECT DISTINCT ON (series_id) series_id, id
-          FROM comic_books
-          WHERE series_id IN (${sql.join(
-            seriesIds.map((id) => sql`${id}`),
-            sql`, `,
-          )})
-            AND cover_source IS NOT NULL
-            AND status <> 'hidden'
-          ORDER BY series_id, sort_number ASC NULLS LAST, created_at ASC
-        `),
+      const [covers, volumeRows, priority, characters] = await Promise.all([
+        this.fallbackBookCovers(seriesIds),
         this.db
           .select({
             seriesId: comicvineSchema.comicvineVolumeLinks.seriesId,
@@ -332,18 +363,15 @@ export class ComicsService {
             inArray(comicvineSchema.comicvineVolumeLinks.seriesId, seriesIds),
           ),
         this.appSettingsService.getComicMetadataPriority(),
+        loadMainCharacters(this.db, seriesIds),
       ]);
 
-      for (const row of coverRows.rows as Array<{
-        series_id: string;
-        id: string;
-      }>) {
-        fallbackCovers.set(row.series_id, row.id);
-      }
+      fallbackCovers = covers;
       for (const row of volumeRows) {
         volumeBySeriesId.set(row.seriesId, row.volume);
       }
       comicPriority = priority;
+      mainCharacters = characters;
     }
 
     return {
@@ -389,10 +417,52 @@ export class ComicsService {
           coverUrl: this.resolveSeriesCoverUrl(series, fallbackCovers),
           createdAt: series.createdAt,
           comicvineLinked: Boolean(comicvineLinked),
+          mainCharacters: mainCharacters.get(series.id) ?? [],
         };
       }),
       total: Number(total),
     };
+  }
+
+  /**
+   * First book with a cover per series (by issue order), used when a series
+   * has no cover of its own. Maps series id to book id.
+   */
+  private async fallbackBookCovers(
+    seriesIds: string[],
+  ): Promise<Map<string, string>> {
+    const fallbackCovers = new Map<string, string>();
+    if (seriesIds.length === 0) return fallbackCovers;
+    const coverRows = await this.db.execute(sql`
+      SELECT DISTINCT ON (series_id) series_id, id
+      FROM comic_books
+      WHERE series_id IN (${sql.join(
+        seriesIds.map((id) => sql`${id}`),
+        sql`, `,
+      )})
+        AND cover_source IS NOT NULL
+        AND status <> 'hidden'
+      ORDER BY series_id, sort_number ASC NULLS LAST, created_at ASC
+    `);
+    for (const row of coverRows.rows as Array<{
+      series_id: string;
+      id: string;
+    }>) {
+      fallbackCovers.set(row.series_id, row.id);
+    }
+    return fallbackCovers;
+  }
+
+  /** API cover URLs for series rows, falling back to their first book's cover. */
+  async seriesCoverUrls(
+    series: (typeof schema.comicSeries.$inferSelect)[],
+  ): Promise<Map<string, string | null>> {
+    const fallbackCovers = await this.fallbackBookCovers(
+      series.map((s) => s.id),
+    );
+    return new Map(
+      series.map((s) => [s.id, this.resolveSeriesCoverUrl(s, fallbackCovers)]),
+    );
   }
 
   private resolveSeriesCoverUrl(
@@ -431,6 +501,7 @@ export class ComicsService {
       volumeRows,
       seriesTagRows,
       collections,
+      mainCharacters,
     ] = await Promise.all([
       this.db
         .select()
@@ -513,6 +584,7 @@ export class ComicsService {
           ),
         ),
       this.collectionsService.findForSeries(id),
+      loadMainCharacters(this.db, [id]),
     ]);
 
     const fallbackCovers = new Map<string, string>();
@@ -595,6 +667,7 @@ export class ComicsService {
       coverUrl: this.resolveSeriesCoverUrl(series, fallbackCovers),
       genres,
       tags,
+      mainCharacters: mainCharacters.get(id) ?? [],
       creators,
       books: books.map((book) => this.toBookListItem(book)),
       comicvine: {
@@ -830,6 +903,7 @@ export class ComicsService {
       ageRating?: string | null;
       genres?: string[];
       tags?: string[];
+      mainCharacters?: string[];
     },
   ): Promise<ComicSuccessResponseDto> {
     const [series] = await this.db
@@ -839,11 +913,14 @@ export class ComicsService {
       .limit(1);
     if (!series) throw new NotFoundException('Comic series not found');
 
-    const { genres, tags, ...fields } = dto;
+    const { genres, tags, mainCharacters, ...sent } = dto;
+    // Only fields the client sent are edits (see definedFields)
+    const fields = definedFields(sent);
 
     const touchedFields = Object.keys(fields);
     if (genres !== undefined) touchedFields.push('genres');
     if (tags !== undefined) touchedFields.push('tags');
+    if (mainCharacters !== undefined) touchedFields.push('mainCharacters');
     const manualFields = Array.from(
       new Set([...(series.manualFields ?? []), ...touchedFields]),
     );
@@ -884,9 +961,112 @@ export class ComicsService {
       }
     }
 
+    if (mainCharacters !== undefined) {
+      await this.replaceMainCharacters(
+        id,
+        normalizeMainCharacterNames(mainCharacters),
+      );
+    }
+
     this.appEvents.comicSeriesUpdated(id);
     this.wsEvents.comicSeriesUpdated(id);
     return { success: true };
+  }
+
+  /**
+   * Replace a series' main characters with `names` (already normalized), in
+   * that order. Names match existing characters case-insensitively; new ones
+   * are created. Characters left with no series are deleted.
+   *
+   * Runs in one transaction holding the series row lock, so concurrent edits
+   * of the same series apply one after the other and never mix.
+   */
+  private async replaceMainCharacters(
+    seriesId: string,
+    names: string[],
+  ): Promise<void> {
+    await this.db.transaction(async (tx) => {
+      await tx
+        .select({ id: schema.comicSeries.id })
+        .from(schema.comicSeries)
+        .where(eq(schema.comicSeries.id, seriesId))
+        .for('update');
+
+      const previous = await tx
+        .delete(schema.comicSeriesMainCharacters)
+        .where(eq(schema.comicSeriesMainCharacters.seriesId, seriesId))
+        .returning({
+          characterId: schema.comicSeriesMainCharacters.characterId,
+        });
+
+      const keptIds = new Set<string>();
+      for (const [position, name] of names.entries()) {
+        const characterId = await this.findOrCreateCharacter(tx, name);
+        keptIds.add(characterId);
+        await tx
+          .insert(schema.comicSeriesMainCharacters)
+          .values({ seriesId, characterId, position })
+          .onConflictDoNothing();
+      }
+
+      const droppedIds = previous
+        .map((p) => p.characterId)
+        .filter((characterId) => !keptIds.has(characterId));
+      if (droppedIds.length > 0) {
+        // Lock them first. An edit adding one of these to another series holds
+        // a share lock on it (findOrCreateCharacter), so this waits for that
+        // edit to commit, and the delete below then sees its new link.
+        await tx
+          .select({ id: schema.comicCharacters.id })
+          .from(schema.comicCharacters)
+          .where(inArray(schema.comicCharacters.id, droppedIds))
+          .orderBy(asc(schema.comicCharacters.id))
+          .for('update');
+        await tx.delete(schema.comicCharacters).where(
+          and(
+            inArray(schema.comicCharacters.id, droppedIds),
+            notExists(
+              tx
+                .select({ one: sql`1` })
+                .from(schema.comicSeriesMainCharacters)
+                .where(
+                  eq(
+                    schema.comicSeriesMainCharacters.characterId,
+                    schema.comicCharacters.id,
+                  ),
+                ),
+            ),
+          ),
+        );
+      }
+    });
+  }
+
+  private async findOrCreateCharacter(
+    tx: Pick<Db, 'select' | 'insert'>,
+    name: string,
+  ): Promise<string> {
+    // The share lock keeps a concurrent edit from deleting the character as
+    // an orphan before this transaction links it (see replaceMainCharacters).
+    const byName = () =>
+      tx
+        .select({ id: schema.comicCharacters.id })
+        .from(schema.comicCharacters)
+        .where(sql`lower(${schema.comicCharacters.name}) = lower(${name})`)
+        .limit(1)
+        .for('share');
+    const [existing] = await byName();
+    if (existing) return existing.id;
+    // A concurrent edit may create the same name first; the unique index on
+    // lower(name) turns that into a no-op here and the re-read finds it.
+    const [created] = await tx
+      .insert(schema.comicCharacters)
+      .values({ name })
+      .onConflictDoNothing()
+      .returning({ id: schema.comicCharacters.id });
+    if (created) return created.id;
+    const [winner] = await byName();
+    return winner.id;
   }
 
   private async findOrCreateNamed(
@@ -937,8 +1117,10 @@ export class ComicsService {
       .limit(1);
     if (!book) throw new NotFoundException('Comic book not found');
 
-    // Pull creators out so it isn't spread into the DB .set() column update
-    const { creators, ...scalarUpdates } = dto;
+    // Pull creators out so it isn't spread into the DB .set() column update,
+    // and keep only the fields the client sent (see definedFields)
+    const { creators, ...sent } = dto;
+    const scalarUpdates = definedFields(sent);
 
     const updates: Record<string, unknown> = { ...scalarUpdates };
     if (scalarUpdates.number !== undefined) {
@@ -1004,13 +1186,14 @@ export class ComicsService {
       ageRating?: string | null;
     },
   ): Promise<ComicBatchUpdateResultDto> {
-    if (Object.keys(data).length === 0) {
+    const fields = definedFields(data);
+    if (Object.keys(fields).length === 0) {
       return { updated: 0 };
     }
     let updated = 0;
     for (const id of ids) {
       try {
-        await this.updateBook(id, data);
+        await this.updateBook(id, fields);
         updated++;
       } catch (err) {
         if (err instanceof NotFoundException) {

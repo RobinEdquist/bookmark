@@ -3,6 +3,7 @@ import { AuthModule } from '@thallesp/nestjs-better-auth';
 import { ComicsController } from './comics.controller';
 import { ComicsService } from './comics.service';
 import { ComicsCollectionsService } from './comics-collections.service';
+import { ComicsCharactersService } from './comics-characters.service';
 import { ComicsOpdsController } from './comics-opds.controller';
 import { ComicsOpdsService } from './comics-opds.service';
 import { ComicPageService } from './comic-page.service';
@@ -25,6 +26,7 @@ import { CanDeleteGuard } from '../common/guards/can-delete.guard';
   providers: [
     ComicsService,
     ComicsCollectionsService,
+    ComicsCharactersService,
     ComicsOpdsService,
     ComicPageService,
     CanEditMetadataGuard,

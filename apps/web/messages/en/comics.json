@@ -50,6 +50,7 @@
     "noBooks": "No books in this series",
     "storyArcs": "Story Arcs",
     "characters": "Characters",
+    "mainCharacters": "Main characters",
     "collectedEditions": "Collected Editions",
     "specialsAnnuals": "Specials & Annuals",
     "collects": "Collects {range}",
@@ -138,6 +139,12 @@
       "searchTags": "Search tags...",
       "noTagsFound": "No tags found.",
       "createTag": "Add",
+      "mainCharacters": "Main characters",
+      "mainCharactersPlaceholder": "Select up to {count}...",
+      "mainCharactersFull": "Up to {count}",
+      "searchCharacters": "Search characters...",
+      "noCharactersFound": "No characters found.",
+      "createCharacter": "Add",
       "number": "Number",
       "format": "Format",
       "coverDate": "Cover date",
@@ -244,6 +251,7 @@
   },
   "collections": {
     "tabSeries": "Series",
+    "tabCharacters": "Characters",
     "tabCollections": "Collections",
     "seriesCount": "{count} series",
     "empty": "No collections yet",
@@ -265,5 +273,14 @@
     "deleteSuccess": "Collection deleted",
     "save": "Save",
     "error": "Something went wrong"
+  },
+  "characters": {
+    "empty": "No characters yet",
+    "error": "Failed to load character",
+    "back": "Back to characters",
+    "noSeries": "No series",
+    "solo": "Solo series",
+    "teamUps": "Team-ups",
+    "collections": "Collections"
   }
 }

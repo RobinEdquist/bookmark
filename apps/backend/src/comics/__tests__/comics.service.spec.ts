@@ -6,7 +6,12 @@ import { NotFoundException } from '@nestjs/common';
 import { validate } from 'class-validator';
 import { plainToInstance } from 'class-transformer';
 import { CoverService } from '../../common/cover.service';
-import { UpdateComicBookDto, ComicCreatorInputDto } from '../dto/comics.dto';
+import {
+  BatchBookDataDto,
+  UpdateComicBookDto,
+  UpdateComicSeriesDto,
+  ComicCreatorInputDto,
+} from '../dto/comics.dto';
 import { DEFAULT_COMIC_METADATA_PRIORITY } from '../../app-settings/schema';
 import type { MetadataSource } from '../../app-settings/schema';
 
@@ -410,6 +415,7 @@ function buildServiceForMergeTest({
   bookRow = null as unknown | null,
   issueRows = [] as unknown[],
   bookTagRows = [] as unknown[],
+  mainCharacterRows = [] as unknown[],
   priority = DEFAULT_COMIC_METADATA_PRIORITY,
 }: {
   seriesRow?: typeof baseSeriesRow;
@@ -418,6 +424,7 @@ function buildServiceForMergeTest({
   bookRow?: unknown | null;
   issueRows?: unknown[];
   bookTagRows?: unknown[];
+  mainCharacterRows?: unknown[];
   priority?: typeof DEFAULT_COMIC_METADATA_PRIORITY;
 } = {}) {
   const select = jest.fn();
@@ -469,6 +476,8 @@ function buildServiceForMergeTest({
     select.mockReturnValueOnce(chain(volumeRows));
     // call 8 (selectDistinct, Promise.all[5]): seriesTagRows selectDistinct+innerJoin
     selectDistinct.mockReturnValueOnce(chain(seriesTagRows));
+    // call 9 (select, Promise.all[7]): main characters innerJoin
+    select.mockReturnValueOnce(chain(mainCharacterRows));
   }
 
   // Fallback for any unexpected calls
@@ -1694,6 +1703,17 @@ describe('ComicsService.findAllSeries — metadataTag filter', () => {
     expect(result).toHaveProperty('series');
   });
 
+  it('resolves without error when filtered by main character', async () => {
+    // mainCharacterId → 1 exists subquery added
+    const { service } = buildServiceForFindAll(0, 1);
+
+    const result = await service.findAllSeries({
+      mainCharacterId: '7f6c2b1e-4d2a-4c4e-9a7b-2f0f3c1d5e6a',
+    });
+
+    expect(result).toEqual({ series: [], total: 0 });
+  });
+
   it('resolves without error when metadataTag has an unknown type (filter skipped)', async () => {
     // invalid type → exists block skipped → 0 extra subqueries
     const { service } = buildServiceForFindAll(0, 0);
@@ -1715,6 +1735,7 @@ describe('ComicsService.findAllSeries — metadata priority resolution', () => {
    *   [1] items query (Promise.all[0])
    *   [2] count query (Promise.all[1])
    *   [3] linked ComicVine volume batch query (post-items Promise.all)
+   *   [4] main characters batch query (post-items Promise.all)
    * db.execute() is called once for fallback covers (returns { rows: [] }).
    *
    * NOTE: this positional queue assumes the no-filter path — findAllSeries({})
@@ -1725,10 +1746,12 @@ describe('ComicsService.findAllSeries — metadata priority resolution', () => {
   function buildServiceForResolution({
     seriesRow,
     volumeRows = [] as unknown[],
+    mainCharacterRows = [] as unknown[],
     priority = DEFAULT_COMIC_METADATA_PRIORITY,
   }: {
     seriesRow: Record<string, unknown>;
     volumeRows?: unknown[];
+    mainCharacterRows?: unknown[];
     priority?: typeof DEFAULT_COMIC_METADATA_PRIORITY;
   }) {
     const items = [
@@ -1743,6 +1766,7 @@ describe('ComicsService.findAllSeries — metadata priority resolution', () => {
       items, // [1] items
       [{ total: 1 }], // [2] count
       volumeRows, // [3] volume batch
+      mainCharacterRows, // [4] main characters batch
     ];
     const select = jest.fn().mockImplementation(() => {
       const val = queue.length > 1 ? queue.shift() : queue[0];
@@ -1841,6 +1865,34 @@ describe('ComicsService.findAllSeries — metadata priority resolution', () => {
     const result = await service.findAllSeries({});
 
     expect(result.series[0].publisher).toBe('Manual Pub');
+  });
+
+  it('returns each series main characters in the order the batch query gives', async () => {
+    const { service } = buildServiceForResolution({
+      seriesRow: baseListSeriesRow,
+      mainCharacterRows: [
+        { seriesId: 'series-1', id: 'c-logan', name: 'Wolverine' },
+        { seriesId: 'series-1', id: 'c-cap', name: 'Captain America' },
+        { seriesId: 'other-series', id: 'c-rogue', name: 'Rogue' },
+      ],
+    });
+
+    const result = await service.findAllSeries({});
+
+    expect(result.series[0].mainCharacters).toEqual([
+      { id: 'c-logan', name: 'Wolverine' },
+      { id: 'c-cap', name: 'Captain America' },
+    ]);
+  });
+
+  it('returns an empty main character list for a series without any', async () => {
+    const { service } = buildServiceForResolution({
+      seriesRow: baseListSeriesRow,
+    });
+
+    const result = await service.findAllSeries({});
+
+    expect(result.series[0].mainCharacters).toEqual([]);
   });
 });
 
@@ -1979,6 +2031,192 @@ describe('ComicsService.deleteBook / deleteSeries — remove but keep files', ()
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
       expect(updateMock).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('ComicsService.getSeriesById — main characters', () => {
+  it('returns the series main characters in order', async () => {
+    const { service } = buildServiceForMergeTest({
+      mainCharacterRows: [
+        { seriesId: 'series-1', id: 'c-logan', name: 'Wolverine' },
+        { seriesId: 'series-1', id: 'c-cap', name: 'Captain America' },
+      ],
+    });
+
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.mainCharacters).toEqual([
+      { id: 'c-logan', name: 'Wolverine' },
+      { id: 'c-cap', name: 'Captain America' },
+    ]);
+  });
+
+  it('returns an empty list when the series has none', async () => {
+    const { service } = buildServiceForMergeTest();
+
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.mainCharacters).toEqual([]);
+  });
+});
+
+describe('ComicsService.updateSeries — main characters', () => {
+  function buildServiceForUpdate() {
+    const updateSet = jest.fn().mockReturnValue({
+      where: jest.fn().mockResolvedValue(undefined),
+    });
+    const db = {
+      select: jest.fn().mockReturnValue(chainMock([{ ...baseSeriesRow }])),
+      update: jest.fn().mockReturnValue({ set: updateSet }),
+    } as never;
+    const events = {
+      comicSeriesUpdated: jest.fn(),
+    } as never;
+    const stub = {} as never;
+    const service = new ComicsService(
+      db,
+      stub, // appSettings
+      stub, // coverService
+      stub, // imageProcessing
+      stub, // appData
+      stub, // comicMetadataProvider
+      events, // appEvents
+      events, // wsEvents
+      stub, // collectionsService
+    );
+    const replace = jest
+      .spyOn(
+        service as unknown as {
+          replaceMainCharacters: (id: string, names: string[]) => Promise<void>;
+        },
+        'replaceMainCharacters',
+      )
+      .mockResolvedValue(undefined);
+    return { service, updateSet, replace };
+  }
+
+  it('records mainCharacters in manualFields and replaces them with normalized names', async () => {
+    const { service, updateSet, replace } = buildServiceForUpdate();
+
+    await service.updateSeries('series-1', {
+      mainCharacters: [' Wolverine ', 'wolverine', 'Captain America'],
+    });
+
+    expect(updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ manualFields: ['mainCharacters'] }),
+    );
+    // mainCharacters is not a column on comic_series
+    expect(updateSet.mock.calls[0][0]).not.toHaveProperty('mainCharacters');
+    expect(replace).toHaveBeenCalledWith('series-1', [
+      'Wolverine',
+      'Captain America',
+    ]);
+  });
+
+  it('clears them when given an empty array', async () => {
+    const { service, replace } = buildServiceForUpdate();
+
+    await service.updateSeries('series-1', { mainCharacters: [] });
+
+    expect(replace).toHaveBeenCalledWith('series-1', []);
+  });
+
+  it('locks only the fields that were sent, not every field the DTO declares', async () => {
+    const { service, updateSet } = buildServiceForUpdate();
+    // What the validation pipe produces: an UpdateComicSeriesDto instance
+    // whose unset fields are own properties holding undefined.
+    const dto = plainToInstance(UpdateComicSeriesDto, {
+      mainCharacters: ['Rogue'],
+    });
+    expect(Object.keys(dto)).toContain('title');
+
+    await service.updateSeries('series-1', dto);
+
+    expect(updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ manualFields: ['mainCharacters'] }),
+    );
+  });
+
+  it('leaves them alone when the field is omitted', async () => {
+    const { service, updateSet, replace } = buildServiceForUpdate();
+
+    await service.updateSeries('series-1', { title: 'Wolverine (1988)' });
+
+    expect(replace).not.toHaveBeenCalled();
+    expect(updateSet).toHaveBeenCalledWith(
+      expect.objectContaining({ manualFields: ['title'] }),
+    );
+  });
+});
+
+describe('ComicsService.updateBook / updateBooksBatch — manualFields', () => {
+  function buildServiceForBookUpdate() {
+    const updateSet = jest.fn().mockReturnValue({
+      where: jest.fn().mockResolvedValue(undefined),
+    });
+    const update = jest.fn().mockReturnValue({ set: updateSet });
+    const db = {
+      select: jest
+        .fn()
+        .mockReturnValue(
+          chainMock([{ id: 'book-1', seriesId: 'series-1', manualFields: [] }]),
+        ),
+      update,
+    } as never;
+    const stub = {} as never;
+    const service = new ComicsService(
+      db,
+      stub, // appSettings
+      stub, // coverService
+      stub, // imageProcessing
+      stub, // appData
+      stub, // comicMetadataProvider
+      stub, // appEvents
+      { comicBookUpdated: jest.fn() } as never, // wsEvents
+      stub, // collectionsService
+    );
+    return { service, update, updateSet };
+  }
+
+  it('locks only the fields that were sent, not every field the DTO declares', async () => {
+    const { service, updateSet } = buildServiceForBookUpdate();
+    // What the validation pipe produces: unset fields are own properties
+    // holding undefined
+    const dto = plainToInstance(UpdateComicBookDto, { title: 'Weapon X' });
+    expect(Object.keys(dto)).toContain('summary');
+
+    await service.updateBook('book-1', dto);
+
+    const set = updateSet.mock.calls[0][0] as Record<string, unknown>;
+    expect(set.manualFields).toEqual(['title']);
+    expect(Object.keys(set).sort()).toEqual(['manualFields', 'title']);
+  });
+
+  it('skips a batch that sends no fields', async () => {
+    const { service, update } = buildServiceForBookUpdate();
+
+    const result = await service.updateBooksBatch(
+      ['book-1'],
+      plainToInstance(BatchBookDataDto, {}),
+    );
+
+    expect(result).toEqual({ updated: 0 });
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('locks only the batch fields that were sent', async () => {
+    const { service, updateSet } = buildServiceForBookUpdate();
+
+    const result = await service.updateBooksBatch(
+      ['book-1'],
+      plainToInstance(BatchBookDataDto, { format: 'tpb' }),
+    );
+
+    expect(result).toEqual({ updated: 1 });
+    expect(updateSet).toHaveBeenCalledWith({
+      format: 'tpb',
+      manualFields: ['format'],
     });
   });
 });

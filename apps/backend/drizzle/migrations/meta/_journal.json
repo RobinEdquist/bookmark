@@ -316,6 +316,13 @@
       "when": 1793356659229,
       "tag": "0044_add_audio_file_codec_and_bitrate_in_bps",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1793448343507,
+      "tag": "0045_add_comic_series_main_characters",
+      "breakpoints": true
     }
   ]
 }

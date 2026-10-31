@@ -32,6 +32,12 @@ interface CreatableComboboxProps {
   createText?: string;
   disabled?: boolean;
   className?: string;
+  /** Stop offering options once this many are selected. */
+  maxItems?: number;
+  /** Shown in place of the options when `maxItems` are selected. */
+  maxItemsText?: string;
+  /** Called as the search text changes, e.g. to load matching options. */
+  onInputChange?: (value: string) => void;
 }
 
 export function CreatableCombobox({
@@ -44,31 +50,43 @@ export function CreatableCombobox({
   createText = "Create",
   disabled = false,
   className,
+  maxItems,
+  maxItemsText,
+  onInputChange,
 }: CreatableComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
+  const isFull = maxItems !== undefined && value.length >= maxItems;
 
-  const filteredOptions = options.filter(
-    (option) =>
-      option.label.toLowerCase().includes(inputValue.toLowerCase()) &&
-      !value.includes(option.value),
-  );
+  const handleInputChange = (next: string) => {
+    setInputValue(next);
+    onInputChange?.(next);
+  };
+
+  const filteredOptions = isFull
+    ? []
+    : options.filter(
+        (option) =>
+          option.label.toLowerCase().includes(inputValue.toLowerCase()) &&
+          !value.includes(option.value),
+      );
 
   const showCreateOption =
+    !isFull &&
     inputValue.trim() !== "" &&
     !options.some((o) => o.label.toLowerCase() === inputValue.toLowerCase()) &&
     !value.some((v) => v.toLowerCase() === inputValue.toLowerCase());
 
   const handleSelect = (selectedValue: string) => {
     onChange([...value, selectedValue]);
-    setInputValue("");
+    handleInputChange("");
   };
 
   const handleCreate = () => {
     const trimmed = inputValue.trim();
     if (trimmed && !value.includes(trimmed)) {
       onChange([...value, trimmed]);
-      setInputValue("");
+      handleInputChange("");
     }
   };
 
@@ -142,11 +160,13 @@ export function CreatableCombobox({
           <CommandInput
             placeholder={searchPlaceholder}
             value={inputValue}
-            onValueChange={setInputValue}
+            onValueChange={handleInputChange}
             onKeyDown={handleKeyDown}
           />
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>
+              {isFull && maxItemsText ? maxItemsText : emptyText}
+            </CommandEmpty>
             <CommandGroup>
               {filteredOptions.map((option) => (
                 <CommandItem

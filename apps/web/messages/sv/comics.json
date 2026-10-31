@@ -50,6 +50,7 @@
     "noBooks": "Inga böcker i den här serien",
     "storyArcs": "Serieberättelser",
     "characters": "Karaktärer",
+    "mainCharacters": "Huvudkaraktärer",
     "collectedEditions": "Samlade utgåvor",
     "specialsAnnuals": "Specialnummer & årsalbum",
     "collects": "Samlar {range}",
@@ -138,6 +139,12 @@
       "searchTags": "Sök taggar...",
       "noTagsFound": "Inga taggar hittades.",
       "createTag": "Lägg till",
+      "mainCharacters": "Huvudkaraktärer",
+      "mainCharactersPlaceholder": "Välj upp till {count}...",
+      "mainCharactersFull": "Upp till {count}",
+      "searchCharacters": "Sök karaktärer...",
+      "noCharactersFound": "Inga karaktärer hittades.",
+      "createCharacter": "Lägg till",
       "number": "Nummer",
       "format": "Format",
       "coverDate": "Omslagsdatum",
@@ -244,6 +251,7 @@
   },
   "collections": {
     "tabSeries": "Serier",
+    "tabCharacters": "Karaktärer",
     "tabCollections": "Samlingar",
     "seriesCount": "{count} serier",
     "empty": "Inga samlingar än",
@@ -265,5 +273,14 @@
     "deleteSuccess": "Samling borttagen",
     "save": "Spara",
     "error": "Något gick fel"
+  },
+  "characters": {
+    "empty": "Inga karaktärer än",
+    "error": "Kunde inte ladda karaktären",
+    "back": "Tillbaka till karaktärer",
+    "noSeries": "Inga serier",
+    "solo": "Soloserier",
+    "teamUps": "Team-ups",
+    "collections": "Samlingar"
   }
 }

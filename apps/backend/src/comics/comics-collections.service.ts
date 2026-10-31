@@ -1,6 +1,18 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { and, asc, desc, eq, ilike, ne, notExists, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  exists,
+  ilike,
+  inArray,
+  ne,
+  notExists,
+  sql,
+  SQL,
+} from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as schema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
@@ -13,6 +25,7 @@ import {
   reorderPositions,
   resolveCollectionCover,
 } from './collections.helpers';
+import { loadMainCharacters } from './comic-main-characters';
 import {
   ComicCollectionListResponseDto,
   ComicCollectionDetailDto,
@@ -29,6 +42,8 @@ type Db = NodePgDatabase<
 
 interface ListCollectionsFilters {
   search?: string;
+  /** Only collections that contain at least one of these series. */
+  seriesIds?: string[];
   sortBy?: 'name' | 'recentlyAdded';
   sortOrder?: 'asc' | 'desc';
   limit?: number;
@@ -49,14 +64,34 @@ export class ComicsCollectionsService {
   ): Promise<ComicCollectionListResponseDto> {
     const {
       search,
+      seriesIds,
       sortBy = 'name',
       sortOrder = 'asc',
       limit = 50,
       offset = 0,
     } = filters;
-    const conditions = search
+    if (seriesIds?.length === 0) return { collections: [], total: 0 };
+    const conditions: SQL[] = search
       ? [ilike(schema.comicCollections.name, `%${search}%`)]
       : [];
+    if (seriesIds) {
+      conditions.push(
+        exists(
+          this.db
+            .select({ one: sql`1` })
+            .from(schema.comicCollectionSeries)
+            .where(
+              and(
+                eq(
+                  schema.comicCollectionSeries.collectionId,
+                  schema.comicCollections.id,
+                ),
+                inArray(schema.comicCollectionSeries.seriesId, seriesIds),
+              ),
+            ),
+        ),
+      );
+    }
 
     const orderBy =
       sortBy === 'recentlyAdded'
@@ -207,6 +242,10 @@ export class ComicsCollectionsService {
       )
       .orderBy(asc(schema.comicCollectionSeries.position));
 
+    const mainCharacters = await loadMainCharacters(
+      this.db,
+      memberRows.map((r) => r.series.id),
+    );
     const series = memberRows.map(({ series: s, bookCount: count }) => ({
       id: s.id,
       title: s.title,
@@ -223,6 +262,7 @@ export class ComicsCollectionsService {
       ),
       createdAt: s.createdAt,
       comicvineLinked: false,
+      mainCharacters: mainCharacters.get(s.id) ?? [],
     }));
 
     return {
