@@ -2,12 +2,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   ArrayMinSize,
   IsIn,
   IsInt,
   IsOptional,
   IsString,
   IsArray,
+  IsUUID,
   Matches,
   Max,
   Min,
@@ -15,6 +17,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { IsIssueList } from './is-issue-list.validator';
+import { MAX_MAIN_CHARACTERS } from '../comic-main-characters';
 
 export class ListComicSeriesQueryDto {
   @ApiPropertyOptional({ description: 'Search in title' })
@@ -64,6 +67,14 @@ export class ListComicSeriesQueryDto {
   @IsOptional()
   @IsString()
   metadataTag?: string;
+
+  @ApiPropertyOptional({
+    description: 'Filter by main character id',
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  mainCharacterId?: string;
 }
 
 export class UpdateComicSeriesDto {
@@ -114,6 +125,18 @@ export class UpdateComicSeriesDto {
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
+
+  @ApiPropertyOptional({
+    type: [String],
+    maxItems: MAX_MAIN_CHARACTERS,
+    description:
+      'Names of the characters or teams the series is about, in display order. An empty array clears them.',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(MAX_MAIN_CHARACTERS)
+  @IsString({ each: true })
+  mainCharacters?: string[];
 }
 
 export class ComicCreatorInputDto {

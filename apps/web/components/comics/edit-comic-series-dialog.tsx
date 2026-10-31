@@ -54,6 +54,11 @@ import {
   type ComicSeriesDetail,
 } from "../../lib/use-comics";
 import { useTags } from "../../lib/use-tags";
+import { useComicCharacterSuggestions } from "../../lib/use-comic-characters";
+import { useDebouncedValue } from "../../lib/use-debounced-value";
+
+// A series is about one to three characters or teams
+const MAX_MAIN_CHARACTERS = 3;
 
 // Helper to compare arrays by value
 function arraysEqual(a: string[], b: string[]): boolean {
@@ -74,6 +79,7 @@ interface InitialFormState {
   ageRating: string;
   genres: string[];
   tags: string[];
+  mainCharacters: string[];
 }
 
 /** The form's values as they exist on the server, for seeding and diffing. */
@@ -91,6 +97,7 @@ function toFormState(series: ComicSeriesDetail): InitialFormState {
     ageRating: series.ageRating || "",
     genres: series.genres.map((g) => g.name),
     tags: series.tags.map((t) => t.name),
+    mainCharacters: series.mainCharacters.map((c) => c.name),
   };
 }
 
@@ -184,6 +191,14 @@ function EditComicSeriesForm({
   const [ageRating, setAgeRating] = useState(initialState.ageRating);
   const [genres, setGenres] = useState<string[]>(initialState.genres);
   const [tags, setTags] = useState<string[]>(initialState.tags);
+  const [mainCharacters, setMainCharacters] = useState<string[]>(
+    initialState.mainCharacters,
+  );
+  const [characterSearch, setCharacterSearch] = useState("");
+  const debouncedCharacterSearch = useDebouncedValue(characterSearch, 200);
+  const { data: characterSuggestions } = useComicCharacterSuggestions(
+    debouncedCharacterSearch,
+  );
 
   // Convert existing data to combobox options
   const genreOptions = existingGenres.map((g) => ({
@@ -197,6 +212,10 @@ function EditComicSeriesForm({
     value: t.label,
     label: t.label,
   }));
+
+  const characterOptions = (characterSuggestions?.characters ?? []).map(
+    (c) => ({ key: c.id, value: c.name, label: c.name }),
+  );
 
   // Navigation logic
   const currentIndex = seriesIds ? seriesIds.indexOf(seriesData.id) : -1;
@@ -304,6 +323,11 @@ function EditComicSeriesForm({
       data.tags = filteredTags;
     }
 
+    const filteredMainCharacters = mainCharacters.filter(Boolean);
+    if (!arraysEqual(filteredMainCharacters, initialState.mainCharacters)) {
+      data.mainCharacters = filteredMainCharacters;
+    }
+
     // If nothing changed, just close without making a request
     if (Object.keys(data).length === 0) {
       if (closeAfterSave) {
@@ -404,6 +428,28 @@ function EditComicSeriesForm({
                 disabled={isLoading}
               />
             </div>
+          </div>
+
+          {/* Main characters */}
+          <div className="space-y-2">
+            <Label>{t("fields.mainCharacters")}</Label>
+            <CreatableCombobox
+              options={characterOptions}
+              value={mainCharacters}
+              onChange={setMainCharacters}
+              onInputChange={setCharacterSearch}
+              maxItems={MAX_MAIN_CHARACTERS}
+              maxItemsText={t("fields.mainCharactersFull", {
+                count: MAX_MAIN_CHARACTERS,
+              })}
+              placeholder={t("fields.mainCharactersPlaceholder", {
+                count: MAX_MAIN_CHARACTERS,
+              })}
+              searchPlaceholder={t("fields.searchCharacters")}
+              emptyText={t("fields.noCharactersFound")}
+              createText={t("fields.createCharacter")}
+              disabled={isLoading}
+            />
           </div>
 
           {/* Genres and Tags */}

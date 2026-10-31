@@ -101,4 +101,23 @@ describe("queryKeys", () => {
       expect(unique.size).toBe(allKeys.length);
     });
   });
+  describe("comics characters", () => {
+    it("nests character keys under comics so series edits refresh them", () => {
+      expect(queryKeys.comics.characters({ search: "wol" })).toEqual([
+        "comics",
+        "characters",
+        { search: "wol" },
+      ]);
+      expect(queryKeys.comics.characterSuggestions("ro")).toEqual([
+        "comics",
+        "characterSuggestions",
+        "ro",
+      ]);
+      expect(queryKeys.comics.characterDetail("logan")).toEqual([
+        "comics",
+        "characterDetail",
+        "logan",
+      ]);
+    });
+  });
 });

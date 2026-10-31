@@ -12,8 +12,9 @@ import {
   numeric,
   primaryKey,
   jsonb,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import { coverSourceEnum } from '../database/shared-enums';
 import { people, genres, tags } from '../audiobooks/schema';
 
@@ -208,11 +209,73 @@ export const comicSeriesTags = pgTable(
   ],
 );
 
+// A character or a team a series is about. Set by hand, never derived from
+// the per-issue appearance tags in comic_book_metadata_tags.
+export const comicCharacters = pgTable(
+  'comic_characters',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex('comic_characters_name_lower_idx').on(
+      sql`lower(${table.name})`,
+    ),
+  ],
+);
+
+// The one to three main characters of a series, in display order.
+export const comicSeriesMainCharacters = pgTable(
+  'comic_series_main_characters',
+  {
+    seriesId: uuid('series_id')
+      .notNull()
+      .references(() => comicSeries.id, { onDelete: 'cascade' }),
+    characterId: uuid('character_id')
+      .notNull()
+      .references(() => comicCharacters.id, { onDelete: 'cascade' }),
+    position: integer('position').notNull().default(0),
+  },
+  (table) => [
+    primaryKey({ columns: [table.seriesId, table.characterId] }),
+    index('comic_series_main_characters_character_id_idx').on(
+      table.characterId,
+    ),
+  ],
+);
+
 export const comicSeriesRelations = relations(comicSeries, ({ many }) => ({
   books: many(comicBooks),
   genres: many(comicSeriesGenres),
   tags: many(comicSeriesTags),
+  mainCharacters: many(comicSeriesMainCharacters),
 }));
+
+export const comicCharactersRelations = relations(
+  comicCharacters,
+  ({ many }) => ({
+    series: many(comicSeriesMainCharacters),
+  }),
+);
+
+export const comicSeriesMainCharactersRelations = relations(
+  comicSeriesMainCharacters,
+  ({ one }) => ({
+    series: one(comicSeries, {
+      fields: [comicSeriesMainCharacters.seriesId],
+      references: [comicSeries.id],
+    }),
+    character: one(comicCharacters, {
+      fields: [comicSeriesMainCharacters.characterId],
+      references: [comicCharacters.id],
+    }),
+  }),
+);
 
 export const comicBooksRelations = relations(comicBooks, ({ one, many }) => ({
   series: one(comicSeries, {

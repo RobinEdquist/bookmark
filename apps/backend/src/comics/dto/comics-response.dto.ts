@@ -127,6 +127,12 @@ export class ComicSeriesListItemDto {
 
   @ApiProperty()
   comicvineLinked!: boolean;
+
+  @ApiProperty({
+    type: [ComicNamedRefDto],
+    description: 'Main characters or teams, in display order',
+  })
+  mainCharacters!: ComicNamedRefDto[];
 }
 
 export class ComicSeriesListResponseDto {
@@ -267,6 +273,12 @@ export class ComicSeriesDetailDto {
 
   @ApiProperty({ type: [ComicNamedRefDto] })
   tags!: ComicNamedRefDto[];
+
+  @ApiProperty({
+    type: [ComicNamedRefDto],
+    description: 'Main characters or teams, in display order',
+  })
+  mainCharacters!: ComicNamedRefDto[];
 
   @ApiProperty({ type: [ComicCreatorRefDto] })
   creators!: ComicCreatorRefDto[];
@@ -470,6 +482,12 @@ export class ComicCollectionSeriesItemDto {
 
   @ApiProperty()
   comicvineLinked!: boolean;
+
+  @ApiProperty({
+    type: [ComicNamedRefDto],
+    description: 'Main characters or teams, in display order',
+  })
+  mainCharacters!: ComicNamedRefDto[];
 }
 
 export class ComicCollectionDetailDto {
@@ -490,6 +508,61 @@ export class ComicCollectionDetailDto {
 
   @ApiProperty({ type: [ComicCollectionSeriesItemDto] })
   series!: ComicCollectionSeriesItemDto[];
+}
+
+// ===== CHARACTERS =====
+
+export class ComicCharacterListItemDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({ description: 'Visible series with this main character' })
+  seriesCount!: number;
+
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    description:
+      'API cover URL of the first solo series, else the first series',
+  })
+  coverUrl!: string | null;
+}
+
+export class ComicCharacterListResponseDto {
+  @ApiProperty({ type: [ComicCharacterListItemDto] })
+  characters!: ComicCharacterListItemDto[];
+
+  @ApiProperty()
+  total!: number;
+}
+
+export class ComicCharacterDetailDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty()
+  name!: string;
+
+  @ApiProperty({
+    type: [ComicSeriesListItemDto],
+    description: 'Series with this as the only main character, by start year',
+  })
+  soloSeries!: ComicSeriesListItemDto[];
+
+  @ApiProperty({
+    type: [ComicSeriesListItemDto],
+    description: 'Series with several main characters, by start year',
+  })
+  teamUps!: ComicSeriesListItemDto[];
+
+  @ApiProperty({
+    type: [ComicCollectionListItemDto],
+    description: 'Collections that contain any of these series',
+  })
+  collections!: ComicCollectionListItemDto[];
 }
 
 // ===== SMALL OPERATION RESULTS =====

@@ -348,11 +348,28 @@ export default function ComicSeriesDetailPage({
 
           {/* Details column */}
           <div className="space-y-6">
-            {/* Title */}
+            {/* Title and main characters */}
             <div>
               <h2 className="text-3xl font-bold tracking-tight">
                 {series.title}
               </h2>
+              {series.mainCharacters.length > 0 && (
+                <ul
+                  aria-label={t("detail.mainCharacters")}
+                  className="mt-3 flex flex-wrap gap-2"
+                >
+                  {series.mainCharacters.map((character) => (
+                    <li key={character.id}>
+                      <Link
+                        href={`/comics/characters/${character.id}`}
+                        className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary transition-colors hover:bg-primary/20"
+                      >
+                        {character.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Metadata grid */}

@@ -16,6 +16,7 @@ import {
   UploadedFile,
   BadRequestException,
   UseGuards,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
@@ -42,6 +43,8 @@ import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 import { ComicsService } from './comics.service';
 import { ComicsCollectionsService } from './comics-collections.service';
+import { ComicsCharactersService } from './comics-characters.service';
+import { ListComicCharactersQueryDto } from './dto/comic-character.dto';
 import {
   ListComicCollectionsQueryDto,
   CreateComicCollectionDto,
@@ -66,6 +69,8 @@ import {
   ComicNamedRefDto,
   ComicCollectionListResponseDto,
   ComicCollectionDetailDto,
+  ComicCharacterListResponseDto,
+  ComicCharacterDetailDto,
   ComicIdResponseDto,
   ComicSuccessResponseDto,
   ComicMoveResultDto,
@@ -82,6 +87,7 @@ export class ComicsController {
   constructor(
     private readonly comicsService: ComicsService,
     private readonly collectionsService: ComicsCollectionsService,
+    private readonly charactersService: ComicsCharactersService,
   ) {}
 
   // ===== SERIES LIST/FILTER SOURCES =====
@@ -225,6 +231,38 @@ export class ComicsController {
     @Body() dto: ReorderCollectionSeriesDto,
   ): Promise<ComicSuccessResponseDto> {
     return this.collectionsService.reorder(id, dto.seriesIds);
+  }
+
+  // ===== CHARACTERS =====
+
+  @Get('characters')
+  @ApiOperation({
+    summary: 'List main characters',
+    description:
+      'Characters and teams set as a main character on at least one series, with series counts. Hidden series and series with tags the user has blacklisted are not counted.',
+  })
+  @ApiResponse({ status: 200, type: ComicCharacterListResponseDto })
+  async findAllCharacters(
+    @Query() query: ListComicCharactersQueryDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ComicCharacterListResponseDto> {
+    return this.charactersService.findAll(query, user.id);
+  }
+
+  @Get('characters/:id')
+  @ApiOperation({
+    summary: 'Get a main character with its series and collections',
+    description:
+      'Solo series (the only main character) and team-ups, each by start year, and collections that contain any of them.',
+  })
+  @ApiParam({ name: 'id', description: 'Character UUID', format: 'uuid' })
+  @ApiResponse({ status: 200, type: ComicCharacterDetailDto })
+  @ApiResponse({ status: 404, description: 'Comic character not found' })
+  async getCharacter(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<ComicCharacterDetailDto> {
+    return this.charactersService.findOne(id, user.id);
   }
 
   @Get('publishers')

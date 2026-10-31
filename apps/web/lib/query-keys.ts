@@ -177,6 +177,12 @@ export const queryKeys = {
     }) => [...queryKeys.comics.all, "collections", filters] as const,
     collectionDetail: (id: string) =>
       [...queryKeys.comics.all, "collectionDetail", id] as const,
+    characters: (filters?: { search?: string }) =>
+      [...queryKeys.comics.all, "characters", filters] as const,
+    characterSuggestions: (search: string) =>
+      [...queryKeys.comics.all, "characterSuggestions", search] as const,
+    characterDetail: (id: string) =>
+      [...queryKeys.comics.all, "characterDetail", id] as const,
   },
   filesystem: {
     all: ["filesystem"] as const,
