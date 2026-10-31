@@ -552,7 +552,8 @@ export class ComicvineService {
   /**
    * Match a comic book to a ComicVine issue.
    *
-   * Requires the parent series to already be linked to a volume (else needs_review).
+   * A book that is already linked keeps its link (already_linked). Requires
+   * the parent series to already be linked to a volume (else needs_review).
    * Pages the linked volume's issues into cache, then matches by issue_number
    * (direct normalized comparison; cover_date as tiebreak).
    */
@@ -573,6 +574,13 @@ export class ComicvineService {
     }
 
     const b = book[0];
+
+    // A link made while the book waited in the queue, usually picked by hand,
+    // wins: the stored number alone can't tell apart issues that share it.
+    const existingLink = await this.getBookLink(bookId);
+    if (existingLink) {
+      return { outcome: 'already_linked', cvId: existingLink.comicvineIssueId };
+    }
 
     // Check parent series is linked to a volume
     const volumeLink = await this.db
@@ -781,6 +789,12 @@ export class ComicvineService {
       .update(comicsSchema.comicBooks)
       .set({ comicvineIssueId: cvIssue.id })
       .where(eq(comicsSchema.comicBooks.id, bookId));
+
+    // A linked book has nothing left to wait for; a queue row left behind
+    // would let the sync re-match it by number and replace this link.
+    await this.db
+      .delete(comicvineSchema.comicvineSyncQueue)
+      .where(eq(comicvineSchema.comicvineSyncQueue.bookId, bookId));
 
     this.appEvents.comicvineSyncCompleted('book', bookId);
 
