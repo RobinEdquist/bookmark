@@ -88,7 +88,11 @@ function buildFactory() {
   };
   const comicvineService = {
     getApiKey: jest.fn(async () => 'key'),
-    searchVolumes: jest.fn(async () => ({ totalResults: 0, results: [] })),
+    searchVolumes: jest.fn(async (query: string) => ({
+      totalResults: 0,
+      results: [],
+      query,
+    })),
   };
   const audnexusService = { searchAudible: jest.fn(async () => []) };
 
@@ -302,6 +306,22 @@ describe('MCP tools', () => {
       expect(result.isError).toBe(true);
       expect(textOf(result)).toBe('ComicVine is for admins only');
       expect(comicvineService.searchVolumes).not.toHaveBeenCalled();
+    });
+  });
+
+  it('says what was searched and how to search when ComicVine finds nothing', async () => {
+    const { call } = await connect(admin);
+    const result = await call('search_external', {
+      mediaType: 'comic',
+      query: 'Wolverine 1982',
+    });
+
+    expect(result.isError).toBeFalsy();
+    expect(JSON.parse(textOf(result))).toMatchObject({
+      source: 'comicvine',
+      query: 'Wolverine 1982',
+      total: 0,
+      hint: expect.stringContaining('Try fewer words'),
     });
   });
 

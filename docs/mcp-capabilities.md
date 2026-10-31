@@ -102,6 +102,14 @@ working names.
 - `search_external`: ComicVine for comics; Hardcover, Audible, iTunes and Goodreads for books.
 - `get_match_candidates`: suggested matches for an item or series.
 
+ComicVine's volume search returns volumes whose name contains the text, so "Wolverine" finds
+hundreds of volumes and "Wolverine 1982" finds none. Series titles are cleaned before searching:
+pack order numbers (`02`), volume markers (`v2`), issue ranges (`01-189+Extras`), bracketed tags
+and years are removed, and a year in the title is used for ranking. If that finds nothing, up to
+two shorter versions are tried. Both tools return `query`, the text that found the results, and
+a hint when nothing was found. The web app's ComicVine search and automatic matching use the
+same cleaning.
+
 ### Fix
 
 - `link_external`: link an item or series to an external record and queue a sync.

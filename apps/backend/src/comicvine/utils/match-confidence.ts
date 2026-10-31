@@ -23,7 +23,8 @@
 //   3. Strip a trailing ", the" / ", a" / ", an" (e.g. "Spider-Man, The").
 //   4. Strip a leading "the " / "a " / "an " article.
 //   5. Remove all remaining punctuation characters (keep only letters/digits
-//      and whitespace — hyphens become spaces via replacement with " ").
+//      and whitespace — hyphens and slashes become spaces via replacement
+//      with " ", so "Wolverine/Hulk" equals "Wolverine & Hulk").
 //   6. Collapse consecutive whitespace and trim.
 // ---------------------------------------------------------------------------
 
@@ -49,10 +50,10 @@ export function normalizeComicTitle(s: string): string {
   // lose its "a" and wrongly normalize to "force" — breaking that series' match.
   result = result.replace(LEADING_ARTICLES, '');
 
-  // 5. Replace hyphens/dashes with a space, then remove all remaining
-  //    punctuation (anything that is not a word character or whitespace).
+  // 5. Replace hyphens/dashes and slashes with a space, then remove all
+  //    remaining punctuation (anything that is not a word character or whitespace).
   result = result
-    .replace(/[-–—]/g, ' ')
+    .replace(/[-–—/]/g, ' ')
     .replace(/[^\w\s]/g, '')
     // \w includes underscore; strip that too for cleanliness
     .replace(/_/g, ' ');
@@ -71,6 +72,8 @@ export interface LocalSeries {
   title: string;
   startYear: number | null;
   bookCount?: number | null;
+  /** The local series is itself a collected edition, so collected candidates are not penalised. */
+  isCollected?: boolean;
 }
 
 export interface CandidateVolume {
@@ -182,7 +185,11 @@ export function scoreVolumeMatch(
   // A volume whose name signals it is a collected/trade edition (TPB, omnibus,
   // compendium, deluxe, etc.) must never be auto-linked to a single-issue
   // local series — even when title normalization and start year both agree.
-  if (autoLinkable && isLikelyCollectedEdition(candidate.name)) {
+  if (
+    autoLinkable &&
+    !local.isCollected &&
+    isLikelyCollectedEdition(candidate.name)
+  ) {
     autoLinkable = false;
   }
 
@@ -203,7 +210,9 @@ export function rankVolumeCandidate(
   candidate: CandidateVolume,
 ): number {
   let rank = scoreVolumeMatch(local, candidate).score;
-  if (isLikelyCollectedEdition(candidate.name)) rank -= 50;
+  if (!local.isCollected && isLikelyCollectedEdition(candidate.name)) {
+    rank -= 50;
+  }
   if (
     local.bookCount != null &&
     candidate.countOfIssues != null &&

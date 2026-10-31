@@ -11,10 +11,8 @@ import { AudiobooksService } from '../audiobooks/audiobooks.service';
 import { EbooksService } from '../ebooks/ebooks.service';
 import { ComicsService } from '../comics/comics.service';
 import { ComicvineService } from '../comicvine/comicvine.service';
-import {
-  scoreVolumeMatch,
-  type LocalSeries,
-} from '../comicvine/utils/match-confidence';
+import { scoreVolumeMatch } from '../comicvine/utils/match-confidence';
+import { localSeriesFor } from '../comicvine/utils/search-query';
 import type { CvVolumeRaw } from '../comicvine/dto/comicvine.dto';
 import {
   HardcoverService,
@@ -67,6 +65,10 @@ const SOURCE_NAMES: Record<ExternalSource, string> = {
 
 /** Candidates kept from a source's result page. */
 const RESULT_LIMIT = 10;
+
+/** ComicVine only matches volume names that contain the searched text. */
+const COMICVINE_EMPTY_HINT =
+  'No volume name contains this text. Try fewer words, without year, issue numbers or edition.';
 
 export interface SearchExternalArgs {
   mediaType: McpMediaType;
@@ -122,8 +124,10 @@ export class McpExternalService {
         );
         return {
           source,
+          query: result.query,
           total: result.totalResults,
           results: result.results.slice(0, RESULT_LIMIT).map(toVolume),
+          ...(result.totalResults === 0 && { hint: COMICVINE_EMPTY_HINT }),
         };
       }
       case 'hardcover': {
@@ -309,14 +313,12 @@ export class McpExternalService {
     await this.comicsService.verifySeriesNotBlacklisted(id, user.id);
 
     const result = await this.comicvineService.searchVolumesForSeries(id);
-    const local: LocalSeries = {
-      title: series.title,
-      startYear: series.startYear,
-    };
+    const local = localSeriesFor(series.title, series.startYear);
     return {
       source: 'comicvine',
       level: 'series',
       query: result.query,
+      ...(result.totalResults === 0 && { hint: COMICVINE_EMPTY_HINT }),
       total: result.totalResults,
       results: result.results.slice(0, RESULT_LIMIT).map((volume) => {
         const { score, autoLinkable } = scoreVolumeMatch(local, {
