@@ -254,38 +254,51 @@ describe('comic-archive.utils', () => {
   // bytes, not the (forgeable) declared size.
   // -------------------------------------------------------------------------
   describe('in-memory entry caps', () => {
+    // Each test builds and inflates more than the 100 MB cap. That takes
+    // about a second alone, but more than Jest's default 5 s on a busy CI
+    // runner.
+    const CAP_TEST_TIMEOUT_MS = 30_000;
+
     function writeRawCbz(entries: ZipEntrySpec[]): Promise<string> {
       const p = path.join(tmpDir, `raw-${Date.now()}-${Math.random()}.cbz`);
       return fs.writeFile(p, buildZip(entries)).then(() => p);
     }
 
-    it('rejects an entry whose inflated size exceeds the cap', async () => {
-      // 200 MB of zeros deflates to ~200 KB on disk, but exceeds the
-      // 100 MB in-memory cap when inflated.
-      const p = await writeRawCbz([
-        { path: 'p1.jpg', data: Buffer.alloc(200 * 1024 * 1024, 0) },
-      ]);
-      await expect(readComicArchivePage(p, 0)).rejects.toThrow(
-        /exceeds the .* in-memory cap/,
-      );
-      await expect(readComicArchive(p)).rejects.toThrow(
-        /exceeds the .* in-memory cap/,
-      );
-    });
+    it(
+      'rejects an entry whose inflated size exceeds the cap',
+      async () => {
+        // 110 MB of zeros deflates to ~110 KB on disk, but exceeds the
+        // 100 MB in-memory cap when inflated.
+        const p = await writeRawCbz([
+          { path: 'p1.jpg', data: Buffer.alloc(110 * 1024 * 1024, 0) },
+        ]);
+        await expect(readComicArchivePage(p, 0)).rejects.toThrow(
+          /exceeds the .* in-memory cap/,
+        );
+        await expect(readComicArchive(p)).rejects.toThrow(
+          /exceeds the .* in-memory cap/,
+        );
+      },
+      CAP_TEST_TIMEOUT_MS,
+    );
 
-    it('ignores a declared-size lie but still enforces the streamed cap', async () => {
-      // 110 MB of zeros with a declared size of 16 bytes: below-cap
-      // metadata, above-cap reality.
-      const p = await writeRawCbz([
-        {
-          path: 'p1.jpg',
-          data: Buffer.alloc(110 * 1024 * 1024, 0),
-          declaredUncompressedSize: 16,
-        },
-      ]);
-      await expect(readComicArchivePage(p, 0)).rejects.toThrow(
-        /exceeds the .* in-memory cap/,
-      );
-    });
+    it(
+      'ignores a declared-size lie but still enforces the streamed cap',
+      async () => {
+        // 110 MB of zeros with a declared size of 16 bytes: below-cap
+        // metadata, above-cap reality.
+        const p = await writeRawCbz([
+          {
+            path: 'p1.jpg',
+            data: Buffer.alloc(110 * 1024 * 1024, 0),
+            declaredUncompressedSize: 16,
+          },
+        ]);
+        await expect(readComicArchivePage(p, 0)).rejects.toThrow(
+          /exceeds the .* in-memory cap/,
+        );
+      },
+      CAP_TEST_TIMEOUT_MS,
+    );
   });
 });
