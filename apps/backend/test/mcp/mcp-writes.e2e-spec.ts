@@ -654,6 +654,37 @@ describe('MCP write tools (e2e)', () => {
         await call(client, 'list_reading_lists', { itemId: issueA2 }),
       );
       expect(holding.items.map((l) => l.id)).toEqual([created.id]);
+
+      // A missing issue: added in place, removed by its entry id, undone
+      json(
+        await call(client, 'add_to_reading_list', {
+          id: created.id,
+          items: [{ title: 'Civil War #3', comicvineVolumeId: 1, number: '3' }],
+          position: 0,
+        }),
+      );
+      const withMissing = json<{
+        missing: number;
+        items: { id: string; missing?: boolean; number?: string }[];
+      }>(await call(client, 'get_reading_list', { id: created.id }));
+      expect(withMissing.missing).toBe(1);
+      const [placeholder] = withMissing.items;
+      expect(placeholder).toMatchObject({ missing: true, number: '3' });
+
+      const dropped = json<{ changeSetId: string }>(
+        await call(client, 'remove_from_reading_list', {
+          id: created.id,
+          itemIds: [placeholder.id],
+        }),
+      );
+      json(await undo(dropped.changeSetId));
+      const restored = json<{ items: { id: string; missing?: boolean }[] }>(
+        await call(client, 'get_reading_list', { id: created.id }),
+      );
+      expect(restored.items[0]).toMatchObject({
+        id: placeholder.id,
+        missing: true,
+      });
     });
 
     it('list_changes filters by record and by user', async () => {

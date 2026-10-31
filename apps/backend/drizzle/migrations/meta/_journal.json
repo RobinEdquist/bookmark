@@ -337,6 +337,13 @@
       "when": 1793473030015,
       "tag": "0047_add_reading_lists",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1793476714726,
+      "tag": "0048_add_reading_list_missing_entries",
+      "breakpoints": true
     }
   ]
 }

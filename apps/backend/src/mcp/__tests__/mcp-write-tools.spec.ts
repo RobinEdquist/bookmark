@@ -122,17 +122,36 @@ function build() {
     findAll: jest.fn(async () => ({ readingLists: [], total: 0 })),
     findOne: jest.fn(),
     create: jest.fn(async () => ({ id: OTHER })),
-    addItems: jest.fn(async (_id: string, ids: string[]) => {
-      listEntries = [
-        ...listEntries,
-        ...ids.map((itemId) => ({ itemId, note: null })),
-      ];
-      return {
-        added: ids.length,
-        alreadyIn: 0,
-        entryCount: listEntries.length,
-      };
-    }),
+    addEntries: jest.fn(
+      async (
+        _id: string,
+        inputs: ({ itemId: string } | { missing: { title: string } })[],
+      ) => {
+        listEntries = [
+          ...listEntries,
+          ...inputs.map((input, i) =>
+            'itemId' in input
+              ? { itemId: input.itemId, note: null }
+              : {
+                  itemId: null,
+                  note: null,
+                  missing: {
+                    entryId: `00000000-0000-4000-8000-0000000000b${i}`,
+                    title: input.missing.title,
+                    comicvineIssueId: null,
+                    comicvineVolumeId: null,
+                    number: null,
+                  },
+                },
+          ),
+        ];
+        return {
+          added: inputs.length,
+          alreadyIn: 0,
+          entryCount: listEntries.length,
+        };
+      },
+    ),
     removeItems: jest.fn(),
     reorder: jest.fn(),
     setNote: jest.fn(),
@@ -356,7 +375,7 @@ describe('MCP write tools', () => {
       expect(collections.removeSeries).not.toHaveBeenCalled();
       expect(collections.reorder).not.toHaveBeenCalled();
       expect(readingLists.create).not.toHaveBeenCalled();
-      expect(readingLists.addItems).not.toHaveBeenCalled();
+      expect(readingLists.addEntries).not.toHaveBeenCalled();
       expect(readingLists.removeItems).not.toHaveBeenCalled();
       expect(readingLists.reorder).not.toHaveBeenCalled();
       expect(readingLists.setNote).not.toHaveBeenCalled();
@@ -697,10 +716,11 @@ describe('MCP write tools', () => {
         }),
       );
 
-      expect(readingLists.addItems).toHaveBeenCalledWith(SET, [OTHER], {
-        position: 0,
-        note: 'Tie-in',
-      });
+      expect(readingLists.addEntries).toHaveBeenCalledWith(
+        SET,
+        [{ itemId: OTHER }],
+        { position: 0, note: 'Tie-in' },
+      );
       expect(result).toMatchObject({ added: 1, items: 2 });
       expect(changeLog.record).toHaveBeenCalledWith(
         editor,
@@ -733,9 +753,61 @@ describe('MCP write tools', () => {
 
       expect(result.isError).toBe(true);
       expect(textOf(result)).toBe(
-        `Not comic issues: ${OTHER}. Give issue ids (from get_series), not series ids.`,
+        `Not comic issues: ${OTHER}. Give issue ids (from get_series), not series ids. ` +
+          'Add an item the library does not have as a missing item.',
       );
-      expect(readingLists.addItems).not.toHaveBeenCalled();
+      expect(readingLists.addEntries).not.toHaveBeenCalled();
+    });
+
+    it('adds missing items in place and removes them by entry id', async () => {
+      listEntries = [{ itemId: ID, note: null }];
+      const { call, readingLists } = await connect(editor);
+
+      json(
+        await call('add_to_reading_list', {
+          id: SET,
+          items: [
+            OTHER,
+            { title: 'Civil War #3', comicvineVolumeId: 18423, number: '3' },
+          ],
+        }),
+      );
+      expect(readingLists.addEntries).toHaveBeenCalledWith(
+        SET,
+        [
+          { itemId: OTHER },
+          {
+            missing: {
+              title: 'Civil War #3',
+              comicvineVolumeId: 18423,
+              number: '3',
+            },
+          },
+        ],
+        {},
+      );
+
+      const missingId = '00000000-0000-4000-8000-0000000000b1';
+      const removed = json<{ removed: number }>(
+        await call('remove_from_reading_list', {
+          id: SET,
+          itemIds: [missingId],
+        }),
+      );
+      expect(removed.removed).toBe(1);
+      expect(readingLists.removeItems).toHaveBeenCalledWith(SET, [missingId]);
+    });
+
+    it('refuses itemIds and items together', async () => {
+      const { call, readingLists } = await connect(editor);
+      const result = await call('add_to_reading_list', {
+        id: SET,
+        itemIds: [ID],
+        items: [OTHER],
+      });
+
+      expect(textOf(result)).toBe('Give itemIds or items, not both');
+      expect(readingLists.addEntries).not.toHaveBeenCalled();
     });
 
     it('refuses to remove items that are not in the list', async () => {

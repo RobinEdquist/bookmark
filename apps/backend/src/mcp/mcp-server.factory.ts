@@ -36,7 +36,7 @@ Comics have two levels: a series (one ComicVine volume, ideally named "Title (St
 
 Folder and file names are often the best clue for a comic with no metadata. Paths are relative to the library root. Files on disk are never changed: every fix lives in the database.
 
-Collections group whole comic series. Reading lists hold single items in reading order across series, such as an event's core issues and tie-ins; each list belongs to one library. Comic reading lists take issue ids.
+Collections group whole comic series. Reading lists hold single items in reading order across series, such as an event's core issues and tie-ins; each list belongs to one library. Comic reading lists take issue ids; an issue the library does not have yet can be added as a missing item, which becomes the real issue once the library has it.
 
 Every field in get_item and get_series shows the value the app displays, where it comes from (hand-edit, file, comicvine, hardcover or goodreads), and what the other sources hold. A locked field was set by hand or by these tools, and later syncs and rescans leave it alone. Every write locks the fields it sets; unlock_field removes a lock.
 

@@ -22,7 +22,11 @@ export interface ReadingListListItem {
 }
 
 export interface ReadingListEntry {
-  itemId: string;
+  /** Names the entry in moves and removals: the item id, or the entry id while missing. */
+  id: string;
+  /** Null while the library does not have the item. */
+  itemId: string | null;
+  missing: boolean;
   position: number;
   note: string | null;
   /** Comics: "Series #n". Books: the title. */
@@ -45,6 +49,7 @@ export interface ReadingListDetail {
   coverUrl: string | null;
   entries: ReadingListEntry[];
   finishedCount: number;
+  missingCount: number;
 }
 
 export interface ReadingListFilters {

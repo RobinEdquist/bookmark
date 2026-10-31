@@ -12,6 +12,7 @@ import {
   IsUUID,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
 import {
   MAX_READING_LIST_ITEMS,
@@ -103,17 +104,76 @@ export class UpdateReadingListDto {
   description?: string | null;
 }
 
+export class MissingItemDto {
+  @ApiProperty({ example: 'Civil War #3' })
+  @IsString()
+  @IsNotEmpty()
+  title!: string;
+
+  @ApiPropertyOptional({ nullable: true, type: Number })
+  @IsOptional()
+  @IsInt()
+  comicvineIssueId?: number | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    type: Number,
+    description: 'With `number`',
+  })
+  @IsOptional()
+  @IsInt()
+  comicvineVolumeId?: number | null;
+
+  @ApiPropertyOptional({ nullable: true, type: String, example: '3' })
+  @IsOptional()
+  @IsString()
+  number?: string | null;
+}
+
+export class ReadingListEntryInputDto {
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'An item in the library',
+  })
+  @IsOptional()
+  @IsUUID()
+  itemId?: string;
+
+  @ApiPropertyOptional({
+    type: MissingItemDto,
+    description: 'An item the library does not have yet',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MissingItemDto)
+  missing?: MissingItemDto;
+}
+
 export class AddReadingListItemsDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     type: [String],
     description:
       'Items to add, in order: comic issues, audiobooks or ebooks, matching the list',
   })
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(MAX_READING_LIST_ITEMS)
   @IsUUID('all', { each: true })
-  itemIds!: string[];
+  itemIds?: string[];
+
+  @ApiPropertyOptional({
+    type: [ReadingListEntryInputDto],
+    description:
+      'Entries to add, in order, each an item or a missing item. Added after `itemIds`',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(MAX_READING_LIST_ITEMS)
+  @ValidateNested({ each: true })
+  @Type(() => ReadingListEntryInputDto)
+  entries?: ReadingListEntryInputDto[];
 
   @ApiPropertyOptional({
     description: 'Insert before this 0-based position. Default: at the end',

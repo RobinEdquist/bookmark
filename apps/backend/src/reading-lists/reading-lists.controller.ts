@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -15,6 +16,7 @@ import {
 } from '@nestjs/common';
 import {
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiSecurity,
   ApiTags,
@@ -25,6 +27,7 @@ import { AuthGuard } from '../common/guards/auth.guard';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 import { ReadingListsService } from './reading-lists.service';
+import type { ReadingListEntryInput } from './reading-list-order';
 import {
   AddReadingListItemsDto,
   CreateReadingListDto,
@@ -111,14 +114,28 @@ export class ReadingListsController {
   @ApiOperation({
     summary: 'Add items to a reading list',
     description:
-      'Adds items in the order given, at `position` or at the end. Items already in the list stay where they are.',
+      'Adds items in the order given, at `position` or at the end. Items already in the list stay where they are. ' +
+      '`entries` can name missing items, which become the real item once the library has it (comics: by ComicVine issue, or volume and number).',
   })
   @ApiResponse({ status: 200, type: ReadingListAddResultDto })
   async addItems(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: AddReadingListItemsDto,
   ): Promise<ReadingListAddResultDto> {
-    return this.readingLists.addItems(id, dto.itemIds, {
+    const inputs: ReadingListEntryInput[] = [
+      ...(dto.itemIds ?? []).map((itemId) => ({ itemId })),
+      ...(dto.entries ?? []).map((entry): ReadingListEntryInput => {
+        if (entry.itemId && !entry.missing) return { itemId: entry.itemId };
+        if (entry.missing && !entry.itemId) return { missing: entry.missing };
+        throw new BadRequestException(
+          'Each entry needs either itemId or missing',
+        );
+      }),
+    ];
+    if (inputs.length === 0) {
+      throw new BadRequestException('Give itemIds or entries');
+    }
+    return this.readingLists.addEntries(id, inputs, {
       position: dto.position,
       note: dto.note,
     });
@@ -126,6 +143,10 @@ export class ReadingListsController {
 
   @Patch(':id/items/:itemId')
   @UseGuards(CanEditMetadataGuard)
+  @ApiParam({
+    name: 'itemId',
+    description: "The item's id, or for a missing item the entry id",
+  })
   @ApiOperation({
     summary: 'Set the note on a reading list item, or move it',
     description:
@@ -148,6 +169,10 @@ export class ReadingListsController {
 
   @Delete(':id/items/:itemId')
   @UseGuards(CanEditMetadataGuard)
+  @ApiParam({
+    name: 'itemId',
+    description: "The item's id, or for a missing item the entry id",
+  })
   @ApiOperation({ summary: 'Remove an item from a reading list' })
   @ApiResponse({ status: 200, type: ReadingListSuccessResponseDto })
   async removeItem(

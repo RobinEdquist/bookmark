@@ -58,6 +58,32 @@ const itemIds = (what: string) =>
     .max(MAX_READING_LIST_ITEMS)
     .describe(`${what}. Comics: issue ids, not series ids`);
 
+const missingItem = z
+  .object({
+    title: z
+      .string()
+      .min(1)
+      .describe('As the list shows it, e.g. "Civil War #3"'),
+    comicvineIssueId: z.number().int().optional(),
+    comicvineVolumeId: z
+      .number()
+      .int()
+      .optional()
+      .describe('With number; from search_external'),
+    number: z.string().optional().describe('The issue number'),
+  })
+  .describe(
+    'An item the library does not have yet. A comic issue with a ComicVine issue, or volume and number, becomes the real issue once the library has it',
+  );
+
+const entryItems = z
+  .array(z.union([z.uuid(), missingItem]))
+  .min(1)
+  .max(MAX_READING_LIST_ITEMS)
+  .describe(
+    'Entries in reading order: an item id, or a missing item. Use instead of itemIds to include missing items',
+  );
+
 const fieldList = (type: Parameters<typeof editableFields>[0]) =>
   editableFields(type).join(', ');
 
@@ -432,7 +458,8 @@ export class McpWriteTools {
       {
         title: 'Get reading list',
         description:
-          'A reading list with its items in order: position (0-based), item id, title ("Series #n" for comics) and note. ' +
+          'A reading list with its items in order: position (0-based), id, title ("Series #n" for comics) and note. ' +
+          'Items the library does not have yet are marked missing; their id is the entry id, which the other tools take in place of an item id. ' +
           'Hidden items and items you have blacklisted are left out.',
         inputSchema: {
           id: z.uuid(),
@@ -459,13 +486,15 @@ export class McpWriteTools {
         title: 'Create reading list',
         description:
           'Create a reading list for one library, e.g. "Civil War" for comics, optionally with its first items in reading order. ' +
-          'Collections hold whole series; a reading list holds single issues or books. Needs permission to edit metadata.',
+          'Collections hold whole series; a reading list holds single issues or books, including ones the library does not have yet (`items`). ' +
+          'Needs permission to edit metadata.',
         inputSchema: {
           mediaType,
           name: z.string().min(1),
           sortName: z.string().nullable().optional(),
           description: z.string().nullable().optional(),
           itemIds: itemIds('Items to add, in reading order').optional(),
+          items: entryItems.optional(),
         },
         annotations: ADDS,
       },
@@ -501,19 +530,26 @@ export class McpWriteTools {
         title: 'Add to reading list',
         description:
           'Add items in the order given, before `position` (0-based, as get_reading_list shows it) or at the end. ' +
+          'Give itemIds, or items to include ones the library does not have yet. ' +
           'Items already in the list stay where they are; move them with reorder_reading_list. ' +
           '`note` labels every item added, e.g. "Tie-in". Needs permission to edit metadata.',
         inputSchema: {
           id: z.uuid().describe('Reading list id'),
-          itemIds: itemIds('Items to add, in reading order'),
+          itemIds: itemIds('Items to add, in reading order').optional(),
+          items: entryItems.optional(),
           position: z.number().int().min(0).optional(),
           note: z.string().nullable().optional(),
         },
         annotations: { ...ADDS, idempotentHint: true },
       },
-      ({ id, itemIds: ids, position, note }) =>
+      ({ id, itemIds: ids, items, position, note }) =>
         jsonResult(() =>
-          this.readingLists.addItems(user, id, ids, { position, note }),
+          this.readingLists.addItems(
+            user,
+            id,
+            { itemIds: ids, items },
+            { position, note },
+          ),
         ),
     );
 
@@ -525,7 +561,7 @@ export class McpWriteTools {
           'Take items out of a reading list. The items themselves are not changed. Needs permission to edit metadata.',
         inputSchema: {
           id: z.uuid().describe('Reading list id'),
-          itemIds: itemIds('Items to remove'),
+          itemIds: itemIds('Items to remove, or missing entries by id'),
         },
         annotations: OVERWRITES,
       },
@@ -541,7 +577,9 @@ export class McpWriteTools {
           'Set the order of a reading list. Give every item in it, each once, including any get_reading_list leaves out for you. Needs permission to edit metadata.',
         inputSchema: {
           id: z.uuid().describe('Reading list id'),
-          itemIds: itemIds('All items in the list, in reading order'),
+          itemIds: itemIds(
+            'All items in the list, in reading order; missing entries by id',
+          ),
         },
         annotations: OVERWRITES,
       },

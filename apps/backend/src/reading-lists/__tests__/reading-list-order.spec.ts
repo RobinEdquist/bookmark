@@ -1,4 +1,9 @@
-import { orderProblem, placeItems } from '../reading-list-order';
+import {
+  entryKey,
+  normalizeIssueNumber,
+  orderProblem,
+  placeItems,
+} from '../reading-list-order';
 
 describe('placeItems', () => {
   it('adds at the end by default, in the order given', () => {
@@ -49,5 +54,34 @@ describe('orderProblem', () => {
     expect(orderProblem(['a', 'b'], ['a', 'b', 'a'])).toContain(
       'Some items are given twice.',
     );
+  });
+});
+
+describe('normalizeIssueNumber', () => {
+  it('ignores leading zeros, case and spaces', () => {
+    expect(normalizeIssueNumber(' 007 ')).toBe('7');
+    expect(normalizeIssueNumber('0')).toBe('0');
+    expect(normalizeIssueNumber('000')).toBe('0');
+    expect(normalizeIssueNumber('1AU')).toBe('1au');
+    expect(normalizeIssueNumber('01.5')).toBe('1.5');
+  });
+});
+
+describe('entryKey', () => {
+  it('names an entry by its item, or by its own id while missing', () => {
+    expect(entryKey({ itemId: 'item-1', note: null })).toBe('item-1');
+    expect(
+      entryKey({
+        itemId: null,
+        note: null,
+        missing: {
+          entryId: 'entry-1',
+          title: 'Civil War #3',
+          comicvineIssueId: null,
+          comicvineVolumeId: null,
+          number: null,
+        },
+      }),
+    ).toBe('entry-1');
   });
 });

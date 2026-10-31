@@ -4,7 +4,9 @@ import { api } from '../helpers/api.helper';
 import { getSharedAdmin, signUp, type TestUser } from '../helpers/auth.helper';
 
 interface Entry {
-  itemId: string;
+  id: string;
+  itemId: string | null;
+  missing: boolean;
   position: number;
   note: string | null;
   title: string;
@@ -18,6 +20,7 @@ interface Detail {
   name: string;
   entries: Entry[];
   finishedCount: number;
+  missingCount: number;
 }
 
 /**
@@ -269,6 +272,114 @@ describe('Reading lists (e2e)', () => {
       a1,
     ]);
     expect(await storedPositions(id)).toEqual([0, 1, 2, 3]);
+  });
+
+  it('keeps missing issues in place and fills them once the library has them', async () => {
+    // ComicVine ids far above real ones, unique per run
+    const volumeCvId = 900_000_000 + Math.floor(Math.random() * 90_000_000);
+    const issueCvId = volumeCvId + 1;
+    const id = await createList(`Missing ${run}`);
+
+    const added = await api.post(
+      `/reading-lists/${id}/items`,
+      {
+        entries: [
+          { itemId: a1 },
+          {
+            missing: {
+              title: `Civil War ${run} #2`,
+              comicvineVolumeId: volumeCvId,
+              number: '2',
+            },
+          },
+          { missing: { title: 'A tie-in', comicvineIssueId: issueCvId } },
+          { itemId: b1 },
+        ],
+      },
+      admin.cookie,
+    );
+    expect(added.status).toBe(200);
+    expect(added.data).toEqual({ added: 4, alreadyIn: 0, entryCount: 4 });
+
+    // The same missing issue again is already in the list
+    const again = await api.post(
+      `/reading-lists/${id}/items`,
+      {
+        entries: [
+          {
+            missing: {
+              title: 'Civil War #2',
+              comicvineVolumeId: volumeCvId,
+              number: '02',
+            },
+          },
+        ],
+      },
+      admin.cookie,
+    );
+    expect(again.data).toMatchObject({ added: 0, alreadyIn: 1 });
+
+    let list = await detail(id);
+    expect(list).toMatchObject({ missingCount: 2 });
+    expect(list.entries.map((e) => [e.title, e.missing])).toEqual([
+      [`Civil War ${run} #1`, false],
+      [`Civil War ${run} #2`, true],
+      ['A tie-in', true],
+      [`Wolverine ${run} #42`, false],
+    ]);
+    const missingId = list.entries[1].id;
+    expect(list.entries[1].itemId).toBeNull();
+
+    // A missing entry moves by its entry id
+    const moved = await api.patch(
+      `/reading-lists/${id}/items/${missingId}`,
+      { position: 0, note: 'Core' },
+      admin.cookie,
+    );
+    expect(moved.status).toBe(200);
+    expect((await detail(id)).entries[0]).toMatchObject({
+      id: missingId,
+      note: 'Core',
+    });
+
+    // The volume arrives: a series linked to it, with issue "02"
+    const seriesC = await createSeries(`Civil War linked ${run}`);
+    const c2 = randomUUID();
+    await addIssue(c2, seriesC, '02');
+    const {
+      rows: [volume],
+    } = await db.query<{ id: string }>(
+      `INSERT INTO comicvine_volumes (comicvine_volume_id, name) VALUES ($1, $2) RETURNING id`,
+      [volumeCvId, `Civil War ${run}`],
+    );
+    await db.query(
+      'INSERT INTO comicvine_volume_links (series_id, comicvine_volume_row_id) VALUES ($1, $2)',
+      [seriesC, volume.id],
+    );
+    // And the tie-in: an issue linked to its ComicVine issue
+    const {
+      rows: [issue],
+    } = await db.query<{ id: string }>(
+      'INSERT INTO comicvine_issues (comicvine_issue_id) VALUES ($1) RETURNING id',
+      [issueCvId],
+    );
+    await db.query(
+      'INSERT INTO comicvine_issue_links (book_id, comicvine_issue_row_id) VALUES ($1, $2)',
+      [b2, issue.id],
+    );
+
+    list = await detail(id);
+    expect(list).toMatchObject({ missingCount: 0 });
+    expect(list.entries.map((e) => [e.itemId, e.note])).toEqual([
+      [c2, 'Core'],
+      [a1, null],
+      [b2, null],
+      [b1, null],
+    ]);
+    expect(await storedPositions(id)).toEqual([0, 1, 2, 3]);
+
+    await db.query('DELETE FROM comicvine_issues WHERE id = $1', [issue.id]);
+    await db.query('DELETE FROM comicvine_volumes WHERE id = $1', [volume.id]);
   });
 
   it('finds the lists that hold an item', async () => {

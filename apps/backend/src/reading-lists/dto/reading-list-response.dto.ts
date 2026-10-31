@@ -45,9 +45,21 @@ export class ReadingListListResponseDto {
 export class ReadingListEntryDto {
   @ApiProperty({
     format: 'uuid',
-    description: 'The comic issue, audiobook or ebook',
+    description:
+      'Names the entry in moves, removals and notes: the item id, or for a missing item the entry id',
   })
-  itemId!: string;
+  id!: string;
+
+  @ApiProperty({
+    nullable: true,
+    type: String,
+    format: 'uuid',
+    description: 'The comic issue, audiobook or ebook; null while missing',
+  })
+  itemId!: string | null;
+
+  @ApiProperty({ description: 'The library does not have this item yet' })
+  missing!: boolean;
 
   @ApiProperty({ description: '0-based place in the list' })
   position!: number;
@@ -56,7 +68,8 @@ export class ReadingListEntryDto {
   note!: string | null;
 
   @ApiProperty({
-    description: 'Comics: series title and issue number. Books: the title',
+    description:
+      'Comics: series title and issue number. Books: the title. Missing items: the title they were given',
   })
   title!: string;
 
@@ -110,6 +123,9 @@ export class ReadingListDetailDto {
 
   @ApiProperty({ description: 'Entries the caller has finished' })
   finishedCount!: number;
+
+  @ApiProperty({ description: 'Entries the library does not have yet' })
+  missingCount!: number;
 }
 
 export class ReadingListIdResponseDto {

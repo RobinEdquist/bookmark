@@ -93,6 +93,10 @@ edit-metadata permission. Collections cannot express these because they hold who
 Each item can carry a short note, such as "Core" or "Tie-in". Comic reading lists are a tab on
 the comics page, show each reader's progress, and are an OPDS feed, so reading apps get the
 issues in order.
+
+A list can name issues the library does not have yet. They show greyed in their place, and
+each becomes the real issue once the library has one linked to the same ComicVine issue, or
+the same ComicVine volume and number.
 Examples:
 
 - An event: the core series and its tie-ins, interleaved in reading order.

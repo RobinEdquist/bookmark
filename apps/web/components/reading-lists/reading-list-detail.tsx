@@ -46,6 +46,7 @@ interface ReadingListDetailProps {
   id: string;
   /** Where the back arrow and a deleted list go. */
   backHref: string;
+  /** Where an entry the library has links to. */
   itemHref: (entry: ReadingListEntry) => string;
 }
 
@@ -113,7 +114,7 @@ export function ReadingListDetail({
     try {
       await moveItem.mutateAsync({
         id,
-        itemId: entry.itemId,
+        itemId: entry.id,
         position: to.position,
       });
     } catch {
@@ -123,7 +124,7 @@ export function ReadingListDetail({
 
   const handleRemove = async (entry: ReadingListEntry) => {
     try {
-      await removeItem.mutateAsync({ id, itemId: entry.itemId });
+      await removeItem.mutateAsync({ id, itemId: entry.id });
       toast.success(t("removed"));
     } catch {
       toast.error(t("error"));
@@ -208,6 +209,8 @@ export function ReadingListDetail({
             )}
             <p className="mt-1 text-sm text-muted-foreground">
               {t("issueCount", { count: total })}
+              {list.missingCount > 0 &&
+                ` · ${t("missingCount", { count: list.missingCount })}`}
               {total > 0 &&
                 ` · ${t("progress", { finished: list.finishedCount, total })}`}
             </p>
@@ -221,43 +224,60 @@ export function ReadingListDetail({
             <ol className="divide-y divide-border/50">
               {list.entries.map((entry, i) => (
                 <li
-                  key={entry.itemId}
+                  key={entry.id}
                   className="flex items-center gap-3 py-3 sm:gap-4"
                 >
                   <span className="w-6 shrink-0 text-right text-sm tabular-nums text-muted-foreground sm:w-8">
                     {i + 1}
                   </span>
-                  <Link
-                    href={itemHref(entry)}
-                    className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-md bg-muted"
-                  >
-                    {entry.coverUrl ? (
-                      <Image
-                        src={entry.coverUrl}
-                        alt={entry.title}
-                        fill
-                        className="object-cover"
-                        sizes="48px"
-                        unoptimized={entry.coverUrl.startsWith("/api/")}
-                      />
-                    ) : (
-                      <GeneratedCover title={entry.title} />
-                    )}
-                  </Link>
-                  <div className="min-w-0 flex-1">
+                  {entry.missing ? (
+                    <div className="aspect-[2/3] w-12 shrink-0 rounded-md border border-dashed border-border" />
+                  ) : (
                     <Link
                       href={itemHref(entry)}
-                      className="line-clamp-2 font-medium hover:underline sm:line-clamp-1"
+                      className="relative aspect-[2/3] w-12 shrink-0 overflow-hidden rounded-md bg-muted"
                     >
-                      {entry.title}
+                      {entry.coverUrl ? (
+                        <Image
+                          src={entry.coverUrl}
+                          alt={entry.title}
+                          fill
+                          className="object-cover"
+                          sizes="48px"
+                          unoptimized={entry.coverUrl.startsWith("/api/")}
+                        />
+                      ) : (
+                        <GeneratedCover title={entry.title} />
+                      )}
                     </Link>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    {entry.missing ? (
+                      <p className="line-clamp-2 font-medium text-muted-foreground sm:line-clamp-1">
+                        {entry.title}
+                      </p>
+                    ) : (
+                      <Link
+                        href={itemHref(entry)}
+                        className="line-clamp-2 font-medium hover:underline sm:line-clamp-1"
+                      >
+                        {entry.title}
+                      </Link>
+                    )}
                     {entry.subtitle && (
                       <p className="line-clamp-1 text-sm text-muted-foreground">
                         {entry.subtitle}
                       </p>
                     )}
-                    {(entry.note || entry.readStatus !== "unread") && (
+                    {(entry.missing ||
+                      entry.note ||
+                      entry.readStatus !== "unread") && (
                       <div className="mt-1 flex flex-wrap items-center gap-2">
+                        {entry.missing && (
+                          <span className="whitespace-nowrap rounded-full border border-dashed border-border px-2 py-0.5 text-xs text-muted-foreground">
+                            {t("notInLibrary")}
+                          </span>
+                        )}
                         {entry.note && (
                           <span className="whitespace-nowrap rounded-full bg-secondary px-2 py-0.5 text-xs text-secondary-foreground">
                             {entry.note}

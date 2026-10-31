@@ -20,6 +20,8 @@
   "remove": "Ta bort från listan",
   "removed": "Togs bort från listan",
   "listEmpty": "Inga nummer än",
+  "notInLibrary": "Finns inte i biblioteket",
+  "missingCount": "{count} saknas i biblioteket",
   "finished": "Läst",
   "inProgress": "Läser",
   "belongsTo": "Läslistor",

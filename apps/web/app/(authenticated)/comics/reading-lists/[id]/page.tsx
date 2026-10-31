@@ -13,7 +13,7 @@ export default function ComicReadingListPage({
     <ReadingListDetail
       id={id}
       backHref="/comics?view=reading-lists"
-      itemHref={(entry) => `/comics/${entry.seriesId}/books/${entry.itemId}`}
+      itemHref={(entry) => `/comics/${entry.seriesId}/books/${entry.id}`}
     />
   );
 }
