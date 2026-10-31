@@ -21,6 +21,19 @@ function createMockCoverService(overrides: Record<string, any> = {}) {
   } as any;
 }
 
+function createMockMetadataResolver() {
+  return {
+    forAudiobooks: jest.fn().mockResolvedValue(new Map()),
+    forEbooks: jest.fn().mockResolvedValue(new Map()),
+  };
+}
+
+function createMockMetadataEntityService() {
+  return {
+    findPeopleByNames: jest.fn().mockResolvedValue(new Map()),
+  };
+}
+
 /**
  * Sets up the 7 sequential db.select chains and 1 db.execute call for getStats.
  * Returns a handle so individual tests can override resolved values.
@@ -98,12 +111,21 @@ function setupGetStatsChains(
 describe('LibraryService', () => {
   let db: MockDb;
   let coverService: ReturnType<typeof createMockCoverService>;
+  let metadataResolver: ReturnType<typeof createMockMetadataResolver>;
+  let metadataEntityService: ReturnType<typeof createMockMetadataEntityService>;
   let service: LibraryService;
 
   beforeEach(() => {
     db = createMockDb();
     coverService = createMockCoverService();
-    service = new LibraryService(db as any, coverService);
+    metadataResolver = createMockMetadataResolver();
+    metadataEntityService = createMockMetadataEntityService();
+    service = new LibraryService(
+      db as any,
+      coverService,
+      metadataResolver as any,
+      metadataEntityService as any,
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -349,12 +371,9 @@ describe('LibraryService', () => {
         })
         .mockResolvedValueOnce({ rows: [] }); // ebooks
 
-      // Author chains for each audiobook result
-      for (let i = 0; i < 3; i++) {
-        const authorChain = createChainMock(['from', 'innerJoin', 'where']);
-        authorChain.where.mockResolvedValueOnce([]);
-        db.select.mockReturnValueOnce(authorChain);
-      }
+      const authorChain = createChainMock(['from', 'innerJoin', 'where']);
+      authorChain.where.mockResolvedValueOnce([]);
+      db.select.mockReturnValueOnce(authorChain);
 
       const result = await service.searchLibrary('Match');
 
@@ -363,7 +382,7 @@ describe('LibraryService', () => {
       expect(result.audiobooks[2].similarity).toBe(0.4);
     });
 
-    it('fetches authors for each audiobook result', async () => {
+    it('fetches authors for all audiobook results in one query', async () => {
       db.execute
         .mockResolvedValueOnce({
           rows: [
@@ -375,14 +394,23 @@ describe('LibraryService', () => {
               cover_source: null,
               similarity: 0.8,
             },
+            {
+              id: 'ab-2',
+              title: 'Other Book',
+              subtitle: null,
+              cover_url: null,
+              cover_source: null,
+              similarity: 0.5,
+            },
           ],
         })
         .mockResolvedValueOnce({ rows: [] }); // ebooks
 
       const authorChain = createChainMock(['from', 'innerJoin', 'where']);
       authorChain.where.mockResolvedValueOnce([
-        { id: 'p-1', name: 'Jane Doe' },
-        { id: 'p-2', name: 'John Doe' },
+        { bookId: 'ab-1', id: 'p-1', name: 'Jane Doe' },
+        { bookId: 'ab-1', id: 'p-2', name: 'John Doe' },
+        { bookId: 'ab-2', id: 'p-3', name: 'Ann Other' },
       ]);
       db.select.mockReturnValueOnce(authorChain);
 
@@ -392,7 +420,141 @@ describe('LibraryService', () => {
         { id: 'p-1', name: 'Jane Doe' },
         { id: 'p-2', name: 'John Doe' },
       ]);
+      expect(result.audiobooks[1].authors).toEqual([
+        { id: 'p-3', name: 'Ann Other' },
+      ]);
       expect(db.select).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the resolved title, subtitle and authors', async () => {
+      db.execute.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'ab-1',
+            title: 'Martin, George R R - ASOIAF 2 - A Clash of Kings',
+            subtitle: 'Unabridged',
+            cover_url: null,
+            cover_source: null,
+            similarity: 0.8,
+          },
+        ],
+      });
+
+      const authorChain = createChainMock(['from', 'innerJoin', 'where']);
+      authorChain.where.mockResolvedValueOnce([
+        { bookId: 'ab-1', id: 'p-1', name: 'George R R Martin' },
+      ]);
+      db.select.mockReturnValueOnce(authorChain);
+
+      metadataResolver.forAudiobooks.mockResolvedValueOnce(
+        new Map([
+          [
+            'ab-1',
+            {
+              title: 'A Clash of Kings',
+              subtitle: 'A Song of Ice and Fire, Book 2',
+              authorNames: ['George R.R. Martin'],
+            },
+          ],
+        ]),
+      );
+      metadataEntityService.findPeopleByNames.mockResolvedValueOnce(
+        new Map([
+          ['george r.r. martin', { id: 'p-9', name: 'George R.R. Martin' }],
+        ]),
+      );
+
+      const result = await service.searchLibrary('clash', 'audiobooks');
+
+      expect(metadataResolver.forAudiobooks).toHaveBeenCalledWith(['ab-1']);
+      expect(metadataEntityService.findPeopleByNames).toHaveBeenCalledWith([
+        'George R.R. Martin',
+      ]);
+      expect(result.audiobooks[0]).toMatchObject({
+        title: 'A Clash of Kings',
+        subtitle: 'A Song of Ice and Fire, Book 2',
+        authors: [{ id: 'p-9', name: 'George R.R. Martin' }],
+      });
+    });
+
+    it("keeps the book's own author ids when embedded authors win", async () => {
+      db.execute.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'eb-1',
+            title: 'Book',
+            subtitle: null,
+            cover_url: null,
+            cover_source: null,
+            similarity: 0.8,
+          },
+        ],
+      });
+
+      const authorChain = createChainMock(['from', 'innerJoin', 'where']);
+      authorChain.where.mockResolvedValueOnce([
+        { bookId: 'eb-1', id: 'p-1', name: 'Jane Doe' },
+      ]);
+      db.select.mockReturnValueOnce(authorChain);
+
+      metadataResolver.forEbooks.mockResolvedValueOnce(
+        new Map([
+          [
+            'eb-1',
+            { title: 'Book', subtitle: null, authorNames: ['Jane Doe'] },
+          ],
+        ]),
+      );
+
+      const result = await service.searchLibrary('Book', 'ebooks');
+
+      expect(metadataResolver.forEbooks).toHaveBeenCalledWith(['eb-1']);
+      expect(metadataEntityService.findPeopleByNames).toHaveBeenCalledWith([]);
+      expect(result.ebooks[0].authors).toEqual([
+        { id: 'p-1', name: 'Jane Doe' },
+      ]);
+    });
+
+    it('drops resolved authors with no person to link to', async () => {
+      db.execute.mockResolvedValueOnce({
+        rows: [
+          {
+            id: 'ab-1',
+            title: 'Book',
+            subtitle: null,
+            cover_url: null,
+            cover_source: null,
+            similarity: 0.8,
+          },
+        ],
+      });
+
+      const authorChain = createChainMock(['from', 'innerJoin', 'where']);
+      authorChain.where.mockResolvedValueOnce([]);
+      db.select.mockReturnValueOnce(authorChain);
+
+      metadataResolver.forAudiobooks.mockResolvedValueOnce(
+        new Map([
+          [
+            'ab-1',
+            { title: 'Book', subtitle: null, authorNames: ['Not Imported'] },
+          ],
+        ]),
+      );
+
+      const result = await service.searchLibrary('Book', 'audiobooks');
+
+      expect(result.audiobooks[0].authors).toEqual([]);
+    });
+
+    it('skips resolution when nothing matches', async () => {
+      db.execute.mockResolvedValue({ rows: [] });
+
+      await service.searchLibrary('nonexistent');
+
+      expect(metadataResolver.forAudiobooks).not.toHaveBeenCalled();
+      expect(metadataResolver.forEbooks).not.toHaveBeenCalled();
+      expect(db.select).not.toHaveBeenCalled();
     });
   });
 });

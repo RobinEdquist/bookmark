@@ -120,12 +120,16 @@ function buildService(db: Record<string, unknown>) {
     comicCollectionDeleted: jest.fn(),
     comicSeriesUpdated: jest.fn(),
   };
+  const metadataResolver = {
+    forComicSeries: jest.fn().mockResolvedValue(new Map()),
+  };
 
   const service = new ComicsCollectionsService(
     db as never,
     coverService,
     appEvents as never,
     wsEvents as never,
+    metadataResolver as never,
   );
   return { service, appEvents, wsEvents };
 }

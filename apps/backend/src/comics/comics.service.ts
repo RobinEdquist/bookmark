@@ -32,6 +32,7 @@ import { AppSettingsService } from '../app-settings/app-settings.service';
 import { DEFAULT_COMIC_METADATA_PRIORITY } from '../app-settings/schema';
 import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
 import { CoverService } from '../common/cover.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import { resolveContainedPath } from '../common/utils/path-containment.util';
 import { definedFields } from '../common/utils/defined-fields.util';
 import { AppDataService } from '../app-data/app-data.service';
@@ -103,6 +104,7 @@ export class ComicsService {
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
     private collectionsService: ComicsCollectionsService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   /**
@@ -592,15 +594,21 @@ export class ComicsService {
     if (firstWithCover) fallbackCovers.set(series.id, firstWithCover.id);
 
     const volume = volumeRows[0]?.volume ?? null;
-    const comicPriority =
-      await this.appSettingsService.getComicMetadataPriority();
+    const [comicPriority, bookMetadata] = await Promise.all([
+      this.appSettingsService.getComicMetadataPriority(),
+      this.metadataResolver.forComicBooks(books.map((b) => b.id)),
+    ]);
     const mf = series.manualFields ?? [];
+    // The title and number each issue's own page shows
+    const issueNumber = (b: (typeof books)[number]) =>
+      bookMetadata.get(b.id)?.number ?? b.number;
 
     // Present set: single issues PLUS issues covered by collected editions.
     const presentInts: number[] = [];
     for (const b of books) {
-      if (b.format === 'single_issue' && b.number != null) {
-        const n = Number(b.number);
+      const number = issueNumber(b);
+      if (b.format === 'single_issue' && number != null) {
+        const n = Number(number);
         if (Number.isInteger(n) && n > 0) presentInts.push(n);
       }
       if (b.collects) {
@@ -669,7 +677,11 @@ export class ComicsService {
       tags,
       mainCharacters: mainCharacters.get(id) ?? [],
       creators,
-      books: books.map((book) => this.toBookListItem(book)),
+      books: books.map((book) => ({
+        ...this.toBookListItem(book),
+        title: bookMetadata.get(book.id)?.title ?? book.title,
+        number: issueNumber(book),
+      })),
       comicvine: {
         linked: !!volume,
         volumeId: volume?.comicvineVolumeId ?? null,
@@ -1669,11 +1681,9 @@ export class ComicsService {
     seriesTitle: string;
     files: Array<{ absolutePath: string; fileName: string }>;
   }> {
-    const [series] = await this.db
-      .select({ title: schema.comicSeries.title })
-      .from(schema.comicSeries)
-      .where(eq(schema.comicSeries.id, seriesId))
-      .limit(1);
+    const series = (await this.metadataResolver.forComicSeries([seriesId])).get(
+      seriesId,
+    );
     if (!series) throw new NotFoundException('Comic series not found');
 
     const books = await this.db

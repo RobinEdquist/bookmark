@@ -37,6 +37,22 @@ import * as fsPromises from 'fs/promises';
 import { ComicsService } from '../comics.service';
 
 /**
+ * MetadataResolverService stub that resolves nothing, so the raw values
+ * show through. Pass `bookMetadata` to have ComicVine values win instead.
+ */
+function passthroughResolver(
+  bookMetadata = new Map<
+    string,
+    { title: string | null; number: string | null }
+  >(),
+) {
+  return {
+    forComicBooks: jest.fn().mockResolvedValue(bookMetadata),
+    forComicSeries: jest.fn().mockResolvedValue(new Map()),
+  } as never;
+}
+
+/**
  * Build a chainable mock that records every drizzle-style method call and
  * resolves the terminal call (await) with `resolvedValue`.
  * `chain.from(...).where(...).limit(...)` -> Promise<resolvedValue>
@@ -87,6 +103,7 @@ function buildServiceWithBook(bookRow: unknown[] | null) {
     stub, // appEvents
     stub, // wsEvents
     stub, // collectionsService
+    passthroughResolver(), // metadataResolver
   );
   return { service, select };
 }
@@ -512,6 +529,7 @@ function buildServiceForMergeTest({
     stub, // appEvents
     wsEvents,
     collectionsService,
+    passthroughResolver(), // metadataResolver
   );
 
   return { service, select, appSettings };
@@ -662,9 +680,11 @@ describe('ComicsService.getSeriesById — metadata merge', () => {
 function buildServiceForMissingIssueTest({
   books = [] as unknown[],
   volumeRows = [] as unknown[],
+  bookMetadata,
 }: {
   books?: unknown[];
   volumeRows?: unknown[];
+  bookMetadata?: Map<string, { title: string | null; number: string | null }>;
 }) {
   const select = jest.fn();
   const selectDistinct = jest.fn();
@@ -720,6 +740,7 @@ function buildServiceForMissingIssueTest({
     stub,
     wsEvents,
     collectionsService,
+    passthroughResolver(bookMetadata), // metadataResolver
   );
   return { service };
 }
@@ -848,6 +869,28 @@ describe('ComicsService.getSeriesById — missing-issue detection', () => {
     expect(result.gaps).toEqual([]);
     expect(result.publishedTotal).toBeNull();
     expect(result.unownedPublished).toEqual([]);
+  });
+
+  it('lists and counts issues by the resolved title and number', async () => {
+    // Files say #1 and #3; ComicVine says the second file is really #2.
+    const books = [makeBook('1'), makeBook('3')];
+    const bookMetadata = new Map([
+      ['book-1', { title: null, number: '1' }],
+      ['book-3', { title: 'The Real Second Issue', number: '2' }],
+    ]);
+
+    const { service } = buildServiceForMissingIssueTest({
+      books,
+      volumeRows: [],
+      bookMetadata,
+    });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.books.map((b) => [b.number, b.title])).toEqual([
+      ['1', null],
+      ['2', 'The Real Second Issue'],
+    ]);
+    expect(result.gaps).toEqual([]);
   });
 });
 
@@ -1065,6 +1108,7 @@ describe('ComicsService.updateBook with creators', () => {
       stub, // appEvents
       wsEvents,
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
 
     return { service, db, deleteMock, insertMock, updateMock, wsEvents };
@@ -1366,6 +1410,7 @@ describe('ComicsService.updateBook — ageRating field', () => {
       stub, // appEvents
       wsEvents,
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
 
     return { service, updateMock };
@@ -1491,6 +1536,7 @@ describe('ComicsService.updateBooksBatch', () => {
       stub,
       wsEvents,
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
 
     return { service, updateMock, selectMock };
@@ -1614,6 +1660,7 @@ describe('ComicsService.updateBooksBatch', () => {
       stub,
       wsEvents,
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
 
     // 'a' is missing, 'b' is found — should update 1
@@ -1675,6 +1722,7 @@ describe('ComicsService.findAllSeries — metadataTag filter', () => {
       stub, // appEvents
       stub, // wsEvents
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
     return { service, select };
   }
@@ -1794,6 +1842,7 @@ describe('ComicsService.findAllSeries — metadata priority resolution', () => {
       stub, // appEvents
       stub, // wsEvents
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
     return { service };
   }
@@ -1937,6 +1986,7 @@ describe('ComicsService.deleteBook / deleteSeries — remove but keep files', ()
       appEvents,
       wsEvents,
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
     return { service, updateMock, updateSet, deleteMock };
   }
@@ -2084,6 +2134,7 @@ describe('ComicsService.updateSeries — main characters', () => {
       events, // appEvents
       events, // wsEvents
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
     const replace = jest
       .spyOn(
@@ -2175,6 +2226,7 @@ describe('ComicsService.updateBook / updateBooksBatch — manualFields', () => {
       stub, // appEvents
       { comicBookUpdated: jest.fn() } as never, // wsEvents
       stub, // collectionsService
+      passthroughResolver(), // metadataResolver
     );
     return { service, update, updateSet };
   }

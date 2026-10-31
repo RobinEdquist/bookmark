@@ -45,6 +45,7 @@ import { EbookMetadataProvider } from '../library-watcher/metadata/ebook-metadat
 import { splitPersonNames } from '../common/utils/name.utils';
 import { resolveExternalTitle } from '../common/utils/title.utils';
 import { MetadataEntityService } from '../common/metadata-entity.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import { EbookGroupsService } from './ebook-groups.service';
 
 export interface EbookListItem {
@@ -89,6 +90,7 @@ export class EbooksService {
     private coverService: CoverService,
     private metadataEntityService: MetadataEntityService,
     private ebookGroups: EbookGroupsService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   /**
@@ -664,10 +666,7 @@ export class EbooksService {
         .limit(1),
       this.appSettingsService.getMetadataPriority(),
       this.db
-        .select({
-          id: audiobookSchema.audiobooks.id,
-          title: audiobookSchema.audiobooks.title,
-        })
+        .select({ id: audiobookSchema.audiobooks.id })
         .from(audiobookSchema.audiobooks)
         .where(
           and(
@@ -682,6 +681,12 @@ export class EbooksService {
     const hc = hardcoverData[0]?.hardcoverBook || null;
     const gr = goodreadsData[0]?.goodreadsBook || null;
     const manualFields = (eb.manualFields as string[]) || [];
+    const generatedAudiobookId = generatedAudiobookData[0]?.id;
+    const generatedAudiobook = generatedAudiobookId
+      ? (await this.metadataResolver.forAudiobooks([generatedAudiobookId])).get(
+          generatedAudiobookId,
+        )
+      : undefined;
     const [canonicalExternalPeople, canonicalExternalSeries] =
       await Promise.all([
         this.metadataEntityService.findPeopleByNames([
@@ -899,7 +904,10 @@ export class EbooksService {
           }
         : null,
       // AI-narrated audiobook generated from this ebook, if any
-      generatedAudiobook: generatedAudiobookData[0] ?? null,
+      generatedAudiobook:
+        generatedAudiobookId && generatedAudiobook
+          ? { id: generatedAudiobookId, title: generatedAudiobook.title }
+          : null,
       groups,
     };
   }

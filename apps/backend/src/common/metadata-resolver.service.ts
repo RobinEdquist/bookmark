@@ -27,6 +27,8 @@ export interface ResolvedBookMetadata {
 /** The display values for a comic series after resolution. */
 export interface ResolvedComicSeriesMetadata {
   title: string;
+  publisher: string | null;
+  startYear: number | null;
 }
 
 /** The display values for a comic book after resolution. */
@@ -260,7 +262,8 @@ export class MetadataResolverService {
   }
 
   /**
-   * Resolve display titles for the given comic series.
+   * Resolve display title, publisher and start year for the given comic
+   * series: what a series card shows.
    *
    * Comics run on their own priority chain (manual → embedded → comicvine),
    * configured separately from books.
@@ -276,8 +279,12 @@ export class MetadataResolverService {
         .select({
           id: comicSchema.comicSeries.id,
           title: comicSchema.comicSeries.title,
+          publisher: comicSchema.comicSeries.publisher,
+          startYear: comicSchema.comicSeries.startYear,
           manualFields: comicSchema.comicSeries.manualFields,
           volumeName: comicvineSchema.comicvineVolumes.name,
+          volumePublisher: comicvineSchema.comicvineVolumes.publisherName,
+          volumeStartYear: comicvineSchema.comicvineVolumes.startYear,
         })
         .from(comicSchema.comicSeries)
         .leftJoin(
@@ -300,22 +307,45 @@ export class MetadataResolverService {
     ]);
 
     return new Map(
-      rows.map((row) => [
-        row.id,
-        {
-          title:
-            resolveFieldByPriority(
-              'title',
+      rows.map((row) => {
+        const manualFields = row.manualFields ?? [];
+        return [
+          row.id,
+          {
+            title:
+              resolveFieldByPriority(
+                'title',
+                {
+                  manual: row.title,
+                  embedded: row.title,
+                  comicvine: row.volumeName,
+                },
+                priority.title,
+                manualFields,
+              ) ?? row.title,
+            publisher: resolveFieldByPriority(
+              'publisher',
               {
-                manual: row.title,
-                embedded: row.title,
-                comicvine: row.volumeName,
+                manual: row.publisher,
+                embedded: row.publisher,
+                comicvine: row.volumePublisher,
               },
-              priority.title,
-              row.manualFields ?? [],
-            ) ?? row.title,
-        },
-      ]),
+              priority.publisher,
+              manualFields,
+            ),
+            startYear: resolveFieldByPriority(
+              'startYear',
+              {
+                manual: row.startYear,
+                embedded: row.startYear,
+                comicvine: row.volumeStartYear,
+              },
+              priority.startYear,
+              manualFields,
+            ),
+          },
+        ];
+      }),
     );
   }
 

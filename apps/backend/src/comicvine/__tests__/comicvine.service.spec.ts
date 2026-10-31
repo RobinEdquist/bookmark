@@ -114,6 +114,10 @@ describe('ComicvineService', () => {
   let db: MockDb;
   let mockAppEvents: ReturnType<typeof createMockAppEvents>;
   let mockWsEvents: ReturnType<typeof createMockWsEvents>;
+  let mockMetadataResolver: {
+    forComicSeries: jest.Mock;
+    forComicBooks: jest.Mock;
+  };
   let service: TestableComicvineService;
 
   beforeEach(() => {
@@ -121,10 +125,15 @@ describe('ComicvineService', () => {
     db = createMockDb();
     mockAppEvents = createMockAppEvents();
     mockWsEvents = createMockWsEvents();
+    mockMetadataResolver = {
+      forComicSeries: jest.fn().mockResolvedValue(new Map()),
+      forComicBooks: jest.fn().mockResolvedValue(new Map()),
+    };
     service = new TestableComicvineService(
       db as any,
       mockAppEvents as any,
       mockWsEvents as any,
+      mockMetadataResolver as any,
     );
   });
 
@@ -1385,6 +1394,40 @@ describe('ComicvineService', () => {
       const result = await service.cleanupOrphanedCache();
       expect(result).toEqual({ volumes: 0, issues: 0 });
       expect(db.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getQueueItems', () => {
+    it('shows the resolved series and issue titles', async () => {
+      const createdAt = new Date('2026-01-01');
+      const row = {
+        status: 'pending',
+        errorMessage: null,
+        createdAt,
+      };
+      const chain = createChainMock(['from', 'where', 'orderBy']);
+      chain.orderBy.mockResolvedValueOnce([
+        { ...row, id: 'q-1', level: 'series', seriesId: 's-1', bookId: null },
+        { ...row, id: 'q-2', level: 'book', seriesId: 's-1', bookId: 'b-1' },
+      ]);
+      db.select.mockReturnValueOnce(chain);
+      mockMetadataResolver.forComicSeries.mockResolvedValueOnce(
+        new Map([
+          ['s-1', { title: 'Wolverine', publisher: null, startYear: null }],
+        ]),
+      );
+      mockMetadataResolver.forComicBooks.mockResolvedValueOnce(
+        new Map([['b-1', { title: 'Weapon X', number: '1' }]]),
+      );
+
+      const result = await service.getQueueItems();
+
+      expect(mockMetadataResolver.forComicSeries).toHaveBeenCalledWith(['s-1']);
+      expect(mockMetadataResolver.forComicBooks).toHaveBeenCalledWith(['b-1']);
+      expect(result.map((item) => item.title)).toEqual([
+        'Wolverine',
+        'Weapon X',
+      ]);
     });
   });
 });

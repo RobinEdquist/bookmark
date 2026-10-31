@@ -105,6 +105,7 @@ describe('Audiobook deletion followed by a startup scan', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any, // metadataResolver
     );
     // Recreate the scanner after deletion, using real detection and disk files.
     const scanAfterRestart = () =>
@@ -114,6 +115,7 @@ describe('Audiobook deletion followed by a startup scan', () => {
         importer as any,
         events as any,
         { scanStatusUpdated: jest.fn() } as any,
+        {} as any, // metadataResolver
       ).scanAudiobookLibrary(libraryPath);
 
     return {

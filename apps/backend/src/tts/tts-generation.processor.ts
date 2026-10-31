@@ -18,6 +18,7 @@ import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppDataService } from '../app-data/app-data.service';
 import { WsEventsService } from '../events/ws-events.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import {
   EbookMetadataProvider,
   ExtractedEbookChapters,
@@ -82,6 +83,7 @@ export class TtsGenerationProcessor implements OnModuleInit {
     private readonly importQueue: ImportQueueService,
     @Inject(forwardRef(() => LibraryScannerService))
     private readonly libraryScanner: LibraryScannerService,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   async onModuleInit() {
@@ -453,15 +455,11 @@ export class TtsGenerationProcessor implements OnModuleInit {
       cursorMs += durationMs;
     }
 
-    const authors = await this.db
-      .select({ name: audiobooksSchema.people.name })
-      .from(ebooksSchema.ebookAuthors)
-      .innerJoin(
-        audiobooksSchema.people,
-        eq(ebooksSchema.ebookAuthors.personId, audiobooksSchema.people.id),
-      )
-      .where(eq(ebooksSchema.ebookAuthors.ebookId, ebook.id))
-      .orderBy(asc(ebooksSchema.ebookAuthors.order));
+    // The importer reads title and authors from these tags, so use the ones
+    // the ebook's own page shows
+    const resolved = await this.metadataResolver.forMedia('ebook', ebook.id);
+    const title = resolved?.title ?? ebook.title;
+    const authorNames = resolved?.authorNames ?? [];
 
     const genres = await this.db
       .select({ name: audiobooksSchema.genres.name })
@@ -485,9 +483,9 @@ export class TtsGenerationProcessor implements OnModuleInit {
       coverFileName,
       outputFileName: 'book.m4b',
       tags: {
-        title: ebook.title,
-        album: ebook.title,
-        artist: authors.map((a) => a.name).join(', ') || undefined,
+        title,
+        album: title,
+        artist: authorNames.join(', ') || undefined,
         // The importer reads narrator from the Composer tag (m4b convention)
         composer: `AI Narrator (${job.voice})`,
         genre: genres.map((g) => g.name).join(';') || undefined,
@@ -603,11 +601,12 @@ export class TtsGenerationProcessor implements OnModuleInit {
     audiobookId: string,
     ebook: typeof ebooksSchema.ebooks.$inferSelect,
   ): Promise<void> {
+    const resolved = await this.metadataResolver.forMedia('ebook', ebook.id);
     await this.db
       .update(audiobooksSchema.audiobooks)
       .set({
         generatedFromEbookId: ebook.id,
-        subtitle: ebook.subtitle,
+        subtitle: resolved ? resolved.subtitle : ebook.subtitle,
         isExplicit: ebook.isExplicit,
       })
       .where(eq(audiobooksSchema.audiobooks.id, audiobookId));

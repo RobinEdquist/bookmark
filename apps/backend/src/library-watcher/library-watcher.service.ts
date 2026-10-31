@@ -22,6 +22,10 @@ import { MediaImporterService } from './media-importer.service';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as comicsSchema from '../comics/schema';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
+
+/** Rescan progress labels are resolved this many items at a time. */
+const RESCAN_LABEL_BATCH = 200;
 
 @Injectable()
 export class LibraryWatcherService implements OnModuleInit {
@@ -45,6 +49,7 @@ export class LibraryWatcherService implements OnModuleInit {
     private fileWatcher: FileWatcherService,
     private libraryScanner: LibraryScannerService,
     private mediaImporter: MediaImporterService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   async onModuleInit() {
@@ -378,9 +383,19 @@ export class LibraryWatcherService implements OnModuleInit {
 
       let succeeded = 0;
       let failed = 0;
+      let labels = new Map<string, { title: string }>();
 
-      for (const audiobook of audiobooks) {
-        this.rescanCurrentAudiobook = audiobook.title;
+      for (const [index, audiobook] of audiobooks.entries()) {
+        // Label progress with the title the rest of the app shows
+        if (index % RESCAN_LABEL_BATCH === 0) {
+          labels = await this.metadataResolver.forAudiobooks(
+            audiobooks
+              .slice(index, index + RESCAN_LABEL_BATCH)
+              .map((a) => a.id),
+          );
+        }
+        this.rescanCurrentAudiobook =
+          labels.get(audiobook.id)?.title ?? audiobook.title;
         this.emitRescanStatus('rescanning');
 
         try {
@@ -461,9 +476,17 @@ export class LibraryWatcherService implements OnModuleInit {
 
       let succeeded = 0;
       let failed = 0;
+      let labels = new Map<string, { title: string | null }>();
 
-      for (const book of books) {
-        this.rescanCurrentAudiobook = book.title ?? undefined;
+      for (const [index, book] of books.entries()) {
+        // Label progress with the title the rest of the app shows
+        if (index % RESCAN_LABEL_BATCH === 0) {
+          labels = await this.metadataResolver.forComicBooks(
+            books.slice(index, index + RESCAN_LABEL_BATCH).map((b) => b.id),
+          );
+        }
+        this.rescanCurrentAudiobook =
+          (labels.get(book.id)?.title ?? book.title) || undefined;
         this.emitRescanStatus('rescanning');
 
         try {

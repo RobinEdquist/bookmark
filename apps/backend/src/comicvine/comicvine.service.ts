@@ -21,6 +21,7 @@ import {
 } from './utils/match-confidence';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import type {
   CvVolumeRaw,
   CvIssueRaw,
@@ -50,6 +51,7 @@ export class ComicvineService {
     private db: NodePgDatabase<CombinedSchema>,
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   // =========================================================================
@@ -1094,42 +1096,35 @@ export class ComicvineService {
       )
       .orderBy(asc(comicvineSchema.comicvineSyncQueue.createdAt));
 
-    const result = await Promise.all(
-      items.map(async (item) => {
-        let title: string | null = null;
+    // Show the titles the rest of the app shows
+    const [seriesMetadata, bookMetadata] = await Promise.all([
+      this.metadataResolver.forComicSeries(
+        items.flatMap((item) =>
+          item.level === 'series' && item.seriesId ? [item.seriesId] : [],
+        ),
+      ),
+      this.metadataResolver.forComicBooks(
+        items.flatMap((item) =>
+          item.level === 'book' && item.bookId ? [item.bookId] : [],
+        ),
+      ),
+    ]);
 
-        if (item.level === 'series' && item.seriesId) {
-          const series = await this.db
-            .select({ title: comicsSchema.comicSeries.title })
-            .from(comicsSchema.comicSeries)
-            .where(eq(comicsSchema.comicSeries.id, item.seriesId))
-            .limit(1);
-
-          title = series[0]?.title ?? null;
-        } else if (item.level === 'book' && item.bookId) {
-          const bookRow = await this.db
-            .select({ title: comicsSchema.comicBooks.title })
-            .from(comicsSchema.comicBooks)
-            .where(eq(comicsSchema.comicBooks.id, item.bookId))
-            .limit(1);
-
-          title = bookRow[0]?.title ?? null;
-        }
-
-        return {
-          id: item.id,
-          level: item.level,
-          seriesId: item.seriesId,
-          bookId: item.bookId,
-          status: item.status,
-          errorMessage: item.errorMessage,
-          createdAt: item.createdAt,
-          title,
-        };
-      }),
-    );
-
-    return result;
+    return items.map((item) => ({
+      id: item.id,
+      level: item.level,
+      seriesId: item.seriesId,
+      bookId: item.bookId,
+      status: item.status,
+      errorMessage: item.errorMessage,
+      createdAt: item.createdAt,
+      title:
+        item.level === 'series' && item.seriesId
+          ? (seriesMetadata.get(item.seriesId)?.title ?? null)
+          : item.level === 'book' && item.bookId
+            ? (bookMetadata.get(item.bookId)?.title ?? null)
+            : null,
+    }));
   }
 
   async getPendingCount(): Promise<number> {

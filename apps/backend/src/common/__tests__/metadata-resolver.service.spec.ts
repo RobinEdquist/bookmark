@@ -2,8 +2,11 @@ import * as audiobookSchema from '../../audiobooks/schema';
 import * as ebookSchema from '../../ebooks/schema';
 import * as hardcoverSchema from '../../hardcover/schema';
 import * as goodreadsSchema from '../../gr-finder/schema';
+import * as comicSchema from '../../comics/schema';
 import {
+  DEFAULT_COMIC_METADATA_PRIORITY,
   DEFAULT_METADATA_PRIORITY,
+  type ComicMetadataFieldPriority,
   type MetadataFieldPriority,
 } from '../../app-settings/schema';
 import { MetadataResolverService } from '../metadata-resolver.service';
@@ -23,6 +26,7 @@ function createDb(resultsByTable: Map<unknown, unknown[]>) {
           return chain;
         },
         innerJoin: () => chain,
+        leftJoin: () => chain,
         where: () => chain,
         orderBy: () => chain,
         then: (resolve: (value: unknown[]) => unknown) => resolve(rows),
@@ -35,9 +39,11 @@ function createDb(resultsByTable: Map<unknown, unknown[]>) {
 function createService(
   resultsByTable: Map<unknown, unknown[]>,
   priority: MetadataFieldPriority = DEFAULT_METADATA_PRIORITY,
+  comicPriority: ComicMetadataFieldPriority = DEFAULT_COMIC_METADATA_PRIORITY,
 ) {
   return new MetadataResolverService(createDb(resultsByTable), {
     getMetadataPriority: jest.fn().mockResolvedValue(priority),
+    getComicMetadataPriority: jest.fn().mockResolvedValue(comicPriority),
   } as any);
 }
 
@@ -224,6 +230,67 @@ describe('MetadataResolverService', () => {
         title: 'Beautiful, Dirty, Rich',
         subtitle: null,
         authorNames: ['J.D. Mason'],
+      });
+    });
+  });
+
+  describe('forComicSeries', () => {
+    const seriesRow = {
+      id: 'series-1',
+      title: 'wolverine_2010',
+      publisher: null,
+      startYear: null,
+      manualFields: [],
+      volumeName: 'Wolverine',
+      volumePublisher: 'Marvel',
+      volumeStartYear: 2010,
+    };
+    const COMICVINE_FIRST: ComicMetadataFieldPriority = {
+      ...DEFAULT_COMIC_METADATA_PRIORITY,
+      title: ['manual', 'comicvine', 'embedded'],
+    };
+
+    it('resolves title, publisher and start year by priority', async () => {
+      const service = createService(
+        new Map([[comicSchema.comicSeries, [seriesRow]]]),
+        DEFAULT_METADATA_PRIORITY,
+        COMICVINE_FIRST,
+      );
+
+      const result = await service.forComicSeries(['series-1']);
+
+      // Publisher and start year are empty in the files, so ComicVine fills them
+      expect(result.get('series-1')).toEqual({
+        title: 'Wolverine',
+        publisher: 'Marvel',
+        startYear: 2010,
+      });
+    });
+
+    it('keeps hand-edited values ahead of ComicVine', async () => {
+      const service = createService(
+        new Map([
+          [
+            comicSchema.comicSeries,
+            [
+              {
+                ...seriesRow,
+                title: 'Wolverine (2010)',
+                publisher: 'Marvel Comics',
+                manualFields: ['title', 'publisher'],
+              },
+            ],
+          ],
+        ]),
+        DEFAULT_METADATA_PRIORITY,
+        COMICVINE_FIRST,
+      );
+
+      const result = await service.forComicSeries(['series-1']);
+
+      expect(result.get('series-1')).toMatchObject({
+        title: 'Wolverine (2010)',
+        publisher: 'Marvel Comics',
       });
     });
   });

@@ -149,6 +149,7 @@ describe('LibraryScannerService', () => {
   let mockMediaImporter: ReturnType<typeof createMockMediaImporter>;
   let mockAppEvents: ReturnType<typeof createMockAppEvents>;
   let mockWsEvents: ReturnType<typeof createMockWsEvents>;
+  let mockMetadataResolver: { forAudiobooks: jest.Mock };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -157,6 +158,9 @@ describe('LibraryScannerService', () => {
     mockMediaImporter = createMockMediaImporter();
     mockAppEvents = createMockAppEvents();
     mockWsEvents = createMockWsEvents();
+    mockMetadataResolver = {
+      forAudiobooks: jest.fn().mockResolvedValue(new Map()),
+    };
 
     service = new LibraryScannerService(
       mockDb as any,
@@ -164,6 +168,7 @@ describe('LibraryScannerService', () => {
       mockMediaImporter as any,
       mockAppEvents as any,
       mockWsEvents as any,
+      mockMetadataResolver as any,
     );
   });
 
@@ -587,15 +592,30 @@ describe('LibraryScannerService', () => {
       });
     }
 
-    it('lists hidden audiobooks by title', async () => {
-      const rows = [{ id: 'ab-1', title: 'Skeleton Crew', filePath: 'SK/SC' }];
-      const orderBy = jest.fn().mockResolvedValue(rows);
+    it('lists hidden audiobooks by their shown title', async () => {
       mockDb._mockSelectFrom.mockReturnValueOnce({
-        where: jest.fn().mockReturnValue({ orderBy }),
+        where: jest.fn().mockResolvedValue([
+          { id: 'ab-1', title: 'Skeleton Crew', filePath: 'SK/SC' },
+          {
+            id: 'ab-2',
+            title: 'Martin - ASOIAF 2 - A Clash of Kings',
+            filePath: 'GRRM/ACOK',
+          },
+        ]),
       });
+      mockMetadataResolver.forAudiobooks.mockResolvedValueOnce(
+        new Map([
+          [
+            'ab-2',
+            { title: 'A Clash of Kings', subtitle: null, authorNames: [] },
+          ],
+        ]),
+      );
 
-      await expect(service.listHiddenAudiobooks()).resolves.toEqual(rows);
-      expect(orderBy).toHaveBeenCalled();
+      await expect(service.listHiddenAudiobooks()).resolves.toEqual([
+        { id: 'ab-2', title: 'A Clash of Kings', filePath: 'GRRM/ACOK' },
+        { id: 'ab-1', title: 'Skeleton Crew', filePath: 'SK/SC' },
+      ]);
     });
 
     it('restores a hidden audiobook against what is on disk now', async () => {

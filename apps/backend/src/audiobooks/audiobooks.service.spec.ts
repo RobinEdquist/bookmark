@@ -20,6 +20,7 @@ describe('AudiobooksService', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any, // metadataResolver
       );
 
       await (service as any).updateSeries('audiobook-1', []);
@@ -55,6 +56,7 @@ describe('AudiobooksService', () => {
         {} as any,
         {} as any,
         {} as any,
+        {} as any, // metadataResolver
       );
 
       await service.delete('audiobook-1', false);

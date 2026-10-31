@@ -9,6 +9,7 @@ import { asc, eq, inArray, sql } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { ComicsService } from '../comics/comics.service';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import * as comicsSchema from '../comics/schema';
 import { McpAccessService } from './mcp-access.service';
 import { McpEntityStore } from './mcp-entity-store';
@@ -60,6 +61,7 @@ export class McpStructureService {
     private readonly store: McpEntityStore,
     private readonly comicsService: ComicsService,
     private readonly changeLog: McpChangeLogService,
+    private readonly metadataResolver: MetadataResolverService,
   ) {}
 
   async createSeries(
@@ -225,7 +227,11 @@ export class McpStructureService {
   ): Promise<{ id: string; title: unknown }[]> {
     if (moving.length === 0) return [];
     const sourceIds = [...new Set(moving.map((b) => b.seriesId))];
-    const snapshots = await this.snapshots(sourceIds, moving);
+    // Resolve titles first: a series the move empties is gone afterwards
+    const [snapshots, titles] = await Promise.all([
+      this.snapshots(sourceIds, moving),
+      this.metadataResolver.forComicSeries(sourceIds),
+    ]);
     const result = await this.comicsService.moveBooksToSeries(
       moving.map((b) => b.id),
       targetSeriesId,
@@ -239,7 +245,7 @@ export class McpStructureService {
     ]);
     return result.deletedSeriesIds.map((id) => ({
       id,
-      title: snapshots.get(id)?.title ?? null,
+      title: titles.get(id)?.title ?? snapshots.get(id)?.title ?? null,
     }));
   }
 
@@ -295,22 +301,15 @@ export class McpStructureService {
     };
   }
 
-  /** A series the user may change, as `{ id, title }`. */
+  /** A series the user may change, as `{ id, title }` with the shown title. */
   private async seriesForWrite(
     user: AuthenticatedUser,
     id: string,
   ): Promise<{ id: string; title: string }> {
     await this.store.verifyAccess(user, 'comic_series', id);
-    const [series] = await this.db
-      .select({
-        id: comicsSchema.comicSeries.id,
-        title: comicsSchema.comicSeries.title,
-      })
-      .from(comicsSchema.comicSeries)
-      .where(eq(comicsSchema.comicSeries.id, id))
-      .limit(1);
+    const series = (await this.metadataResolver.forComicSeries([id])).get(id);
     if (!series) throw new NotFoundException(`Comic series not found: ${id}`);
-    return series;
+    return { id, title: series.title };
   }
 
   /** Issues per series, every status included, as the delete check counts. */

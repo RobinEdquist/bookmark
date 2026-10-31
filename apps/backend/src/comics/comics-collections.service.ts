@@ -19,6 +19,7 @@ import * as audiobooksSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
 import * as comicvineSchema from '../comicvine/schema';
 import { CoverService } from '../common/cover.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
 import {
@@ -57,6 +58,7 @@ export class ComicsCollectionsService {
     private coverService: CoverService,
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   async findAll(
@@ -227,6 +229,7 @@ export class ComicsCollectionsService {
       .select({
         series: schema.comicSeries,
         bookCount: sql<number>`(${bookCount})`,
+        comicvineLinked: sql<boolean>`exists(select 1 from ${comicvineSchema.comicvineVolumeLinks} where ${comicvineSchema.comicvineVolumeLinks.seriesId} = ${schema.comicSeries.id})`,
       })
       .from(schema.comicCollectionSeries)
       .innerJoin(
@@ -242,28 +245,35 @@ export class ComicsCollectionsService {
       )
       .orderBy(asc(schema.comicCollectionSeries.position));
 
-    const mainCharacters = await loadMainCharacters(
-      this.db,
-      memberRows.map((r) => r.series.id),
+    const seriesIds = memberRows.map((r) => r.series.id);
+    const [mainCharacters, seriesMetadata] = await Promise.all([
+      loadMainCharacters(this.db, seriesIds),
+      this.metadataResolver.forComicSeries(seriesIds),
+    ]);
+    // Same card values the series list shows
+    const series = memberRows.map(
+      ({ series: s, bookCount: count, comicvineLinked }) => {
+        const resolved = seriesMetadata.get(s.id);
+        return {
+          id: s.id,
+          title: resolved?.title ?? s.title,
+          publisher: resolved ? resolved.publisher : s.publisher,
+          startYear: resolved ? resolved.startYear : s.startYear,
+          status: s.status,
+          bookCount: Number(count),
+          totalIssueCount: s.totalIssueCount,
+          coverUrl: this.coverService.getCoverUrl(
+            s.id,
+            s.coverUrl,
+            s.coverSource,
+            'comics/series',
+          ),
+          createdAt: s.createdAt,
+          comicvineLinked: Boolean(comicvineLinked),
+          mainCharacters: mainCharacters.get(s.id) ?? [],
+        };
+      },
     );
-    const series = memberRows.map(({ series: s, bookCount: count }) => ({
-      id: s.id,
-      title: s.title,
-      publisher: s.publisher,
-      startYear: s.startYear,
-      status: s.status,
-      bookCount: Number(count),
-      totalIssueCount: s.totalIssueCount,
-      coverUrl: this.coverService.getCoverUrl(
-        s.id,
-        s.coverUrl,
-        s.coverSource,
-        'comics/series',
-      ),
-      createdAt: s.createdAt,
-      comicvineLinked: false,
-      mainCharacters: mainCharacters.get(s.id) ?? [],
-    }));
 
     return {
       id: collection.id,

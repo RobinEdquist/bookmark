@@ -133,6 +133,7 @@ describe('Ebook and comic deletion followed by a startup scan', () => {
       {} as any,
       {} as any,
       {} as any,
+      {} as any, // metadataResolver
     );
     const comicsService = new ComicsService(
       db as any,
@@ -144,6 +145,7 @@ describe('Ebook and comic deletion followed by a startup scan', () => {
       events as any,
       wsEvents as any,
       {} as any,
+      {} as any, // metadataResolver
     );
     const importer = {
       importEbook: jest.fn().mockResolvedValue('reimported-ebook'),
@@ -162,6 +164,7 @@ describe('Ebook and comic deletion followed by a startup scan', () => {
         importer as any,
         events as any,
         wsEvents as any,
+        {} as any, // metadataResolver
       );
       return kind === 'ebook'
         ? scanner.scanEbookLibrary(libraryPath)

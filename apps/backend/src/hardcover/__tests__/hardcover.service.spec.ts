@@ -108,7 +108,11 @@ describe('HardcoverService', () => {
   let mockMetadataEntityService: ReturnType<
     typeof createMockMetadataEntityService
   >;
-  let mockMetadataResolver: { forMedia: jest.Mock };
+  let mockMetadataResolver: {
+    forMedia: jest.Mock;
+    forAudiobooks: jest.Mock;
+    forEbooks: jest.Mock;
+  };
   let service: HardcoverService;
 
   beforeEach(() => {
@@ -117,7 +121,11 @@ describe('HardcoverService', () => {
     mockAppEvents = createMockAppEvents();
     mockWsEvents = createMockWsEvents();
     mockMetadataEntityService = createMockMetadataEntityService();
-    mockMetadataResolver = { forMedia: jest.fn() };
+    mockMetadataResolver = {
+      forMedia: jest.fn(),
+      forAudiobooks: jest.fn().mockResolvedValue(new Map()),
+      forEbooks: jest.fn().mockResolvedValue(new Map()),
+    };
     service = new HardcoverService(
       db as any,
       mockAppEvents as any,
@@ -958,6 +966,77 @@ describe('HardcoverService', () => {
 
       expect(result).toBe(0);
       expect(db.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getFailedQueueItems', () => {
+    it('shows the resolved title and subtitle of each failed item', async () => {
+      const createdAt = new Date('2026-01-01');
+      const chain = createChainMock(['from', 'where', 'orderBy']);
+      chain.orderBy.mockResolvedValueOnce([
+        {
+          id: 'q-1',
+          audiobookId: 'ab-1',
+          ebookId: null,
+          errorMessage: 'No match',
+          createdAt,
+        },
+        {
+          id: 'q-2',
+          audiobookId: null,
+          ebookId: 'eb-1',
+          errorMessage: null,
+          createdAt,
+        },
+        {
+          id: 'q-3',
+          audiobookId: 'ab-gone',
+          ebookId: null,
+          errorMessage: null,
+          createdAt,
+        },
+      ]);
+      db.select.mockReturnValueOnce(chain);
+      mockMetadataResolver.forAudiobooks.mockResolvedValueOnce(
+        new Map([
+          [
+            'ab-1',
+            {
+              title: 'A Clash of Kings',
+              subtitle: 'A Song of Ice and Fire, Book 2',
+              authorNames: [],
+            },
+          ],
+        ]),
+      );
+      mockMetadataResolver.forEbooks.mockResolvedValueOnce(
+        new Map([['eb-1', { title: 'Dune', subtitle: null, authorNames: [] }]]),
+      );
+
+      const result = await service.getFailedQueueItems();
+
+      expect(mockMetadataResolver.forAudiobooks).toHaveBeenCalledWith([
+        'ab-1',
+        'ab-gone',
+      ]);
+      expect(mockMetadataResolver.forEbooks).toHaveBeenCalledWith(['eb-1']);
+      expect(result.map((item) => item.media)).toEqual([
+        {
+          id: 'ab-1',
+          type: 'audiobook',
+          title: 'A Clash of Kings',
+          subtitle: 'A Song of Ice and Fire, Book 2',
+          coverUrl: '/api/audiobooks/ab-1/cover',
+        },
+        {
+          id: 'eb-1',
+          type: 'ebook',
+          title: 'Dune',
+          subtitle: null,
+          coverUrl: '/api/ebooks/eb-1/cover',
+        },
+        null,
+      ]);
     });
   });
 });

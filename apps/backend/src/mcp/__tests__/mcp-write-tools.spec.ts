@@ -57,6 +57,11 @@ let currentUser = reader;
 /** What the store reads for every field, unless a test overrides it. */
 let stored: FieldState = { value: 'Old', locked: false };
 let changeRows: Partial<ChangeRow>[] = [];
+/** Series titles as the app shows them, which may differ from the stored ones. */
+const SHOWN_TITLES: Record<string, string> = {
+  [ID]: 'Wolverine (2010)',
+  [OTHER]: 'X-Men (1991)',
+};
 
 function build() {
   // Only the editor has the edit-metadata permission row; admins always pass.
@@ -128,6 +133,17 @@ function build() {
     store as never,
     comicsService as never,
     changeLog as never,
+    {
+      forComicSeries: jest.fn(
+        async (ids: string[]) =>
+          new Map(
+            ids.map((id) => [
+              id,
+              { title: SHOWN_TITLES[id], publisher: null, startYear: null },
+            ]),
+          ),
+      ),
+    } as never,
   );
   const collectionTools = new McpCollectionsService(
     access,
@@ -339,6 +355,28 @@ describe('MCP write tools', () => {
           after: { id: 42, name: 'Wolverine', startYear: 2010 },
         },
       ]);
+    });
+  });
+
+  describe('merge_series', () => {
+    it('names series by the title the app shows on a dry run', async () => {
+      const { call, comicsService } = await connect(editor);
+      const result = json<{
+        target: object;
+        wouldDeleteSeries: object[];
+      }>(
+        await call('merge_series', {
+          sourceSeriesIds: [ID],
+          targetSeriesId: OTHER,
+          dryRun: true,
+        }),
+      );
+
+      expect(result.target).toEqual({ id: OTHER, title: 'X-Men (1991)' });
+      expect(result.wouldDeleteSeries).toEqual([
+        expect.objectContaining({ id: ID, title: 'Wolverine (2010)' }),
+      ]);
+      expect(comicsService.mergeSeries).not.toHaveBeenCalled();
     });
   });
 

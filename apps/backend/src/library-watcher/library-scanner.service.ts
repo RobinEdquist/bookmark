@@ -1,7 +1,7 @@
 // apps/backend/src/library-watcher/library-scanner.service.ts
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import { asc, eq, or, sql } from 'drizzle-orm';
+import { eq, or, sql } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import pLimit from 'p-limit';
@@ -22,6 +22,7 @@ import {
 } from './media-importer.service';
 import { AppEventsService } from '../events/app-events.service';
 import { WsEventsService } from '../events/ws-events.service';
+import { MetadataResolverService } from '../common/metadata-resolver.service';
 import { LibraryType } from './file-watcher.service';
 import { calculateAudiobookPaths } from './utils/path.utils';
 
@@ -71,6 +72,7 @@ export class LibraryScannerService {
     private mediaImporter: MediaImporterService,
     private appEvents: AppEventsService,
     private wsEvents: WsEventsService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   // ===== AUDIOBOOK SCANNING =====
@@ -533,15 +535,25 @@ export class LibraryScannerService {
   // see what is hidden and undo it.
 
   async listHiddenAudiobooks(): Promise<HiddenAudiobook[]> {
-    return this.db
+    const rows = await this.db
       .select({
         id: audiobooksSchema.audiobooks.id,
         title: audiobooksSchema.audiobooks.title,
         filePath: audiobooksSchema.audiobooks.filePath,
       })
       .from(audiobooksSchema.audiobooks)
-      .where(eq(audiobooksSchema.audiobooks.status, 'hidden'))
-      .orderBy(asc(audiobooksSchema.audiobooks.title));
+      .where(eq(audiobooksSchema.audiobooks.status, 'hidden'));
+
+    // The folder path stays raw; the title is the one the app shows
+    const metadata = await this.metadataResolver.forAudiobooks(
+      rows.map((row) => row.id),
+    );
+    return rows
+      .map((row) => ({
+        ...row,
+        title: metadata.get(row.id)?.title ?? row.title,
+      }))
+      .sort((a, b) => a.title.localeCompare(b.title));
   }
 
   /**

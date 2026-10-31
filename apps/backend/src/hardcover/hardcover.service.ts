@@ -912,66 +912,41 @@ export class HardcoverService {
       .where(eq(hardcoverSchema.hardcoverSyncQueue.status, 'failed'))
       .orderBy(asc(hardcoverSchema.hardcoverSyncQueue.createdAt));
 
-    const result = await Promise.all(
-      items.map(async (item) => {
-        let media: {
-          id: string;
-          type: MediaType;
-          title: string;
-          subtitle: string | null;
-          coverUrl: string | null;
-        } | null = null;
+    // Show the titles the rest of the app shows
+    const [audiobookMetadata, ebookMetadata] = await Promise.all([
+      this.metadataResolver.forAudiobooks(
+        items.flatMap((item) => (item.audiobookId ? [item.audiobookId] : [])),
+      ),
+      this.metadataResolver.forEbooks(
+        items.flatMap((item) =>
+          !item.audiobookId && item.ebookId ? [item.ebookId] : [],
+        ),
+      ),
+    ]);
 
-        if (item.audiobookId) {
-          const audiobook = await this.db
-            .select({
-              id: audiobooksSchema.audiobooks.id,
-              title: audiobooksSchema.audiobooks.title,
-              subtitle: audiobooksSchema.audiobooks.subtitle,
-            })
-            .from(audiobooksSchema.audiobooks)
-            .where(eq(audiobooksSchema.audiobooks.id, item.audiobookId))
-            .limit(1);
+    return items.map((item) => {
+      const type: MediaType = item.audiobookId ? 'audiobook' : 'ebook';
+      const mediaId = item.audiobookId ?? item.ebookId;
+      const resolved = !mediaId
+        ? undefined
+        : type === 'audiobook'
+          ? audiobookMetadata.get(mediaId)
+          : ebookMetadata.get(mediaId);
 
-          if (audiobook.length > 0) {
-            media = {
-              id: audiobook[0].id,
-              type: 'audiobook',
-              title: audiobook[0].title,
-              subtitle: audiobook[0].subtitle,
-              coverUrl: `/api/audiobooks/${audiobook[0].id}/cover`,
-            };
-          }
-        } else if (item.ebookId) {
-          const ebook = await this.db
-            .select({
-              id: ebooksSchema.ebooks.id,
-              title: ebooksSchema.ebooks.title,
-              subtitle: ebooksSchema.ebooks.subtitle,
-            })
-            .from(ebooksSchema.ebooks)
-            .where(eq(ebooksSchema.ebooks.id, item.ebookId))
-            .limit(1);
-
-          if (ebook.length > 0) {
-            media = {
-              id: ebook[0].id,
-              type: 'ebook',
-              title: ebook[0].title,
-              subtitle: ebook[0].subtitle,
-              coverUrl: `/api/ebooks/${ebook[0].id}/cover`,
-            };
-          }
-        }
-
-        return {
-          ...item,
-          media,
-        };
-      }),
-    );
-
-    return result;
+      return {
+        ...item,
+        media:
+          mediaId && resolved
+            ? {
+                id: mediaId,
+                type,
+                title: resolved.title,
+                subtitle: resolved.subtitle,
+                coverUrl: `/api/${type}s/${mediaId}/cover`,
+              }
+            : null,
+      };
+    });
   }
 
   async getPendingQueueCount(): Promise<number> {

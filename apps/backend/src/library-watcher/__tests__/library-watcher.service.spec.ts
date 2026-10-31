@@ -94,6 +94,13 @@ function createMockMediaImporter() {
   };
 }
 
+function createMockMetadataResolver() {
+  return {
+    forAudiobooks: jest.fn().mockResolvedValue(new Map()),
+    forComicBooks: jest.fn().mockResolvedValue(new Map()),
+  };
+}
+
 function createService() {
   const db = createMockDb();
   const appSettings = createMockAppSettings();
@@ -102,6 +109,7 @@ function createService() {
   const fileWatcher = createMockFileWatcher();
   const libraryScanner = createMockLibraryScanner();
   const mediaImporter = createMockMediaImporter();
+  const metadataResolver = createMockMetadataResolver();
 
   const service = new LibraryWatcherService(
     db as any,
@@ -111,6 +119,7 @@ function createService() {
     fileWatcher as any,
     libraryScanner as any,
     mediaImporter as any,
+    metadataResolver as any,
   );
 
   return {
@@ -122,6 +131,7 @@ function createService() {
     fileWatcher,
     libraryScanner,
     mediaImporter,
+    metadataResolver,
   };
 }
 
@@ -375,6 +385,31 @@ describe('LibraryWatcherService', () => {
       expect(
         wsEvents.rescanStatusUpdated.mock.calls.length,
       ).toBeGreaterThanOrEqual(3);
+    });
+
+    it('labels progress with the resolved title', async () => {
+      const { service, db, wsEvents, metadataResolver } = createService();
+
+      const selectChain = createChainMock(['from']);
+      selectChain.from.mockResolvedValue([
+        { id: 'a1', title: 'Martin - ASOIAF 2 - A Clash of Kings' },
+        { id: 'a2', title: 'Book Two' },
+      ]);
+      db.select.mockReturnValue(selectChain);
+      metadataResolver.forAudiobooks.mockResolvedValueOnce(
+        new Map([['a1', { title: 'A Clash of Kings' }]]),
+      );
+
+      await service.rescanAllAudiobooks();
+
+      const labels = wsEvents.rescanStatusUpdated.mock.calls
+        .map(([status]) => status.currentAudiobook)
+        .filter(Boolean);
+      expect(labels).toContain('A Clash of Kings');
+      expect(labels).toContain('Book Two');
+      expect(labels).not.toContain('Martin - ASOIAF 2 - A Clash of Kings');
+      expect(metadataResolver.forAudiobooks).toHaveBeenCalledTimes(1);
+      expect(metadataResolver.forAudiobooks).toHaveBeenCalledWith(['a1', 'a2']);
     });
 
     it('resets state in finally block', async () => {

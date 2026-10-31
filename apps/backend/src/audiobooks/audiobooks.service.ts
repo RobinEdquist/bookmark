@@ -44,6 +44,10 @@ import {
 import { splitPersonNames } from '../common/utils/name.utils';
 import { resolveExternalTitle } from '../common/utils/title.utils';
 import { MetadataEntityService } from '../common/metadata-entity.service';
+import {
+  MetadataResolverService,
+  type ResolvedBookMetadata,
+} from '../common/metadata-resolver.service';
 
 export interface AudiobookListItem {
   id: string;
@@ -87,6 +91,7 @@ export class AudiobooksService {
     private appDataService: AppDataService,
     private coverService: CoverService,
     private metadataEntityService: MetadataEntityService,
+    private metadataResolver: MetadataResolverService,
   ) {}
 
   /**
@@ -867,19 +872,15 @@ export class AudiobooksService {
         .limit(1),
       this.appSettingsService.getMetadataPriority(),
       ab.generatedFromEbookId
-        ? this.db
-            .select({
-              id: ebookSchema.ebooks.id,
-              title: ebookSchema.ebooks.title,
-            })
-            .from(ebookSchema.ebooks)
-            .where(eq(ebookSchema.ebooks.id, ab.generatedFromEbookId))
-            .limit(1)
-        : Promise.resolve([]),
+        ? this.metadataResolver.forEbooks([ab.generatedFromEbookId])
+        : Promise.resolve(new Map<string, ResolvedBookMetadata>()),
     ]);
 
     const hc = hardcoverData[0]?.hardcoverBook || null;
     const gr = goodreadsData[0]?.goodreadsBook || null;
+    const generatedFromEbook = ab.generatedFromEbookId
+      ? generatedFromEbookData.get(ab.generatedFromEbookId)
+      : undefined;
     const [canonicalExternalPeople, canonicalExternalSeries] =
       await Promise.all([
         this.metadataEntityService.findPeopleByNames([
@@ -1135,7 +1136,10 @@ export class AudiobooksService {
           }
         : null,
       // Source ebook when this audiobook was AI-narrated from one
-      generatedFromEbook: generatedFromEbookData[0] ?? null,
+      generatedFromEbook:
+        ab.generatedFromEbookId && generatedFromEbook
+          ? { id: ab.generatedFromEbookId, title: generatedFromEbook.title }
+          : null,
     };
   }
 
@@ -2061,7 +2065,10 @@ export class AudiobooksService {
 
     // Multiple files OR separate cover - ZIP download
     // Sanitize title for filename
-    const sanitizedTitle = ab.title
+    const title =
+      (await this.metadataResolver.forAudiobooks([ab.id])).get(ab.id)?.title ??
+      ab.title;
+    const sanitizedTitle = title
       // eslint-disable-next-line no-control-regex
       .replace(/[<>:"/\\|?*\x00-\x1f]/g, '') // Remove invalid filename chars
       .replace(/\s+/g, ' ') // Normalize whitespace
