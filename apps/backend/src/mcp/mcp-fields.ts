@@ -11,6 +11,7 @@ export const ENTITY_TYPES = [
   'comic_series',
   'comic_issue',
   'comic_collection',
+  'reading_list',
   'audiobook',
   'ebook',
   'book_series',
@@ -21,6 +22,7 @@ export const ENTITY_NAMES: Record<EntityType, string> = {
   comic_series: 'Comic series',
   comic_issue: 'Comic issue',
   comic_collection: 'Comic collection',
+  reading_list: 'Reading list',
   audiobook: 'Audiobook',
   ebook: 'Ebook',
   book_series: 'Series',
@@ -115,6 +117,12 @@ export const FIELDS: Record<EntityType, Record<string, FieldSpec>> = {
     description: {},
     members: { setBy: 'the collection tools' },
   },
+  reading_list: {
+    name: { required: true },
+    sortName: {},
+    description: {},
+    entries: { setBy: 'the reading list tools' },
+  },
 };
 
 /** A field's stored value, and for lockable fields whether it is locked. */
@@ -208,7 +216,20 @@ export function editableFields(type: EntityType): string[] {
     .map(([name]) => name);
 }
 
-/** Stored values compare as JSON, with undefined and null the same. */
+/**
+ * Stored values compare as JSON, with undefined and null the same. Object keys
+ * may come in any order: the change log is jsonb, which reorders them.
+ */
 export function sameValue(a: unknown, b: unknown): boolean {
-  return JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+  return canonicalJson(a ?? null) === canonicalJson(b ?? null);
+}
+
+function canonicalJson(value: unknown): string {
+  return JSON.stringify(value, (_key, v: unknown) =>
+    v && typeof v === 'object' && !Array.isArray(v)
+      ? Object.fromEntries(
+          Object.entries(v).sort(([x], [y]) => (x < y ? -1 : x > y ? 1 : 0)),
+        )
+      : v,
+  );
 }

@@ -13,6 +13,7 @@ import {
   type ChangeRow,
 } from './mcp-change-log.service';
 import { McpStructureService, type MovingBook } from './mcp-structure.service';
+import type { ReadingListEntryState } from '../reading-lists/reading-list-order';
 import {
   CREATED_FIELD,
   DELETED_FIELD,
@@ -49,7 +50,7 @@ interface Skipped {
  * undo_change: puts back the `before` values of one change set.
  *
  * Covered: field edits and unlocks, main characters, issue moves, collection
- * edits and membership. Not covered: creating records and deleting emptied
+ * and reading list edits and membership. Not covered: creating records and deleting emptied
  * series (undoing either would mean a delete or a rebuild), and external
  * links. A whole merge is refused.
  *
@@ -220,6 +221,11 @@ export class McpUndoService {
         id,
         group[0].before.value as string[],
       );
+    } else if (type === 'reading_list' && fields.includes('entries')) {
+      await this.store.setReadingListEntries(
+        id,
+        group[0].before.value as ReadingListEntryState[],
+      );
     } else {
       await this.store.write(
         user,
@@ -250,7 +256,8 @@ export class McpUndoService {
 
 /**
  * Steps grouped so each group is one write: an entity's plain fields
- * together, collection members alone, and issue moves by destination.
+ * together, collection members and reading list entries alone, and issue
+ * moves by destination.
  */
 function groupSteps(steps: Step[]): Step[][] {
   const groups = new Map<string, Step[]>();
@@ -259,8 +266,8 @@ function groupSteps(steps: Step[]): Step[][] {
     const key =
       type === 'comic_issue' && row.field === 'series'
         ? `move:${String(before.value)}`
-        : row.field === 'members'
-          ? `members:${row.entityId}`
+        : row.field === 'members' || row.field === 'entries'
+          ? `${row.field}:${row.entityId}`
           : `fields:${type}:${row.entityId}`;
     const group = groups.get(key) ?? [];
     group.push(step);

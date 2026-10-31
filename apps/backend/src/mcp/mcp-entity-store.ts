@@ -11,6 +11,8 @@ import { AudiobooksService } from '../audiobooks/audiobooks.service';
 import { EbooksService } from '../ebooks/ebooks.service';
 import { ComicsService } from '../comics/comics.service';
 import { ComicsCollectionsService } from '../comics/comics-collections.service';
+import { ReadingListsService } from '../reading-lists/reading-lists.service';
+import type { ReadingListEntryState } from '../reading-lists/reading-list-order';
 import { SeriesService } from '../series/series.service';
 import { loadMainCharacters } from '../comics/comic-main-characters';
 import type { UpdateAudiobookDto } from '../audiobooks/dto/update-audiobook.dto';
@@ -19,6 +21,7 @@ import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as comicsSchema from '../comics/schema';
+import * as readingListsSchema from '../reading-lists/schema';
 import {
   ENTITY_NAMES,
   FIELDS,
@@ -27,7 +30,10 @@ import {
 } from './mcp-fields';
 
 type StoreDatabase = NodePgDatabase<
-  typeof audiobooksSchema & typeof ebooksSchema & typeof comicsSchema
+  typeof audiobooksSchema &
+    typeof ebooksSchema &
+    typeof comicsSchema &
+    typeof readingListsSchema
 >;
 
 type ComicBookUpdate = Parameters<ComicsService['updateBook']>[1];
@@ -48,14 +54,15 @@ export class McpEntityStore {
     private readonly db: StoreDatabase,
     private readonly comicsService: ComicsService,
     private readonly collectionsService: ComicsCollectionsService,
+    private readonly readingListsService: ReadingListsService,
     private readonly audiobooksService: AudiobooksService,
     private readonly ebooksService: EbooksService,
     private readonly seriesService: SeriesService,
   ) {}
 
   /**
-   * Refuses an id the user has blacklisted, as the read tools do. Book series
-   * and collections have no blacklist.
+   * Refuses an id the user has blacklisted, as the read tools do. Book series,
+   * collections and reading lists have no blacklist.
    */
   async verifyAccess(
     user: AuthenticatedUser,
@@ -120,8 +127,8 @@ export class McpEntityStore {
 
   /**
    * Writes fields through the domain service, which locks each one. Issue
-   * moves and collection members have their own paths (move_items and
-   * setCollectionMembers).
+   * moves, collection members and reading list entries have their own paths
+   * (move_items, setCollectionMembers and setReadingListEntries).
    */
   async write(
     user: AuthenticatedUser,
@@ -154,6 +161,12 @@ export class McpEntityStore {
         await this.collectionsService.update(
           id,
           values as Parameters<ComicsCollectionsService['update']>[1],
+        );
+        return;
+      case 'reading_list':
+        await this.readingListsService.update(
+          id,
+          values as Parameters<ReadingListsService['update']>[1],
         );
         return;
     }
@@ -223,6 +236,22 @@ export class McpEntityStore {
     await this.collectionsService.reorder(collectionId, wanted);
   }
 
+  /** Reading list entries, in order, with their notes. */
+  readingListEntries(readingListId: string): Promise<ReadingListEntryState[]> {
+    return this.readingListsService.entryStates(readingListId);
+  }
+
+  /**
+   * Makes a reading list hold exactly these entries, in this order. Items
+   * that no longer exist are left out.
+   */
+  setReadingListEntries(
+    readingListId: string,
+    entries: ReadingListEntryState[],
+  ): Promise<void> {
+    return this.readingListsService.setEntries(readingListId, entries);
+  }
+
   /** The ids among `ids` that are comic series. */
   async existingSeries(ids: string[]): Promise<string[]> {
     if (ids.length === 0) return [];
@@ -246,6 +275,7 @@ export class McpEntityStore {
     const c = comicsSchema;
     const a = audiobooksSchema;
     const e = ebooksSchema;
+    const r = readingListsSchema;
     let found: { row: Record<string, unknown>; manualFields: string[] } | null =
       null;
 
@@ -347,6 +377,24 @@ export class McpEntityStore {
         }
         break;
       }
+      case 'reading_list': {
+        const [list] = await this.db
+          .select()
+          .from(r.readingLists)
+          .where(eq(r.readingLists.id, id))
+          .limit(1);
+        if (list) {
+          found = {
+            row: {
+              name: list.name,
+              sortName: list.sortName,
+              description: list.description,
+            },
+            manualFields: [],
+          };
+        }
+        break;
+      }
     }
 
     if (!found) throw new NotFoundException(`${ENTITY_NAMES[type]} not found`);
@@ -438,6 +486,8 @@ export class McpEntityStore {
         );
       case 'comic_collection.members':
         return this.collectionMembers(id);
+      case 'reading_list.entries':
+        return this.readingListEntries(id);
       default:
         throw new BadRequestException(
           `${field} is not a field of a ${ENTITY_NAMES[type].toLowerCase()}`,

@@ -18,6 +18,7 @@ import {
   FileArchive,
   HardDrive,
   Layers,
+  ListPlus,
   Sparkles,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
@@ -35,6 +36,8 @@ import { EditComicBookDialog } from "../../../../../../components/comics/edit-co
 import { ChangeComicBookCoverDialog } from "../../../../../../components/comics/change-comic-book-cover-dialog";
 import { DeleteComicBookDialog } from "../../../../../../components/comics/delete-comic-book-dialog";
 import { DetailHeaderActions } from "../../../../../../components/layout/detail-header-actions";
+import { AddToReadingListDialog } from "../../../../../../components/reading-lists/add-to-reading-list-dialog";
+import { useReadingListsForItem } from "../../../../../../lib/use-reading-lists";
 import type { ComicCreatorRole } from "../../../../../../lib/use-comics";
 
 export default function ComicBookDetailPage({
@@ -46,12 +49,15 @@ export default function ComicBookDetailPage({
   const t = useTranslations("comics");
   const tcv = useTranslations("comicvine.matchDialog");
   const tRole = useTranslations("comics.role");
+  const tReadingLists = useTranslations("readingLists");
   const router = useRouter();
 
   const { data, isLoading, error } = useComicBook(bookId);
   const { data: permissions } = useMyPermissions();
+  const { data: readingLists } = useReadingListsForItem("comic", bookId);
 
   const [editOpen, setEditOpen] = useState(false);
+  const [readingListOpen, setReadingListOpen] = useState(false);
   const [changeCoverOpen, setChangeCoverOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [comicvineMatchOpen, setComicvineMatchOpen] = useState(false);
@@ -155,6 +161,12 @@ export default function ComicBookDetailPage({
               ...(canEdit
                 ? [
                     {
+                      key: "readingList",
+                      label: tReadingLists("add"),
+                      icon: <ListPlus className="h-5 w-5" />,
+                      onClick: () => setReadingListOpen(true),
+                    },
+                    {
                       key: "changeCover",
                       label: t("detail.changeCover"),
                       icon: <ImageIcon className="h-5 w-5" />,
@@ -251,6 +263,26 @@ export default function ComicBookDetailPage({
                 </Link>
               </p>
             </div>
+
+            {/* Reading lists this issue is in */}
+            {readingLists && readingLists.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-muted-foreground">
+                  {tReadingLists("belongsTo")}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {readingLists.map((list) => (
+                    <Link
+                      key={list.id}
+                      href={`/comics/reading-lists/${list.id}`}
+                      className="inline-flex items-center rounded-full border border-border/50 bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
+                    >
+                      {list.name}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* File info grid */}
             <div className="grid gap-4 sm:grid-cols-2">
@@ -494,6 +526,15 @@ export default function ComicBookDetailPage({
       </div>
 
       {/* Book dialogs */}
+      {canEdit && (
+        <AddToReadingListDialog
+          open={readingListOpen}
+          onOpenChange={setReadingListOpen}
+          mediaType="comic"
+          itemIds={[bookId]}
+        />
+      )}
+
       {canEdit && (
         <EditComicBookDialog
           bookId={bookId}

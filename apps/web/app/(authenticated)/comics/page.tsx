@@ -8,6 +8,7 @@ import { X } from "lucide-react";
 import { ComicSeriesGrid } from "../../../components/comics/comic-series-grid";
 import { ComicCollectionsView } from "../../../components/comics/comic-collections-view";
 import { ComicCharactersView } from "../../../components/comics/comic-characters-view";
+import { ReadingListsView } from "../../../components/reading-lists/reading-lists-view";
 import { useInfiniteComicSeries } from "../../../lib/use-comics";
 import { useDebouncedValue } from "../../../lib/use-debounced-value";
 import {
@@ -37,15 +38,19 @@ function toComicSortBy(sortBy: string): ComicSeriesFilters["sortBy"] {
 export default function ComicsPage() {
   const t = useTranslations("comics.filters");
   const tComics = useTranslations("comics");
+  const tReadingLists = useTranslations("readingLists");
   const router = useRouter();
   const searchParams = useSearchParams();
   const { data: session } = authClient.useSession();
   const isAdmin = session?.user?.role === "admin";
 
-  // Browse mode: "series" (default), "characters" or "collections"
+  // Browse mode: "series" (default), "characters", "collections" or
+  // "reading-lists"
   const viewParam = searchParams.get("view");
   const view =
-    viewParam === "collections" || viewParam === "characters"
+    viewParam === "collections" ||
+    viewParam === "characters" ||
+    viewParam === "reading-lists"
       ? viewParam
       : "series";
 
@@ -147,6 +152,7 @@ export default function ComicsPage() {
     { view: "series", label: tComics("collections.tabSeries") },
     { view: "characters", label: tComics("collections.tabCharacters") },
     { view: "collections", label: tComics("collections.tabCollections") },
+    { view: "reading-lists", label: tReadingLists("tab") },
   ] as const;
 
   return (
@@ -171,14 +177,14 @@ export default function ComicsPage() {
 
       <div className="p-4 pt-4 lg:p-8 lg:pt-6">
         <div className="mx-auto max-w-7xl">
-          {/* Series | Characters | Collections toggle */}
-          <div className="mb-4 flex items-center gap-1 rounded-lg border border-border bg-muted/40 p-1 w-fit">
+          {/* Series | Characters | Collections | Reading lists toggle */}
+          <div className="mb-4 flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-muted/40 p-1">
             {viewTabs.map((tab) => (
               <Link
                 key={tab.view}
                 href={viewHref(tab.view)}
                 aria-current={view === tab.view ? "page" : undefined}
-                className={`rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
+                className={`shrink-0 whitespace-nowrap rounded-md px-4 py-1.5 text-sm font-medium transition-colors ${
                   view === tab.view
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:text-foreground"
@@ -208,6 +214,13 @@ export default function ComicsPage() {
           {view === "collections" ? (
             <ComicCollectionsView
               search={debouncedSearch}
+              animateEntrance={!hasSavedPosition}
+            />
+          ) : view === "reading-lists" ? (
+            <ReadingListsView
+              mediaType="comic"
+              search={debouncedSearch}
+              hrefBase="/comics/reading-lists"
               animateEntrance={!hasSavedPosition}
             />
           ) : view === "characters" ? (

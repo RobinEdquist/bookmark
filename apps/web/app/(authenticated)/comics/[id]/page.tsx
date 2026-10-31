@@ -25,6 +25,7 @@ import {
   Sparkles,
   Edit3,
   FolderInput,
+  ListPlus,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { LoadingSpinner } from "@repo/ui/components/ui/loading-spinner";
@@ -47,6 +48,7 @@ import {
 import { GeneratedCover } from "../../../../components/common/generated-cover";
 import { BatchEditComicBooksDialog } from "../../../../components/comics/batch-edit-comic-books-dialog";
 import { SeriesPickerDialog } from "../../../../components/comics/series-picker-dialog";
+import { AddToReadingListDialog } from "../../../../components/reading-lists/add-to-reading-list-dialog";
 import { useMoveComicBooks } from "../../../../lib/use-comics";
 import {
   isCollectedEdition,
@@ -72,6 +74,7 @@ export default function ComicSeriesDetailPage({
   const { id } = use(params);
   const t = useTranslations("comics");
   const tcv = useTranslations("comicvine.matchDialog");
+  const tReadingLists = useTranslations("readingLists");
   const router = useRouter();
   const returnUrl = useLibraryReturnUrl("/comics");
   const { previousId, nextId } = useLibraryNavigation("/comics", id);
@@ -103,6 +106,7 @@ export default function ComicSeriesDetailPage({
   );
   const [batchEditOpen, setBatchEditOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [readingListOpen, setReadingListOpen] = useState(false);
   const moveBooks = useMoveComicBooks();
   const descriptionRef = useRef<HTMLDivElement>(null);
 
@@ -612,7 +616,7 @@ export default function ComicSeriesDetailPage({
         {/* Book list with book-level action callbacks */}
         <div className="mt-10">
           {canEdit && series.books.length > 0 && (
-            <div className="mb-3 flex items-center gap-3">
+            <div className="mb-3 flex flex-wrap items-center gap-3">
               <Button
                 variant={selectionMode ? "secondary" : "outline"}
                 size="sm"
@@ -639,6 +643,16 @@ export default function ComicSeriesDetailPage({
                 >
                   <FolderInput className="mr-1 h-4 w-4" />
                   {t("grouping.moveSelected")}
+                </Button>
+              )}
+              {selectionMode && selectedBookIds.size > 0 && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setReadingListOpen(true)}
+                >
+                  <ListPlus className="mr-1 h-4 w-4" />
+                  {tReadingLists("add")}
                 </Button>
               )}
               {selectionMode && (
@@ -826,6 +840,22 @@ export default function ComicSeriesDetailPage({
           selectedIds={Array.from(selectedBookIds)}
           seriesId={id}
           onSuccess={() => {
+            setSelectionMode(false);
+            setSelectedBookIds(new Set());
+          }}
+        />
+      )}
+
+      {canEdit && (
+        <AddToReadingListDialog
+          open={readingListOpen}
+          onOpenChange={setReadingListOpen}
+          mediaType="comic"
+          // In series order, not the order they were ticked
+          itemIds={series.books
+            .filter((b) => selectedBookIds.has(b.id))
+            .map((b) => b.id)}
+          onAdded={() => {
             setSelectionMode(false);
             setSelectedBookIds(new Set());
           }}

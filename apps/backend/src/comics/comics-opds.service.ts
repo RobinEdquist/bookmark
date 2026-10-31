@@ -6,6 +6,7 @@ import {
   desc,
   eq,
   count,
+  ne,
   or,
   ilike,
   isNotNull,
@@ -20,6 +21,7 @@ import * as schema from './schema';
 import * as audiobookSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
 import * as comicProgressSchema from '../comic-progress/schema';
+import * as readingListsSchema from '../reading-lists/schema';
 import { ComicProgressService } from '../comic-progress/comic-progress.service';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
 
@@ -27,7 +29,8 @@ type Db = NodePgDatabase<
   typeof schema &
     typeof audiobookSchema &
     typeof usersSchema &
-    typeof comicProgressSchema
+    typeof comicProgressSchema &
+    typeof readingListsSchema
 >;
 
 interface IssueRow {
@@ -130,6 +133,7 @@ export class ComicsOpdsService {
 ${entry('series', 'All Series', 'navigation', 'Browse all comic series')}
 ${entry('publishers', 'Publishers', 'navigation', 'Browse by publisher')}
 ${entry('collections', 'Collections', 'navigation', 'Browse comic collections')}
+${entry('reading-lists', 'Reading Lists', 'navigation', 'Issues in reading order')}
 ${entry('on-deck', 'On Deck', 'acquisition', 'Continue reading')}
 ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
 </feed>`;
@@ -296,22 +300,33 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
     userId: string;
     upLink?: string;
     paginationLinks?: string;
+    /** Title each issue "Series #n", for feeds that span series. */
+    withSeriesTitles?: boolean;
   }): Promise<string> {
     const e = (s: string) => this.escapeXml(s);
     const updated = new Date().toISOString();
     const entries: string[] = [];
     // Catalog readers must see the same title/number the book's own page shows
-    const metadata = await this.metadataResolver.forComicBooks(
-      opts.books.map((b) => b.id),
-    );
+    const [metadata, seriesMetadata] = await Promise.all([
+      this.metadataResolver.forComicBooks(opts.books.map((b) => b.id)),
+      opts.withSeriesTitles
+        ? this.metadataResolver.forComicSeries(
+            opts.books.map((b) => b.seriesId),
+          )
+        : new Map<string, { title: string }>(),
+    ]);
     for (const book of opts.books) {
       const names = await this.authorNamesForBook(book.id);
       const resolved = metadata.get(book.id);
+      const shown = resolved
+        ? { ...book, title: resolved.title, number: resolved.number }
+        : book;
+      const seriesTitle = seriesMetadata.get(book.seriesId)?.title;
       entries.push(
         await this.buildIssueEntryXml(
-          resolved
-            ? { ...book, title: resolved.title, number: resolved.number }
-            : book,
+          seriesTitle
+            ? { ...shown, title: issueLabel(seriesTitle, shown) }
+            : shown,
           names,
           opts.baseUrl,
           opts.userId,
@@ -590,6 +605,96 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
     );
   }
 
+  async buildReadingListsFeed(baseUrl: string): Promise<string> {
+    this.logger.log(
+      `[comics-opds-svc] buildReadingListsFeed baseUrl=${baseUrl}`,
+    );
+    const e = (s: string) => this.escapeXml(s);
+    const updated = new Date().toISOString();
+    const lists = readingListsSchema.readingLists;
+    // Names only, like collections; the issues are filtered per user in
+    // buildReadingListFeed.
+    const rows = await this.db
+      .select({ id: lists.id, name: lists.name })
+      .from(lists)
+      .where(eq(lists.mediaType, 'comic'))
+      .orderBy(asc(sql`COALESCE(${lists.sortName}, ${lists.name})`));
+
+    const entries = rows
+      .map(
+        (l) => `
+  <entry>
+    <id>${e(baseUrl)}/reading-lists/${l.id}</id>
+    <title>${e(l.name)}</title>
+    <updated>${updated}</updated>
+    <link rel="subsection" href="${e(baseUrl)}/reading-lists/${l.id}" type="application/atom+xml;profile=opds-catalog;kind=acquisition"/>
+  </entry>`,
+      )
+      .join('');
+
+    this.logger.log(
+      `[comics-opds-svc] buildReadingListsFeed resultCount=${rows.length}`,
+    );
+    return this.navFeed(
+      baseUrl,
+      `${baseUrl}/reading-lists`,
+      'Reading Lists',
+      entries,
+    );
+  }
+
+  async buildReadingListFeed(
+    baseUrl: string,
+    readingListId: string,
+    userId: string,
+  ): Promise<string> {
+    this.logger.log(
+      `[comics-opds-svc] buildReadingListFeed readingListId=${readingListId} userId=${userId}`,
+    );
+    const lists = readingListsSchema.readingLists;
+    const entries = readingListsSchema.readingListEntries;
+    const [list] = await this.db
+      .select({ id: lists.id, name: lists.name })
+      .from(lists)
+      .where(and(eq(lists.id, readingListId), eq(lists.mediaType, 'comic')))
+      .limit(1);
+    if (!list) throw new NotFoundException('Reading list not found');
+
+    const books = (await this.db
+      .select(this.issueColumns())
+      .from(entries)
+      .innerJoin(
+        schema.comicBooks,
+        eq(entries.comicBookId, schema.comicBooks.id),
+      )
+      .innerJoin(
+        schema.comicSeries,
+        eq(schema.comicBooks.seriesId, schema.comicSeries.id),
+      )
+      .where(
+        and(
+          eq(entries.readingListId, readingListId),
+          eq(schema.comicBooks.status, 'available'),
+          ne(schema.comicSeries.status, 'hidden'),
+          this.blacklistFilter(userId),
+        ),
+      )
+      .orderBy(asc(entries.position))) as IssueRow[];
+
+    this.logger.log(
+      `[comics-opds-svc] buildReadingListFeed bookCount=${books.length} readingListId=${readingListId} userId=${userId}`,
+    );
+    return this.buildAcquisitionFeed({
+      id: `${baseUrl}/reading-lists/${readingListId}`,
+      title: list.name,
+      baseUrl,
+      books,
+      userId,
+      upLink: `${baseUrl}/reading-lists`,
+      withSeriesTitles: true,
+    });
+  }
+
   // --- Acquisition feeds ---
 
   async buildSeriesFeed(
@@ -750,4 +855,13 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
   ${entries}
 </feed>`;
   }
+}
+
+/** "Civil War #1 - Part One": the series, the number, then the issue title. */
+function issueLabel(
+  seriesTitle: string,
+  issue: { title: string | null; number: string | null },
+): string {
+  const label = issue.number ? `${seriesTitle} #${issue.number}` : seriesTitle;
+  return issue.title ? `${label} - ${issue.title}` : label;
 }

@@ -470,6 +470,36 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
       { method: 'DELETE', path: '/mcp', expectedStatus: 401 },
     ],
   },
+  {
+    controller: 'Reading lists',
+    endpoints: [
+      { method: 'GET', path: '/reading-lists', expectedStatus: 401 },
+      { method: 'POST', path: '/reading-lists', expectedStatus: 401 },
+      { method: 'GET', path: '/reading-lists/:id', expectedStatus: 401 },
+      { method: 'PATCH', path: '/reading-lists/:id', expectedStatus: 401 },
+      { method: 'DELETE', path: '/reading-lists/:id', expectedStatus: 401 },
+      {
+        method: 'POST',
+        path: '/reading-lists/:id/items',
+        expectedStatus: 401,
+      },
+      {
+        method: 'PATCH',
+        path: '/reading-lists/:id/items/:itemId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'DELETE',
+        path: '/reading-lists/:id/items/:itemId',
+        expectedStatus: 401,
+      },
+      {
+        method: 'PATCH',
+        path: '/reading-lists/:id/order',
+        expectedStatus: 401,
+      },
+    ],
+  },
 ];
 
 /**
@@ -1131,6 +1161,16 @@ export const opdsEndpoints: ControllerEndpoints[] = [
       {
         method: 'GET',
         path: '/comics/opds/collections/:id',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/opds/reading-lists',
+        expectedStatus: 401,
+      },
+      {
+        method: 'GET',
+        path: '/comics/opds/reading-lists/:id',
         expectedStatus: 401,
       },
       { method: 'GET', path: '/comics/opds/on-deck', expectedStatus: 401 },

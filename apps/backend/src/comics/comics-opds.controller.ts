@@ -4,6 +4,7 @@ import {
   Logger,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Query,
   Req,
   Res,
@@ -267,6 +268,56 @@ export class ComicsOpdsController {
     );
     // Service throws NotFoundException directly when collection is missing — let it propagate
     const xml = await this.opds.buildCollectionFeed(
+      this.getBaseUrl(req),
+      id,
+      user.id,
+    );
+    this.sendXml(res, xml);
+  }
+
+  @Get('reading-lists')
+  @ApiOperation({ summary: 'Comic reading lists (navigation feed)' })
+  @ApiResponse({
+    status: 200,
+    description: 'OPDS Atom feed (application/atom+xml)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
+  })
+  async getReadingLists(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+  ) {
+    this.logger.log(`[comics-opds] GET /reading-lists`);
+    const xml = await this.opds.buildReadingListsFeed(this.getBaseUrl(req));
+    this.sendXml(res, xml);
+  }
+
+  @Get('reading-lists/:id')
+  @ApiOperation({
+    summary: 'Issues in a reading list, in order (acquisition feed)',
+  })
+  @ApiParam({ name: 'id', description: 'Reading list UUID', format: 'uuid' })
+  @ApiResponse({
+    status: 200,
+    description: 'OPDS Atom feed (application/atom+xml)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - requires HTTP Basic auth or a Bearer API key',
+  })
+  @ApiResponse({ status: 404, description: 'Reading list not found' })
+  async getReadingList(
+    @Req() req: express.Request,
+    @Res() res: express.Response,
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    this.logger.log(
+      `[comics-opds] GET /reading-lists/:id id=${id} user=${user.id}`,
+    );
+    const xml = await this.opds.buildReadingListFeed(
       this.getBaseUrl(req),
       id,
       user.id,

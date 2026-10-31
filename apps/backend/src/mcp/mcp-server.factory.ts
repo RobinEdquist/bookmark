@@ -36,11 +36,13 @@ Comics have two levels: a series (one ComicVine volume, ideally named "Title (St
 
 Folder and file names are often the best clue for a comic with no metadata. Paths are relative to the library root. Files on disk are never changed: every fix lives in the database.
 
+Collections group whole comic series. Reading lists hold single items in reading order across series, such as an event's core issues and tie-ins; each list belongs to one library. Comic reading lists take issue ids.
+
 Every field in get_item and get_series shows the value the app displays, where it comes from (hand-edit, file, comicvine, hardcover or goodreads), and what the other sources hold. A locked field was set by hand or by these tools, and later syncs and rescans leave it alone. Every write locks the fields it sets; unlock_field removes a lock.
 
 Whether to keep ComicVine's and the files' data or replace it is the user's choice. Ask if they have not said.
 
-Every write is recorded in the change log as one change set per tool call: list_changes shows it, undo_change reverts it. Merges cannot be undone. move_items, merge_series and the update tools take dryRun: true; show the user the plan before applying a structural change. Nothing here deletes items, series or collections, but a move or merge that empties a series deletes that series; the change log keeps its details.
+Every write is recorded in the change log as one change set per tool call: list_changes shows it, undo_change reverts it. Merges cannot be undone. move_items, merge_series and the update tools take dryRun: true; show the user the plan before applying a structural change. Nothing here deletes items, series, collections or reading lists, but a move or merge that empties a series deletes that series; the change log keeps its details.
 
 Editing needs permission to edit metadata. ComicVine, Hardcover and Goodreads are for admins only.`;
 

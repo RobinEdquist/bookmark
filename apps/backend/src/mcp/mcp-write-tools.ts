@@ -19,6 +19,12 @@ import {
   MAX_COLLECTION_SERIES,
   McpCollectionsService,
 } from './mcp-collections.service';
+import {
+  GET_READING_LIST_DEFAULT_LIMIT,
+  LIST_READING_LISTS_DEFAULT_LIMIT,
+  McpReadingListsService,
+} from './mcp-reading-lists.service';
+import { MAX_READING_LIST_ITEMS } from '../reading-lists/reading-list-order';
 import { McpUndoService } from './mcp-undo.service';
 import { LINK_SOURCES, McpLinkService } from './mcp-link.service';
 import {
@@ -45,12 +51,19 @@ const bulkIds = z
 const seriesIds = (what: string) =>
   z.array(z.uuid()).min(1).max(MAX_COLLECTION_SERIES).describe(what);
 
+const itemIds = (what: string) =>
+  z
+    .array(z.uuid())
+    .min(1)
+    .max(MAX_READING_LIST_ITEMS)
+    .describe(`${what}. Comics: issue ids, not series ids`);
+
 const fieldList = (type: Parameters<typeof editableFields>[0]) =>
   editableFields(type).join(', ');
 
 /**
  * The tools that change the library, the change log tools and the
- * collection lookups. Each repeats the guard of its REST route (edit
+ * collection and reading list lookups. Each repeats the guard of its REST route (edit
  * metadata, or admin for external links) and records what it changed.
  */
 @Injectable()
@@ -61,6 +74,7 @@ export class McpWriteTools {
     private readonly edit: McpEditService,
     private readonly structure: McpStructureService,
     private readonly collections: McpCollectionsService,
+    private readonly readingLists: McpReadingListsService,
     private readonly undo: McpUndoService,
     private readonly link: McpLinkService,
   ) {}
@@ -69,6 +83,7 @@ export class McpWriteTools {
     this.registerFixTools(server, user);
     this.registerStructureTools(server, user);
     this.registerCollectionTools(server, user);
+    this.registerReadingListTools(server, user);
     this.registerChangeLogTools(server, user);
   }
 
@@ -380,6 +395,185 @@ export class McpWriteTools {
     );
   }
 
+  private registerReadingListTools(
+    server: McpServer,
+    user: AuthenticatedUser,
+  ): void {
+    server.registerTool(
+      'list_reading_lists',
+      {
+        title: 'List reading lists',
+        description:
+          'Reading lists (shared, ordered lists of items across series, such as an event in reading order) with how many items each holds. ' +
+          'Filter by library, name, or an item the list holds. Paged.',
+        inputSchema: {
+          mediaType: mediaType.optional(),
+          search: z.string().optional(),
+          itemId: z
+            .uuid()
+            .optional()
+            .describe('Only lists that hold this issue, audiobook or ebook'),
+          limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(100)
+            .optional()
+            .describe(`Page size, default ${LIST_READING_LISTS_DEFAULT_LIMIT}`),
+          offset: z.number().int().min(0).optional(),
+        },
+        annotations: READ_ONLY,
+      },
+      (args) => jsonResult(() => this.readingLists.list(args)),
+    );
+
+    server.registerTool(
+      'get_reading_list',
+      {
+        title: 'Get reading list',
+        description:
+          'A reading list with its items in order: position (0-based), item id, title ("Series #n" for comics) and note. ' +
+          'Hidden items and items you have blacklisted are left out.',
+        inputSchema: {
+          id: z.uuid(),
+          offset: z.number().int().min(0).optional(),
+          limit: z
+            .number()
+            .int()
+            .min(1)
+            .max(1000)
+            .optional()
+            .describe(
+              `Items to list, default ${GET_READING_LIST_DEFAULT_LIMIT}`,
+            ),
+        },
+        annotations: READ_ONLY,
+      },
+      ({ id, offset, limit }) =>
+        jsonResult(() => this.readingLists.get(user, id, { offset, limit })),
+    );
+
+    server.registerTool(
+      'create_reading_list',
+      {
+        title: 'Create reading list',
+        description:
+          'Create a reading list for one library, e.g. "Civil War" for comics, optionally with its first items in reading order. ' +
+          'Collections hold whole series; a reading list holds single issues or books. Needs permission to edit metadata.',
+        inputSchema: {
+          mediaType,
+          name: z.string().min(1),
+          sortName: z.string().nullable().optional(),
+          description: z.string().nullable().optional(),
+          itemIds: itemIds('Items to add, in reading order').optional(),
+        },
+        annotations: ADDS,
+      },
+      (args) => jsonResult(() => this.readingLists.create(user, args)),
+    );
+
+    server.registerTool(
+      'update_reading_list',
+      {
+        title: 'Update reading list',
+        description:
+          'Set a reading list’s name, sortName or description. Needs permission to edit metadata.',
+        inputSchema: {
+          id: z.uuid(),
+          fields: z.strictObject({
+            name: z.string().optional(),
+            sortName: z.string().nullable().optional(),
+            description: z.string().nullable().optional(),
+          }),
+          dryRun,
+        },
+        annotations: OVERWRITES,
+      },
+      ({ id, fields, dryRun: preview }) =>
+        jsonResult(() =>
+          this.edit.updateReadingList(user, { id, fields, dryRun: preview }),
+        ),
+    );
+
+    server.registerTool(
+      'add_to_reading_list',
+      {
+        title: 'Add to reading list',
+        description:
+          'Add items in the order given, before `position` (0-based, as get_reading_list shows it) or at the end. ' +
+          'Items already in the list stay where they are; move them with reorder_reading_list. ' +
+          '`note` labels every item added, e.g. "Tie-in". Needs permission to edit metadata.',
+        inputSchema: {
+          id: z.uuid().describe('Reading list id'),
+          itemIds: itemIds('Items to add, in reading order'),
+          position: z.number().int().min(0).optional(),
+          note: z.string().nullable().optional(),
+        },
+        annotations: { ...ADDS, idempotentHint: true },
+      },
+      ({ id, itemIds: ids, position, note }) =>
+        jsonResult(() =>
+          this.readingLists.addItems(user, id, ids, { position, note }),
+        ),
+    );
+
+    server.registerTool(
+      'remove_from_reading_list',
+      {
+        title: 'Remove from reading list',
+        description:
+          'Take items out of a reading list. The items themselves are not changed. Needs permission to edit metadata.',
+        inputSchema: {
+          id: z.uuid().describe('Reading list id'),
+          itemIds: itemIds('Items to remove'),
+        },
+        annotations: OVERWRITES,
+      },
+      ({ id, itemIds: ids }) =>
+        jsonResult(() => this.readingLists.removeItems(user, id, ids)),
+    );
+
+    server.registerTool(
+      'reorder_reading_list',
+      {
+        title: 'Reorder reading list',
+        description:
+          'Set the order of a reading list. Give every item in it, each once, including any get_reading_list leaves out for you. Needs permission to edit metadata.',
+        inputSchema: {
+          id: z.uuid().describe('Reading list id'),
+          itemIds: itemIds('All items in the list, in reading order'),
+        },
+        annotations: OVERWRITES,
+      },
+      ({ id, itemIds: ids }) =>
+        jsonResult(() => this.readingLists.reorder(user, id, ids)),
+    );
+
+    server.registerTool(
+      'set_reading_list_notes',
+      {
+        title: 'Set reading list notes',
+        description:
+          'Set or clear the short note on items in a reading list, e.g. "Core" or "Tie-in". Needs permission to edit metadata.',
+        inputSchema: {
+          id: z.uuid().describe('Reading list id'),
+          notes: z
+            .array(
+              z.object({
+                itemId: z.uuid(),
+                note: z.string().nullable().describe('null clears it'),
+              }),
+            )
+            .min(1)
+            .max(MAX_READING_LIST_ITEMS),
+        },
+        annotations: OVERWRITES,
+      },
+      ({ id, notes }) =>
+        jsonResult(() => this.readingLists.setNotes(user, id, notes)),
+    );
+  }
+
   private registerChangeLogTools(
     server: McpServer,
     user: AuthenticatedUser,
@@ -426,8 +620,8 @@ export class McpWriteTools {
       {
         title: 'Undo change',
         description:
-          'Put back the values one change set replaced: field edits, unlocks, main characters, issue moves and collection changes. ' +
-          'Rows changed again since are skipped unless force is true. Not undone: created series and collections, links, and merges (refused; deleted series are rebuilt by hand). ' +
+          'Put back the values one change set replaced: field edits, unlocks, main characters, issue moves, and collection and reading list changes. ' +
+          'Rows changed again since are skipped unless force is true. Not undone: created series, collections and reading lists, links, and merges (refused; deleted series are rebuilt by hand). ' +
           'The undo is itself a change set. Needs permission to edit metadata.',
         inputSchema: {
           changeSetId: z.uuid(),
