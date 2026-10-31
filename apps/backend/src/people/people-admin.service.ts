@@ -8,6 +8,7 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { and, asc, eq, ilike, ne, or, sql, type SQL } from 'drizzle-orm';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobookSchema from '../audiobooks/schema';
+import * as comicSchema from '../comics/schema';
 import * as ebookSchema from '../ebooks/schema';
 import type {
   AdminPersonDto,
@@ -17,6 +18,8 @@ import type {
 } from './dto/admin-person.dto';
 
 type PersonRow = typeof audiobookSchema.people.$inferSelect;
+type ComicCreatorRole =
+  (typeof comicSchema.comicBookCreators.$inferSelect)['role'];
 
 @Injectable()
 export class PeopleAdminService {
@@ -169,10 +172,17 @@ export class PeopleAdminService {
       }
 
       const sourceCounts = await this.getCounts(sourceId, tx);
+      const sourceComicCreatorCount = await this.getComicCreatorCount(
+        sourceId,
+        tx,
+      );
 
       await this.moveAudiobookAuthorLinks(tx, sourceId, targetId);
       await this.moveEbookAuthorLinks(tx, sourceId, targetId);
       await this.moveAudiobookNarratorLinks(tx, sourceId, targetId);
+      // Must run before the delete below: comic_book_creators cascades on
+      // person delete, so unmoved credits would be lost.
+      await this.moveComicCreatorLinks(tx, sourceId, targetId);
 
       await tx
         .delete(audiobookSchema.people)
@@ -184,6 +194,7 @@ export class PeopleAdminService {
         audiobookAuthorLinksMerged: sourceCounts.audiobookAuthorCount,
         ebookAuthorLinksMerged: sourceCounts.ebookAuthorCount,
         audiobookNarratorLinksMerged: sourceCounts.audiobookNarratorCount,
+        comicCreatorLinksMerged: sourceComicCreatorCount,
       };
     });
   }
@@ -213,6 +224,10 @@ export class PeopleAdminService {
       }
 
       const sourceCounts = await this.getCounts(sourceId, tx);
+      const sourceComicCreatorCount = await this.getComicCreatorCount(
+        sourceId,
+        tx,
+      );
       const replacementPeople = await Promise.all(
         filteredNames.map((name) => this.getOrCreatePerson(tx, name)),
       );
@@ -241,6 +256,15 @@ export class PeopleAdminService {
         .from(audiobookSchema.audiobookNarrators)
         .where(eq(audiobookSchema.audiobookNarrators.personId, sourceId));
 
+      const comicCreatorLinks = await tx
+        .select({
+          bookId: comicSchema.comicBookCreators.bookId,
+          role: comicSchema.comicBookCreators.role,
+          order: comicSchema.comicBookCreators.order,
+        })
+        .from(comicSchema.comicBookCreators)
+        .where(eq(comicSchema.comicBookCreators.personId, sourceId));
+
       await this.replaceAudiobookAuthorLinks(
         tx,
         audiobookAuthorLinks,
@@ -259,6 +283,12 @@ export class PeopleAdminService {
         replacementPeople,
         sourceId,
       );
+      await this.replaceComicCreatorLinks(
+        tx,
+        comicCreatorLinks,
+        replacementPeople,
+        sourceId,
+      );
 
       await tx
         .delete(audiobookSchema.people)
@@ -270,6 +300,7 @@ export class PeopleAdminService {
         audiobookAuthorLinksSplit: sourceCounts.audiobookAuthorCount,
         ebookAuthorLinksSplit: sourceCounts.ebookAuthorCount,
         audiobookNarratorLinksSplit: sourceCounts.audiobookNarratorCount,
+        comicCreatorLinksSplit: sourceComicCreatorCount,
       };
     });
   }
@@ -329,6 +360,15 @@ export class PeopleAdminService {
       .from(sql`(SELECT 1) AS dummy`);
 
     return result;
+  }
+
+  private async getComicCreatorCount(id: string, tx = this.db) {
+    const [result] = await tx
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(comicSchema.comicBookCreators)
+      .where(eq(comicSchema.comicBookCreators.personId, id));
+
+    return result.count;
   }
 
   private async getOrCreatePerson(tx: any, name: string): Promise<PersonRow> {
@@ -431,6 +471,31 @@ export class PeopleAdminService {
       .where(eq(audiobookSchema.audiobookNarrators.personId, sourceId));
   }
 
+  private async moveComicCreatorLinks(
+    tx: any,
+    sourceId: string,
+    targetId: string,
+  ) {
+    // The primary key is (book_id, person_id, role), so the target may
+    // already hold the same credit; keep the target's row in that case.
+    await tx.execute(sql`
+      UPDATE comic_book_creators AS cbc
+      SET person_id = ${targetId}
+      WHERE cbc.person_id = ${sourceId}
+        AND NOT EXISTS (
+          SELECT 1
+          FROM comic_book_creators existing
+          WHERE existing.person_id = ${targetId}
+            AND existing.book_id = cbc.book_id
+            AND existing.role = cbc.role
+        )
+    `);
+
+    await tx
+      .delete(comicSchema.comicBookCreators)
+      .where(eq(comicSchema.comicBookCreators.personId, sourceId));
+  }
+
   private async replaceAudiobookAuthorLinks(
     tx: any,
     links: Array<{ audiobookId: string; order: number }>,
@@ -513,5 +578,34 @@ export class PeopleAdminService {
     await tx
       .delete(audiobookSchema.audiobookNarrators)
       .where(eq(audiobookSchema.audiobookNarrators.personId, sourceId));
+  }
+
+  private async replaceComicCreatorLinks(
+    tx: any,
+    links: Array<{ bookId: string; role: ComicCreatorRole; order: number }>,
+    replacementPeople: PersonRow[],
+    sourceId: string,
+  ) {
+    if (links.length === 0) {
+      return;
+    }
+
+    const values = links.flatMap((link) =>
+      replacementPeople.map((person) => ({
+        bookId: link.bookId,
+        personId: person.id,
+        role: link.role,
+        order: link.order,
+      })),
+    );
+
+    await tx
+      .insert(comicSchema.comicBookCreators)
+      .values(values)
+      .onConflictDoNothing();
+
+    await tx
+      .delete(comicSchema.comicBookCreators)
+      .where(eq(comicSchema.comicBookCreators.personId, sourceId));
   }
 }
