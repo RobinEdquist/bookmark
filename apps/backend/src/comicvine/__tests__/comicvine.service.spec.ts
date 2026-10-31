@@ -2,6 +2,7 @@ import { NotFoundException, BadRequestException } from '@nestjs/common';
 import { createMockDb, createChainMock, type MockDb } from '@test-utils';
 import { ComicvineService } from '../comicvine.service';
 import { ComicVineApiClient, ComicVineApiError } from '../comicvine-api.client';
+import * as comicvineSchema from '../schema';
 import type { CvVolumeRaw, CvIssueRaw } from '../dto/comicvine.dto';
 
 // ---------------------------------------------------------------------------
@@ -71,6 +72,13 @@ function createUpsertChain(row: unknown) {
   chain.values = jest.fn().mockReturnValue(chain);
   chain.onConflictDoUpdate = jest.fn().mockReturnValue(chain);
   chain.returning = jest.fn().mockResolvedValueOnce([row]);
+  return chain;
+}
+
+/** getBookLink's select (`.from().innerJoin().where().limit()`) finding no link. */
+function noIssueLinkChain() {
+  const chain = createChainMock(['from', 'innerJoin', 'where', 'limit']);
+  chain.limit.mockResolvedValueOnce([]);
   return chain;
 }
 
@@ -757,6 +765,9 @@ describe('ComicvineService', () => {
       ]);
       db.select.mockReturnValueOnce(bookChain);
 
+      // Existing issue link check: none
+      db.select.mockReturnValueOnce(noIssueLinkChain());
+
       // Volume link check
       const volLinkChain = createChainMock([
         'from',
@@ -851,6 +862,8 @@ describe('ComicvineService', () => {
       ]);
       db.select.mockReturnValueOnce(bookChain);
 
+      db.select.mockReturnValueOnce(noIssueLinkChain());
+
       // No volume link
       const volLinkChain = createChainMock([
         'from',
@@ -864,6 +877,54 @@ describe('ComicvineService', () => {
       const result = await service.matchBook('book-2');
       expect(result.outcome).toBe('needs_review');
       expect(db.insert).not.toHaveBeenCalled();
+    });
+
+    it('keeps an existing link instead of re-matching by issue number', async () => {
+      // Every issue of the series stores number "1"; this one was linked by
+      // hand to #2 while its queue row waited. Matching by number would
+      // move it to #1.
+      const settingsChain = createChainMock(['from', 'where', 'limit']);
+      settingsChain.limit.mockResolvedValueOnce([
+        { comicvineApiKey: 'cv-key' },
+      ]);
+      db.select.mockReturnValueOnce(settingsChain);
+
+      const bookChain = createChainMock(['from', 'where', 'limit']);
+      bookChain.limit.mockResolvedValueOnce([
+        {
+          id: 'book-3',
+          seriesId: 'series-1',
+          number: '1',
+          coverDate: null,
+        },
+      ]);
+      db.select.mockReturnValueOnce(bookChain);
+
+      // getBookLink: linked to issue #2
+      const issueLinkChain = createChainMock([
+        'from',
+        'innerJoin',
+        'where',
+        'limit',
+      ]);
+      issueLinkChain.limit.mockResolvedValueOnce([
+        {
+          issue: {
+            id: 'cached-issue-2',
+            comicvineIssueId: 42570,
+            issueNumber: '2',
+          },
+        },
+      ]);
+      db.select.mockReturnValueOnce(issueLinkChain);
+
+      const result = await service.matchBook('book-3');
+
+      expect(result).toEqual({ outcome: 'already_linked', cvId: 42570 });
+      expect(mockGetVolumeIssues).not.toHaveBeenCalled();
+      expect(db.insert).not.toHaveBeenCalled();
+      expect(db.delete).not.toHaveBeenCalled();
+      expect(db.update).not.toHaveBeenCalled();
     });
 
     it('throws NotFoundException when book does not exist', async () => {
@@ -950,6 +1011,57 @@ describe('ComicvineService', () => {
   // =========================================================================
   // linkBookToIssue / unlinkBook
   // =========================================================================
+
+  describe('linkBookToIssue', () => {
+    it('replaces the link, updates the pin and removes the book from the sync queue', async () => {
+      // upsertIssue: single-round-trip upsert
+      const cachedIssue = { id: 'issue-uuid', comicvineIssueId: 42570 };
+      db.insert.mockReturnValueOnce(createUpsertChain(cachedIssue));
+
+      // delete existing link
+      const linkDelete = createChainMock(['where']);
+      linkDelete.where.mockResolvedValueOnce(undefined);
+      db.delete.mockReturnValueOnce(linkDelete);
+
+      // insert new link
+      const linkInsert = createChainMock(['values']);
+      linkInsert.values.mockResolvedValueOnce(undefined);
+      db.insert.mockReturnValueOnce(linkInsert);
+
+      // update book pin
+      const updateChain = createChainMock(['set', 'where']);
+      updateChain.where.mockResolvedValueOnce(undefined);
+      db.update.mockReturnValueOnce(updateChain);
+
+      // delete the book's queue row
+      const queueDelete = createChainMock(['where']);
+      queueDelete.where.mockResolvedValueOnce(undefined);
+      db.delete.mockReturnValueOnce(queueDelete);
+
+      const result = await service.linkBookToIssue(
+        'book-test',
+        buildCvIssue({ id: 42570, issue_number: '2' }),
+      );
+
+      expect(result).toEqual(cachedIssue);
+      expect(db.delete).toHaveBeenNthCalledWith(
+        1,
+        comicvineSchema.comicvineIssueLinks,
+      );
+      expect(db.delete).toHaveBeenNthCalledWith(
+        2,
+        comicvineSchema.comicvineSyncQueue,
+      );
+      expect(queueDelete.where).toHaveBeenCalledTimes(1);
+      expect(updateChain.set).toHaveBeenCalledWith(
+        expect.objectContaining({ comicvineIssueId: 42570 }),
+      );
+      expect(mockAppEvents.comicvineSyncCompleted).toHaveBeenCalledWith(
+        'book',
+        'book-test',
+      );
+    });
+  });
 
   describe('unlinkBook', () => {
     it('deletes the issue link and clears the book pin', async () => {
@@ -1343,6 +1455,9 @@ describe('ComicvineService', () => {
         },
       ]);
       db.select.mockReturnValueOnce(bookChain);
+
+      // Existing issue link check: the book is not linked yet
+      db.select.mockReturnValueOnce(noIssueLinkChain());
 
       // Volume link check: series has a linked volume
       const volLinkChain = createChainMock([

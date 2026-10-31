@@ -353,6 +353,27 @@ describe('ComicvineSyncProcessor', () => {
     expect(svc.markFailed).not.toHaveBeenCalled();
   });
 
+  it('drops a book item that is already linked — removed, NOT needs_review', async () => {
+    const item = buildQueueItem({
+      id: 'queue-3',
+      level: 'book',
+      seriesId: null,
+      bookId: 'book-hand-linked',
+    });
+    const { processor, svc } = createProcessor();
+    svc.getNextPending.mockResolvedValue(item);
+    svc.matchBook.mockResolvedValue({
+      outcome: 'already_linked',
+      cvId: 42570,
+    });
+
+    await processor.processQueue();
+
+    expect(svc.removeFromQueue).toHaveBeenCalledWith('queue-3');
+    expect(svc.markNeedsReview).not.toHaveBeenCalled();
+    expect(svc.markFailed).not.toHaveBeenCalled();
+  });
+
   // ─────────────────────────────────────────────────────────────────────────
   // needs_review outcome
   // ─────────────────────────────────────────────────────────────────────────

@@ -220,6 +220,11 @@ export class ComicvineSyncProcessor implements OnModuleInit {
           `Successfully linked queue item ${queueItem.id} to ComicVine id ${outcome.cvId}`,
         );
         await this.comicvineService.removeFromQueue(queueItem.id);
+      } else if (outcome.outcome === 'already_linked') {
+        this.logger.log(
+          `Queue item ${queueItem.id} is already linked to ComicVine id ${outcome.cvId} — keeping that link`,
+        );
+        await this.comicvineService.removeFromQueue(queueItem.id);
       } else if (outcome.outcome === 'needs_review') {
         this.logger.log(
           `Queue item ${queueItem.id} needs review: ${outcome.reason}`,

@@ -119,5 +119,6 @@ export interface QueueItemDto {
 /** Signals returned internally by matchSeries / matchBook. */
 export type MatchOutcome =
   | { outcome: 'linked'; cvId: number }
+  | { outcome: 'already_linked'; cvId: number }
   | { outcome: 'needs_review'; reason: string }
   | { outcome: 'no_api_key' };
