@@ -35,8 +35,8 @@ export interface UpdateArgs {
 }
 
 /**
- * update_item, update_series, update_collection, unlock_field and
- * set_main_characters.
+ * update_item, update_series, update_collection, update_reading_list,
+ * unlock_field and set_main_characters.
  *
  * Every write goes through the domain service, so it locks the field exactly
  * like a hand-edit, and is recorded in the change log with the stored value
@@ -68,6 +68,13 @@ export class McpEditService {
 
   updateCollection(user: AuthenticatedUser, args: UpdateArgs): Promise<object> {
     return this.update(user, 'update_collection', 'comic_collection', args);
+  }
+
+  updateReadingList(
+    user: AuthenticatedUser,
+    args: UpdateArgs,
+  ): Promise<object> {
+    return this.update(user, 'update_reading_list', 'reading_list', args);
   }
 
   async unlockField(

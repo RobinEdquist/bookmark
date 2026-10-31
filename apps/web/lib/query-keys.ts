@@ -184,6 +184,18 @@ export const queryKeys = {
     characterDetail: (id: string) =>
       [...queryKeys.comics.all, "characterDetail", id] as const,
   },
+  readingLists: {
+    all: ["readingLists"] as const,
+    list: (filters?: {
+      mediaType?: string;
+      search?: string;
+      itemId?: string;
+    }) => [...queryKeys.readingLists.all, "list", filters] as const,
+    detail: (id: string) =>
+      [...queryKeys.readingLists.all, "detail", id] as const,
+    forItem: (itemId: string) =>
+      [...queryKeys.readingLists.all, "forItem", itemId] as const,
+  },
   filesystem: {
     all: ["filesystem"] as const,
     browse: (path: string) =>

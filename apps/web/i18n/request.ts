@@ -49,6 +49,8 @@ export default getRequestConfig(async () => {
         .default,
       comics: (await import(`../messages/${locale}/comics.json`)).default,
       comicvine: (await import(`../messages/${locale}/comicvine.json`)).default,
+      readingLists: (await import(`../messages/${locale}/readingLists.json`))
+        .default,
     },
   };
 });

@@ -6,6 +6,7 @@ import { EbooksModule } from '../ebooks/ebooks.module';
 import { ComicsModule } from '../comics/comics.module';
 import { ComicvineModule } from '../comicvine/comicvine.module';
 import { SeriesModule } from '../series/series.module';
+import { ReadingListsModule } from '../reading-lists/reading-lists.module';
 import { HardcoverModule } from '../hardcover/hardcover.module';
 import { GrFinderModule } from '../gr-finder/gr-finder.module';
 import { AudnexusModule } from '../audnexus/audnexus.module';
@@ -24,6 +25,7 @@ import { McpEntityStore } from './mcp-entity-store';
 import { McpEditService } from './mcp-edit.service';
 import { McpStructureService } from './mcp-structure.service';
 import { McpCollectionsService } from './mcp-collections.service';
+import { McpReadingListsService } from './mcp-reading-lists.service';
 import { McpUndoService } from './mcp-undo.service';
 import { McpLinkService } from './mcp-link.service';
 import { McpWriteTools } from './mcp-write-tools';
@@ -42,6 +44,7 @@ import { McpWriteTools } from './mcp-write-tools';
     ComicsModule,
     ComicvineModule,
     SeriesModule,
+    ReadingListsModule,
     HardcoverModule,
     GrFinderModule,
     AudnexusModule,
@@ -62,6 +65,7 @@ import { McpWriteTools } from './mcp-write-tools';
     McpEditService,
     McpStructureService,
     McpCollectionsService,
+    McpReadingListsService,
     McpUndoService,
     McpLinkService,
     McpWriteTools,

@@ -43,6 +43,7 @@ describe('MCP write tools (e2e)', () => {
   const clients: Client[] = [];
   const seriesIds: string[] = [];
   const collectionIds: string[] = [];
+  const readingListIds: string[] = [];
 
   // A: two issues. B: one issue, emptied by a move. C: one issue, merged
   // into A. D: no issues, for collections.
@@ -165,6 +166,20 @@ describe('MCP write tools (e2e)', () => {
     return rows.map((r) => r.series_id);
   }
 
+  async function entries(
+    readingListId: string,
+  ): Promise<[string, string | null][]> {
+    const { rows } = await db.query<{
+      comic_book_id: string;
+      note: string | null;
+    }>(
+      `SELECT comic_book_id, note FROM reading_list_entries
+       WHERE reading_list_id = $1 ORDER BY position`,
+      [readingListId],
+    );
+    return rows.map((r) => [r.comic_book_id, r.note]);
+  }
+
   async function seriesExists(id: string): Promise<boolean> {
     const { rowCount } = await db.query(
       'SELECT 1 FROM comic_series WHERE id = $1',
@@ -225,6 +240,9 @@ describe('MCP write tools (e2e)', () => {
       ]);
       await db.query('DELETE FROM comic_collections WHERE id = ANY($1)', [
         collectionIds,
+      ]);
+      await db.query('DELETE FROM reading_lists WHERE id = ANY($1)', [
+        readingListIds,
       ]);
       await db.query('DELETE FROM comic_series WHERE id = ANY($1)', [
         seriesIds,
@@ -567,6 +585,75 @@ describe('MCP write tools (e2e)', () => {
       expect(listed.items).toEqual([
         { id: created.id, name: `MCP W Collection ${run}`, series: 2 },
       ]);
+    });
+
+    it('reading lists: create, add at a place, remove, and undo', async () => {
+      const created = json<{ id: string }>(
+        await call(client, 'create_reading_list', {
+          mediaType: 'comic',
+          name: `MCP W Reading list ${run}`,
+          itemIds: [issueA1, issueB1],
+        }),
+      );
+      readingListIds.push(created.id);
+      expect(await entries(created.id)).toEqual([
+        [issueA1, null],
+        [issueB1, null],
+      ]);
+
+      json(
+        await call(client, 'add_to_reading_list', {
+          id: created.id,
+          itemIds: [issueA2],
+          position: 1,
+          note: 'Tie-in',
+        }),
+      );
+      expect(await entries(created.id)).toEqual([
+        [issueA1, null],
+        [issueA2, 'Tie-in'],
+        [issueB1, null],
+      ]);
+
+      const seriesGiven = await call(client, 'add_to_reading_list', {
+        id: created.id,
+        itemIds: [seriesA],
+      });
+      expect(seriesGiven.isError).toBe(true);
+      expect(text(seriesGiven)).toContain('not series ids');
+
+      const removed = json<{ changeSetId: string; removed: number }>(
+        await call(client, 'remove_from_reading_list', {
+          id: created.id,
+          itemIds: [issueA2],
+        }),
+      );
+      expect(removed.removed).toBe(1);
+      expect(await entries(created.id)).toEqual([
+        [issueA1, null],
+        [issueB1, null],
+      ]);
+      json(await undo(removed.changeSetId));
+      expect(await entries(created.id)).toEqual([
+        [issueA1, null],
+        [issueA2, 'Tie-in'],
+        [issueB1, null],
+      ]);
+
+      const detail = json<{ items: { id: string; note?: string }[] }>(
+        await call(client, 'get_reading_list', { id: created.id }),
+      );
+      expect(detail.items.map((i) => i.id)).toEqual([
+        issueA1,
+        issueA2,
+        issueB1,
+      ]);
+      expect(detail.items[1].note).toBe('Tie-in');
+
+      const holding = json<{ items: { id: string }[] }>(
+        await call(client, 'list_reading_lists', { itemId: issueA2 }),
+      );
+      expect(holding.items.map((l) => l.id)).toEqual([created.id]);
     });
 
     it('list_changes filters by record and by user', async () => {

@@ -124,7 +124,7 @@ same cleaning.
 ### Curate
 
 - Collections: create, edit, add series, remove series, reorder.
-- Reading lists: create, add items, reorder.
+- Reading lists: create, edit, add items at a place, remove, reorder, set notes.
 - `set_main_characters` (comics).
 
 ### People and genres (admin)
@@ -175,6 +175,8 @@ All marked `readOnlyHint`.
 | `get_match_candidates` | Volumes for a series, issues for an issue           | Hardcover, Goodreads, Audible, iTunes         | Hardcover, Goodreads, iTunes   | Admin for CV, HC and GR |
 | `list_collections`     | Collections with series counts                      | n/a                                           | n/a                            | Signed in               |
 | `get_collection`       | A collection's series, in order                     | n/a                                           | n/a                            | Signed in               |
+| `list_reading_lists`   | Reading lists, by name or an item they hold         | Same                                          | Same                           | Signed in               |
+| `get_reading_list`     | Issues in order: "Series #n", note                  | Books in order: title, authors, note          | Same as audiobooks             | Signed in               |
 | `list_changes`         | The change log, by record, user or change set       | Same                                          | Same                           | Edit metadata           |
 
 Every tool also applies the user's tag blacklist: blacklisted items are left out of lists and
@@ -190,22 +192,28 @@ Every write repeats the guard of its REST route and goes through the same servic
 fields and fires the same events as an edit in the web app. Hints: "overwrites" tools are marked
 `destructiveHint`, "adds" tools are not.
 
-| Tool                     | Comics                                                    | Audiobooks and ebooks                         | Dry run | Hint       | Needs         |
-| ------------------------ | --------------------------------------------------------- | --------------------------------------------- | ------- | ---------- | ------------- |
-| `link_external`          | Series to a ComicVine volume, issues queued; or one issue | Hardcover (by id and search query), Goodreads | No      | Overwrites | Admin         |
-| `update_item`            | Issue fields, credits; one or up to 50                    | Fields, authors, narrators, genres            | Yes     | Overwrites | Edit metadata |
-| `update_series`          | Series fields, genres, tags; one or up to 50              | Series name                                   | Yes     | Overwrites | Edit metadata |
-| `unlock_field`           | Series and issue fields                                   | Fields                                        | No      | Overwrites | Edit metadata |
-| `set_main_characters`    | One to three per series                                   | n/a                                           | No      | Overwrites | Edit metadata |
-| `create_series`          | Empty series                                              | n/a                                           | No      | Adds       | Edit metadata |
-| `move_items`             | Issues to another series                                  | n/a                                           | Yes     | Overwrites | Edit metadata |
-| `merge_series`           | Series into a target                                      | n/a                                           | Yes     | Overwrites | Edit metadata |
-| `create_collection`      | With its first series                                     | n/a                                           | No      | Adds       | Edit metadata |
-| `update_collection`      | Name, sort name, description                              | n/a                                           | Yes     | Overwrites | Edit metadata |
-| `add_to_collection`      | Series at the end                                         | n/a                                           | No      | Adds       | Edit metadata |
-| `remove_from_collection` | Series out                                                | n/a                                           | No      | Overwrites | Edit metadata |
-| `reorder_collection`     | The full order                                            | n/a                                           | No      | Overwrites | Edit metadata |
-| `undo_change`            | One change set                                            | Same                                          | Yes     | Overwrites | Edit metadata |
+| Tool                       | Comics                                                    | Audiobooks and ebooks                         | Dry run | Hint       | Needs         |
+| -------------------------- | --------------------------------------------------------- | --------------------------------------------- | ------- | ---------- | ------------- |
+| `link_external`            | Series to a ComicVine volume, issues queued; or one issue | Hardcover (by id and search query), Goodreads | No      | Overwrites | Admin         |
+| `update_item`              | Issue fields, credits; one or up to 50                    | Fields, authors, narrators, genres            | Yes     | Overwrites | Edit metadata |
+| `update_series`            | Series fields, genres, tags; one or up to 50              | Series name                                   | Yes     | Overwrites | Edit metadata |
+| `unlock_field`             | Series and issue fields                                   | Fields                                        | No      | Overwrites | Edit metadata |
+| `set_main_characters`      | One to three per series                                   | n/a                                           | No      | Overwrites | Edit metadata |
+| `create_series`            | Empty series                                              | n/a                                           | No      | Adds       | Edit metadata |
+| `move_items`               | Issues to another series                                  | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `merge_series`             | Series into a target                                      | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `create_collection`        | With its first series                                     | n/a                                           | No      | Adds       | Edit metadata |
+| `update_collection`        | Name, sort name, description                              | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `add_to_collection`        | Series at the end                                         | n/a                                           | No      | Adds       | Edit metadata |
+| `remove_from_collection`   | Series out                                                | n/a                                           | No      | Overwrites | Edit metadata |
+| `reorder_collection`       | The full order                                            | n/a                                           | No      | Overwrites | Edit metadata |
+| `create_reading_list`      | With its first issues                                     | With its first books                          | No      | Adds       | Edit metadata |
+| `update_reading_list`      | Name, sort name, description                              | Same                                          | Yes     | Overwrites | Edit metadata |
+| `add_to_reading_list`      | Issues at a place or the end, with a note                 | Books, same                                   | No      | Adds       | Edit metadata |
+| `remove_from_reading_list` | Issues out                                                | Books out                                     | No      | Overwrites | Edit metadata |
+| `reorder_reading_list`     | The full order                                            | Same                                          | No      | Overwrites | Edit metadata |
+| `set_reading_list_notes`   | A short note per item, e.g. "Tie-in"                      | Same                                          | No      | Overwrites | Edit metadata |
+| `undo_change`              | One change set                                            | Same                                          | Yes     | Overwrites | Edit metadata |
 
 Notes:
 
@@ -223,6 +231,9 @@ Notes:
   merge what each source loses: main characters, collections and its ComicVine volume.
 - **Collections** are comic collections. Ebook groups are left alone until they become
   collections (slice 4 of [the comics structure plan](plans/2026-10-31-comics-structure.md)).
+- **Reading lists** belong to one library and hold its items: comic issues (not series),
+  audiobooks or ebooks. Positions are 0-based places in the whole list, which can hold items a
+  user has blacklisted; `get_reading_list` leaves those out, `reorder_reading_list` needs them.
 
 #### Prompts
 
@@ -240,11 +251,11 @@ lock state is restored too. Rows from one tool call share a `changeSetId`.
 
 `undo_change` takes a change set and writes the `before` values back through the same services:
 
-- **Undone:** field edits and unlocks, main characters, issue moves, collection edits,
-  membership and order.
-- **Skipped:** rows whose value changed again since (unless `force`), created series and
-  collections (undoing would mean a delete), external links (unlink in the web app), and issue
-  moves whose old series was deleted.
+- **Undone:** field edits and unlocks, main characters, issue moves, collection and reading
+  list edits, membership, order and notes.
+- **Skipped:** rows whose value changed again since (unless `force`), created series,
+  collections and reading lists (undoing would mean a delete), external links (unlink in the web
+  app), and issue moves whose old series was deleted.
 - **Refused:** merges. A merge deletes the emptied sources. Each deleted series is logged in
   full (fields, locks, main characters, collections, ComicVine volume, folder, issue ids), so it
   can be rebuilt by hand with `create_series`, `update_series`, `set_main_characters` and
@@ -280,7 +291,7 @@ Left for audiobooks and ebooks:
 | Create series, move items   | Yes                             | Yes, through the book's series field  | Yes, through the book's series field |
 | Merge series                | Yes                             | **Missing** (rename only)             | **Missing** (rename only)            |
 | Collections                 | Yes                             | **Missing**                           | Ebook groups, to be renamed          |
-| Reading lists               | **Missing**                     | **Missing**                           | **Missing**                          |
+| Reading lists               | Yes                             | API and MCP; no web pages yet         | API and MCP; no web pages yet        |
 | Main characters             | Yes                             | n/a                                   | n/a                                  |
 | Merge genres                | Yes, admin                      | Yes, admin                            | Yes, admin                           |
 | Merge people                | Yes, admin                      | Yes, admin                            | Yes, admin                           |
@@ -296,13 +307,13 @@ included.
 
 - **Tool hints.** Read tools are marked read-only. Merge, move and every tool that overwrites
   values are marked destructive, so Claude asks before running them. Purely additive tools
-  (create a series or collection, add to a collection) are not.
+  (create a series, collection or reading list, add to one) are not.
 - **Dry run.** Merge, move and the update tools (one id or up to 50) take `dryRun: true` and
   return the result without applying it.
 - **Change log.** Every write through the MCP is recorded with the user, the item, and the
   before and after values, so the work can be reviewed and undone. See
   [Change log](#change-log) for what undo covers.
-- **No deletes.** There is no tool to delete items, series or collections. A move or merge
+- **No deletes.** There is no tool to delete items, series, collections or reading lists. A move or merge
   that empties a series deletes it, as in the web app; the change log keeps it in full.
 - **Permissions.** Tools call services directly, so they skip the controller guards. Each tool
   repeats its guard: edit metadata for edits, admin for ComicVine and for people and genre
@@ -322,7 +333,8 @@ included.
    control yet. Optionally keep the file's value when a field is hand-edited, so unlocking can
    bring it back.
 5. ~~Main characters on comic series.~~ Done.
-6. Reading lists, all three media types.
+6. ~~Reading lists, all three media types.~~ Done: API, MCP and change log for all three; web
+   pages and OPDS for comics. Web pages for book reading lists are a follow-up.
 7. Series merge for audiobooks and ebooks.
 8. Collections with one shape for all three media types (ebook groups renamed, audiobooks new).
 9. OAuth for the Claude apps' remote connectors.
@@ -334,7 +346,7 @@ included.
 2. **Writes, with dry run and change log:** `link_external`, `update_*`, `unlock_field`,
    `create_series`, `move_items`, `merge_series`, collections. Built, with `list_changes`,
    `undo_change` and the `tidy_comics` prompt.
-3. **New concepts:** main characters (built: `set_main_characters`), reading lists.
+3. **New concepts:** main characters (built: `set_main_characters`), reading lists (built).
 4. **Symmetry:** series merge for audiobooks and ebooks, collections for audiobooks.
 5. **OAuth.**
 

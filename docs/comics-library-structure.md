@@ -1,6 +1,7 @@
 # Comics library structure
 
-**Status:** agreed, 2026-10-31. Nothing here is built yet.
+**Status:** agreed, 2026-10-31. Built so far: main characters, comics in the metadata-gaps
+worklist, and reading lists.
 
 How a comics library should be organised so a few hundred series stay browsable. The
 [MCP](mcp-capabilities.md) is the tool that tidies an existing library into this shape.
@@ -85,10 +86,13 @@ Collections have the same shape for all three media types:
 
 Comic collections exist. Ebook groups become collections. Audiobooks get them new.
 
-### Reading lists (new)
+### Reading lists (built)
 
 An ordered list of issues across series, shared across the library and edited by users with
 edit-metadata permission. Collections cannot express these because they hold whole series.
+Each item can carry a short note, such as "Core" or "Tie-in". Comic reading lists are a tab on
+the comics page, show each reader's progress, and are an OPDS feed, so reading apps get the
+issues in order.
 Examples:
 
 - An event: the core series and its tie-ins, interleaved in reading order.
@@ -113,12 +117,12 @@ A character page, for example Wolverine:
 
 ## Same shape for audiobooks and ebooks
 
-|               | Comics                                    | Audiobooks                         | Ebooks                    |
-| ------------- | ----------------------------------------- | ---------------------------------- | ------------------------- |
-| Fixed levels  | Series → issue                            | Series → book                      | Series → book             |
-| Ways in       | Main character, publisher, event, creator | Author, narrator, genre, publisher | Author, genre, publisher  |
-| Collections   | Exist                                     | New                                | Renamed from ebook groups |
-| Reading lists | New                                       | New                                | New                       |
+|               | Comics                                    | Audiobooks                         | Ebooks                         |
+| ------------- | ----------------------------------------- | ---------------------------------- | ------------------------------ |
+| Fixed levels  | Series → issue                            | Series → book                      | Series → book                  |
+| Ways in       | Main character, publisher, event, creator | Author, narrator, genre, publisher | Author, genre, publisher       |
+| Collections   | Exist                                     | New                                | Renamed from ebook groups      |
+| Reading lists | Built                                     | API and MCP; web pages to come     | API and MCP; web pages to come |
 
 Main character is the only comics-only part. Reading lists suit books too, for reading orders
 that span series.
@@ -126,7 +130,7 @@ that span series.
 ## Server work
 
 1. Main characters and teams on comic series.
-2. Reading lists for all three media types.
+2. ~~Reading lists for all three media types.~~ Done; web pages for books are a follow-up.
 3. Collections with one shape for all three media types: rename ebook groups to collections
    (tables, API and UI), add series-or-item members and per-member notes, and add collections
    for audiobooks.

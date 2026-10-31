@@ -38,6 +38,7 @@ import { VersionModule } from './version/version.module';
 import { TrackerModule } from './tracker';
 import { RequestsModule } from './requests';
 import { ListsModule } from './lists/lists.module';
+import { ReadingListsModule } from './reading-lists/reading-lists.module';
 import { GrFinderModule } from './gr-finder/gr-finder.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { GenresModule } from './genres/genres.module';
@@ -199,6 +200,7 @@ import { CommonModule } from './common/common.module';
     TrackerModule,
     RequestsModule,
     ListsModule,
+    ReadingListsModule,
     GrFinderModule,
     AnnouncementsModule,
     GenresModule,

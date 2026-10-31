@@ -330,6 +330,13 @@
       "when": 1793454198508,
       "tag": "0046_add_mcp_change_log",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1793473030015,
+      "tag": "0047_add_reading_lists",
+      "breakpoints": true
     }
   ]
 }

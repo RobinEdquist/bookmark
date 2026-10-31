@@ -45,6 +45,7 @@ describe('ComicsOpdsService', () => {
       expect(xml).toContain('<title>All Series</title>');
       expect(xml).toContain('<title>Publishers</title>');
       expect(xml).toContain('<title>Collections</title>');
+      expect(xml).toContain('<title>Reading Lists</title>');
       expect(xml).toContain('<title>On Deck</title>');
       expect(xml).toContain('<title>Recently Added</title>');
     });
@@ -189,6 +190,89 @@ describe('ComicsOpdsService', () => {
       expect(xml).toContain('<title>All Series</title>');
       expect(xml).toContain('<title>Saga</title>');
       expect(xml).toContain(`rel="subsection" href="${BASE}/series/s-1"`);
+    });
+  });
+
+  describe('buildReadingListFeed', () => {
+    /** Each select resolves to the next result, whatever the chain. */
+    function queuedSelect(results: unknown[][]) {
+      let call = 0;
+      return jest.fn(() => {
+        const rows = results[call++] ?? [];
+        const builder: object = new Proxy(
+          {},
+          {
+            get: (_target, prop) =>
+              prop === 'then'
+                ? (resolve: (value: unknown) => void) => resolve(rows)
+                : () => builder,
+          },
+        );
+        return builder;
+      });
+    }
+
+    const issue = (
+      id: string,
+      seriesId: string,
+      number: string,
+      title: string | null,
+    ) => ({
+      id,
+      seriesId,
+      title,
+      number,
+      summary: null,
+      coverDate: null,
+      coverUrl: null,
+      coverSource: null,
+      pageCount: 0,
+      container: 'cbz',
+      language: null,
+      updatedAt: new Date('2026-01-01T00:00:00Z'),
+    });
+
+    it('lists issues in list order, named by series and number', async () => {
+      const select = queuedSelect([
+        [{ id: 'list-1', name: 'Civil War' }],
+        [
+          issue('b-1', 's-1', '1', null),
+          issue('b-2', 's-2', '42', 'Civil War'),
+        ],
+        [],
+        [],
+      ]);
+      const service = new ComicsOpdsService(
+        { select } as never,
+        { getProgress: jest.fn() } as never,
+        createMetadataResolver({
+          's-1': { title: 'Civil War (2006)' },
+          's-2': { title: 'Wolverine (2003)' },
+        }),
+      );
+
+      const xml = await service.buildReadingListFeed(BASE, 'list-1', 'user-1');
+
+      expect(xml).toContain('<title>Civil War</title>');
+      const first = xml.indexOf('<title>Civil War (2006) #1</title>');
+      const second = xml.indexOf(
+        '<title>Wolverine (2003) #42 - Civil War</title>',
+      );
+      expect(first).toBeGreaterThan(-1);
+      expect(second).toBeGreaterThan(first);
+      expect(xml).toContain(`href="${BASE}/reading-lists"`);
+    });
+
+    it('refuses a list that is not a comic list', async () => {
+      const service = new ComicsOpdsService(
+        { select: queuedSelect([[]]) } as never,
+        { getProgress: jest.fn() } as never,
+        createMetadataResolver(),
+      );
+
+      await expect(
+        service.buildReadingListFeed(BASE, 'list-1', 'user-1'),
+      ).rejects.toThrow('Reading list not found');
     });
   });
 });

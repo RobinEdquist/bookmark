@@ -7,12 +7,14 @@ import { McpAccessService } from '../mcp-access.service';
 import { McpEditService, checkFields } from '../mcp-edit.service';
 import { McpStructureService } from '../mcp-structure.service';
 import { McpCollectionsService } from '../mcp-collections.service';
+import { McpReadingListsService } from '../mcp-reading-lists.service';
 import { MERGE_NOT_UNDONE, McpUndoService } from '../mcp-undo.service';
 import { McpLinkService } from '../mcp-link.service';
 import { McpWriteTools } from '../mcp-write-tools';
 import { tidyComicsText } from '../mcp-prompts';
 import type { ChangeRow } from '../mcp-change-log.service';
-import type { FieldState } from '../mcp-fields';
+import { sameValue, type FieldState } from '../mcp-fields';
+import type { ReadingListEntryState } from '../../reading-lists/reading-list-order';
 
 const ID = '00000000-0000-4000-8000-000000000001';
 const OTHER = '00000000-0000-4000-8000-000000000002';
@@ -57,6 +59,8 @@ let currentUser = reader;
 /** What the store reads for every field, unless a test overrides it. */
 let stored: FieldState = { value: 'Old', locked: false };
 let changeRows: Partial<ChangeRow>[] = [];
+/** A reading list's entries, as the store reads them. */
+let listEntries: ReadingListEntryState[] = [];
 /** Series titles as the app shows them, which may differ from the stored ones. */
 const SHOWN_TITLES: Record<string, string> = {
   [ID]: 'Wolverine (2010)',
@@ -82,6 +86,8 @@ function build() {
     lockedFields: jest.fn(async () => ['title']),
     collectionMembers: jest.fn(async () => [ID]),
     setCollectionMembers: jest.fn(async () => undefined),
+    readingListEntries: jest.fn(async () => listEntries),
+    setReadingListEntries: jest.fn(async () => undefined),
     existingSeries: jest.fn(async (ids: string[]) => ids),
   };
   const changeSet = {
@@ -111,6 +117,27 @@ function build() {
     addSeries: jest.fn(),
     removeSeries: jest.fn(),
     reorder: jest.fn(),
+  };
+  const readingLists = {
+    findAll: jest.fn(async () => ({ readingLists: [], total: 0 })),
+    findOne: jest.fn(),
+    create: jest.fn(async () => ({ id: OTHER })),
+    addItems: jest.fn(async (_id: string, ids: string[]) => {
+      listEntries = [
+        ...listEntries,
+        ...ids.map((itemId) => ({ itemId, note: null })),
+      ];
+      return {
+        added: ids.length,
+        alreadyIn: 0,
+        entryCount: listEntries.length,
+      };
+    }),
+    removeItems: jest.fn(),
+    reorder: jest.fn(),
+    setNote: jest.fn(),
+    mediaTypeOf: jest.fn(async () => 'comic'),
+    missingItems: jest.fn(async () => [] as string[]),
   };
   const comicvineService = {
     getApiKey: jest.fn(async () => 'key'),
@@ -151,6 +178,12 @@ function build() {
     collections as never,
     changeLog as never,
   );
+  const readingListTools = new McpReadingListsService(
+    access,
+    store as never,
+    readingLists as never,
+    changeLog as never,
+  );
   const undo = new McpUndoService(
     access,
     store as never,
@@ -172,6 +205,7 @@ function build() {
     edit,
     structure,
     collectionTools,
+    readingListTools,
     undo,
     link,
   );
@@ -183,6 +217,7 @@ function build() {
     changeSet,
     comicsService,
     collections,
+    readingLists,
     comicvineService,
     goodreadsQueue,
   };
@@ -232,6 +267,15 @@ const EDIT_TOOLS: [string, Record<string, unknown>][] = [
   ['add_to_collection', { id: ID, seriesIds: [OTHER] }],
   ['remove_from_collection', { id: ID, seriesIds: [ID] }],
   ['reorder_collection', { id: ID, seriesIds: [ID] }],
+  [
+    'create_reading_list',
+    { mediaType: 'comic', name: 'Civil War', itemIds: [ID] },
+  ],
+  ['update_reading_list', { id: ID, fields: { name: 'Civil War' } }],
+  ['add_to_reading_list', { id: ID, itemIds: [OTHER] }],
+  ['remove_from_reading_list', { id: ID, itemIds: [ID] }],
+  ['reorder_reading_list', { id: ID, itemIds: [ID] }],
+  ['set_reading_list_notes', { id: ID, notes: [{ itemId: ID, note: 'Core' }] }],
   ['list_changes', {}],
   ['undo_change', { changeSetId: SET }],
 ];
@@ -240,6 +284,7 @@ describe('MCP write tools', () => {
   beforeEach(() => {
     stored = { value: 'Old', locked: false };
     changeRows = [];
+    listEntries = [];
   });
 
   it('marks each tool by what it does to existing data', async () => {
@@ -272,6 +317,14 @@ describe('MCP write tools', () => {
       add_to_collection: 'adds',
       remove_from_collection: 'overwrites',
       reorder_collection: 'overwrites',
+      list_reading_lists: 'read',
+      get_reading_list: 'read',
+      create_reading_list: 'adds',
+      update_reading_list: 'overwrites',
+      add_to_reading_list: 'adds',
+      remove_from_reading_list: 'overwrites',
+      reorder_reading_list: 'overwrites',
+      set_reading_list_notes: 'overwrites',
       list_changes: 'read',
       undo_change: 'overwrites',
     });
@@ -279,8 +332,14 @@ describe('MCP write tools', () => {
 
   describe.each(EDIT_TOOLS)('%s', (tool, args) => {
     it('refuses a user who cannot edit metadata', async () => {
-      const { call, store, changeLog, comicsService, collections } =
-        await connect(reader);
+      const {
+        call,
+        store,
+        changeLog,
+        comicsService,
+        collections,
+        readingLists,
+      } = await connect(reader);
       const result = await call(tool, args);
 
       expect(result.isError).toBe(true);
@@ -296,6 +355,11 @@ describe('MCP write tools', () => {
       expect(collections.addSeries).not.toHaveBeenCalled();
       expect(collections.removeSeries).not.toHaveBeenCalled();
       expect(collections.reorder).not.toHaveBeenCalled();
+      expect(readingLists.create).not.toHaveBeenCalled();
+      expect(readingLists.addItems).not.toHaveBeenCalled();
+      expect(readingLists.removeItems).not.toHaveBeenCalled();
+      expect(readingLists.reorder).not.toHaveBeenCalled();
+      expect(readingLists.setNote).not.toHaveBeenCalled();
       expect(changeLog.record).not.toHaveBeenCalled();
       expect(changeLog.open).not.toHaveBeenCalled();
       expect(changeLog.list).not.toHaveBeenCalled();
@@ -476,6 +540,16 @@ describe('MCP write tools', () => {
     });
   });
 
+  describe('sameValue', () => {
+    it('ignores key order, which jsonb does not keep', () => {
+      expect(
+        sameValue([{ itemId: ID, note: null }], [{ note: null, itemId: ID }]),
+      ).toBe(true);
+      expect(sameValue([ID, OTHER], [OTHER, ID])).toBe(false);
+      expect(sameValue(undefined, null)).toBe(true);
+    });
+  });
+
   describe('unlock_field', () => {
     it('says which fields are locked when the field is not', async () => {
       const { call, store } = await connect(editor);
@@ -606,6 +680,108 @@ describe('MCP write tools', () => {
       const result = await call('undo_change', { changeSetId: SET });
 
       expect(textOf(result)).toBe('This change set is already undone');
+    });
+  });
+
+  describe('reading lists', () => {
+    it('adds at a position and logs the entries before and after', async () => {
+      listEntries = [{ itemId: ID, note: 'Core' }];
+      const { call, readingLists, changeLog } = await connect(editor);
+
+      const result = json<{ added: number; items: number }>(
+        await call('add_to_reading_list', {
+          id: SET,
+          itemIds: [OTHER],
+          position: 0,
+          note: 'Tie-in',
+        }),
+      );
+
+      expect(readingLists.addItems).toHaveBeenCalledWith(SET, [OTHER], {
+        position: 0,
+        note: 'Tie-in',
+      });
+      expect(result).toMatchObject({ added: 1, items: 2 });
+      expect(changeLog.record).toHaveBeenCalledWith(
+        editor,
+        'add_to_reading_list',
+        [
+          {
+            entityType: 'reading_list',
+            entityId: SET,
+            field: 'entries',
+            before: { value: [{ itemId: ID, note: 'Core' }] },
+            after: {
+              value: [
+                { itemId: ID, note: 'Core' },
+                { itemId: OTHER, note: null },
+              ],
+            },
+          },
+        ],
+      );
+    });
+
+    it('asks for issue ids when given something else', async () => {
+      const { call, readingLists } = await connect(editor);
+      readingLists.missingItems.mockResolvedValueOnce([OTHER]);
+
+      const result = await call('add_to_reading_list', {
+        id: SET,
+        itemIds: [OTHER],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(textOf(result)).toBe(
+        `Not comic issues: ${OTHER}. Give issue ids (from get_series), not series ids.`,
+      );
+      expect(readingLists.addItems).not.toHaveBeenCalled();
+    });
+
+    it('refuses to remove items that are not in the list', async () => {
+      listEntries = [{ itemId: ID, note: null }];
+      const { call, readingLists } = await connect(editor);
+
+      const result = await call('remove_from_reading_list', {
+        id: SET,
+        itemIds: [OTHER],
+      });
+
+      expect(textOf(result)).toBe(
+        'None of these items are in the reading list',
+      );
+      expect(readingLists.removeItems).not.toHaveBeenCalled();
+    });
+
+    it('undo puts back the entries and their notes', async () => {
+      const before = [
+        { itemId: ID, note: 'Core' },
+        { itemId: OTHER, note: null },
+      ];
+      const after = [{ itemId: OTHER, note: null }];
+      changeRows = [
+        {
+          id: 'row-1',
+          changeSetId: SET,
+          tool: 'remove_from_reading_list',
+          entityType: 'reading_list',
+          entityId: ID,
+          field: 'entries',
+          before: { value: before },
+          after: { value: after },
+          undoneBy: null,
+        },
+      ];
+      stored = { value: after };
+      const { call, store } = await connect(editor);
+
+      const result = json<{ undone: number }>(
+        await call('undo_change', { changeSetId: SET }),
+      );
+
+      expect(result.undone).toBe(1);
+      expect(store.setReadingListEntries).toHaveBeenCalledWith(ID, before);
+      expect(store.write).not.toHaveBeenCalled();
     });
   });
 
