@@ -1207,6 +1207,51 @@ export class ComicsService {
     return { updated };
   }
 
+  /**
+   * Remove a field from the series' manualFields, so the configured source
+   * order applies again. The stored value stays until a rescan or sync
+   * replaces it. Returns false if the field was not locked.
+   */
+  async unlockSeriesField(id: string, field: string): Promise<boolean> {
+    const [series] = await this.db
+      .select({ manualFields: schema.comicSeries.manualFields })
+      .from(schema.comicSeries)
+      .where(eq(schema.comicSeries.id, id))
+      .limit(1);
+    if (!series) throw new NotFoundException('Comic series not found');
+
+    const locked = series.manualFields ?? [];
+    if (!locked.includes(field)) return false;
+    await this.db
+      .update(schema.comicSeries)
+      .set({ manualFields: locked.filter((f) => f !== field) })
+      .where(eq(schema.comicSeries.id, id));
+
+    this.appEvents.comicSeriesUpdated(id);
+    this.wsEvents.comicSeriesUpdated(id);
+    return true;
+  }
+
+  /** As unlockSeriesField, for a book. */
+  async unlockBookField(id: string, field: string): Promise<boolean> {
+    const [book] = await this.db
+      .select({ manualFields: schema.comicBooks.manualFields })
+      .from(schema.comicBooks)
+      .where(eq(schema.comicBooks.id, id))
+      .limit(1);
+    if (!book) throw new NotFoundException('Comic book not found');
+
+    const locked = book.manualFields ?? [];
+    if (!locked.includes(field)) return false;
+    await this.db
+      .update(schema.comicBooks)
+      .set({ manualFields: locked.filter((f) => f !== field) })
+      .where(eq(schema.comicBooks.id, id));
+
+    this.wsEvents.comicBookUpdated(id);
+    return true;
+  }
+
   // ===== DELETES =====
 
   async deleteSeries(id: string, deleteFiles: boolean): Promise<void> {

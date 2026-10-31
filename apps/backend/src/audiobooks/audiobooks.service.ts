@@ -1362,6 +1362,30 @@ export class AudiobooksService {
     return result;
   }
 
+  /**
+   * Remove a field from manualFields, so the configured source order applies
+   * again. The stored value stays until a rescan or sync replaces it.
+   * Returns false if the field was not locked.
+   */
+  async unlockField(id: string, field: string): Promise<boolean> {
+    const [audiobook] = await this.db
+      .select({ manualFields: schema.audiobooks.manualFields })
+      .from(schema.audiobooks)
+      .where(eq(schema.audiobooks.id, id))
+      .limit(1);
+    if (!audiobook) throw new NotFoundException('Audiobook not found');
+
+    const locked = (audiobook.manualFields as string[] | null) ?? [];
+    if (!locked.includes(field)) return false;
+    await this.db
+      .update(schema.audiobooks)
+      .set({ manualFields: locked.filter((f) => f !== field) })
+      .where(eq(schema.audiobooks.id, id));
+
+    this.appEvents.audiobookUpdated(id);
+    return true;
+  }
+
   private async updatePeopleRelation(
     audiobookId: string,
     names: string[],

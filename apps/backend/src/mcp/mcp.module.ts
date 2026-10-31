@@ -19,10 +19,19 @@ import { McpLibraryService } from './mcp-library.service';
 import { McpInspectService } from './mcp-inspect.service';
 import { McpViewService } from './mcp-view.service';
 import { McpExternalService } from './mcp-external.service';
+import { McpChangeLogService } from './mcp-change-log.service';
+import { McpEntityStore } from './mcp-entity-store';
+import { McpEditService } from './mcp-edit.service';
+import { McpStructureService } from './mcp-structure.service';
+import { McpCollectionsService } from './mcp-collections.service';
+import { McpUndoService } from './mcp-undo.service';
+import { McpLinkService } from './mcp-link.service';
+import { McpWriteTools } from './mcp-write-tools';
 
 /**
- * The Bookmark MCP server at /api/mcp. Read-only for now; see
- * docs/mcp-capabilities.md for the plan and what each tool covers.
+ * The Bookmark MCP server at /api/mcp: tools to find, inspect and fix
+ * library metadata, with every write in the change log. See
+ * docs/mcp-capabilities.md for what each tool covers.
  */
 @Module({
   imports: [
@@ -48,6 +57,14 @@ import { McpExternalService } from './mcp-external.service';
     McpInspectService,
     McpViewService,
     McpExternalService,
+    McpChangeLogService,
+    McpEntityStore,
+    McpEditService,
+    McpStructureService,
+    McpCollectionsService,
+    McpUndoService,
+    McpLinkService,
+    McpWriteTools,
   ],
 })
 export class McpModule {}

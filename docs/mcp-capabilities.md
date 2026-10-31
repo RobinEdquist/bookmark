@@ -1,6 +1,7 @@
 # Bookmark MCP
 
-**Status:** agreed, 2026-10-31. Step 1 of the build order, the read-only tools, is built. See
+**Status:** agreed, 2026-10-31. Steps 1 and 2 of the build order, the read-only tools and the
+writes with dry run and change log, are built, with main characters from step 3. See
 [What exists today](#what-exists-today) and [Connecting](#connecting).
 
 An MCP server lets an AI agent (Claude Code, the Claude apps) work on the library: find items
@@ -38,8 +39,9 @@ later. Better Auth 1.7.5 core has no OAuth provider plugin, so it is a separate 
 ### Connecting
 
 1. In Bookmark, open Preferences → API Keys and create a key. The key acts as you, so its
-   tools can do what your account can: `library_overview` and `find_items` need permission to
-   edit metadata, and ComicVine, Hardcover and Goodreads lookups need an admin.
+   tools can do what your account can: `library_overview`, `find_items` and every write need
+   permission to edit metadata, and ComicVine, Hardcover and Goodreads lookups and links need
+   an admin.
 2. Add the server to Claude Code. A Docker install serves the API through the web port:
 
    ```bash
@@ -53,7 +55,11 @@ later. Better Auth 1.7.5 core has no OAuth provider plugin, so it is a separate 
    ```
 
 3. Run `claude mcp list`, or `/mcp` inside Claude Code, to check it connected. Start with
-   `library_overview`.
+   `library_overview`, or run the `/mcp__bookmark__tidy_comics` prompt.
+
+Claude Code asks before each tool that changes the library, unless you allow it. The tools mark
+which ones overwrite values, so you can allow the additive ones and keep being asked for the
+rest.
 
 The endpoint is stateless Streamable HTTP with JSON responses: each POST is answered in full, and
 GET and DELETE return 405.
@@ -144,8 +150,11 @@ file value without re-reading the file.
 
 ### MCP tools
 
-All read-only, marked `readOnlyHint`. Lists are paged and compact; full detail only comes from
-`get_*`.
+Lists are paged and compact; full detail only comes from `get_*`.
+
+#### Read
+
+All marked `readOnlyHint`.
 
 | Tool                   | Comics                                              | Audiobooks                                    | Ebooks                         | Needs                   |
 | ---------------------- | --------------------------------------------------- | --------------------------------------------- | ------------------------------ | ----------------------- |
@@ -156,13 +165,87 @@ All read-only, marked `readOnlyHint`. Lists are paged and compact; full detail o
 | `view_item`            | Cover and first pages (issue or series)             | Cover                                         | Cover                          | Signed in               |
 | `search_external`      | ComicVine volumes                                   | Hardcover, Goodreads, Audible, iTunes         | Hardcover, Goodreads, iTunes   | Admin for CV, HC and GR |
 | `get_match_candidates` | Volumes for a series, issues for an issue           | Hardcover, Goodreads, Audible, iTunes         | Hardcover, Goodreads, iTunes   | Admin for CV, HC and GR |
+| `list_collections`     | Collections with series counts                      | n/a                                           | n/a                            | Signed in               |
+| `get_collection`       | A collection's series, in order                     | n/a                                           | n/a                            | Signed in               |
+| `list_changes`         | The change log, by record, user or change set       | Same                                          | Same                           | Edit metadata           |
 
 Every tool also applies the user's tag blacklist: blacklisted items are left out of lists and
-refused by id, as in the REST API. Explicit content has no filter of its own anywhere in the app;
-users hide it by blacklisting a tag.
+refused by id, as in the REST API, and the write tools refuse them too. Explicit content has no
+filter of its own anywhere in the app; users hide it by blacklisting a tag.
 
 Images are JPEG, at most 1024 px on the long edge. Comic pages start at page 2 by default, since
 page 1 is usually the cover.
+
+#### Write
+
+Every write repeats the guard of its REST route and goes through the same service, so it locks
+fields and fires the same events as an edit in the web app. Hints: "overwrites" tools are marked
+`destructiveHint`, "adds" tools are not.
+
+| Tool                     | Comics                                                    | Audiobooks and ebooks                         | Dry run | Hint       | Needs         |
+| ------------------------ | --------------------------------------------------------- | --------------------------------------------- | ------- | ---------- | ------------- |
+| `link_external`          | Series to a ComicVine volume, issues queued; or one issue | Hardcover (by id and search query), Goodreads | No      | Overwrites | Admin         |
+| `update_item`            | Issue fields, credits; one or up to 50                    | Fields, authors, narrators, genres            | Yes     | Overwrites | Edit metadata |
+| `update_series`          | Series fields, genres, tags; one or up to 50              | Series name                                   | Yes     | Overwrites | Edit metadata |
+| `unlock_field`           | Series and issue fields                                   | Fields                                        | No      | Overwrites | Edit metadata |
+| `set_main_characters`    | One to three per series                                   | n/a                                           | No      | Overwrites | Edit metadata |
+| `create_series`          | Empty series                                              | n/a                                           | No      | Adds       | Edit metadata |
+| `move_items`             | Issues to another series                                  | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `merge_series`           | Series into a target                                      | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `create_collection`      | With its first series                                     | n/a                                           | No      | Adds       | Edit metadata |
+| `update_collection`      | Name, sort name, description                              | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `add_to_collection`      | Series at the end                                         | n/a                                           | No      | Adds       | Edit metadata |
+| `remove_from_collection` | Series out                                                | n/a                                           | No      | Overwrites | Edit metadata |
+| `reorder_collection`     | The full order                                            | n/a                                           | No      | Overwrites | Edit metadata |
+| `undo_change`            | One change set                                            | Same                                          | Yes     | Overwrites | Edit metadata |
+
+Notes:
+
+- **Linking.** ComicVine and Goodreads take the external id. Hardcover has no lookup by id, so
+  `link_external` also takes the search query that found the book and finds it again in the
+  first three result pages. A ComicVine series link queues the series' unlinked issues, and
+  retries ones left waiting for review or failed, so the sync matches each to an issue of the
+  volume. Goodreads links are queued and can take minutes.
+- **Unlocking.** `unlock_field` removes a field from `manualFields`; the stored value stays.
+  The source order then applies again, so ComicVine's value shows if it is linked and ranked
+  first. A hand-edit is written into the same column as the file's value, so a file value it
+  replaced only comes back when the file is read again (a rescan of a changed file).
+- **Moves and merges** pin each issue to its new series so rescans keep it. A series a move or
+  merge leaves empty is deleted, as in the web app. The dry run lists those series, and for a
+  merge what each source loses: main characters, collections and its ComicVine volume.
+- **Collections** are comic collections. Ebook groups are left alone until they become
+  collections (slice 4 of [the comics structure plan](plans/2026-10-31-comics-structure.md)).
+
+#### Prompts
+
+- `tidy_comics`: walks the agent through the session in
+  [Use case](#use-case-comics-with-no-metadata). Arguments: `scope` (text to limit it to),
+  `descriptions` (`keep` ComicVine's or `replace` them), `fileData` (`keep` or `replace` the
+  files' values), `approval` (ask before `each` change, or per `batch`). A preference left out
+  makes the agent ask. Claude Code shows it as `/mcp__bookmark__tidy_comics`.
+
+### Change log
+
+Every MCP write is a row in `mcp_change_log`: the user, the tool, the record (type and id), the
+field, the value before and after, and the time. Lockable fields store `{ value, locked }`, so the
+lock state is restored too. Rows from one tool call share a `changeSetId`.
+
+`undo_change` takes a change set and writes the `before` values back through the same services:
+
+- **Undone:** field edits and unlocks, main characters, issue moves, collection edits,
+  membership and order.
+- **Skipped:** rows whose value changed again since (unless `force`), created series and
+  collections (undoing would mean a delete), external links (unlink in the web app), and issue
+  moves whose old series was deleted.
+- **Refused:** merges. A merge deletes the emptied sources. Each deleted series is logged in
+  full (fields, locks, main characters, collections, ComicVine volume, folder, issue ids), so it
+  can be rebuilt by hand with `create_series`, `update_series`, `set_main_characters` and
+  `move_items`. The same row is written when a move empties a series.
+
+An undo is itself a change set, so it can be undone. Undoing a move can empty the series the
+issues were moved into; that series is deleted and logged like any other.
+
+The log has no web view yet. That is a follow-up.
 
 Left for audiobooks and ebooks:
 
@@ -171,6 +254,8 @@ Left for audiobooks and ebooks:
 - `view_item` shows no ebook pages.
 - `find_items` `noSeries` checks the book's own series rows, not Hardcover's featured series.
 - Audible and iTunes candidates search the resolved title and first author only, in the US store.
+- `update_item` does not set a book's series or tags, and `update_series` only renames a book
+  series. There is no series merge or move for books, and no collections.
 
 ### Capabilities
 
@@ -182,7 +267,7 @@ Left for audiobooks and ebooks:
 | Page images                 | Yes (OPDS page route, MCP)      | n/a                                   | n/a                                  |
 | External search and link    | ComicVine, admin only           | Hardcover, Audible, iTunes, Goodreads | Hardcover, Goodreads                 |
 | Edit metadata               | Yes                             | Yes                                   | Yes                                  |
-| Unlock a hand-edited field  | **Missing**                     | **Missing**                           | **Missing**                          |
+| Unlock a hand-edited field  | MCP only                        | MCP only                              | MCP only                             |
 | Folder path                 | MCP only, relative to the root  | MCP only, relative to the root        | MCP only, relative to the root       |
 | Create series, move items   | Yes                             | Yes, through the book's series field  | Yes, through the book's series field |
 | Merge series                | Yes                             | **Missing** (rename only)             | **Missing** (rename only)            |
@@ -191,6 +276,7 @@ Left for audiobooks and ebooks:
 | Main characters             | Yes                             | n/a                                   | n/a                                  |
 | Merge genres                | Yes, admin                      | Yes, admin                            | Yes, admin                           |
 | Merge people                | Yes, admin                      | Yes, admin                            | Yes, admin                           |
+| Change log and undo         | MCP writes                      | MCP writes                            | MCP writes                           |
 
 Comic gaps in the worklist are per series: cover (the series' or its first issue's),
 description, main characters, publisher, start year, ComicVine link, and two roll-ups of the
@@ -200,13 +286,16 @@ included.
 
 ## Safety
 
-- **Tool hints.** Read tools are marked read-only. Merge and bulk tools are marked destructive,
-  so Claude asks before running them.
-- **Dry run.** Merge, move and bulk updates take `dryRun: true` and return the result without
-  applying it.
+- **Tool hints.** Read tools are marked read-only. Merge, move and every tool that overwrites
+  values are marked destructive, so Claude asks before running them. Purely additive tools
+  (create a series or collection, add to a collection) are not.
+- **Dry run.** Merge, move and the update tools (one id or up to 50) take `dryRun: true` and
+  return the result without applying it.
 - **Change log.** Every write through the MCP is recorded with the user, the item, and the
-  before and after values, so the work can be reviewed and undone. This is new server work.
-- **No deletes.** The first version cannot delete items, series or collections.
+  before and after values, so the work can be reviewed and undone. See
+  [Change log](#change-log) for what undo covers.
+- **No deletes.** There is no tool to delete items, series or collections. A move or merge
+  that empties a series deletes it, as in the web app; the change log keeps it in full.
 - **Permissions.** Tools call services directly, so they skip the controller guards. Each tool
   repeats its guard: edit metadata for edits, admin for ComicVine and for people and genre
   merges. Each tool gets a test that a user without the permission is refused, and `/mcp` is
@@ -220,9 +309,10 @@ included.
 
 1. ~~Fix people merge so it moves comic creator credits.~~ Done.
 2. ~~Comics in the metadata-gaps worklist.~~ Done.
-3. The change log.
-4. Unlocking a hand-edited field. Optionally keep the file's value when a field is hand-edited,
-   so unlocking can bring it back.
+3. ~~The change log.~~ Done, MCP writes only. A web view of it is a follow-up.
+4. ~~Unlocking a hand-edited field.~~ Done in the services and the MCP; no REST route or web
+   control yet. Optionally keep the file's value when a field is hand-edited, so unlocking can
+   bring it back.
 5. ~~Main characters on comic series.~~ Done.
 6. Reading lists, all three media types.
 7. Series merge for audiobooks and ebooks.
@@ -234,8 +324,9 @@ included.
 1. **Read-only:** `library_overview`, `find_items` (needs comics in metadata-gaps), `get_*`,
    `view_item`, `search_external`, `get_match_candidates`. Built.
 2. **Writes, with dry run and change log:** `link_external`, `update_*`, `unlock_field`,
-   `create_series`, `move_items`, `merge_series`, collections.
-3. **New concepts:** main characters, reading lists.
+   `create_series`, `move_items`, `merge_series`, collections. Built, with `list_changes`,
+   `undo_change` and the `tidy_comics` prompt.
+3. **New concepts:** main characters (built: `set_main_characters`), reading lists.
 4. **Symmetry:** series merge for audiobooks and ebooks, collections for audiobooks.
 5. **OAuth.**
 

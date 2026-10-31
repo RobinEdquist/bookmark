@@ -129,9 +129,16 @@ function buildFactory() {
     {} as never,
     {} as never,
   );
-  const factory = new McpServerFactory(library, inspect, view, external, {
-    getVersion: () => ({ version: 'test' }),
-  } as never);
+  // The write tools have their own spec (mcp-write-tools.spec.ts).
+  const writeTools = { register: jest.fn() };
+  const factory = new McpServerFactory(
+    library,
+    inspect,
+    view,
+    external,
+    { getVersion: () => ({ version: 'test' }) } as never,
+    writeTools as never,
+  );
 
   return { factory, gaps, comicvineService, audnexusService };
 }
@@ -179,6 +186,21 @@ describe('MCP tools', () => {
       expect(tool.annotations?.readOnlyHint).toBe(true);
       expect(tool.annotations?.destructiveHint).toBe(false);
     }
+  });
+
+  it('offers the tidy_comics prompt with the preferences given', async () => {
+    const { client } = await connect(editor);
+    const { prompts } = await client.listPrompts();
+    expect(prompts.map((p) => p.name)).toEqual(['tidy_comics']);
+
+    const prompt = await client.getPrompt({
+      name: 'tidy_comics',
+      arguments: { descriptions: 'replace', fileData: 'keep' },
+    });
+    const [message] = prompt.messages;
+    const text = message.content.type === 'text' ? message.content.text : '';
+    expect(text).toContain('Replace descriptions with your own');
+    expect(text).toContain('Only fill fields that are empty');
   });
 
   describe('library_overview', () => {

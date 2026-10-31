@@ -262,9 +262,9 @@ describe('MCP endpoint (e2e)', () => {
       client = await connect(adminKey);
     });
 
-    it('lists the read-only tools', async () => {
+    it('marks the read tools read-only', async () => {
       const { tools } = await client.listTools();
-      expect(tools.map((tool) => tool.name).sort()).toEqual([
+      const readTools = [
         'find_items',
         'get_item',
         'get_match_candidates',
@@ -272,8 +272,11 @@ describe('MCP endpoint (e2e)', () => {
         'library_overview',
         'search_external',
         'view_item',
-      ]);
-      expect(tools.every((tool) => tool.annotations?.readOnlyHint)).toBe(true);
+      ];
+      for (const name of readTools) {
+        const tool = tools.find((t) => t.name === name);
+        expect(tool?.annotations?.readOnlyHint).toBe(true);
+      }
     });
 
     it('library_overview counts comic series and issues', async () => {
