@@ -47,6 +47,22 @@ export function resolveContainedPath(
 }
 
 /**
+ * {@link resolveContainedPath} for callers that treat a path outside the root
+ * as "not in the library" rather than as an error: returns null instead of
+ * throwing.
+ */
+export function tryResolveContainedPath(
+  rootPath: string,
+  relativePath: string,
+): string | null {
+  try {
+    return resolveContainedPath(rootPath, relativePath);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Validates that a relative path candidate is safe to persist in the database
  * (later resolved via {@link resolveContainedPath}). Rejects empty strings,
  * absolute paths, and anything containing `..` traversal segments.

@@ -628,6 +628,24 @@ describe('LibraryScannerService', () => {
       expect(mockDb.delete).not.toHaveBeenCalled();
     });
 
+    it('does not look outside the library for a hidden audiobook', async () => {
+      mockHiddenRow({
+        id: 'ab-1',
+        filePath: '../../outside',
+        status: 'hidden',
+      });
+      mockedAccess.mockResolvedValue(undefined);
+
+      const outcome = await service.restoreHiddenAudiobook(
+        'ab-1',
+        LIBRARY_PATH,
+      );
+
+      expect(outcome).toBe('removed');
+      expect(mockedAccess).not.toHaveBeenCalled();
+      expect(mockMediaDetector.detectAudiobook).not.toHaveBeenCalled();
+    });
+
     it('deletes the record only when its folder is gone', async () => {
       mockHiddenRow({ id: 'ab-1', filePath: 'Author/Gone', status: 'hidden' });
       mockedAccess.mockRejectedValue(new Error('ENOENT'));
@@ -734,6 +752,18 @@ describe('LibraryScannerService', () => {
       expect(mockDb._mockSet).toHaveBeenCalledWith(
         expect.objectContaining({ status: 'missing' }),
       );
+    });
+
+    it('treats a stored path outside the library as missing without checking it', async () => {
+      setupSelectFromSequence(mockDb, [
+        [{ id: 'eb-1', filePath: '../../etc/passwd', status: 'available' }],
+      ]);
+      mockedAccess.mockResolvedValue(undefined);
+
+      const result = await service.scanEbookLibrary(EBOOK_LIBRARY_PATH);
+
+      expect(result.missing).toBe(1);
+      expect(mockedAccess).not.toHaveBeenCalled();
     });
 
     it('should restore ebooks from missing when file reappears', async () => {

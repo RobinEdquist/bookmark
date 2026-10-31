@@ -10,6 +10,10 @@ import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { and, asc, eq, inArray, lt, sql } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import {
+  resolveContainedPath,
+  tryResolveContainedPath,
+} from '../common/utils/path-containment.util';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { AppDataService } from '../app-data/app-data.service';
@@ -301,7 +305,14 @@ export class TtsGenerationProcessor implements OnModuleInit {
     if (!ebookLibraryPath) {
       throw new Error('Ebook library path is not configured');
     }
-    const epubPath = path.join(ebookLibraryPath, ebook.filePath);
+    // The stored path can be polluted by a crafted backup import; narrate
+    // only a file inside the library.
+    let epubPath: string;
+    try {
+      epubPath = resolveContainedPath(ebookLibraryPath, ebook.filePath);
+    } catch {
+      throw new Error('The ebook file is outside the library');
+    }
 
     const extraction = await this.ebookMetadata.extractChapters(epubPath);
     await this.checkCancelled(job.id);
@@ -506,9 +517,12 @@ export class TtsGenerationProcessor implements OnModuleInit {
     try {
       const ebookLibraryPath = await this.appSettings.getEbookLibraryPath();
       if (!ebookLibraryPath) return undefined;
-      const embedded = await this.ebookMetadata.extractCoverFromFile(
-        path.join(ebookLibraryPath, ebook.filePath),
+      const epubPath = tryResolveContainedPath(
+        ebookLibraryPath,
+        ebook.filePath,
       );
+      if (!epubPath) return undefined;
+      const embedded = await this.ebookMetadata.extractCoverFromFile(epubPath);
       if (!embedded) return undefined;
       // ffmpeg probes content, not extensions - png data in cover.jpg is fine
       await fs.writeFile(target, embedded.data);

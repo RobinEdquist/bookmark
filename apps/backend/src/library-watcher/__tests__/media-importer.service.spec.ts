@@ -1755,6 +1755,31 @@ describe('MediaImporterService', () => {
       expect(setCall).not.toHaveProperty('title');
     });
 
+    it('does not read a stored path outside the library', async () => {
+      setupBookRescanMocks({
+        id: 'book-escape',
+        fileName: 'passwd',
+        filePath: '../../../etc/passwd',
+        number: null,
+        title: null,
+        format: 'single_issue',
+        coverDate: null,
+        summary: null,
+        pageCount: null,
+        manualFields: [],
+      });
+
+      deps.appSettingsService.getComicLibraryPath = jest
+        .fn()
+        .mockResolvedValueOnce('/library/comics');
+
+      const result = await service.reExtractComicBook('book-escape');
+
+      expect(result).toBe(false);
+      expect(deps.comicMetadataProvider.extractMetadata).not.toHaveBeenCalled();
+      expect(db.update).not.toHaveBeenCalled();
+    });
+
     it('returns false and logs error when file extraction throws', async () => {
       setupBookRescanMocks({
         id: 'book-err',

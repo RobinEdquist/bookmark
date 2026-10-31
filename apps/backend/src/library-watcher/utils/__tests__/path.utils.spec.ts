@@ -198,5 +198,15 @@ describe('path.utils', () => {
       );
       expect(result).toBe("/my library/Author's Book (2024)/Track #1.mp3");
     });
+
+    it.each([
+      ['a folder that climbs out', '../outside', 'track.mp3'],
+      ['a file that climbs out', 'Author', '../../outside.mp3'],
+      ['an absolute file at the root level', '', '/etc/passwd'],
+    ])('refuses %s of the library', (_label, folder, file) => {
+      expect(() => resolveAudiobookFilePath('/library', folder, file)).toThrow(
+        /outside the library root/,
+      );
+    });
   });
 });
