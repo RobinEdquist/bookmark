@@ -823,6 +823,131 @@ export class ComicvineService {
   }
 
   // =========================================================================
+  // Link by ComicVine id (the web app sends the whole search result instead)
+  // =========================================================================
+
+  /** Fetch a volume by its ComicVine id and link the series to it. */
+  async linkSeriesToVolumeId(
+    seriesId: string,
+    volumeId: number,
+  ): Promise<CachedVolume> {
+    await this.requireRow(comicsSchema.comicSeries, seriesId, 'Comic series');
+    const client = await this.requireClient();
+    const volume = (await this.fetchOne(() => client.getVolume(volumeId)))
+      .results as CvVolumeRaw;
+    if (!volume?.id) {
+      throw new NotFoundException(`ComicVine has no volume ${volumeId}`);
+    }
+    return this.linkSeriesToVolume(seriesId, volume);
+  }
+
+  /** Fetch an issue by its ComicVine id and link the book to it. */
+  async linkBookToIssueId(
+    bookId: string,
+    issueId: number,
+  ): Promise<CachedIssue> {
+    await this.requireRow(comicsSchema.comicBooks, bookId, 'Comic book');
+    const client = await this.requireClient();
+    const issue = (await this.fetchOne(() => client.getIssue(issueId)))
+      .results as CvIssueRaw;
+    if (!issue?.id) {
+      throw new NotFoundException(`ComicVine has no issue ${issueId}`);
+    }
+    return this.linkBookToIssue(bookId, issue);
+  }
+
+  /**
+   * Queue a series' unlinked books, so the sync matches each one to an issue
+   * of the series' volume. Books left waiting for review or failed (often
+   * because the series had no volume yet) are retried. Returns how many are
+   * now waiting.
+   */
+  async queueSeriesBooks(seriesId: string): Promise<number> {
+    const books = await this.db
+      .select({
+        id: comicsSchema.comicBooks.id,
+        queueId: comicvineSchema.comicvineSyncQueue.id,
+        queueStatus: comicvineSchema.comicvineSyncQueue.status,
+      })
+      .from(comicsSchema.comicBooks)
+      .leftJoin(
+        comicvineSchema.comicvineIssueLinks,
+        eq(
+          comicvineSchema.comicvineIssueLinks.bookId,
+          comicsSchema.comicBooks.id,
+        ),
+      )
+      .leftJoin(
+        comicvineSchema.comicvineSyncQueue,
+        eq(
+          comicvineSchema.comicvineSyncQueue.bookId,
+          comicsSchema.comicBooks.id,
+        ),
+      )
+      .where(
+        and(
+          eq(comicsSchema.comicBooks.seriesId, seriesId),
+          isNull(comicvineSchema.comicvineIssueLinks.bookId),
+        ),
+      );
+
+    let waiting = 0;
+    for (const book of books) {
+      if (!book.queueId) {
+        if (await this.addToSyncQueue('book', book.id)) waiting++;
+      } else if (
+        book.queueStatus === 'needs_review' ||
+        book.queueStatus === 'failed'
+      ) {
+        await this.markPending(book.queueId);
+        waiting++;
+      } else {
+        waiting++;
+      }
+    }
+    return waiting;
+  }
+
+  private async requireClient(): Promise<ComicVineApiClient> {
+    const client = await this.getClient();
+    if (!client) throw new BadRequestException('ComicVine is not set up.');
+    return client;
+  }
+
+  private async requireRow(
+    table: typeof comicsSchema.comicSeries | typeof comicsSchema.comicBooks,
+    id: string,
+    name: string,
+  ): Promise<void> {
+    const [row] = await this.db
+      .select({ id: table.id })
+      .from(table)
+      .where(eq(table.id, id))
+      .limit(1);
+    if (!row) throw new NotFoundException(`${name} not found`);
+  }
+
+  /** A single-record call, with "not found" and rate limits as 4xx errors. */
+  private async fetchOne<T>(call: () => Promise<T>): Promise<T> {
+    try {
+      return await call();
+    } catch (error) {
+      if (error instanceof ComicVineApiError) {
+        if (error.rateLimited) {
+          throw new BadRequestException(
+            'ComicVine rate limit reached, try again later',
+          );
+        }
+        // 101: "Object Not Found"
+        if (error.code === 101) {
+          throw new NotFoundException('ComicVine has no record with that id');
+        }
+      }
+      throw error;
+    }
+  }
+
+  // =========================================================================
   // Sync Queue (mirror HardcoverService exactly, adapted for level + two IDs)
   // =========================================================================
 

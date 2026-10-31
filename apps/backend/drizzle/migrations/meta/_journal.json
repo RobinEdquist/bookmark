@@ -323,6 +323,13 @@
       "when": 1793448343507,
       "tag": "0045_add_comic_series_main_characters",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "7",
+      "when": 1793454198508,
+      "tag": "0046_add_mcp_change_log",
+      "breakpoints": true
     }
   ]
 }

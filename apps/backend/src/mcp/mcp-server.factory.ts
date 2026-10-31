@@ -1,9 +1,5 @@
-import { HttpException, Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type {
-  CallToolResult,
-  ToolAnnotations,
-} from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import type { AuthenticatedUser } from '../common/guards/auth.guard';
 import { VersionService } from '../version/version.service';
@@ -24,38 +20,37 @@ import {
   VIEW_MAX_PAGES,
 } from './mcp-view.service';
 import { EXTERNAL_SOURCES, McpExternalService } from './mcp-external.service';
+import { McpWriteTools } from './mcp-write-tools';
+import { registerPrompts } from './mcp-prompts';
+import { mediaTypeSchema } from './mcp-fields';
+import {
+  READ_ONLY,
+  READ_ONLY_EXTERNAL,
+  jsonResult,
+  runTool,
+} from './mcp-tool-result';
 
-const INSTRUCTIONS = `Bookmark is a self-hosted library of audiobooks, ebooks and comics. These tools only read; nothing here changes the library.
+const INSTRUCTIONS = `Bookmark is a self-hosted library of audiobooks, ebooks and comics.
 
 Comics have two levels: a series (one ComicVine volume, ideally named "Title (Start year)") and its issues. For comics, find_items lists series; get_series lists a series' issues with their file paths; get_item and view_item take an issue id (view_item also takes a series id).
 
-Folder and file names are often the best clue for a comic with no metadata. Paths are relative to the library root.
+Folder and file names are often the best clue for a comic with no metadata. Paths are relative to the library root. Files on disk are never changed: every fix lives in the database.
 
-Every field in get_item and get_series shows the value the app displays, where it comes from (hand-edit, file, comicvine, hardcover or goodreads), and what the other sources hold. A locked field was set by hand and later syncs will not change it.
+Every field in get_item and get_series shows the value the app displays, where it comes from (hand-edit, file, comicvine, hardcover or goodreads), and what the other sources hold. A locked field was set by hand or by these tools, and later syncs and rescans leave it alone. Every write locks the fields it sets; unlock_field removes a lock.
 
-ComicVine, Hardcover and Goodreads lookups are for admins only.`;
+Whether to keep ComicVine's and the files' data or replace it is the user's choice. Ask if they have not said.
 
-const mediaType = z
-  .enum(['audiobook', 'ebook', 'comic'])
-  .describe('Which library: audiobook, ebook or comic');
+Every write is recorded in the change log as one change set per tool call: list_changes shows it, undo_change reverts it. Merges cannot be undone. move_items, merge_series and the update tools take dryRun: true; show the user the plan before applying a structural change. Nothing here deletes items, series or collections, but a move or merge that empties a series deletes that series; the change log keeps its details.
 
-const READ_ONLY: ToolAnnotations = {
-  readOnlyHint: true,
-  destructiveHint: false,
-  idempotentHint: true,
-  openWorldHint: false,
-};
+Editing needs permission to edit metadata. ComicVine, Hardcover and Goodreads are for admins only.`;
 
-/** Read-only, but asks an outside service whose answers change over time. */
-const READ_ONLY_EXTERNAL: ToolAnnotations = {
-  ...READ_ONLY,
-  openWorldHint: true,
-};
+const mediaType = mediaTypeSchema;
 
 const gapKeyList = (keys: readonly string[]) => keys.join(', ');
 
 /**
- * Builds one MCP server per request, bound to the API key's user.
+ * Builds one MCP server per request, bound to the API key's user. The read
+ * tools are registered here, the write tools by McpWriteTools.
  *
  * The endpoint is stateless, so a server lives for one HTTP request. Building
  * it per request lets every tool close over the caller instead of reading
@@ -63,14 +58,13 @@ const gapKeyList = (keys: readonly string[]) => keys.join(', ');
  */
 @Injectable()
 export class McpServerFactory {
-  private readonly logger = new Logger(McpServerFactory.name);
-
   constructor(
     private readonly library: McpLibraryService,
     private readonly inspect: McpInspectService,
     private readonly view: McpViewService,
     private readonly external: McpExternalService,
     private readonly version: VersionService,
+    private readonly writeTools: McpWriteTools,
   ) {}
 
   create(user: AuthenticatedUser): McpServer {
@@ -87,7 +81,7 @@ export class McpServerFactory {
           'Counts per library and how many items are missing each kind of metadata. Start here. Needs permission to edit metadata.',
         annotations: READ_ONLY,
       },
-      () => this.json(() => this.library.overview(user)),
+      () => jsonResult(() => this.library.overview(user)),
     );
 
     server.registerTool(
@@ -141,7 +135,7 @@ export class McpServerFactory {
         },
         annotations: READ_ONLY,
       },
-      (args) => this.json(() => this.library.findItems(user, args)),
+      (args) => jsonResult(() => this.library.findItems(user, args)),
     );
 
     server.registerTool(
@@ -154,7 +148,7 @@ export class McpServerFactory {
         annotations: READ_ONLY,
       },
       ({ mediaType: type, id }) =>
-        this.json(() => this.inspect.getItem(user, type, id)),
+        jsonResult(() => this.inspect.getItem(user, type, id)),
     );
 
     server.registerTool(
@@ -184,7 +178,7 @@ export class McpServerFactory {
         annotations: READ_ONLY,
       },
       ({ mediaType: type, id, issuesOffset, issuesLimit }) =>
-        this.json(() =>
+        jsonResult(() =>
           this.inspect.getSeries(user, type, id, {
             offset: issuesOffset,
             limit: issuesLimit,
@@ -218,7 +212,7 @@ export class McpServerFactory {
         annotations: READ_ONLY,
       },
       ({ mediaType: type, id, startPage, pages }) =>
-        this.run(async () => {
+        runTool(async () => {
           const result = await this.view.view(user, type, id, {
             startPage,
             pages,
@@ -257,7 +251,7 @@ export class McpServerFactory {
         },
         annotations: READ_ONLY_EXTERNAL,
       },
-      (args) => this.json(() => this.external.search(user, args)),
+      (args) => jsonResult(() => this.external.search(user, args)),
     );
 
     server.registerTool(
@@ -275,39 +269,11 @@ export class McpServerFactory {
         },
         annotations: READ_ONLY_EXTERNAL,
       },
-      (args) => this.json(() => this.external.matchCandidates(user, args)),
+      (args) => jsonResult(() => this.external.matchCandidates(user, args)),
     );
 
+    this.writeTools.register(server, user);
+    registerPrompts(server);
     return server;
   }
-
-  /** Runs a tool and returns its result as compact JSON text. */
-  private json(fn: () => Promise<object>): Promise<CallToolResult> {
-    return this.run(async () => ({
-      content: [{ type: 'text', text: JSON.stringify(await fn()) }],
-    }));
-  }
-
-  /**
-   * Turns failures into tool errors the agent can read. Expected failures
-   * (refused, not found, bad input) keep their message; anything else is
-   * logged and reported without internals such as SQL.
-   */
-  private async run(
-    fn: () => Promise<CallToolResult>,
-  ): Promise<CallToolResult> {
-    try {
-      return await fn();
-    } catch (error) {
-      if (error instanceof HttpException) {
-        return toolError(error.message);
-      }
-      this.logger.error('MCP tool failed', error);
-      return toolError('The tool failed on the server.');
-    }
-  }
-}
-
-function toolError(message: string): CallToolResult {
-  return { content: [{ type: 'text', text: message }], isError: true };
 }

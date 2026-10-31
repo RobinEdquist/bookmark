@@ -1106,6 +1106,30 @@ export class EbooksService {
     return result;
   }
 
+  /**
+   * Remove a field from manualFields, so the configured source order applies
+   * again. The stored value stays until a rescan or sync replaces it.
+   * Returns false if the field was not locked.
+   */
+  async unlockField(id: string, field: string): Promise<boolean> {
+    const [ebook] = await this.db
+      .select({ manualFields: schema.ebooks.manualFields })
+      .from(schema.ebooks)
+      .where(eq(schema.ebooks.id, id))
+      .limit(1);
+    if (!ebook) throw new NotFoundException('Ebook not found');
+
+    const locked = (ebook.manualFields as string[] | null) ?? [];
+    if (!locked.includes(field)) return false;
+    await this.db
+      .update(schema.ebooks)
+      .set({ manualFields: locked.filter((f) => f !== field) })
+      .where(eq(schema.ebooks.id, id));
+
+    this.appEvents.ebookUpdated(id);
+    return true;
+  }
+
   private async updateAuthors(ebookId: string, names: string[]) {
     // Delete existing relations
     await this.db
