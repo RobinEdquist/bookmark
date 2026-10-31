@@ -2,6 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { ReadingListsService } from '../reading-lists/reading-lists.service';
 import {
   MAX_READING_LIST_ITEMS,
+  entryKey,
+  type MissingItem,
+  type ReadingListEntryInput,
   type ReadingListEntryState,
   type ReadingListMediaType,
 } from '../reading-lists/reading-list-order';
@@ -14,13 +17,18 @@ import { CREATED_FIELD, ITEM_ENTITY, type ChangeEntry } from './mcp-fields';
 export const LIST_READING_LISTS_DEFAULT_LIMIT = 25;
 export const GET_READING_LIST_DEFAULT_LIMIT = 200;
 
+/** An entry to add: an item id, or an item the library does not have. */
+export type McpEntryArg = string | MissingItem;
+
 /**
  * Reading lists: list, read, create, add, remove, reorder and set notes.
  * Editing a list's name and description is update_reading_list in
  * McpEditService. Reading lists are never deleted here.
  *
- * Every entry change is logged as the full ordered entry list (item ids and
- * notes) before and after, so undo can put back exactly what was there.
+ * Every entry change is logged as the full ordered entry list (item ids,
+ * missing items and notes) before and after, so undo can put back exactly
+ * what was there. Entries are named by item id, or for a missing item by its
+ * entry id.
  */
 @Injectable()
 export class McpReadingListsService {
@@ -66,6 +74,11 @@ export class McpReadingListsService {
     page: { offset?: number; limit?: number } = {},
   ): Promise<object> {
     const detail = await this.readingLists.findOne(id, user.id);
+    const missing = new Map(
+      (await this.store.readingListEntries(id)).flatMap((s) =>
+        s.missing ? [[s.missing.entryId, s.missing] as const] : [],
+      ),
+    );
     const offset = page.offset ?? 0;
     const limit = page.limit ?? GET_READING_LIST_DEFAULT_LIMIT;
     return {
@@ -75,15 +88,26 @@ export class McpReadingListsService {
       sortName: detail.sortName,
       description: detail.description,
       total: detail.entries.length,
+      missing: detail.missingCount,
       offset,
-      items: detail.entries.slice(offset, offset + limit).map((e) => ({
-        position: e.position,
-        id: e.itemId,
-        title: e.title,
-        ...(e.subtitle ? { subtitle: e.subtitle } : {}),
-        ...(e.seriesId ? { seriesId: e.seriesId } : {}),
-        ...(e.note ? { note: e.note } : {}),
-      })),
+      items: detail.entries.slice(offset, offset + limit).map((e) => {
+        const m = e.missing ? missing.get(e.id) : undefined;
+        return {
+          position: e.position,
+          id: e.id,
+          title: e.title,
+          ...(e.missing ? { missing: true } : {}),
+          ...(m?.comicvineIssueId
+            ? { comicvineIssueId: m.comicvineIssueId }
+            : {}),
+          ...(m?.comicvineVolumeId
+            ? { comicvineVolumeId: m.comicvineVolumeId, number: m.number }
+            : {}),
+          ...(e.subtitle ? { subtitle: e.subtitle } : {}),
+          ...(e.seriesId ? { seriesId: e.seriesId } : {}),
+          ...(e.note ? { note: e.note } : {}),
+        };
+      }),
     };
   }
 
@@ -95,15 +119,16 @@ export class McpReadingListsService {
       sortName?: string | null;
       description?: string | null;
       itemIds?: string[];
+      items?: McpEntryArg[];
     },
   ): Promise<object> {
     await this.access.requireEditMetadata(user);
     const name = args.name.trim();
     if (!name) throw new BadRequestException('name cannot be empty');
-    const itemIds = await this.checkItems(
+    const inputs = await this.checkEntries(
       user,
       args.mediaType,
-      args.itemIds ?? [],
+      entryArgs(args.itemIds, args.items, true),
     );
 
     const { id } = await this.readingLists.create(
@@ -115,7 +140,7 @@ export class McpReadingListsService {
       },
       user.id,
     );
-    if (itemIds.length > 0) await this.readingLists.addItems(id, itemIds);
+    if (inputs.length > 0) await this.readingLists.addEntries(id, inputs);
 
     const entries: ChangeEntry[] = [
       {
@@ -131,31 +156,38 @@ export class McpReadingListsService {
         },
       },
     ];
-    if (itemIds.length > 0) {
-      entries.push(
-        entriesEntry(id, [], await this.store.readingListEntries(id)),
-      );
-    }
+    const added = await this.store.readingListEntries(id);
+    if (added.length > 0) entries.push(entriesEntry(id, [], added));
     const changeSetId = await this.changeLog.record(
       user,
       'create_reading_list',
       entries,
     );
-    return { changeSetId, id, name, items: itemIds.length };
+    return {
+      changeSetId,
+      id,
+      name,
+      items: added.length,
+      missing: added.filter((e) => e.missing).length,
+    };
   }
 
   async addItems(
     user: AuthenticatedUser,
     id: string,
-    itemIds: string[],
+    args: { itemIds?: string[]; items?: McpEntryArg[] },
     options: { position?: number; note?: string | null } = {},
   ): Promise<object> {
     await this.access.requireEditMetadata(user);
     const mediaType = await this.readingLists.mediaTypeOf(id);
+    const wanted = await this.checkEntries(
+      user,
+      mediaType,
+      entryArgs(args.itemIds, args.items, false),
+    );
     const before = await this.store.readingListEntries(id);
-    const wanted = await this.checkItems(user, mediaType, itemIds);
 
-    const result = await this.readingLists.addItems(id, wanted, options);
+    const result = await this.readingLists.addEntries(id, wanted, options);
     return this.recordEntries(user, 'add_to_reading_list', id, before, {
       added: result.added,
       alreadyIn: result.alreadyIn,
@@ -170,7 +202,7 @@ export class McpReadingListsService {
     await this.access.requireEditMetadata(user);
     await this.readingLists.mediaTypeOf(id);
     const before = await this.store.readingListEntries(id);
-    const present = new Set(before.map((e) => e.itemId));
+    const present = new Set(before.map(entryKey));
     const removing = [...new Set(itemIds)].filter((i) => present.has(i));
     if (removing.length === 0) {
       throw new BadRequestException(
@@ -206,7 +238,7 @@ export class McpReadingListsService {
     await this.access.requireEditMetadata(user);
     await this.readingLists.mediaTypeOf(id);
     const before = await this.store.readingListEntries(id);
-    const present = new Set(before.map((e) => e.itemId));
+    const present = new Set(before.map(entryKey));
     const notIn = notes.filter((n) => !present.has(n.itemId));
     if (notIn.length > 0) {
       throw new BadRequestException(
@@ -222,31 +254,39 @@ export class McpReadingListsService {
     });
   }
 
-  /** De-duplicated ids, each an existing item of the type the user may see. */
-  private async checkItems(
+  /**
+   * The entries as service input, after checking that each item id is an
+   * existing item of the list's type that the user may see.
+   */
+  private async checkEntries(
     user: AuthenticatedUser,
     mediaType: ReadingListMediaType,
-    itemIds: string[],
-  ): Promise<string[]> {
-    const ids = [...new Set(itemIds)];
-    if (ids.length > MAX_READING_LIST_ITEMS) {
+    args: McpEntryArg[],
+  ): Promise<ReadingListEntryInput[]> {
+    if (args.length > MAX_READING_LIST_ITEMS) {
       throw new BadRequestException(
         `At most ${MAX_READING_LIST_ITEMS} items at a time`,
       );
     }
+    const ids = [
+      ...new Set(args.filter((a): a is string => typeof a === 'string')),
+    ];
     const missing = await this.readingLists.missingItems(mediaType, ids);
     if (missing.length > 0) {
       throw new BadRequestException(
         `Not ${mediaType === 'comic' ? 'comic issues' : `${mediaType}s`}: ${missing.join(', ')}.` +
           (mediaType === 'comic'
             ? ' Give issue ids (from get_series), not series ids.'
-            : ''),
+            : '') +
+          ' Add an item the library does not have as a missing item.',
       );
     }
     for (const id of ids) {
       await this.store.verifyAccess(user, ITEM_ENTITY[mediaType], id);
     }
-    return ids;
+    return args.map((a) =>
+      typeof a === 'string' ? { itemId: a } : { missing: a },
+    );
   }
 
   private async recordEntries(
@@ -265,6 +305,22 @@ export class McpReadingListsService {
       : null;
     return { changeSetId, id, ...counts, items: after.length };
   }
+}
+
+/** `itemIds` and `items` as one list; one of them must be given. */
+function entryArgs(
+  itemIds: string[] | undefined,
+  items: McpEntryArg[] | undefined,
+  optional: boolean,
+): McpEntryArg[] {
+  if (itemIds && items) {
+    throw new BadRequestException('Give itemIds or items, not both');
+  }
+  const args = itemIds ?? items ?? [];
+  if (args.length === 0 && !optional) {
+    throw new BadRequestException('Give itemIds or items');
+  }
+  return args;
 }
 
 function entriesEntry(

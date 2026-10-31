@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   Inject,
@@ -13,6 +14,8 @@ import {
   exists,
   ilike,
   inArray,
+  isNotNull,
+  isNull,
   ne,
   notExists,
   or,
@@ -28,11 +31,15 @@ import * as usersSchema from '../users/schema';
 import * as comicProgressSchema from '../comic-progress/schema';
 import * as progressSchema from '../progress/schema';
 import * as ebookProgressSchema from '../ebook-progress/schema';
+import * as comicvineSchema from '../comicvine/schema';
 import { CoverService } from '../common/cover.service';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
 import {
+  normalizeIssueNumber,
   orderProblem,
   placeItems,
+  type MissingItem,
+  type ReadingListEntryInput,
   type ReadingListEntryState,
   type ReadingListMediaType,
 } from './reading-list-order';
@@ -54,7 +61,8 @@ type Db = NodePgDatabase<
     typeof usersSchema &
     typeof comicProgressSchema &
     typeof progressSchema &
-    typeof ebookProgressSchema
+    typeof ebookProgressSchema &
+    typeof comicvineSchema
 >;
 
 type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
@@ -72,22 +80,14 @@ interface ListFilters {
 
 const entries = schema.readingListEntries;
 
+/** An entry's key (see entryKey): its item id, or its own id while missing. */
+const ENTRY_KEY = sql<string>`coalesce(${entries.comicBookId}, ${entries.audiobookId}, ${entries.ebookId}, ${entries.id})`;
+
 const ITEM_NAMES: Record<ReadingListMediaType, string> = {
   comic: 'Comic issues',
   audiobook: 'Audiobooks',
   ebook: 'Ebooks',
 };
-
-function itemColumn(mediaType: ReadingListMediaType) {
-  switch (mediaType) {
-    case 'comic':
-      return entries.comicBookId;
-    case 'audiobook':
-      return entries.audiobookId;
-    case 'ebook':
-      return entries.ebookId;
-  }
-}
 
 function itemValues(mediaType: ReadingListMediaType, itemId: string) {
   return {
@@ -101,6 +101,10 @@ function itemValues(mediaType: ReadingListMediaType, itemId: string) {
  * Reading lists: ordered items across series, shared across the library.
  * One list holds one media type. Every structural change rewrites positions
  * so they run 0..n-1 in list order.
+ *
+ * An entry can name an item the library does not have yet. A missing comic
+ * issue becomes the real one once the library has an issue linked to the same
+ * ComicVine issue, or to the same ComicVine volume and number (fillMissing).
  */
 @Injectable()
 export class ReadingListsService {
@@ -198,16 +202,24 @@ export class ReadingListsService {
   /** The list with its entries in order, as `userId` may see them. */
   async findOne(id: string, userId: string): Promise<ReadingListDetailDto> {
     const list = await this.getList(id);
-    const shown = await this.loadEntries(list.mediaType, id, userId);
+    if (list.mediaType === 'comic') await this.fillMissing(id);
+    const [present, missing] = await Promise.all([
+      this.loadEntries(list.mediaType, id, userId),
+      this.missingEntries(id),
+    ]);
+    const shown = [...present, ...missing].sort(
+      (a, b) => a.position - b.position,
+    );
     return {
       id: list.id,
       mediaType: list.mediaType,
       name: list.name,
       sortName: list.sortName,
       description: list.description,
-      coverUrl: shown[0]?.coverUrl ?? null,
+      coverUrl: present[0]?.coverUrl ?? null,
       entries: shown,
       finishedCount: shown.filter((e) => e.readStatus === 'finished').length,
+      missingCount: missing.length,
     };
   }
 
@@ -269,77 +281,133 @@ export class ReadingListsService {
   /** Every entry in order, hidden and blacklisted items included. */
   async entryStates(id: string): Promise<ReadingListEntryState[]> {
     const rows = await this.db
-      .select({
-        comicBookId: entries.comicBookId,
-        audiobookId: entries.audiobookId,
-        ebookId: entries.ebookId,
-        note: entries.note,
-      })
+      .select()
       .from(entries)
       .where(eq(entries.readingListId, id))
       .orderBy(asc(entries.position), asc(entries.id));
-    return rows.map((r) => ({
-      itemId: (r.comicBookId ?? r.audiobookId ?? r.ebookId)!,
-      note: r.note,
-    }));
+    return rows.map((r) => {
+      const itemId = r.comicBookId ?? r.audiobookId ?? r.ebookId;
+      return itemId
+        ? { itemId, note: r.note }
+        : {
+            itemId: null,
+            note: r.note,
+            missing: {
+              entryId: r.id,
+              title: r.missingTitle!,
+              comicvineIssueId: r.comicvineIssueId,
+              comicvineVolumeId: r.comicvineVolumeId,
+              number: r.issueNumber,
+            },
+          };
+    });
   }
 
-  /**
-   * Adds items before `position` (0-based; default at the end), in the order
-   * given. Items already in the list stay where they are.
-   */
-  async addItems(
+  /** addEntries for items in the library only. */
+  addItems(
     id: string,
     itemIds: string[],
     options: { position?: number; note?: string | null } = {},
   ): Promise<ReadingListAddResultDto> {
-    const list = await this.getList(id);
-    const ids = [...new Set(itemIds)];
-    await this.requireItems(list.mediaType, ids);
+    return this.addEntries(
+      id,
+      itemIds.map((itemId) => ({ itemId })),
+      options,
+    );
+  }
 
+  /**
+   * Adds entries before `position` (0-based; default at the end), in the
+   * order given. Items already in the list stay where they are, and so do
+   * missing items it already names.
+   */
+  async addEntries(
+    id: string,
+    inputs: ReadingListEntryInput[],
+    options: { position?: number; note?: string | null } = {},
+  ): Promise<ReadingListAddResultDto> {
+    const list = await this.getList(id);
+    const itemIds = [
+      ...new Set(inputs.flatMap((i) => ('itemId' in i ? [i.itemId] : []))),
+    ];
+    await this.requireItems(list.mediaType, itemIds);
+    const wanted = inputs.flatMap((i) =>
+      'missing' in i ? [checkMissing(list.mediaType, i.missing)] : [],
+    );
+    // A missing issue the library now has becomes the real one first, so
+    // adding that issue finds it in place.
+    if (list.mediaType === 'comic') await this.fillMissing(id);
+
+    const states = await this.entryStates(id);
     const stored = await this.storedPositions(id);
-    const current = [...stored.keys()];
-    const order = placeItems(current, ids, options.position);
-    const fresh = order.filter((itemId) => !stored.has(itemId));
+    const missingNow = states.flatMap((s) => (s.missing ? [s.missing] : []));
+    const newMissing = new Map<string, MissingItem>();
+    const keys: string[] = [];
+    let alreadyIn = 0;
+    for (const input of inputs) {
+      if ('itemId' in input) {
+        if (stored.has(input.itemId) || keys.includes(input.itemId)) {
+          alreadyIn++;
+        } else {
+          keys.push(input.itemId);
+        }
+        continue;
+      }
+      const item = wanted.shift()!;
+      if (
+        [...missingNow, ...newMissing.values()].some((m) =>
+          sameMissing(m, item),
+        )
+      ) {
+        alreadyIn++;
+        continue;
+      }
+      const key = randomUUID();
+      newMissing.set(key, item);
+      keys.push(key);
+    }
+
+    const order = placeItems([...stored.keys()], keys, options.position);
     const note = options.note?.trim() || null;
 
     await this.db.transaction(async (tx) => {
-      if (fresh.length > 0) {
+      if (keys.length > 0) {
         await tx.insert(entries).values(
-          fresh.map((itemId) => ({
-            readingListId: id,
-            position: order.indexOf(itemId),
-            note,
-            ...itemValues(list.mediaType, itemId),
-          })),
+          keys.map((key) => {
+            const missing = newMissing.get(key);
+            return {
+              readingListId: id,
+              position: order.indexOf(key),
+              note,
+              ...(missing
+                ? { id: key, ...missingValues(missing) }
+                : itemValues(list.mediaType, key)),
+            };
+          }),
         );
       }
       await this.writePositions(tx, id, stored, order);
     });
 
-    return {
-      added: fresh.length,
-      alreadyIn: ids.length - fresh.length,
-      entryCount: order.length,
-    };
+    return { added: keys.length, alreadyIn, entryCount: order.length };
   }
 
-  /** Removes items from the list. Returns how many were in it. */
-  async removeItems(id: string, itemIds: string[]): Promise<number> {
-    const list = await this.getList(id);
+  /**
+   * Removes entries, named by item id or, for missing items, entry id.
+   * Returns how many were in the list.
+   */
+  async removeItems(id: string, keys: string[]): Promise<number> {
+    await this.getList(id);
     const stored = await this.storedPositions(id);
-    const removing = new Set(itemIds.filter((i) => stored.has(i)));
+    const removing = new Set(keys.filter((k) => stored.has(k)));
     if (removing.size === 0) return 0;
-    const order = [...stored.keys()].filter((itemId) => !removing.has(itemId));
+    const order = [...stored.keys()].filter((key) => !removing.has(key));
 
     await this.db.transaction(async (tx) => {
       await tx
         .delete(entries)
         .where(
-          and(
-            eq(entries.readingListId, id),
-            inArray(itemColumn(list.mediaType), [...removing]),
-          ),
+          and(eq(entries.readingListId, id), inArray(ENTRY_KEY, [...removing])),
         );
       await this.writePositions(tx, id, stored, order);
     });
@@ -388,16 +456,11 @@ export class ReadingListsService {
     itemId: string,
     note: string | null,
   ): Promise<ReadingListSuccessResponseDto> {
-    const list = await this.getList(id);
+    await this.getList(id);
     const updated = await this.db
       .update(entries)
       .set({ note: note?.trim() || null })
-      .where(
-        and(
-          eq(entries.readingListId, id),
-          eq(itemColumn(list.mediaType), itemId),
-        ),
-      )
+      .where(and(eq(entries.readingListId, id), eq(ENTRY_KEY, itemId)))
       .returning({ id: entries.id });
     if (updated.length === 0) {
       throw new NotFoundException('Not in this reading list');
@@ -408,17 +471,18 @@ export class ReadingListsService {
 
   /**
    * Makes the list hold exactly these entries, in this order, with these
-   * notes. Items that no longer exist are left out. Used by undo.
+   * notes. Items that no longer exist are left out; missing items keep their
+   * entry ids. Used by undo.
    */
   async setEntries(id: string, wanted: ReadingListEntryState[]): Promise<void> {
     const list = await this.getList(id);
-    const missing = new Set(
+    const gone = new Set(
       await this.missingItems(
         list.mediaType,
-        wanted.map((w) => w.itemId),
+        wanted.flatMap((w) => (w.itemId ? [w.itemId] : [])),
       ),
     );
-    const kept = wanted.filter((w) => !missing.has(w.itemId));
+    const kept = wanted.filter((w) => !w.itemId || !gone.has(w.itemId));
     await this.db.transaction(async (tx) => {
       await tx.delete(entries).where(eq(entries.readingListId, id));
       if (kept.length > 0) {
@@ -427,12 +491,83 @@ export class ReadingListsService {
             readingListId: id,
             position,
             note: w.note,
-            ...itemValues(list.mediaType, w.itemId),
+            ...(w.itemId
+              ? itemValues(list.mediaType, w.itemId)
+              : { id: w.missing!.entryId, ...missingValues(w.missing!) }),
           })),
         );
       }
       await this.touch(tx, id);
     });
+  }
+
+  /**
+   * Turns missing comic issues the library now has into the real issues: by
+   * ComicVine issue, or by ComicVine volume and number. A missing issue whose
+   * match is already in the list is dropped. Returns how many changed.
+   */
+  async fillMissing(id: string): Promise<number> {
+    const waiting = await this.db
+      .select({
+        id: entries.id,
+        comicvineIssueId: entries.comicvineIssueId,
+        comicvineVolumeId: entries.comicvineVolumeId,
+        number: entries.issueNumber,
+      })
+      .from(entries)
+      .where(
+        and(
+          eq(entries.readingListId, id),
+          isNotNull(entries.missingTitle),
+          or(
+            isNotNull(entries.comicvineIssueId),
+            and(
+              isNotNull(entries.comicvineVolumeId),
+              isNotNull(entries.issueNumber),
+            ),
+          ),
+        ),
+      );
+    if (waiting.length === 0) return 0;
+
+    const matches = await this.findComicMatches(waiting);
+    if (matches.size === 0) return 0;
+    const inList = new Set(
+      (
+        await this.db
+          .select({ id: entries.comicBookId })
+          .from(entries)
+          .where(
+            and(eq(entries.readingListId, id), isNotNull(entries.comicBookId)),
+          )
+      ).map((r) => r.id),
+    );
+
+    await this.db.transaction(async (tx) => {
+      for (const [entryId, bookId] of matches) {
+        if (inList.has(bookId)) {
+          await tx.delete(entries).where(eq(entries.id, entryId));
+        } else {
+          inList.add(bookId);
+          await tx
+            .update(entries)
+            .set({
+              comicBookId: bookId,
+              missingTitle: null,
+              comicvineIssueId: null,
+              comicvineVolumeId: null,
+              issueNumber: null,
+            })
+            .where(eq(entries.id, entryId));
+        }
+      }
+    });
+    if (matches.size > 0) {
+      // Deleting duplicates leaves gaps; close them.
+      const stored = await this.storedPositions(id);
+      await this.writePositions(this.db, id, stored, [...stored.keys()]);
+    }
+    return matches.size;
   }
 
   /** The list's media type, or NotFound. */
@@ -484,24 +619,157 @@ export class ReadingListsService {
     );
   }
 
-  /** Each item's stored position, in list order. */
+  /** Each entry's stored position by key, in list order. */
   private async storedPositions(id: string): Promise<Map<string, number>> {
     const rows = await this.db
-      .select({
-        comicBookId: entries.comicBookId,
-        audiobookId: entries.audiobookId,
-        ebookId: entries.ebookId,
-        position: entries.position,
-      })
+      .select({ key: ENTRY_KEY, position: entries.position })
       .from(entries)
       .where(eq(entries.readingListId, id))
       .orderBy(asc(entries.position), asc(entries.id));
-    return new Map(
-      rows.map((r) => [
-        (r.comicBookId ?? r.audiobookId ?? r.ebookId)!,
-        r.position,
-      ]),
+    return new Map(rows.map((r) => [r.key, r.position]));
+  }
+
+  /** For each waiting entry id, a library issue that matches it. */
+  private async findComicMatches(
+    waiting: {
+      id: string;
+      comicvineIssueId: number | null;
+      comicvineVolumeId: number | null;
+      number: string | null;
+    }[],
+  ): Promise<Map<string, string>> {
+    const c = comicsSchema;
+    const cv = comicvineSchema;
+    const issueIds = waiting.flatMap((w) =>
+      w.comicvineIssueId ? [w.comicvineIssueId] : [],
     );
+    const volumeIds = waiting.flatMap((w) =>
+      w.comicvineVolumeId && w.number ? [w.comicvineVolumeId] : [],
+    );
+    // Single issues before collected editions, then the oldest import.
+    const preference = [
+      sql`(${c.comicBooks.format} = 'single_issue') DESC`,
+      asc(c.comicBooks.createdAt),
+    ];
+
+    const [byIssue, byVolume] = await Promise.all([
+      issueIds.length === 0
+        ? Promise.resolve([])
+        : this.db
+            .select({
+              comicvineIssueId: cv.comicvineIssues.comicvineIssueId,
+              bookId: c.comicBooks.id,
+            })
+            .from(cv.comicvineIssueLinks)
+            .innerJoin(
+              cv.comicvineIssues,
+              eq(
+                cv.comicvineIssueLinks.comicvineIssueRowId,
+                cv.comicvineIssues.id,
+              ),
+            )
+            .innerJoin(
+              c.comicBooks,
+              eq(cv.comicvineIssueLinks.bookId, c.comicBooks.id),
+            )
+            .where(
+              and(
+                inArray(cv.comicvineIssues.comicvineIssueId, issueIds),
+                ne(c.comicBooks.status, 'hidden'),
+              ),
+            )
+            .orderBy(...preference),
+      volumeIds.length === 0
+        ? Promise.resolve([])
+        : this.db
+            .select({
+              comicvineVolumeId: cv.comicvineVolumes.comicvineVolumeId,
+              number: sql<
+                string | null
+              >`coalesce(${c.comicBooks.number}, ${cv.comicvineIssues.issueNumber})`,
+              bookId: c.comicBooks.id,
+            })
+            .from(cv.comicvineVolumeLinks)
+            .innerJoin(
+              cv.comicvineVolumes,
+              eq(
+                cv.comicvineVolumeLinks.comicvineVolumeRowId,
+                cv.comicvineVolumes.id,
+              ),
+            )
+            .innerJoin(
+              c.comicBooks,
+              eq(c.comicBooks.seriesId, cv.comicvineVolumeLinks.seriesId),
+            )
+            .leftJoin(
+              cv.comicvineIssueLinks,
+              eq(cv.comicvineIssueLinks.bookId, c.comicBooks.id),
+            )
+            .leftJoin(
+              cv.comicvineIssues,
+              eq(
+                cv.comicvineIssueLinks.comicvineIssueRowId,
+                cv.comicvineIssues.id,
+              ),
+            )
+            .where(
+              and(
+                inArray(cv.comicvineVolumes.comicvineVolumeId, volumeIds),
+                ne(c.comicBooks.status, 'hidden'),
+              ),
+            )
+            .orderBy(...preference),
+    ]);
+
+    const issueBook = new Map<number, string>();
+    for (const row of byIssue) {
+      if (!issueBook.has(row.comicvineIssueId)) {
+        issueBook.set(row.comicvineIssueId, row.bookId);
+      }
+    }
+    const volumeBook = new Map<string, string>();
+    for (const row of byVolume) {
+      if (!row.number) continue;
+      const key = `${row.comicvineVolumeId}#${normalizeIssueNumber(row.number)}`;
+      if (!volumeBook.has(key)) volumeBook.set(key, row.bookId);
+    }
+
+    const matches = new Map<string, string>();
+    for (const w of waiting) {
+      const bookId =
+        (w.comicvineIssueId && issueBook.get(w.comicvineIssueId)) ||
+        (w.comicvineVolumeId && w.number
+          ? volumeBook.get(
+              `${w.comicvineVolumeId}#${normalizeIssueNumber(w.number)}`,
+            )
+          : undefined);
+      if (bookId) matches.set(w.id, bookId);
+    }
+    return matches;
+  }
+
+  /** Missing entries in display form. */
+  private async missingEntries(id: string): Promise<ReadingListEntryDto[]> {
+    const rows = await this.db
+      .select()
+      .from(entries)
+      .where(
+        and(eq(entries.readingListId, id), isNotNull(entries.missingTitle)),
+      );
+    return rows.map((r) => ({
+      id: r.id,
+      itemId: null,
+      missing: true,
+      position: r.position,
+      note: r.note,
+      title: r.missingTitle!,
+      subtitle: null,
+      coverUrl: null,
+      seriesId: null,
+      seriesTitle: null,
+      number: r.issueNumber,
+      readStatus: 'unread' as const,
+    }));
   }
 
   /**
@@ -532,7 +800,7 @@ export class ReadingListsService {
         UPDATE ${entries} SET position = v.position
         FROM (VALUES ${values}) AS v(item_id, position)
         WHERE ${entries.readingListId} = ${id}
-          AND coalesce(${entries.comicBookId}, ${entries.audiobookId}, ${entries.ebookId}) = v.item_id`);
+          AND ${ENTRY_KEY} = v.item_id`);
     }
     await this.touch(tx, id);
   }
@@ -552,7 +820,9 @@ export class ReadingListsService {
         ebookId: entries.ebookId,
       })
       .from(entries)
-      .where(eq(entries.readingListId, listId))
+      .where(
+        and(eq(entries.readingListId, listId), isNull(entries.missingTitle)),
+      )
       .orderBy(asc(entries.position))
       .limit(1);
     if (!first) return null;
@@ -657,7 +927,9 @@ export class ReadingListsService {
       const number = book ? book.number : r.number;
       const issueTitle = book ? book.title : r.title;
       return {
+        id: r.itemId,
         itemId: r.itemId,
+        missing: false,
         position: r.position,
         note: r.note,
         title: number ? `${seriesTitle} #${number}` : seriesTitle,
@@ -835,7 +1107,9 @@ function bookEntry(
 ): ReadingListEntryDto {
   const authors = resolved?.authorNames ?? [];
   return {
+    id: row.itemId,
     itemId: row.itemId,
+    missing: false,
     position: row.position,
     note: row.note,
     title: resolved?.title ?? row.title,
@@ -846,4 +1120,46 @@ function bookEntry(
     number: null,
     readStatus,
   };
+}
+
+/** A missing item as given, trimmed; ComicVine ids only on comic lists. */
+function checkMissing(
+  mediaType: ReadingListMediaType,
+  item: MissingItem,
+): MissingItem {
+  const title = item.title.trim();
+  if (!title) throw new BadRequestException('A missing item needs a title');
+  const hasComicvine = item.comicvineIssueId || item.comicvineVolumeId;
+  if (hasComicvine && mediaType !== 'comic') {
+    throw new BadRequestException('ComicVine ids are for comic reading lists');
+  }
+  return {
+    title,
+    comicvineIssueId: item.comicvineIssueId ?? null,
+    comicvineVolumeId: item.comicvineVolumeId ?? null,
+    number: item.number?.trim() || null,
+  };
+}
+
+function missingValues(item: MissingItem) {
+  return {
+    missingTitle: item.title,
+    comicvineIssueId: item.comicvineIssueId ?? null,
+    comicvineVolumeId: item.comicvineVolumeId ?? null,
+    issueNumber: item.number ?? null,
+  };
+}
+
+/** Whether two missing items name the same issue or book. */
+function sameMissing(a: MissingItem, b: MissingItem): boolean {
+  if (a.comicvineIssueId && b.comicvineIssueId) {
+    return a.comicvineIssueId === b.comicvineIssueId;
+  }
+  if (a.comicvineVolumeId && b.comicvineVolumeId && a.number && b.number) {
+    return (
+      a.comicvineVolumeId === b.comicvineVolumeId &&
+      normalizeIssueNumber(a.number) === normalizeIssueNumber(b.number)
+    );
+  }
+  return a.title.trim().toLowerCase() === b.title.trim().toLowerCase();
 }

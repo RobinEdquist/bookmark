@@ -24,6 +24,7 @@ import * as comicProgressSchema from '../comic-progress/schema';
 import * as readingListsSchema from '../reading-lists/schema';
 import { ComicProgressService } from '../comic-progress/comic-progress.service';
 import { MetadataResolverService } from '../common/metadata-resolver.service';
+import { ReadingListsService } from '../reading-lists/reading-lists.service';
 
 type Db = NodePgDatabase<
   typeof schema &
@@ -59,6 +60,7 @@ export class ComicsOpdsService {
     @Inject(DATABASE_CONNECTION) private readonly db: Db,
     private readonly progressService: ComicProgressService,
     private readonly metadataResolver: MetadataResolverService,
+    private readonly readingLists: ReadingListsService,
   ) {}
 
   private escapeXml(str: string): string {
@@ -659,6 +661,8 @@ ${entry('recent', 'Recently Added', 'acquisition', 'Newest issues')}
       .where(and(eq(lists.id, readingListId), eq(lists.mediaType, 'comic')))
       .limit(1);
     if (!list) throw new NotFoundException('Reading list not found');
+    // Missing issues the library now has join the feed; the rest are left out.
+    await this.readingLists.fillMissing(readingListId);
 
     const books = (await this.db
       .select(this.issueColumns())

@@ -176,7 +176,7 @@ All marked `readOnlyHint`.
 | `list_collections`     | Collections with series counts                      | n/a                                           | n/a                            | Signed in               |
 | `get_collection`       | A collection's series, in order                     | n/a                                           | n/a                            | Signed in               |
 | `list_reading_lists`   | Reading lists, by name or an item they hold         | Same                                          | Same                           | Signed in               |
-| `get_reading_list`     | Issues in order: "Series #n", note                  | Books in order: title, authors, note          | Same as audiobooks             | Signed in               |
+| `get_reading_list`     | Issues in order: "Series #n", note, missing ones    | Books in order: title, authors, note          | Same as audiobooks             | Signed in               |
 | `list_changes`         | The change log, by record, user or change set       | Same                                          | Same                           | Edit metadata           |
 
 Every tool also applies the user's tag blacklist: blacklisted items are left out of lists and
@@ -192,28 +192,28 @@ Every write repeats the guard of its REST route and goes through the same servic
 fields and fires the same events as an edit in the web app. Hints: "overwrites" tools are marked
 `destructiveHint`, "adds" tools are not.
 
-| Tool                       | Comics                                                    | Audiobooks and ebooks                         | Dry run | Hint       | Needs         |
-| -------------------------- | --------------------------------------------------------- | --------------------------------------------- | ------- | ---------- | ------------- |
-| `link_external`            | Series to a ComicVine volume, issues queued; or one issue | Hardcover (by id and search query), Goodreads | No      | Overwrites | Admin         |
-| `update_item`              | Issue fields, credits; one or up to 50                    | Fields, authors, narrators, genres            | Yes     | Overwrites | Edit metadata |
-| `update_series`            | Series fields, genres, tags; one or up to 50              | Series name                                   | Yes     | Overwrites | Edit metadata |
-| `unlock_field`             | Series and issue fields                                   | Fields                                        | No      | Overwrites | Edit metadata |
-| `set_main_characters`      | One to three per series                                   | n/a                                           | No      | Overwrites | Edit metadata |
-| `create_series`            | Empty series                                              | n/a                                           | No      | Adds       | Edit metadata |
-| `move_items`               | Issues to another series                                  | n/a                                           | Yes     | Overwrites | Edit metadata |
-| `merge_series`             | Series into a target                                      | n/a                                           | Yes     | Overwrites | Edit metadata |
-| `create_collection`        | With its first series                                     | n/a                                           | No      | Adds       | Edit metadata |
-| `update_collection`        | Name, sort name, description                              | n/a                                           | Yes     | Overwrites | Edit metadata |
-| `add_to_collection`        | Series at the end                                         | n/a                                           | No      | Adds       | Edit metadata |
-| `remove_from_collection`   | Series out                                                | n/a                                           | No      | Overwrites | Edit metadata |
-| `reorder_collection`       | The full order                                            | n/a                                           | No      | Overwrites | Edit metadata |
-| `create_reading_list`      | With its first issues                                     | With its first books                          | No      | Adds       | Edit metadata |
-| `update_reading_list`      | Name, sort name, description                              | Same                                          | Yes     | Overwrites | Edit metadata |
-| `add_to_reading_list`      | Issues at a place or the end, with a note                 | Books, same                                   | No      | Adds       | Edit metadata |
-| `remove_from_reading_list` | Issues out                                                | Books out                                     | No      | Overwrites | Edit metadata |
-| `reorder_reading_list`     | The full order                                            | Same                                          | No      | Overwrites | Edit metadata |
-| `set_reading_list_notes`   | A short note per item, e.g. "Tie-in"                      | Same                                          | No      | Overwrites | Edit metadata |
-| `undo_change`              | One change set                                            | Same                                          | Yes     | Overwrites | Edit metadata |
+| Tool                       | Comics                                                      | Audiobooks and ebooks                         | Dry run | Hint       | Needs         |
+| -------------------------- | ----------------------------------------------------------- | --------------------------------------------- | ------- | ---------- | ------------- |
+| `link_external`            | Series to a ComicVine volume, issues queued; or one issue   | Hardcover (by id and search query), Goodreads | No      | Overwrites | Admin         |
+| `update_item`              | Issue fields, credits; one or up to 50                      | Fields, authors, narrators, genres            | Yes     | Overwrites | Edit metadata |
+| `update_series`            | Series fields, genres, tags; one or up to 50                | Series name                                   | Yes     | Overwrites | Edit metadata |
+| `unlock_field`             | Series and issue fields                                     | Fields                                        | No      | Overwrites | Edit metadata |
+| `set_main_characters`      | One to three per series                                     | n/a                                           | No      | Overwrites | Edit metadata |
+| `create_series`            | Empty series                                                | n/a                                           | No      | Adds       | Edit metadata |
+| `move_items`               | Issues to another series                                    | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `merge_series`             | Series into a target                                        | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `create_collection`        | With its first series                                       | n/a                                           | No      | Adds       | Edit metadata |
+| `update_collection`        | Name, sort name, description                                | n/a                                           | Yes     | Overwrites | Edit metadata |
+| `add_to_collection`        | Series at the end                                           | n/a                                           | No      | Adds       | Edit metadata |
+| `remove_from_collection`   | Series out                                                  | n/a                                           | No      | Overwrites | Edit metadata |
+| `reorder_collection`       | The full order                                              | n/a                                           | No      | Overwrites | Edit metadata |
+| `create_reading_list`      | With its first issues, missing ones included                | With its first books                          | No      | Adds       | Edit metadata |
+| `update_reading_list`      | Name, sort name, description                                | Same                                          | Yes     | Overwrites | Edit metadata |
+| `add_to_reading_list`      | Issues or missing issues at a place or the end, with a note | Books, same                                   | No      | Adds       | Edit metadata |
+| `remove_from_reading_list` | Issues out                                                  | Books out                                     | No      | Overwrites | Edit metadata |
+| `reorder_reading_list`     | The full order                                              | Same                                          | No      | Overwrites | Edit metadata |
+| `set_reading_list_notes`   | A short note per item, e.g. "Tie-in"                        | Same                                          | No      | Overwrites | Edit metadata |
+| `undo_change`              | One change set                                              | Same                                          | Yes     | Overwrites | Edit metadata |
 
 Notes:
 
@@ -234,6 +234,11 @@ Notes:
 - **Reading lists** belong to one library and hold its items: comic issues (not series),
   audiobooks or ebooks. Positions are 0-based places in the whole list, which can hold items a
   user has blacklisted; `get_reading_list` leaves those out, `reorder_reading_list` needs them.
+- **Missing items.** A reading list can name an item the library does not have yet, so an
+  event's full order can be written down now. A missing comic issue with a ComicVine issue id,
+  or a ComicVine volume id and number, becomes the real issue once the library has an issue
+  linked to them; this happens when the list is next read (web, MCP or OPDS). Missing items
+  show greyed on the web page and are left out of OPDS. The tools name them by entry id.
 
 #### Prompts
 

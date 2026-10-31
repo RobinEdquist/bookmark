@@ -20,6 +20,8 @@
   "remove": "Remove from list",
   "removed": "Removed from list",
   "listEmpty": "No issues yet",
+  "notInLibrary": "Not in library",
+  "missingCount": "{count} not in library",
   "finished": "Read",
   "inProgress": "Reading",
   "belongsTo": "Reading lists",

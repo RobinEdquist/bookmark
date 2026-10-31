@@ -11,6 +11,7 @@ import { LibraryWatcherModule } from '../library-watcher/library-watcher.module'
 import { AppSettingsModule } from '../app-settings/app-settings.module';
 import { ApiKeysModule } from '../api-keys/api-keys.module';
 import { ComicProgressModule } from '../comic-progress/comic-progress.module';
+import { ReadingListsModule } from '../reading-lists/reading-lists.module';
 import { CanEditMetadataGuard } from '../common/guards/can-edit-metadata.guard';
 import { CanDeleteGuard } from '../common/guards/can-delete.guard';
 
@@ -21,6 +22,7 @@ import { CanDeleteGuard } from '../common/guards/can-delete.guard';
     ApiKeysModule,
     AuthModule,
     ComicProgressModule,
+    ReadingListsModule,
   ],
   controllers: [ComicsOpdsController, ComicsController],
   providers: [

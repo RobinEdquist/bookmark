@@ -33,6 +33,7 @@ describe('ComicsOpdsService', () => {
       db as never,
       progressService,
       createMetadataResolver(),
+      { fillMissing: jest.fn() } as never,
     );
   }
 
@@ -233,6 +234,7 @@ describe('ComicsOpdsService', () => {
     });
 
     it('lists issues in list order, named by series and number', async () => {
+      const readingLists = { fillMissing: jest.fn() };
       const select = queuedSelect([
         [{ id: 'list-1', name: 'Civil War' }],
         [
@@ -249,6 +251,7 @@ describe('ComicsOpdsService', () => {
           's-1': { title: 'Civil War (2006)' },
           's-2': { title: 'Wolverine (2003)' },
         }),
+        readingLists as never,
       );
 
       const xml = await service.buildReadingListFeed(BASE, 'list-1', 'user-1');
@@ -261,6 +264,7 @@ describe('ComicsOpdsService', () => {
       expect(first).toBeGreaterThan(-1);
       expect(second).toBeGreaterThan(first);
       expect(xml).toContain(`href="${BASE}/reading-lists"`);
+      expect(readingLists.fillMissing).toHaveBeenCalledWith('list-1');
     });
 
     it('refuses a list that is not a comic list', async () => {
@@ -268,6 +272,7 @@ describe('ComicsOpdsService', () => {
         { select: queuedSelect([[]]) } as never,
         { getProgress: jest.fn() } as never,
         createMetadataResolver(),
+        { fillMissing: jest.fn() } as never,
       );
 
       await expect(

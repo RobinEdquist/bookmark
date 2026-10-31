@@ -8,10 +8,49 @@ export type ReadingListMediaType = (typeof READING_LIST_MEDIA_TYPES)[number];
 /** How many items one call may add or order. */
 export const MAX_READING_LIST_ITEMS = 1000;
 
+/** An issue or book the library does not have yet. */
+export interface MissingItem {
+  title: string;
+  /** Comics: the issue on ComicVine. */
+  comicvineIssueId?: number | null;
+  /** Comics: the volume on ComicVine, with `number`. */
+  comicvineVolumeId?: number | null;
+  number?: string | null;
+}
+
+/** What to add to a list: an item in the library, or a missing one. */
+export type ReadingListEntryInput =
+  { itemId: string } | { missing: MissingItem };
+
 /** One entry as undo and the change log store it. */
 export interface ReadingListEntryState {
-  itemId: string;
+  /** Null while the item is missing from the library. */
+  itemId: string | null;
   note: string | null;
+  /** Set while missing: the entry's own id and what it names. */
+  missing?: {
+    entryId: string;
+    title: string;
+    comicvineIssueId: number | null;
+    comicvineVolumeId: number | null;
+    number: string | null;
+  };
+}
+
+/**
+ * How an entry is named in moves, removals and notes: its item id, or for a
+ * missing item the entry's own id.
+ */
+export function entryKey(state: ReadingListEntryState): string {
+  return state.itemId ?? state.missing!.entryId;
+}
+
+/** "007" and "7" are the same issue; case and spaces do not count. */
+export function normalizeIssueNumber(number: string): string {
+  return number
+    .trim()
+    .toLowerCase()
+    .replace(/^0+(?=\d)/, '');
 }
 
 /**

@@ -54,7 +54,10 @@ export const readingLists = pgTable(
 
 /**
  * One item in a reading list. Exactly one item column is set, matching the
- * list's media type. An item is in a list at most once. Positions run 0..n-1.
+ * list's media type, or none and `missingTitle` is: an issue or book the
+ * library does not have yet. A missing comic issue names its ComicVine issue,
+ * or its volume and number, and becomes the real issue once the library has
+ * one linked to them. An item is in a list at most once. Positions run 0..n-1.
  */
 export const readingListEntries = pgTable(
   'reading_list_entries',
@@ -75,6 +78,11 @@ export const readingListEntries = pgTable(
     }),
     // A short label such as "Core" or "Tie-in".
     note: text('note'),
+    // Set only while the item is not in the library.
+    missingTitle: text('missing_title'),
+    comicvineIssueId: integer('comicvine_issue_id'),
+    comicvineVolumeId: integer('comicvine_volume_id'),
+    issueNumber: text('issue_number'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
@@ -97,9 +105,15 @@ export const readingListEntries = pgTable(
       table.readingListId,
       table.ebookId,
     ),
+    index('reading_list_entries_comicvine_issue_id_idx').on(
+      table.comicvineIssueId,
+    ),
+    index('reading_list_entries_comicvine_volume_id_idx').on(
+      table.comicvineVolumeId,
+    ),
     check(
       'reading_list_entries_one_item',
-      sql`num_nonnulls(${table.comicBookId}, ${table.audiobookId}, ${table.ebookId}) = 1`,
+      sql`num_nonnulls(${table.comicBookId}, ${table.audiobookId}, ${table.ebookId}, ${table.missingTitle}) = 1`,
     ),
   ],
 );
