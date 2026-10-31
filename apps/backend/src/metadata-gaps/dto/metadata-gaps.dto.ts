@@ -11,25 +11,30 @@ import {
 } from 'class-validator';
 import {
   AUDIOBOOK_GAP_KEYS,
+  COMIC_GAP_KEYS,
   EBOOK_GAP_KEYS,
   type GapCategory,
   type GapKey,
 } from '../gap-definitions';
 
-export const GAP_MEDIA_TYPES = ['audiobook', 'ebook'] as const;
+export const GAP_MEDIA_TYPES = ['audiobook', 'ebook', 'comic'] as const;
 export type GapMediaType = (typeof GAP_MEDIA_TYPES)[number];
 
 export const GAP_SORTS = ['newest', 'oldest', 'title', 'mostGaps'] as const;
 export type GapSort = (typeof GAP_SORTS)[number];
 
 const ALL_GAP_KEYS: readonly string[] = [
-  ...new Set<string>([...AUDIOBOOK_GAP_KEYS, ...EBOOK_GAP_KEYS]),
+  ...new Set<string>([
+    ...AUDIOBOOK_GAP_KEYS,
+    ...EBOOK_GAP_KEYS,
+    ...COMIC_GAP_KEYS,
+  ]),
 ];
 
 export class ListMetadataGapsQueryDto {
   @ApiProperty({
     enum: GAP_MEDIA_TYPES,
-    description: 'Which library to inspect',
+    description: 'Which library to inspect. For comics the items are series.',
   })
   @IsIn(GAP_MEDIA_TYPES)
   type!: GapMediaType;
@@ -96,7 +101,10 @@ export class MetadataGapsSummaryQueryDto {
 }
 
 export class MetadataGapItemDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
+  @ApiProperty({
+    example: '550e8400-e29b-41d4-a716-446655440000',
+    description: 'Item id; for comics, the series id',
+  })
   id!: string;
 
   @ApiProperty({ enum: GAP_MEDIA_TYPES, example: 'audiobook' })
@@ -181,7 +189,7 @@ export class MetadataGapsSummaryDto {
 
   @ApiProperty({
     example: 1234,
-    description: 'Items considered, excluding hidden ones',
+    description: 'Items considered, excluding hidden ones. For comics, series.',
   })
   totalItems!: number;
 

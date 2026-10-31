@@ -22,14 +22,19 @@ describe('ComicPageService', () => {
     pageCount: 3,
     container: 'cbz',
   };
+  // The stored path, which a crafted backup import can set to anything.
+  let storedPath: string;
 
   const dbSelect = () => ({
     from: () => ({
-      where: () => ({ limit: () => Promise.resolve([book]) }),
+      where: () => ({
+        limit: () => Promise.resolve([{ ...book, filePath: storedPath }]),
+      }),
     }),
   });
 
   beforeEach(async () => {
+    storedPath = book.filePath;
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'comic-page-svc-'));
     provider = {
       extractPage: jest.fn().mockResolvedValue({
@@ -111,6 +116,20 @@ describe('ComicPageService', () => {
     const result = await service.getPageImage('book-1', 0, {});
     expect(result.pageCount).toBe(3);
   });
+
+  it.each([
+    ['climbs out with ..', '../outside/book.cbz'],
+    ['is absolute', '/etc/passwd'],
+  ])(
+    'refuses a stored path that %s without opening it',
+    async (_label, filePath) => {
+      storedPath = filePath;
+      await expect(service.getPageImage('book-1', 0, {})).rejects.toThrow(
+        new NotFoundException('Comic file not found'),
+      );
+      expect(provider.extractPage).not.toHaveBeenCalled();
+    },
+  );
 
   it('throws NotFound when the book does not exist', async () => {
     const emptySelect = () => ({

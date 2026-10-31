@@ -3,7 +3,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "./query-keys";
 
-export type GapMediaType = "audiobook" | "ebook";
+/** For comics, each worklist item is a series, not a single issue. */
+export type GapMediaType = "audiobook" | "ebook" | "comic";
 
 /**
  * What kind of data the gap is. The chips group by this — see the backend's

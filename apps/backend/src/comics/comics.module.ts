@@ -32,6 +32,6 @@ import { CanDeleteGuard } from '../common/guards/can-delete.guard';
     CanEditMetadataGuard,
     CanDeleteGuard,
   ],
-  exports: [ComicsService, ComicsCollectionsService],
+  exports: [ComicsService, ComicsCollectionsService, ComicPageService],
 })
 export class ComicsModule {}

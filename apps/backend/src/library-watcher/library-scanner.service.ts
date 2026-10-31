@@ -5,6 +5,7 @@ import { asc, eq, or, sql } from 'drizzle-orm';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import pLimit from 'p-limit';
+import { tryResolveContainedPath } from '../common/utils/path-containment.util';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
@@ -126,13 +127,12 @@ export class LibraryScannerService {
           .where(eq(audiobooksSchema.audiobookFiles.audiobookId, audiobook.id))
           .limit(1);
         if (file) {
-          exists = await this.pathExists(path.join(libraryPath, file.filePath));
+          exists = await this.existsInLibrary(libraryPath, file.filePath);
         } else {
           exists = false;
         }
       } else {
-        const absolutePath = path.join(libraryPath, audiobook.filePath);
-        exists = await this.pathExists(absolutePath);
+        exists = await this.existsInLibrary(libraryPath, audiobook.filePath);
       }
 
       if (audiobook.status === 'hidden') {
@@ -294,8 +294,7 @@ export class LibraryScannerService {
         currentFile: ebook.filePath,
       });
 
-      const absolutePath = path.join(libraryPath, ebook.filePath);
-      const exists = await this.pathExists(absolutePath);
+      const exists = await this.existsInLibrary(libraryPath, ebook.filePath);
 
       if (ebook.status === 'hidden') {
         if (!exists) {
@@ -411,9 +410,7 @@ export class LibraryScannerService {
         currentFile: book.filePath,
       });
 
-      const exists = await this.pathExists(
-        path.join(libraryPath, book.filePath),
-      );
+      const exists = await this.existsInLibrary(libraryPath, book.filePath);
 
       if (book.status === 'hidden') {
         if (!exists) {
@@ -453,9 +450,7 @@ export class LibraryScannerService {
       // Virtual/merged series have no backing folder; they can't be "missing
       // on disk", so skip the filesystem existence sweep for them.
       if (series.folderPath === null) continue;
-      const exists = await this.pathExists(
-        path.join(libraryPath, series.folderPath),
-      );
+      const exists = await this.existsInLibrary(libraryPath, series.folderPath);
 
       if (!exists) {
         if (series.status === 'hidden') {
@@ -636,7 +631,7 @@ export class LibraryScannerService {
     libraryPath: string,
   ): Promise<string | null> {
     if (audiobook.filePath !== '') {
-      return path.join(libraryPath, audiobook.filePath);
+      return this.inLibrary(libraryPath, audiobook.filePath);
     }
 
     // Root-level single file: the row only knows its file name
@@ -645,7 +640,7 @@ export class LibraryScannerService {
       .from(audiobooksSchema.audiobookFiles)
       .where(eq(audiobooksSchema.audiobookFiles.audiobookId, audiobook.id))
       .limit(1);
-    return file ? path.join(libraryPath, file.filePath) : null;
+    return file ? this.inLibrary(libraryPath, file.filePath) : null;
   }
 
   // ===== PATH REMOVAL HANDLING =====
@@ -879,6 +874,27 @@ export class LibraryScannerService {
     }
 
     return { added, errors };
+  }
+
+  /**
+   * Absolute path for a stored relative one, or null when it would leave the
+   * library. Stored paths can be polluted by a crafted backup import, and a
+   * path outside the library is not something this library has.
+   */
+  private inLibrary(libraryPath: string, stored: string): string | null {
+    const resolved = tryResolveContainedPath(libraryPath, stored);
+    if (!resolved) {
+      this.logger.warn(`Ignoring a stored path outside the library: ${stored}`);
+    }
+    return resolved;
+  }
+
+  private async existsInLibrary(
+    libraryPath: string,
+    stored: string,
+  ): Promise<boolean> {
+    const resolved = this.inLibrary(libraryPath, stored);
+    return resolved ? this.pathExists(resolved) : false;
   }
 
   private async pathExists(filePath: string): Promise<boolean> {

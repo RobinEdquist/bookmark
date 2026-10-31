@@ -100,7 +100,8 @@
     "description": "Hitta objekt i biblioteket som saknar metadata och fyll i den.",
     "tabs": {
       "audiobooks": "Ljudböcker",
-      "ebooks": "E-böcker"
+      "ebooks": "E-böcker",
+      "comics": "Serier"
     },
     "summary": "{withGaps} av {total} objekt saknar metadata",
     "categories": {
@@ -122,7 +123,12 @@
       "isbn": "ISBN",
       "pageCount": "Antal sidor",
       "hardcoverLink": "Hardcover-matchning",
-      "goodreadsLink": "Goodreads-matchning"
+      "goodreadsLink": "Goodreads-matchning",
+      "mainCharacters": "Huvudkaraktärer",
+      "startYear": "Startår",
+      "issueNumbers": "Numrering",
+      "issueCoverDates": "Omslagsdatum",
+      "comicvineLink": "ComicVine-matchning"
     },
     "match": {
       "any": "Något",
@@ -144,6 +150,7 @@
       "edit": "Redigera",
       "linkHardcover": "Länka Hardcover...",
       "linkGoodreads": "Länka Goodreads...",
+      "linkComicvine": "Länka ComicVine...",
       "importChapters": "Importera kapitel från Audible...",
       "open": "Öppna objekt"
     },

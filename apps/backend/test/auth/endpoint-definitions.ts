@@ -460,6 +460,16 @@ export const authGuardEndpoints: ControllerEndpoints[] = [
     controller: 'Version',
     endpoints: [{ method: 'GET', path: '/version', expectedStatus: 401 }],
   },
+  {
+    // Signed-in users only, and only with an API key; each tool then repeats
+    // the guard of its REST equivalent (see test/mcp/mcp.e2e-spec.ts).
+    controller: 'MCP',
+    endpoints: [
+      { method: 'POST', path: '/mcp', expectedStatus: 401, body: {} },
+      { method: 'GET', path: '/mcp', expectedStatus: 401 },
+      { method: 'DELETE', path: '/mcp', expectedStatus: 401 },
+    ],
+  },
 ];
 
 /**

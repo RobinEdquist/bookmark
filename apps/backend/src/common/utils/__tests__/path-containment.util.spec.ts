@@ -1,7 +1,23 @@
 import {
   resolveContainedPath,
   isSafeRelativePath,
+  tryResolveContainedPath,
 } from '../path-containment.util';
+
+describe('tryResolveContainedPath', () => {
+  it('resolves a path inside the root', () => {
+    expect(tryResolveContainedPath('/data/library', 'Series/1.cbz')).toBe(
+      '/data/library/Series/1.cbz',
+    );
+  });
+
+  it.each(['../outside.cbz', 'Series/../../outside.cbz', '/etc/passwd', ''])(
+    'returns null instead of throwing for %j',
+    (value) => {
+      expect(tryResolveContainedPath('/data/library', value)).toBeNull();
+    },
+  );
+});
 
 describe('resolveContainedPath', () => {
   it('resolves a plain relative path inside the root', () => {

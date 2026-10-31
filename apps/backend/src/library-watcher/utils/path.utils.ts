@@ -1,4 +1,5 @@
 import * as path from 'path';
+import { resolveContainedPath } from '../../common/utils/path-containment.util';
 import { AudiobookUnit, EbookUnit } from '../media-detector.service';
 
 export interface AudiobookPathResult {
@@ -92,6 +93,10 @@ export function calculateEbookPath(
  *   `path.join(libraryPath, '', filename)` -> `{libraryPath}/{filename}`
  * - Subdirectory files: Normal path joining
  *
+ * Both stored parts can be polluted by a crafted backup import, so the result
+ * must stay inside the library root; a path that would leave it throws (see
+ * resolveContainedPath).
+ *
  * @param libraryPath - Absolute path to audiobook library root
  * @param audiobookFilePath - Relative folder path from audiobook record (may be empty)
  * @param fileFilePath - Filename from audiobookFiles record
@@ -102,5 +107,8 @@ export function resolveAudiobookFilePath(
   audiobookFilePath: string,
   fileFilePath: string,
 ): string {
-  return path.join(libraryPath, audiobookFilePath, fileFilePath);
+  return resolveContainedPath(
+    libraryPath,
+    path.join(audiobookFilePath, fileFilePath),
+  );
 }

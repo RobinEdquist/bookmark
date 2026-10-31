@@ -21,6 +21,8 @@ import {
 } from "@repo/ui/components/ui/select";
 import { ChapterImportDialog } from "../chapters/chapter-import-dialog";
 import { EditAudiobookDialog } from "../audiobooks/edit-audiobook-dialog";
+import { EditComicSeriesDialog } from "../comics/edit-comic-series-dialog";
+import { ComicvineMatchDialog } from "../comicvine/comicvine-match-dialog";
 import { EditEbookDialog } from "../ebooks/edit-ebook-dialog";
 import { GoodreadsSearchDialog } from "../goodreads/goodreads-search-dialog";
 import { HardcoverSyncDialog } from "../hardcover/hardcover-sync-dialog";
@@ -37,6 +39,9 @@ import {
   type MetadataGapItem,
 } from "../../lib/use-metadata-gaps";
 import { useAudiobook, type AudiobookListItem } from "../../lib/use-audiobooks";
+import { useComicvineStatus } from "../../lib/use-comicvine";
+import { useMyPermissions } from "../../lib/use-users";
+import type { ComicSeriesListItem } from "../../lib/use-comics";
 import type { EbookListItem } from "../../lib/use-ebooks";
 
 const PAGE_SIZE = 50;
@@ -86,6 +91,34 @@ function toEbookListItem(item: MetadataGapItem): EbookListItem {
     goodreadsRatingsCount: null,
   };
 }
+
+/**
+ * A comic gap item is a series. It must not carry a `description` key: that is
+ * how the edit dialog tells a list item from a full record, and only a list
+ * item makes it fetch the series itself.
+ */
+function toComicSeriesListItem(item: MetadataGapItem): ComicSeriesListItem {
+  return {
+    id: item.id,
+    title: item.title,
+    publisher: null,
+    startYear: null,
+    status: item.status as ComicSeriesListItem["status"],
+    bookCount: 0,
+    totalIssueCount: null,
+    coverUrl: item.coverUrl,
+    createdAt: item.createdAt,
+    comicvineLinked: !item.gaps.includes("comicvineLink"),
+    mainCharacters: [],
+  };
+}
+
+/** A comic series lives at `/comics/[id]`; there is no `/comics/series` route. */
+const DETAIL_PATHS: Record<GapMediaType, string> = {
+  audiobook: "/audiobooks",
+  ebook: "/ebooks",
+  comic: "/comics",
+};
 
 interface MetadataGapsPanelProps {
   type: GapMediaType;
@@ -180,6 +213,17 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
     useState<MetadataGapItem | null>(null);
   const [importingChapters, setImportingChapters] =
     useState<MetadataGapItem | null>(null);
+  const [linkingComicvine, setLinkingComicvine] =
+    useState<MetadataGapItem | null>(null);
+
+  // ComicVine linking is admin-only in the API, unlike the rest of this page,
+  // which only needs the metadata permission. Same gate as the series page.
+  const { data: permissions } = useMyPermissions();
+  const isAdmin = permissions?.isAdmin ?? false;
+  const { isConfigured: isComicvineConfigured } = useComicvineStatus(
+    type === "comic" && isAdmin,
+  );
+  const canLinkComicvine = type === "comic" && isAdmin && isComicvineConfigured;
 
   const { data: summary, isLoading: summaryLoading } =
     useMetadataGapsSummary(type);
@@ -237,6 +281,13 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
 
   const invalidateGaps = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.metadataGaps.all });
+  };
+
+  const handleEditOpenChange = (open: boolean) => {
+    if (!open) {
+      setEditing(null);
+      invalidateGaps();
+    }
   };
 
   // Every control that changes what is being asked for restarts paging:
@@ -373,16 +424,19 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
             <MetadataGapsTable
               items={items}
               gapCounts={summary?.gaps ?? []}
-              detailHref={(item) =>
-                type === "audiobook"
-                  ? `/audiobooks/${item.id}`
-                  : `/ebooks/${item.id}`
-              }
+              detailHref={(item) => `${DETAIL_PATHS[type]}/${item.id}`}
               onEdit={setEditing}
-              onLinkHardcover={setLinkingHardcover}
-              onLinkGoodreads={setLinkingGoodreads}
+              onLinkHardcover={
+                type === "comic" ? undefined : setLinkingHardcover
+              }
+              onLinkGoodreads={
+                type === "comic" ? undefined : setLinkingGoodreads
+              }
               onImportChapters={
                 type === "audiobook" ? setImportingChapters : undefined
+              }
+              onLinkComicvine={
+                canLinkComicvine ? setLinkingComicvine : undefined
               }
             />
           </div>
@@ -415,35 +469,50 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
         </div>
       )}
 
-      {type === "audiobook" ? (
+      {type === "audiobook" && (
         <EditAudiobookDialog
           audiobook={editing ? toAudiobookListItem(editing) : null}
           open={editing !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setEditing(null);
-              invalidateGaps();
-            }
-          }}
+          onOpenChange={handleEditOpenChange}
           audiobookIds={itemIds}
           onNavigate={navigateTo}
         />
-      ) : (
+      )}
+
+      {type === "ebook" && (
         <EditEbookDialog
           ebook={editing ? toEbookListItem(editing) : null}
           open={editing !== null}
-          onOpenChange={(open) => {
-            if (!open) {
-              setEditing(null);
-              invalidateGaps();
-            }
-          }}
+          onOpenChange={handleEditOpenChange}
           ebookIds={itemIds}
           onNavigate={navigateTo}
         />
       )}
 
-      {linkingHardcover && (
+      {type === "comic" && (
+        <EditComicSeriesDialog
+          series={editing ? toComicSeriesListItem(editing) : null}
+          open={editing !== null}
+          onOpenChange={handleEditOpenChange}
+          seriesIds={itemIds}
+          onNavigate={navigateTo}
+        />
+      )}
+
+      {linkingComicvine && canLinkComicvine && (
+        <ComicvineMatchDialog
+          level="series"
+          entityId={linkingComicvine.id}
+          entityTitle={linkingComicvine.title}
+          open
+          onOpenChange={(open) => {
+            if (!open) setLinkingComicvine(null);
+          }}
+          onSuccess={invalidateGaps}
+        />
+      )}
+
+      {linkingHardcover && type !== "comic" && (
         <HardcoverSyncDialog
           mediaType={type}
           mediaId={linkingHardcover.id}
@@ -464,7 +533,7 @@ export function MetadataGapsPanel({ type }: MetadataGapsPanelProps) {
         />
       )}
 
-      {linkingGoodreads && (
+      {linkingGoodreads && type !== "comic" && (
         <GoodreadsSearchDialog
           mediaType={type}
           mediaId={linkingGoodreads.id}

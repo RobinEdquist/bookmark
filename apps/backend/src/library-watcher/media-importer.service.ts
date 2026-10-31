@@ -3,6 +3,7 @@ import { Inject, Injectable, Logger, forwardRef } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { eq, inArray, sql, and } from 'drizzle-orm';
 import * as path from 'path';
+import { tryResolveContainedPath } from '../common/utils/path-containment.util';
 import * as fs from 'fs/promises';
 import { DATABASE_CONNECTION } from '../database/database-connection.constants';
 import * as audiobooksSchema from '../audiobooks/schema';
@@ -1725,7 +1726,15 @@ export class MediaImporterService {
       this.logger.error('[RESCAN] No comic library path configured');
       return false;
     }
-    const absolutePath = path.join(libraryPath, book.filePath);
+    // The stored path can be polluted by a crafted backup import; never read
+    // a file outside the library.
+    const absolutePath = tryResolveContainedPath(libraryPath, book.filePath);
+    if (!absolutePath) {
+      this.logger.warn(
+        `[RESCAN] Comic book ${bookId} has a path outside the library: ${book.filePath}`,
+      );
+      return false;
+    }
 
     let metadata: Awaited<
       ReturnType<typeof this.comicMetadataProvider.extractMetadata>

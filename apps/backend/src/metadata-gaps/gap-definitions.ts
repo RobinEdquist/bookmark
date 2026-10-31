@@ -1,6 +1,8 @@
 import {
   and,
   eq,
+  exists,
+  ne,
   notExists,
   sql,
   type SQL,
@@ -9,11 +11,14 @@ import {
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core';
 import type {
+  ComicMetadataFieldPriority,
   MetadataFieldPriority,
   MetadataSource,
 } from '../app-settings/schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
+import * as comicsSchema from '../comics/schema';
+import * as comicvineSchema from '../comicvine/schema';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
 
@@ -79,7 +84,26 @@ export const EBOOK_GAP_KEYS = [
 
 export type EbookGapKey = (typeof EBOOK_GAP_KEYS)[number];
 
-export type GapKey = AudiobookGapKey | EbookGapKey;
+/**
+ * Comic gaps are about the *series*: that is where ComicVine links, where the
+ * description and publisher live, and what the comics grid shows. The two
+ * `issue*` keys roll the issues up — a series has the gap when any of its
+ * visible issues does — so the worklist stays one row per series.
+ */
+export const COMIC_GAP_KEYS = [
+  'cover',
+  'description',
+  'mainCharacters',
+  'publisher',
+  'startYear',
+  'issueNumbers',
+  'issueCoverDates',
+  'comicvineLink',
+] as const;
+
+export type ComicGapKey = (typeof COMIC_GAP_KEYS)[number];
+
+export type GapKey = AudiobookGapKey | EbookGapKey | ComicGapKey;
 
 /**
  * What kind of data the gap is, which is how the worklist groups its chips.
@@ -133,6 +157,17 @@ export const EBOOK_GAP_CATEGORIES: Record<EbookGapKey, GapCategory> = {
   goodreadsLink: 'matches',
 };
 
+export const COMIC_GAP_CATEGORIES: Record<ComicGapKey, GapCategory> = {
+  cover: 'essentials',
+  description: 'essentials',
+  mainCharacters: 'essentials',
+  publisher: 'publication',
+  startYear: 'publication',
+  issueNumbers: 'publication',
+  issueCoverDates: 'publication',
+  comicvineLink: 'matches',
+};
+
 /**
  * Which fields an external *source* can fill is still worth recording, because
  * it decides whether a gap condition may consult that source at all. Verified
@@ -161,6 +196,8 @@ export const EBOOK_GAP_CATEGORIES: Record<EbookGapKey, GapCategory> = {
 export type GapDatabase = NodePgDatabase<
   typeof audiobooksSchema &
     typeof ebooksSchema &
+    typeof comicsSchema &
+    typeof comicvineSchema &
     typeof hardcoverSchema &
     typeof goodreadsSchema
 >;
@@ -192,7 +229,7 @@ function jsonArrayPresent(column: AnyPgColumn): SQL<boolean> {
  * `SQL<unknown>`. Narrowing it here keeps every gap condition typed as the
  * boolean it is, so the list query can select them straight into flags.
  */
-function noRowMatches(subquery: SQLWrapper): SQL<boolean> {
+export function noRowMatches(subquery: SQLWrapper): SQL<boolean> {
   return notExists(subquery) as SQL<boolean>;
 }
 
@@ -445,6 +482,156 @@ export function buildEbookGapConditions(
         .select({ one: sql`1` })
         .from(goodreadsSchema.goodreadsEbookLinks)
         .where(eq(goodreadsSchema.goodreadsEbookLinks.ebookId, ebooks.id)),
+    ),
+  };
+}
+
+/**
+ * Comic series gaps, resolved through the comic metadata priority the same way
+ * `ComicsService.getSeriesById` resolves what the series page shows.
+ *
+ * ComicVine sync never writes into the series or book columns: it fills the
+ * `comicvine_volumes` / `comicvine_issues` cache and the resolver reads those
+ * through the link tables. So a field is present when the column has a value
+ * (file or hand-edit, which share the column) or, if the field's priority
+ * consults ComicVine, the linked volume or issue has one.
+ */
+export function buildComicGapConditions(
+  db: GapDatabase,
+  priority: ComicMetadataFieldPriority,
+): Record<ComicGapKey, SQL<boolean>> {
+  const { comicSeries, comicBooks } = comicsSchema;
+  const {
+    comicvineVolumeLinks,
+    comicvineVolumes,
+    comicvineIssueLinks,
+    comicvineIssues,
+  } = comicvineSchema;
+
+  const uses = (
+    field: keyof ComicMetadataFieldPriority,
+    source: MetadataSource,
+  ): boolean => priority[field]?.includes(source) ?? false;
+
+  /** TRUE when the linked ComicVine volume does not satisfy `present`. */
+  const volumeLacks = (present: SQL<boolean>): SQL<boolean> =>
+    noRowMatches(
+      db
+        .select({ one: sql`1` })
+        .from(comicvineVolumeLinks)
+        .innerJoin(
+          comicvineVolumes,
+          eq(comicvineVolumeLinks.comicvineVolumeRowId, comicvineVolumes.id),
+        )
+        .where(and(eq(comicvineVolumeLinks.seriesId, comicSeries.id), present)),
+    );
+
+  /**
+   * TRUE when the linked ComicVine issue does not satisfy `present`. Only
+   * meaningful inside a subquery over `comic_books`, which it correlates on.
+   */
+  const issueLacks = (present: SQL<boolean>): SQL<boolean> =>
+    noRowMatches(
+      db
+        .select({ one: sql`1` })
+        .from(comicvineIssueLinks)
+        .innerJoin(
+          comicvineIssues,
+          eq(comicvineIssueLinks.comicvineIssueRowId, comicvineIssues.id),
+        )
+        .where(and(eq(comicvineIssueLinks.bookId, comicBooks.id), present)),
+    );
+
+  /** TRUE when some visible issue of the series satisfies `missing`. */
+  const anyIssue = (missing: SQL<boolean>): SQL<boolean> =>
+    exists(
+      db
+        .select({ one: sql`1` })
+        .from(comicBooks)
+        .where(
+          and(
+            eq(comicBooks.seriesId, comicSeries.id),
+            ne(comicBooks.status, 'hidden'),
+            missing,
+          ),
+        ),
+    ) as SQL<boolean>;
+
+  const description: SQL<boolean>[] = [textEmpty(comicSeries.description)];
+  if (uses('description', 'comicvine')) {
+    description.push(volumeLacks(textPresent(comicvineVolumes.description)));
+  }
+
+  const publisher: SQL<boolean>[] = [textEmpty(comicSeries.publisher)];
+  if (uses('publisher', 'comicvine')) {
+    publisher.push(volumeLacks(textPresent(comicvineVolumes.publisherName)));
+  }
+
+  const startYear: SQL<boolean>[] = [
+    sql<boolean>`${comicSeries.startYear} IS NULL`,
+  ];
+  if (uses('startYear', 'comicvine')) {
+    startYear.push(
+      volumeLacks(sql<boolean>`${comicvineVolumes.startYear} IS NOT NULL`),
+    );
+  }
+
+  const issueNumber: SQL<boolean>[] = [textEmpty(comicBooks.number)];
+  if (uses('bookNumber', 'comicvine')) {
+    issueNumber.push(issueLacks(textPresent(comicvineIssues.issueNumber)));
+  }
+
+  const issueCoverDate: SQL<boolean>[] = [
+    sql<boolean>`${comicBooks.coverDate} IS NULL`,
+  ];
+  if (uses('coverDate', 'comicvine')) {
+    issueCoverDate.push(
+      issueLacks(sql<boolean>`${comicvineIssues.coverDate} IS NOT NULL`),
+    );
+  }
+
+  return {
+    // The series page falls back to the first issue with a cover, so a series
+    // without its own cover only has the gap when no visible issue has one
+    // either (same rule as ComicsService.fallbackBookCovers).
+    cover: sql<boolean>`(${comicSeries.coverUrl} IS NULL AND ${comicSeries.coverSource} IS NULL AND ${noRowMatches(
+      db
+        .select({ one: sql`1` })
+        .from(comicBooks)
+        .where(
+          and(
+            eq(comicBooks.seriesId, comicSeries.id),
+            ne(comicBooks.status, 'hidden'),
+            sql`${comicBooks.coverSource} IS NOT NULL`,
+          ),
+        ),
+    )})`,
+    description: allEmpty(description),
+    // Set by hand or by the agent, never derived from issue tags.
+    mainCharacters: noRowMatches(
+      db
+        .select({ one: sql`1` })
+        .from(comicsSchema.comicSeriesMainCharacters)
+        .where(
+          eq(comicsSchema.comicSeriesMainCharacters.seriesId, comicSeries.id),
+        ),
+    ),
+    publisher: allEmpty(publisher),
+    startYear: allEmpty(startYear),
+    // One-shots, graphic novels and collected editions often carry no number,
+    // and that is not a gap; only issues in a numbered run need one.
+    issueNumbers: anyIssue(
+      allEmpty([
+        sql<boolean>`${comicBooks.format} IN ('single_issue', 'annual')`,
+        ...issueNumber,
+      ]),
+    ),
+    issueCoverDates: anyIssue(allEmpty(issueCoverDate)),
+    comicvineLink: noRowMatches(
+      db
+        .select({ one: sql`1` })
+        .from(comicvineVolumeLinks)
+        .where(eq(comicvineVolumeLinks.seriesId, comicSeries.id)),
     ),
   };
 }

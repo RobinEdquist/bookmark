@@ -14,7 +14,7 @@ import { MetadataGapsPanel } from "../../../components/metadata-gaps/metadata-ga
 import { useMyPermissions } from "../../../lib/use-users";
 import { useUrlTab } from "../../../lib/use-url-tab";
 
-const VALID_TABS = ["audiobooks", "ebooks"] as const;
+const VALID_TABS = ["audiobooks", "ebooks", "comics"] as const;
 type TabValue = (typeof VALID_TABS)[number];
 
 export default function MetadataGapsPage() {
@@ -61,6 +61,7 @@ export default function MetadataGapsPage() {
           <TabsList className="h-auto flex-wrap justify-start">
             <TabsTrigger value="audiobooks">{t("tabs.audiobooks")}</TabsTrigger>
             <TabsTrigger value="ebooks">{t("tabs.ebooks")}</TabsTrigger>
+            <TabsTrigger value="comics">{t("tabs.comics")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="audiobooks">
@@ -69,6 +70,10 @@ export default function MetadataGapsPage() {
 
           <TabsContent value="ebooks">
             <MetadataGapsPanel type="ebook" />
+          </TabsContent>
+
+          <TabsContent value="comics">
+            <MetadataGapsPanel type="comic" />
           </TabsContent>
         </Tabs>
       </div>
