@@ -20,6 +20,7 @@ import {
   useUnlinkSeries,
   useUnlinkBook,
 } from "../../lib/use-comicvine";
+import { htmlToText } from "../../lib/html-to-text";
 import { safeHttpUrl } from "../../lib/safe-url";
 import { useComicBook, useUpdateComicBook } from "../../lib/use-comics";
 import type { ComicCreatorRole } from "../../lib/use-comics";
@@ -93,6 +94,9 @@ function ComicvineSeriesLinkCard({ entityId }: { entityId: string }) {
     return null;
   }
 
+  // ComicVine descriptions are HTML; the card only has room for a text preview.
+  const description = link.description ? htmlToText(link.description) : "";
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
@@ -152,9 +156,9 @@ function ComicvineSeriesLinkCard({ entityId }: { entityId: string }) {
               )}
             </div>
 
-            {link.description && (
+            {description && (
               <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
-                {link.description}
+                {description}
               </p>
             )}
           </div>
@@ -262,6 +266,9 @@ function ComicvineBookLinkCard({ entityId }: { entityId: string }) {
     return null;
   }
 
+  // ComicVine descriptions are HTML; the card only has room for a text preview.
+  const description = link.description ? htmlToText(link.description) : "";
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="pb-3">
@@ -311,9 +318,9 @@ function ComicvineBookLinkCard({ entityId }: { entityId: string }) {
                 {link.coverDate}
               </p>
             )}
-            {link.description && (
+            {description && (
               <p className="text-sm text-muted-foreground mt-2 line-clamp-3">
-                {link.description}
+                {description}
               </p>
             )}
           </div>
