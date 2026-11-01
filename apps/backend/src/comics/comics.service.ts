@@ -28,6 +28,7 @@ import * as schema from './schema';
 import * as audiobooksSchema from '../audiobooks/schema';
 import * as usersSchema from '../users/schema';
 import * as comicvineSchema from '../comicvine/schema';
+import { absoluteComicvineLinks } from '../comicvine/utils/description-links';
 import { AppSettingsService } from '../app-settings/app-settings.service';
 import { DEFAULT_COMIC_METADATA_PRIORITY } from '../app-settings/schema';
 import { resolveFieldByPriority } from '../common/utils/metadata-priority.utils';
@@ -641,7 +642,7 @@ export class ComicsService {
         {
           manual: series.description,
           embedded: series.description,
-          comicvine: volume?.description,
+          comicvine: absoluteComicvineLinks(volume?.description),
         },
         comicPriority.description,
         mf,
@@ -859,7 +860,7 @@ export class ComicsService {
         {
           manual: book.summary,
           embedded: book.summary,
-          comicvine: issue?.description,
+          comicvine: absoluteComicvineLinks(issue?.description),
         },
         comicPriority.bookSummary,
         mf,

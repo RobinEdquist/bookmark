@@ -626,6 +626,35 @@ describe('ComicsService.getSeriesById — metadata merge', () => {
     expect(result.description).toBe('CV Desc');
   });
 
+  it('points links in a ComicVine description at ComicVine', async () => {
+    const seriesRow = {
+      ...baseSeriesRow,
+      description: null,
+      manualFields: [],
+    };
+    const volumeRows = [
+      {
+        volume: {
+          comicvineVolumeId: 1,
+          name: 'CV Series',
+          description:
+            '<p>See <a href="/just-the-tips/4050-78556/">Just the Tips</a>.</p>',
+          publisherName: null,
+          startYear: null,
+          siteDetailUrl: null,
+          imageUrl: null,
+        },
+      },
+    ];
+
+    const { service } = buildServiceForMergeTest({ seriesRow, volumeRows });
+    const result = await service.getSeriesById('series-1', 'user-1');
+
+    expect(result.description).toBe(
+      '<p>See <a href="https://comicvine.gamespot.com/just-the-tips/4050-78556/">Just the Tips</a>.</p>',
+    );
+  });
+
   it('unlinked series returns stored values unchanged and comicvine.linked === false', async () => {
     const seriesRow = {
       ...baseSeriesRow,
@@ -1011,6 +1040,36 @@ describe('ComicsService.getBookById — metadata merge', () => {
     const result = await service.getBookById('book-1', 'user-1');
 
     expect(result.summary).toBe('CV Summary text');
+  });
+
+  it('points links in a ComicVine issue summary at ComicVine', async () => {
+    const bookRow = {
+      ...baseBookRow,
+      summary: null,
+      manualFields: [],
+    };
+    const issueRows = [
+      {
+        issue: {
+          comicvineIssueId: 101,
+          issueNumber: '1',
+          name: null,
+          coverDate: null,
+          description:
+            '<p>By <a href="//www.comicvine.com/matt-fraction/4040-42266/">Matt Fraction</a>.</p>',
+          siteDetailUrl: null,
+          imageUrl: null,
+          personCredits: [],
+        },
+      },
+    ];
+
+    const { service } = buildServiceForMergeTest({ bookRow, issueRows });
+    const result = await service.getBookById('book-1', 'user-1');
+
+    expect(result.summary).toBe(
+      '<p>By <a href="https://www.comicvine.com/matt-fraction/4040-42266/">Matt Fraction</a>.</p>',
+    );
   });
 
   it('unlinked book returns stored values and comicvine.linked === false', async () => {

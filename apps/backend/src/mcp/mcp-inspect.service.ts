@@ -17,6 +17,7 @@ import * as audiobooksSchema from '../audiobooks/schema';
 import * as ebooksSchema from '../ebooks/schema';
 import * as comicsSchema from '../comics/schema';
 import * as comicvineSchema from '../comicvine/schema';
+import { absoluteComicvineLinks } from '../comicvine/utils/description-links';
 import * as hardcoverSchema from '../hardcover/schema';
 import * as goodreadsSchema from '../gr-finder/schema';
 import * as usersSchema from '../users/schema';
@@ -170,7 +171,7 @@ export class McpInspectService {
           {
             manual: series.description,
             embedded: series.description,
-            comicvine: cv(volume?.description),
+            comicvine: cv(absoluteComicvineLinks(volume?.description)),
           },
           priority.description,
           mf,
@@ -329,7 +330,7 @@ export class McpInspectService {
           {
             manual: book.summary,
             embedded: book.summary,
-            comicvine: cv(issue?.description),
+            comicvine: cv(absoluteComicvineLinks(issue?.description)),
           },
           priority.bookSummary,
           mf,
