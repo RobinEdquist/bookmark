@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import DOMPurify from "dompurify";
 import {
   ArrowLeft,
   ChevronLeft,
@@ -59,6 +58,7 @@ import { toast } from "sonner";
 import { useComicvineStatus } from "../../../../lib/use-comicvine";
 import { ComicvineMatchDialog } from "../../../../components/comicvine/comicvine-match-dialog";
 import { ComicvineLinkCard } from "../../../../components/comicvine/comicvine-link-card";
+import { ComicDescription } from "../../../../components/comics/comic-description";
 import { DetailHeaderActions } from "../../../../components/layout/detail-header-actions";
 import type {
   ComicCreatorRole,
@@ -122,11 +122,6 @@ export default function ComicSeriesDetailPage({
   const description = series?.description;
   const creators = series?.creators;
 
-  const sanitizedDescription = useMemo(
-    () => (description ? DOMPurify.sanitize(description) : ""),
-    [description],
-  );
-
   const descriptionOverflows =
     descriptionFullHeight !== null &&
     descriptionFullHeight > COLLAPSED_DESCRIPTION_HEIGHT;
@@ -135,7 +130,7 @@ export default function ComicSeriesDetailPage({
     const el = descriptionRef.current;
     if (!el) return;
     setDescriptionFullHeight(el.scrollHeight);
-  }, [sanitizedDescription]);
+  }, [description]);
 
   // Group creators by role for the aggregated creators block
   const creatorsByRole = useMemo(() => {
@@ -568,9 +563,10 @@ export default function ComicSeriesDetailPage({
                 <h3 className="mb-2 font-semibold">
                   {t("detail.description")}
                 </h3>
-                <div
+                <ComicDescription
                   ref={descriptionRef}
-                  className="overflow-hidden text-sm leading-relaxed text-muted-foreground transition-[max-height] duration-300 ease-in-out [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_em]:italic [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4"
+                  html={series.description}
+                  className="overflow-hidden transition-[max-height] duration-300 ease-in-out"
                   style={{
                     maxHeight: descriptionExpanded
                       ? (descriptionFullHeight ?? 9999)
@@ -580,7 +576,6 @@ export default function ComicSeriesDetailPage({
                         ? "linear-gradient(to bottom, black calc(100% - 4rem), transparent)"
                         : undefined,
                   }}
-                  dangerouslySetInnerHTML={{ __html: sanitizedDescription }}
                 />
                 {descriptionOverflows && (
                   <Button

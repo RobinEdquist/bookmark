@@ -6,7 +6,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
-import DOMPurify from "dompurify";
 import {
   ArrowLeft,
   Pencil,
@@ -30,6 +29,7 @@ import { useMyPermissions } from "../../../../../../lib/use-users";
 import { useComicvineStatus } from "../../../../../../lib/use-comicvine";
 import { ComicvineMatchDialog } from "../../../../../../components/comicvine/comicvine-match-dialog";
 import { ComicvineLinkCard } from "../../../../../../components/comicvine/comicvine-link-card";
+import { ComicDescription } from "../../../../../../components/comics/comic-description";
 import { formatFileSize } from "../../../../../../lib/format-file-size";
 import { formatDesignation } from "../../../../../../components/comics/comic-book-list";
 import { EditComicBookDialog } from "../../../../../../components/comics/edit-comic-book-dialog";
@@ -69,18 +69,11 @@ export default function ComicBookDetailPage({
 
   const seriesId = data?.series.id ?? id;
 
-  // These two fields are read out of `data` before the memos rather than inside
-  // them. Mixing `data?.summary` with `data.summary` in one callback makes the
-  // compiler widen the inferred dependency to `data` itself, which stops
-  // matching the declared dep list and costs the component its optimisation.
-  const summary = data?.summary;
+  // Read out of `data` before the memo rather than inside it. Mixing
+  // `data?.creators` with `data.creators` in one callback makes the compiler
+  // widen the inferred dependency to `data` itself, which stops matching the
+  // declared dep list and costs the component its optimisation.
   const creators = data?.creators;
-
-  // Sanitize summary if it contains HTML
-  const sanitizedSummary = useMemo(() => {
-    if (!summary) return "";
-    return DOMPurify.sanitize(summary);
-  }, [summary]);
 
   // Group creators by role, preserving order within each role
   const creatorsByRole = useMemo(() => {
@@ -502,17 +495,7 @@ export default function ComicBookDetailPage({
             {data.summary && (
               <div>
                 <h3 className="mb-2 font-semibold">{t("book.summary")}</h3>
-                {sanitizedSummary !== data.summary ? (
-                  // Contains HTML — render sanitized
-                  <div
-                    className="text-sm leading-relaxed text-muted-foreground [&_blockquote]:my-2 [&_blockquote]:border-l-2 [&_blockquote]:border-muted-foreground [&_blockquote]:pl-4 [&_blockquote]:italic [&_em]:italic [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-4 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-4"
-                    dangerouslySetInnerHTML={{ __html: sanitizedSummary }}
-                  />
-                ) : (
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {data.summary}
-                  </p>
-                )}
+                <ComicDescription html={data.summary} />
               </div>
             )}
           </div>
