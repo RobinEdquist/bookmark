@@ -54,7 +54,7 @@
     "drizzle-orm": "^0.45.2",
     "epub2": "^3.0.2",
     "express": "^5.2.1",
-    "fast-xml-parser": "^5.11.1",
+    "fast-xml-parser": "^5.12.0",
     "graphql": "^17.0.2",
     "graphql-request": "^7.4.0",
     "mediainfo.js": "^0.3.8",
